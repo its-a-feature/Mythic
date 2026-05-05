@@ -238,6 +238,16 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                     },
                 },
             },
+            MuiDialogContentText: {
+                styleOverrides: {
+                    root: {
+                        color: textSecondary,
+                        fontSize: "0.88rem",
+                        lineHeight: 1.45,
+                        margin: "0 0 10px",
+                    },
+                },
+            },
             MuiDialogActions: {
                 styleOverrides: {
                     root: {
@@ -291,6 +301,28 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         "&.Mui-focused": {
                             color: primary,
                         },
+                    },
+                },
+            },
+            MuiFormControlLabel: {
+                styleOverrides: {
+                    root: {
+                        marginLeft: 0,
+                        marginRight: 0,
+                    },
+                    label: {
+                        color: textPrimary,
+                        fontSize: "0.86rem",
+                    },
+                },
+            },
+            MuiFormHelperText: {
+                styleOverrides: {
+                    root: {
+                        color: textSecondary,
+                        fontSize: "0.74rem",
+                        lineHeight: 1.35,
+                        marginLeft: 0,
                     },
                 },
             },
@@ -363,7 +395,10 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                 styleOverrides: {
                     root: {
                         backgroundColor: backgroundPaper,
+                        border: `1px solid ${borderColor}`,
                         borderRadius: 6,
+                        minHeight: 0,
+                        overflow: "auto",
                     },
                 },
             },
@@ -373,6 +408,16 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         backgroundColor: backgroundPaper,
                         borderCollapse: "separate",
                         borderSpacing: 0,
+                        width: "100%",
+                    },
+                },
+            },
+            MuiTableHead: {
+                styleOverrides: {
+                    root: {
+                        "& .MuiTableRow-root": {
+                            backgroundColor: tableHeaderColor,
+                        },
                     },
                 },
             },
@@ -381,10 +426,17 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                     root: {
                         borderBottom: `1px solid ${tableBorderSoft}`,
                         color: textPrimary,
+                        fontVariantNumeric: "tabular-nums",
                         fontSize: "0.86rem",
                         lineHeight: 1.35,
                         padding: "6px 10px",
                         verticalAlign: "middle",
+                        "&:first-of-type": {
+                            paddingLeft: 12,
+                        },
+                        "&:last-of-type": {
+                            paddingRight: 12,
+                        },
                     },
                     head: {
                         backgroundColor: tableHeaderColor,
@@ -397,6 +449,11 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         textTransform: "uppercase",
                         whiteSpace: "nowrap",
                     },
+                    paddingCheckbox: {
+                        paddingLeft: 6,
+                        paddingRight: 6,
+                        width: 36,
+                    },
                     stickyHeader: {
                         backgroundColor: tableHeaderColor,
                         zIndex: 3,
@@ -406,6 +463,10 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
             MuiTableRow: {
                 styleOverrides: {
                     root: {
+                        backgroundColor: backgroundPaper,
+                        ".MuiTableBody-root &:nth-of-type(even):not(.Mui-selected):not(.selectedCallback):not(.selectedCallbackHierarchy)": {
+                            backgroundColor: tableRowStripeColor,
+                        },
                         "&:last-child .MuiTableCell-root": {
                             borderBottom: 0,
                         },
@@ -418,6 +479,24 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         "&.MuiTableRow-hover:hover": {
                             backgroundColor: tableRowHoverColor,
                         },
+                    },
+                },
+            },
+            MuiTablePagination: {
+                styleOverrides: {
+                    root: {
+                        color: textSecondary,
+                    },
+                    selectLabel: {
+                        color: textSecondary,
+                        fontSize: "0.78rem",
+                    },
+                    displayedRows: {
+                        color: textSecondary,
+                        fontSize: "0.78rem",
+                    },
+                    toolbar: {
+                        minHeight: 34,
                     },
                 },
             },
@@ -434,6 +513,76 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                     },
                     icon: {
                         color: `${textSecondary} !important`,
+                    },
+                },
+            },
+            MuiPagination: {
+                styleOverrides: {
+                    root: {
+                        display: "flex",
+                    },
+                    ul: {
+                        gap: 4,
+                    },
+                },
+            },
+            MuiPaginationItem: {
+                styleOverrides: {
+                    root: {
+                        minWidth: 28,
+                        height: 28,
+                        borderRadius: 6,
+                        color: textSecondary,
+                        fontSize: "0.78rem",
+                        fontWeight: 650,
+                        "&.Mui-selected": {
+                            backgroundColor: withAlpha(primary, isDark ? "44" : "1F"),
+                            borderColor: primary,
+                            color: textPrimary,
+                            "&:hover": {
+                                backgroundColor: withAlpha(primary, isDark ? "55" : "2B"),
+                            },
+                        },
+                        "&:hover": {
+                            backgroundColor: tableRowHoverColor,
+                            color: textPrimary,
+                        },
+                    },
+                    outlined: {
+                        borderColor: tableBorderSoft,
+                    },
+                    icon: {
+                        fontSize: "1rem",
+                    },
+                },
+            },
+            MuiToggleButton: {
+                styleOverrides: {
+                    root: {
+                        borderColor: tableBorderSoft,
+                        borderRadius: 6,
+                        color: textSecondary,
+                        fontSize: "0.78rem",
+                        fontWeight: 650,
+                        gap: 6,
+                        minHeight: 32,
+                        padding: "5px 9px",
+                        textTransform: "none",
+                        "&:hover": {
+                            backgroundColor: tableRowHoverColor,
+                            color: textPrimary,
+                        },
+                        "&.Mui-selected": {
+                            backgroundColor: withAlpha(primary, isDark ? "44" : "1F"),
+                            borderColor: primary,
+                            color: textPrimary,
+                            "&:hover": {
+                                backgroundColor: withAlpha(primary, isDark ? "55" : "2B"),
+                            },
+                        },
+                    },
+                    sizeSmall: {
+                        minHeight: 30,
                     },
                 },
             },
@@ -457,7 +606,6 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         "& .MuiDataGrid-columnHeaders": {
                             backgroundColor: tableHeaderColor,
                             borderBottom: `1px solid ${borderColor}`,
-                            minHeight: 34,
                         },
                         "& .MuiDataGrid-columnHeader": {
                             backgroundColor: tableHeaderColor,
@@ -476,11 +624,12 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         "& .MuiDataGrid-cell": {
                             borderBottom: `1px solid ${tableBorderSoft}`,
                             outline: "none",
+                            fontVariantNumeric: "tabular-nums",
                         },
                         "& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within, & .MuiDataGrid-columnHeader:focus, & .MuiDataGrid-columnHeader:focus-within": {
                             outline: "none",
                         },
-                        "& .MuiDataGrid-row:nth-of-type(even)": {
+                        "& .MuiDataGrid-row:nth-of-type(even):not(.Mui-selected)": {
                             backgroundColor: tableRowStripeColor,
                         },
                         "& .MuiDataGrid-row:hover": {
@@ -612,7 +761,8 @@ export function App(props) {
                             preferences?.palette?.pageHeader?.light || operatorSettingDefaults.palette.pageHeader.light,
                     },
                     pageHeaderText: {
-                        main: 'white',
+                        main: themeMode === 'dark' ? preferences?.palette?.text?.dark || operatorSettingDefaults.palette.text.dark :
+                            preferences?.palette?.text?.light || operatorSettingDefaults.palette.text.light,
                     },
                     topAppBarColor: themeMode === 'dark' ? (preferences?.palette?.navBarColor?.dark || operatorSettingDefaults.palette.navBarColor.dark) :
                         (preferences?.palette?.navBarColor?.light || operatorSettingDefaults.palette.navBarColor.light),
@@ -723,7 +873,8 @@ export function App(props) {
                             operatorSettingDefaults.palette.pageHeader.light,
                     },
                     pageHeaderText: {
-                        main: 'white',
+                        main: themeMode === 'dark' ? operatorSettingDefaults.palette.text.dark :
+                            operatorSettingDefaults.palette.text.light,
                     },
                     topAppBarColor: themeMode === 'dark' ? operatorSettingDefaults.palette.navBarColor.dark :
                         operatorSettingDefaults.palette.navBarColor.light,

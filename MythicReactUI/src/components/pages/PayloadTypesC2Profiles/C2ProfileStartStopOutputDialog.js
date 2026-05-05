@@ -1,19 +1,17 @@
 import React from 'react';
-import Button from '@mui/material/Button';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContentText from '@mui/material/DialogContentText';
+import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import {ResponseDisplayPlaintext} from "../Callbacks/ResponseDisplayPlaintext";
+import {MythicDialogButton, MythicDialogFooter, MythicDialogSection} from "../../MythicComponents/MythicDialogLayout";
 
 
 export function C2ProfileStartStopOutputDialog(props) {
   return (
     <>
         <DialogTitle id="form-dialog-title">{props.container_name}'s Current Stdout/Stderr</DialogTitle>
-            <DialogContentText>
-                This is the current Stdout/Stderr for the profile. This goes away once you close this dialog.
-            </DialogContentText>
-            <div style={{height: "calc(80vh)", overflowY: "auto"}}>
+            <DialogContent dividers={true} style={{padding: 0}}>
+            <MythicDialogSection description="This is the current Stdout/Stderr for the profile. This goes away once you close this dialog.">
+            <div style={{height: "calc(80vh)", overflowY: "auto", paddingTop: "0.5rem"}}>
                 <ResponseDisplayPlaintext
                     initial_mode={"json"}
                     render_colors={true}
@@ -21,12 +19,13 @@ export function C2ProfileStartStopOutputDialog(props) {
                     plaintext={props.output}
                     expand={true}/>
             </div>
-        <DialogActions>
-            <Button variant="contained" onClick={props.onClose} color="primary">
+            </MythicDialogSection>
+            </DialogContent>
+        <MythicDialogFooter>
+            <MythicDialogButton onClick={props.onClose}>
             Close
-          </Button>
-        </DialogActions>
+          </MythicDialogButton>
+        </MythicDialogFooter>
   </>
   );
 }
-

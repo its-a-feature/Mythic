@@ -4,7 +4,7 @@ import TableCell from '@mui/material/TableCell';
 import TableRow from '@mui/material/TableRow';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {EditScriptDialog} from './EditScriptDialog';
-import SettingsIcon from '@mui/icons-material/Settings';
+import EditIcon from '@mui/icons-material/Edit';
 import IconButton from '@mui/material/IconButton';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
@@ -24,7 +24,9 @@ export function BrowserScriptsTableRow(props){
         <React.Fragment>
             <TableRow key={"payload" + props.id} hover>
                 <TableCell >
-                    <IconButton size="small" onClick={()=>{setOpenEdit(true);}} color="info" variant="contained"><SettingsIcon color="info" /></IconButton>
+                    <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={()=>{setOpenEdit(true);}}>
+                        <EditIcon fontSize="small" />
+                    </IconButton>
                 </TableCell>
                 <TableCell >
                     <Switch
@@ -56,4 +58,3 @@ export function BrowserScriptsTableRow(props){
         </React.Fragment>
         )
 }
-

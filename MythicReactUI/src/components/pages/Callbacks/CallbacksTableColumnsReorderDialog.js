@@ -1,24 +1,25 @@
 import React from 'react';
-import Button from '@mui/material/Button';
-import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import IconButton from '@mui/material/IconButton';
-import { useTheme } from '@mui/material/styles';
 import {reorder} from "../../MythicComponents/MythicDraggableList";
 import {
     Draggable,
     DragDropContext,
     Droppable,
 } from "@hello-pangea/dnd";
-import { List, ListItem, ListItemText, Paper } from '@mui/material';
 import DragHandleIcon from '@mui/icons-material/DragHandle';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import {
+    MythicDialogBody,
+    MythicDialogButton,
+    MythicDialogFooter,
+    MythicDialogSection,
+} from "../../MythicComponents/MythicDialogLayout";
 
 export function CallbacksTableColumnsReorderDialog({initialItems, onSubmit, onClose, onReset, visible, hidden}) {
     const [items, setItems] = React.useState(initialItems);
-    const theme = useTheme();
     const onDragEnd = ({ destination, source }) => {
         // dropped outside the list
         if (!destination) return;
@@ -26,13 +27,12 @@ export function CallbacksTableColumnsReorderDialog({initialItems, onSubmit, onCl
         setItems(newItems);
     };
     React.useEffect( () => {
-        const newItems = items.map( c => {
+        setItems((currentItems) => currentItems.map( c => {
             if(visible.includes(c.name)){
                 return {...c, visible: true};
             }
             return {...c, visible: false};
-        })
-        setItems(newItems);
+        }));
     }, [visible, hidden]);
     const onToggleVisibility = (i) => {
         const newItems = items.map( (c, index) => {
@@ -49,21 +49,28 @@ export function CallbacksTableColumnsReorderDialog({initialItems, onSubmit, onCl
 
   return (
     <React.Fragment>
-        <DialogTitle id="form-dialog-title">Drag and Drop to Adjust the Order and Toggle Visibility</DialogTitle>
-        <DialogContent dividers={true} style={{height: "100%", margin: 0, padding: 0, background: theme.palette.background.main}}>
-            <DraggableList items={items} onToggleVisibility={onToggleVisibility} onDragEnd={onDragEnd} />
+        <DialogTitle id="form-dialog-title">Column Layout</DialogTitle>
+        <DialogContent dividers={true} sx={{p: 0}}>
+            <MythicDialogBody sx={{height: "min(70vh, 42rem)", p: 1}}>
+                <MythicDialogSection
+                    title="Columns"
+                    sx={{display: "flex", flexDirection: "column", flex: "1 1 auto", minHeight: 0}}
+                >
+                    <DraggableList items={items} onToggleVisibility={onToggleVisibility} onDragEnd={onDragEnd} />
+                </MythicDialogSection>
+            </MythicDialogBody>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={onClose} variant="contained" color="primary">
+        <MythicDialogFooter>
+          <MythicDialogButton onClick={onClose}>
             Close
-          </Button>
-            <Button onClick={onReset} variant="contained" color="warning">
+          </MythicDialogButton>
+            <MythicDialogButton onClick={onReset} intent="warning">
                 Reset
-            </Button>
-          <Button onClick={onFinish} variant="contained" color="success">
-            Submit
-          </Button>
-        </DialogActions>
+            </MythicDialogButton>
+          <MythicDialogButton onClick={onFinish} intent="primary">
+            Save
+          </MythicDialogButton>
+        </MythicDialogFooter>
   </React.Fragment>
   );
 }
@@ -73,46 +80,48 @@ export const DraggableList = ({ items, onDragEnd, onToggleVisibility }) => {
         <DragDropContext onDragEnd={onDragEnd}>
             <Droppable droppableId="callback-table-column-list">
                 {(provided) => (
-                    <List style={{border: 0, padding: 0}} ref={provided.innerRef} {...provided.droppableProps}>
+                    <div className="mythic-reorder-list" ref={provided.innerRef} {...provided.droppableProps}>
                         {items.map((item, index) => (
                             <DraggableListItem onToggleVisibility={onToggleVisibility} item={item} index={index} key={item.key} />
                         ))}
                         {provided.placeholder}
-                    </List>
+                    </div>
                 )}
             </Droppable>
         </DragDropContext>
     );
 };
 export const DraggableListItem = ({ item, index, onToggleVisibility }) => {
-    const theme = useTheme();
     return (
         <Draggable draggableId={item.key} index={index}>
             {(provided, snapshot) => (
-                <ListItem
+                <div
                     ref={provided.innerRef}
+                    className={`mythic-reorder-row${snapshot.isDragging ? " mythic-reorder-row-dragging" : ""}${item.visible ? "" : " mythic-reorder-row-disabled"}`}
                     {...provided.draggableProps}
-                    {...provided.dragHandleProps}
-                    component={Paper}
-                    disabled={!item.visible}
-                    sx={snapshot.isDragging ? { background: theme.palette.secondary.main } : {
-
-                    }}
                 >
-                    <DragHandleIcon style={{marginRight: "10px"}}/>
-                    <ListItemText primary={item.name} />
-                    <IconButton onClick={() => onToggleVisibility(index)} style={{float: "right", margin: 0, padding: 0}}>
-                        {item.visible ? (
-                            <VisibilityIcon color={"success"} />
-                        ) : (
-                            <VisibilityOffIcon color={"error"} />
-                        )
-
-                        }
-                    </IconButton>
-                </ListItem>
+                    <span className="mythic-reorder-drag-handle" {...provided.dragHandleProps}>
+                        <DragHandleIcon fontSize="small" />
+                    </span>
+                    <div className="mythic-reorder-row-main">
+                        <span className="mythic-reorder-row-title">{item.name}</span>
+                    </div>
+                    <div className="mythic-reorder-row-actions">
+                        <IconButton
+                            aria-label={item.visible ? `Hide ${item.name}` : `Show ${item.name}`}
+                            className={`mythic-table-row-icon-action ${item.visible ? "mythic-table-row-icon-action-hover-danger" : "mythic-table-row-icon-action-hover-info"}`}
+                            size="small"
+                            onClick={() => onToggleVisibility(index)}
+                        >
+                            {item.visible ? (
+                                <VisibilityIcon fontSize="small" />
+                            ) : (
+                                <VisibilityOffIcon fontSize="small" />
+                            )}
+                        </IconButton>
+                    </div>
+                </div>
             )}
         </Draggable>
     );
 };
-

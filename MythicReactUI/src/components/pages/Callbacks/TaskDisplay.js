@@ -1,5 +1,5 @@
 import React, {useEffect, useLayoutEffect, useRef} from 'react';
-import { styled } from '@mui/material/styles';
+import { alpha, styled } from '@mui/material/styles';
 import {IconButton, Link} from '@mui/material';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
@@ -9,7 +9,6 @@ import AccordionSummary from '@mui/material/AccordionSummary';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ChatOutlinedIcon from '@mui/icons-material/ChatOutlined';
-import Badge from '@mui/material/Badge';
 import {useTheme} from '@mui/material/styles';
 import {gql, useSubscription } from '@apollo/client';
 import {TaskDisplayContainer, TaskDisplayContainerConsole} from './TaskDisplayContainer';
@@ -31,6 +30,7 @@ import ComputerIcon from '@mui/icons-material/Computer';
 import PublicIcon from '@mui/icons-material/Public';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import NumbersIcon from '@mui/icons-material/Numbers';
+import {getMythicStatusFromTaskStatus, MythicStatusChip} from '../../MythicComponents/MythicStatusChip';
 
 
 const PREFIX = 'TaskDisplay';
@@ -43,7 +43,22 @@ export const classes = {
   secondaryHeadingExpanded: `${PREFIX}-secondaryHeadingExpanded`,
   icon: `${PREFIX}-icon`,
   details: `${PREFIX}-details`,
-  column: `${PREFIX}-column`
+  column: `${PREFIX}-column`,
+  taskHeaderBody: `${PREFIX}-taskHeaderBody`,
+  taskMetaRow: `${PREFIX}-taskMetaRow`,
+  taskMetaItem: `${PREFIX}-taskMetaItem`,
+  taskMetaIcon: `${PREFIX}-taskMetaIcon`,
+  taskHeaderBodyCompact: `${PREFIX}-taskHeaderBodyCompact`,
+  taskHeaderActions: `${PREFIX}-taskHeaderActions`,
+  taskIconButton: `${PREFIX}-taskIconButton`,
+  taskCommandRow: `${PREFIX}-taskCommandRow`,
+  taskCommandText: `${PREFIX}-taskCommandText`,
+  taskCommandTextCompact: `${PREFIX}-taskCommandTextCompact`,
+  taskCommandName: `${PREFIX}-taskCommandName`,
+  taskCommandParams: `${PREFIX}-taskCommandParams`,
+  taskChildToggle: `${PREFIX}-taskChildToggle`,
+  taskCommentBlock: `${PREFIX}-taskCommentBlock`,
+  consolePrompt: `${PREFIX}-consolePrompt`
 };
 export const accordionClasses = {
   root: `${ACCORDION_PREFIX}-root`,
@@ -68,6 +83,11 @@ export const StyledPaper = styled(Paper)((
     backgroundColor: theme.palette.background.paper,
     border: `1px solid ${theme.borderColor}`,
     borderRadius: theme.shape.borderRadius,
+    transition: "background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease",
+    "&:hover": {
+      borderColor: theme.palette.mode === "dark" ? alpha(theme.palette.common.white, 0.22) : alpha(theme.palette.common.black, 0.18),
+      backgroundColor: theme.palette.mode === "dark" ? alpha(theme.palette.common.white, 0.035) : alpha(theme.palette.common.black, 0.015),
+    },
   },
 
   [`& .${classes.heading}`]: {
@@ -123,6 +143,137 @@ export const StyledPaper = styled(Paper)((
     display: "inline-block",
     margin: 0,
     height: "auto",
+  },
+  [`& .${classes.taskHeaderBody}`]: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 5,
+    minWidth: 0,
+    width: "100%",
+  },
+  [`& .${classes.taskHeaderBodyCompact}`]: {
+    gap: 4,
+  },
+  [`& .${classes.taskMetaRow}`]: {
+    alignItems: "center",
+    color: theme.palette.text.secondary,
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 5,
+    minWidth: 0,
+  },
+  [`& .${classes.taskHeaderBodyCompact} .${classes.taskMetaRow}`]: {
+    flexWrap: "nowrap",
+    maxHeight: 24,
+    overflow: "hidden",
+  },
+  [`& .${classes.taskMetaItem}`]: {
+    alignItems: "center",
+    backgroundColor: theme.palette.mode === "dark" ? alpha(theme.palette.common.white, 0.05) : alpha(theme.palette.common.black, 0.035),
+    border: `1px solid ${theme.palette.mode === "dark" ? alpha(theme.palette.common.white, 0.08) : alpha(theme.palette.common.black, 0.07)}`,
+    borderRadius: 5,
+    color: theme.palette.text.secondary,
+    display: "inline-flex",
+    fontSize: theme.typography.pxToRem(11.5),
+    fontWeight: 600,
+    gap: 4,
+    lineHeight: 1.2,
+    maxWidth: "18rem",
+    minHeight: 22,
+    minWidth: 0,
+    padding: "2px 6px",
+    whiteSpace: "nowrap",
+    "& > span:last-child": {
+      minWidth: 0,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+    },
+    "& a": {
+      color: "inherit",
+      fontWeight: 700,
+    },
+  },
+  [`& .${classes.taskHeaderBodyCompact} .${classes.taskMetaItem}`]: {
+    flex: "0 0 auto",
+  },
+  [`& .${classes.taskMetaIcon}`]: {
+    flexShrink: 0,
+    fontSize: "0.86rem",
+    height: "0.86rem",
+    width: "0.86rem",
+  },
+  [`& .${classes.taskHeaderActions}`]: {
+    alignItems: "center",
+    display: "inline-flex",
+    flexWrap: "wrap",
+    gap: 4,
+    minWidth: 0,
+  },
+  [`& .${classes.taskHeaderBodyCompact} .${classes.taskHeaderActions}`]: {
+    flex: "0 0 auto",
+    flexWrap: "nowrap",
+  },
+  [`& .${classes.taskIconButton}`]: {
+    border: `1px solid ${theme.palette.mode === "dark" ? alpha(theme.palette.common.white, 0.08) : alpha(theme.palette.common.black, 0.08)}`,
+    borderRadius: 5,
+    color: theme.palette.text.secondary,
+    height: 24,
+    padding: 0,
+    width: 24,
+    "& svg": {
+      fontSize: "1rem",
+    },
+  },
+  [`& .${classes.taskCommandRow}`]: {
+    alignItems: "flex-start",
+    display: "flex",
+    gap: 6,
+    minWidth: 0,
+    width: "100%",
+  },
+  [`& .${classes.taskCommandText}`]: {
+    color: theme.taskPromptCommandTextColor,
+    flex: "1 1 auto",
+    fontSize: theme.typography.pxToRem(14),
+    lineHeight: 1.35,
+    minWidth: 0,
+  },
+  [`& .${classes.taskCommandTextCompact}`]: {
+    display: "-webkit-box",
+    overflow: "hidden",
+    WebkitBoxOrient: "vertical",
+    WebkitLineClamp: "2",
+  },
+  [`& .${classes.taskCommandName}`]: {
+    color: theme.taskPromptCommandTextColor,
+    fontWeight: 800,
+  },
+  [`& .${classes.taskCommandParams}`]: {
+    color: theme.palette.text.primary,
+    overflowWrap: "anywhere",
+  },
+  [`& .${classes.taskChildToggle}`]: {
+    color: theme.palette.text.secondary,
+    height: 24,
+    marginTop: -2,
+    padding: 0,
+    width: 24,
+  },
+  [`& .${classes.taskCommentBlock}`]: {
+    backgroundColor: theme.palette.mode === "dark" ? alpha(theme.palette.common.white, 0.045) : alpha(theme.palette.common.black, 0.025),
+    border: `1px solid ${theme.palette.mode === "dark" ? alpha(theme.palette.common.white, 0.08) : alpha(theme.palette.common.black, 0.07)}`,
+    borderRadius: 5,
+    color: theme.palette.text.primary,
+    fontSize: theme.typography.pxToRem(12.5),
+    lineHeight: 1.35,
+    padding: "6px 8px",
+  },
+  [`& .${classes.consolePrompt}`]: {
+    color: theme.palette.text.secondary,
+    flexShrink: 0,
+    fontFamily: 'Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+    fontSize: theme.typography.pxToRem(13),
+    fontWeight: 800,
   }
 }));
 
@@ -190,77 +341,131 @@ function TaskDisplayConsolePreMemo({task, me, filterOptions, newlyIssuedTasks}){
   );
 }
 export const TaskDisplayConsole = React.memo(TaskDisplayConsolePreMemo);
-const TaskStatusDisplay = ({task, theme}) => {
+const TaskStatusDisplay = ({task}) => {
+  const chipSx = {
+    display: "inline-flex",
+    height: 22,
+    mx: 0.5,
+    verticalAlign: "middle",
+    "& .MuiChip-icon": {
+      fontSize: "0.86rem",
+    },
+    "& .MuiChip-label": {
+      px: 0.7,
+    },
+  };
   if(task.status.toLowerCase().includes("error")){
-    return (<Typography size="small" component="span" style={{color: theme.palette.error.main, display: "inline-block", fontSize: theme.typography.pxToRem(15)}}>{task.status.toLowerCase()}</Typography>)
+    return <MythicStatusChip component="span" label={task.status.toLowerCase()} status="error" sx={{...chipSx, maxWidth: "16rem"}} />
   }else if(task.status === "cleared"){
-    return (<Typography size="small" component="span"  style={{padding: "0", color: theme.palette.warning.main,  display: "inline-block", fontSize: theme.typography.pxToRem(15)}}>cleared</Typography>)
+    return <MythicStatusChip component="span" label="cleared" status="warning" sx={chipSx} />
   }else if(task.status === "completed" || task.status === "success"){
     return null//return (<Typography size="small" style={{padding: "0", color: theme.palette.success.main, marginLeft: "5%", display: "inline-block", fontSize: theme.typography.pxToRem(15)}}>completed</Typography>)
-  }else if(task.status === "submitted"){
-    return (<Typography size="small" component="span"  style={{padding: "0", color: theme.palette.info.main, display: "inline-block", fontSize: theme.typography.pxToRem(15)}}>{task.status.toLowerCase()}</Typography>)
-  }else if(task.status.toLowerCase().includes("processing")){
-    return (<Typography size="small" component="span"  style={{padding: "0", color: theme.palette.warning.main, display: "inline-block", fontSize: theme.typography.pxToRem(15)}}>{task.status.toLowerCase()}</Typography>)
   }else if(task.opsec_pre_blocked && !task.opsec_pre_bypassed){
-    return (<Typography size="small" component="span"  style={{padding: "0", color: theme.palette.warning.main,  display: "inline-block", fontSize: theme.typography.pxToRem(15)}}>OPSEC BLOCKED (PRE)</Typography>)
+    return <MythicStatusChip component="span" label="OPSEC blocked pre" status="blocked" sx={chipSx} />
   }else if(task.opsec_post_blocked && !task.opsec_post_bypassed){
-    return (<Typography size="small" component="span"  style={{padding: "0", color: theme.palette.warning.main,  display: "inline-block", fontSize: theme.typography.pxToRem(15)}}>OPSEC BLOCKED (POST)</Typography>)
+    return <MythicStatusChip component="span" label="OPSEC blocked post" status="blocked" sx={chipSx} />
   }else{
-      return (<Typography size="small" component="span"  style={{padding: "0", color: theme.palette.info.main,  display: "inline-block", fontSize: theme.typography.pxToRem(15)}}>{task.status.toLowerCase()}</Typography>)
+      return (
+        <MythicStatusChip
+          component="span"
+          label={task.status.toLowerCase()}
+          status={getMythicStatusFromTaskStatus(task.status)}
+          sx={{...chipSx, maxWidth: "16rem"}}
+        />
+      )
   }
 }
+const getTaskAccentColor = (task, theme) => {
+  if(task.status.toLowerCase().includes("error")){
+    return theme.palette.error.main;
+  }
+  if(task.status.toLowerCase() === "cleared"){
+    return theme.palette.warning.main;
+  }
+  if(task.status === "submitted"){
+    return theme.palette.info.main;
+  }
+  if(task.opsec_pre_blocked && !task.opsec_pre_bypassed){
+    return theme.palette.warning.main;
+  }
+  if(task.opsec_post_blocked && !task.opsec_post_bypassed){
+    return theme.palette.warning.main;
+  }
+  if(task.status.toLowerCase().includes("processing")){
+    return theme.palette.warning.main;
+  }
+  if(task.status === "completed" || task.completed){
+    return theme.palette.success.main;
+  }
+  return theme.palette.info.main;
+}
+const getCallbackPrimaryIP = (task) => {
+  try{
+    return JSON.parse(task.callback.ip)[0] || "";
+  }catch(error){
+    return "";
+  }
+}
+const TaskMetaItem = ({children, icon, title, style}) => {
+  const item = (
+    <span className={classes.taskMetaItem} style={style}>
+      {icon && React.cloneElement(icon, {
+        className: classes.taskMetaIcon,
+        fontSize: "inherit",
+      })}
+      <span>{children}</span>
+    </span>
+  );
+  if(title){
+    return (
+      <MythicStyledTooltip title={title}>
+        {item}
+      </MythicStyledTooltip>
+    )
+  }
+  return item;
+}
+const TaskHeaderAction = ({title, children, ...props}) => (
+  <MythicStyledTooltip title={title}>
+    <IconButton className={classes.taskIconButton} size="small" color="inherit"
+                disableFocusRipple={true} disableRipple={true} {...props}>
+      {children}
+    </IconButton>
+  </MythicStyledTooltip>
+)
 const TaskTagDisplay = ({task}) => {
   return (
     <TagsDisplay tags={task.tags} />
   )
 }
 const ColoredTaskDisplay = ({task, theme, children, expanded}) => {
-  const [themeColor, setThemeColor] = React.useState(theme.palette.info.main);
-  useEffect( () => {
-    if(task.status.toLowerCase().includes("error")){
-      setThemeColor(theme.palette.error.main);
-    }else if(task.status.toLowerCase() === "cleared"){
-      setThemeColor(theme.palette.warning.main);
-    }else if(task.status === "submitted"){
-      setThemeColor(theme.palette.info.main);
-    }else if(task.opsec_pre_blocked && !task.opsec_pre_bypassed){
-      setThemeColor(theme.palette.warning.main);
-    }else if(task.opsec_post_blocked && !task.opsec_post_bypassed){
-      setThemeColor(theme.palette.warning.main);
-    }else if(task.status.toLowerCase().includes("processing")){
-      setThemeColor(theme.palette.warning.main);
-    }else if(task.status === "completed" || task.completed){
-        setThemeColor(theme.palette.success.main);
-    }else{
-      setThemeColor(theme.palette.info.main);
-    }
-  }, [task.status, task.completed])
-    return(
-      <span style={{display: "flex", margin: 0, borderWidth: 0, padding: 0, minHeight: "48px", alignItems: "center",
-        height: "100%", borderLeft: "4px solid " + themeColor, paddingLeft: "7px", width: "100%", maxWidth: "100%",
-        borderTopLeftRadius: theme.shape.borderRadius, borderBottomLeftRadius: expanded ? 0 : theme.shape.borderRadius}}>
-        {children}
-      </span>
-    )
+  const themeColor = getTaskAccentColor(task, theme);
+  return(
+    <span style={{display: "flex", margin: 0, borderWidth: 0, padding: "8px 10px 8px 9px", minHeight: "58px", alignItems: "center",
+      height: "100%", borderLeft: "4px solid " + themeColor, width: "100%", maxWidth: "100%",
+      borderTopLeftRadius: theme.shape.borderRadius, borderBottomLeftRadius: expanded ? 0 : theme.shape.borderRadius}}>
+      {children}
+    </span>
+  )
 }
-const GetOperatorDisplay = ({initialHideUsernameValue, task}) => {
-  if(initialHideUsernameValue){
-    return '';
-  }
-  return " / " + task.operator.username;
-}
-export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayChildren, toggleDisplayChildren, expanded }) => {
+export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayChildren, toggleDisplayChildren, expanded, compact=false }) => {
   const [displayComment, setDisplayComment] = React.useState(false);
-  const [alertBadges, setAlertBadges] = React.useState(0);
   const initialHideUsernameValue = GetMythicSetting({setting_name: "hideUsernames", default_value: operatorSettingDefaults.hideUsernames});
   const initialShowIPValue = GetMythicSetting({setting_name: "showIP", default_value: operatorSettingDefaults.showIP});
-  const ipValue = JSON.parse(task.callback.ip)[0];
+  const ipValue = getCallbackPrimaryIP(task);
   const initialShowHostnameValue = GetMythicSetting({setting_name: "showHostname", default_value: operatorSettingDefaults.showHostname});
   const initialShowCallbackGroupsValue = GetMythicSetting({setting_name: "showCallbackGroups", default_value: operatorSettingDefaults.showCallbackGroups});
   const initialTaskTimestampDisplayField = GetMythicSetting({setting_name: "taskTimestampDisplayField", default_value: operatorSettingDefaults.taskTimestampDisplayField});
   const initialShowOPSECBypassUsername = GetMythicSetting({setting_name: "showOPSECBypassUsername", default_value: operatorSettingDefaults.showOPSECBypassUsername});
   const displayTimestamp = task[initialTaskTimestampDisplayField] ? task[initialTaskTimestampDisplayField] : task.timestamp;
   const [openKillTaskButton, setOpenKillTaskButton] = React.useState({open: false});
+  const command = task?.command?.cmd || task.command_name;
+  const commandLine = command + " " + task.display_params;
+  const callbackGroups = task.callback.mythictree_groups?.join(', ') || "";
+  const opsecBypassUsers = [
+    task?.opsec_pre_bypass_user?.username,
+    task?.opsec_post_bypass_user?.username,
+  ].filter(Boolean).join(", ");
   const toggleDisplayComment = (evt) => {
     evt.stopPropagation();
     setDisplayComment(!displayComment);
@@ -282,117 +487,111 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
   }
   return (
       <ColoredTaskDisplay task={task} theme={theme} expanded={expanded} >
-        <div id={taskDivID} style={{width: "100%"}}>
+        <div id={taskDivID} className={compact ? `${classes.taskHeaderBody} ${classes.taskHeaderBodyCompact}` : classes.taskHeaderBody}>
           {displayComment && (
-              <React.Fragment>
-                <Typography className={classes.taskAndTimeDisplay} onClick={preventPropagation}>{task.commentOperator.username}</Typography><br/>
-                <Typography className={classes.heading} onClick={preventPropagation}>{task.comment}</Typography>
-              </React.Fragment>
+              <div className={classes.taskCommentBlock} onClick={preventPropagation}>
+                <Typography component="div" sx={{fontSize: "0.72rem", fontWeight: 800, color: theme.palette.text.secondary, mb: 0.5}}>
+                  {task.commentOperator?.username || "comment"}
+                </Typography>
+                <Typography component="div" sx={{fontSize: "0.82rem", overflowWrap: "anywhere"}}>
+                  {task.comment}
+                </Typography>
+              </div>
           )}
-          <div style={{lineHeight: 0}} onClick={onLocalClick}>
-            <Typography className={classes.taskAndTimeDisplay} onClick={preventPropagation}>
-              [{toLocalTime(displayTimestamp, me?.user?.view_utc_time || false)}]
-              {" / "}
+          <div className={classes.taskMetaRow} onClick={preventPropagation}>
+            <TaskMetaItem title={"Task timestamp"} icon={<AccessTimeIcon />}>
+              {toLocalTime(displayTimestamp, me?.user?.view_utc_time || false)}
+            </TaskMetaItem>
+            <TaskMetaItem title={"View Task in separate page"} icon={<NumbersIcon />}>
+              <Link underline="hover" target="_blank" href={"/new/task/" + task.display_id}>T-{task.display_id}</Link>
+            </TaskMetaItem>
+            {!initialHideUsernameValue &&
+              <TaskMetaItem title={"Operator"} icon={<PersonOutlineIcon />}>
+                {task.operator.username}
+              </TaskMetaItem>
+            }
+            <TaskMetaItem title={"View Callback in separate page"}>
+              <Link underline="hover" target="_blank" href={"/new/callbacks/" + task.callback.display_id}>C-{task.callback.display_id}</Link>
+            </TaskMetaItem>
+            {initialShowHostnameValue &&
+              <TaskMetaItem title={"Host"} icon={<ComputerIcon />}>
+                {task.callback.host}
+              </TaskMetaItem>
+            }
+            {initialShowIPValue && ipValue !== "" &&
+              <TaskMetaItem title={"IP address"} icon={<PublicIcon />}>
+                {ipValue}
+              </TaskMetaItem>
+            }
+            {initialShowCallbackGroupsValue && callbackGroups !== "" &&
+              <TaskMetaItem title={"Callback groups"}>
+                {callbackGroups}
+              </TaskMetaItem>
+            }
+            {task?.command?.payloadtype?.name &&
+              <TaskMetaItem title={"Payload type"}>
+                {task.command.payloadtype.name}
+              </TaskMetaItem>
+            }
+            {initialShowOPSECBypassUsername && opsecBypassUsers !== "" &&
+              <TaskMetaItem title={"The specified usernames approved OPSEC bypasses for this task"} icon={<LockOpenIcon />}>
+                {opsecBypassUsers}
+              </TaskMetaItem>
+            }
+            {task.comment.length > 0 &&
+              <TaskMetaItem title={task.comment} style={{maxWidth: "24rem"}}>
+                {task.comment}
+              </TaskMetaItem>
+            }
+            <span className={classes.taskHeaderActions}>
               {task.has_intercepted_response &&
-                  <span style={{display:"inline-flex", whiteSpace: "pre-wrap"}}>
-                    <MythicStyledTooltip
-                        title={"This task has responses that have been intercepted and changed due to a workflow container"}>
-                        <IconButton color={"inherit"} style={{padding: 0}} disableFocusRipple={true}
-                                    disableRipple={true}>
-                            <CropRotateTwoToneIcon style={{height: "15px", cursor: "default"}}/>
-                        </IconButton>
-                    </MythicStyledTooltip>
-                    {" / "}
-                  </span>
+                <TaskHeaderAction title={"This task has responses that have been intercepted and changed due to a workflow container"}>
+                  <CropRotateTwoToneIcon />
+                </TaskHeaderAction>
               }
-              {task?.eventstepinstance !== null &&
-                <span style={{display:"inline-flex", whiteSpace: "pre-wrap"}}>
-                  <MythicStyledTooltip title={"Task created via Eventing, click to view entire event flow in separate page"} >
-                    <IconButton component={Link} href={'/new/eventing?eventgroup=' +
-                        task?.eventstepinstance?.eventgroupinstance?.eventgroup?.id +
-                        "&eventgroupinstance=" + task?.eventstepinstance?.eventgroupinstance?.id
-                    } target={"_blank"} style={{padding: 0, }}
-                                color="inherit" disableFocusRipple={true}
-                                disableRipple={true}>
-                      <PlayCircleFilledTwoToneIcon fontSize={"small"} />
-                    </IconButton>
-                  </MythicStyledTooltip>
-
-                  {" / "}
-                </span>
+              {task?.eventstepinstance &&
+                <TaskHeaderAction title={"Task created via Eventing, click to view entire event flow in separate page"}
+                                  component={Link}
+                                  href={'/new/eventing?eventgroup=' +
+                                      task?.eventstepinstance?.eventgroupinstance?.eventgroup?.id +
+                                      "&eventgroupinstance=" + task?.eventstepinstance?.eventgroupinstance?.id
+                                  }
+                                  target={"_blank"}>
+                  <PlayCircleFilledTwoToneIcon />
+                </TaskHeaderAction>
               }
-              <span style={{display:"inline-flex", whiteSpace: "pre-wrap"}}>
-                <MythicStyledTooltip title={"View Task in separate page"} >
-                  <Link style={{wordBreak: "break-all", color: theme.taskPromptTextColor,}} underline={"always"} target={"_blank"}
-                      href={"/new/task/" + task.display_id}>T-{task.display_id}</Link>
-                </MythicStyledTooltip>
-                {!task.completed && task.status_timestamp_processing &&
-
-                  <MythicStyledTooltip title={"Task the agent to kill this task"} >
-                      <FontAwesomeIcon size={"sm"} icon={faSkullCrossbones} onClick={(e) => onClickKillIcon(e, true)}
-                                       style={{cursor: "pointer", height: "12px", marginLeft: "5px"}} />
-                  </MythicStyledTooltip>
-
-                }
-              </span>
-              <GetOperatorDisplay initialHideUsernameValue={initialHideUsernameValue} task={task}/>
-              {" / "}
-              <MythicStyledTooltip title={"View Callback in separate page"}>
-                <Link style={{wordBreak: "break-all", color: theme.taskPromptTextColor}} underline="always" target="_blank"
-                      href={"/new/callbacks/" + task.callback.display_id}>C-{task.callback.display_id}</Link>
-              </MythicStyledTooltip>
-              {initialShowHostnameValue ? ` / ${task.callback.host} ` : ''}
-              {initialShowIPValue ? `/ ${ipValue} ` : ''}
-              {initialShowCallbackGroupsValue ? `/ ${task.callback.mythictree_groups.join(', ')} ` : ''}
-              {" / "}
-              {task?.command?.payloadtype?.name}
-              {initialShowOPSECBypassUsername && <>
-                  {(task?.opsec_pre_bypass_user?.username || task?.opsec_post_bypass_user?.username) && <span
-                        style={{display:"inline-flex", whiteSpace: "pre-wrap"}}>
-                      {" /"}
-                      <MythicStyledTooltip title={"The specified usernames approved OPSEC bypasses for this task"}
-                        tooltipStyle={{padding: 0}}>
-                          <LockOpenIcon color={"inherit"} style={{height: "15px"}}/>
-                      </MythicStyledTooltip>
-                      {task?.opsec_pre_bypass_user?.username}
-                      {task?.opsec_pre_bypass_user?.username && task?.opsec_post_bypass_user?.username && ", "}
-                      {task?.opsec_post_bypass_user?.username}
-                  </span>}
-              </>}
-              {" "}
-              <TaskStatusDisplay task={task} theme={theme}/>
+              {!task.completed && task.status_timestamp_processing &&
+                <TaskHeaderAction title={"Task the agent to kill this task"} onClick={(e) => onClickKillIcon(e, true)}>
+                  <FontAwesomeIcon size={"sm"} icon={faSkullCrossbones} style={{height: "0.82rem"}} />
+                </TaskHeaderAction>
+              }
+              <TaskStatusDisplay task={task}/>
               {task.comment.length > 0 &&
-                  <span className={classes.column}>
-                      {" / "}
-                    <IconButton size="small" style={{padding: "0"}}
-                                onClick={toggleDisplayComment}><ChatOutlinedIcon fontSize={"small"}/></IconButton>
-                  </span>
+                <TaskHeaderAction title={displayComment ? "Hide comment" : "Show comment"} onClick={toggleDisplayComment}>
+                  <ChatOutlinedIcon />
+                </TaskHeaderAction>
               }
-              {task.comment}
+            </span>
+          </div>
+          <div className={classes.taskCommandRow} onClick={onLocalClick}>
+            {task.tasks.length > 0 &&
+              <IconButton className={classes.taskChildToggle} size="small" onClick={toggleDisplayChildren}>
+                {displayChildren ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+              </IconButton>
+            }
+            <MythicStyledTooltip maxWidth={"calc(80vw)"}
+                                 enterDelay={2000}
+                                 placement={"top"}
+                                 title={commandLine} >
+              <Typography className={compact ? `${classes.taskCommandText} ${classes.taskCommandTextCompact}` : classes.taskCommandText} component="div">
+                <span className={classes.taskCommandName}>{command}</span>
+                {task.display_params !== "" &&
+                  <span className={classes.taskCommandParams}> {task.display_params}</span>
+                }
               </Typography>
-            <TaskTagDisplay task={task}/>
+            </MythicStyledTooltip>
           </div>
-          <div onClick={onLocalClick}>
-
-            <div className={classes.column} >
-              <Badge badgeContent={alertBadges} color="warning" anchorOrigin={{vertical: 'top', horizontal: 'left'}}>
-                {task.tasks.length > 0 && !displayChildren &&
-                    <ExpandMoreIcon onClick={toggleDisplayChildren} />
-                }
-                {task.tasks.length > 0 && displayChildren &&
-                    <ExpandLessIcon onClick={toggleDisplayChildren} />
-                }
-                <MythicStyledTooltip maxWidth={"calc(80vw)"}
-                                     enterDelay={2000}
-                    placement={"top"}
-                    title={(task?.command?.cmd || task.command_name) + " " + task.display_params} >
-                  <Typography className={classes.heading} style={{color: theme.taskPromptCommandTextColor}} onClick={onLocalClick} >
-                    {(task?.command?.cmd || task.command_name) + " " + task.display_params}
-                  </Typography>
-                </MythicStyledTooltip>
-              </Badge>
-            </div>
-          </div>
+          <TaskTagDisplay task={task}/>
         </div>
         {openKillTaskButton.open &&
             <TaskFromUIButton ui_feature={"task:job_kill"}
@@ -752,7 +951,14 @@ const TaskLabel = ({task, dropdownOpen, toggleTaskDropdown, me, newlyIssuedTasks
     <StyledPaper className={classes.root + " no-box-shadow"} elevation={5}  id={`taskHeader-${task.id}`}>
       <Accordion TransitionProps={{ unmountOnExit: true, onEnter: scrollContent }} defaultExpanded={false}
                  onChange={toggleTaskDropdown} expanded={dropdownOpen}
-                 style={{backgroundColor: "unset", backgroundImage: "unset"}}
+                 sx={{
+                   backgroundColor: "unset",
+                   backgroundImage: "unset",
+                   border: 0,
+                   boxShadow: "unset",
+                   "&:before": {display: "none"},
+                   "&.Mui-expanded": {margin: 0},
+                 }}
       >
         <StyledAccordionSummary
           expandIcon={<ExpandMoreIcon />}
@@ -815,6 +1021,7 @@ export const TaskLabelFlat = ({task, me, showOnSelectTask, onSelectTask, graphVi
       >
         <ColoredTaskLabel theme={theme} task={task} me={me} taskDivID={`scrolltotasksplit${task.id}`} onClick={onClickEntry}
                           displayChildren={displayChildren} toggleDisplayChildren={toggleDisplayChildren} expanded={false}
+                          compact={showOnSelectTask}
         />
       </StyledPaper>
   )
@@ -822,10 +1029,11 @@ export const TaskLabelFlat = ({task, me, showOnSelectTask, onSelectTask, graphVi
 
 
 const ColoredTaskDisplayConsole = ({task, theme, children, expanded}) => {
+  const themeColor = getTaskAccentColor(task, theme);
   return(
-      <span style={{display: "flex", margin: 0, borderWidth: 0, padding: 0, minHeight: "30px", alignItems: "center",
-        height: "100%", paddingLeft: "5px", width: "100%",
-        borderTopLeftRadius: "4px", borderBottomLeftRadius: expanded ? 0 : "4px"}}>
+      <span style={{display: "flex", margin: 0, borderWidth: 0, padding: "8px 10px 8px 9px", minHeight: "58px", alignItems: "center",
+        height: "100%", borderLeft: "4px solid " + themeColor, width: "100%",
+        borderTopLeftRadius: theme.shape.borderRadius, borderBottomLeftRadius: expanded ? 0 : theme.shape.borderRadius}}>
         {children}
       </span>
   )
@@ -953,6 +1161,9 @@ export const ColoredTaskLabelConsole = ({task, theme, me, taskDivID, onClick, di
   const initialShowHostnameValue = GetMythicSetting({setting_name: "showHostname", default_value: operatorSettingDefaults.showHostname});
   const initialShowIPValue = GetMythicSetting({setting_name: "showIP", default_value: operatorSettingDefaults.showIP});
   const [openKillTaskButton, setOpenKillTaskButton] = React.useState({open: false});
+  const ipValue = getCallbackPrimaryIP(task);
+  const command = task?.command?.cmd || task.command_name;
+  const commandLine = command + " " + task.display_params;
   const preventPropagation = (e) => {
     e.stopPropagation();
     //e.preventDefault();
@@ -963,102 +1174,66 @@ export const ColoredTaskLabelConsole = ({task, theme, me, taskDivID, onClick, di
     }
     setOpenKillTaskButton({open: open});
   }
-  const [themeColor, setThemeColor] = React.useState(theme.palette.info.main);
-  useEffect( () => {
-    if(task.status.toLowerCase().includes("error")){
-      setThemeColor(theme.palette.error.main);
-    }else if(task.status.toLowerCase() === "cleared"){
-      setThemeColor(theme.palette.warning.main);
-    }else if(task.status === "submitted"){
-      setThemeColor(theme.palette.info.main);
-    }else if(task.opsec_pre_blocked && !task.opsec_pre_bypassed){
-      setThemeColor(theme.palette.warning.main);
-    }else if(task.opsec_post_blocked && !task.opsec_post_bypassed){
-      setThemeColor(theme.palette.warning.main);
-    }else if(task.status.toLowerCase().includes("processing")){
-      setThemeColor(theme.palette.warning.main);
-    }else if(task.status === "completed" || (task.status === "success" && task.completed)){
-      setThemeColor(theme.palette.success.main);
-    }else{
-      setThemeColor(theme.palette.info.main);
-    }
-  }, [task.status, task.completed])
   return (
 	    <ColoredTaskDisplayConsole task={task} theme={theme} expanded={expanded}>
-	        <div id={taskDivID} style={{ width: "100%" }}>
-	            <Typography sx={{ color: theme.taskPromptTextColor,  display: "flex", alignItems: "center" }} style={{ fontFamily: "monospace" }}>
-	                <span style={{ fontFamily: "monospace" }}>┌──[</span>
-	                <AccessTimeIcon fontSize="small" style={{ margin: "0 3px 0 0px", verticalAlign: "middle" }} />
-	                {toLocalTimeShort(displayTimestamp, me?.user?.view_utc_time || false)}
-	                {"]"}
-                  {!initialHideUsernameValue &&
-                      <>
-                        {"-["}
-                        <PersonOutlineIcon fontSize="small" style={{ margin: "0 3px 0 0px", verticalAlign: "middle" }} />
-                        {task.operator.username}
-                        {"]"}
-                      </>
+	        <div id={taskDivID} className={classes.taskHeaderBody}>
+            <div className={classes.taskMetaRow} onClick={preventPropagation}>
+              <TaskMetaItem title={"Task timestamp"} icon={<AccessTimeIcon />}>
+                {toLocalTimeShort(displayTimestamp, me?.user?.view_utc_time || false)}
+              </TaskMetaItem>
+              {!initialHideUsernameValue &&
+                <TaskMetaItem title={"Operator"} icon={<PersonOutlineIcon />}>
+                  {task.operator.username}
+                </TaskMetaItem>
+              }
+              <TaskMetaItem title={"View Task in separate page"} icon={<NumbersIcon />}>
+                <Link underline="hover" target="_blank" href={"/new/task/" + task.display_id}>T-{task.display_id}</Link>
+              </TaskMetaItem>
+              {initialShowHostnameValue &&
+                <TaskMetaItem title={"Host"} icon={<ComputerIcon />}>
+                  {task.callback.host}
+                </TaskMetaItem>
+              }
+              {initialShowIPValue && ipValue !== "" &&
+                <TaskMetaItem title={"IP address"} icon={<PublicIcon />}>
+                  {ipValue}
+                </TaskMetaItem>
+              }
+              {(task.opsec_pre_blocked && !task.opsec_pre_bypassed) &&
+                <TaskMetaItem title={"OPSEC blocked before tasking"} icon={<WarningAmberIcon />}>
+                  OPSEC pre
+                </TaskMetaItem>
+              }
+              {(task.opsec_post_blocked && !task.opsec_post_bypassed) &&
+                <TaskMetaItem title={"OPSEC blocked after tasking"} icon={<WarningAmberIcon />}>
+                  OPSEC post
+                </TaskMetaItem>
+              }
+              <span className={classes.taskHeaderActions}>
+                {!task.completed && task.status_timestamp_processing &&
+                  <TaskHeaderAction title={"Task the agent to kill this task"} onClick={(e) => onClickKillIcon(e, true)}>
+                    <FontAwesomeIcon size={"sm"} icon={faSkullCrossbones} style={{height: "0.82rem"}} />
+                  </TaskHeaderAction>
+                }
+                <TaskStatusDisplay task={task}/>
+              </span>
+            </div>
+            <MythicStyledTooltip
+                title={commandLine}
+                maxWidth="calc(80vw)"
+                enterDelay={2000}
+                placement="top">
+              <Typography className={classes.taskCommandText} component="div"
+                          sx={{display: "flex", alignItems: "baseline", gap: "6px", fontFamily: 'Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace'}}>
+                <span className={classes.consolePrompt}>{">"}</span>
+                <span style={{minWidth: 0}}>
+                  <span className={classes.taskCommandName}>{command}</span>
+                  {task.display_params !== "" &&
+                    <span className={classes.taskCommandParams}> {task.display_params}</span>
                   }
-                  {"-["}
-	                <NumbersIcon fontSize="small" style={{ margin: "0 3px 0 0px", verticalAlign: "middle" }} />
-                    <MythicStyledTooltip title={"View Task in separate page"} >
-                      <Link style={{wordBreak: "break-all", color: theme.taskPromptTextColor,}} underline={"always"} target={"_blank"}
-                            href={"/new/task/" + task.display_id}>T-{task.display_id}</Link>
-                    </MythicStyledTooltip>
-                  {!task.completed && task.status_timestamp_processing &&
-                      <>
-                        <MythicStyledTooltip title={"Task the agent to kill this task"} >
-                            <FontAwesomeIcon size={"sm"} icon={faSkullCrossbones} onClick={(e) => onClickKillIcon(e, true)}
-                                             style={{cursor: "pointer", height: "15px", marginLeft: "5px"}} />
-                        </MythicStyledTooltip>
-                      </>
-                  }
-                  {"]"}
-	                {initialShowHostnameValue ? (
-	                    <>
-	                        {"-["}
-	                        <ComputerIcon fontSize="small" style={{ margin: "0 3px 0 0px", verticalAlign: "middle" }} />
-	                        {task.callback.host}
-                            {"]"}
-	                    </>) : null}
-	                {initialShowIPValue ? (
-	                    <>
-	                        {"-["}
-	                        <PublicIcon fontSize="small" style={{ margin: "0 3px 0 0px", verticalAlign: "middle" }} />
-	                        {JSON.parse(task.callback.ip)[0]}
-                            {"]"}
-	                    </> ) : null}
-	                {(task.opsec_pre_blocked && !task.opsec_pre_bypassed) ? (
-	                    <>
-	                        {"-["}
-	                        <WarningAmberIcon fontSize="small" style={{ margin: "0 3px 0 0px", verticalAlign: "middle", color: theme.palette.warning.main }} />
-                            {"OPSEC BLOCKED (PRE)]"}
-	                    </>) : null}
-	                {(task.opsec_post_blocked && !task.opsec_post_bypassed) ? (
-	                    <>
-	                        {"-["}
-	                        <WarningAmberIcon fontSize="small" style={{ margin: "0 3px 0 0px", verticalAlign: "middle", color: theme.palette.warning.main }} />
-                            {"OPSEC BLOCKED (POST)]"}
-	                    </>) : null}
-	                {")"}
-	            </Typography>
-              <MythicStyledTooltip title={task.status}>
-                <span style={{ fontFamily: "monospace", marginRight: 2, color: theme.taskPromptTextColor }}>└─</span>
-                <b style={{ fontFamily: "monospace", color: themeColor, fontWeight: 600 }}>{">_"}</b>{" "}
-              </MythicStyledTooltip>
-	            <MythicStyledTooltip
-	                title={(task?.command?.cmd || task.command_name) + " " + task.display_params}
-	                maxWidth="calc(80vw)"
-	                enterDelay={2000}
-	                placement="top">
-	                <Typography
-	                    sx={{ fontSize: 15, display: "flex", alignItems: "center", marginLeft: 0}}
-	                    style={{ fontFamily: "monospace" }}>
-	                    <span style={{ marginLeft: 4, color: theme.taskPromptCommandTextColor }}>
-	                        <b>{(task?.command?.cmd || task.command_name)}</b> {task.display_params}
-	                    </span>
-	                </Typography>
-	            </MythicStyledTooltip>
+                </span>
+              </Typography>
+            </MythicStyledTooltip>
 	        </div>
           {openKillTaskButton.open &&
               <TaskFromUIButton ui_feature={"task:job_kill"}
@@ -1097,10 +1272,9 @@ const TaskLabelConsole = ({task, me}) => {
   }
 
   return (
-      <StyledPaper className={classes.root + " no-box-shadow no-border"} elevation={5} style={{marginRight: 0, marginBottom: "5px"}} id={`taskHeader-${task.id}`}>
+      <StyledPaper className={classes.root + " no-box-shadow"} elevation={5} style={{marginRight: 0, marginBottom: "5px"}} id={`taskHeader-${task.id}`}>
           <ColoredTaskLabelConsole theme={theme} task={task} me={me} taskDivID={`scrolltotaskconsole${task.id}`} expanded={true}/>
           <TaskDisplayContainerConsole me={me} task={task} />
-          <div style={{borderBottom: "0px dashed grey", width: "100%", height: "5px", marginTop: "5px"}}/>
       </StyledPaper>
   );
 }

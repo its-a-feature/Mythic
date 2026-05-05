@@ -12,7 +12,6 @@ import {MythicSelectFromRawListDialog} from '../../MythicComponents/MythicSelect
 import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
 import { gql, useMutation } from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
-import {useTheme} from '@mui/material/styles';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RestoreFromTrashIcon from '@mui/icons-material/RestoreFromTrash';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
@@ -198,7 +197,6 @@ export function CredentialTable(props){
 
 function CredentialTableRow(props){
     const me = props.me;
-    const theme = useTheme();
     const [openDeleteDialog, setOpenDeleteDialog] = React.useState(false);
     const [editCommentDialogOpen, setEditCommentDialogOpen] = React.useState(false);
     const [editAccountDialogOpen, setEditAccountDialogOpen] = React.useState(false);
@@ -353,15 +351,15 @@ function CredentialTableRow(props){
                 
                 <MythicStyledTableCell>{props.deleted ? (
                     <MythicStyledTooltip title="Restore Credential for use in Tasking">
-                        <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} style={{color: theme.palette.success.main}} variant="contained"><RestoreFromTrashIcon/></IconButton>
+                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-success" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><RestoreFromTrashIcon fontSize="small" /></IconButton>
                     </MythicStyledTooltip>
                 ) : (
                     <MythicStyledTooltip title="Delete Credential so it can't be used in Tasking">
-                        <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} style={{color: theme.palette.error.main}} variant="contained"><DeleteIcon/></IconButton>
+                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><DeleteIcon fontSize="small" /></IconButton>
                     </MythicStyledTooltip>
                 )} </MythicStyledTableCell>
                 <TableCell>
-                    <Button size="small" variant="contained" color="primary" ref={dropdownAnchorRef}
+                    <Button className="mythic-table-row-action" size="small" variant="outlined" ref={dropdownAnchorRef}
                         onClick={() => setOpenDropdownButton(true)} >{"Edit"}
                     </Button>
                     <Popper open={openDropdownButton} anchorEl={dropdownAnchorRef.current} role={undefined} transition style={{zIndex: 4}}>
@@ -412,7 +410,7 @@ function CredentialTableRow(props){
                 <MythicStyledTableCell>
                     <div style={{display: "flex"}}>
                         <MythicStyledTooltip title={"Copy to clipboard"}>
-                            <IconButton onClick={() => onCopyToClipboard(props.credential_text)} size="small">
+                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-info" onClick={() => onCopyToClipboard(props.credential_text)} size="small">
                                 <FontAwesomeIcon icon={faCopy}/>
                             </IconButton>
                         </MythicStyledTooltip>
@@ -433,4 +431,3 @@ function CredentialTableRow(props){
         </React.Fragment>
     )
 }
-

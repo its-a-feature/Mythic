@@ -5,35 +5,46 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
-import Typography from '@mui/material/Typography';
 import { BrowserScriptsTableRow } from './BrowserScriptsTableRow';
-import {useTheme} from '@mui/material/styles';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
-import Button from '@mui/material/Button';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {EditScriptDialog} from './EditScriptDialog';
-import {MythicPageHeader} from "../../MythicComponents/MythicPageHeader";
+import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/MythicPageHeader";
+import {MythicToolbarButton} from "../../MythicComponents/MythicTableToolbar";
+import {MythicTableEmptyState} from "../../MythicComponents/MythicStateDisplay";
 
 
 export function BrowserScriptsTable(props){
-    const theme = useTheme();
     const [openNewScriptDialog, setOpenNewScriptDialog] = React.useState(false);
+    const scriptCountLabel = props.browserscripts.length === 1 ? "1 script" : `${props.browserscripts.length} scripts`;
+    const activeCount = props.browserscripts.filter((script) => script.active).length;
+    const activeCountLabel = activeCount === 1 ? "1 active" : `${activeCount} active`;
+    const modifiedCount = props.browserscripts.filter((script) => script.user_modified).length;
     return (
         <>
-            <MythicPageHeader title={"Browser Scripts"}>
-                <Button size="small" onClick={() => setOpenNewScriptDialog(true)} style={{whiteSpace: "nowrap", color: "white"}}
-                        startIcon={<AddCircleIcon color={"success"} style={{backgroundColor: "white", borderRadius: "10px"}}/>} >
-                    New Script
-                </Button>
-                {openNewScriptDialog &&
-                    <MythicDialog fullWidth={true} maxWidth="xl" open={openNewScriptDialog}
-                        onClose={()=>{setOpenNewScriptDialog(false);}} 
-                        innerDialog={
-                            <EditScriptDialog me={props.me} onClose={()=>{setOpenNewScriptDialog(false);}} title="Create New Browser Script" new={true} onSubmitEdit={props.onSubmitNew} />
-                        } />
+            <MythicPageHeader
+                title={"Browser Scripts"}
+                subtitle={"Manage custom browser script renderers for task output in the current UI."}
+                meta={
+                    <>
+                        <MythicPageHeaderChip label={scriptCountLabel} />
+                        <MythicPageHeaderChip label={activeCountLabel} />
+                        {modifiedCount > 0 && <MythicPageHeaderChip label={`${modifiedCount} modified`} />}
+                    </>
                 }
-            </MythicPageHeader>
+                actions={
+                    <MythicToolbarButton variant="contained" color="primary" onClick={() => setOpenNewScriptDialog(true)} startIcon={<AddCircleIcon />}>
+                        Script
+                    </MythicToolbarButton>
+                }
+            />
+            {openNewScriptDialog &&
+                <MythicDialog fullWidth={true} maxWidth="xl" open={openNewScriptDialog}
+                    onClose={()=>{setOpenNewScriptDialog(false);}}
+                    innerDialog={
+                        <EditScriptDialog me={props.me} onClose={()=>{setOpenNewScriptDialog(false);}} title="Create New Browser Script" new={true} onSubmitEdit={props.onSubmitNew} />
+                    } />
+            }
             <TableContainer className="mythicElement" style={{height: "100%", flexGrow: 1}}>
             <Table stickyHeader={true} size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
@@ -47,6 +58,14 @@ export function BrowserScriptsTable(props){
                     </TableRow>
                 </TableHead>
                 <TableBody>
+                {props.browserscripts.length === 0 &&
+                    <MythicTableEmptyState
+                        colSpan={6}
+                        compact
+                        title="No browser scripts"
+                        description="Create or import browser scripts to customize task output rendering."
+                    />
+                }
                 {props.browserscripts.map( (op) => (
                     <BrowserScriptsTableRow
                         me={props.me}
@@ -63,4 +82,3 @@ export function BrowserScriptsTable(props){
         
     )
 }
-

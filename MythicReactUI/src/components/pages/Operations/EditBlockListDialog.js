@@ -1,6 +1,4 @@
 import React, {useEffect} from 'react';
-import Button from '@mui/material/Button';
-import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import Grid from '@mui/material/Grid';
@@ -9,20 +7,20 @@ import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Checkbox from '@mui/material/Checkbox';
-import Paper from '@mui/material/Paper';
-import Card from '@mui/material/Card';
-import CardHeader from '@mui/material/CardHeader';
-import CardContent from '@mui/material/CardContent';
 import {useQuery, gql} from '@apollo/client';
-import {useTheme} from '@mui/material/styles';
-import Typography from '@mui/material/Typography';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import { snackActions } from '../../utilities/Snackbar';
-import {classes, StyledButton, StyledDivider} from '../../MythicComponents/MythicTransferList';
+import {classes, StyledButton} from '../../MythicComponents/MythicTransferList';
+import {
+  MythicDialogBody,
+  MythicDialogButton,
+  MythicDialogFooter,
+  MythicDialogSection,
+  MythicFormField
+} from '../../MythicComponents/MythicDialogLayout';
 
 function PayloadTypeBlockListPreMemo(props){
 
-    const theme = useTheme();
     const [checked, setChecked] = React.useState([]);
     const [left, setLeft] = React.useState([]);
     const [right, setRight] = React.useState(props.right);
@@ -101,14 +99,10 @@ function PayloadTypeBlockListPreMemo(props){
       props.onChange({selected: right, name: props.name});
     }, [right])
     const customList = (title, items) => (
-      <Paper style={{width:"100%", marginTop:"5px"}}>
-        <Card>
-          <CardHeader
-            title={title}
-          />
-          <StyledDivider classes={{root: classes.divider}}/>
-          <CardContent style={{height: "calc(30vh)", overflow: "auto"}} >
-            <List dense component="div" role="list" style={{padding:0}} >
+      <div className="mythic-transfer-list">
+          <div className="mythic-transfer-list-header">{title}</div>
+          <div className="mythic-transfer-list-body">
+            <List dense component="div" role="list" style={{padding:0}}>
               {items.map((valueObj) => {
                 const value = props.itemKey === undefined ? valueObj : valueObj[props.itemKey];
                 const labelId = `transfer-list-item-${value}-label`;
@@ -127,23 +121,16 @@ function PayloadTypeBlockListPreMemo(props){
                 );
               })}
             </List>
-          </CardContent>
-        </Card>
-      </Paper>
+          </div>
+      </div>
     );
     
   return (
-    <Grid container spacing={0} justifyContent="center" alignItems="center" className={classes.root}>
-      <Grid size={12}>
-        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main}} variant={"elevation"}>
-            <Typography variant="h3" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
-                {props.name}
-            </Typography>
-        </Paper>
-      </Grid>
+    <MythicDialogSection title={props.name} className="mythic-transfer-section">
+    <Grid container spacing={1} justifyContent="center" alignItems="stretch">
       <Grid size={5}>{customList(leftTitle, left)}</Grid>
       <Grid>
-        <Grid container direction="column" alignItems="center">
+        <div className="mythic-transfer-controls">
           <StyledButton
             variant="contained"
             size="small"
@@ -184,10 +171,11 @@ function PayloadTypeBlockListPreMemo(props){
           >
             ≪
           </StyledButton>
-        </Grid>
+        </div>
       </Grid>
       <Grid size={5}>{customList(rightTitle, right)}</Grid>
     </Grid>
+    </MythicDialogSection>
   );
 }
 const PayloadTypeBlockList = React.memo(PayloadTypeBlockListPreMemo);
@@ -267,20 +255,25 @@ export function EditBlockListDialog({dialogTitle, onSubmit, blockListName: propB
     <>
       <DialogTitle id="form-dialog-title">{dialogTitle}</DialogTitle>
       <DialogContent dividers={true}>
-        <MythicTextField disabled={!editable} onChange={onChangeBlockListName} value={blockListName} name="Block List Name" autoFocus requiredValue/>
-        {payloadtypes.map(p => (
-          <PayloadTypeBlockList key={p.name} leftTitle={"Not Blocked"} onChange={onChange} rightTitle={"Blocked Commands"} itemKey={"cmd"} right={p.selected} left={p.commands} name={p.name}/>
-        ))}
+        <MythicDialogBody>
+          <MythicDialogSection title="Block List">
+            <MythicFormField label="Block List Name" required>
+              <MythicTextField disabled={!editable} onChange={onChangeBlockListName} value={blockListName} name="Block List Name" showLabel={false} autoFocus requiredValue marginTop="0px" marginBottom="0px"/>
+            </MythicFormField>
+          </MythicDialogSection>
+          {payloadtypes.map(p => (
+            <PayloadTypeBlockList key={p.name} leftTitle={"Not Blocked"} onChange={onChange} rightTitle={"Blocked Commands"} itemKey={"cmd"} right={p.selected} left={p.commands} name={p.name}/>
+          ))}
+        </MythicDialogBody>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} variant="contained" color="primary">
+      <MythicDialogFooter>
+        <MythicDialogButton onClick={onClose}>
           Close
-        </Button>
-        <Button onClick={submit} variant="contained" color="success">
+        </MythicDialogButton>
+        <MythicDialogButton intent="primary" onClick={submit}>
           Submit
-        </Button>
-      </DialogActions>
+        </MythicDialogButton>
+      </MythicDialogFooter>
     </>
   );
 }
-

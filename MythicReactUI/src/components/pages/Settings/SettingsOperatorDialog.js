@@ -1,9 +1,7 @@
 import React from 'react';
 import {Box, Checkbox, Chip, Divider, FormControlLabel, InputAdornment, TextField, Typography} from '@mui/material';
 import Button from '@mui/material/Button';
-import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
-import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
@@ -11,6 +9,15 @@ import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import {CreateInviteLinksDialog} from "./InviteLinksDialog";
 import SearchIcon from '@mui/icons-material/Search';
 import {gql, useQuery} from "@apollo/client";
+import {
+    MythicDialogBody,
+    MythicDialogButton,
+    MythicDialogFooter,
+    MythicDialogSection,
+    MythicFormField,
+    MythicFormGrid,
+    MythicFormNote
+} from "../../MythicComponents/MythicDialogLayout";
 
 const apiTokenScopeDefinitionsQuery = gql`
 query apiTokenScopeDefinitionsQuery {
@@ -58,13 +65,15 @@ export function SettingsOperatorDialog(props) {
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">
-            {props.title}
-            <MythicStyledTooltip tooltipStyle={{float: "right", display: "inline-block"}}
-                                 title={"Generate invite link for somebody to create their own username/password"}>
-                <Button onClick={createInviteLink} variant={"contained"}>
-                    Generate Invite Link
-                </Button>
-            </MythicStyledTooltip>
+            <Box className="mythic-dialog-title-row">
+                <Box component="span">{props.title}</Box>
+                <MythicStyledTooltip tooltipStyle={{display: "inline-flex"}}
+                                     title={"Generate invite link for somebody to create their own username/password"}>
+                    <Button className="mythic-dialog-title-action" onClick={createInviteLink} size="small" variant="outlined">
+                        Generate Invite Link
+                    </Button>
+                </MythicStyledTooltip>
+            </Box>
             {openInviteLinkDialog &&
                 <MythicDialog open={openInviteLinkDialog}
                               fullWidth={true}
@@ -75,58 +84,76 @@ export function SettingsOperatorDialog(props) {
         </DialogTitle>
 
         <DialogContent dividers={true}>
-          <DialogContentText>
-                <b>Note:</b> If you're an admin, you don't need to know a user's old password to set a new one.
-          </DialogContentText>
-            <form autoComplete={"off"}>
-                <MythicTextField
-                    autoComplete={false}
-                    autoFocus
-                    placeholder={props.username}
-                    value={username}
-                    onChange={onUsernameChange}
-                    margin="dense"
-                    id="username"
-                    name="username"
-                />
-                {!props.userIsAdmin &&
-                    <MythicTextField
-                        margin="dense"
-                        id="passwordOld"
-                        value={passwordOld}
-                        onChange={onPasswordOldChange}
-                        name={props.title === "New Operator" ? "password" : "old password"}
-                        type="password"
-                    />
-                }
-
-                <MythicTextField
-                    margin="dense"
-                    id="passwordNew"
-                    value={passwordNew}
-                    onChange={onPasswordNewChange}
-                    name={props.title === "New Operator" ? "password again" : "new password"}
-                    type="password"
-                />
-                <MythicTextField
-                    margin="dense"
-                    id="email"
-                    value={email}
-                    onChange={onEmailChange}
-                    name={"email"}
-                    type="text"
-                />
-            </form>
-
+            <MythicDialogBody>
+                <MythicFormNote>
+                    If you're an admin, you don't need to know a user's old password to set a new one.
+                </MythicFormNote>
+                <MythicDialogSection title="Account Details">
+                    <MythicFormGrid minWidth="18rem" component="form" autoComplete="off">
+                        <MythicFormField label="Username" required>
+                            <MythicTextField
+                                autoComplete={false}
+                                autoFocus
+                                placeholder={props.username}
+                                value={username}
+                                onChange={onUsernameChange}
+                                id="username"
+                                name="username"
+                                showLabel={false}
+                                marginTop="0px"
+                                marginBottom="0px"
+                            />
+                        </MythicFormField>
+                        {!props.userIsAdmin &&
+                            <MythicFormField label={props.title === "New Operator" ? "Password" : "Old Password"}>
+                                <MythicTextField
+                                    id="passwordOld"
+                                    value={passwordOld}
+                                    onChange={onPasswordOldChange}
+                                    name={props.title === "New Operator" ? "password" : "old password"}
+                                    showLabel={false}
+                                    type="password"
+                                    marginTop="0px"
+                                    marginBottom="0px"
+                                />
+                            </MythicFormField>
+                        }
+                        <MythicFormField label={props.title === "New Operator" ? "Confirm Password" : "New Password"}>
+                            <MythicTextField
+                                id="passwordNew"
+                                value={passwordNew}
+                                onChange={onPasswordNewChange}
+                                name={props.title === "New Operator" ? "password again" : "new password"}
+                                showLabel={false}
+                                type="password"
+                                marginTop="0px"
+                                marginBottom="0px"
+                            />
+                        </MythicFormField>
+                        <MythicFormField label="Email">
+                            <MythicTextField
+                                id="email"
+                                value={email}
+                                onChange={onEmailChange}
+                                name={"email"}
+                                showLabel={false}
+                                type="text"
+                                marginTop="0px"
+                                marginBottom="0px"
+                            />
+                        </MythicFormField>
+                    </MythicFormGrid>
+                </MythicDialogSection>
+            </MythicDialogBody>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={props.handleClose} variant="contained" color="primary">
+        <MythicDialogFooter>
+          <MythicDialogButton onClick={props.handleClose}>
             Cancel
-          </Button>
-          <Button onClick={onAccept} variant="contained" color="success">
+          </MythicDialogButton>
+          <MythicDialogButton intent="primary" onClick={onAccept}>
             {props.title === "New Operator" ? "Create" : "Update"}
-          </Button>
-        </DialogActions>
+          </MythicDialogButton>
+        </MythicDialogFooter>
   </React.Fragment>
   );
 }
@@ -145,27 +172,37 @@ export function SettingsBotDialog(props) {
         <React.Fragment>
             <DialogTitle id="form-dialog-title">{props.title}</DialogTitle>
             <DialogContent dividers={true}>
-                <DialogContentText>
-                    <b>Note:</b> Bot accounts cannot log in. They can be assigned to operations and perform actions as part of workflows (once approved).
-                </DialogContentText>
-                <MythicTextField
-                    autoFocus
-                    placeholder={props.username}
-                    value={username}
-                    onChange={onUsernameChange}
-                    margin="dense"
-                    id="username"
-                    name="username"
-                />
+                <MythicDialogBody>
+                    <MythicFormNote>
+                        Bot accounts cannot log in. They can be assigned to operations and perform actions as part of workflows once approved.
+                    </MythicFormNote>
+                    <MythicDialogSection title="Bot Account">
+                        <MythicFormGrid minWidth="18rem">
+                            <MythicFormField label="Username" required>
+                                <MythicTextField
+                                    autoFocus
+                                    placeholder={props.username}
+                                    value={username}
+                                    onChange={onUsernameChange}
+                                    id="username"
+                                    name="username"
+                                    showLabel={false}
+                                    marginTop="0px"
+                                    marginBottom="0px"
+                                />
+                            </MythicFormField>
+                        </MythicFormGrid>
+                    </MythicDialogSection>
+                </MythicDialogBody>
             </DialogContent>
-            <DialogActions>
-                <Button onClick={props.handleClose} variant="contained" color="primary">
+            <MythicDialogFooter>
+                <MythicDialogButton onClick={props.handleClose}>
                     Cancel
-                </Button>
-                <Button onClick={onAccept} variant="contained" color="success">
+                </MythicDialogButton>
+                <MythicDialogButton intent="primary" onClick={onAccept}>
                     {props.title === "New Bot Account" ? "Create" : "Update"}
-                </Button>
-            </DialogActions>
+                </MythicDialogButton>
+            </MythicDialogFooter>
         </React.Fragment>
     );
 }
@@ -260,30 +297,39 @@ export function SettingsAPITokenDialog(props) {
         <React.Fragment>
             <DialogTitle id="form-dialog-title">{props.title}</DialogTitle>
             <DialogContent dividers={true} >
-                <MythicTextField
-                    autoFocus
-                    placeholder={props.name}
-                    value={name}
-                    onChange={onUsernameChange}
-                    margin="dense"
-                    id="name"
-                    name="name"
-                />
-                <Box sx={{display: "flex", alignItems: "center", gap: 1, mt: 2, mb: 1}}>
-                    <Typography variant="subtitle2" sx={{flexGrow: 1}}>
-                        Scopes
-                    </Typography>
-                    <Chip size="small" label={`${selectedScopes.length} selected`} />
-                    <Button size="small" onClick={selectVisibleScopes}>
-                        Select Visible
-                    </Button>
-                    <Button size="small" onClick={clearScopes}>
-                        Clear
-                    </Button>
-                </Box>
-                <DialogContentText sx={{mb: 1}}>
-                    Tokens with no scopes are created with no API access. Write scopes include read access for the same resource.
-                </DialogContentText>
+                <MythicDialogBody>
+                <MythicDialogSection title="Token Details">
+                    <MythicFormGrid minWidth="18rem">
+                        <MythicFormField label="Token Name" required>
+                            <MythicTextField
+                                autoFocus
+                                placeholder={props.name}
+                                value={name}
+                                onChange={onUsernameChange}
+                                id="name"
+                                name="name"
+                                showLabel={false}
+                                marginTop="0px"
+                                marginBottom="0px"
+                            />
+                        </MythicFormField>
+                    </MythicFormGrid>
+                </MythicDialogSection>
+                <MythicDialogSection
+                    title="Scopes"
+                    description="Tokens with no scopes are created with no API access. Write scopes include read access for the same resource."
+                    actions={
+                        <>
+                            <Chip size="small" label={`${selectedScopes.length} selected`} />
+                            <Button size="small" onClick={selectVisibleScopes}>
+                                Select Visible
+                            </Button>
+                            <Button size="small" onClick={clearScopes}>
+                                Clear
+                            </Button>
+                        </>
+                    }
+                >
                 <TextField
                     size="small"
                     fullWidth
@@ -383,15 +429,17 @@ export function SettingsAPITokenDialog(props) {
                     </>
                     }
                 </Box>
+                </MythicDialogSection>
+                </MythicDialogBody>
             </DialogContent>
-            <DialogActions>
-                <Button onClick={props.handleClose} variant="contained" color="primary">
+            <MythicDialogFooter>
+                <MythicDialogButton onClick={props.handleClose}>
                     Cancel
-                </Button>
-                <Button onClick={onAccept} variant="contained" color="success">
+                </MythicDialogButton>
+                <MythicDialogButton intent="primary" onClick={onAccept}>
                     {"Create New"}
-                </Button>
-            </DialogActions>
+                </MythicDialogButton>
+            </MythicDialogFooter>
         </React.Fragment>
     );
 }

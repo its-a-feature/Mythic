@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import {Button, IconButton, Typography, Link} from '@mui/material';
+import {IconButton, Typography, Link} from '@mui/material';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -13,6 +13,7 @@ import {snackActions} from '../../utilities/Snackbar';
 import EditIcon from '@mui/icons-material/Edit';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {TagsDisplay, ViewEditTags} from '../../MythicComponents/MythicTag';
+import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 
 const updateFileComment = gql`
 mutation updateCommentMutation($mythictree_id: Int!, $comment: String!){
@@ -94,7 +95,15 @@ function ProcessTableRow(props){
                 />
                 }
                 <MythicStyledTableCell>
-                    <Button color="info"  onClick={() => setViewPermissionsDialogOpen(true)}><PlaylistAddCheckIcon /></Button>
+                    <MythicStyledTooltip title="View permissions data">
+                        <IconButton
+                            className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
+                            size="small"
+                            onClick={() => setViewPermissionsDialogOpen(true)}
+                        >
+                            <PlaylistAddCheckIcon fontSize="small" />
+                        </IconButton>
+                    </MythicStyledTooltip>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <Typography variant="body2" style={{wordBreak: "break-all", textDecoration: props.deleted ? "strike-through" : ""}}>{props.full_path_text}</Typography>
@@ -127,7 +136,13 @@ function ProcessTableRow(props){
                     }
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <IconButton onClick={() => setEditCommentDialogOpen(true)} size="small" style={{display: "inline-block"}}><EditIcon /></IconButton>
+                    <IconButton
+                        className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
+                        onClick={() => setEditCommentDialogOpen(true)}
+                        size="small"
+                    >
+                        <EditIcon fontSize="small" />
+                    </IconButton>
                     <Typography variant="body2" style={{wordBreak: "break-all", display: "inline-block"}}>{props.comment}</Typography>
                     </MythicStyledTableCell>
                 <MythicStyledTableCell>
@@ -139,4 +154,3 @@ function ProcessTableRow(props){
         </React.Fragment>
     )
 }
-

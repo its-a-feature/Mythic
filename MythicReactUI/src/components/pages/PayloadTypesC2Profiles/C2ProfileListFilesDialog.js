@@ -1,9 +1,8 @@
 import React from 'react';
 import Button from '@mui/material/Button';
-import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import {useQuery, gql, useMutation, useLazyQuery} from '@apollo/client';
-import LinearProgress from '@mui/material/LinearProgress';
 import { snackActions } from '../../utilities/Snackbar';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -20,6 +19,9 @@ import DownloadIcon from '@mui/icons-material/Download';
 import DeleteIcon from '@mui/icons-material/Delete';
 import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
 import {downloadFileFromMemory} from '../../utilities/Clipboard';
+import {MythicDialogBody, MythicDialogButton, MythicDialogFooter, MythicDialogSection} from "../../MythicComponents/MythicDialogLayout";
+import {MythicErrorState, MythicLoadingState} from "../../MythicComponents/MythicStateDisplay";
+import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 
 export const containerListFilesQuery = gql`
 query listC2ProfileFilesQuery($container_name: String!){
@@ -96,21 +98,47 @@ export function C2ProfileListFilesDialog(props) {
   }
   
     if (loading) {
-     return <LinearProgress />;
+     return (
+       <>
+         <DialogTitle id="form-dialog-title">{props.container_name}'s Current Files</DialogTitle>
+         <DialogContent dividers={true}>
+           <MythicLoadingState title="Loading container files" description="Fetching files from the service container." minHeight={180} />
+         </DialogContent>
+       </>
+     );
     }
     if (error) {
      console.error(error);
-     return <div>Error! {error.message}</div>;
+     return (
+       <>
+         <DialogTitle id="form-dialog-title">{props.container_name}'s Current Files</DialogTitle>
+         <DialogContent dividers={true}>
+           <MythicErrorState title="Unable to load container files" description={error.message} minHeight={180} />
+         </DialogContent>
+       </>
+     );
     }
   
   return (
     <React.Fragment>
-        <DialogTitle id="form-dialog-title">{props.container_name}'s Current Files
-          <Button color="success" size="small" style={{float: "right"}} variant="contained" component="label">
-            <FileUploadIcon /> Upload File
-            <input onChange={onFileChange} type="file" multiple hidden />
-          </Button>
+        <DialogTitle id="form-dialog-title">
+          <div className="mythic-dialog-title-row">
+            <span>{props.container_name}'s Current Files</span>
+            <Button
+              className="mythic-dialog-title-action mythic-dialog-button-success"
+              component="label"
+              size="small"
+              startIcon={<FileUploadIcon fontSize="small" />}
+              variant="outlined"
+            >
+              Upload File
+              <input onChange={onFileChange} type="file" multiple hidden />
+            </Button>
+          </div>
         </DialogTitle>
+        <DialogContent dividers={true}>
+          <MythicDialogBody compact>
+            <MythicDialogSection title="Container Files" description="Download, edit, upload, or remove files from this installed service.">
           <TableContainer className="mythicElement">
             <Table stickyHeader size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
@@ -128,12 +156,14 @@ export function C2ProfileListFilesDialog(props) {
                 </TableBody>
             </Table>
         </TableContainer>
-        
-        <DialogActions>
-          <Button variant="contained" onClick={props.onClose} color="primary">
+            </MythicDialogSection>
+          </MythicDialogBody>
+        </DialogContent>
+        <MythicDialogFooter>
+          <MythicDialogButton onClick={props.onClose}>
             Close
-          </Button>
-        </DialogActions>
+          </MythicDialogButton>
+        </MythicDialogFooter>
   </React.Fragment>
   );
 }
@@ -200,13 +230,25 @@ const C2ProfileListFilesDialogTableRow = ({container_name, id, filename}) => {
     <React.Fragment>
       <TableRow hover>
         <TableCell>
-          <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} ><DeleteIcon color="error" /></IconButton>
+          <MythicStyledTooltip title="Remove file">
+            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={()=>{setOpenDeleteDialog(true);}} >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </MythicStyledTooltip>
         </TableCell>
         <TableCell>
-          <IconButton size="small" onClick={downloadFile}><DownloadIcon color="success" /></IconButton>
+          <MythicStyledTooltip title="Download file">
+            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-success" size="small" onClick={downloadFile}>
+              <DownloadIcon fontSize="small" />
+            </IconButton>
+          </MythicStyledTooltip>
         </TableCell>
         <TableCell>
-          <IconButton size="small" onClick={() => {setOpenProfileConfigDialog(true);}}><EditIcon color="info" /></IconButton>
+          <MythicStyledTooltip title="Edit file">
+            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={() => {setOpenProfileConfigDialog(true);}}>
+              <EditIcon fontSize="small" />
+            </IconButton>
+          </MythicStyledTooltip>
         </TableCell>
         <TableCell>{filename}</TableCell>
       </TableRow>

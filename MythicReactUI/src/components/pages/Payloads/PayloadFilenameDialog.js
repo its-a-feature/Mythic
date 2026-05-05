@@ -1,9 +1,9 @@
 import React, {useState} from 'react';
 import {useQuery, gql, useMutation} from '@apollo/client';
-import LinearProgress from '@mui/material/LinearProgress';
 import { snackActions } from '../../utilities/Snackbar';
 import {b64DecodeUnicode} from '../Callbacks/ResponseDisplay';
 import {MythicModifyStringDialog} from "../../MythicComponents/MythicDialog";
+import {MythicErrorState, MythicLoadingState} from "../../MythicComponents/MythicStateDisplay";
 
 const updateDescriptionMutation = gql`
 mutation updateDescription ($file_id: Int!, $filename: bytea!) {
@@ -43,11 +43,11 @@ export function PayloadFilenameDialog(props) {
         }
     });
     if (loading) {
-     return <LinearProgress style={{marginTop: "10px"}} />;
+     return <MythicLoadingState compact title="Loading filename" description="Fetching payload filename details." minHeight={140} />;
     }
     if (error) {
      console.error(error);
-     return <div>Error!</div>;
+     return <MythicErrorState compact title="Unable to load filename" description={error.message} minHeight={140} />;
     }
     const onCommitSubmit = (newDescription) => {
         updateDescription({variables: {file_id: fileId, filename: newDescription}});
@@ -65,4 +65,3 @@ export function PayloadFilenameDialog(props) {
   </React.Fragment>
   );
 }
-

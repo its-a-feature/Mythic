@@ -1,25 +1,19 @@
 import {MythicSearchTabLabel, MythicTabPanel} from '../../MythicComponents/MythicTabPanel';
 import React from 'react';
-import MythicTextField from '../../MythicComponents/MythicTextField';
-import Grid from '@mui/material/Grid';
-import SearchIcon from '@mui/icons-material/Search';
-import Tooltip from '@mui/material/Tooltip';
-import {useTheme} from '@mui/material/styles';
-import IconButton from '@mui/material/IconButton';
 import {gql, useLazyQuery} from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
-import Pagination from '@mui/material/Pagination';
-import {Button, Typography} from '@mui/material';
 import MenuItem from '@mui/material/MenuItem';
-import Select from '@mui/material/Select';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import {payloadFragment} from "../Payloads/Payloads";
 import {SearchPayloadsTable} from "./PayloadsTable";
-import { Backdrop, CircularProgress } from '@mui/material';
+import { Backdrop } from '@mui/material';
 import {faBiohazard} from '@fortawesome/free-solid-svg-icons';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
+import {MythicTablePagination} from "../../MythicComponents/MythicTablePagination";
+import {MythicSearchField, MythicTableToolbar, MythicTableToolbarGroup, MythicToolbarSelect, MythicToolbarToggle} from "../../MythicComponents/MythicTableToolbar";
+import {MythicLoadingState, MythicSearchEmptyState} from "../../MythicComponents/MythicStateDisplay";
 
 const fetchLimit = 20;
 const filenameSearch = gql`
@@ -108,7 +102,6 @@ export function SearchTabPayloadsLabel(props) {
 }
 
 const SearchTabPayloadsSearchPanel = (props) => {
-    const theme = useTheme();
     const [search, setSearch] = React.useState("");
     const searchFieldOptions = ["Filename", "Description", "UUID", "C2 Parameter Value", "Build Parameter"];
     const [searchField, setSearchField] = React.useState(searchFieldOptions[0]);
@@ -242,24 +235,12 @@ const SearchTabPayloadsSearchPanel = (props) => {
         fetchOptions();
     }, []);
     return (
-        <Grid container spacing={1} style={{padding: "5px 5px 0 5px", maxWidth: "100%"}}>
-            <Grid size={4}>
-                <MythicTextField placeholder="Search..." value={search} marginTop={"0px"}
-                                 onChange={handleSearchValueChange} onEnter={submitSearch} name="Search..."
-                                 InputProps={{
-                                     endAdornment:
-                                         <React.Fragment>
-                                             <Tooltip title="Search">
-                                                 <IconButton onClick={submitSearch} size="large"><SearchIcon
-                                                     style={{color: theme.palette.info.main}}/></IconButton>
-                                             </Tooltip>
-                                         </React.Fragment>,
-                                     style: {padding: 0}
-                                 }}/>
-            </Grid>
-            <Grid size={2}>
-                <Select
-                    style={{marginBottom: "10px", width: "100%"}}
+        <MythicTableToolbar>
+            <MythicTableToolbarGroup grow>
+                <MythicSearchField value={search} onChange={handleSearchValueChange} onEnter={submitSearch} onSearch={submitSearch} />
+            </MythicTableToolbarGroup>
+            <MythicTableToolbarGroup>
+                <MythicToolbarSelect
                     value={searchField}
                     onChange={handleSearchFieldChange}
                 >
@@ -268,11 +249,10 @@ const SearchTabPayloadsSearchPanel = (props) => {
                             <MenuItem key={"searchopt" + opt} value={opt}>{opt}</MenuItem>
                         ))
                     }
-                </Select>
-            </Grid>
-            <Grid size={2}>
-                <Select
-                    style={{marginBottom: "10px", width: "100%"}}
+                </MythicToolbarSelect>
+            </MythicTableToolbarGroup>
+            <MythicTableToolbarGroup>
+                <MythicToolbarSelect
                     value={searchC2}
                     onChange={handleC2FieldChange}
                 >
@@ -281,12 +261,11 @@ const SearchTabPayloadsSearchPanel = (props) => {
                             <MenuItem key={"searchlocopt" + opt} value={opt}>{opt}</MenuItem>
                         ))
                     }
-                </Select>
+                </MythicToolbarSelect>
 
-            </Grid>
-            <Grid size={2}>
-                <Select
-                    style={{marginBottom: "10px", width: "100%"}}
+            </MythicTableToolbarGroup>
+            <MythicTableToolbarGroup>
+                <MythicToolbarSelect
                     value={searchPayloadType}
                     onChange={handlePayloadTypeFieldChange}
                 >
@@ -295,41 +274,25 @@ const SearchTabPayloadsSearchPanel = (props) => {
                             <MenuItem key={"searchlocopt" + opt} value={opt}>{opt}</MenuItem>
                         ))
                     }
-                </Select>
-            </Grid>
-            <Grid size={2}>
-                <Button variant={"contained"} color={"primary"} size={"small"} style={{marginRight: "5px"}} onClick={handleToggleShowDeleted}>
-                    {showDeleted ? (
-                        <>
-                            <VisibilityIcon style={{marginRight: "5px"}} />
-                            {"Deleted"}
-                        </>
-
-                    ) : (
-                        <>
-                            <VisibilityOffIcon style={{marginRight: "5px"}} />
-                            { "Deleted"}
-                        </>
-
-                    )}
-                </Button>
-                <Button variant={"contained"} color={"primary"} size={"small"} onClick={handleToggleShowAutoGenerated}>
-                    {showAutogenerated ? (
-                        <>
-                            <VisibilityIcon style={{marginRight: "5px"}} />
-                            {"AutoGen"}
-                        </>
-
-                    ) : (
-                        <>
-                            <VisibilityOffIcon style={{marginRight: "5px"}} />
-                            { "AutoGen"}
-                        </>
-
-                    )}
-                </Button>
-            </Grid>
-        </Grid>
+                </MythicToolbarSelect>
+            </MythicTableToolbarGroup>
+            <MythicTableToolbarGroup>
+                <MythicToolbarToggle
+                    checked={showDeleted}
+                    onClick={handleToggleShowDeleted}
+                    label="Deleted"
+                    activeIcon={<VisibilityIcon fontSize="small" />}
+                    inactiveIcon={<VisibilityOffIcon fontSize="small" />}
+                />
+                <MythicToolbarToggle
+                    checked={showAutogenerated}
+                    onClick={handleToggleShowAutoGenerated}
+                    label="AutoGen"
+                    activeIcon={<VisibilityIcon fontSize="small" />}
+                    inactiveIcon={<VisibilityOffIcon fontSize="small" />}
+                />
+            </MythicTableToolbarGroup>
+        </MythicTableToolbar>
     );
 }
 
@@ -666,6 +629,7 @@ export const SearchTabPayloadsPanel = (props) => {
         }
     }
 
+    const hasPayloadResults = payloads.length > 0;
     return (
         <MythicTabPanel {...props} >
             <SearchTabPayloadsSearchPanel onChangeSearchField={onChangeSearchField}
@@ -681,18 +645,25 @@ export const SearchTabPayloadsPanel = (props) => {
             <div style={{overflowY: "auto", flexGrow: 1, position: "relative"}}>
                     {openBackdrop &&
                         <Backdrop open={openBackdrop} onClick={()=>{setOpenBackdrop(false);}} style={{zIndex: 2000, position: "absolute"}}>
-                            <CircularProgress color="inherit" disableShrink  />
+                            <MythicLoadingState
+                                compact
+                                title="Searching payloads"
+                                description="Fetching payload records that match the current filters."
+                                sx={{color: "inherit"}}
+                            />
                         </Backdrop>
                     }
-                    <SearchPayloadsTable showDeleted={showDeleted} me={props.me} payloads={payloads} setPayloads={setPayloads} />
+                    {hasPayloadResults ? (
+                        <SearchPayloadsTable showDeleted={showDeleted} me={props.me} payloads={payloads} setPayloads={setPayloads} />
+                    ) : !openBackdrop && (
+                        <MythicSearchEmptyState
+                            compact
+                            description="Adjust the payload query, C2 profile, payload type, deleted filter, or autogenerated filter and search again."
+                            minHeight={180}
+                        />
+                    )}
             </div>
-            <div style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center"}}>
-                <Pagination count={Math.ceil(totalCount / fetchLimit)} variant="outlined" color="info"
-                            boundaryCount={1}
-                            siblingCount={1} onChange={onChangePage} showFirstButton={true} showLastButton={true}
-                            style={{padding: "20px"}}/>
-                <Typography style={{paddingLeft: "10px"}}>Total Results: {totalCount}</Typography>
-            </div>
+            <MythicTablePagination totalCount={totalCount} fetchLimit={fetchLimit} onChange={onChangePage} color="info" />
         </MythicTabPanel>
     )
 }

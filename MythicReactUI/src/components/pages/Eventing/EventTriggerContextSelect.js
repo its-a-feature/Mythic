@@ -21,6 +21,7 @@ import {snackActions} from "../../utilities/Snackbar";
 import {MeContext} from "../../App";
 import {EventGroupTable} from "./EventGroupTable";
 import {MythicDraggableDialogTitle} from "../../MythicComponents/MythicDraggableDialogTitle";
+import AddCircleIcon from '@mui/icons-material/AddCircle';
 
 const triggerManualMutation = gql(`
 mutation triggerManualMutation($eventgroup_id: Int!, $env_data: jsonb){
@@ -236,8 +237,8 @@ export function EventTriggerContextSelectDialog({onClose, triggerContext}) {
                         {dictionaryData.map( (e, index) => (
                             <TableRow key={"dictionarydata" + index}>
                                 <MythicStyledTableCell style={{display: "flex"}} >
-                                    <IconButton color={"error"} onClick={() => removeRow(index)} >
-                                        <DeleteIcon />
+                                    <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={() => removeRow(index)} >
+                                        <DeleteIcon fontSize="small" />
                                     </IconButton>
                                     <Select
                                         style={{}}
@@ -263,7 +264,7 @@ export function EventTriggerContextSelectDialog({onClose, triggerContext}) {
                         ))}
                         <TableRow>
                             <MythicStyledTableCell>
-                                <Button onClick={addRow} color={"success"}>
+                                <Button className="mythic-table-row-action mythic-table-row-action-hover-success" onClick={addRow} variant="contained" startIcon={<AddCircleIcon fontSize="small" />}>
                                     Add Entry
                                 </Button>
                             </MythicStyledTableCell>
@@ -275,10 +276,10 @@ export function EventTriggerContextSelectDialog({onClose, triggerContext}) {
 
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose} variant="contained" color="primary">
+                <Button className="mythic-table-row-action" onClick={onClose} variant="contained">
                     Close
                 </Button>
-                <Button onClick={onSubmit} variant="contained" color="success">
+                <Button className="mythic-table-row-action mythic-table-row-action-hover-success" onClick={onSubmit} variant="contained">
                     Submit
                 </Button>
             </DialogActions>

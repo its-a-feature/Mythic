@@ -1,16 +1,8 @@
 import {MythicSearchTabLabel, MythicTabPanel} from '../../MythicComponents/MythicTabPanel';
 import React from 'react';
-import MythicTextField from '../../MythicComponents/MythicTextField';
 import AttachmentIcon from '@mui/icons-material/Attachment';
-import Grid from '@mui/material/Grid';
-import SearchIcon from '@mui/icons-material/Search';
-import Tooltip from '@mui/material/Tooltip';
-import {useTheme} from '@mui/material/styles';
-import IconButton from '@mui/material/IconButton';
 import {gql, useLazyQuery} from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
-import Pagination from '@mui/material/Pagination';
-import {Button, Typography} from '@mui/material';
 import {
     FileMetaDownloadTable,
     FileMetaEventingWorkflowsTable,
@@ -19,12 +11,14 @@ import {
 } from './FileMetaTable';
 import {FileBrowserTable} from './FileBrowserTable';
 import MenuItem from '@mui/material/MenuItem';
-import Select from '@mui/material/Select';
 import {UploadTaskFile} from '../../MythicComponents/MythicFileUpload';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import BackupIcon from '@mui/icons-material/Backup';
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
+import {MythicTablePagination} from "../../MythicComponents/MythicTablePagination";
+import {MythicSearchField, MythicTableToolbar, MythicTableToolbarGroup, MythicToolbarButton, MythicToolbarSelect, MythicToolbarToggle} from "../../MythicComponents/MythicTableToolbar";
+import {MythicSearchEmptyState} from "../../MythicComponents/MythicStateDisplay";
 
 const fileMetaFragment = gql`
 fragment filemetaData on filemeta{
@@ -438,7 +432,6 @@ export function SearchTabFilesLabel(props) {
 }
 
 const SearchTabFilesSearchPanel = (props) => {
-    const theme = useTheme();
     const [searchHost, setSearchHost] = React.useState("");
     const [search, setSearch] = React.useState("");
     const [searchField, setSearchField] = React.useState("Filename");
@@ -559,29 +552,16 @@ const SearchTabFilesSearchPanel = (props) => {
         }
     }, [props.value, props.index]);
     return (
-        <Grid container spacing={1} style={{padding: "5px 5px 0 5px", maxWidth: "100%"}}>
-            <Grid size={2}>
-                <MythicTextField placeholder="Host Name Search..." value={searchHost} marginTop={"0px"}
-                                 onChange={handleSearchHostValueChange} onEnter={submitSearch}
-                                 name="Host Name Search..."/>
-            </Grid>
-            <Grid size={3}>
-                <MythicTextField placeholder="Search..." value={search} marginTop={"0px"}
-                                 onChange={handleSearchValueChange} onEnter={submitSearch} name="Search..."
-                                 InputProps={{
-                                     endAdornment:
-                                         <React.Fragment>
-                                             <Tooltip title="Search">
-                                                 <IconButton onClick={submitSearch} size="large"><SearchIcon
-                                                     style={{color: theme.palette.info.main}}/></IconButton>
-                                             </Tooltip>
-                                         </React.Fragment>,
-                                     style: {padding: 0}
-                                 }}/>
-            </Grid>
-            <Grid size={2}>
-                <Select
-                    style={{marginBottom: "10px", width: "100%"}}
+        <MythicTableToolbar>
+            <MythicTableToolbarGroup style={{minWidth: "13rem"}}>
+                <MythicSearchField placeholder="Host Name Search..." name="Host" value={searchHost}
+                                   onChange={handleSearchHostValueChange} onEnter={submitSearch}/>
+            </MythicTableToolbarGroup>
+            <MythicTableToolbarGroup grow>
+                <MythicSearchField value={search} onChange={handleSearchValueChange} onEnter={submitSearch} onSearch={submitSearch} />
+            </MythicTableToolbarGroup>
+            <MythicTableToolbarGroup>
+                <MythicToolbarSelect
                     value={searchField}
                     onChange={handleSearchFieldChange}
                 >
@@ -590,11 +570,10 @@ const SearchTabFilesSearchPanel = (props) => {
                             <MenuItem key={"searchopt" + opt} value={opt}>{opt}</MenuItem>
                         ))
                     }
-                </Select>
-            </Grid>
-            <Grid size={2}>
-                <Select
-                    style={{marginBottom: "10px", width: "100%"}}
+                </MythicToolbarSelect>
+            </MythicTableToolbarGroup>
+            <MythicTableToolbarGroup>
+                <MythicToolbarSelect
                     value={searchLocation}
                     onChange={handleSearchLocationChange}
                 >
@@ -603,30 +582,22 @@ const SearchTabFilesSearchPanel = (props) => {
                             <MenuItem key={"searchlocopt" + opt} value={opt}>{opt}</MenuItem>
                         ))
                     }
-                </Select>
-            </Grid>
-            <Grid size={2}>
-                <Button variant="contained" color="primary" component="label" size={"small"} style={{marginRight: "5px"}} >
-                    <BackupIcon style={{marginRight: "5px"}} /> Files
+                </MythicToolbarSelect>
+            </MythicTableToolbarGroup>
+            <MythicTableToolbarGroup>
+                <MythicToolbarButton className="mythic-toolbar-button-hover-success" variant="outlined" component="label" startIcon={<BackupIcon />}>
+                    Files
                     <input onChange={onFileChange} type="file" multiple hidden/>
-                </Button>
-                <Button variant={"contained"} color={"primary"} size={"small"} onClick={handleToggleShowDeleted}>
-                    {showDeleted ? (
-                        <>
-                            <VisibilityIcon style={{marginRight: "5px"}} />
-                            {"Deleted"}
-                        </>
-
-                    ) : (
-                        <>
-                            <VisibilityOffIcon style={{marginRight: "5px"}} />
-                            { "Deleted"}
-                        </>
-
-                    )}
-                </Button>
-            </Grid>
-        </Grid>
+                </MythicToolbarButton>
+                <MythicToolbarToggle
+                    checked={showDeleted}
+                    onClick={handleToggleShowDeleted}
+                    label="Deleted"
+                    activeIcon={<VisibilityIcon fontSize="small" />}
+                    inactiveIcon={<VisibilityOffIcon fontSize="small" />}
+                />
+            </MythicTableToolbarGroup>
+        </MythicTableToolbar>
     );
 }
 
@@ -1130,6 +1101,11 @@ export const SearchTabFilesPanel = (props) => {
                 break;
         }
     }
+    const currentResultCount = searchLocation === "Uploads" ? fileMetaUploadData.length :
+        searchLocation === "Downloads" ? fileMetaDownloadData.length :
+        searchLocation === "Screenshots" ? fileMetaScreenshotData.length :
+        searchLocation === "FileBrowser" ? fileBrowserData.length :
+        fileMetaUploadData.length;
     return (
         <MythicTabPanel {...props} >
             <SearchTabFilesSearchPanel onChangeSearchField={onChangeSearchField} onFilenameSearch={onFilenameSearch}
@@ -1140,19 +1116,23 @@ export const SearchTabFilesPanel = (props) => {
                                        onChangeDeletedField={onChangeDeletedField}
                                        changeSearchParam={props.changeSearchParam}/>
             <div style={{overflowY: "auto", flexGrow: 1}}>
-                {searchLocation === "Uploads" && <FileMetaUploadTable me={me} files={fileMetaUploadData}/>}
-                {searchLocation === "Downloads" && <FileMetaDownloadTable me={me} files={fileMetaDownloadData}/>}
-                {searchLocation === "Screenshots" && <FileMetaScreenshotTable me={me} files={fileMetaScreenshotData}/>}
-                {searchLocation === "FileBrowser" && <FileBrowserTable me={me} files={fileBrowserData} />}
-                {searchLocation === "Eventing Workflows" && <FileMetaEventingWorkflowsTable me={me} files={fileMetaUploadData} />}
+                {currentResultCount > 0 ? (
+                    <>
+                        {searchLocation === "Uploads" && <FileMetaUploadTable me={me} files={fileMetaUploadData}/>}
+                        {searchLocation === "Downloads" && <FileMetaDownloadTable me={me} files={fileMetaDownloadData}/>}
+                        {searchLocation === "Screenshots" && <FileMetaScreenshotTable me={me} files={fileMetaScreenshotData}/>}
+                        {searchLocation === "FileBrowser" && <FileBrowserTable me={me} files={fileBrowserData} />}
+                        {searchLocation === "Eventing Workflows" && <FileMetaEventingWorkflowsTable me={me} files={fileMetaUploadData} />}
+                    </>
+                ) : (
+                    <MythicSearchEmptyState
+                        compact
+                        description="Adjust the filename, host, location, deleted filter, or search field and search again."
+                        minHeight={180}
+                    />
+                )}
             </div>
-            <div style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center"}}>
-                <Pagination count={Math.ceil(totalCount / fetchLimit)} variant="outlined" color="info"
-                            boundaryCount={1}
-                            siblingCount={1} onChange={onChangePage} showFirstButton={true} showLastButton={true}
-                            style={{padding: "20px"}}/>
-                <Typography style={{paddingLeft: "10px"}}>Total Results: {totalCount}</Typography>
-            </div>
+            <MythicTablePagination totalCount={totalCount} fetchLimit={fetchLimit} onChange={onChangePage} color="info" />
         </MythicTabPanel>
     )
 }

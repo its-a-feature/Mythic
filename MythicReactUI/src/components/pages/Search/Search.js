@@ -1,5 +1,4 @@
 import React from 'react';
-import { styled } from '@mui/material/styles';
 import AppBar from '@mui/material/AppBar';
 import Tabs from '@mui/material/Tabs';
 import {useNavigate} from 'react-router-dom';
@@ -15,31 +14,33 @@ import {SearchTabProcessesLabel, SearchTabProcessPanel} from "./SearchTabProcess
 import {SearchTabTagsLabel, SearchTabTagsPanel} from "./SearchTabTags";
 import {SearchTabPayloadsLabel, SearchTabPayloadsPanel} from "./SearchTabPayloads";
 import {SearchTabCustomBrowserLabel, SearchTabCustomBrowserPanel} from "./SearchTabCustomBrowsers";
-
-const PREFIX = 'Search';
-
-const classes = {
-  root: `${PREFIX}-root`
-};
-
-const Root = styled('div')((
-  {
-    theme
-  }
-) => ({
-  [`&.${classes.root}`]: {
-    width: "100%",
-  }
-}));
+import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
+import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/MythicPageHeader";
 
 export function Search(props){
 
   const navigate = useNavigate();
   const tabTypes = ["callbacks", "tasks", "payloads", "files", "credentials", "keylogs", "artifacts", "tokens", "socks", "processes", "tags", "browsers"];
+  const tabLabels = {
+    artifacts: "Artifacts",
+    browsers: "Browser scripts",
+    callbacks: "Callbacks",
+    credentials: "Credentials",
+    files: "Files",
+    keylogs: "Keylogs",
+    payloads: "Payloads",
+    processes: "Processes",
+    socks: "SOCKS",
+    tags: "Tags",
+    tasks: "Tasks",
+    tokens: "Tokens",
+  };
   var params = new URLSearchParams(window.location.search);
   var valueString = params.get("tab") ? params.get("tab") : tabTypes[0];
   var valueIndex = tabTypes.findIndex(t => t === valueString);
   var value = valueIndex === -1 ? 0 : valueIndex;
+  const currentTab = valueIndex === -1 ? tabTypes[0] : valueString;
+  const currentTabLabel = tabLabels[currentTab] || currentTab;
 
   const handleChange = (event, newValue) => {
       params.set("tab", tabTypes[newValue]);
@@ -52,7 +53,7 @@ export function Search(props){
       navigate(newRelativePathQuery);
     }
   const getTabComponent = () => {
-    switch(valueString){
+    switch(currentTab){
       case "tasks":
         return <SearchTabTasksPanel key={"taskspanel"} index={value} me={props.me} value={value} changeSearchParam={changeSearchParam} />
       case "payloads":
@@ -80,10 +81,30 @@ export function Search(props){
       default:
         return null;
     }
-  }
+    }
     return (
-      <Root className={classes.root} style={{  height: "100%", display: "flex", flexDirection: "column"}}>
-          <AppBar position="static" color="default" className={"no-box-shadow"}>
+      <MythicPageBody>
+          <MythicPageHeader
+            title={"Search"}
+            subtitle={"Pivot across callbacks, tasks, files, payloads, credentials, and operation artifacts."}
+            meta={
+              <>
+                <MythicPageHeaderChip label={currentTabLabel} />
+                <MythicPageHeaderChip label={`${tabTypes.length} search views`} />
+              </>
+            }
+          />
+          <AppBar
+            position="static"
+            color="default"
+            className={"no-box-shadow"}
+            sx={(theme) => ({
+              backgroundColor: theme.surfaces?.muted || theme.palette.background.paper,
+              border: `1px solid ${theme.table?.borderSoft || theme.borderColor}`,
+              borderRadius: `${theme.shape.borderRadius}px`,
+              overflow: "hidden",
+            })}
+          >
             <Tabs
               value={value}
               onChange={handleChange}
@@ -130,6 +151,6 @@ export function Search(props){
           {
             getTabComponent()
           }
-      </Root>
+      </MythicPageBody>
     );
 } 

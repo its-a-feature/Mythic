@@ -5,10 +5,8 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import { toLocalTime } from '../../utilities/Time';
-import {useTheme} from '@mui/material/styles';
 import LockIcon from '@mui/icons-material/Lock';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
@@ -23,17 +21,12 @@ import {
 import {updateSleepInfoCallbackMutation} from "../Callbacks/CallbackMutations";
 import {snackActions} from "../../utilities/Snackbar";
 import {TagsDisplay, ViewEditTags} from "../../MythicComponents/MythicTag";
+import {MythicSectionHeader} from "../../MythicComponents/MythicPageHeader";
 
 export function ExpandedCallbackSideDetails(props){
-    const theme = useTheme();
     return (
         <div style={{ width: "100%", height: "100%", overflowY: "scroll" }}>
-            <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main, marginBottom: "5px"}}
-                   variant={"elevation"}>
-                <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
-                    Callback {props.callback.display_id}
-                </Typography>
-            </Paper>
+            <MythicSectionHeader title={`Callback ${props.callback.display_id}`} dense={false} sx={{mt: 0}} />
             <ExpandedCallbackSideDetailsTable {...props.callback} />
         </div>
     )

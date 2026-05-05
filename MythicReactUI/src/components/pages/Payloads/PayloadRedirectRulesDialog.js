@@ -3,9 +3,9 @@ import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
 import DialogTitle from '@mui/material/DialogTitle';
 import {useQuery, gql} from '@apollo/client';
-import LinearProgress from '@mui/material/LinearProgress';
 import { snackActions } from '../../utilities/Snackbar';
 import {ResponseDisplayPlaintext} from "../Callbacks/ResponseDisplayPlaintext";
+import {MythicErrorState, MythicLoadingState} from "../../MythicComponents/MythicStateDisplay";
 
 const generateRedirectRulesMutation = gql`
 query generateRedirectRulesMutation($uuid: String!) {
@@ -33,11 +33,11 @@ export function PayloadRedirectRulesDialog(props) {
         fetchPolicy: "network-only"
     });
     if (loading) {
-     return <LinearProgress style={{marginTop: "10px"}} />;
+     return <MythicLoadingState compact title="Generating redirect rules" description="Fetching C2 redirect rules for this payload." minHeight={160} />;
     }
     if (error) {
      console.error(error);
-     return <div>Error!</div>;
+     return <MythicErrorState compact title="Unable to generate redirect rules" description={error.message} minHeight={160} />;
     }
     
   return (

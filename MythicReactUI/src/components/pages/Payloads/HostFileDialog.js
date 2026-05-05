@@ -1,21 +1,25 @@
 import React, {useState} from 'react';
-import Button from '@mui/material/Button';
-import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import {useQuery, gql, useMutation} from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
-import MythicTableCell from "../../MythicComponents/MythicTableCell";
-import TableRow from '@mui/material/TableRow';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableContainer from '@mui/material/TableContainer';
 import MythicTextField from "../../MythicComponents/MythicTextField";
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
-import Input from '@mui/material/Input';
+import InputLabel from '@mui/material/InputLabel';
 import Switch from '@mui/material/Switch';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import {
+    MythicDialogBody,
+    MythicDialogButton,
+    MythicDialogFooter,
+    MythicDialogGrid,
+    MythicDialogSection,
+    MythicFormField,
+    MythicFormSwitchRow
+} from "../../MythicComponents/MythicDialogLayout";
 
 const hostFileMutation = gql`
 mutation hostFileMutation($c2_id: Int!, $file_uuid: String!, $host_url: String!, $alert_on_download: Boolean, $remove: Boolean) {
@@ -67,7 +71,8 @@ export function HostFileDialog(props) {
         setMessage(value);
     }
     const handleChange = (event) => {
-        setSelectedC2Profile(event.target.value);
+        const selected = availableC2Profiles.find((profile) => profile.id === event.target.value);
+        setSelectedC2Profile(selected || {id: 0});
     };
     const onChangeAlert = (event) => {
         setAlertOnDownload(event.target.checked);
@@ -102,59 +107,66 @@ export function HostFileDialog(props) {
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Host File via C2 Profile</DialogTitle>
         <DialogContent dividers={true}>
-          <TableContainer className="mythicElement">
-            <Table size="small" aria-label="details" style={{ "overflowWrap": "break-word"}}>
-                <TableBody>
-                    <TableRow hover>
-                        <MythicTableCell style={{width: "30%"}}>File</MythicTableCell>
-                        <MythicTableCell style={{wordBreak: "all"}}>{props.file_name}</MythicTableCell>
-                    </TableRow>
-                    <TableRow hover>
-                        <MythicTableCell>C2 Profile</MythicTableCell>
-                        <MythicTableCell>
-                            <FormControl style={{width: "100%"}}>
-                                <Select
-                                    labelId="demo-dialog-select-label"
-                                    id="demo-dialog-select"
-                                    value={selectedC2Profile}
-                                    onChange={handleChange}
-                                    input={<Input style={{width: "100%"}}/>}
-                                >
-                                    {availableC2Profiles.map( (opt) => (
-                                        <MenuItem value={opt} key={opt.id}>{opt.name}</MenuItem>
-                                    ) )}
-                                </Select>
-                            </FormControl>
-                        </MythicTableCell>
-                    </TableRow>
-                    <TableRow hover>
-                        <MythicTableCell >Hosting URL Path (with /)</MythicTableCell>
-                        <MythicTableCell>
-                            <MythicTextField value={message} onEnter={submit} onChange={onChangeHostURL} requiredValue={true} >
-                            </MythicTextField>
-                        </MythicTableCell>
-                    </TableRow>
-                    <TableRow hover>
-                        <MythicTableCell>Send alert when file is downloaded?</MythicTableCell>
-                        <MythicTableCell>
-                            <Switch color={"success"} onChange={onChangeAlert} checked={alertOnDownload}></Switch>
-                        </MythicTableCell>
-                    </TableRow>
-                </TableBody>
-            </Table>
-          </TableContainer>
+          <MythicDialogBody>
+            <MythicDialogSection title="File">
+                <Box className="mythic-dialog-preview" sx={{backgroundColor: "background.paper"}}>
+                    <Typography sx={{wordBreak: "break-all"}}>
+                        {props.file_name}
+                    </Typography>
+                </Box>
+            </MythicDialogSection>
+            <MythicDialogSection title="Hosting">
+                <MythicDialogGrid>
+                    <MythicFormField label="C2 Profile" description="Select a running egress profile to serve this file." required>
+                        <FormControl fullWidth size="small">
+                            <InputLabel id="host-file-c2-profile-label">C2 Profile</InputLabel>
+                            <Select
+                                labelId="host-file-c2-profile-label"
+                                id="host-file-c2-profile"
+                                value={selectedC2Profile.id || ""}
+                                label="C2 Profile"
+                                onChange={handleChange}
+                            >
+                                {availableC2Profiles.map( (opt) => (
+                                    <MenuItem value={opt.id} key={opt.id}>{opt.name}</MenuItem>
+                                ) )}
+                            </Select>
+                        </FormControl>
+                    </MythicFormField>
+                    <MythicFormField label="Hosting URL Path" description="Path must start with /" required>
+                        <MythicTextField
+                            value={message}
+                            onEnter={submit}
+                            onChange={onChangeHostURL}
+                            requiredValue={true}
+                            name="Hosting URL Path"
+                            showLabel={false}
+                            marginTop="0px"
+                            marginBottom="0px"
+                        />
+                    </MythicFormField>
+                </MythicDialogGrid>
+            </MythicDialogSection>
+            <MythicDialogSection title="Download Alerts">
+                <MythicFormSwitchRow
+                    label="Download Alert"
+                    description="Send an alert when the hosted file is downloaded."
+                    control={<Switch color={"success"} onChange={onChangeAlert} checked={alertOnDownload} />}
+                />
+            </MythicDialogSection>
+          </MythicDialogBody>
         </DialogContent>
-        <DialogActions>
-          <Button variant="contained" onClick={props.onClose} color="primary">
+        <MythicDialogFooter>
+          <MythicDialogButton onClick={props.onClose}>
             Close
-          </Button>
-            <Button variant="contained" onClick={stopHosting} color="error">
+          </MythicDialogButton>
+            <MythicDialogButton intent="destructive" onClick={stopHosting}>
                 Stop Hosting
-            </Button>
-          <Button variant="contained" onClick={submit} color={"success"}>
+            </MythicDialogButton>
+          <MythicDialogButton intent="primary" onClick={submit}>
             Submit
-          </Button>
-        </DialogActions>
+          </MythicDialogButton>
+        </MythicDialogFooter>
   </React.Fragment>
   );
 }

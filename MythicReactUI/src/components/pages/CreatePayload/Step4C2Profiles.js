@@ -425,10 +425,14 @@ export function Step4C2Profiles(props){
                                 ))
                             }
                         </Select>
-                        <Button size="small" color={"primary"} variant={"contained"} style={{marginLeft: "10px", color: "white", marginBottom: "5px"}}
+                        <Button
+                                className="mythic-table-row-action mythic-table-row-action-hover-success"
+                                size="small"
+                                variant="contained"
+                                style={{marginLeft: "10px", marginBottom: "5px"}}
                                 onClick={addC2}
                                 disabled={disabledC2Add}
-                                startIcon={<AddCircleIcon color={"success"} style={{backgroundColor: "white", borderRadius: "10px"}}/>} >
+                                startIcon={<AddCircleIcon fontSize="small" />} >
                                 Include Profile
                         </Button>
                     </div>
@@ -656,8 +660,8 @@ const C2ProfileTabs = ({includedC2Profiles, onChange, os, onCloseTab, onChangeCr
                     <Tab key={c.name + index} label={
                         <div style={{display: "flex", alignItems: "center"}}>
                                 {c.name}
-                            <IconButton size='small' onClick={(e) => onCloseTabLocal(e, index)} >
-                                <CloseIcon />
+                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size='small' onClick={(e) => onCloseTabLocal(e, index)} >
+                                <CloseIcon fontSize="small" />
                             </IconButton>
                         </div>
                     } {...a11yProps(index)} style={{flexShrink: 0}} />

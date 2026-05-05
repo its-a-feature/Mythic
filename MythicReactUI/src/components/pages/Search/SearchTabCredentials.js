@@ -1,23 +1,18 @@
 import {MythicTabPanel, MythicSearchTabLabel} from '../../MythicComponents/MythicTabPanel';
 import React from 'react';
-import MythicTextField from '../../MythicComponents/MythicTextField';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
-import Grid from '@mui/material/Grid';
-import SearchIcon from '@mui/icons-material/Search';
-import Tooltip from '@mui/material/Tooltip';
-import IconButton from '@mui/material/IconButton';
 import { gql, useMutation} from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
-import Pagination from '@mui/material/Pagination';
-import { Button, Typography } from '@mui/material';
 import {CredentialTable} from './CredentialTable';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {CredentialTableNewCredentialDialog} from './CredentialTableNewCredentialDialog';
 import MenuItem from '@mui/material/MenuItem';
-import Select from '@mui/material/Select';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
+import {MythicTablePagination} from "../../MythicComponents/MythicTablePagination";
+import {MythicSearchField, MythicTableToolbar, MythicTableToolbarGroup, MythicToolbarButton, MythicToolbarSelect, MythicToolbarToggle} from "../../MythicComponents/MythicTableToolbar";
+import {MythicSearchEmptyState} from "../../MythicComponents/MythicStateDisplay";
 
 const credentialFragment = gql`
 fragment credentialSearchData on credential{
@@ -221,22 +216,12 @@ const SearchTabCredentialsSearchPanel = (props) => {
         }
     }, [props.value, props.index])
     return (
-        <Grid container spacing={2} style={{padding: "5px 5px 0 5px", maxWidth: "100%"}}>
-            <Grid size={5}>
-                <MythicTextField placeholder="Search..." value={search} marginTop={"0px"}
-                    onChange={handleSearchValueChange} onEnter={submitSearch} name="Search..." InputProps={{
-                        endAdornment: 
-                        <React.Fragment>
-                            <Tooltip title="Search">
-                                <IconButton onClick={submitSearch} size="large"><SearchIcon color="info"/></IconButton>
-                            </Tooltip>
-                        </React.Fragment>,
-                        style: {padding: 0}
-                    }}/>
-            </Grid>
-            <Grid size={2}>
-                <Select
-                    style={{marginBottom: "10px", width: "100%"}}
+        <MythicTableToolbar>
+            <MythicTableToolbarGroup grow>
+                <MythicSearchField value={search} onChange={handleSearchValueChange} onEnter={submitSearch} onSearch={submitSearch} />
+            </MythicTableToolbarGroup>
+            <MythicTableToolbarGroup>
+                <MythicToolbarSelect
                     value={searchField}
                     onChange={handleSearchFieldChange}
                 >
@@ -245,9 +230,9 @@ const SearchTabCredentialsSearchPanel = (props) => {
                             <MenuItem key={"searchopt" + opt} value={opt}>{opt}</MenuItem>
                         ))
                     }
-                </Select>
-            </Grid>
-            <Grid size={2}>
+                </MythicToolbarSelect>
+            </MythicTableToolbarGroup>
+            <MythicTableToolbarGroup>
                 {createCredentialDialogOpen &&
                     <MythicDialog fullWidth={true} maxWidth="md" open={createCredentialDialogOpen} 
                         onClose={()=>{setCreateCredentialDialogOpen(false);}} 
@@ -255,28 +240,18 @@ const SearchTabCredentialsSearchPanel = (props) => {
                     />
                 }
                 
-                <Button  style={{marginRight: "5px"}}
-                         size="small" color="success" onClick={ () => {setCreateCredentialDialogOpen(true);}} variant="contained">
-                    <VpnKeyIcon style={{marginRight: "5px"}} />
+                <MythicToolbarButton className="mythic-toolbar-button-hover-success" onClick={ () => {setCreateCredentialDialogOpen(true);}} variant="outlined" startIcon={<VpnKeyIcon />}>
                     New
-                </Button>
-                <Button variant={"contained"} color={"primary"} size={"small"} onClick={handleToggleShowDeleted}>
-                    {showDeleted ? (
-                        <>
-                            <VisibilityIcon style={{marginRight: "5px"}} />
-                            {"Deleted"}
-                        </>
-
-                    ) : (
-                        <>
-                            <VisibilityOffIcon style={{marginRight: "5px"}} />
-                            { "Deleted"}
-                        </>
-
-                    )}
-                </Button>
-            </Grid>
-        </Grid>
+                </MythicToolbarButton>
+                <MythicToolbarToggle
+                    checked={showDeleted}
+                    onClick={handleToggleShowDeleted}
+                    label="Deleted"
+                    activeIcon={<VisibilityIcon fontSize="small" />}
+                    inactiveIcon={<VisibilityOffIcon fontSize="small" />}
+                />
+            </MythicTableToolbarGroup>
+        </MythicTableToolbar>
     );
 }
 
@@ -470,14 +445,14 @@ export const SearchTabCredentialsPanel = (props) =>{
             <div style={{overflowY: "auto", flexGrow: 1}}>
                 {credentialaData.length > 0 ? (
                     <CredentialTable me={me} credentials={credentialaData} />) : (
-                    <div style={{display: "flex", justifyContent: "center", alignItems: "center", position: "absolute", left: "50%", top: "50%"}}>No Search Results</div>
+                    <MythicSearchEmptyState
+                        compact
+                        description="Adjust the credential query, deleted filter, or search field and search again."
+                        minHeight={180}
+                    />
                 )}
             </div>
-            <div style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center"}}>
-            <Pagination count={Math.ceil(totalCount / fetchLimit)} variant="outlined" color="info" boundaryCount={1}
-                    siblingCount={1} onChange={onChangePage} showFirstButton={true} showLastButton={true} style={{padding: "20px"}}/>
-                <Typography style={{paddingLeft: "10px"}}>Total Results: {totalCount}</Typography>
-            </div>
+            <MythicTablePagination totalCount={totalCount} fetchLimit={fetchLimit} onChange={onChangePage} color="info" />
         </MythicTabPanel>
     )
 }

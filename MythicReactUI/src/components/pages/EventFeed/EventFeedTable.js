@@ -1,36 +1,38 @@
 import React from 'react';
 import { EventFeedTableEvents } from './EventFeedTableEvents';
-import Typography from '@mui/material/Typography';
-import Paper from '@mui/material/Paper';
-import {useTheme} from '@mui/material/styles';
-import Pagination from '@mui/material/Pagination';
-import MythicTextField from "../../MythicComponents/MythicTextField";
-import SearchIcon from '@mui/icons-material/Search';
-import Tooltip from '@mui/material/Tooltip';
-import IconButton from '@mui/material/IconButton';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import HealingIcon from '@mui/icons-material/Healing';
 import MenuItem from '@mui/material/MenuItem';
-import Select from '@mui/material/Select';
-import Grid from '@mui/material/Grid';
 import {alertCount} from "../../../cache";
 import {levelOptions} from "./EventFeed";
 import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
+import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/MythicPageHeader";
+import {MythicTablePagination} from "../../MythicComponents/MythicTablePagination";
+import {MythicSearchField, MythicTableToolbar, MythicTableToolbarGroup, MythicToolbarButton, MythicToolbarSelect} from "../../MythicComponents/MythicTableToolbar";
+import {MythicEmptyState} from "../../MythicComponents/MythicStateDisplay";
 
 const EventList = ({onUpdateLevel, onUpdateResolution, operationeventlog}) => {
    return (
     <div style={{ flexGrow: 1}}>
-        {operationeventlog.map( o => <EventFeedTableEvents {...o} 
-            key={o.id}
-            onUpdateLevel={onUpdateLevel}
-            onUpdateResolution={onUpdateResolution}
-            />)}
+        {operationeventlog.length === 0 ? (
+            <MythicEmptyState
+                compact
+                title="No event feed entries"
+                description="Events matching the current level and search will appear here."
+                minHeight={180}
+            />
+        ) : (
+            operationeventlog.map( o => <EventFeedTableEvents {...o}
+                key={o.id}
+                onUpdateLevel={onUpdateLevel}
+                onUpdateResolution={onUpdateResolution}
+                />)
+        )}
     </div>
    )
 };
 
 export function EventFeedTable(props){
-    const theme = useTheme();
     const [search, setSearch] = React.useState("");
     const [level, setLevel] = React.useState("info");
 
@@ -51,30 +53,37 @@ export function EventFeedTable(props){
             props.onLevelChange("warning (unresolved)");
         }
     }, []);
+    const visibleEventsLabel = props.operationeventlog.length === 1 ? "1 shown" : `${props.operationeventlog.length} shown`;
+    const totalEventsLabel = props.pageData.totalCount === 1 ? "1 total" : `${props.pageData.totalCount} total`;
     return (
         <MythicPageBody>
-            <Grid container spacing={1} style={{ marginTop: "0px"}}>
-                <Grid style={{paddingTop: 0}} size={10}>
-                    <MythicTextField placeholder="Search..." value={search} marginBottom={"0px"} marginTop={"0px"}
-                                     onChange={handleSearchValueChange} onEnter={submitSearch} InputProps={{
-                        endAdornment:
-                            <React.Fragment>
-                                <Tooltip title="Search">
-                                    <IconButton onClick={submitSearch} size="large"><SearchIcon style={{color: theme.palette.info.main}}/></IconButton>
-                                </Tooltip>
-                                <Tooltip title="Resolve Viewable Errors">
-                                    <IconButton onClick={props.resolveViewableErrors} size="large"><AutoFixHighIcon style={{color: theme.palette.success.main}}/></IconButton>
-                                </Tooltip>
-                                <Tooltip title="Resolve All Errors">
-                                    <IconButton onClick={props.resolveAllErrors} size="large"><HealingIcon style={{color: theme.palette.success.main}}/></IconButton>
-                                </Tooltip>
-                            </React.Fragment>,
-                        style: {padding: 0}
-                    }}/>
-                </Grid>
-                <Grid style={{paddingTop: 0, paddingLeft: 0}} size={2}>
-                    <Select
-                        style={{width: "100%"}}
+            <MythicPageHeader
+                title={"Event Feed"}
+                subtitle={"Review operation messages, warnings, and service events as they arrive."}
+                meta={
+                    <>
+                        <MythicPageHeaderChip label={level} />
+                        <MythicPageHeaderChip label={visibleEventsLabel} />
+                        <MythicPageHeaderChip label={totalEventsLabel} />
+                    </>
+                }
+                actions={
+                    <>
+                        <MythicToolbarButton onClick={props.resolveViewableErrors} color="success" variant="outlined" startIcon={<AutoFixHighIcon />}>
+                            Resolve Viewable
+                        </MythicToolbarButton>
+                        <MythicToolbarButton onClick={props.resolveAllErrors} color="success" variant="outlined" startIcon={<HealingIcon />}>
+                            Resolve All
+                        </MythicToolbarButton>
+                    </>
+                }
+            />
+            <MythicTableToolbar>
+                <MythicTableToolbarGroup grow>
+                    <MythicSearchField value={search} onChange={handleSearchValueChange} onEnter={submitSearch} onSearch={submitSearch} />
+                </MythicTableToolbarGroup>
+                <MythicTableToolbarGroup>
+                    <MythicToolbarSelect
                         value={level}
                         onChange={handleLevelValueChange}
                     >
@@ -83,9 +92,9 @@ export function EventFeedTable(props){
                                 <MenuItem key={"levelFilter" + opt} value={opt}>{opt}</MenuItem>
                             ))
                         }
-                    </Select>
-                </Grid>
-            </Grid>
+                    </MythicToolbarSelect>
+                </MythicTableToolbarGroup>
+            </MythicTableToolbar>
 
             <div style={{display: "flex", flexDirection: "column", overflowY: "auto", flexGrow: 1, overflowX: "Hidden"}}>
                     <EventList 
@@ -93,11 +102,7 @@ export function EventFeedTable(props){
                         onUpdateLevel={props.onUpdateLevel}
                         operationeventlog={props.operationeventlog}/>
             </div>
-            <div style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center", paddingTop: "5px", paddingBottom: "10px"}}>
-                <Pagination count={Math.ceil(props.pageData.totalCount / props.pageData.fetchLimit)} variant="outlined" color="primary" boundaryCount={1}
-                            siblingCount={1} onChange={props.onChangePage} showFirstButton={true} showLastButton={true} style={{padding: "20px"}}/>
-                <Typography style={{paddingLeft: "10px"}}>Total Results: {props.pageData.totalCount}</Typography>
-            </div>
+            <MythicTablePagination totalCount={props.pageData.totalCount} fetchLimit={props.pageData.fetchLimit} onChange={props.onChangePage} />
         </MythicPageBody>
     );
 }

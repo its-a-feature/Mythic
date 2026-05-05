@@ -13,16 +13,12 @@ import AppBar from '@mui/material/AppBar';
 import Tabs from '@mui/material/Tabs';
 import {MythicSearchTabLabel, MythicTabPanel} from "../../MythicComponents/MythicTabPanel";
 import {ConsumingServicesTableRow} from './ConsumingServicesTable';
-import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
-import Paper from '@mui/material/Paper';
-import Typography from '@mui/material/Typography';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import { IconButton } from '@mui/material';
-import {useTheme} from '@mui/material/styles';
 import {CustomBrowserRow} from "./CustomBrowserCard";
 import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
-import {MythicPageHeader} from "../../MythicComponents/MythicPageHeader";
+import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/MythicPageHeader";
+import {MythicToolbarToggle} from "../../MythicComponents/MythicTableToolbar";
 
 const SUB_Payload_Types = gql`
  subscription getPayloadTypesSubscription {
@@ -148,7 +144,6 @@ const filterDeleted = (c, showDeleted) => {
 
 }
 export function PayloadTypesC2Profiles({me}){
-    const theme = useTheme();
     const [value, setValue] = React.useState(0);
     const [allData, setAllData] = React.useState([]);
     const payloadTypes = useCustomSubscription({
@@ -180,57 +175,105 @@ export function PayloadTypesC2Profiles({me}){
     const handleChange = (event, newValue) => {
         setValue(newValue);
     };
+    const visibleData = allData.filter(c => filterDeleted(c, showDeleted));
+    const getContainersForTab = (tabName) => {
+        switch(tabName){
+            case "Payload Types":
+                return visibleData.filter(c => c.__typename === "payloadtype" && (c.agent_type === "agent" || c.agent_type === "wrapper"));
+            case "C2 Profiles":
+                return visibleData.filter(c => c.__typename === "c2profile");
+            case "Translators":
+                return visibleData.filter(c => c.__typename === "translationcontainer");
+            case "Command Augmentation":
+                return visibleData.filter(c => c.__typename === "payloadtype" && (c.agent_type === "command_augment"));
+            case "3rd Party":
+                return visibleData.filter(c => c.__typename === "payloadtype" && (c.agent_type === "service"));
+            case "Webhooks":
+                return visibleData.filter(c => c.__typename === "consuming_container" && c.type === "webhook");
+            case "Loggers":
+                return visibleData.filter(c => c.__typename === "consuming_container" && c.type === "logging");
+            case "Eventing":
+                return visibleData.filter(c => c.__typename === "consuming_container" && c.type === "eventing");
+            case "Auth":
+                return visibleData.filter(c => c.__typename === "consuming_container" && c.type === "auth");
+            case "Browsers":
+                return visibleData.filter(c => c.__typename === "custombrowser");
+            default:
+                return [];
+        }
+    }
+    const currentTab = tabTypes[value] || tabTypes[0];
+    const currentContainers = getContainersForTab(currentTab);
     const getTabComponent = () => {
         switch(value){
             case 0:
                 return <ContainersTabPayloadTypesPanel key={"Payload Types"} type={"Payload Types"} index={value} value={value} showDeleted={showDeleted}
-                                                       containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "payloadtype" && (c.agent_type === "agent" || c.agent_type === "wrapper"))} />
+                                                       containers={getContainersForTab("Payload Types")} />
             case 1:
                 return <ContainersTabPayloadTypesPanel key={"C2 Profiles"} type={"C2 Profiles"} index={value} value={value} showDeleted={showDeleted}
-                                                       containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "c2profile")} />
+                                                       containers={getContainersForTab("C2 Profiles")} />
             case 2:
                 return <ContainersTabPayloadTypesPanel key={"Translators"} type={"Translators"} index={value} value={value} showDeleted={showDeleted}
-                                                       containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "translationcontainer")} />
+                                                       containers={getContainersForTab("Translators")} />
             case 3:
                 return <ContainersTabPayloadTypesPanel key={"Command Augmentation"} type={"Command Augmentation"} index={value} value={value} showDeleted={showDeleted}
-                                                       containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "payloadtype" && (c.agent_type === "command_augment"))} />
+                                                       containers={getContainersForTab("Command Augmentation")} />
             case 4:
                 return <ContainersTabPayloadTypesPanel key={"3rd Party"} type={"3rd Party"} index={value} value={value} showDeleted={showDeleted}
-                                                       containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "payloadtype" && (c.agent_type === "service"))} />
+                                                       containers={getContainersForTab("3rd Party")} />
             case 5:
                 return <ContainersTabConsumingServicesPanel key={"Webhooks"} type={"Webhooks"} index={value} value={value} showDeleted={showDeleted}
-                                                            containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "consuming_container" && c.type === "webhook")} />
+                                                            containers={getContainersForTab("Webhooks")} />
             case 6:
                 return <ContainersTabConsumingServicesPanel key={"Loggers"} type={"Loggers"} index={value} value={value} showDeleted={showDeleted}
-                                                            containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "consuming_container" && c.type === "logging")} />
+                                                            containers={getContainersForTab("Loggers")} />
             case 7:
                 return <ContainersTabConsumingServicesPanel key={"Eventing"} type={"Eventing"} index={value} value={value} showDeleted={showDeleted}
-                                                            containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "consuming_container" && c.type === "eventing")} />
+                                                            containers={getContainersForTab("Eventing")} />
             case 8:
                 return <ContainersTabConsumingServicesPanel key={"Auth"} type={"Auth"} index={value} value={value} showDeleted={showDeleted}
-                                                            containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "consuming_container" && c.type === "auth")} />
+                                                            containers={getContainersForTab("Auth")} />
             case 9:
                 return <ContainersTabCustomBrowsersPanel key={"Browsers"} type={"Browsers"} index={value} value={value} showDeleted={showDeleted}
-                                                       containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "custombrowser")} />
+                                                       containers={getContainersForTab("Browsers")} />
             default:
                 return null;
         }
     }
     return (
         <MythicPageBody>
-            <MythicPageHeader title={"Installed Services"}>
-                {showDeleted ? (
-                    <MythicStyledTooltip title={"Hide Deleted Services"} tooltipStyle={{float: "right"}}>
-                        <IconButton size="small" style={{float: "right"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)}><VisibilityIcon /></IconButton>
-                    </MythicStyledTooltip>
-
-                ) : (
-                    <MythicStyledTooltip title={"Show Deleted Services"} tooltipStyle={{float: "right"}}>
-                        <IconButton size="small" style={{float: "right"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)} ><VisibilityOffIcon /></IconButton>
-                    </MythicStyledTooltip>
-                )}
-            </MythicPageHeader>
-            <AppBar position="static" color="default" className={"no-box-shadow"}>
+            <MythicPageHeader
+                title={"Installed Services"}
+                subtitle={"Review installed agents, C2 profiles, translators, integrations, and browser services."}
+                meta={
+                    <>
+                        <MythicPageHeaderChip label={currentTab} />
+                        <MythicPageHeaderChip label={`${currentContainers.length} shown`} />
+                        <MythicPageHeaderChip label={`${allData.length} total`} />
+                        {showDeleted && <MythicPageHeaderChip label="Deleted visible" />}
+                    </>
+                }
+                actions={
+                    <MythicToolbarToggle
+                        checked={showDeleted}
+                        onClick={() => setShowDeleted(!showDeleted)}
+                        label="Deleted"
+                        activeIcon={<VisibilityIcon fontSize="small" />}
+                        inactiveIcon={<VisibilityOffIcon fontSize="small" />}
+                    />
+                }
+            />
+            <AppBar
+                position="static"
+                color="default"
+                className={"no-box-shadow"}
+                sx={(theme) => ({
+                    backgroundColor: theme.surfaces?.muted || theme.palette.background.paper,
+                    border: `1px solid ${theme.table?.borderSoft || theme.borderColor}`,
+                    borderRadius: `${theme.shape.borderRadius}px`,
+                    overflow: "hidden",
+                })}
+            >
                 <Tabs
                     value={value}
                     onChange={handleChange}
@@ -245,34 +288,34 @@ export function PayloadTypesC2Profiles({me}){
                             switch (tab){
                                 case "Payload Types":
                                     return <ContainersTabPayloadTypesLabel key={"payloadtypes"}
-                                                                           containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "payloadtype" && (c.agent_type === "agent" || c.agent_type === "wrapper"))}/>;
+                                                                           containers={getContainersForTab("Payload Types")}/>;
                                 case "C2 Profiles":
                                     return <ContainersTabC2ProfilesLabel key={"c2profiles"}
-                                                                         containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "c2profile")}/>;
+                                                                         containers={getContainersForTab("C2 Profiles")}/>;
                                 case "Translators":
                                     return <ContainersTabTranslationsLabel key={"translators"}
-                                                                           containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "translationcontainer")}/>;
+                                                                           containers={getContainersForTab("Translators")}/>;
                                 case "Command Augmentation":
                                     return <ContainersTabCommandAugmentLabel key={"commandaugmentation"}
-                                                                             containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "payloadtype" && (c.agent_type === "command_augment"))}/>;
+                                                                             containers={getContainersForTab("Command Augmentation")}/>;
                                 case "3rd Party":
                                     return <ContainersTab3rdPartyLabel key={"3rdpartyservice"}
-                                                                       containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "payloadtype" && (c.agent_type === "service"))} />;
+                                                                       containers={getContainersForTab("3rd Party")} />;
                                 case "Webhooks":
                                     return <ContainersTabWebhooksLabel key={"webhooks"}
-                                                                       containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "consuming_container" && c.type === "webhook")}/>;
+                                                                       containers={getContainersForTab("Webhooks")}/>;
                                 case "Loggers":
                                     return <ContainersTabLoggersLabel key={"loggers"}
-                                                                      containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "consuming_container" && c.type === "logging")}/>;
+                                                                      containers={getContainersForTab("Loggers")}/>;
                                 case "Eventing":
                                     return <ContainersTabEventingLabel key={"eventing"}
-                                                                       containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "consuming_container" && c.type === "eventing")}/>;
+                                                                       containers={getContainersForTab("Eventing")}/>;
                                 case "Auth":
                                     return <ContainersTabAuthLabel key={"auth"}
-                                                                   containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "consuming_container" && c.type === "auth")}/>;
+                                                                   containers={getContainersForTab("Auth")}/>;
                                 case "Browsers":
                                     return <ContainersTabBrowsersLabel key={"browsers"}
-                                                                   containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "custombrowser")}/>;
+                                                                   containers={getContainersForTab("Browsers")}/>;
 
                                 default:
                                     return null;

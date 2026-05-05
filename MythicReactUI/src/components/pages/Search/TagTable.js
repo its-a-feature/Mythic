@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import {Link, Button, IconButton, Typography} from '@mui/material';
+import {Link, IconButton, Typography} from '@mui/material';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -12,7 +12,6 @@ import {MythicDialog, MythicViewJSONAsTableDialog} from "../../MythicComponents/
 import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PlaylistAddCheckIcon from '@mui/icons-material/PlaylistAddCheck';
-import {useTheme} from '@mui/material/styles';
 import {deleteTagMutation} from '../../MythicComponents/MythicTag';
 import {useMutation} from '@apollo/client';
 import {snackActions} from "../../utilities/Snackbar";
@@ -58,7 +57,6 @@ export function TagTable(props){
     )
 }
 function TagTableRow(props){
-    const theme = useTheme();
     const [openDeleteDialog, setOpenDeleteDialog] = React.useState(false);
     const [deleteTag] = useMutation(deleteTagMutation, {
         onCompleted: (data) => {
@@ -76,10 +74,15 @@ function TagTableRow(props){
         <React.Fragment>
             <TableRow hover>
                 <MythicStyledTableCell>
-                    <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}}
-                                style={{color: theme.palette.error.main}}
-                                variant="contained"><DeleteIcon/>
-                    </IconButton>
+                    <MythicStyledTooltip title="Remove tag">
+                        <IconButton
+                            className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger"
+                            size="small"
+                            onClick={()=>{setOpenDeleteDialog(true);}}
+                        >
+                            <DeleteIcon fontSize="small" />
+                        </IconButton>
+                    </MythicStyledTooltip>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell >
                     <div style={{float: "left"}}><TagsDisplay expand={true} tags={[props]} /></div>
@@ -216,9 +219,15 @@ function TagTableRowElement(props){
                             <TableRow hover>
                                 <TableCell>Metadata</TableCell>
                                 <TableCell>
-                                    <Button color="info"  onClick={() => setViewPermissionsDialogOpen(true)}>
-                                        <PlaylistAddCheckIcon style={{marginRight: "5px"}}/> View
-                                    </Button>
+                                    <MythicStyledTooltip title="View metadata">
+                                        <IconButton
+                                            className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
+                                            size="small"
+                                            onClick={() => setViewPermissionsDialogOpen(true)}
+                                        >
+                                            <PlaylistAddCheckIcon fontSize="small" />
+                                        </IconButton>
+                                    </MythicStyledTooltip>
                                 </TableCell>
                             </TableRow>
                             <TableRow hover>
@@ -275,7 +284,13 @@ function TagTableRowElement(props){
                                 <TableCell>File Hosting</TableCell>
                                 <TableCell>
                                     <MythicStyledTooltip title={"Host Payload Through C2"} >
-                                        <PublicIcon color={"info"} style={{marginLeft: "20px", cursor: "pointer"}} onClick={()=>{setOpenHostDialog(true);}}  />
+                                        <IconButton
+                                            className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
+                                            size="small"
+                                            onClick={()=>{setOpenHostDialog(true);}}
+                                        >
+                                            <PublicIcon fontSize="small" />
+                                        </IconButton>
                                     </MythicStyledTooltip>
                                 </TableCell>
                             </TableRow>
@@ -317,8 +332,12 @@ function TagTableRowElement(props){
                                 <TableCell >UUID</TableCell>
                                 <TableCell>
                                     {props.payload.uuid}
-                                    <IconButton color={"info"} onClick={()=>setOpenDetailedView(true)}>
-                                        <InfoIconOutline />
+                                    <IconButton
+                                        className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
+                                        onClick={()=>setOpenDetailedView(true)}
+                                        size="small"
+                                    >
+                                        <InfoIconOutline fontSize="small" />
                                     </IconButton>
                                     {openDetailedView &&
                                         <MythicDialog fullWidth={true} maxWidth="lg" open={openDetailedView}
@@ -384,4 +403,3 @@ function TagTableRowElement(props){
     }
     return getElement()
 }
-

@@ -818,8 +818,8 @@ export function TaskParametersDialogRow(props){
                                     <TableRow key={'array' + props.name + i} >
                                         <MythicStyledTableCell style={{width: "2rem"}}>
                                             <MythicStyledTooltip title={"Remove array element"}>
-                                                <IconButton onClick={(e) => {removeArrayValue(i)}} color="error">
-                                                    <DeleteIcon />
+                                                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={(e) => {removeArrayValue(i)}}>
+                                                    <DeleteIcon fontSize="small" />
                                                 </IconButton>
                                             </MythicStyledTooltip>
                                         </MythicStyledTableCell>
@@ -862,7 +862,7 @@ export function TaskParametersDialogRow(props){
                                 {typedArrayValue.map( (a, i) => (
                                     <TableRow key={'typedarray' + props.name + i} >
                                         <MythicStyledTableCell style={{width: "2rem", paddingLeft:"0"}}>
-                                            <IconButton onClick={(e) => {removeTypedArrayValue(i)}} size="large"><DeleteIcon color="error" /> </IconButton>
+                                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={(e) => {removeTypedArrayValue(i)}}><DeleteIcon fontSize="small" /> </IconButton>
                                         </MythicStyledTableCell>
                                         <MythicStyledTableCell>
                                             <div style={{display: "inline-flex", alignItems: "center", width: "100%"}}>
@@ -1082,8 +1082,8 @@ export function TaskParametersDialogRow(props){
                                         </MythicStyledTableCell>
                                         <MythicStyledTableCell>
                                             <MythicStyledTooltip title={"Mark associated payload as no longer on host and not available for linking"}>
-                                                <Button component="span" style={{color: theme.palette.error.main, padding: 0}}
-                                                        onClick={onAgentConnectRemovePayloadOnHost}><DeleteIcon />Remove Listed</Button>
+                                                <Button className="mythic-table-row-action mythic-table-row-action-hover-danger" component="span" size="small"
+                                                        startIcon={<DeleteIcon fontSize="small" />} onClick={onAgentConnectRemovePayloadOnHost}>Remove Listed</Button>
                                             </MythicStyledTooltip>
                                         </MythicStyledTableCell>
                                     </TableRow>
@@ -1172,12 +1172,9 @@ export function TaskParametersDialogRow(props){
                             borderRadius: "10px",
                             marginRight: "5px"
                         }}/> Credential</Button>
-                        <Button color={"warning"} component="span" style={{padding: 0}} onClick={() =>{
+                        <Button className="mythic-table-row-action mythic-table-row-action-hover-danger" component="span" size="small" startIcon={<DeleteIcon fontSize="small" />} onClick={() =>{
                             onDeleteCredential();
-                        }}><DeleteIcon style={{
-                            color: theme.palette.error.main,
-                            marginRight: "5px"
-                        }}/> Credential</Button>
+                        }}>Credential</Button>
                     </React.Fragment>
                     
                 )

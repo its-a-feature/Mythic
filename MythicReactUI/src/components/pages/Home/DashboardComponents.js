@@ -1,14 +1,10 @@
 import React from 'react';
 import {useTheme} from '@mui/material/styles';
-import Typography from '@mui/material/Typography';
 import { LineChart } from '@mui/x-charts/LineChart';
 import Slider from '@mui/material/Slider';
 import { PieChart, pieArcLabelClasses } from '@mui/x-charts/PieChart';
 import { axisClasses } from '@mui/x-charts/ChartsAxis';
-import {Gauge, GaugeContainer,
-    GaugeValueArc,
-    GaugeReferenceArc,
-    useGaugeState} from '@mui/x-charts/Gauge';
+import {Gauge} from '@mui/x-charts/Gauge';
 import Table from '@mui/material/Table';
 import TableContainer from '@mui/material/TableContainer';
 import { BarChart } from '@mui/x-charts/BarChart';
@@ -18,20 +14,110 @@ import IconButton from '@mui/material/IconButton';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import Paper from "@mui/material/Paper";
+import {MythicEmptyState} from "../../MythicComponents/MythicStateDisplay";
 
-const normalColors = [
+const fallbackDashboardColors = [
     '#09bdff',
-    '#4cd5ff',
-    '#1F94AD',
-    '#2a7b9b',
-    '#007FFF',
-    '#0754a2',
-    '#4b47a2',
-    '#635bce',
-    '#878be7',
+    '#39b86f',
+    '#d69d2d',
+    '#d65c6b',
+    '#7b6fd6',
+    '#24a3a3',
+    '#9c6ade',
+    '#d47f38',
     '#4e7ad7',
+    '#90a955',
 ];
 
+const getDashboardColors = (theme) => [
+    theme.palette.info.main,
+    theme.palette.success.main,
+    theme.palette.warning.main,
+    theme.palette.error.main,
+    theme.palette.secondary.main,
+    theme.palette.primary.main,
+    ...fallbackDashboardColors,
+];
+
+const DashboardCard = ({
+    actions,
+    bodyClassName = "",
+    children,
+    className = "",
+    editing,
+    removeElement,
+    title,
+    width = "100%",
+}) => {
+    return (
+        <Paper
+            className={`mythic-dashboard-card ${className}`.trim()}
+            elevation={0}
+            style={{width}}
+        >
+            {(title || actions || editing) &&
+                <div className="mythic-dashboard-card-header">
+                    <div className="mythic-dashboard-card-title">
+                        {title}
+                    </div>
+                    {(editing || actions) &&
+                        <div className="mythic-dashboard-card-actions">
+                            {actions}
+                            {editing &&
+                                <MythicStyledTooltip title={"Remove element"}>
+                                    <IconButton
+                                        className="mythic-dashboard-icon-button mythic-dashboard-icon-button-hover-danger"
+                                        onClick={removeElement}
+                                        size="small"
+                                    >
+                                        <DeleteIcon fontSize="small" />
+                                    </IconButton>
+                                </MythicStyledTooltip>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            <div className={`mythic-dashboard-card-body ${bodyClassName}`.trim()}>
+                {children}
+            </div>
+        </Paper>
+    );
+};
+
+export const DashboardEmptyCard = ({action, children, editing, removeElement, title, width = "100%"}) => (
+    <DashboardCard
+        bodyClassName="mythic-dashboard-card-body-empty"
+        editing={editing}
+        removeElement={removeElement}
+        title={title}
+        width={width}
+    >
+        <div className="mythic-dashboard-empty-state">
+            <div className="mythic-dashboard-empty-copy">
+                {children}
+            </div>
+            {action &&
+                <div className="mythic-dashboard-empty-action">
+                    {action}
+                </div>
+            }
+        </div>
+    </DashboardCard>
+);
+
+const DashboardNoDataState = ({
+    title = "No data yet",
+    description = "This dashboard element will populate when matching operation activity exists.",
+}) => (
+    <MythicEmptyState
+        compact
+        title={title}
+        description={description}
+        minHeight={132}
+        sx={{p: 0}}
+    />
+);
 
 export const PieChartCard = ({
                           data, width = "100%", additionalStyles, innerElement,
@@ -40,7 +126,7 @@ export const PieChartCard = ({
         right: 10,
         top: 10,
         bottom: 10,
-    }, colors = normalColors,
+    }, colors,
                                  onClick, title = "", editing, removeElement, customizeElement
                       }) => {
     const [showLegend, setShowLegend] = React.useState(true);
@@ -48,113 +134,79 @@ export const PieChartCard = ({
         setShowLegend(!showLegend);
     }
     const theme = useTheme();
+    const chartData = Array.isArray(data) ? data : [];
+    const hasChartData = chartData.length > 0;
     return (
-        <Paper variant={"elevation"} elevation={3} style={{
-            marginRight: "0.5rem",
-            width: width,
-            height: "100%",
-            border: `1px solid ${theme.borderColor}`,
-            borderRadius: theme.shape.borderRadius,
-            overflow: "hidden",
-        }}>
-            <h3 style={{marginTop: 0, marginLeft: "0.5rem", marginBottom: 0, paddingBottom: 0,}}>
-                {editing &&
-                    <span>
-                            <MythicStyledTooltip title={"Remove element"}>
-                                <IconButton onClick={removeElement}>
-                                    <DeleteIcon color={"error"}/>
-                                </IconButton>
-                            </MythicStyledTooltip>
-                        </span>
-                }
-                {title}
-                <span style={{float: "right"}}>
+        <DashboardCard
+            actions={
+                <>
                     {customizeElement}
                     <MythicStyledTooltip title={showLegend ? "Hide Legend" : "Show Legend"}>
-                        <IconButton onClick={toggleLegend} >
-                            {showLegend ? <VisibilityIcon /> : <VisibilityOffIcon />}
+                        <IconButton className="mythic-dashboard-icon-button" onClick={toggleLegend} size="small">
+                            {showLegend ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
                         </IconButton>
                     </MythicStyledTooltip>
-                </span>
-            </h3>
-            <PieChart
-                skipAnimation={true}
-                series={[
-                    {
-                        // item has id, label, value, data
-                        //arcLabel: (item) => `${item.label}`,
-                        //arcLabelMinAngle: 35,
-                        //arcLabelRadius: "60%",
-                        data: data,
-                        highlightScope: {fade: 'global', highlighted: 'item'},
-                        faded: {innerRadius: 0, additionalRadius: -10, color: 'gray'},
-                        paddingAngle: 1,
-                        cornerRadius: 4,
-                        innerRadius: 0,
-                        ...additionalStyles
-                    },
-                ]}
-                height={200}
-                margin={margin}
-                sx={{
-                    [`& .${pieArcLabelClasses.root}`]: {
-                        fill: 'white',
-                        fontWeight: 'bold',
-                    },
-                }}
-                colors={colors}
-                onItemClick={onClick}
-                hideLegend={!showLegend}
-                slotProps={{
-                    legend: {
-                        direction: "vertical", // "horizontal"
-                        sx: {
-                            gap: "4px", // itemGap (distance between legend items)
-                            // CSS class
-                            ['.MuiChartsLegend-series']: {
-                                gap: '8px', // markGap (distance between legend dot and text)
-                            },
-                            [`.MuiChartsLegend-mark`]: {
-                                height: 12, // size of the legend dot
-                                width: 12,
-                            },
+                </>
+            }
+            editing={editing}
+            removeElement={removeElement}
+            title={title}
+            width={width}
+        >
+            {hasChartData ? (
+                <PieChart
+                    skipAnimation={true}
+                    series={[
+                        {
+                            // item has id, label, value, data
+                            //arcLabel: (item) => `${item.label}`,
+                            //arcLabelMinAngle: 35,
+                            //arcLabelRadius: "60%",
+                            data: chartData,
+                            highlightScope: {fade: 'global', highlighted: 'item'},
+                            faded: {innerRadius: 0, additionalRadius: -10, color: 'gray'},
+                            paddingAngle: 1,
+                            cornerRadius: 4,
+                            innerRadius: 0,
+                            ...additionalStyles
+                        },
+                    ]}
+                    height={200}
+                    margin={margin}
+                    sx={{
+                        [`& .${pieArcLabelClasses.root}`]: {
+                            fill: 'white',
+                            fontWeight: 'bold',
+                        },
+                    }}
+                    colors={colors || getDashboardColors(theme)}
+                    onItemClick={onClick}
+                    hideLegend={!showLegend}
+                    slotProps={{
+                        legend: {
+                            direction: "vertical", // "horizontal"
+                            sx: {
+                                gap: "4px", // itemGap (distance between legend items)
+                                // CSS class
+                                ['.MuiChartsLegend-series']: {
+                                    gap: '8px', // markGap (distance between legend dot and text)
+                                },
+                                [`.MuiChartsLegend-mark`]: {
+                                    height: 12, // size of the legend dot
+                                    width: 12,
+                                },
+                            }
                         }
-                    }
-                }}>
-                {innerElement}
-            </PieChart>
-        </Paper>
+                    }}>
+                    {innerElement}
+                </PieChart>
+            ) : (
+                <DashboardNoDataState />
+            )}
+        </DashboardCard>
     );
 }
-function GaugePointer() {
-    const { valueAngle, outerRadius, cx, cy } = useGaugeState();
-
-    if (valueAngle === null) {
-        // No value to display
-        return null;
-    }
-
-    const target = {
-        x: cx + outerRadius * Math.sin(valueAngle),
-        y: cy - outerRadius * Math.cos(valueAngle),
-    };
-    return (
-        <g>
-            <circle cx={cx} cy={cy} r={5} fill="red" />
-            <path
-                d={`M ${cx} ${cy} L ${target.x} ${target.y}`}
-                stroke="red"
-                strokeWidth={3}
-            />
-        </g>
-    );
-}
-export const GaugeCard = ({data, width = "100%", additionalStyles, innerElement, hidden, margin = {
-    left: 10,
-    right: 10,
-    top: 10,
-    bottom: 10,
-}, colors = normalColors, onClick, title = "", editing, removeElement, customizeElement }) => {
+export const GaugeCard = ({data, width = "100%", title = "", editing, removeElement, customizeElement }) => {
     const theme = useTheme();
     const getFillColor = () => {
         if(data['total'] === 0){return theme.palette.text.disabled}
@@ -168,29 +220,14 @@ export const GaugeCard = ({data, width = "100%", additionalStyles, innerElement,
         }
     }
     return (
-        <Paper variant={"elevation"} elevation={3} style={{
-            marginRight: "0.5rem",
-            width: width,
-            height: "100%",
-            border: `1px solid ${theme.borderColor}`,
-            borderRadius: theme.shape.borderRadius,
-            overflow: "hidden",
-        }}>
-            <h3 style={{marginTop: 0, marginLeft: "0.5rem", marginBottom: 0, paddingBottom: 0,}}>
-                {editing &&
-                    <span>
-                            <MythicStyledTooltip title={"Remove element"}>
-                                <IconButton onClick={removeElement}>
-                                    <DeleteIcon color={"error"}/>
-                                </IconButton>
-                            </MythicStyledTooltip>
-                        </span>
-                }
-                {title}
-                <span style={{float: "right"}}>
-                    {customizeElement}
-                </span>
-            </h3>
+        <DashboardCard
+            actions={customizeElement}
+            bodyClassName="mythic-dashboard-card-body-centered"
+            editing={editing}
+            removeElement={removeElement}
+            title={title}
+            width={width}
+        >
             <Gauge
                 height={200}
                 width={200}
@@ -210,82 +247,68 @@ export const GaugeCard = ({data, width = "100%", additionalStyles, innerElement,
                 })}
             >
             </Gauge>
-        </Paper>
+        </DashboardCard>
     );
 }
 export const CallbackDataCard = ({mainTitle, secondTitle, mainElement, secondaryElement, width="100%",
                                  editing, removeElement}) => {
-    const theme = useTheme();
     return (
-        <Paper variant={"elevation"} elevation={3} style={{
-            marginRight: "0.5rem",
-            width: width,
-            height: "100%",
-            border: `1px solid ${theme.borderColor}`,
-            borderRadius: theme.shape.borderRadius,
-            overflow: "hidden",
-        }} >
-                <h2 style={{marginTop: 0, marginLeft: "0.5rem", marginBottom: 0, paddingBottom: 0}}>
-                    {editing &&
-                        <span >
-                            <MythicStyledTooltip title={"Remove element"}>
-                                <IconButton onClick={removeElement} >
-                                    <DeleteIcon color={"error"}/>
-                                </IconButton>
-                            </MythicStyledTooltip>
-                        </span>
-                    }
-                    {mainTitle}
-                </h2>
-                <div style={{height: 180, cursor: "pointer"}}>
+        <DashboardCard
+            bodyClassName="mythic-dashboard-metric-body"
+            editing={editing}
+            removeElement={removeElement}
+            title={mainTitle}
+            width={width}
+        >
+                <div className="mythic-dashboard-metric-content">
                     <MythicStyledTooltip title={"Go to Active Callbacks"}>
-                        {mainElement}
-                        <h4 style={{marginTop: 0, marginLeft: "5px", marginBottom: 0, paddingBottom: 0}}>
-                            {secondTitle}
-                        </h4>
-                        {secondaryElement}
+                        <div className="mythic-dashboard-metric-link">
+                            {mainElement}
+                            <div className="mythic-dashboard-metric-label">
+                                {secondTitle}
+                            </div>
+                            {secondaryElement}
+                        </div>
                     </MythicStyledTooltip>
                 </div>
-        </Paper>
+        </DashboardCard>
     )
 }
-export const TableDataCard = ({title, width = "100%", tableHead, tableBody, editing, removeElement, customizeElement}) => {
-    const theme = useTheme();
+export const TableDataCard = ({
+    title,
+    width = "100%",
+    tableHead,
+    tableBody,
+    editing,
+    removeElement,
+    customizeElement,
+    empty = false,
+    emptyTitle,
+    emptyDescription,
+}) => {
     return (
-        <Paper variant={"elevation"} elevation={3} style={{
-            marginRight: "0.5rem",
-            width: width,
-            height: "100%",
-            border: `1px solid ${theme.borderColor}`,
-            borderRadius: theme.shape.borderRadius,
-            overflow: "hidden",
-        }}>
-            <h3 style={{marginTop: 0, marginLeft: "0.5rem", marginBottom: 0, paddingBottom: 0}}>
-                {editing &&
-                    <span >
-                        <MythicStyledTooltip title={"Remove element"}>
-                            <IconButton onClick={removeElement} >
-                                <DeleteIcon color={"error"}/>
-                            </IconButton>
-                        </MythicStyledTooltip>
-                    </span>
-                }
-                {title}
-                <span style={{float: "right", marginRight: "0.5rem"}}>
-                    {customizeElement}
-                </span>
-            </h3>
-            <TableContainer className="mythicElement" style={{height: 200, overflowY: "auto", width: "100%"}}>
-                <Table style={{ maxWidth: "100%", overflow: "auto"}} stickyHeader size="small">
-                    {tableHead}
-                    {tableBody}
-                </Table>
-            </TableContainer>
-        </Paper>
+        <DashboardCard
+            actions={customizeElement}
+            bodyClassName="mythic-dashboard-table-body"
+            editing={editing}
+            removeElement={removeElement}
+            title={title}
+            width={width}
+        >
+            {empty ? (
+                <DashboardNoDataState title={emptyTitle} description={emptyDescription} />
+            ) : (
+                <TableContainer className="mythic-dashboard-table-container mythicElement">
+                    <Table className="mythic-dashboard-table" stickyHeader size="small">
+                        {tableHead}
+                        {tableBody}
+                    </Table>
+                </TableContainer>
+            )}
+        </DashboardCard>
     )
 }
 export const LineTimeChartCard = ({data, additionalStyles}) => {
-    const theme = useTheme();
     const [value, setValue] = React.useState([0, 0]);
     const [range, setRange] = React.useState([0, 0]);
     React.useEffect( () => {
@@ -315,17 +338,7 @@ export const LineTimeChartCard = ({data, additionalStyles}) => {
         }
     };
     return (
-        <Paper variant={"elevation"} elevation={3} style={{
-            marginRight: "0.5rem",
-            width: "100%",
-            height: "100%",
-            border: `1px solid ${theme.borderColor}`,
-            borderRadius: theme.shape.borderRadius,
-            overflow: "hidden",
-        }} >
-            <Typography variant={"h3"} style={{margin: 0, padding: 0, position: "relative", left: "30%"}}>
-                Tasks Issued per Day
-            </Typography>
+        <DashboardCard title="Tasks Issued per Day">
             <LineChart
                 xAxis={[
                     {
@@ -364,7 +377,7 @@ export const LineTimeChartCard = ({data, additionalStyles}) => {
                 }}
                 margin={{ top: 10 }}
                 dataset={data}
-                height={300}
+                height={200}
                 {...additionalStyles}
             ></LineChart>
             <Slider
@@ -373,16 +386,18 @@ export const LineTimeChartCard = ({data, additionalStyles}) => {
                 valueLabelDisplay="auto"
                 min={range[0]}
                 max={range[1]}
-                sx={{ mt: 2, width: "80%", left: "10%" }}
+                className="mythic-dashboard-slider"
+                sx={{ width: "80%" }}
             />
-        </Paper>
+        </DashboardCard>
 
     )
 }
-export const LineTimeMultiChartCard = ({data, additionalStyles, colors=normalColors, view_utc_time, editing, removeElement, customizeElement}) => {
+export const LineTimeMultiChartCard = ({data, additionalStyles, colors, view_utc_time, editing, removeElement, customizeElement}) => {
     const theme = useTheme();
     const [value, setValue] = React.useState([0, 0]);
     const [range, setRange] = React.useState([0, 0]);
+    const hasChartData = (data?.x?.length || 0) > 0 && (data?.y?.length || 0) > 0;
     React.useEffect( () => {
 
         if(data.x.length > 0){
@@ -430,105 +445,91 @@ export const LineTimeMultiChartCard = ({data, additionalStyles, colors=normalCol
         }
     }
     return (
-        <Paper variant={"elevation"} elevation={3} style={{
-            width: "100%",
-            marginRight: "0.5rem",
-            height: "100%",
-            border: `1px solid ${theme.borderColor}`,
-            borderRadius: theme.shape.borderRadius,
-            overflow: "hidden",
-        }} >
-            <Typography variant={"h3"} style={{margin: 0, padding: 0, position: "relative", left: "30%"}}>
-                {editing &&
-                    <span>
-                        <MythicStyledTooltip title={"Remove element"}>
-                            <IconButton onClick={removeElement}>
-                                <DeleteIcon color={"error"}/>
-                            </IconButton>
-                        </MythicStyledTooltip>
-                    </span>
-                }
-                Activity per Day {view_utc_time ? "( UTC )" : "( " + Intl?.DateTimeFormat()?.resolvedOptions()?.timeZone + " )"}
-                <span style={{}}>
+        <DashboardCard
+            actions={
+                <>
                     {customizeElement}
                     <MythicStyledTooltip title={showLegend ? "Hide Legend" : "Show Legend"}>
-                        <IconButton onClick={toggleLegend} >
-                            {showLegend ? <VisibilityIcon /> : <VisibilityOffIcon />}
+                        <IconButton className="mythic-dashboard-icon-button" onClick={toggleLegend} size="small">
+                            {showLegend ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
                         </IconButton>
                     </MythicStyledTooltip>
-                </span>
-            </Typography>
-            <LineChart
-                colors={colors}
-                hideLegend={!showLegend}
-                xAxis={[
-                    {
-                        data: data.x,
-                        scaleType: "time",
-                        min: data?.x?.[value[0]] || 0,
-                        max: data?.x?.[value[1]] || 0,
-                        id: 'bottomAxis',
-                        tickMinStep: 86400000,
-                        labelStyle: {
-                            fontSize: 10,
-                        },
-                        tickLabelStyle: {
-                            angle: 25,
-                            textAnchor: 'start',
-                            fontSize: 5,
-                        },
-                    },
-                ]}
-                yAxis={[
-                    {id: "taskAxis", scaleType: "linear", label: "Tasks Issued"},
-                    {id: "callbackAxis", scaleType: "linear", label: "Active Callbacks", position: "right"}
-                ]}
-                series={data.y}
-                sx={{
-                    [`.${axisClasses.left} .${axisClasses.label}`]: {
-                        //transform: 'translate(-25px, 0)',
-                    },
-                    [`.${axisClasses.right} .${axisClasses.label}`]: {
-                        //transform: 'translate(30px, 0)',
-                    },
-                }}
-                margin={{  }}
-                height={200}
-                {...additionalStyles}
-            ></LineChart>
-            <Slider
-                value={value}
-                onChange={handleChange}
-                color={"info"}
-                size={"small"}
-                valueLabelDisplay={"auto"}
-                valueLabelFormat={sliderVal => sliderDate(sliderVal, view_utc_time)}
-                min={range[0]}
-                max={range[1]}
-                sx={{ mt: 2, width: "80%", left: "10%" }}
-            />
-        </Paper>
+                </>
+            }
+            editing={editing}
+            removeElement={removeElement}
+            title={`Activity per Day ${view_utc_time ? "(UTC)" : `(${Intl?.DateTimeFormat()?.resolvedOptions()?.timeZone})`}`}
+        >
+            {hasChartData ? (
+                <>
+                    <LineChart
+                        colors={colors || getDashboardColors(theme)}
+                        hideLegend={!showLegend}
+                        xAxis={[
+                            {
+                                data: data.x,
+                                scaleType: "time",
+                                min: data?.x?.[value[0]] || 0,
+                                max: data?.x?.[value[1]] || 0,
+                                id: 'bottomAxis',
+                                tickMinStep: 86400000,
+                                labelStyle: {
+                                    fontSize: 10,
+                                },
+                                tickLabelStyle: {
+                                    angle: 25,
+                                    textAnchor: 'start',
+                                    fontSize: 5,
+                                },
+                            },
+                        ]}
+                        yAxis={[
+                            {id: "taskAxis", scaleType: "linear", label: "Tasks Issued"},
+                            {id: "callbackAxis", scaleType: "linear", label: "Active Callbacks", position: "right"}
+                        ]}
+                        series={data.y}
+                        sx={{
+                            [`.${axisClasses.left} .${axisClasses.label}`]: {
+                                //transform: 'translate(-25px, 0)',
+                            },
+                            [`.${axisClasses.right} .${axisClasses.label}`]: {
+                                //transform: 'translate(30px, 0)',
+                            },
+                        }}
+                        margin={{  }}
+                        height={200}
+                        {...additionalStyles}
+                    ></LineChart>
+                    <Slider
+                        value={value}
+                        onChange={handleChange}
+                        size={"small"}
+                        valueLabelDisplay={"auto"}
+                        valueLabelFormat={sliderVal => sliderDate(sliderVal, view_utc_time)}
+                        min={range[0]}
+                        max={range[1]}
+                        className="mythic-dashboard-slider"
+                        sx={{ width: "80%" }}
+                    />
+                </>
+            ) : (
+                <DashboardNoDataState
+                    title="No activity yet"
+                    description="Task and callback activity will appear here once the operation has timeline data."
+                />
+            )}
+        </DashboardCard>
 
     )
 }
-export const StackedBarChartCard = ({data, labels, title, width="100%", hidden, colors=normalColors, margin={
+export const StackedBarChartCard = ({data, labels, title, width="100%", hidden, colors, margin={
     right: 10,
     top: 40,
     bottom: 10,
 }}) => {
     const theme = useTheme();
     return (
-        <Paper variant={"elevation"} elevation={3} style={{
-            marginRight: "0.5rem",
-            width: width,
-            height: "100%",
-            border: `1px solid ${theme.borderColor}`,
-            borderRadius: theme.shape.borderRadius,
-            overflow: "hidden",
-        }} >
-            <h3 style={{marginTop: 0, marginLeft: "5px", marginBottom: 0, paddingBottom: 0, position: "absolute"}}>
-                {title}
-            </h3>
+        <DashboardCard title={title} width={width}>
             <BarChart
                 xAxis={[{
                     scaleType: "band",
@@ -539,7 +540,7 @@ export const StackedBarChartCard = ({data, labels, title, width="100%", hidden, 
                 layout={"vertical"}
                 series={data}
                 height={200}
-                colors={colors}
+                colors={colors || getDashboardColors(theme)}
                 hideLegend={hidden}
                 slotProps={{
                     legend: {
@@ -553,6 +554,6 @@ export const StackedBarChartCard = ({data, labels, title, width="100%", hidden, 
                         }
                     }
                 }} />
-        </Paper>
+        </DashboardCard>
     );
 }

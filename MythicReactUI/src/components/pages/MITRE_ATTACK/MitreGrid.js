@@ -1,9 +1,6 @@
 import React from 'react';
 import Paper from '@mui/material/Paper';
 import Button from '@mui/material/Button';
-import Typography from '@mui/material/Typography';
-import {useTheme} from '@mui/material/styles';
-import ButtonGroup from '@mui/material/ButtonGroup';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import Grow from '@mui/material/Grow';
 import Popper from '@mui/material/Popper';
@@ -16,26 +13,36 @@ import {CircularProgress} from '@mui/material';
 import { MythicDisplayTextDialog} from '../../MythicComponents/MythicDisplayTextDialog';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import { SelectPayloadTypeDialog } from './SelectPayloadTypeDialog';
-import {MythicPageHeader} from "../../MythicComponents/MythicPageHeader";
+import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/MythicPageHeader";
 
 
 export function MitreGrid({entries, onGetCommands, onGetTasks, onGetCommandsFiltered, onGetTasksFiltered, onFilterByTags, showCountGrouping}){
-    const theme = useTheme();
     const [backdropOpen, setBackdropOpen] = React.useState(false);
+    const techniqueCount = Object.values(entries || {}).reduce((total, tactic) => total + (tactic?.rows?.length || 0), 0);
     
     return (
         <>
-            <MythicPageHeader title={"MITRE ATT&CK Mappings"}>
-                <PoperDropdown onGetCommands={onGetCommands} 
-                    onGetTasks={onGetTasks} 
-                    onGetCommandsFiltered={onGetCommandsFiltered} 
-                    onGetTasksFiltered={onGetTasksFiltered} 
-                    onFilterByTags={onFilterByTags} 
-                    setBackdropOpen={setBackdropOpen} 
-                    showCountGrouping={showCountGrouping}
-                    entries={entries}
-                />
-            </MythicPageHeader>
+            <MythicPageHeader
+                title={"MITRE ATT&CK Mappings"}
+                subtitle={"Review command and task coverage across enterprise ATT&CK tactics."}
+                meta={
+                    <>
+                        <MythicPageHeaderChip label={`${techniqueCount} techniques`} />
+                        {showCountGrouping && <MythicPageHeaderChip label={`Grouped by ${showCountGrouping}`} />}
+                    </>
+                }
+                actions={
+                    <PoperDropdown onGetCommands={onGetCommands}
+                        onGetTasks={onGetTasks}
+                        onGetCommandsFiltered={onGetCommandsFiltered}
+                        onGetTasksFiltered={onGetTasksFiltered}
+                        onFilterByTags={onFilterByTags}
+                        setBackdropOpen={setBackdropOpen}
+                        showCountGrouping={showCountGrouping}
+                        entries={entries}
+                    />
+                }
+            />
             
             <div style={{display: "flex", flexGrow: 1, overflow: "auto"}}>
                 {backdropOpen && <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
@@ -239,14 +246,18 @@ function PoperDropdown({onGetCommands, onGetTasks, onGetCommandsFiltered, onGetT
     }
     return (
         <React.Fragment>
-            <ButtonGroup variant="text" ref={dropdownAnchorRef} aria-label="split button" style={{marginRight: "10px", float: "right", color: "white"}} >
-                <Button size="small" style={{color: "white"}} aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
-                    aria-expanded={dropdownOpen ? 'true' : undefined}
-                    aria-haspopup="menu"
-                    onClick={() => setDropdownOpen(!dropdownOpen)}>
-                        Actions <ArrowDropDownIcon />
-                </Button>
-            </ButtonGroup>
+            <Button
+                ref={dropdownAnchorRef}
+                size="small"
+                variant="outlined"
+                aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
+                aria-expanded={dropdownOpen ? 'true' : undefined}
+                aria-haspopup="menu"
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                endIcon={<ArrowDropDownIcon fontSize="small" />}
+            >
+                Actions
+            </Button>
             <Popper open={dropdownOpen} anchorEl={dropdownAnchorRef.current} role={undefined} transition style={{zIndex: 10}}>
             {({ TransitionProps, placement }) => (
                 <Grow

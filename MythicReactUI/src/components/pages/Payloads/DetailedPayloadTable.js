@@ -8,7 +8,6 @@ import TableHead from '@mui/material/TableHead';
 import Typography from '@mui/material/Typography';
 import {useQuery, gql, useMutation} from '@apollo/client';
 import LinearProgress from '@mui/material/LinearProgress';
-import Paper from '@mui/material/Paper';
 import {useTheme} from '@mui/material/styles';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -37,6 +36,8 @@ import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import {ViewPayloadConfigJSON} from "./EditPayloadConfigDialog";
 import {meState} from "../../../cache";
 import { useReactiveVar } from '@apollo/client';
+import {MythicErrorState, MythicLoadingState} from "../../MythicComponents/MythicStateDisplay";
+import {MythicSectionHeader} from "../../MythicComponents/MythicPageHeader";
 
 
 const GET_Payload_Details = gql`
@@ -208,19 +209,22 @@ export function DetailedPayloadComparisonTable(props){
     return (
         <React.Fragment>
             <DialogTitle id="form-dialog-title">
-                Compare Payload Configurations
-                <Select
-                    value={view}
-                    onChange={handleViewChange}
-                    style={{ float: "right"}}
-                >
-                    {viewOptions.map(p => (
-                        <MenuItem
-                            key={p}
-                            value={p}
-                        > {p}</MenuItem>
-                    ))}
-                </Select>
+                <div className="mythic-dialog-title-row">
+                    <span>Compare Payload Configurations</span>
+                    <Select
+                        className="mythic-dialog-title-select"
+                        size="small"
+                        value={view}
+                        onChange={handleViewChange}
+                    >
+                        {viewOptions.map(p => (
+                            <MenuItem
+                                key={p}
+                                value={p}
+                            > {p}</MenuItem>
+                        ))}
+                    </Select>
+                </div>
             </DialogTitle>
             <DialogContent dividers={true} style={{padding: 0, margin: 0, height: "100%"}}>
                 <Split direction="horizontal"
@@ -539,19 +543,15 @@ function DetailedPayloadInnerTable(props){
       commandMods.current.commandsToRemove = [];
     }
     if (loading) {
-     return <LinearProgress style={{marginTop: "10px"}}/>;
+     return <MythicLoadingState title="Loading payload details" description="Fetching payload configuration, C2 profiles, commands, and build metadata." minHeight={220} />;
     }
     if (error) {
      console.error(error);
-     return <div>Error! {error.message}</div>;
+     return <MythicErrorState title="Unable to load payload details" description={error.message} minHeight={220} />;
     }
     return (
       <React.Fragment>
-            <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", }} variant={"elevation"}>
-              <Typography variant="h6" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
-                  Payload Information
-              </Typography>
-            </Paper>
+            <MythicSectionHeader title="Payload Information" sx={{mt: 0}} />
             <TableContainer className="mythicElement">
             <Table size="small" aria-label="details" style={{ "overflowWrap": "break-word"}}>
                 <TableHead>
@@ -592,7 +592,13 @@ function DetailedPayloadInnerTable(props){
                                 {window.location.origin + "/direct/download/" + data.payload[0].filemetum.agent_file_id}
                             </Link>
                             <MythicStyledTooltip title={"Host Payload Through C2"} >
-                                <PublicIcon color={"info"} style={{marginLeft: "20px", cursor: "pointer"}} onClick={()=>{setOpenHostDialog(true);}}  />
+                                <IconButton
+                                    className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
+                                    size="small"
+                                    onClick={()=>{setOpenHostDialog(true);}}
+                                >
+                                    <PublicIcon fontSize="small" />
+                                </IconButton>
                             </MythicStyledTooltip>
                             {openHostDialog &&
                                 <MythicDialog fullWidth={true} maxWidth="md" open={openHostDialog}
@@ -659,11 +665,7 @@ function DetailedPayloadInnerTable(props){
                 </TableBody>
               </Table>
               </TableContainer>
-              <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
-                <Typography variant="h6" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
-                    Build Parameters
-                </Typography>
-              </Paper>
+              <MythicSectionHeader title="Build Parameters" />
               <TableContainer className="mythicElement">
               <Table size="small" aria-label="details" style={{ "overflowWrap": "break-word"}}>
                 <TableHead>
@@ -700,11 +702,7 @@ function DetailedPayloadInnerTable(props){
                 </TableBody>
               </Table>
               </TableContainer>
-              <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
-                <Typography variant="h6" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
-                    Build Steps
-                </Typography>
-              </Paper>
+              <MythicSectionHeader title="Build Steps" />
               <TableContainer className="mythicElement">
               <Table size="small" aria-label="details" style={{ "overflowWrap": "break-word"}}>
                 <TableHead>
@@ -732,11 +730,7 @@ function DetailedPayloadInnerTable(props){
               </TableContainer>
                 { c2Profiles.map( (c2) => (
                     <React.Fragment key={"c2frag" + props.payload_id + c2.c2_profile}>
-                          <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
-                            <Typography variant="h6" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
-                                {c2.c2_profile}
-                            </Typography>
-                          </Paper>
+                          <MythicSectionHeader title={c2.c2_profile} />
                         <TableContainer className="mythicElement">
                         <Table size="small" aria-label="details" style={{"overflowWrap": "break-word"}}>
                             <TableHead>
@@ -777,12 +771,12 @@ function DetailedPayloadInnerTable(props){
                 ))}
                 
                 <React.Fragment>
-                    <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
-                      <Typography variant="h6" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
-                          Loaded Commands
-                      </Typography>
-                      <Button style={{float: "right"}} variant="contained" size="small" onClick={()=>{setOpenAddRemoveCommandsDialog(true)}} >Add/Remove Commands</Button>
-                    </Paper>
+                    <MythicSectionHeader
+                        title="Loaded Commands"
+                        actions={
+                            <Button variant="outlined" size="small" onClick={()=>{setOpenAddRemoveCommandsDialog(true)}}>Add/Remove Commands</Button>
+                        }
+                    />
                     {commands.length > 0 &&
                       <TableContainer className="mythicElement">
                       <Table size="small" aria-label="details" style={{"overflowWrap": "break-word"}}>
@@ -802,10 +796,16 @@ function DetailedPayloadInnerTable(props){
                                   <TableCell>{cmd.mythic}</TableCell>
                                   <TableCell>{cmd.payload}</TableCell>
                                   <TableCell>
-                                  <IconButton variant="contained" target="_blank"
-                                      href={"/docs/agents/" + data.payload[0].payloadtype.name + "/commands/" + cmd.cmd}>
-                                      <MenuBookIcon />
-                                  </IconButton>
+                                  <MythicStyledTooltip title="Open command documentation">
+                                      <IconButton
+                                          className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                                          size="small"
+                                          target="_blank"
+                                          href={"/docs/agents/" + data.payload[0].payloadtype.name + "/commands/" + cmd.cmd}
+                                      >
+                                          <MenuBookIcon fontSize="small" />
+                                      </IconButton>
+                                  </MythicStyledTooltip>
                                   </TableCell>
                               </TableRow>
                           ))
@@ -861,11 +861,7 @@ function DetailedPayloadInnerTable(props){
                   }
               {data.payload[0].wrapped_payload_id !== null &&
                 <React.Fragment>
-                  <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
-                      <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
-                          Wrapped Payload Information
-                      </Typography>
-                    </Paper>
+                  <MythicSectionHeader title="Wrapped Payload Information" dense={false} />
                   <DetailedPayloadInnerTable me={props.me} payload_id={data.payload[0].wrapped_payload_id} />
                 </React.Fragment>
               }

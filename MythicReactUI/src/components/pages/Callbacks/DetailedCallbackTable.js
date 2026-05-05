@@ -8,8 +8,6 @@ import TableHead from '@mui/material/TableHead';
 import Typography from '@mui/material/Typography';
 import {useQuery, gql, useMutation} from '@apollo/client';
 import LinearProgress from '@mui/material/LinearProgress';
-import Paper from '@mui/material/Paper';
-import {useTheme} from '@mui/material/styles';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -34,6 +32,7 @@ import {HostFileDialog} from "../Payloads/HostFileDialog";
 import PublicIcon from '@mui/icons-material/Public';
 import {payloadsCallbackAllowed} from "../Payloads/Payloads";
 import Switch from '@mui/material/Switch';
+import {MythicSectionHeader} from "../../MythicComponents/MythicPageHeader";
 
 const GET_Payload_Details = gql`
 query GetCallbackDetails($callback_id: Int!) {
@@ -184,7 +183,6 @@ mutation removeLoadedCommand($id: Int!){
 }
 `;
 export function DetailedCallbackTable(props){
-    const theme = useTheme();
     const me = useReactiveVar(meState);
     const [openHostDialog, setOpenHostDialog] = React.useState(false);
     const [openDetailedView, setOpenDetailedView] = React.useState(false);
@@ -335,18 +333,10 @@ export function DetailedCallbackTable(props){
         <React.Fragment>
           <DialogTitle id="form-dialog-title">Callback Configuration</DialogTitle>
           <DialogContent dividers={true}>
-          <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
-              <Typography variant="h6" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
-                  Callback Information
-              </Typography>
-            </Paper>
+          <MythicSectionHeader title="Callback Information" sx={{mt: 0}} />
             <ExpandedCallbackSideDetailsTable {...data.callback_by_pk} />
                 
-            <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
-              <Typography variant="h6" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
-                  Payload Information
-              </Typography>
-            </Paper>
+            <MythicSectionHeader title="Payload Information" />
             <TableContainer className="mythicElement">
             <Table size="small" aria-label="details" style={{ "overflowWrap": "break-word"}}>
                 <TableHead>
@@ -454,11 +444,7 @@ export function DetailedCallbackTable(props){
                 </TableBody>
               </Table>
               </TableContainer>
-              <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
-                <Typography variant="h6" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
-                    Build Parameters
-                </Typography>
-              </Paper>
+              <MythicSectionHeader title="Build Parameters" />
             <TableContainer className="mythicElement">
             <Table size="small" aria-label="details" style={{ "overflowWrap": "break-word"}}>
                 <TableHead>
@@ -496,11 +482,7 @@ export function DetailedCallbackTable(props){
                 </TableBody>
               </Table>
               </TableContainer>
-              <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
-                <Typography variant="h6" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
-                    Build Steps
-                </Typography>
-              </Paper>
+              <MythicSectionHeader title="Build Steps" />
               <TableContainer className="mythicElement">
               <Table size="small" aria-label="details" style={{ "overflowWrap": "break-word"}}>
                 <TableHead>
@@ -530,11 +512,7 @@ export function DetailedCallbackTable(props){
               </TableContainer>
                 { c2Profiles.map( (c2) => (
                     <React.Fragment key={"c2frag" + data.callback_by_pk.payload.id + c2.c2_profile}>
-                          <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
-                            <Typography variant="h6" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
-                                {c2.c2_profile}
-                            </Typography>
-                          </Paper>
+                          <MythicSectionHeader title={c2.c2_profile} />
                         <TableContainer className="mythicElement">
                         <Table size="small" aria-label="details" style={{"overflowWrap": "break-word"}}>
                             <TableHead>
@@ -565,13 +543,12 @@ export function DetailedCallbackTable(props){
                           </TableContainer>
                       </React.Fragment>
                 ))}
-            <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
-              <Typography variant="h6" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
-                  Loaded Commands
-                  
-              </Typography>
-              <Button style={{float: "right"}} variant="contained" size="small" onClick={()=>{setOpenAddRemoveCommandsDialog(true)}} >Add/Remove Commands</Button>
-            </Paper>
+            <MythicSectionHeader
+                title="Loaded Commands"
+                actions={
+                    <Button variant="outlined" size="small" onClick={()=>{setOpenAddRemoveCommandsDialog(true)}}>Add/Remove Commands</Button>
+                }
+            />
             <TableContainer className="mythicElement">
             <Table size="small" aria-label="details" style={{"overflowWrap": "break-word"}}>
             <TableHead>
@@ -594,10 +571,16 @@ export function DetailedCallbackTable(props){
                         <TableCell>{cmd.mythic}</TableCell>
                         <TableCell>{cmd.payload}</TableCell>
                         <TableCell>
-                          <IconButton variant="contained" target="_blank"
-                             href={"/docs/agents/" + cmd.payload_type + "/commands/" + cmd.cmd}>
-                              <MenuBookIcon />
-                          </IconButton>
+                          <MythicStyledTooltip title="Open command documentation">
+                              <IconButton
+                                  className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                                  size="small"
+                                  target="_blank"
+                                  href={"/docs/agents/" + cmd.payload_type + "/commands/" + cmd.cmd}
+                              >
+                                  <MenuBookIcon fontSize="small" />
+                              </IconButton>
+                          </MythicStyledTooltip>
                         </TableCell>
                     </TableRow>
                 ))

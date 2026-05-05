@@ -1,20 +1,14 @@
 import {MythicTabPanel, MythicSearchTabLabel} from '../../MythicComponents/MythicTabPanel';
 import React from 'react';
-import MythicTextField from '../../MythicComponents/MythicTextField';
 import FolderIcon from '@mui/icons-material/Folder';
-import Grid from '@mui/material/Grid';
-import SearchIcon from '@mui/icons-material/Search';
-import Tooltip from '@mui/material/Tooltip';
-import {useTheme} from '@mui/material/styles';
-import IconButton from '@mui/material/IconButton';
 import { gql, useQuery} from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
-import Pagination from '@mui/material/Pagination';
-import { Typography } from '@mui/material';
 import MenuItem from '@mui/material/MenuItem';
-import Select from '@mui/material/Select';
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 import {CustomBrowserTable} from "./CustomBrowserTable";
+import {MythicTablePagination} from "../../MythicComponents/MythicTablePagination";
+import {MythicSearchField, MythicTableToolbar, MythicTableToolbarGroup, MythicToolbarSelect} from "../../MythicComponents/MythicTableToolbar";
+import {MythicSearchEmptyState} from "../../MythicComponents/MythicStateDisplay";
 
 
 const mythictreeFragment = gql`
@@ -115,7 +109,6 @@ export function SearchTabCustomBrowserLabel(props){
     )
 }
 const SearchTabCustomBrowserSearchPanel = (props) => {
-    const theme = useTheme();
     const [browserOptions, setBrowserOptions] = React.useState([]);
     const [selectedBrowser, setSelectedBrowser] = React.useState("");
     const [search, setSearch] = React.useState("");
@@ -202,10 +195,9 @@ const SearchTabCustomBrowserSearchPanel = (props) => {
         }
     }, [props.value, props.index]);
     return (
-        <Grid container spacing={1} style={{padding: "5px 5px 0 5px", maxWidth: "100%"}}>
-            <Grid size={2}>
-                <Select
-                    style={{marginBottom: "10px", width: "100%"}}
+        <MythicTableToolbar>
+            <MythicTableToolbarGroup>
+                <MythicToolbarSelect
                     value={selectedBrowser}
                     onChange={handleBrowserChange}
                 >
@@ -214,27 +206,17 @@ const SearchTabCustomBrowserSearchPanel = (props) => {
                             <MenuItem key={"searchopt" + opt.name} value={opt.name}>{opt.name}</MenuItem>
                         ))
                     }
-                </Select>
-            </Grid>
-            <Grid size={2}>
-                <MythicTextField placeholder="Host Name Search..." value={searchHost} marginTop={"0px"}
-                                 onChange={handleSearchHostValueChange} onEnter={submitSearch} name="Host Name Search..." />
-            </Grid>
-            <Grid size={3}>
-                <MythicTextField placeholder="Search..." value={search} marginTop={"0px"}
-                                 onChange={handleSearchValueChange} onEnter={submitSearch} name="Search..." InputProps={{
-                    endAdornment:
-                        <React.Fragment>
-                            <Tooltip title="Search">
-                                <IconButton onClick={submitSearch} size="large"><SearchIcon style={{color: theme.palette.info.main}}/></IconButton>
-                            </Tooltip>
-                        </React.Fragment>,
-                    style: {padding: 0}
-                }}/>
-            </Grid>
-            <Grid size={2}>
-                <Select
-                    style={{marginBottom: "10px", width: "100%"}}
+                </MythicToolbarSelect>
+            </MythicTableToolbarGroup>
+            <MythicTableToolbarGroup style={{minWidth: "13rem"}}>
+                <MythicSearchField placeholder="Host Name Search..." name="Host" value={searchHost}
+                                   onChange={handleSearchHostValueChange} onEnter={submitSearch}/>
+            </MythicTableToolbarGroup>
+            <MythicTableToolbarGroup grow>
+                <MythicSearchField value={search} onChange={handleSearchValueChange} onEnter={submitSearch} onSearch={submitSearch} />
+            </MythicTableToolbarGroup>
+            <MythicTableToolbarGroup>
+                <MythicToolbarSelect
                     value={searchField}
                     onChange={handleSearchFieldChange}
                 >
@@ -243,9 +225,9 @@ const SearchTabCustomBrowserSearchPanel = (props) => {
                             <MenuItem key={"searchopt" + opt} value={opt}>{opt}</MenuItem>
                         ))
                     }
-                </Select>
-            </Grid>
-        </Grid>
+                </MythicToolbarSelect>
+            </MythicTableToolbarGroup>
+        </MythicTableToolbar>
     );
 }
 export const SearchTabCustomBrowserPanel = (props) =>{
@@ -404,14 +386,14 @@ export const SearchTabCustomBrowserPanel = (props) =>{
             <div style={{overflowY: "auto", flexGrow: 1}}>
                 {processData.length > 0 ? (
                     <CustomBrowserTable rows={processData} columns={selectedBrowser.columns} />) : (
-                    <div style={{display: "flex", justifyContent: "center", alignItems: "center", position: "absolute", left: "50%", top: "50%"}}>No Search Results</div>
+                    <MythicSearchEmptyState
+                        compact
+                        description="Adjust the custom browser query or selected browser field and search again."
+                        minHeight={180}
+                    />
                 )}
             </div>
-            <div style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center"}}>
-            <Pagination count={Math.ceil(totalCount / fetchLimit)} variant="outlined" color="info" boundaryCount={1}
-                    siblingCount={1} onChange={onChangePage} showFirstButton={true} showLastButton={true} style={{padding: "20px"}}/>
-                <Typography style={{paddingLeft: "10px"}}>Total Results: {totalCount}</Typography>
-            </div>
+            <MythicTablePagination totalCount={totalCount} fetchLimit={fetchLimit} onChange={onChangePage} color="info" />
         </MythicTabPanel>
     )
 }

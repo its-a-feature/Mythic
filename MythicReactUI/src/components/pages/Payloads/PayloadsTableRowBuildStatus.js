@@ -1,11 +1,10 @@
-import IconButton from '@mui/material/IconButton';
-import CircularProgress from '@mui/material/CircularProgress';
 import React from 'react';
 import GetAppIcon from '@mui/icons-material/GetApp';
 import ErrorIcon from '@mui/icons-material/Error';
 import {MythicStyledTooltip} from '../../MythicComponents/MythicStyledTooltip';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {PayloadBuildMessageDialog} from './PayloadBuildMessageDialog';
+import {MythicStatusChip} from '../../MythicComponents/MythicStatusChip';
 
 export function PayloadsTableRowBuildStatus(props){
     const [openBuildMessage, setOpenBuildMessageDialog] = React.useState(false);
@@ -19,20 +18,31 @@ export function PayloadsTableRowBuildStatus(props){
         <React.Fragment>
             {props.build_phase === "success" ?
                 ( <MythicStyledTooltip title="Download payload">
-                    <a href={"/direct/download/" + props.filemetum.agent_file_id} >
-                        <GetAppIcon color="success" style={{marginRight: "10px"}} />
-                    </a>
+                    <MythicStatusChip
+                        component="a"
+                        href={"/direct/download/" + props.filemetum.agent_file_id}
+                        clickable
+                        label="Ready"
+                        status="success"
+                        icon={<GetAppIcon />}
+                    />
                   </MythicStyledTooltip>
                     
                 )
                 : 
                 (props.build_phase === "building" ? 
                 (<MythicStyledTooltip title="Payload still building">
-                    <CircularProgress size={20} thickness={4} color="info" style={{marginRight: "10px"}}/>
+                    <MythicStatusChip label="Building" status="building" />
                 </MythicStyledTooltip>) : 
                 (<>
                     <MythicStyledTooltip title="Failed to build!" tooltipStyle={{}}>
-                        <ErrorIcon color="error" onClick={onErrorClick} style={{cursor: "pointer", marginRight: "10px"}} />
+                        <MythicStatusChip
+                            clickable
+                            label="Failed"
+                            status="error"
+                            icon={<ErrorIcon />}
+                            onClick={onErrorClick}
+                        />
                     </MythicStyledTooltip>
                     {openBuildMessage &&
                     <MythicDialog fullWidth={true} maxWidth="lg" open={openBuildMessage} 
@@ -46,4 +56,3 @@ export function PayloadsTableRowBuildStatus(props){
         </React.Fragment>
     );
 }
-

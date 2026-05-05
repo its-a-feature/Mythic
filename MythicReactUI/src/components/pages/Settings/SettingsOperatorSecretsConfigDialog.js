@@ -2,8 +2,7 @@ import React from 'react';
 import DialogActions from '@mui/material/DialogActions';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
-import {TextField, Button} from '@mui/material';
-import TableCell from '@mui/material/TableCell';
+import {Button} from '@mui/material';
 import TableRow from '@mui/material/TableRow';
 import TableHead from '@mui/material/TableHead';
 import Table from '@mui/material/Table';
@@ -16,6 +15,10 @@ import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOu
 import IconButton from '@mui/material/IconButton';
 import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
 import MythicTextField from "../../MythicComponents/MythicTextField";
+import {
+    MythicDialogBody,
+    MythicDialogSection
+} from "../../MythicComponents/MythicDialogLayout";
 
 const getCurrentSecrets = gql`
 query gettingOperatorSecrets($operator_id: Int) {
@@ -105,46 +108,66 @@ export function SettingsOperatorSecretsConfigDialog(props) {
         <DialogTitle id="form-dialog-title">Configure Secrets</DialogTitle>
 
         <DialogContent dividers={true} >
-            These secrets are sent down with tasking to allow per-operator authentication if needed during a tasks' processing.
-        </DialogContent>
-        <TableContainer className="mythicElement">
-          <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
-              <TableHead>
-                <TableRow>
-                    <MythicStyledTableCell style={{width: "2rem"}}/>
-                    <MythicStyledTableCell style={{width: "30%"}}>Secret Key</MythicStyledTableCell>
-                    <MythicStyledTableCell>Secret Value</MythicStyledTableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                  {settings.map( (s, index) => (
-                      <TableRow hover key={"secret" + index}>
-                          <MythicStyledTableCell>
-                              <IconButton color={"error"} onClick={() => removeSecret(index)}>
-                                  <DeleteIcon   />
-                              </IconButton>
-                          </MythicStyledTableCell>
-                        <MythicStyledTableCell>
-                            <MythicTextField style={{width:"100%"}} size="small" value={s[0]} onChange={(name, value, error) => onChangeKey(value, index)}></MythicTextField>
-                        </MythicStyledTableCell>
-                        <MythicStyledTableCell>
-                            <MythicTextField style={{width:"100%"}} size="small" value={s[1]} onChange={(name, value, error) => onChangeValue(value, index)}></MythicTextField>
-                        </MythicStyledTableCell>
-                      </TableRow>
-                  ))}
-                  <TableRow>
-                      <MythicStyledTableCell colSpan={2}>
-                          <IconButton color={"success"} onClick={addSecret}>
-                              <AddCircleOutlineOutlinedIcon    />
-                          </IconButton>
+            <MythicDialogBody>
+                <MythicDialogSection
+                    title="Operator Secrets"
+                    description="Secrets are sent with tasking for per-operator authentication during task processing."
+                >
+                    <TableContainer className="mythicElement mythic-dialog-table-wrap">
+                      <Table stickyHeader={true} size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
+                          <TableHead>
+                            <TableRow>
+                                <MythicStyledTableCell style={{width: "2rem"}}/>
+                                <MythicStyledTableCell style={{width: "30%"}}>Secret Key</MythicStyledTableCell>
+                                <MythicStyledTableCell>Secret Value</MythicStyledTableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                              {settings.map( (s, index) => (
+                                  <TableRow hover key={"secret" + index}>
+                                      <MythicStyledTableCell>
+                                          <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={() => removeSecret(index)}>
+                                              <DeleteIcon fontSize="small" />
+                                          </IconButton>
+                                      </MythicStyledTableCell>
+                                    <MythicStyledTableCell>
+                                        <MythicTextField
+                                            showLabel={false}
+                                            placeholder="Secret key"
+                                            marginTop="0px"
+                                            marginBottom="0px"
+                                            value={s[0]}
+                                            onChange={(name, value, error) => onChangeKey(value, index)}
+                                        />
+                                    </MythicStyledTableCell>
+                                    <MythicStyledTableCell>
+                                        <MythicTextField
+                                            showLabel={false}
+                                            placeholder="Secret value"
+                                            marginTop="0px"
+                                            marginBottom="0px"
+                                            value={s[1]}
+                                            onChange={(name, value, error) => onChangeValue(value, index)}
+                                        />
+                                    </MythicStyledTableCell>
+                                  </TableRow>
+                              ))}
+                              <TableRow>
+                                  <MythicStyledTableCell colSpan={2}>
+                                      <IconButton color={"success"} onClick={addSecret}>
+                                          <AddCircleOutlineOutlinedIcon    />
+                                      </IconButton>
 
-                      </MythicStyledTableCell>
-                      <MythicStyledTableCell>
-                      </MythicStyledTableCell>
-                  </TableRow>
-              </TableBody>
-            </Table>
-        </TableContainer>
+                                  </MythicStyledTableCell>
+                                  <MythicStyledTableCell>
+                                  </MythicStyledTableCell>
+                              </TableRow>
+                          </TableBody>
+                        </Table>
+                    </TableContainer>
+                </MythicDialogSection>
+            </MythicDialogBody>
+        </DialogContent>
         <DialogActions>
           <Button onClick={props.onClose} variant="contained" color="primary">
             Cancel
@@ -156,4 +179,3 @@ export function SettingsOperatorSecretsConfigDialog(props) {
   </React.Fragment>
   );
 }
-

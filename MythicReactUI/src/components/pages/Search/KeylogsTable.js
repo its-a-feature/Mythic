@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react';
-import {useTheme} from '@mui/material/styles';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -8,8 +7,6 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import { copyStringToClipboard } from '../../utilities/Clipboard';
-import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faCopy} from '@fortawesome/free-solid-svg-icons';
 import {Link} from '@mui/material';
 import {snackActions} from '../../utilities/Snackbar';
 import { meState } from '../../../cache';
@@ -18,10 +15,11 @@ import {IconButton, Typography} from '@mui/material';
 import { toLocalTime } from '../../utilities/Time';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {b64DecodeUnicode} from "../Callbacks/ResponseDisplay";
-import { faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
 import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import {MythicTextEditDialog} from "../../MythicComponents/MythicTextEditDialog";
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 
 /*
 export function KeylogsTableOld(props){
@@ -150,7 +148,6 @@ export function KeylogsTable(props){
 }
 function KeylogTableRow(props){
     const me = useReactiveVar(meState);
-    const theme = useTheme();
     const [keylogData, setKeylogData] = React.useState("");
     const [openDisplayKeylogData, setOpenDisplayKeylogData] = React.useState(false);
     React.useEffect( () => {
@@ -188,8 +185,12 @@ function KeylogTableRow(props){
                     <MythicStyledTooltip title={"View current page data grouped together for this program"} tooltipStyle={{
                         display: "inline-block"
                     }}>
-                        <IconButton onClick={() => props.onGroupKeylogData(props.window, props.user, props.task.callback.host)}>
-                            <FullscreenIcon />
+                        <IconButton
+                            className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
+                            onClick={() => props.onGroupKeylogData(props.window, props.user, props.task.callback.host)}
+                            size="small"
+                        >
+                            <FullscreenIcon fontSize="small" />
                         </IconButton>
                     </MythicStyledTooltip>
 
@@ -197,8 +198,12 @@ function KeylogTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell >
                     <MythicStyledTooltip title={"Copy to clipboard"} style={{display: "inline-block"}}>
-                        <IconButton onClick={() => onCopyToClipboard(keylogData)} size="small">
-                            <FontAwesomeIcon icon={faCopy} />
+                        <IconButton
+                            className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
+                            onClick={() => onCopyToClipboard(keylogData)}
+                            size="small"
+                        >
+                            <ContentCopyIcon fontSize="small" />
                         </IconButton>
                     </MythicStyledTooltip>
                     <Typography variant="body2" style={{wordBreak: "break-all", whiteSpace: "pre-wrap", display: "inline-block"}}>
@@ -206,8 +211,13 @@ function KeylogTableRow(props){
                         {keylogData.length > 500 ? (
                             <>
                                 {"..."}<br/>
-                                <FontAwesomeIcon icon={faExternalLinkAlt} style={{color: theme.palette.info.main, cursor: "pointer"}} size="lg"
-                                onClick={() => {setOpenDisplayKeylogData(true);}}/>
+                                <IconButton
+                                    className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
+                                    onClick={() => {setOpenDisplayKeylogData(true);}}
+                                    size="small"
+                                >
+                                    <OpenInNewIcon fontSize="small" />
+                                </IconButton>
                             </>
                         ) : null}
                         {openDisplayKeylogData &&

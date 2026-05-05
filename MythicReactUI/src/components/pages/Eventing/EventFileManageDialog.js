@@ -21,7 +21,7 @@ import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
 import {faPhotoVideo} from '@fortawesome/free-solid-svg-icons';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import DeleteIcon from '@mui/icons-material/Delete';
-import {Link, Typography} from '@mui/material';
+import {IconButton, Link, Typography} from '@mui/material';
 import {MythicConfirmDialog} from "../../MythicComponents/MythicConfirmDialog";
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 
@@ -38,15 +38,19 @@ export function EventFileManageDialog({onClose, selectedEventGroup}) {
     return (
         <React.Fragment>
             <DialogTitle id="form-dialog-title">
-                Add or Remove Files associated with this workflow
-                <Button size={"small"} style={{float: "right", marginRight: "10px"}}
-                        variant={"contained"}
-                        color={"success"} component="label"
-                        startIcon={<CloudUploadIcon />}
-                >
-                    New Files
-                    <input onChange={onFileChange} type="file" multiple hidden/>
-                </Button>
+                <div className="mythic-dialog-title-row">
+                    <span>Add or Remove Files associated with this workflow</span>
+                    <Button
+                        className="mythic-table-row-action mythic-table-row-action-hover-success"
+                        component="label"
+                        size="small"
+                        startIcon={<CloudUploadIcon fontSize="small" />}
+                        variant="contained"
+                    >
+                        New Files
+                        <input onChange={onFileChange} type="file" multiple hidden/>
+                    </Button>
+                </div>
             </DialogTitle>
 
             <DialogContent dividers={true} style={{maxHeight: "calc(70vh)"}}>
@@ -64,7 +68,7 @@ export function EventFileManageDialog({onClose, selectedEventGroup}) {
                 </TableContainer>
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose} variant="contained" color="primary">
+                <Button className="mythic-table-row-action" onClick={onClose} variant="contained">
                     Close
                 </Button>
             </DialogActions>
@@ -102,11 +106,15 @@ function EventFileManageDialogTableRow({eventFile}) {
                         {openDelete &&
                             <MythicConfirmDialog onClose={() => {setOpenDelete(false);}} onSubmit={onAcceptDelete} open={openDelete}/>
                         }
-                        <DeleteIcon color={"error"} fontSize={"large"} style={{height: "35px", cursor: "pointer"}}
-                                    onClick={()=>{setOpenDelete(true);}}/>
+                        <MythicStyledTooltip title={"Delete file"}>
+                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={()=>{setOpenDelete(true);}}>
+                                <DeleteIcon fontSize="small" />
+                            </IconButton>
+                        </MythicStyledTooltip>
                         <MythicStyledTooltip title={"Preview Media"}>
-                            <FontAwesomeIcon icon={faPhotoVideo} style={{height: "25px", bottom: "5px", position: "relative", cursor: "pointer", display: "inline-block"}}
-                                             onClick={onPreviewMedia} />
+                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={onPreviewMedia}>
+                                <FontAwesomeIcon icon={faPhotoVideo} />
+                            </IconButton>
                         </MythicStyledTooltip>
                         {openPreviewMediaDialog &&
                             <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewMediaDialog}
