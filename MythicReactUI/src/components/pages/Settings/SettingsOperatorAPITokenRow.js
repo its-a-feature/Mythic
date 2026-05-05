@@ -1,10 +1,11 @@
 import React from 'react';
-import {IconButton, Typography, Link} from '@mui/material';
+import {Box, IconButton, Typography, Link} from '@mui/material';
 import TableRow from '@mui/material/TableRow';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Switch from '@mui/material/Switch';
 import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
 import {toLocalTime} from "../../utilities/Time";
+import {MythicStateChip} from "../../MythicComponents/MythicStateChip";
 
 export function APITokenRow(props){
     return (
@@ -18,14 +19,21 @@ export function APITokenRow(props){
                     )}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <Switch
-                        color={ "info"}
-                        disabled={props.deleted}
-                        checked={props.active}
-                        onChange={() => {props.onToggleActive(props.id, !props.active)}}
-                        inputProps={{ 'aria-label': 'primary checkbox' }}
-                        name="active"
-                    />
+                    <Box className="mythic-state-toggle-cell">
+                        <Switch
+                            color="success"
+                            disabled={props.deleted}
+                            checked={props.active}
+                            onChange={() => {props.onToggleActive(props.id, !props.active)}}
+                            inputProps={{ 'aria-label': 'Toggle API token active state' }}
+                            name="active"
+                            size="small"
+                        />
+                        <MythicStateChip
+                            label={props.deleted ? "Deleted" : props.active ? "Active" : "Disabled"}
+                            state={props.deleted ? "error" : props.active ? "active" : "disabled"}
+                        />
+                    </Box>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <Typography>

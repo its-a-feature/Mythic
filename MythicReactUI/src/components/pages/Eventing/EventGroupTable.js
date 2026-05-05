@@ -160,8 +160,7 @@ export function EventGroupTable({selectedEventGroup, me, showInstances, showGrap
                              <MythicPageHeaderChip
                                  icon={selectedEventGroup.active ? <NotificationsActiveTwoToneIcon /> : <NotificationsOffTwoToneIcon />}
                                  label={selectedEventGroup.active ? "Enabled" : "Disabled"}
-                                 status={selectedEventGroup.active ? "success" : undefined}
-                                 className={selectedEventGroup.active ? "" : "mythic-eventing-header-chip-disabled"}
+                                 status={selectedEventGroup.active ? "enabled" : "disabled"}
                              />
                              <MythicPageHeaderChip label={selectedEventGroup.trigger} />
                              <MythicPageHeaderChip label={selectedEventGroup.run_as || "unknown"} />
