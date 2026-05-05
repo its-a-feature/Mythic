@@ -137,7 +137,7 @@ export function BrowserScripts({me}){
     }, [])
     return (
     <MythicPageBody>
-        <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
+        <Backdrop open={backdropOpen} style={{zIndex: 1300, position: "absolute"}} invisible={false}>
             <MythicLoadingState compact title="Loading browser scripts" description="Fetching scripts for this operator." sx={{color: "inherit"}} />
         </Backdrop>
         <BrowserScriptsTable

@@ -19,7 +19,7 @@ export function SettingsOperatorDeleteDialog(props) {
               {props.deleted ?
                   "This restores an operator and allows them to log in again."
               :
-              "This deletes an operator and hides them from this view by default. If you want a temporary solution, mark the operator as inactive."}
+              "This deletes an operator and hides them from this view by default. If you want a temporary solution, mark the operator as disabled."}
           </DialogContentText>
           <DialogContentText>
             Are you sure you want to {props.deleted ? "restore" : "delete" } operator "{props.username}"?
@@ -36,4 +36,3 @@ export function SettingsOperatorDeleteDialog(props) {
   </React.Fragment>
   );
 }
-

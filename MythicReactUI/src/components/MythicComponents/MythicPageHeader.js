@@ -211,16 +211,21 @@ export const MythicPageHeader = ({
 export const MythicPageHeaderChip = ({status, sx = {}, ...props}) => {
     const theme = useTheme();
     const headerTextColor = theme.pageHeaderText?.main || theme.palette.text.primary;
-    const statusColor = status ? theme.palette[status]?.main : null;
+    const normalizedStatus = status === "active" || status === "enabled" ? "success" :
+        status === "inactive" || status === "disabled" ? "warning" :
+        status === "neutral" ? "neutral" : status;
+    const statusColor = normalizedStatus && normalizedStatus !== "neutral" ? theme.palette[normalizedStatus]?.main : null;
     const chipColor = statusColor || alpha(headerTextColor, 0.88);
+    const neutralBackground = theme.palette.mode === "dark" ? alpha(theme.palette.common.white, 0.06) : alpha(theme.palette.common.black, 0.035);
+    const neutralBorder = theme.table?.borderSoft || alpha(headerTextColor, 0.2);
     return (
         <Chip
             size="small"
             variant="outlined"
             {...props}
             sx={{
-                backgroundColor: statusColor ? alpha(statusColor, theme.palette.mode === "dark" ? 0.22 : 0.13) : alpha(headerTextColor, 0.08),
-                borderColor: statusColor ? alpha(statusColor, theme.palette.mode === "dark" ? 0.55 : 0.38) : alpha(headerTextColor, 0.2),
+                backgroundColor: statusColor ? alpha(statusColor, theme.palette.mode === "dark" ? 0.22 : 0.13) : (normalizedStatus === "neutral" ? neutralBackground : alpha(headerTextColor, 0.08)),
+                borderColor: statusColor ? alpha(statusColor, theme.palette.mode === "dark" ? 0.55 : 0.38) : (normalizedStatus === "neutral" ? neutralBorder : alpha(headerTextColor, 0.2)),
                 color: chipColor,
                 fontSize: "0.72rem",
                 fontWeight: 750,

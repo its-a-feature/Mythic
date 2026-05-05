@@ -149,7 +149,7 @@ export function SettingsOperatorTable(props){
                         <TableCell style={{width: "4rem"}}>Login</TableCell>
                         <TableCell style={{width: "6rem"}}>Use UTC</TableCell>
                         <TableCell style={{width: "10rem"}}>Preferences</TableCell>
-                        <TableCell style={{width: "6rem"}}>Active</TableCell>
+                        <TableCell style={{width: "9rem"}}>Active</TableCell>
                         <TableCell >Login Info</TableCell>
                         <TableCell >Email</TableCell>
                         <TableCell style={{width: "6rem"}}>Admin</TableCell>

@@ -1,8 +1,10 @@
 import React, {useEffect, useRef} from 'react';
-import Button from '@mui/material/Button';
-import DialogActions from '@mui/material/DialogActions';
+import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
+import Collapse from '@mui/material/Collapse';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
+import IconButton from '@mui/material/IconButton';
 import AceEditor from 'react-ace';
 import "ace-builds/src-noconflict/mode-javascript";
 import "ace-builds/src-noconflict/theme-github";
@@ -14,11 +16,21 @@ import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import InputLabel from '@mui/material/InputLabel';
-import Input from '@mui/material/Input';
+import Tooltip from '@mui/material/Tooltip';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import Split from 'react-split';
 import {TaskDisplay} from "../Callbacks/TaskDisplay";
 import {taskingDataFragment} from '../Callbacks/CallbackMutations'
-
+import {
+    MythicDialogBody,
+    MythicDialogButton,
+    MythicDialogFooter,
+    MythicFormField,
+    MythicFormGrid,
+    MythicFormNote
+} from "../../MythicComponents/MythicDialogLayout";
+import {MythicEmptyState, MythicLoadingState} from "../../MythicComponents/MythicStateDisplay";
 
 
 const getCommandsAndPayloadTypesQuery = gql`
@@ -42,6 +54,38 @@ query getAvailableTasks($command_id: Int!){
 }
 `;
 
+const BROWSER_SCRIPT_WORKBENCH_SPLIT_KEY = "browserScriptWorkbenchSplitSizes";
+const BROWSER_SCRIPT_TOP_SPLIT_KEY = "browserScriptTopSplitSizes";
+const defaultWorkbenchSplitSizes = [48, 52];
+const defaultTopSplitSizes = [68, 32];
+
+const getStoredSplitSizes = (storageKey, fallback) => {
+    try {
+        if(typeof window === "undefined"){
+            return fallback;
+        }
+        const storedSizes = window.localStorage.getItem(storageKey);
+        if(!storedSizes){
+            return fallback;
+        }
+        const parsedSizes = JSON.parse(storedSizes);
+        if(!Array.isArray(parsedSizes) || parsedSizes.length !== fallback.length || !parsedSizes.every(Number.isFinite)){
+            return fallback;
+        }
+        return parsedSizes;
+    } catch (error) {
+        return fallback;
+    }
+}
+
+const storeSplitSizes = (storageKey, sizes) => {
+    try {
+        window.localStorage.setItem(storageKey, JSON.stringify(sizes));
+    } catch (error) {
+        // Best effort only; layout still works without persisted sizes.
+    }
+}
+
 export function EditScriptDialog(props) {
     const theme = useTheme();
     const [script, setScript] = React.useState("");
@@ -49,12 +93,19 @@ export function EditScriptDialog(props) {
     const [selectedCommand, setSelectedCommand] = React.useState('');
     const [payloadTypeCmdOptions, setPayloadTypeCmdOptions] = React.useState([]);
     const [commandOptions, setCommandOptions] = React.useState([]);
-    const inputPTRef = useRef(null); 
-    const inputCMDRef = useRef(null);
-    const inputTaskRef = useRef(null);
     const [availableTasks, setAvailableTasks] = React.useState([]);
     const [selectedTask, setSelectedTask] = React.useState('');
-    useQuery(getCommandsAndPayloadTypesQuery, {
+    const [workbenchSplitSizes, setWorkbenchSplitSizes] = React.useState(() => getStoredSplitSizes(BROWSER_SCRIPT_WORKBENCH_SPLIT_KEY, defaultWorkbenchSplitSizes));
+    const [topSplitSizes, setTopSplitSizes] = React.useState(() => getStoredSplitSizes(BROWSER_SCRIPT_TOP_SPLIT_KEY, defaultTopSplitSizes));
+    const [targetOpen, setTargetOpen] = React.useState(() => props.new === true);
+    const selectedPayloadTypeOption = React.useMemo(() => {
+        return payloadTypeCmdOptions.find((payloadType) => payloadType.id === selectedPayloadType);
+    }, [payloadTypeCmdOptions, selectedPayloadType]);
+    const selectedCommandOption = React.useMemo(() => {
+        return commandOptions.find((command) => command.id === selectedCommand);
+    }, [commandOptions, selectedCommand]);
+    const taskSelectorValue = selectedTask || "";
+    const {loading: targetLoading} = useQuery(getCommandsAndPayloadTypesQuery, {
       onCompleted: data => {
         setPayloadTypeCmdOptions(data.payloadtype);
         if(props.payload_type_id !== undefined){
@@ -66,11 +117,8 @@ export function EditScriptDialog(props) {
         }
         if(props.command_id !== undefined){
           setSelectedCommand(props.command_id);
-          for(let i = 0; i < data.payloadtype.length; i++){
-            if(props.payload_type_id === data.payloadtype[i].id){
-              setCommandOptions(data.payloadtype[i].commands)
-            }
-          }
+          const payloadType = data.payloadtype.find((payloadType) => payloadType.id === props.payload_type_id);
+          setCommandOptions(payloadType?.commands || []);
         }else{
           if(data.payloadtype.length > 0){
             if(data.payloadtype[0].commands.length > 0){
@@ -84,11 +132,13 @@ export function EditScriptDialog(props) {
 
       }
     });
-    const [getAvailableTasks] = useLazyQuery(getExistingTasksForCommand, {
+    const [getAvailableTasks, {loading: tasksLoading}] = useLazyQuery(getExistingTasksForCommand, {
         onCompleted: data => {
             setAvailableTasks(data.task);
             if(data.task.length > 0){
                 setSelectedTask(data.task[0]);
+            }else{
+                setSelectedTask('');
             }
         },
         onError: data => {
@@ -102,9 +152,12 @@ export function EditScriptDialog(props) {
     useEffect( () => {
         if(selectedCommand !== ""){
             getAvailableTasks({variables: {command_id: selectedCommand}})
+        }else{
+            setAvailableTasks([]);
+            setSelectedTask('');
         }
 
-    }, [selectedCommand]);
+    }, [selectedCommand, getAvailableTasks]);
     useEffect( () => {
         if(props.script !== undefined){
           try{
@@ -137,9 +190,12 @@ export function EditScriptDialog(props) {
     }
     const onChangeSelectedPayloadType = (event) => {
       setSelectedPayloadType(event.target.value);
-      const cmds = payloadTypeCmdOptions.filter( (p) => p.id === event.target.value);
-      setCommandOptions(cmds[0].commands);
-      setSelectedCommand(cmds[0].commands[0].id);
+      const selectedPayload = payloadTypeCmdOptions.find( (p) => p.id === event.target.value);
+      const cmds = selectedPayload?.commands || [];
+      setCommandOptions(cmds);
+      setSelectedCommand(cmds[0]?.id || '');
+      setAvailableTasks([]);
+      setSelectedTask('');
     }
     const onChangeTask = (event) => {
         setSelectedTask(event.target.value);
@@ -148,34 +204,48 @@ export function EditScriptDialog(props) {
       setSelectedCommand(event.target.value);
     }
     const onLoad = (editor) => {
-        // Your editor options comes here
-        editor.on('change', (arg, activeEditor) => {
-            editorRef.current = activeEditor;
-            editor.removeEventListener('change');
-            editorRef.current.resize();
-        });
+        editorRef.current = editor;
+        requestAnimationFrame(() => editor.resize());
     }
     const onOutputLoad = (editor) => {
-        // Your editor options comes here
-        editor.on('change', (arg, activeEditor) => {
-            outputRef.current = activeEditor;
-            editor.removeEventListener('change');
-            outputRef.current.resize();
-        });
+        outputRef.current = editor;
+        requestAnimationFrame(() => editor.resize());
     }
     React.useEffect( () => {
-
-        var logBackup = console.log;
-        console.log = function(msg) {
-            logStreamRef.current += "\n" + msg;
-            logBackup.apply(msg);
-            setLogOutput(logStreamRef.current)
+        const logBackup = console.log;
+        const formatConsoleArg = (arg) => {
+            if(typeof arg === "string"){
+                return arg;
+            }
+            try {
+                return JSON.stringify(arg, null, 2);
+            } catch (error) {
+                return String(arg);
+            }
         };
-
-
+        console.log = function(...args) {
+            const message = args.map(formatConsoleArg).join(" ");
+            logStreamRef.current += "\n" + message;
+            setLogOutput(logStreamRef.current);
+            logBackup.apply(console, args);
+        };
+        return () => {
+            console.log = logBackup;
+        };
     }, []);
 
-    const onDragging = () => {
+    React.useEffect(() => {
+        requestAnimationFrame(() => {
+            if(editorRef.current){
+                editorRef.current.resize();
+            }
+            if(outputRef.current){
+                outputRef.current.resize();
+            }
+        });
+    }, [selectedTask, tasksLoading]);
+
+    const resizeEditors = () => {
         if(editorRef.current){
             editorRef.current.resize();
         }
@@ -183,128 +253,227 @@ export function EditScriptDialog(props) {
             outputRef.current.resize();
         }
     }
+    const onWorkbenchDragEnd = (sizes) => {
+        setWorkbenchSplitSizes(sizes);
+        storeSplitSizes(BROWSER_SCRIPT_WORKBENCH_SPLIT_KEY, sizes);
+        resizeEditors();
+    }
+    const onTopDragEnd = (sizes) => {
+        setTopSplitSizes(sizes);
+        storeSplitSizes(BROWSER_SCRIPT_TOP_SPLIT_KEY, sizes);
+        resizeEditors();
+    }
+    const onToggleTargetOpen = () => {
+        setTargetOpen((current) => !current);
+    }
+    const selectedTaskLabel = (task) => {
+        return `${task.command_name} / ${task.display_id} / ${task.display_params}`;
+    }
   return (
     <React.Fragment>
-        <DialogTitle >
-          {props.title ? props.title : "Edit " + props.author + "'s BrowserScript Code"}
-          </DialogTitle>
-        <DialogContent dividers={true} style={{height: `calc(100vh)`, display: "flex", flexDirection: "column", width: "100%"}}>
-            <div style={{display: "flex"}}>
-                <FormControl style={{width: "50%"}}>
-                    <InputLabel ref={inputPTRef}>Payload Type</InputLabel>
-                    <Select
-                        labelId="demo-dialog-select-label"
-                        id="demo-dialog-select"
-                        value={selectedPayloadType}
-                        onChange={onChangeSelectedPayloadType}
-                        input={<Input style={{width: "100%"}}/>}
+        <DialogTitle>
+            <Box className="mythic-dialog-title-row">
+                <Box component="span">{props.title ? props.title : "Edit " + props.author + "'s BrowserScript Code"}</Box>
+            </Box>
+        </DialogTitle>
+        <DialogContent className="mythic-browser-script-dialog-content" dividers={true}>
+            <MythicDialogBody className="mythic-browser-script-dialog-body">
+                <Box className={`mythic-browser-script-target-panel ${targetOpen ? "mythic-browser-script-target-panel-open" : ""}`}>
+                    <Box className="mythic-browser-script-target-summary">
+                        <Box className="mythic-browser-script-target-copy">
+                            <Box component="span" className="mythic-browser-script-target-label">Script Target</Box>
+                            <Box className="mythic-browser-script-target-chips">
+                                <Chip size="small" label={selectedPayloadTypeOption?.name || (targetLoading ? "Loading payload types" : "No payload type")} />
+                                <Chip size="small" label={selectedCommandOption?.cmd || "No command"} />
+                            </Box>
+                        </Box>
+                        <Tooltip title={targetOpen ? "Collapse target settings" : "Edit target settings"}>
+                            <IconButton
+                                aria-expanded={targetOpen}
+                                aria-label={targetOpen ? "Collapse target settings" : "Edit target settings"}
+                                className="mythic-browser-script-target-toggle"
+                                onClick={onToggleTargetOpen}
+                                size="small"
+                            >
+                                {targetOpen ? <KeyboardArrowUpIcon fontSize="small" /> : <KeyboardArrowDownIcon fontSize="small" />}
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
+                    <Collapse
+                        in={targetOpen}
+                        onEntered={resizeEditors}
+                        onExited={resizeEditors}
+                        timeout="auto"
+                        unmountOnExit
                     >
-                        {payloadTypeCmdOptions.map( (opt) => (
-                            <MenuItem value={opt.id} key={"payloadtype" + opt.id}>{opt.name}</MenuItem>
-                        ) )}
-                    </Select>
-                </FormControl>
-                <FormControl style={{width: "50%", paddingBottom: "10px"}}>
-                    <InputLabel ref={inputCMDRef}>Command</InputLabel>
-                    <Select
-                        labelId="demo-dialog-select-label"
-                        id="demo-dialog-select"
-                        value={selectedCommand}
-                        onChange={onChangeSelectedCommand}
-                        input={<Input style={{width: "100%"}}/>}
+                        <Box className="mythic-browser-script-target-details">
+                            <MythicFormGrid minWidth="16rem">
+                                <MythicFormField label="Payload Type">
+                                    <FormControl fullWidth size="small">
+                                        <InputLabel id="browser-script-payload-type-label">Payload Type</InputLabel>
+                                        <Select
+                                            label="Payload Type"
+                                            labelId="browser-script-payload-type-label"
+                                            value={selectedPayloadType}
+                                            onChange={onChangeSelectedPayloadType}
+                                            disabled={targetLoading}
+                                        >
+                                            {payloadTypeCmdOptions.map( (opt) => (
+                                                <MenuItem value={opt.id} key={"payloadtype" + opt.id}>{opt.name}</MenuItem>
+                                            ) )}
+                                        </Select>
+                                    </FormControl>
+                                </MythicFormField>
+                                <MythicFormField label="Command">
+                                    <FormControl fullWidth size="small">
+                                        <InputLabel id="browser-script-command-label">Command</InputLabel>
+                                        <Select
+                                            label="Command"
+                                            labelId="browser-script-command-label"
+                                            value={selectedCommand}
+                                            onChange={onChangeSelectedCommand}
+                                            disabled={targetLoading || commandOptions.length === 0}
+                                        >
+                                            {commandOptions.map( (opt) => (
+                                                <MenuItem value={opt.id} key={"command" + opt.id}>{opt.cmd}</MenuItem>
+                                            ) )}
+                                        </Select>
+                                    </FormControl>
+                                </MythicFormField>
+                            </MythicFormGrid>
+                            <MythicFormNote>
+                                Use Save for Testing to update the script without closing the editor. Select an already executed matching task below, then collapse and re-expand that task if you need it to reload the updated renderer.
+                            </MythicFormNote>
+                        </Box>
+                    </Collapse>
+                </Box>
+                <Split
+                    className="mythic-browser-script-workbench"
+                    direction="vertical"
+                    gutterSize={8}
+                    minSize={[210, 300]}
+                    onDrag={resizeEditors}
+                    onDragEnd={onWorkbenchDragEnd}
+                    sizes={workbenchSplitSizes}
+                >
+                    <Split
+                        className="mythic-browser-script-top-split"
+                        gutterSize={8}
+                        minSize={[320, 220]}
+                        onDrag={resizeEditors}
+                        onDragEnd={onTopDragEnd}
+                        sizes={topSplitSizes}
                     >
-                        {commandOptions.map( (opt) => (
-                            <MenuItem value={opt.id} key={"command" + opt.id}>{opt.cmd}</MenuItem>
-                        ) )}
-                    </Select>
-                </FormControl>
-            </div>
-            <p>
-                <b>To test locally</b>: Make your changes in the top left code box. Any <b>console.log</b> entries will appear in the box to the right when executed.
-                Click <b>Save for Testing</b> to finalize your changes. Make sure to select an already executed task that matches this command from the bottom.
-                You will need to collapse and re-expand the task to pull in your updated changes.
-            </p>
-            <div style={{display: "flex", width: "100%", flexGrow: 1}}>
-                <Split direction="vertical" style={{height: "100%", width: "100%"}} sizes={[30, 70]} onDrag={onDragging} >
-                    <Split style={{display: "flex"}} sizes={[70, 30]} onDrag={onDragging} >
-                        <div className="bg-gray-light">
-                            <AceEditor
-                                mode="javascript"
-                                theme={theme.palette.mode === 'dark' ? 'monokai' : 'github'}
-                                width="100%"
-                                onLoad={onLoad}
-                                height="100%"
-                                value={script}
-                                focus={true}
-                                onChange={onChange}
-                                setOptions={{
-                                    useWorker: false
-                                }}
-                            />
+                        <div className="mythic-browser-script-pane mythic-browser-script-editor-pane">
+                            <div className="mythic-browser-script-pane-header">
+                                <span>Script Code</span>
+                                <span>JavaScript</span>
+                            </div>
+                            <div className="mythic-browser-script-editor-frame">
+                                <AceEditor
+                                    mode="javascript"
+                                    theme={theme.palette.mode === 'dark' ? 'monokai' : 'github'}
+                                    width="100%"
+                                    onLoad={onLoad}
+                                    height="100%"
+                                    value={script}
+                                    focus={true}
+                                    onChange={onChange}
+                                    setOptions={{
+                                        displayIndentGuides: true,
+                                        fontSize: 13,
+                                        showPrintMargin: false,
+                                        tabSize: 4,
+                                        useWorker: false,
+                                    }}
+                                />
+                            </div>
                         </div>
-                        <div className="bg-gray-light"   >
-                            <AceEditor
-                                mode="javascript"
-                                theme={theme.palette.mode === 'dark' ? 'monokai' : 'github'}
-                                width="100%"
-                                onLoad={onOutputLoad}
-                                height="100%"
-                                value={logOutput}
-                                focus={false}
-                                onChange={onChange}
-                                setOptions={{
-                                    useWorker: false
-                                }}
-                            />
+                        <div className="mythic-browser-script-pane mythic-browser-script-console-pane">
+                            <div className="mythic-browser-script-pane-header">
+                                <span>Console Output</span>
+                                <span>console.log</span>
+                            </div>
+                            <div className="mythic-browser-script-editor-frame">
+                                <AceEditor
+                                    mode="javascript"
+                                    theme={theme.palette.mode === 'dark' ? 'monokai' : 'github'}
+                                    width="100%"
+                                    onLoad={onOutputLoad}
+                                    height="100%"
+                                    value={logOutput}
+                                    focus={false}
+                                    readOnly
+                                    setOptions={{
+                                        fontSize: 12,
+                                        highlightActiveLine: false,
+                                        showGutter: false,
+                                        showPrintMargin: false,
+                                        tabSize: 4,
+                                        useWorker: false,
+                                    }}
+                                />
+                            </div>
                         </div>
                     </Split>
-                    <div className="bg-gray-light" >
-                        <FormControl style={{width: "100%"}}>
-                            <InputLabel ref={inputTaskRef} style={{paddingTop: "10px"}}>Test Script With Task</InputLabel>
-                            <Select
-                                labelId="demo-dialog-select-label"
-                                id="demo-dialog-select"
-                                value={selectedTask}
-                                onChange={onChangeTask}
-                                input={<Input style={{width: "100%"}}/>}
-                            >
-                                {availableTasks.map( (opt) => (
-                                    <MenuItem value={opt} key={"task" + opt.id}>{opt.command_name + " / " + opt.display_id + " / " + opt.display_params}</MenuItem>
-                                ) )}
-                            </Select>
-                        </FormControl>
-                        {selectedTask !== "" &&
-                            <TaskDisplay me={props.me} task={selectedTask} command_id={selectedTask.command == null ? 0 : selectedTask.command.id} />
-                        }
+                    <div className="mythic-browser-script-pane mythic-browser-script-preview-pane">
+                        <div className="mythic-browser-script-pane-header">
+                            <span>Test Preview</span>
+                            <span>{availableTasks.length === 1 ? "1 task" : `${availableTasks.length} tasks`}</span>
+                        </div>
+                        <div className="mythic-browser-script-preview-controls">
+                            <FormControl fullWidth size="small">
+                                <InputLabel id="browser-script-test-task-label">Test Script With Task</InputLabel>
+                                <Select
+                                    label="Test Script With Task"
+                                    labelId="browser-script-test-task-label"
+                                    value={taskSelectorValue}
+                                    onChange={onChangeTask}
+                                    disabled={tasksLoading || availableTasks.length === 0}
+                                    onOpen={resizeEditors}
+                                    renderValue={(task) => task ? selectedTaskLabel(task) : ""}
+                                >
+                                    {availableTasks.map( (opt) => (
+                                        <MenuItem value={opt} key={"task" + opt.id}>{selectedTaskLabel(opt)}</MenuItem>
+                                    ) )}
+                                </Select>
+                            </FormControl>
+                        </div>
+                        <div className="mythic-browser-script-preview-frame">
+                            {tasksLoading ? (
+                                <MythicLoadingState compact title="Loading test tasks" description="Fetching previous tasks for this command." />
+                            ) : selectedTask !== "" ? (
+                                <TaskDisplay me={props.me} task={selectedTask} command_id={selectedTask.command == null ? 0 : selectedTask.command.id} />
+                            ) : (
+                                <MythicEmptyState compact title="No matching tasks" description="Run this command at least once to preview this browser script against task output." />
+                            )}
+                        </div>
                     </div>
                 </Split>
-            </div>
+            </MythicDialogBody>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={props.onClose} variant="contained" color="primary">
+        <MythicDialogFooter>
+          <MythicDialogButton onClick={props.onClose}>
             Close
-          </Button>
+          </MythicDialogButton>
           {props.new ? (
-            <Button onClick={onSubmit} variant="contained" color="success">
+            <MythicDialogButton disabled={selectedCommand === "" || selectedPayloadType === ""} intent="primary" onClick={onSubmit}>
               Create
-          </Button>
+          </MythicDialogButton>
           ) : (
             <React.Fragment>
-              <Button onClick={onRevert} variant="contained" color="warning">
+              <MythicDialogButton intent="warning" onClick={onRevert}>
                 Revert
-              </Button>
-                <Button onClick={onTest} variant="contained" color="info">
+              </MythicDialogButton>
+                <MythicDialogButton className="mythic-table-row-action-hover-info" intent="info" disabled={selectedCommand === "" || selectedPayloadType === ""} onClick={onTest}>
                     Save For Testing
-                </Button>
-              <Button onClick={onSubmit} variant="contained" color="success">
+                </MythicDialogButton>
+              <MythicDialogButton disabled={selectedCommand === "" || selectedPayloadType === ""} intent="primary" onClick={onSubmit}>
                 Save and Exit
-              </Button>
+              </MythicDialogButton>
             </React.Fragment>
           )}
-          
-        </DialogActions>
+        </MythicDialogFooter>
   </React.Fragment>
   );
 }
-
-

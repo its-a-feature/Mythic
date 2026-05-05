@@ -1346,6 +1346,249 @@ tspan {
     font-size: 0.78rem;
     line-height: 1.45;
 }
+.mythic-browser-script-dialog-content {
+    display: flex;
+    flex-direction: column;
+    height: min(74vh, calc(100vh - 9rem));
+    min-height: min(38rem, calc(100vh - 9rem));
+    overflow: hidden;
+}
+.mythic-browser-script-dialog-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+.mythic-browser-script-dialog-body > .mythic-browser-script-target-panel {
+    flex: 0 0 auto;
+}
+.mythic-browser-script-target-panel {
+    background-color: ${(props) => props.theme.surfaces?.raised || props.theme.palette.background.paper};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    box-shadow: ${(props) => props.theme.palette.mode === "dark" ? "none" : "0 8px 18px rgba(15, 23, 42, 0.04)"};
+    overflow: hidden;
+}
+.mythic-browser-script-target-summary {
+    align-items: center;
+    display: flex;
+    gap: 0.65rem;
+    justify-content: space-between;
+    min-height: 42px;
+    padding: 0.42rem 0.5rem 0.42rem 0.7rem;
+}
+.mythic-browser-script-target-panel-open .mythic-browser-script-target-summary {
+    border-bottom: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+}
+.mythic-browser-script-target-copy {
+    align-items: center;
+    display: flex;
+    gap: 0.65rem;
+    min-width: 0;
+}
+.mythic-browser-script-target-label {
+    color: ${(props) => props.theme.palette.text.secondary};
+    flex: 0 0 auto;
+    font-size: 0.74rem;
+    font-weight: 800;
+    line-height: 1;
+}
+.mythic-browser-script-target-chips {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    min-width: 0;
+}
+.mythic-browser-script-target-chips .MuiChip-root {
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.06) : alpha(props.theme.palette.common.black, 0.035)};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    color: ${(props) => props.theme.palette.text.primary};
+    font-size: 0.72rem;
+    font-weight: 750;
+    max-width: 18rem;
+}
+.mythic-browser-script-target-chips .MuiChip-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.mythic-browser-script-target-toggle {
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor} !important;
+    border-radius: ${(props) => props.theme.shape.borderRadius}px !important;
+    color: ${(props) => props.theme.palette.text.secondary} !important;
+}
+.mythic-browser-script-target-toggle:hover {
+    background-color: ${(props) => alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.22 : 0.1)} !important;
+    border-color: ${(props) => alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.45 : 0.32)} !important;
+    color: ${(props) => props.theme.palette.primary.main} !important;
+}
+.mythic-browser-script-target-details {
+    background-color: ${(props) => props.theme.surfaces?.muted || props.theme.palette.background.paper};
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    padding: 0.65rem;
+}
+.mythic-browser-script-workbench {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+    width: 100%;
+}
+.mythic-browser-script-top-split {
+    display: flex;
+    min-height: 0;
+    min-width: 0;
+    width: 100%;
+}
+.mythic-browser-script-workbench > .gutter.gutter-vertical,
+.mythic-browser-script-top-split > .gutter.gutter-horizontal {
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.1) : alpha(props.theme.palette.common.black, 0.08)};
+    border-radius: 999px;
+    flex: 0 0 auto;
+}
+.mythic-browser-script-workbench > .gutter.gutter-vertical:hover,
+.mythic-browser-script-top-split > .gutter.gutter-horizontal:hover {
+    background-color: ${(props) => alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.5 : 0.32)};
+}
+.mythic-browser-script-pane {
+    background-color: ${(props) => props.theme.surfaces?.raised || props.theme.palette.background.paper};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+}
+.mythic-browser-script-editor-pane {
+    height: 100%;
+}
+.mythic-browser-script-console-pane {
+    height: 100%;
+}
+.mythic-browser-script-preview-pane {
+    height: 100%;
+}
+.mythic-browser-script-pane-header {
+    align-items: center;
+    background-color: ${(props) => props.theme.surfaces?.muted || props.theme.palette.background.paper};
+    border-bottom: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    color: ${(props) => props.theme.palette.text.primary};
+    display: flex;
+    flex: 0 0 auto;
+    font-size: 0.78rem;
+    font-weight: 800;
+    justify-content: space-between;
+    letter-spacing: 0;
+    min-height: 34px;
+    padding: 0.4rem 0.65rem;
+}
+.mythic-browser-script-pane-header span:last-child {
+    color: ${(props) => props.theme.palette.text.secondary};
+    font-size: 0.68rem;
+    font-weight: 750;
+}
+.mythic-browser-script-editor-frame {
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+}
+.mythic-browser-script-editor-frame .ace_editor {
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.black, 0.18) : alpha(props.theme.palette.common.white, 0.62)};
+    font-family: ${(props) => props.theme.typography.fontFamilyMono || "monospace"} !important;
+}
+.mythic-browser-script-preview-controls {
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? "rgba(255,255,255,0.025)" : "rgba(0,0,0,0.012)"};
+    border-bottom: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    flex: 0 0 auto;
+    padding: 0.65rem;
+}
+.mythic-browser-script-preview-frame {
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+    overflow: auto;
+    padding: 0.55rem;
+}
+.mythic-browser-scripts-table {
+    max-width: 100%;
+    min-width: 60rem;
+    table-layout: fixed;
+    width: 100%;
+}
+.mythic-browser-script-spacer-cell {
+    min-width: 0;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    width: auto;
+}
+.mythic-browser-script-script-cell {
+    align-items: center;
+    display: flex;
+    gap: 0.6rem;
+    min-width: 0;
+}
+.mythic-browser-script-payload-icon {
+    align-items: center;
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.055) : alpha(props.theme.palette.common.black, 0.028)};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    display: inline-flex;
+    flex: 0 0 auto;
+    height: 40px;
+    justify-content: center;
+    width: 40px;
+}
+.mythic-browser-script-script-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+    min-width: 0;
+}
+.mythic-browser-script-command-name {
+    color: ${(props) => props.theme.palette.text.primary};
+    font-size: 0.86rem;
+    font-weight: 750;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-browser-script-payload-name {
+    color: ${(props) => props.theme.palette.text.secondary};
+    font-size: 0.74rem;
+    font-weight: 650;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-browser-script-active-cell {
+    align-items: center;
+    display: flex;
+    gap: 0.4rem;
+    min-width: 0;
+}
+.mythic-browser-script-actions {
+    justify-content: center;
+}
+@media screen and (max-width: 1050px) {
+    .mythic-browser-script-dialog-content {
+        height: calc(100vh - 8rem);
+    }
+    .mythic-browser-script-dialog-body {
+        overflow: auto;
+    }
+    .mythic-browser-script-workbench {
+        flex: 0 0 auto;
+        min-height: 42rem;
+    }
+    .mythic-browser-script-top-split {
+        min-width: 44rem;
+    }
+}
 .mythic-single-task-list {
     display: flex;
     flex-direction: column;
@@ -2196,6 +2439,58 @@ tspan {
 .mythic-table-row-actions-nowrap {
     flex-wrap: nowrap;
 }
+.mythic-state-toggle-cell {
+    align-items: center;
+    display: flex;
+    gap: 0.4rem;
+    min-width: 0;
+}
+.mythic-state-chip {
+    align-items: center;
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: 999px;
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1;
+    min-height: 24px;
+    padding: 0.25rem 0.55rem;
+    white-space: nowrap;
+}
+.mythic-state-chip-compact {
+    font-size: 0.66rem;
+    min-height: 1.25rem;
+    padding: 0 0.35rem;
+}
+.mythic-state-chip-active,
+.mythic-state-chip-enabled {
+    background-color: ${(props) => alpha(props.theme.palette.success.main, props.theme.palette.mode === "dark" ? 0.18 : 0.1)};
+    border-color: ${(props) => alpha(props.theme.palette.success.main, props.theme.palette.mode === "dark" ? 0.48 : 0.32)};
+    color: ${(props) => props.theme.palette.success.main};
+}
+.mythic-state-chip-inactive,
+.mythic-state-chip-disabled,
+.mythic-state-chip-warning {
+    background-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.18 : 0.1)};
+    border-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.48 : 0.32)};
+    color: ${(props) => props.theme.palette.warning.main};
+}
+.mythic-state-chip-neutral {
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.045) : alpha(props.theme.palette.common.black, 0.028)};
+    border-color: ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    color: ${(props) => props.theme.palette.text.secondary};
+}
+.mythic-state-chip-error {
+    background-color: ${(props) => alpha(props.theme.palette.error.main, props.theme.palette.mode === "dark" ? 0.18 : 0.1)};
+    border-color: ${(props) => alpha(props.theme.palette.error.main, props.theme.palette.mode === "dark" ? 0.48 : 0.32)};
+    color: ${(props) => props.theme.palette.error.main};
+}
+.mythic-state-chip-info {
+    background-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.18 : 0.1)};
+    border-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.48 : 0.32)};
+    color: ${(props) => props.theme.palette.info.main};
+}
 .mythic-payload-progress-cell {
     align-items: center;
     display: flex;
@@ -2556,46 +2851,6 @@ tspan {
     margin-top: 0.22rem;
     min-width: 0;
 }
-.mythic-eventing-row-chip {
-    align-items: center;
-    border: 1px solid transparent;
-    border-radius: ${(props) => props.theme.shape.borderRadius}px;
-    display: inline-flex;
-    flex: 0 0 auto;
-    font-size: 0.66rem;
-    font-weight: 850;
-    line-height: 1;
-    min-height: 1.25rem;
-    padding: 0 0.35rem;
-}
-.mythic-eventing-row-chip-all {
-    background-color: ${(props) => props.theme.palette.info.main + "16"};
-    border-color: ${(props) => props.theme.palette.info.main + "40"};
-    color: ${(props) => props.theme.palette.info.main};
-}
-.mythic-eventing-row-chip-runnable {
-    background-color: ${(props) => props.theme.palette.success.main + "18"};
-    border-color: ${(props) => props.theme.palette.success.main + "42"};
-    color: ${(props) => props.theme.palette.success.main};
-}
-.mythic-eventing-row-chip-needs_approval {
-    background-color: ${(props) => props.theme.palette.warning.main + "22"};
-    border-color: ${(props) => props.theme.palette.warning.main + "66"};
-    color: ${(props) => props.theme.palette.warning.main};
-}
-.mythic-eventing-row-chip-disabled {
-    background-color: ${(props) => props.theme.palette.action.disabledBackground};
-    border-color: ${(props) => props.theme.palette.action.disabled};
-    color: ${(props) => props.theme.palette.text.secondary};
-}
-.mythic-eventing-header-chip-disabled {
-    background-color: ${(props) => props.theme.palette.action.disabledBackground} !important;
-    border-color: ${(props) => props.theme.palette.action.disabled} !important;
-    color: ${(props) => props.theme.palette.text.secondary} !important;
-}
-.mythic-eventing-header-chip-disabled .MuiChip-icon {
-    color: ${(props) => props.theme.palette.text.secondary} !important;
-}
 .mythic-eventing-runas-chip {
     align-items: center;
     background-color: ${(props) => props.theme.palette.mode === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"};
@@ -2608,11 +2863,6 @@ tspan {
     line-height: 1;
     min-height: 1.2rem;
     padding: 0 0.35rem;
-}
-.mythic-eventing-row-chip-deleted {
-    background-color: ${(props) => props.theme.palette.error.main + "16"};
-    border-color: ${(props) => props.theme.palette.error.main + "40"};
-    color: ${(props) => props.theme.palette.error.main};
 }
 .mythic-eventing-list-empty {
     color: ${(props) => props.theme.palette.text.secondary};

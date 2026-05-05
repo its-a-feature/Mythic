@@ -48,6 +48,7 @@ import {
     MythicDialogSection,
     MythicFormNote
 } from "../../MythicComponents/MythicDialogLayout";
+import {MythicStateChip} from "../../MythicComponents/MythicStateChip";
 
 const createAPITokenMutation = gql`
 mutation createAPITokenMutation($operator_id: Int, $name: String, $scopes: [String!]){
@@ -351,14 +352,18 @@ export function SettingsOperatorTableRow(props){
                   }
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <Switch
-                        color={ isMe || !props.userIsAdmin ? "secondary" : "info"}
-                        checked={props.active}
-                        disabled={isMe || !props.userIsAdmin}
-                        onChange={onActiveChanged}
-                        inputProps={{ 'aria-label': 'primary checkbox' }}
-                        name="active"
-                      />
+                    <Box className="mythic-state-toggle-cell">
+                        <Switch
+                            color="success"
+                            checked={props.active}
+                            disabled={isMe || !props.userIsAdmin}
+                            onChange={onActiveChanged}
+                            inputProps={{ 'aria-label': 'Toggle operator active state' }}
+                            name="active"
+                            size="small"
+                          />
+                        <MythicStateChip label={props.active ? "Active" : "Disabled"} state={props.active ? "active" : "disabled"} />
+                    </Box>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <b>Last Login: </b>{toLocalTime(props.last_login, me?.user?.view_utc_time )}<br/>
@@ -515,7 +520,7 @@ const APITokens = ({apiTokens, error, loading, onDeleteAPIToken, onToggleActive,
                     <TableHead>
                         <TableRow>
                             <MythicStyledTableCell style={{width: "3rem"}} />
-                            <MythicStyledTableCell style={{width: "5rem"}}>Active</MythicStyledTableCell>
+                            <MythicStyledTableCell style={{width: "9rem"}}>Active</MythicStyledTableCell>
                             <MythicStyledTableCell>Created By</MythicStyledTableCell>
                             <MythicStyledTableCell>Scopes</MythicStyledTableCell>
                             <MythicStyledTableCell style={{width: "9rem"}}>Type</MythicStyledTableCell>
