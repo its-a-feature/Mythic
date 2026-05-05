@@ -476,7 +476,8 @@ export const CallbacksTabsCustomFileBasedBrowserTable = (props) => {
             {
                 name: removeDisplay, type: "item",
                 disabled: removeCommand === undefined,
-                icon: <DeleteIcon color="error" style={{ paddingRight: '5px' }} />,
+                danger: true,
+                icon: <DeleteIcon style={{ paddingRight: '5px' }} />,
                 click: ({event}) => {
                     event.stopPropagation();
                     props.onTaskRowAction({
@@ -546,7 +547,8 @@ export const CallbacksTabsCustomFileBasedBrowserTable = (props) => {
                 {
                     name: `Remove All Selected`, type: "item",
                     disabled: removeCommand === undefined,
-                    icon: <DeleteIcon color="error" style={{ paddingRight: '5px' }} />,
+                    danger: true,
+                    icon: <DeleteIcon style={{ paddingRight: '5px' }} />,
                     click: ({event}) => {
                         event.stopPropagation();
                         let newTasks = [];

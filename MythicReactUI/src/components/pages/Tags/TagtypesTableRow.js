@@ -8,7 +8,7 @@ import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip'
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {NewTagtypesDialog} from './NewTagtypesDialog';
 import Chip from '@mui/material/Chip';
-import SettingsIcon from '@mui/icons-material/Settings';
+import EditIcon from '@mui/icons-material/Edit';
 
 
 export function TagtypesTableRow(props){
@@ -27,7 +27,7 @@ export function TagtypesTableRow(props){
                 <MythicStyledTableCell>
 
                   <MythicStyledTooltip title={"Delete the tag type and all associated tags"}>
-                    <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} color="error" variant="contained"><DeleteIcon/></IconButton>
+                    <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><DeleteIcon fontSize="small" /></IconButton>
                   </MythicStyledTooltip>
                   
                   {openDelete && 
@@ -36,7 +36,9 @@ export function TagtypesTableRow(props){
                   
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <IconButton size="small" onClick={()=>{setOpenUpdateDialog(true);}} variant="contained"><SettingsIcon color="info" /></IconButton>
+                    <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={()=>{setOpenUpdateDialog(true);}}>
+                        <EditIcon fontSize="small" />
+                    </IconButton>
                   {openUpdate && 
                     <MythicDialog fullWidth={true} maxWidth="md" open={openUpdate}
                       onClose={()=>{setOpenUpdateDialog(false);}} 
@@ -56,4 +58,3 @@ export function TagtypesTableRow(props){
         </React.Fragment>
     )
 }
-

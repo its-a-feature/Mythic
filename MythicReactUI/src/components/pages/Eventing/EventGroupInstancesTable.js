@@ -274,33 +274,33 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
                         return <CallbacksTableStringCell rowData={row} cellData={row.id} />
                     case "Status":
                         return (
-                            <div style={{display: "flex", flexDirection:"row", alignItems: "center"}}>
+                            <div className="mythic-table-row-actions mythic-table-row-actions-nowrap">
                                 <GetStatusSymbol data={row} />
                                 {
                                     selectedInstanceID === 0 ?
                                         (
                                             <MythicStyledTooltip title={"View Graph Above"} >
-                                                <IconButton onClick={() => {setSelectedInstance(row.id);}} >
-                                                    <CastConnectedTwoToneIcon  />
+                                                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={() => {setSelectedInstance(row.id);}} >
+                                                    <CastConnectedTwoToneIcon fontSize="small" />
                                                 </IconButton>
                                             </MythicStyledTooltip>
                                         ) :
                                         (
                                             <MythicStyledTooltip title={"Stop viewing graph"} >
-                                                <IconButton  onClick={() => {setSelectedInstance(0);}} >
-                                                    <CancelTwoToneIcon  />
+                                                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={() => {setSelectedInstance(0);}} >
+                                                    <CancelTwoToneIcon fontSize="small" />
                                                 </IconButton>
                                             </MythicStyledTooltip>
                                         )
                                 }
                                 <MythicStyledTooltip title={"Open Graph in Modal"}>
-                                    <IconButton  onClick={() => {openViewInstanceLargeDialog(row)}}>
-                                        <OpenInNewTwoToneIcon  />
+                                    <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={() => {openViewInstanceLargeDialog(row)}}>
+                                        <OpenInNewTwoToneIcon fontSize="small" />
                                     </IconButton>
                                 </MythicStyledTooltip>
                                 <MythicStyledTooltip title={"Copy shareable link to workflow"}>
-                                    <IconButton  onClick={() => onSaveToClipboard(row)}>
-                                        <IosShareIcon />
+                                    <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={() => onSaveToClipboard(row)}>
+                                        <IosShareIcon fontSize="small" />
                                     </IconButton>
                                 </MythicStyledTooltip>
                             </div>
@@ -344,26 +344,26 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
                         return <CallbacksTableStringCell rowData={row} cellData={row?.operator?.username} />
                     case "Action":
                         return (
-                            <div style={{display: "flex", alignItems: "center"}}>
+                            <div className="mythic-table-row-actions mythic-table-row-actions-nowrap">
                                 {row.end_timestamp === null ? (
                                 <MythicStyledTooltip title={"Cancel Eventing"} >
                                     <IconButton onClick={() => {onOpenCancelDialog({id: row.id});}}
-                                                color={"warning"}>
-                                        <CancelTwoToneIcon  />
+                                                className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-warning" size="small">
+                                        <CancelTwoToneIcon fontSize="small" />
                                     </IconButton>
                                 </MythicStyledTooltip>
                                 ) : row.status === "error" || row.status === "cancelled" ? (
                                 <MythicStyledTooltip title={"Retry Failed / Canceled Steps"} >
                                     <IconButton onClick={() => {onOpenRetryDialog({id: row.id});}}
-                                                color={"warning"}>
-                                        <ReplayIcon  />
+                                                className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-warning" size="small">
+                                        <ReplayIcon fontSize="small" />
                                     </IconButton>
                                 </MythicStyledTooltip>
                                 ) : row.status === "success" ? (
                                 <MythicStyledTooltip  title={"Run Again"} >
                                     <IconButton onClick={() => {onOpenRunAgainDialog({id: row.id});}}
-                                                color={"success"}>
-                                        <ReplayIcon  />
+                                                className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-success" size="small">
+                                        <ReplayIcon fontSize="small" />
                                     </IconButton>
                                 </MythicStyledTooltip>
                                 ) : null}

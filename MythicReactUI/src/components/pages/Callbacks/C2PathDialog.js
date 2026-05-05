@@ -517,7 +517,7 @@ const getTaskWidth = (node) => {
     return Math.max(325, (nodeText.length * 8) + 10)
 }
 const getEventNodeWidth = (node) => {
-    return (node.maxNameLength * 8) + 10 + 100;
+    return Math.max(190, (node.maxNameLength * 8) + 120);
 }
 const getBrowserscriptWidth = (node) => {
     let nodeText = " ";
@@ -534,7 +534,7 @@ const getHeight = (node) => {
         return 0;
     }
     if(node.type === "eventNode"){
-        return 20;
+        return 88;
     }
     return 80;
 }

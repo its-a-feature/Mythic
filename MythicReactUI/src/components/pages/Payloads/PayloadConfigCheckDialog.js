@@ -3,9 +3,9 @@ import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
 import DialogTitle from '@mui/material/DialogTitle';
 import {useQuery, gql} from '@apollo/client';
-import LinearProgress from '@mui/material/LinearProgress';
 import { snackActions } from '../../utilities/Snackbar';
 import {ResponseDisplayPlaintext} from "../Callbacks/ResponseDisplayPlaintext";
+import {MythicErrorState, MythicLoadingState} from "../../MythicComponents/MythicStateDisplay";
 
 const checkPayloadConfigurationQuery = gql`
 query checkPayloadConfigurationQuery($uuid: String!) {
@@ -33,11 +33,11 @@ export function PayloadConfigCheckDialog(props) {
         fetchPolicy: "network-only"
     });
     if (loading) {
-     return <LinearProgress style={{marginTop: "10px"}} />;
+     return <MythicLoadingState compact title="Checking configuration" description="Running payload configuration validation." minHeight={160} />;
     }
     if (error) {
      console.error(error);
-     return <div>Error!</div>;
+     return <MythicErrorState compact title="Unable to check configuration" description={error.message} minHeight={160} />;
     }
     
   return (

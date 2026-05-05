@@ -530,7 +530,7 @@ return (
                         ) )}
                       </Select>
                     {selectedTag.id &&
-                        <IconButton size="small" style={{float: "right"}} onClick={()=>{setOpenDeleteDialog(true);}} color="error" variant="contained"><DeleteIcon/></IconButton>
+                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" style={{float: "right"}} onClick={()=>{setOpenDeleteDialog(true);}}><DeleteIcon fontSize="small" /></IconButton>
                     }
                       {openDelete && 
                         <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} open={openDelete}/>

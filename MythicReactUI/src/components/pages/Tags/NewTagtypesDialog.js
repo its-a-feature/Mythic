@@ -1,20 +1,20 @@
 import React from 'react';
 import Button from '@mui/material/Button';
-import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import {gql, useMutation} from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
 import MythicTextField from '../../MythicComponents/MythicTextField';
-import {HexColorInput, HexColorPicker} from 'react-colorful';
-import {Typography, Box} from '@mui/material';
+import {Typography, Box, Chip} from '@mui/material';
+import {
+  MythicDialogBody,
+  MythicDialogButton,
+  MythicDialogFooter,
+  MythicDialogSection,
+  MythicFormField,
+  MythicFormGrid
+} from "../../MythicComponents/MythicDialogLayout";
+import {isValidHexColor, MythicColorSwatchInput} from "../../MythicComponents/MythicColorInput";
 
 const newTagtypeMutation = gql`
 mutation newTagType($name: String!, $description: String!, $color: String!) {
@@ -32,17 +32,68 @@ mutation updateTagType($id: Int!, $name: String!, $description: String!, $color:
 }
 `;
 
+const TagColorPreview = ({mode, color, label}) => {
+  const darkMode = mode === "dark";
+  const hasValidColor = isValidHexColor(color);
+  const textColor = darkMode ? "#ffffff" : "#111827";
+  const surfaceColor = darkMode ? "#1f2937" : "#f8fafc";
+  const surfaceBorderColor = darkMode ? "rgba(255,255,255,0.16)" : "rgba(17,24,39,0.12)";
+  const chipBorderColor = hasValidColor ? (darkMode ? "rgba(255,255,255,0.2)" : "rgba(17,24,39,0.16)") : surfaceBorderColor;
+  return (
+    <Box
+        sx={{
+          minHeight: 44,
+          px: 1.5,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 1.5,
+          borderRadius: "6px",
+          border: "1px solid",
+          borderColor: surfaceBorderColor,
+          backgroundColor: surfaceColor,
+          minWidth: 0,
+        }}
+    >
+      <Typography variant="caption" sx={{color: textColor, fontWeight: 800, flex: "0 0 auto"}}>
+        {darkMode ? "Dark mode" : "Light mode"}
+      </Typography>
+      <Chip
+          label={label || "Sample Tag"}
+          size="small"
+          sx={{
+            minWidth: 0,
+            maxWidth: "100%",
+            height: 22,
+            backgroundColor: hasValidColor ? color : "transparent",
+            border: "1px solid",
+            borderColor: chipBorderColor,
+            borderStyle: hasValidColor ? "solid" : "dashed",
+            color: textColor,
+            fontWeight: 800,
+            "& .MuiChip-label": {
+              px: 1,
+              minWidth: 0,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            },
+          }}
+      />
+    </Box>
+  );
+}
+
 export function NewTagtypesDialog(props) {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
-  const [color, setColor] = React.useState("");
+  const [color, setColor] = React.useState("#6f7ddf");
   React.useEffect( () => {
     if(props.currentTag !== undefined){
       setName(props.currentTag.name);
       setDescription(props.currentTag.description);
-      setColor(props.currentTag.color);
+      setColor(props.currentTag.color || "#6f7ddf");
     }
-  }, []);
+  }, [props.currentTag]);
   const [createNewTagtype] = useMutation(newTagtypeMutation, {
     update: (cache, {data}) => {
         if(data.insert_tagtype_one.id !== undefined){
@@ -70,6 +121,8 @@ export function NewTagtypesDialog(props) {
       snackActions.warning("Must supply a name");
     } else if(description === ""){
       snackActions.warning("Must supply a description");
+    } else if(color !== "" && !isValidHexColor(color)){
+      snackActions.warning("Must supply a valid hex color");
     } else {
       if(props.currentTag !== undefined){
         updateTagtype({variables: {name, description, color, id: props.currentTag.id}});
@@ -85,56 +138,68 @@ export function NewTagtypesDialog(props) {
   const onChangeDescription = (name, value, error) => {
     setDescription(value);
   }
+  const hasValidColor = isValidHexColor(color);
+  const title = props.currentTag === undefined ? "Create Tag Type" : "Edit Tag Type";
     
   return (
     <React.Fragment>
-        <DialogTitle id="form-dialog-title">Create a new type of tag</DialogTitle>
-
-        <TableContainer component={Paper} className="mythicElement">
-          <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
-              <TableHead>
-                  <TableRow>
-                      <TableCell>Field</TableCell>
-                      <TableCell>Value</TableCell>
-                  </TableRow>
-              </TableHead>
-              <TableBody>
-                <TableRow hover>
-                  <TableCell>Name</TableCell>
-                  <TableCell>
-                    <MythicTextField value={name} onChange={onChangeName} showLabel={false} />
-                  </TableCell>
-                </TableRow>
-                <TableRow hover>
-                  <TableCell>Description</TableCell>
-                  <TableCell>
-                  <MythicTextField value={description} onChange={onChangeDescription} showLabel={false} />
-                  </TableCell>
-                </TableRow>
-                <TableRow hover>
-                  <TableCell>Color</TableCell>
-                  <TableCell>
-                    <HexColorPicker style={{width: "100%"}} color={color} onChange={setColor} />
-                    <HexColorInput style={{width: "100%"}} color={color} onChange={setColor} />
-                    <Box sx={{width: "100%", height: 25, backgroundColor: color}} >
-                    <Typography style={{textAlign: "center"}} >
-                      {"Sample Text"}
-                    </Typography>
-                  </Box>
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-        </TableContainer>
-        <DialogActions>
-          <Button variant="contained" onClick={props.onClose} color="primary">
+        <DialogTitle id="form-dialog-title">{title}</DialogTitle>
+        <DialogContent dividers={true}>
+          <MythicDialogBody>
+            <MythicDialogSection title="Tag Details">
+              <MythicFormGrid minWidth="14rem">
+                <MythicFormField label="Name" required>
+                  <MythicTextField
+                      value={name}
+                      name="Name"
+                      onChange={onChangeName}
+                      showLabel={false}
+                      marginTop="0"
+                      marginBottom="0"
+                  />
+                </MythicFormField>
+                <MythicFormField label="Description" required>
+                  <MythicTextField
+                      value={description}
+                      name="Description"
+                      onChange={onChangeDescription}
+                      showLabel={false}
+                      marginTop="0"
+                      marginBottom="0"
+                  />
+                </MythicFormField>
+              </MythicFormGrid>
+            </MythicDialogSection>
+            <MythicDialogSection
+                title="Tag Appearance"
+                actions={
+                  <>
+                    <MythicColorSwatchInput
+                        color={hasValidColor ? color : "#6f7ddf"}
+                        label="Tag color"
+                        onChange={setColor}
+                    />
+                    <Button size="small" variant="outlined" onClick={() => setColor("")}>
+                      Clear
+                    </Button>
+                  </>
+                }
+            >
+              <Box sx={{display: "grid", gridTemplateColumns: {xs: "1fr", sm: "1fr 1fr"}, gap: 1}}>
+                <TagColorPreview mode="dark" color={hasValidColor ? color : ""} label={name} />
+                <TagColorPreview mode="light" color={hasValidColor ? color : ""} label={name} />
+              </Box>
+            </MythicDialogSection>
+          </MythicDialogBody>
+        </DialogContent>
+        <MythicDialogFooter>
+          <MythicDialogButton onClick={props.onClose}>
             Close
-          </Button>
-          <Button variant="contained" onClick={onCommitSubmit} color="success">
+          </MythicDialogButton>
+          <MythicDialogButton intent="primary" onClick={onCommitSubmit}>
             Submit
-          </Button>
-        </DialogActions>
+          </MythicDialogButton>
+        </MythicDialogFooter>
   </React.Fragment>
   );
 }
-

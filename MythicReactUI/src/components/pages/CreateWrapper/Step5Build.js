@@ -182,7 +182,7 @@ export function Step5Build(props){
                             <Typography variant={"p"} style={{}}>
                                 <b>OS: </b>{props.buildOptions[1].os}
                                 <MythicStyledTooltip title={"Edit OS / Payload Type"}>
-                                    <IconButton color={"primary"} onClick={() => props.moveToStep(0)}>
+                                    <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={() => props.moveToStep(0)}>
                                         <DriveFileRenameOutlineIcon />
                                     </IconButton>
                                 </MythicStyledTooltip>
@@ -231,7 +231,7 @@ export function Step5Build(props){
                         <Typography textAlign="center" variant={"h7"} style={{fontWeight: 600, width: "100%"}}>
                             2. Build Parameter Configuration
                             <MythicStyledTooltip title={"Edit Build Parameters"}>
-                                <IconButton color={"primary"} onClick={() => props.moveToStep(1)}>
+                                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={() => props.moveToStep(1)}>
                                     <DriveFileRenameOutlineIcon />
                                 </IconButton>
                             </MythicStyledTooltip>
@@ -253,7 +253,7 @@ export function Step5Build(props){
                         <Typography textAlign="center" variant={"h7"} style={{fontWeight: 600, width: "100%"}}>
                             3. Embedded Payload Configuration
                             <MythicStyledTooltip title={"Edit Selected Payload"}>
-                                <IconButton color={"primary"} onClick={() => props.moveToStep(2)}>
+                                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={() => props.moveToStep(2)}>
                                     <DriveFileRenameOutlineIcon />
                                 </IconButton>
                             </MythicStyledTooltip>

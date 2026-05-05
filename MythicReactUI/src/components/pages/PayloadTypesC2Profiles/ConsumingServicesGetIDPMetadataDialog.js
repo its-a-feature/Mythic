@@ -1,10 +1,6 @@
 import React, {useState} from 'react';
-import Button from '@mui/material/Button';
-import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import {useQuery, gql} from '@apollo/client';
-import LinearProgress from '@mui/material/LinearProgress';
 import { snackActions } from '../../utilities/Snackbar';
 import AceEditor from 'react-ace';
 import 'ace-builds/src-noconflict/mode-json';
@@ -12,6 +8,7 @@ import 'ace-builds/src-noconflict/theme-monokai';
 import 'ace-builds/src-noconflict/theme-xcode';
 import "ace-builds/src-noconflict/ext-searchbox";
 import {useTheme} from '@mui/material/styles';
+import {MythicDialogBody, MythicDialogButton, MythicDialogFooter, MythicDialogSection} from "../../MythicComponents/MythicDialogLayout";
 
 
 export function ConsumingServicesGetIDPMetadataDialog(props) {
@@ -51,6 +48,8 @@ export function ConsumingServicesGetIDPMetadataDialog(props) {
     <React.Fragment>
         <DialogTitle id="form-dialog-title">{props.container}'s {props.idp} Metadata</DialogTitle>
         <DialogContent dividers={true}>
+        <MythicDialogBody compact>
+          <MythicDialogSection title="Identity Provider Metadata" description="Container metadata returned by the configured auth service.">
         <AceEditor 
               mode="text"
               theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}
@@ -67,13 +66,14 @@ export function ConsumingServicesGetIDPMetadataDialog(props) {
                 tabSize: 4,
                 useWorker: false
               }}/>
+          </MythicDialogSection>
+        </MythicDialogBody>
         </DialogContent>
-        <DialogActions>
-          <Button variant="contained" onClick={props.onClose} color="primary">
+        <MythicDialogFooter>
+          <MythicDialogButton onClick={props.onClose}>
             Close
-          </Button>
-        </DialogActions>
+          </MythicDialogButton>
+        </MythicDialogFooter>
   </React.Fragment>
   );
 }
-

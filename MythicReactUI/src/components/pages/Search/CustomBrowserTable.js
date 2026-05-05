@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import {Button, IconButton, Typography, Link} from '@mui/material';
+import {IconButton, Typography, Link} from '@mui/material';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -13,6 +13,7 @@ import {snackActions} from '../../utilities/Snackbar';
 import EditIcon from '@mui/icons-material/Edit';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {TagsDisplay, ViewEditTags} from '../../MythicComponents/MythicTag';
+import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 
 const updateFileComment = gql`
 mutation updateCommentMutation($mythictree_id: Int!, $comment: String!){
@@ -94,7 +95,15 @@ function CustomBrowserTableRow(props){
                 />
                 }
                 <MythicStyledTableCell>
-                    <Button color="info" style={{}} onClick={() => setViewPermissionsDialogOpen(true)}><PlaylistAddCheckIcon /></Button>
+                    <MythicStyledTooltip title="View metadata">
+                        <IconButton
+                            className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
+                            size="small"
+                            onClick={() => setViewPermissionsDialogOpen(true)}
+                        >
+                            <PlaylistAddCheckIcon fontSize="small" />
+                        </IconButton>
+                    </MythicStyledTooltip>
                     <Typography variant="body2" style={{wordBreak: "break-all"}}><b>Host: </b> {props.host}</Typography>
                     {props.callback?.mythictree_groups.length > 0 ? (
                         <Typography variant="body2" style={{whiteSpace: "pre"}}>
@@ -122,7 +131,13 @@ function CustomBrowserTableRow(props){
                     </MythicStyledTableCell>
                 ))}
                 <MythicStyledTableCell>
-                    <IconButton onClick={() => setEditCommentDialogOpen(true)} size="small" style={{display: "inline-block"}}><EditIcon /></IconButton>
+                    <IconButton
+                        className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
+                        onClick={() => setEditCommentDialogOpen(true)}
+                        size="small"
+                    >
+                        <EditIcon fontSize="small" />
+                    </IconButton>
                     <Typography variant="body2" style={{wordBreak: "break-all", display: "inline-block"}}>{props.comment}</Typography>
                     </MythicStyledTableCell>
                 <MythicStyledTableCell>
@@ -134,4 +149,3 @@ function CustomBrowserTableRow(props){
         </React.Fragment>
     )
 }
-

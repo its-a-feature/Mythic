@@ -10,9 +10,7 @@ import Moment from 'react-moment';
 import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
 import { gql, useMutation } from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
-import {useTheme} from '@mui/material/styles';
 import DeleteIcon from '@mui/icons-material/Delete';
-import Tooltip from '@mui/material/Tooltip';
 import RestoreFromTrashIcon from '@mui/icons-material/RestoreFromTrash';
 import {getStringSize} from '../Callbacks/ResponseDisplayTable';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
@@ -58,7 +56,7 @@ export function ProxySearchTable(props){
             <Table stickyHeader size="small" style={{tableLayout: "fixed"}}>
                 <TableHead>
                     <TableRow>
-                        <TableCell style={{width: "2rem"}}></TableCell>
+                        <TableCell style={{width: "3.5rem"}}></TableCell>
                         <TableCell >User@Host</TableCell>
                         <TableCell style={{width: "9rem"}}>Task Info</TableCell>
                         <TableCell style={{width: "7rem"}}>Bound Port</TableCell>
@@ -90,7 +88,6 @@ export function ProxySearchTable(props){
 }
 
 function ProxySearchTableRow(props){
-    const theme = useTheme();
     const [openDeleteDialog, setOpenDeleteDialog] = React.useState(false);
     const confirmDialogText = "This does not issue any start/stop command to the agent. This only opens/closes ports that Mythic controls. For rpfwd, this will not open/close that port on the remote host - you need to issue a task to your agent to do that.";
     const [updateDeleted] = useMutation(toggleProxy, {
@@ -146,13 +143,25 @@ function ProxySearchTableRow(props){
                     />
                 }
                 <TableCell>{props.deleted ? (
-                    <Tooltip title="Start Proxy Port on Mythic Server">
-                        <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} style={{color: theme.palette.success.main}} variant="contained"><RestoreFromTrashIcon/></IconButton>
-                    </Tooltip>
+                    <MythicStyledTooltip title="Start Proxy Port on Mythic Server">
+                        <IconButton
+                            className="mythic-table-row-icon-action mythic-table-row-icon-action-success"
+                            size="small"
+                            onClick={()=>{setOpenDeleteDialog(true);}}
+                        >
+                            <RestoreFromTrashIcon fontSize="small" />
+                        </IconButton>
+                    </MythicStyledTooltip>
                 ) :
-                    (<Tooltip title="Stop Proxy Port on Mythic Server">
-                        <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} style={{color: theme.palette.error.main}} variant="contained"><DeleteIcon/></IconButton>
-                    </Tooltip>
+                    (<MythicStyledTooltip title="Stop Proxy Port on Mythic Server">
+                        <IconButton
+                            className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger"
+                            size="small"
+                            onClick={()=>{setOpenDeleteDialog(true);}}
+                        >
+                            <DeleteIcon fontSize="small" />
+                        </IconButton>
+                    </MythicStyledTooltip>
                     )} </TableCell>
                 <TableCell>
                     <Typography variant="body2" style={{wordBreak: "break-all"}}>
@@ -211,9 +220,12 @@ function ProxySearchTableRow(props){
                 <TableCell>
                     {props.remote_port !== 0 &&
                         <MythicStyledTooltip title={"Test Remote Connection"} >
-                            <IconButton color={"success"}
-                            onClick={onTestProxy}>
-                                <SpeedIcon />
+                            <IconButton
+                                className="mythic-table-row-icon-action mythic-table-row-icon-action-success"
+                                size="small"
+                                onClick={onTestProxy}
+                            >
+                                <SpeedIcon fontSize="small" />
                             </IconButton>
                         </MythicStyledTooltip>
                     }

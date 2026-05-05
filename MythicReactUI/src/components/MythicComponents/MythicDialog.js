@@ -1,7 +1,5 @@
 import React, {useEffect} from 'react';
 import Dialog from '@mui/material/Dialog';
-import Button from '@mui/material/Button';
-import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import Table from '@mui/material/Table';
@@ -23,9 +21,17 @@ import {IconButton} from '@mui/material';
 import {MythicStyledTooltip} from "./MythicStyledTooltip";
 import Draggable from 'react-draggable';
 import {MythicDraggableDialogTitle} from "./MythicDraggableDialogTitle";
+import {MythicDialogButton, MythicDialogFooter} from "./MythicDialogLayout";
+
+let mythicDialogIdCounter = 0;
+let mythicDialogStack = [];
 
 export function MythicDialog(props) {
     const theme = useTheme();
+    const dialogIdRef = React.useRef(null);
+    if(dialogIdRef.current === null){
+        dialogIdRef.current = mythicDialogIdCounter++;
+    }
     const [draggedState, setDraggedState] = React.useState({
         style: {},
         paperStyle: {
@@ -42,6 +48,19 @@ export function MythicDialog(props) {
     const nodeRef = React.useRef(null);
     const descriptionElementRef = React.useRef(null);
     React.useEffect(() => {
+        if(!props.open){
+            return undefined;
+        }
+        mythicDialogStack = mythicDialogStack.filter((id) => id !== dialogIdRef.current);
+        mythicDialogStack.push(dialogIdRef.current);
+        return () => {
+            mythicDialogStack = mythicDialogStack.filter((id) => id !== dialogIdRef.current);
+        };
+    }, [props.open]);
+    const isTopDialog = () => {
+        return mythicDialogStack[mythicDialogStack.length - 1] === dialogIdRef.current;
+    };
+    React.useEffect(() => {
     if (props.open) {
       const { current: descriptionElement } = descriptionElementRef;
       if (descriptionElement !== null) {
@@ -50,20 +69,30 @@ export function MythicDialog(props) {
     }
   }, [props.open]);
     const dialogOnClick = (e) => {
-        //e.preventDefault();
-        //e.stopPropagation();
-        if(e.target.classList.length > 0 && e.target.classList.contains("MuiDialog-container")){
-          props.onClose();
+        if(e.target.classList?.contains("MuiDialog-container")){
+            e.stopPropagation();
+            if(!isTopDialog()){
+                return;
+            }
+            if(draggedState.hideBackdrop){
+                props.onClose?.();
+            }
         }
     }
     const dialogOnContextMenu = (e) => {
         e.stopPropagation();
     }
     const handleOnClose = (event, reason) => {
+        if(reason === "backdropClick" || reason === "escapeKeyDown"){
+            event?.stopPropagation?.();
+            if(!isTopDialog()){
+                return;
+            }
+        }
         if(reason === "backdropClick" && draggedState.hideBackdrop){
             return;
         }
-        props.onClose();
+        props.onClose?.();
     }
     const onStart = (e) => {
         if(e){
@@ -110,7 +139,6 @@ export function MythicDialog(props) {
           <Dialog
             ref={nodeRef}
             open={props.open}
-            onClick={dialogOnClick}
             onClose={handleOnClose}
             scroll="paper"
             maxWidth={props.maxWidth}
@@ -194,18 +222,18 @@ export function MythicModifyStringDialog(props) {
             />
         </DialogContent>
         { (props.onClose || props.onSubmit) &&
-            <DialogActions>
+            <MythicDialogFooter>
                 {props.onClose &&
-                    <Button onClick={props.onClose} variant="contained" color="primary">
+                    <MythicDialogButton onClick={props.onClose}>
                         Close
-                    </Button>
+                    </MythicDialogButton>
                 }
                 {props.onSubmit &&
-                    <Button onClick={onCommitSubmit} variant="contained" color="success">
+                    <MythicDialogButton intent="primary" onClick={onCommitSubmit}>
                         {props.onSubmitText ? props.onSubmitText : "Submit"}
-                    </Button>
+                    </MythicDialogButton>
                 }
-            </DialogActions>
+            </MythicDialogFooter>
         }
     </React.Fragment>
   );
@@ -345,11 +373,11 @@ export function MythicViewJSONAsTableDialog(props) {
                   </TableBody>
               </Table>
             </TableContainer>
-        <DialogActions>
-          <Button onClick={props.onClose} variant="contained" color="primary">
+        <MythicDialogFooter>
+          <MythicDialogButton onClick={props.onClose}>
             Close
-          </Button>
-        </DialogActions>
+          </MythicDialogButton>
+        </MythicDialogFooter>
     </React.Fragment>
   );
 }
@@ -393,11 +421,11 @@ export function MythicViewObjectPropertiesAsTableDialog(props) {
             </TableContainer>
         </Paper>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={props.onClose} variant="contained" color="primary">
+        <MythicDialogFooter>
+          <MythicDialogButton onClick={props.onClose}>
             Close
-          </Button>
-        </DialogActions>
+          </MythicDialogButton>
+        </MythicDialogFooter>
     </React.Fragment>
   );
 }

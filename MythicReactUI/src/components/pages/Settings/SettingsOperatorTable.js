@@ -14,15 +14,15 @@ import {snackActions} from '../../utilities/Snackbar';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import TuneIcon from '@mui/icons-material/Tune';
-import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
-import { IconButton } from '@mui/material';
 import {GET_GLOBAL_SETTINGS, SettingsGlobalDialog} from "./SettingsGlobalDialog";
 import SmartToyTwoToneIcon from '@mui/icons-material/SmartToyTwoTone';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import ForwardToInboxTwoToneIcon from '@mui/icons-material/ForwardToInboxTwoTone';
 import {InviteLinksDialog} from "./InviteLinksDialog";
 import {useLazyQuery} from '@apollo/client';
-import {MythicPageHeader} from "../../MythicComponents/MythicPageHeader";
+import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/MythicPageHeader";
+import {MythicToolbarButton, MythicToolbarToggle} from "../../MythicComponents/MythicTableToolbar";
+import {MythicTableEmptyState} from "../../MythicComponents/MythicStateDisplay";
 
 
 export function SettingsOperatorTable(props){
@@ -65,41 +65,51 @@ export function SettingsOperatorTable(props){
     React.useEffect( () => {
         getGlobalSettings().then(({data}) => setInviteLinksEnabled(data.getGlobalSettings.settings["server_config"]["allow_invite_links"]));
     }, []);
+    const visibleOperators = props.operators.filter((op) => showDeleted || !op.deleted);
+    const activeOperatorCount = props.operators.filter((op) => op.active && !op.deleted).length;
+    const operatorCountLabel = visibleOperators.length === 1 ? "1 shown" : `${visibleOperators.length} shown`;
+    const activeOperatorLabel = activeOperatorCount === 1 ? "1 active" : `${activeOperatorCount} active`;
     return (
     <>
-        <MythicPageHeader title={"Settings"}>
-            <MythicStyledTooltip title={"Manage Invite Links"} tooltipStyle={{}}>
-                <IconButton size={"small"} disabled={!inviteLinksEnabled || !userIsAdmin}
-                            onClick={()=>{setOpenInviteLinksDialog(true);}} variant={"contained"} >
-                    <ForwardToInboxTwoToneIcon />
-                </IconButton>
-            </MythicStyledTooltip>
-            <MythicStyledTooltip title={"Create new user account"} tooltipStyle={{}}>
-                <IconButton size="small" onClick={()=>{setOpenNewDialog(true);}}  variant="contained">
-                    <PersonAddIcon/>
-                </IconButton>
-            </MythicStyledTooltip>
-            <MythicStyledTooltip title={"Create new Bot account"} tooltipStyle={{}}>
-                <IconButton size={"small"}
-                            onClick={()=>{setOpenNewBotDialog(true);}}  variant="contained">
-                    <SmartToyTwoToneIcon />
-                </IconButton>
-            </MythicStyledTooltip>
-            <MythicStyledTooltip title={"Adjust Global Settings"} tooltipStyle={{}}>
-                <IconButton size="small" variant="contained"
-                            onClick={() => setOpenGlobalSettingsDialog(!openGlobalSettingsDialog)} >
-                    <TuneIcon />
-                </IconButton>
-            </MythicStyledTooltip>
-            {showDeleted ? (
-                <MythicStyledTooltip title={"Hide Deleted Operators"} tooltipStyle={{}}>
-                    <IconButton size="small"  variant="contained" onClick={() => setShowDeleted(!showDeleted)}><VisibilityIcon /></IconButton>
-                </MythicStyledTooltip>
-            ) : (
-                <MythicStyledTooltip title={"Show Deleted Operators"} tooltipStyle={{}}>
-                    <IconButton size="small"  variant="contained" onClick={() => setShowDeleted(!showDeleted)} ><VisibilityOffIcon /></IconButton>
-                </MythicStyledTooltip>
-            )}
+        <MythicPageHeader
+            title={"Settings"}
+            subtitle={"Manage operators, bots, invite links, and global Mythic preferences."}
+            meta={
+                <>
+                    <MythicPageHeaderChip label={operatorCountLabel} />
+                    <MythicPageHeaderChip label={activeOperatorLabel} />
+                    {showDeleted && <MythicPageHeaderChip label="Deleted visible" />}
+                </>
+            }
+            actions={
+                <>
+                    <MythicToolbarButton
+                        disabled={!inviteLinksEnabled || !userIsAdmin}
+                        onClick={()=>{setOpenInviteLinksDialog(true);}}
+                        startIcon={<ForwardToInboxTwoToneIcon />}
+                        variant="outlined"
+                    >
+                        Invites
+                    </MythicToolbarButton>
+                    <MythicToolbarButton onClick={()=>{setOpenNewDialog(true);}} startIcon={<PersonAddIcon />} variant="contained">
+                        User
+                    </MythicToolbarButton>
+                    <MythicToolbarButton onClick={()=>{setOpenNewBotDialog(true);}} startIcon={<SmartToyTwoToneIcon />} variant="outlined">
+                        Bot
+                    </MythicToolbarButton>
+                    <MythicToolbarButton onClick={() => setOpenGlobalSettingsDialog(!openGlobalSettingsDialog)} startIcon={<TuneIcon />} variant="outlined">
+                        Global
+                    </MythicToolbarButton>
+                    <MythicToolbarToggle
+                        checked={showDeleted}
+                        onClick={() => setShowDeleted(!showDeleted)}
+                        label="Deleted"
+                        activeIcon={<VisibilityIcon fontSize="small" />}
+                        inactiveIcon={<VisibilityOffIcon fontSize="small" />}
+                    />
+                </>
+            }
+        >
             {openGlobalSettingsDialog &&
                 <MythicDialog open={openGlobalSettingsDialog} fullWidth={true} maxWidth={"md"}
                               onClose={closeGlobalSettingsDialog}
@@ -147,8 +157,15 @@ export function SettingsOperatorTable(props){
                     </TableRow>
                 </TableHead>
                 <TableBody  >
-                {props.operators.map( (op) => (
-                    (showDeleted || !op.deleted) &&
+                {visibleOperators.length === 0 &&
+                    <MythicTableEmptyState
+                        colSpan={10}
+                        compact
+                        title={props.operators.length === 0 ? "No operators available" : "No visible operators"}
+                        description={props.operators.length === 0 ? "Create a user or bot account to get started." : "Deleted operators are hidden. Toggle Deleted to include them."}
+                    />
+                }
+                {visibleOperators.map( (op) => (
                         <SettingsOperatorTableRow
                             me={props.me}
                             userIsAdmin={userIsAdmin}

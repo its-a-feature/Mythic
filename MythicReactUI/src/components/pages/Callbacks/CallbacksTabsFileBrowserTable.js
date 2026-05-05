@@ -541,7 +541,8 @@ export const CallbacksTabsFileBrowserTable = (props) => {
             },
             {
                 name: removeDisplay, type: "item", disabled: removeCommand === undefined,
-                icon: <DeleteIcon color="error" style={{ paddingRight: '5px' }} />,
+                danger: true,
+                icon: <DeleteIcon style={{ paddingRight: '5px' }} />,
                 click: ({event}) => {
                     event.stopPropagation();
                     props.onTaskRowAction({
@@ -584,7 +585,8 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                 },
                 {
                     name: `Remove All Selected`, type: "item",
-                    icon: <DeleteIcon color="error" style={{ paddingRight: '5px' }} />,
+                    danger: true,
+                    icon: <DeleteIcon style={{ paddingRight: '5px' }} />,
                     click: ({event}) => {
                         event.stopPropagation();
                         let newTasks = [];
@@ -1018,6 +1020,7 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
                                     <DropdownMenuItem
                                         key={option.name}
                                         disabled={option.disabled}
+                                        className={option.danger ? "mythic-menu-item-hover-danger" : undefined}
                                         onClick={(event) => handleMenuItemClick(event, option.click)}
                                     >
                                         {option.icon} {option.name}
@@ -1031,6 +1034,7 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
                                                 <DropdownMenuItem
                                                     key={menuOption.name}
                                                     disabled={menuOption.disabled}
+                                                    className={menuOption.danger ? "mythic-menu-item-hover-danger" : undefined}
                                                     onClick={(event) => handleMenuItemClick(event, menuOption.click)}
                                                 >
                                                     {menuOption.icon}{menuOption.name}

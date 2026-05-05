@@ -1,24 +1,23 @@
 import React, {useState} from 'react';
 import {Button, Typography} from '@mui/material';
-import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import {useQuery, gql, useLazyQuery, useMutation} from '@apollo/client';
-import LinearProgress from '@mui/material/LinearProgress';
 import {CreatePayloadC2ProfileParametersTable} from '../CreatePayload/CreatePayloadC2ProfileParametersTable';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import Grid from '@mui/material/Grid';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
-import {useTheme} from '@mui/material/styles';
 import { snackActions } from '../../utilities/Snackbar';
 import {getDefaultValueForType, getDefaultChoices} from '../CreatePayload/Step2SelectPayloadType';
 import {UploadTaskFile} from "../../MythicComponents/MythicFileUpload";
 import IosShareIcon from '@mui/icons-material/IosShare';
 import SystemUpdateAltIcon from '@mui/icons-material/SystemUpdateAlt';
 import DeleteIcon from '@mui/icons-material/Delete';
+import {MythicDialogButton, MythicDialogFooter} from "../../MythicComponents/MythicDialogLayout";
+import {MythicLoadingState} from "../../MythicComponents/MythicStateDisplay";
 
 const getProfileConfigQuery = gql`
 query getProfileParameters($id: Int!) {
@@ -91,7 +90,6 @@ importC2Instance(
 `;
 
 export function C2ProfileSavedInstancesDialog(props) {
-    const theme = useTheme();
     const [instanceName, setInstanceName] = useState("");
     const [selectedInstance, setSelectedInstance] = useState("");
     const [createdInstances, setCreatedInstances] = useState([]);
@@ -233,7 +231,14 @@ export function C2ProfileSavedInstancesDialog(props) {
         }
     })
     if (loading) {
-     return <LinearProgress />;
+     return (
+       <>
+         <DialogTitle id="form-dialog-title">Save an Instance of {props.name}'s Parameters</DialogTitle>
+         <DialogContent dividers={true}>
+           <MythicLoadingState title="Loading saved instances" description="Fetching saved C2 profile parameter sets." minHeight={180} />
+         </DialogContent>
+       </>
+     );
     }
     const onConfigSubmit = async () => {
       if(instanceName.length === 0){
@@ -396,14 +401,14 @@ export function C2ProfileSavedInstancesDialog(props) {
                   <Grid size={6}>
                     {selectedInstance.length > 0 ? (
                         <>
-                            <Button style={{backgroundColor: theme.palette.error.main, color: "white", marginRight: "10px"}} variant="contained" onClick={deleteInstanceButton}>
-                                <DeleteIcon style={{marginRight: "5px"}} /> Delete</Button>
-                            <Button style={{backgroundColor: theme.palette.success.main, color: "white"}} variant="contained" onClick={exportInstanceButton}>
-                                <IosShareIcon style={{marginRight: "5px"}} /> Export</Button>
+                            <Button className="mythic-table-row-action mythic-table-row-action-hover-danger" startIcon={<DeleteIcon fontSize="small" />} style={{marginRight: "0.5rem"}} variant="outlined" onClick={deleteInstanceButton}>
+                                Delete</Button>
+                            <Button className="mythic-table-row-action mythic-table-row-action-success" startIcon={<IosShareIcon fontSize="small" />} style={{marginRight: "0.5rem"}} variant="outlined" onClick={exportInstanceButton}>
+                                Export</Button>
                         </>
                       ) : null}
-                      <Button style={{backgroundColor: theme.palette.warning.main, color: "white", marginLeft: "10px"}} component="label" variant="contained">
-                          <SystemUpdateAltIcon style={{marginRight: "5px"}} />Import
+                      <Button className="mythic-table-row-action mythic-table-row-action-hover-info" component="label" startIcon={<SystemUpdateAltIcon fontSize="small" />} variant="outlined">
+                          Import
                           <input onChange={onFileChange} type="file" hidden />
                       </Button>
                   </Grid>
@@ -414,22 +419,22 @@ export function C2ProfileSavedInstancesDialog(props) {
                                inline={createdInstances.length === 0}/>
               {createdInstances.length === 0 &&
                   <>
-                      <Button style={{backgroundColor: theme.palette.warning.main, color: "white", marginLeft: "10px",  marginTop: "20px"}} component="label" variant="contained">
-                          <SystemUpdateAltIcon style={{marginRight: "5px"}} />Import
+                      <Button className="mythic-table-row-action mythic-table-row-action-hover-info" component="label" startIcon={<SystemUpdateAltIcon fontSize="small" />} style={{marginTop: "20px"}} variant="outlined">
+                          Import
                           <input onChange={onFileChange} type="file" hidden />
                       </Button>
                   </>
               }
               <CreatePayloadC2ProfileParametersTable {...props} returnAllDictValues={true} c2profileparameters={currentParameters} onChange={updateC2Parameter} />
           </DialogContent>
-          <DialogActions>
-            <Button variant="contained" onClick={props.onClose} color="primary">
+          <MythicDialogFooter>
+            <MythicDialogButton onClick={props.onClose}>
               Close
-            </Button>
-            <Button variant="contained" onClick={onConfigSubmit} color="success">
+            </MythicDialogButton>
+            <MythicDialogButton intent="primary" onClick={onConfigSubmit}>
               {selectedInstance.length > 0 ? (selectedInstance !== instanceName ? "Create": "Update") : ("Create")}
-            </Button>
-          </DialogActions>
+            </MythicDialogButton>
+          </MythicDialogFooter>
       </React.Fragment>
   );
 }

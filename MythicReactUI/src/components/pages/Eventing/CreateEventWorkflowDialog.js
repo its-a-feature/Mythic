@@ -85,19 +85,24 @@ export function TestEventGroupFileDialog({onClose, initialWorkflow}){
     }
     return (
         <React.Fragment>
-            <DialogTitle id="form-dialog-title">
-                Create and Verify Eventing Workflow
-                <MythicStyledTooltip title={"Preview Graph"} tooltipStyle={{float: "right"}}>
-                    <IconButton color={"info"} variant={"contained"} onClick={previewGraph}>
-                        <AccountTreeIcon />
-                    </IconButton>
-                </MythicStyledTooltip>
-                <MythicStyledTooltip title={"Create with GUI Wizard"} tooltipStyle={{float: "right"}} >
-                    <IconButton style={{float: "right", margin: 0}} color={"success"} variant={"contained"}
-                    onClick={() => setOpenCreateEventingStepper(true)}>
-                        <CategoryIcon />
-                    </IconButton>
-                </MythicStyledTooltip>
+            <DialogTitle id="form-dialog-title" className="mythic-eventing-editor-dialog-title">
+                <div>
+                    <div className="mythic-eventing-editor-title">Create and verify eventing workflow</div>
+                    <div className="mythic-eventing-editor-subtitle">Edit workflow source and validate it before upload.</div>
+                </div>
+                <div className="mythic-eventing-editor-title-actions">
+                    <MythicStyledTooltip title={"Preview graph"}>
+                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={previewGraph}>
+                            <AccountTreeIcon fontSize="small" />
+                        </IconButton>
+                    </MythicStyledTooltip>
+                    <MythicStyledTooltip title={"Create with GUI wizard"} >
+                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-success" size="small"
+                        onClick={() => setOpenCreateEventingStepper(true)}>
+                            <CategoryIcon fontSize="small" />
+                        </IconButton>
+                    </MythicStyledTooltip>
+                </div>
                 {openEventStepRender.open &&
                     <MythicDialog fullWidth={true} maxWidth="xl" open={openEventStepRender.open}
                                   onClose={() => {
@@ -115,17 +120,17 @@ export function TestEventGroupFileDialog({onClose, initialWorkflow}){
                     />
                 }
             </DialogTitle>
-            <DialogContent style={{height: "calc(95vh)", margin: 0, padding: 0}}>
+            <DialogContent className="mythic-eventing-editor-dialog-content">
                 <ResponseDisplayPlaintext plaintext={fileText.current} onChangeContent={onChangeFileText} initial_mode={"yaml"} expand={true} />
             </DialogContent>
-            <DialogActions>
-                <Button variant="contained" onClick={onClose} color="primary">
+            <DialogActions className="mythic-eventing-wizard-actions">
+                <Button className="mythic-table-row-action" variant="outlined" onClick={onClose}>
                     Close
                 </Button>
-                <Button variant={"contained"} color={"success"} onClick={testFile}>
+                <Button className="mythic-table-row-action mythic-table-row-action-hover-info" variant={"outlined"} onClick={testFile}>
                     Test
                 </Button>
-                <Button variant={"contained"} color={"warning"} onClick={submitAsFile}>
+                <Button className="mythic-table-row-action mythic-table-row-action-hover-success" variant={"outlined"} onClick={submitAsFile}>
                     Save and Submit
                 </Button>
             </DialogActions>

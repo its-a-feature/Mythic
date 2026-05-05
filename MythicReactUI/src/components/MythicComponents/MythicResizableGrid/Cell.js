@@ -126,6 +126,7 @@ export const ContextMenu = ({openContextMenu, dropdownAnchorRef, contextMenuOpti
                             <DropdownMenuItem
                                 key={option.name}
                                 disabled={option.disabled}
+                                className={option.danger ? "mythic-menu-item-hover-danger" : undefined}
                                 onClick={(event) => handleMenuItemClick(event, option.click)}
                             >
                                 {option.icon}{option.name}
@@ -136,11 +137,12 @@ export const ContextMenu = ({openContextMenu, dropdownAnchorRef, contextMenuOpti
                                 disabled={option.disabled}
                                 menu={
                                     option.menuItems.map((menuOption, indx) => (
-                                        <DropdownMenuItem
-                                            key={menuOption.name}
-                                            disabled={menuOption.disabled}
-                                            onClick={(event) => handleMenuItemClick(event, menuOption.click)}
-                                        >
+                                    <DropdownMenuItem
+                                        key={menuOption.name}
+                                        disabled={menuOption.disabled}
+                                        className={menuOption.danger ? "mythic-menu-item-hover-danger" : undefined}
+                                        onClick={(event) => handleMenuItemClick(event, menuOption.click)}
+                                    >
                                             {menuOption.icon}{menuOption.name}
                                         </DropdownMenuItem>
                                     ))

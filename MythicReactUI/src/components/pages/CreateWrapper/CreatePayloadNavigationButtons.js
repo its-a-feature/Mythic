@@ -15,17 +15,17 @@ export function CreatePayloadNavigationButtons(props){
     return (
         <div style={{marginLeft: "20px"}}>
             <Button
+                className="mythic-table-row-action"
                 disabled={props.first}
-                color="info"
-                variant={"outlined"}
+                variant="contained"
                 style={{marginRight: "10px"}}
                 onClick={props.canceled}
               >
                 Back
               </Button>
               <Button
+                className={`mythic-table-row-action ${props.last ? "mythic-table-row-action-hover-success" : "mythic-table-row-action-hover-info"}`}
                 variant="contained"
-                color={props.last ? "success" : "primary"}
                 onClick={props.finished}
                 disabled={props.disableNext || disabledButtons}
               >
@@ -34,8 +34,8 @@ export function CreatePayloadNavigationButtons(props){
               {props.last && props.showExtraOptions &&
               <React.Fragment>
                 <Button
+                  className="mythic-table-row-action mythic-table-row-action-hover-warning"
                   variant="contained"
-                  color="warning"
                   style={{marginLeft: "10px"}}
                   onClick={props.startOver}
                 >
@@ -43,8 +43,8 @@ export function CreatePayloadNavigationButtons(props){
                 </Button>
               {props.showExtraOptions &&
                 <Button
+                  className="mythic-table-row-action mythic-table-row-action-hover-info"
                   variant="contained"
-                  color="info"
                   component={Link}
                   style={{marginLeft: "10px"}}
                   to={"/new/createpayload"}

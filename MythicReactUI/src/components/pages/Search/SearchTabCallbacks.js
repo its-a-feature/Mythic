@@ -1,20 +1,14 @@
 import {MythicTabPanel, MythicSearchTabLabel} from '../../MythicComponents/MythicTabPanel';
 import React from 'react';
-import MythicTextField from '../../MythicComponents/MythicTextField';
 import PhoneCallbackIcon from '@mui/icons-material/PhoneCallback';
-import Grid from '@mui/material/Grid';
-import SearchIcon from '@mui/icons-material/Search';
-import Tooltip from '@mui/material/Tooltip';
-import {useTheme} from '@mui/material/styles';
-import IconButton from '@mui/material/IconButton';
 import { gql, useLazyQuery} from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
-import Pagination from '@mui/material/Pagination';
-import { Typography } from '@mui/material';
 import {CallbackSearchTable} from './CallbackSearchTable';
 import MenuItem from '@mui/material/MenuItem';
-import Select from '@mui/material/Select';
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
+import {MythicTablePagination} from "../../MythicComponents/MythicTablePagination";
+import {MythicSearchField, MythicTableToolbar, MythicTableToolbarGroup, MythicToolbarSelect} from "../../MythicComponents/MythicTableToolbar";
+import {MythicSearchEmptyState} from "../../MythicComponents/MythicStateDisplay";
 
 const callbackFragment = gql`
 fragment callbackSearchData on callback{
@@ -29,6 +23,7 @@ fragment callbackSearchData on callback{
     pid
     active
     dead
+    locked
     last_checkin
     payload {
         payloadtype {
@@ -164,7 +159,6 @@ export function SearchTabCallbacksLabel(props){
 }
 
 const SearchTabCallbacksSearchPanel = (props) => {
-    const theme = useTheme();
     const [search, setSearch] = React.useState("");
     const [searchField, setSearchField] = React.useState("Host");
     const searchFieldOptions = ["User", "Domain", "Host", "Description", "IP", "PID", "Group", "PayloadType", "CallbackDisplayID"];
@@ -236,22 +230,12 @@ const SearchTabCallbacksSearchPanel = (props) => {
         }
     }, [props.value, props.index])
     return (
-        <Grid container spacing={2} style={{padding: "5px 5px 0 5px", maxWidth: "100%"}}>
-            <Grid size={6}>
-                <MythicTextField placeholder="Search..." value={search} marginTop={"0px"}
-                    onChange={handleSearchValueChange} onEnter={submitSearch} name="Search..." InputProps={{
-                        endAdornment: 
-                        <React.Fragment>
-                            <Tooltip title="Search">
-                                <IconButton onClick={submitSearch} size="large"><SearchIcon style={{color: theme.palette.info.main}}/></IconButton>
-                            </Tooltip>
-                        </React.Fragment>,
-                        style: {padding: 0}
-                    }}/>
-            </Grid>
-            <Grid size={6}>
-                <Select
-                    style={{marginBottom: "10px", width: "15rem"}}
+        <MythicTableToolbar>
+            <MythicTableToolbarGroup grow>
+                <MythicSearchField value={search} onChange={handleSearchValueChange} onEnter={submitSearch} onSearch={submitSearch} />
+            </MythicTableToolbarGroup>
+            <MythicTableToolbarGroup>
+                <MythicToolbarSelect
                     value={searchField}
                     onChange={handleSearchFieldChange}
                 >
@@ -260,9 +244,9 @@ const SearchTabCallbacksSearchPanel = (props) => {
                             <MenuItem key={"searchopt" + opt} value={opt}>{opt}</MenuItem>
                         ))
                     }
-                </Select>
-            </Grid>
-        </Grid>
+                </MythicToolbarSelect>
+            </MythicTableToolbarGroup>
+        </MythicTableToolbar>
     );
 }
 export const SearchTabCallbacksPanel = (props) =>{
@@ -522,14 +506,14 @@ export const SearchTabCallbacksPanel = (props) =>{
                 <div style={{overflowY: "auto", flexGrow: 1}}>
                     {callbackData.length > 0 ? (
                         <CallbackSearchTable callbacks={callbackData} />) : (
-                        <div style={{display: "flex", justifyContent: "center", alignItems: "center", position: "absolute", left: "50%", top: "50%"}}>No Search Results</div>
+                        <MythicSearchEmptyState
+                            compact
+                            description="Adjust the callback query or selected callback field and search again."
+                            minHeight={180}
+                        />
                     )}
                 </div>
-                <div style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center", paddingTop: "5px", paddingBottom: "5px"}}>
-                    <Pagination count={Math.ceil(totalCount / fetchLimit)} variant="outlined" color="info" boundaryCount={1}
-                            siblingCount={1} onChange={onChangePage} showFirstButton={true} showLastButton={true} style={{padding: "20px"}}/>
-                        <Typography style={{paddingLeft: "10px"}}>Total Results: {totalCount}</Typography>
-                </div>
+                <MythicTablePagination totalCount={totalCount} fetchLimit={fetchLimit} onChange={onChangePage} color="info" />
         </MythicTabPanel>
     )
 }

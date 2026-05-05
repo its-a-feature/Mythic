@@ -57,17 +57,11 @@ import AddCircleIcon from '@mui/icons-material/AddCircle';
 import ManageSearchIcon from '@mui/icons-material/ManageSearch';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import Button from '@mui/material/Button';
-import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import TableRow from '@mui/material/TableRow';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import {TableContainer, TableHead, Paper} from '@mui/material';
 import Select from '@mui/material/Select';
-import Input from '@mui/material/Input';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DragHandleIcon from '@mui/icons-material/DragHandle';
-import MythicStyledTableCell from "./MythicComponents/MythicTableCell";
 import {snackActions} from "./utilities/Snackbar";
 import {Dropdown, DropdownMenuItem} from "./MythicComponents/MythicNestedMenus";
 import ClickAwayListener from '@mui/material/ClickAwayListener';
@@ -80,6 +74,12 @@ import {reorder} from "./MythicComponents/MythicDraggableList";
 import { useNavigate } from 'react-router-dom';
 import LogoutIcon from '@mui/icons-material/Logout';
 import TuneIcon from '@mui/icons-material/Tune';
+import {
+    MythicDialogBody,
+    MythicDialogButton,
+    MythicDialogFooter,
+    MythicDialogSection,
+} from "./MythicComponents/MythicDialogLayout";
 
 const PREFIX = 'TopAppBarVertical';
 
@@ -97,13 +97,13 @@ const openedMixin = (theme) => ({
 });
 const closedMixin = (theme) => ({
     overflowX: 'hidden',
-    width: `calc(${theme.spacing(4)} + 1px)`,
+    width: "60px",
     borderRadius: "0 !important",
     border: "0px !important",
     background: `${theme.navigation.background} !important`,
     backgroundColor: `${theme.navigation.backgroundColor} !important`,
     [theme.breakpoints.up('sm')]: {
-      width: `calc(${theme.spacing(5)} + 1px)`,
+      width: "60px",
       borderRadius: "0 !important",
       border: "0px !important",
   },
@@ -129,6 +129,9 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
       },
       [`& .${classes.listSubHeader}`]: {
         backgroundColor: "transparent !important",
+        boxSizing: "border-box",
+        maxWidth: "calc(100% - 8px)",
+        width: "auto",
       },
       [`& .${classes.listSubHeader}:hover`]: {
         color: `${theme.navigation.text} !important`,
@@ -151,7 +154,7 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
                     backgroundColor: "transparent !important",
                     border: "0 !important",
                     borderRadius: "0 !important",
-                }
+                },
             },
           },
         },
@@ -171,7 +174,18 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
                     backgroundColor: "transparent !important",
                     border: "0 !important",
                     borderRadius: "0 !important",
-                }
+                },
+                '& .MuiListItemText-root': {
+                    display: "none",
+                    margin: "0 !important",
+                    maxWidth: 0,
+                    minWidth: 0,
+                    overflow: "hidden",
+                    width: 0,
+                },
+                '& .MuiListItem-root > .MuiSvgIcon-root': {
+                    display: "none",
+                },
             },
           },
         },
@@ -189,6 +203,13 @@ export const StyledListItem = styled(ListItem)(
       borderRadius: theme.shape.borderRadius,
       color: theme.navigation.text,
       backgroundColor: "transparent !important",
+      boxSizing: "border-box",
+      maxWidth: "calc(100% - 8px)",
+      width: "auto",
+      "& .MuiListItemText-root": {
+        marginLeft: "0.35rem",
+        minWidth: 0,
+      },
       "& .MuiListItemText-primary": {
         fontSize: theme.typography.pxToRem(12.5),
         fontWeight: 600,
@@ -203,10 +224,12 @@ export const StyledListItemIcon = styled(ListItemIcon)(
         paddingTop:0,
         marginTop: 0,
         paddingBottom: 0,
-        minWidth: "32px",
+        minWidth: "36px",
+        width: "36px",
         justifyContent: "center",
         color: theme.navigation.icon,
         backgroundColor: "transparent !important",
+        overflow: "visible",
     }),
 );
 
@@ -569,10 +592,9 @@ const AllSettingOptions = [
 ].sort();
 
 const TopAppBarVerticalAdjustShortcutsDialog = ({onClose}) => {
-    const theme = useTheme();
     const sideShortcuts = useGetMythicSetting({setting_name: "sideShortcuts", default_value: defaultShortcuts})
     const [currentShortcuts, setCurrentShortcuts] = React.useState(sideShortcuts);
-    const [updateSetting, _] = useSetMythicSetting();
+    const [updateSetting] = useSetMythicSetting();
     const reset = () => {
         setCurrentShortcuts(defaultShortcuts);
     }
@@ -611,75 +633,84 @@ const TopAppBarVerticalAdjustShortcutsDialog = ({onClose}) => {
     return (
         <React.Fragment>
             <DialogTitle id="form-dialog-title">Configure Side Shortcuts</DialogTitle>
-            <div style={{height: "calc(70vh)", display: "flex", flexDirection: "column"}}>
-                <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main, marginBottom: "5px"}}>
-                    <Button size={"small"} style={{color: "white", marginRight: "20px",}}
-                            onClick={() => addShortcut(currentShortcuts.length)}
-                            startIcon={<AddCircleIcon color="success" style={{backgroundColor: "white", borderRadius: "10px"}}/>}
+            <DialogContent dividers={true} sx={{p: 0}}>
+                <MythicDialogBody sx={{height: "min(70vh, 42rem)", p: 1}}>
+                    <MythicDialogSection
+                        title="Side Shortcuts"
+                        actions={
+                            <>
+                                <Button
+                                    size="small"
+                                    onClick={() => addShortcut(currentShortcuts.length)}
+                                    startIcon={<AddCircleIcon fontSize="small" />}
+                                >
+                                    Shortcut
+                                </Button>
+                                <Button size="small" onClick={reset} color="warning">
+                                    Reset
+                                </Button>
+                            </>
+                        }
+                        sx={{display: "flex", flexDirection: "column", flex: "1 1 auto", minHeight: 0}}
                     >
-                        Shortcut
-                    </Button>
-                    <Button size={"small"} onClick={reset}  color={"warning"}>
-                        Reset To Defaults
-                    </Button>
-                </Paper>
-                <TableContainer className="mythicElement" style={{flexGrow: 1}}>
-                    <Table size="small" style={{width: "100%", "overflow": "scroll", tableLayout: "fixed"}}>
-                        <TableHead>
-                            <TableRow>
-                                <MythicStyledTableCell style={{width: "2rem"}}></MythicStyledTableCell>
-                                <MythicStyledTableCell style={{width: "2rem"}}></MythicStyledTableCell>
-                                <MythicStyledTableCell></MythicStyledTableCell>
-                            </TableRow>
-                        </TableHead>
                         <DragDropContext onDragEnd={onDragEnd}>
                             <Droppable droppableId="vertical-shortcuts-column-list">
                                 {(provided) => (
-                                    <TableBody ref={provided.innerRef} {...provided.droppableProps}>
+                                    <div className="mythic-reorder-list" ref={provided.innerRef} {...provided.droppableProps}>
                                         {currentShortcuts.map((c, i) => (
-                                            <Draggable key={c + i} draggableId={c} index={i}>
+                                            <Draggable key={c + i} draggableId={`shortcut-${c}-${i}`} index={i}>
                                                 {(provided2, snapshot) => (
-                                                    <TableRow hover ref={provided2.innerRef}
-                                                              {...provided2.draggableProps}
-                                                              {...provided2.dragHandleProps}
+                                                    <div
+                                                        ref={provided2.innerRef}
+                                                        className={`mythic-reorder-row${snapshot.isDragging ? " mythic-reorder-row-dragging" : ""}`}
+                                                        {...provided2.draggableProps}
                                                     >
-                                                        <MythicStyledTableCell style={{width: "2rem"}}>
-                                                            <DragHandleIcon/>
-                                                        </MythicStyledTableCell>
-                                                        <MythicStyledTableCell style={{width: "2rem"}}>
-                                                            <IconButton onClick={() => removeShortcut(i)}>
-                                                                <DeleteIcon color={"error"}/>
-                                                            </IconButton>
-                                                        </MythicStyledTableCell>
-                                                        <MythicStyledTableCell style={{}}>
+                                                        <span className="mythic-reorder-drag-handle" {...provided2.dragHandleProps}>
+                                                            <DragHandleIcon fontSize="small" />
+                                                        </span>
+                                                        <div className="mythic-reorder-row-main">
                                                             <Select
+                                                                className="mythic-reorder-select"
+                                                                fullWidth
+                                                                size="small"
                                                                 value={c}
                                                                 onChange={(e) => onChangeShortcutValue(e, i)}
-                                                                input={<Input style={{width: "100%"}}/>}
                                                             >
                                                                 {AllSettingOptions.map((opt) => (
                                                                     <MenuItem value={opt} key={opt}>{opt}</MenuItem>
                                                                 ))}
                                                             </Select>
-                                                        </MythicStyledTableCell>
-                                                    </TableRow>)}
+                                                        </div>
+                                                        <div className="mythic-reorder-row-actions">
+                                                            <IconButton
+                                                                aria-label={`Remove ${c}`}
+                                                                className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger"
+                                                                size="small"
+                                                                onClick={() => removeShortcut(i)}
+                                                            >
+                                                                <DeleteIcon fontSize="small" />
+                                                            </IconButton>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </Draggable>
                                         ))}
-                                    </TableBody>)}
+                                        {provided.placeholder}
+                                    </div>
+                                )}
                             </Droppable>
                         </DragDropContext>
-                    </Table>
-                </TableContainer>
-            </div>
-
-            <DialogActions>
-                <Button onClick={onClose} variant="contained" color="primary">
+                    </MythicDialogSection>
+                </MythicDialogBody>
+            </DialogContent>
+            <MythicDialogFooter>
+                <MythicDialogButton onClick={onClose}>
                     Cancel
-                </Button>
-                <Button onClick={onUpdate} variant="contained" color="success">
-                    Update
-                </Button>
-            </DialogActions>
+                </MythicDialogButton>
+                <MythicDialogButton onClick={onUpdate} intent="primary">
+                    Save
+                </MythicDialogButton>
+            </MythicDialogFooter>
         </React.Fragment>
     )
 }
@@ -796,17 +827,27 @@ export function TopAppBarVertical(props) {
         <List style={{paddingTop: 0, marginTop: 0, height: "100%", display: "flex", flexDirection: "column",
             backgroundColor: "transparent !important",
             border: "0 !important", borderRadius: 0}}>
-          <ListItem className={classes.listSubHeader} style={{margin: "4px 4px 6px", paddingTop: "5px", paddingLeft: "4px", paddingBottom: "5px", borderRadius: theme.shape.borderRadius}}>
-            <ListItemIcon >
-                <img src={ReactLogo} onClick={()=>navigate('/new')} width={"40px"} height={"35px"} alt="Mythic" style={{cursor: "pointer"}}/>
-            </ListItemIcon>
+          <ListItem className={classes.listSubHeader} style={{
+              alignItems: "center",
+              height: "52px",
+              margin: "4px 4px 6px",
+              minHeight: "52px",
+              paddingTop: "5px",
+              paddingLeft: "8px",
+              paddingRight: "8px",
+              paddingBottom: "5px",
+              borderRadius: theme.shape.borderRadius,
+          }}>
+            <StyledListItemIcon>
+                <img src={ReactLogo} onClick={()=>navigate('/new')} width={"32px"} height={"28px"} alt="Mythic" style={{cursor: "pointer"}}/>
+            </StyledListItemIcon>
             <ListItemText style={{margin: 0}} primary={
                 <>
                     <Typography style={{ fontSize: 12, color: theme.navigation.muted, display: "inline-block", lineHeight: 1.35}}>
                         <b>Mythic:</b> v{serverVersion}<br/>
                         <b>UI:</b> v{mythicUIVersion}<br/>
                     </Typography>
-                    <IconButton onClick={props.toggleTheme} style={{float:"right", display: menuOpen ? "" : "none", color: theme.navigation.icon}} >
+                    <IconButton onClick={props.toggleTheme} size="small" style={{float:"right", display: menuOpen ? "" : "none", color: theme.navigation.icon}} >
                         {theme.palette.mode === 'light' &&
                             <DarkModeTwoToneIcon style={{color: theme.navigation.icon}} fontSize={"medium"} className="mythicElement" />
                         }
@@ -1051,10 +1092,10 @@ function TopBarRightShortcutsVertical({me, menuOpen, serverName}){
             <StyledListItemIcon>
                 <MythicStyledTooltip title={"Documentation Links"} tooltipStyle={{display: "inline-flex"}}>
                   <HelpTwoToneIcon style={{color: theme.navBarTextIconColor}} fontSize={"medium"} className="mythicElement"/>
-                  <KeyboardArrowDownIcon style={{color: theme.navBarTextIconColor, display: menuOpen ? "" : "none"}} />
                 </MythicStyledTooltip>
             </StyledListItemIcon>
             <ListItemText primary={"Help"} />
+            <KeyboardArrowDownIcon style={{color: theme.navBarTextIconColor, display: menuOpen ? "" : "none", flex: "0 0 auto", marginLeft: "auto"}} />
           </StyledListItem>
 
           <StyledListItem className={classes.listSubHeader} component={Link} to='/new/EventFeed' >
@@ -1070,10 +1111,10 @@ function TopBarRightShortcutsVertical({me, menuOpen, serverName}){
             <StyledListItemIcon>
                 <MythicStyledTooltip title={"User Settings"} tooltipStyle={{display: "inline-flex"}}>
                     <ManageAccountsTwoToneIcon style={{color: theme.navBarTextIconColor}} fontSize={"medium"} className="mythicElement" />
-                    <KeyboardArrowDownIcon style={{color: theme.navBarTextIconColor, display: menuOpen ? "" : "none"}} />
                 </MythicStyledTooltip>
             </StyledListItemIcon>
             <ListItemText primary={"Settings"} />
+            <KeyboardArrowDownIcon style={{color: theme.navBarTextIconColor, display: menuOpen ? "" : "none", flex: "0 0 auto", marginLeft: "auto"}} />
           </StyledListItem>
         </>
     )

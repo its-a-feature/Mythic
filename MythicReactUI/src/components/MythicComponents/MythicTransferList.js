@@ -9,8 +9,6 @@ import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Checkbox from '@mui/material/Checkbox';
-import { CardContent } from '@mui/material';
-import CardHeader from '@mui/material/CardHeader';
 import Divider from '@mui/material/Divider';
 
 const PREFIX = 'MythicTransferList';
@@ -61,10 +59,9 @@ const CustomListElement = ({value, onClick, itemKey}) => {
 const CustomList = ({title, items, left, onClick, itemKey}) => {
 
     return (
-        <>
-            <CardHeader title={title} />
-            <StyledDivider classes={{root: classes.divider}}/>
-            <CardContent style={{flexGrow: 1, height: "100%", width: "100%", overflowY: "auto", padding: 0}}>
+        <div className="mythic-transfer-list">
+            <div className="mythic-transfer-list-header">{title}</div>
+            <div className="mythic-transfer-list-body">
                 <List dense component="div" role="list" style={{padding:0, width: "100%"}}>
                     {items.map((value, index) => (
                         <div key={index}>
@@ -80,8 +77,8 @@ const CustomList = ({title, items, left, onClick, itemKey}) => {
 
                     ))}
                 </List>
-            </CardContent>
-        </>
+            </div>
+        </div>
     );
 }
 const CustomTransferList = ({leftTitle, rightTitle, initialData, parentLeftData, parentRightData, itemKey}) => {
@@ -148,7 +145,7 @@ const CustomTransferList = ({leftTitle, rightTitle, initialData, parentLeftData,
             <div  style={{paddingLeft: 0, flexGrow: 1,  marginLeft: 0, marginRight: "10px", position: "relative",  overflowY: "auto", display: "flex", flexDirection: "column" }}>
                 <CustomList title={leftTitle} left={true} items={data} onClick={handleToggle} itemKey={itemKey} />
             </div>
-            <div style={{display: "flex", flexDirection: "column", justifyContent: "center"}}>
+            <div className="mythic-transfer-controls">
                 <StyledButton
                     variant="contained"
                     size="small"
@@ -253,4 +250,3 @@ export function MythicTransferListDialog(props) {
   </>
   );
 }
-

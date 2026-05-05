@@ -114,22 +114,22 @@ function ArtifactTableRow(props){
                 <MythicStyledTableCell>
                     {props.needs_cleanup && !props.resolved &&
                         <MythicStyledTooltip title={"Artifact needs to be cleaned up"}>
-                            <IconButton onClick={MarkResolved}>
-                                <CleanHandsTwoToneIcon color={"warning"} />
+                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-warning" onClick={MarkResolved} size="small">
+                                <CleanHandsTwoToneIcon fontSize="small" />
                             </IconButton>
                         </MythicStyledTooltip>
                     }
                     {props.needs_cleanup && props.resolved &&
                         <MythicStyledTooltip title={"Successfully cleaned up artifact"}>
-                            <IconButton onClick={MarkUnresolved} >
-                                <CleanHandsTwoToneIcon color={"success"} />
+                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-success" onClick={MarkUnresolved} size="small">
+                                <CleanHandsTwoToneIcon fontSize="small" />
                             </IconButton>
                         </MythicStyledTooltip>
                     }
                     {!props.needs_cleanup &&
                         <MythicStyledTooltip title={"Mark artifact as needs cleanup"} >
-                            <IconButton onClick={MarkNeedsCleanup}>
-                                <AddAlertTwoToneIcon color={"success"} />
+                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-success" onClick={MarkNeedsCleanup} size="small">
+                                <AddAlertTwoToneIcon fontSize="small" />
                             </IconButton>
                         </MythicStyledTooltip>
                     }
@@ -174,4 +174,3 @@ function ArtifactTableRow(props){
         </React.Fragment>
     )
 }
-

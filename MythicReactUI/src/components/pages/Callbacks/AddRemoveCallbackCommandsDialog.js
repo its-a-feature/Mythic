@@ -1,6 +1,4 @@
-import React, {useEffect} from 'react';
-import Button from '@mui/material/Button';
-import DialogActions from '@mui/material/DialogActions';
+import React from 'react';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import List from '@mui/material/List';
@@ -8,11 +6,14 @@ import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Checkbox from '@mui/material/Checkbox';
-import CardHeader from '@mui/material/CardHeader';
 import {gql, useQuery} from '@apollo/client';
-import { CardContent } from '@mui/material';
-import {classes, StyledButton, StyledDivider} from '../../MythicComponents/MythicTransferList';
-import {MythicDraggableDialogTitle} from "../../MythicComponents/MythicDraggableDialogTitle";
+import {classes, StyledButton} from '../../MythicComponents/MythicTransferList';
+import {
+    MythicDialogButton,
+    MythicDialogBody,
+    MythicDialogFooter,
+    MythicDialogSection
+} from '../../MythicComponents/MythicDialogLayout';
 
 const getCommandsQuery = gql`
 query GetCallbackDetails($callback_id: Int!) {
@@ -68,15 +69,14 @@ const CustomList = ({title, items, handleToggle}) => {
             ))
     }, [items, handleToggle]);
     return (
-        <>
-            <CardHeader className={classes.cardHeader} title={title}/>
-            <StyledDivider classes={{root: classes.divider}}/>
-            <CardContent style={{flexGrow: 1, overflowY: "auto", padding: 0}}>
+        <div className="mythic-transfer-list">
+            <div className="mythic-transfer-list-header">{title}</div>
+            <div className="mythic-transfer-list-body">
                 <List dense component="div" role="list" style={{padding: 0, width: "100%"}}>
                     {renderedList}
                 </List>
-            </CardContent>
-        </>
+            </div>
+        </div>
         )
 };
 export function AddRemoveCallbackCommandsDialog(props) {
@@ -187,67 +187,71 @@ export function AddRemoveCallbackCommandsDialog(props) {
     <React.Fragment>
         <DialogTitle>Add or Remove Commands for Callback {props.display_id} </DialogTitle>
         <DialogContent dividers={true} style={{height: "100%", display: "flex", flexDirection: "column", position: "relative", overflowY: "auto"}}>
-          This will add or remove commands associated with this callback from Mythic's perspective. 
-          This does NOT add or remove commands within the payload itself that's beaconing out to Mythic.
-          <div style={{display: "flex", flexDirection: "row", overflowY: "auto", flexGrow: 1, minHeight: 0}}>
-            <div  style={{paddingLeft: 0, flexGrow: 1,  marginLeft: 0, marginRight: "10px", position: "relative",  overflowY: "auto", display: "flex", flexDirection: "column" }}>
-              <CustomList title={leftTitle} items={left} handleToggle={handleToggle}/>
-            </div>
-            <div style={{display: "flex", flexDirection: "column", justifyContent: "center"}}>
-              <StyledButton
-                variant="contained"
-                size="small"
-                className={classes.button}
-                onClick={handleAllRight}
-                disabled={left.length === 0}
-                aria-label="move all right"
-              >
-                &gt;&gt;
-              </StyledButton>
-              <StyledButton
-                variant="contained"
-                size="small"
-                className={classes.button}
-                onClick={handleCheckedRight}
-                aria-label="move selected right"
-              >
-                &gt;
-              </StyledButton>
-              <StyledButton
-                variant="contained"
-                size="small"
-                className={classes.button}
-                onClick={handleCheckedLeft}
-                aria-label="move selected left"
-              >
-                &lt;
-              </StyledButton>
-              <StyledButton
-                variant="contained"
-                size="small"
-                className={classes.button}
-                onClick={handleAllLeft}
-                disabled={right.length === 0}
-                aria-label="move all left"
-              >
-                &lt;&lt;
-              </StyledButton>
- 
-          </div>
-            <div style={{marginLeft: "10px", position: "relative", flexGrow: 1, display: "flex", flexDirection: "column" }}>
-              <CustomList title={rightTitle} items={right} handleToggle={handleToggle} />
-            </div>
-        </div>
+          <MythicDialogBody>
+            <MythicDialogSection
+                title="Command Availability"
+                description="Updates Mythic's callback command association without changing commands inside the active payload."
+            >
+              <div style={{display: "flex", flexDirection: "row", overflowY: "auto", flexGrow: 1, minHeight: 0}}>
+                <div  style={{paddingLeft: 0, flexGrow: 1,  marginLeft: 0, marginRight: "10px", position: "relative",  overflowY: "auto", display: "flex", flexDirection: "column" }}>
+                  <CustomList title={leftTitle} items={left} handleToggle={handleToggle}/>
+                </div>
+                <div className="mythic-transfer-controls">
+                  <StyledButton
+                    variant="contained"
+                    size="small"
+                    className={classes.button}
+                    onClick={handleAllRight}
+                    disabled={left.length === 0}
+                    aria-label="move all right"
+                  >
+                    &gt;&gt;
+                  </StyledButton>
+                  <StyledButton
+                    variant="contained"
+                    size="small"
+                    className={classes.button}
+                    onClick={handleCheckedRight}
+                    aria-label="move selected right"
+                  >
+                    &gt;
+                  </StyledButton>
+                  <StyledButton
+                    variant="contained"
+                    size="small"
+                    className={classes.button}
+                    onClick={handleCheckedLeft}
+                    aria-label="move selected left"
+                  >
+                    &lt;
+                  </StyledButton>
+                  <StyledButton
+                    variant="contained"
+                    size="small"
+                    className={classes.button}
+                    onClick={handleAllLeft}
+                    disabled={right.length === 0}
+                    aria-label="move all left"
+                  >
+                    &lt;&lt;
+                  </StyledButton>
+
+              </div>
+                <div style={{marginLeft: "10px", position: "relative", flexGrow: 1, display: "flex", flexDirection: "column" }}>
+                  <CustomList title={rightTitle} items={right} handleToggle={handleToggle} />
+                </div>
+              </div>
+            </MythicDialogSection>
+          </MythicDialogBody>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={props.onClose} variant="contained" color="primary">
+        <MythicDialogFooter>
+          <MythicDialogButton onClick={props.onClose}>
             Close
-          </Button>
-          <Button onClick={setFinalTags} variant="contained" color="success">
+          </MythicDialogButton>
+          <MythicDialogButton intent="primary" onClick={setFinalTags}>
             Submit
-          </Button>
-        </DialogActions>
+          </MythicDialogButton>
+        </MythicDialogFooter>
   </React.Fragment>
   );
 }
-

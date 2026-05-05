@@ -1,48 +1,19 @@
 import React from 'react';
-import { styled } from '@mui/material/styles';
 import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import Select from '@mui/material/Select';
-import Input from '@mui/material/Input';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import ListItemText from '@mui/material/ListItemText';
-const PREFIX = 'CredentialTableNewCredentialDialog';
-
-const classes = {
-  formControl: `${PREFIX}-formControl`,
-  chips: `${PREFIX}-chips`,
-  chip: `${PREFIX}-chip`,
-  noLabel: `${PREFIX}-noLabel`
-};
-
-const Root = styled('div')((
-  {
-    theme
-  }
-) => ({
-  [`& .${classes.formControl}`]: {
-    margin: theme.spacing(1),
-    width: "100%",
-  },
-
-  [`& .${classes.chips}`]: {
-    display: 'flex',
-    flexWrap: 'wrap',
-  },
-
-  [`& .${classes.chip}`]: {
-    margin: 2,
-  },
-
-  [`& .${classes.noLabel}`]: {
-    marginTop: theme.spacing(2),
-  }
-}));
+import {
+  MythicDialogBody,
+  MythicDialogGrid,
+  MythicDialogSection
+} from '../../MythicComponents/MythicDialogLayout';
 
 export function CredentialTableNewCredentialDialog(props) {
   const [credentialType, setCredentialType] = React.useState("plaintext");
@@ -81,32 +52,37 @@ export function CredentialTableNewCredentialDialog(props) {
     setCredentialType(event.target.value);
   }
   return (
-    <Root>
+    <React.Fragment>
         <DialogTitle id="form-dialog-title">Register New Credential</DialogTitle>
         <DialogContent dividers={true}>
-            <React.Fragment>
-                <FormControl className={classes.formControl}>
-                <InputLabel id="operator-chip-label">Which Type of Credential</InputLabel>
-                <Select
-                  labelId="operator-chip-label"
-                  id="operator-chip"
-                  value={credentialType}
-                  onChange={handleCredentialTypeChange}
-                  input={<Input />}
-                >
-                  {credentialOptions.map((name) => (
-                    <MenuItem key={name} value={name}>
-                      <ListItemText primary={name} />
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <MythicTextField value={realm} onChange={onRealmChange} name="Realm or Domain"/>
-              <MythicTextField value={account} onChange={onAccountChange} name="Account Name"/>
-              <MythicTextField multiline value={credential} onChange={onCredentialChange} name="Credential"/>
-              <MythicTextField value={comment} onChange={onCommentChange} name="Comment"/>
-              
-            </React.Fragment>
+            <MythicDialogBody>
+              <MythicDialogSection title="Credential Details">
+                <MythicDialogGrid>
+                  <FormControl fullWidth size="small">
+                    <InputLabel id="credential-type-label">Credential Type</InputLabel>
+                    <Select
+                      labelId="credential-type-label"
+                      id="credential-type"
+                      value={credentialType}
+                      label="Credential Type"
+                      onChange={handleCredentialTypeChange}
+                    >
+                      {credentialOptions.map((name) => (
+                        <MenuItem key={name} value={name}>
+                          <ListItemText primary={name} />
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                  <MythicTextField value={realm} onChange={onRealmChange} name="Realm or Domain"/>
+                  <MythicTextField value={account} onChange={onAccountChange} name="Account Name"/>
+                </MythicDialogGrid>
+              </MythicDialogSection>
+              <MythicDialogSection title="Credential Material">
+                <MythicTextField multiline value={credential} onChange={onCredentialChange} name="Credential"/>
+                <MythicTextField value={comment} onChange={onCommentChange} name="Comment"/>
+              </MythicDialogSection>
+            </MythicDialogBody>
         </DialogContent>
         <DialogActions>
           <Button onClick={props.onClose} variant="contained" >
@@ -116,7 +92,6 @@ export function CredentialTableNewCredentialDialog(props) {
             Create
           </Button>
         </DialogActions>
-  </Root>
+    </React.Fragment>
   );
 }
-

@@ -226,7 +226,7 @@ export function Step5Build(props){
                             <Typography variant={"p"} style={{}}>
                                 <b>OS: </b>{props.buildOptions[1].os}
                                 <MythicStyledTooltip title={"Edit OS / Payload Type"}>
-                                    <IconButton color={"primary"} onClick={() => props.moveToStep(0)}>
+                                    <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={() => props.moveToStep(0)}>
                                         <DriveFileRenameOutlineIcon />
                                     </IconButton>
                                 </MythicStyledTooltip>
@@ -275,7 +275,7 @@ export function Step5Build(props){
                         <Typography textAlign="center" variant={"h7"} style={{fontWeight: 600, width: "100%"}}>
                             2. Build Parameter Configuration
                             <MythicStyledTooltip title={"Edit Build Parameters"}>
-                                <IconButton color={"primary"} onClick={() => props.moveToStep(1)}>
+                                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={() => props.moveToStep(1)}>
                                     <DriveFileRenameOutlineIcon />
                                 </IconButton>
                             </MythicStyledTooltip>
@@ -297,7 +297,7 @@ export function Step5Build(props){
                         <Typography textAlign="center" variant={"h7"} style={{fontWeight: 600, width: "100%"}}>
                             3. Command Selection
                             <MythicStyledTooltip title={"Edit Commands"}>
-                                <IconButton color={"primary"} onClick={() => props.moveToStep(2)}>
+                                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={() => props.moveToStep(2)}>
                                     <DriveFileRenameOutlineIcon />
                                 </IconButton>
                             </MythicStyledTooltip>
@@ -305,10 +305,10 @@ export function Step5Build(props){
                         {props.buildOptions[2]?.map(c => (
                             <div key={c} style={{display: "flex", alignItems: "center", justifyContent: "space-between"}}>
                                 {c}
-                                <IconButton variant="contained" onClick={(e) => e.stopPropagation()}
+                                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={(e) => e.stopPropagation()}
                                             href={"/docs/agents/" + props.buildOptions[1].payload_type + "/commands/" + c}
                                             style={{marginLeft: "10px", float: "right"}} target="_blank">
-                                    <MenuBookIcon/>
+                                    <MenuBookIcon fontSize="small"/>
                                 </IconButton>
                             </div>
                         ))}
@@ -329,7 +329,7 @@ export function Step5Build(props){
                         <Typography textAlign="center" variant={"h7"} style={{fontWeight: 600, width: "100%"}}>
                             4. C2 Configuration
                             <MythicStyledTooltip title={"Edit C2 Parameters"}>
-                                <IconButton color={"primary"} onClick={() => props.moveToStep(3)}>
+                                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={() => props.moveToStep(3)}>
                                     <DriveFileRenameOutlineIcon />
                                 </IconButton>
                             </MythicStyledTooltip>

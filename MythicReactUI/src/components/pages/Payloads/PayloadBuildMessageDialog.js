@@ -3,8 +3,8 @@ import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
 import DialogTitle from '@mui/material/DialogTitle';
 import {useQuery, gql} from '@apollo/client';
-import LinearProgress from '@mui/material/LinearProgress';
 import {ResponseDisplayPlaintext} from "../Callbacks/ResponseDisplayPlaintext";
+import {MythicErrorState, MythicLoadingState} from "../../MythicComponents/MythicStateDisplay";
 
 const getDescriptionQuery = gql`
 query getDescriptionQuery ($payload_id: Int!) {
@@ -36,11 +36,11 @@ export function PayloadBuildMessageDialog(props) {
         setViewError(props.viewError);
     }, [props.viewError]);
     if (loading) {
-     return <LinearProgress style={{marginTop: "10px"}} />;
+     return <MythicLoadingState compact title="Loading build output" description="Fetching payload build messages." minHeight={160} />;
     }
     if (error) {
      console.error(error);
-     return <div>Error!</div>;
+     return <MythicErrorState compact title="Unable to load build output" description={error.message} minHeight={160} />;
     }
     
   return (
@@ -63,4 +63,3 @@ export function PayloadBuildMessageDialog(props) {
       </React.Fragment>
   );
 }
-
