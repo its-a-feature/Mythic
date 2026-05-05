@@ -3,8 +3,8 @@ import { gql, useMutation, useSubscription } from '@apollo/client';
 import {BrowserScriptsTable} from './BrowserScriptsTable';
 import {snackActions} from '../../utilities/Snackbar';
 import { Backdrop } from '@mui/material';
-import {CircularProgress} from '@mui/material';
 import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
+import {MythicLoadingState} from "../../MythicComponents/MythicStateDisplay";
 
 
 const SUB_BrowserScripts = gql`
@@ -138,7 +138,7 @@ export function BrowserScripts({me}){
     return (
     <MythicPageBody>
         <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
-            <CircularProgress color="inherit" />
+            <MythicLoadingState compact title="Loading browser scripts" description="Fetching scripts for this operator." sx={{color: "inherit"}} />
         </Backdrop>
         <BrowserScriptsTable
             browserscripts={browserScripts} operation_id={me?.user?.current_operation_id || 0} onToggleActive={onToggleActive}

@@ -24,6 +24,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import {IconButton, Link, Typography} from '@mui/material';
 import {MythicConfirmDialog} from "../../MythicComponents/MythicConfirmDialog";
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import {MythicTableEmptyState} from "../../MythicComponents/MythicStateDisplay";
 
 export function EventFileManageDialog({onClose, selectedEventGroup}) {
 
@@ -60,9 +61,18 @@ export function EventFileManageDialog({onClose, selectedEventGroup}) {
                 <TableContainer className="mythicElement">
                 <Table>
                     <TableBody>
-                        {selectedEventGroup.filemeta.map( e => (
-                            <EventFileManageDialogTableRow key={e.id} eventFile={e} />
-                        ))}
+                        {selectedEventGroup.filemeta.length === 0 ? (
+                            <MythicTableEmptyState
+                                colSpan={1}
+                                compact
+                                title="No workflow files"
+                                description="Uploaded files for this workflow will appear here."
+                            />
+                        ) : (
+                            selectedEventGroup.filemeta.map( e => (
+                                <EventFileManageDialogTableRow key={e.id} eventFile={e} />
+                            ))
+                        )}
                     </TableBody>
                 </Table>
                 </TableContainer>

@@ -58,6 +58,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import {getStringSize} from "../Callbacks/ResponseDisplayTable";
 import {MythicPageHeader} from "../../MythicComponents/MythicPageHeader";
 import {MythicEmptyState, MythicErrorState, MythicLoadingState} from "../../MythicComponents/MythicStateDisplay";
+import {MythicClientSideTablePagination, useMythicClientPagination} from "../../MythicComponents/MythicTablePagination";
 
 
 const getEventSteps = gql`
@@ -1492,7 +1493,12 @@ function EventStepDetailDialog({selectedEventStep, onClose}) {
     )
 }
 function EventDetailsCallbacksTable({callbacks, includeContext = false}){
-    const callbackCount = callbacks?.length || 0;
+    const callbackRows = callbacks || [];
+    const callbackCount = callbackRows.length;
+    const pagination = useMythicClientPagination({
+        items: callbackRows,
+        resetKey: includeContext ? "with-context" : "without-context",
+    });
     return (
         <EventingDetailSection collapsible title="Callbacks generated" count={callbackCount}>
             {callbackCount === 0 ? (
@@ -1501,43 +1507,50 @@ function EventDetailsCallbacksTable({callbacks, includeContext = false}){
                     description="This workflow has not produced any callbacks yet."
                 />
             ) : (
-                <TableContainer className="mythicElement mythic-eventing-detail-table-wrap">
-                    <Table>
-                        <TableHead>
-                            <TableRow>
-                                <MythicStyledTableCell>Callback</MythicStyledTableCell>
-                                {includeContext &&
-                                    <MythicStyledTableCell>Context</MythicStyledTableCell>
-                                }
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {callbacks.map(trackedData => (
-                                <TableRow key={"callbacks" + trackedData.id} hover>
-                                    <MythicStyledTableCell>
-                                        <Link className="mythic-eventing-resource-link" color="textPrimary" underline="always" target="_blank"
-                                              href={"/new/callbacks/" + trackedData.display_id}>{trackedData.display_id}</Link>
-                                    </MythicStyledTableCell>
+                <>
+                    <TableContainer className="mythicElement mythic-eventing-detail-table-wrap mythic-fixed-row-table-wrap">
+                        <Table style={{height: "auto"}}>
+                            <TableHead>
+                                <TableRow>
+                                    <MythicStyledTableCell>Callback</MythicStyledTableCell>
                                     {includeContext &&
                                         <MythicStyledTableCell>
-                                            <span className="mythic-eventing-resource-secondary">
-                                                {trackedData.user || "unknown"} @ {trackedData.host || "unknown"}
-                                                {trackedData.pid ? ` (${trackedData.pid})` : ""}
-                                                {trackedData.process_name ? ` - ${trackedData.process_name}` : ""}
-                                            </span>
+                                            Context
                                         </MythicStyledTableCell>
                                     }
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
+                            </TableHead>
+                            <TableBody>
+                                {pagination.pageData.map(trackedData => (
+                                    <TableRow key={"callbacks" + trackedData.id} hover>
+                                        <MythicStyledTableCell>
+                                            <Link className="mythic-eventing-resource-link" color="textPrimary" underline="always" target="_blank"
+                                                  href={"/new/callbacks/" + trackedData.display_id}>{trackedData.display_id}</Link>
+                                        </MythicStyledTableCell>
+                                        {includeContext &&
+                                            <MythicStyledTableCell>
+                                                <span className="mythic-eventing-resource-secondary">
+                                                    {trackedData.user || "unknown"} @ {trackedData.host || "unknown"}
+                                                    {trackedData.pid ? ` (${trackedData.pid})` : ""}
+                                                    {trackedData.process_name ? ` - ${trackedData.process_name}` : ""}
+                                                </span>
+                                            </MythicStyledTableCell>
+                                        }
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                    <MythicClientSideTablePagination pagination={pagination} />
+                </>
             )}
         </EventingDetailSection>
     )
 }
 function EventDetailsAPITokensTable({tokens}){
-    const tokenCount = tokens?.length || 0;
+    const tokenRows = tokens || [];
+    const tokenCount = tokenRows.length;
+    const pagination = useMythicClientPagination({items: tokenRows});
     return (
         <EventingDetailSection collapsible title="API tokens generated" count={tokenCount}>
             {tokenCount === 0 ? (
@@ -1546,36 +1559,41 @@ function EventDetailsAPITokensTable({tokens}){
                     description="This workflow has not created any API tokens."
                 />
             ) : (
-                <TableContainer className="mythicElement mythic-eventing-detail-table-wrap">
-                    <Table>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell style={{width: "2rem"}}></TableCell>
-                                <TableCell style={{width: "5rem"}}>Active</TableCell>
-                                <TableCell style={{width: "12rem"}}>Created By</TableCell>
-                                <TableCell style={{width: "7rem"}}>Token</TableCell>
-                                <TableCell style={{width: "9rem"}}>Type</TableCell>
-                                <TableCell>Name</TableCell>
-                                <TableCell></TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {tokens.map(trackedData => (
-                                <APITokenRow key={"apitoken" + trackedData.id} {...trackedData}
-                                             onToggleActive={() => {}}
-                                             onDeleteAPIToken={() =>{}}
-                                >
-                                </APITokenRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
+                <>
+                    <TableContainer className="mythicElement mythic-eventing-detail-table-wrap mythic-fixed-row-table-wrap">
+                        <Table style={{height: "auto"}}>
+                            <TableHead>
+                                <TableRow>
+                                    <TableCell style={{width: "2rem"}}></TableCell>
+                                    <TableCell style={{width: "5rem"}}>Active</TableCell>
+                                    <TableCell style={{width: "12rem"}}>Created By</TableCell>
+                                    <TableCell style={{width: "7rem"}}>Token</TableCell>
+                                    <TableCell style={{width: "9rem"}}>Type</TableCell>
+                                    <TableCell>Name</TableCell>
+                                    <TableCell></TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {pagination.pageData.map(trackedData => (
+                                    <APITokenRow key={"apitoken" + trackedData.id} {...trackedData}
+                                                 onToggleActive={() => {}}
+                                                 onDeleteAPIToken={() =>{}}
+                                    >
+                                    </APITokenRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                    <MythicClientSideTablePagination pagination={pagination} />
+                </>
             )}
         </EventingDetailSection>
     )
 }
 function EventDetailsPayloadsTable({payloads, deletePayload}){
-    const payloadCount = payloads?.length || 0;
+    const payloadRows = payloads || [];
+    const payloadCount = payloadRows.length;
+    const pagination = useMythicClientPagination({items: payloadRows});
     const [openDetailedView, setOpenDetailedView] = React.useState(false);
     const [openDelete, setOpenDeleteDialog] = React.useState(false);
     const selectedPayloadRef = React.useRef({});
@@ -1598,9 +1616,9 @@ function EventDetailsPayloadsTable({payloads, deletePayload}){
     const onDownloadBulkPayloads = () => {
         snackActions.info("Zipping up files...");
         let fileIds = [];
-        for(let i = 0; i < payloads.length; i++){
-            if(payloads[i].build_phase === "success" && !payloads[i].deleted){
-                fileIds.push(payloads[i].filemetum.agent_file_id);
+        for(let i = 0; i < payloadRows.length; i++){
+            if(payloadRows[i].build_phase === "success" && !payloadRows[i].deleted){
+                fileIds.push(payloadRows[i].filemetum.agent_file_id);
             }
         }
         downloadBulk({variables:{files: fileIds}})
@@ -1647,8 +1665,9 @@ function EventDetailsPayloadsTable({payloads, deletePayload}){
                         description="This workflow has not generated any payloads."
                     />
                 ) : (
-                    <TableContainer className="mythicElement mythic-eventing-detail-table-wrap">
-                        <Table>
+                    <>
+                    <TableContainer className="mythicElement mythic-eventing-detail-table-wrap mythic-fixed-row-table-wrap">
+                        <Table style={{height: "auto"}}>
                             <TableHead>
                                 <TableRow>
                                     <MythicStyledTableCell style={{width: "2rem"}}></MythicStyledTableCell>
@@ -1659,7 +1678,7 @@ function EventDetailsPayloadsTable({payloads, deletePayload}){
                                 </TableRow>
                             </TableHead>
                             <TableBody>
-                                {payloads.map(trackedData => (
+                                {pagination.pageData.map(trackedData => (
                                     <TableRow key={"payloads" + trackedData.id} hover>
                                         <MythicStyledTableCell style={{width: "2rem"}}>
                                             {!trackedData.deleted &&
@@ -1689,13 +1708,17 @@ function EventDetailsPayloadsTable({payloads, deletePayload}){
                             </TableBody>
                         </Table>
                     </TableContainer>
+                    <MythicClientSideTablePagination pagination={pagination} />
+                    </>
                 )}
             </EventingDetailSection>
         </>
     )
 }
 function EventDetailsTaskTable({tasks}){
-    const taskCount = tasks?.length || 0;
+    const taskRows = tasks || [];
+    const taskCount = taskRows.length;
+    const pagination = useMythicClientPagination({items: taskRows});
     return (
         <EventingDetailSection collapsible title="Tasks issued" count={taskCount}>
             {taskCount === 0 ? (
@@ -1704,51 +1727,56 @@ function EventDetailsTaskTable({tasks}){
                     description="This workflow has not issued any tasks."
                 />
             ) : (
-                <TableContainer className="mythicElement mythic-eventing-detail-table-wrap">
-                    <Table>
-                        <TableHead>
-                            <TableRow>
-                                <MythicStyledTableCell style={{width: "4rem"}}>Type</MythicStyledTableCell>
-                                <MythicStyledTableCell>Callback</MythicStyledTableCell>
-                                <MythicStyledTableCell>Task</MythicStyledTableCell>
-                                <MythicStyledTableCell>Command</MythicStyledTableCell>
-                                <MythicStyledTableCell>Operator</MythicStyledTableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {tasks.map(trackedData => (
-                                <TableRow key={"tasks" + trackedData.id} hover>
-                                    <MythicStyledTableCell style={{width: "4rem"}}>
-                                        {trackedData.callback?.payload?.payloadtype?.name &&
-                                            <MythicAgentSVGIcon payload_type={trackedData.callback.payload.payloadtype.name}
-                                                                style={{height: "40px"}} />
-                                        }
-                                    </MythicStyledTableCell>
-                                    <MythicStyledTableCell>
-                                        <Link className="mythic-eventing-resource-link" color="textPrimary" underline="always" target="_blank"
-                                              href={"/new/callbacks/" + trackedData.callback.display_id}>{trackedData.callback.display_id}</Link>
-                                    </MythicStyledTableCell>
-                                    <MythicStyledTableCell>
-                                        <Link className="mythic-eventing-resource-link" color={"textPrimary"} underline={"always"} target={"_blank"}
-                                              href={"/new/task/" + trackedData.display_id}>{trackedData.display_id}</Link>
-                                    </MythicStyledTableCell>
-                                    <MythicStyledTableCell>
-                                        <span className="mythic-eventing-resource-command">{trackedData.command_name}</span> {trackedData.display_params}
-                                    </MythicStyledTableCell>
-                                    <MythicStyledTableCell>
-                                        {trackedData.operator.username}
-                                    </MythicStyledTableCell>
+                <>
+                    <TableContainer className="mythicElement mythic-eventing-detail-table-wrap mythic-fixed-row-table-wrap">
+                        <Table style={{height: "auto"}}>
+                            <TableHead>
+                                <TableRow>
+                                    <MythicStyledTableCell style={{width: "4rem"}}>Type</MythicStyledTableCell>
+                                    <MythicStyledTableCell>Callback</MythicStyledTableCell>
+                                    <MythicStyledTableCell>Task</MythicStyledTableCell>
+                                    <MythicStyledTableCell>Command</MythicStyledTableCell>
+                                    <MythicStyledTableCell>Operator</MythicStyledTableCell>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
+                            </TableHead>
+                            <TableBody>
+                                {pagination.pageData.map(trackedData => (
+                                    <TableRow key={"tasks" + trackedData.id} hover>
+                                        <MythicStyledTableCell style={{width: "4rem"}}>
+                                            {trackedData.callback?.payload?.payloadtype?.name &&
+                                                <MythicAgentSVGIcon payload_type={trackedData.callback.payload.payloadtype.name}
+                                                                    style={{height: "40px"}} />
+                                            }
+                                        </MythicStyledTableCell>
+                                        <MythicStyledTableCell>
+                                            <Link className="mythic-eventing-resource-link" color="textPrimary" underline="always" target="_blank"
+                                                  href={"/new/callbacks/" + trackedData.callback.display_id}>{trackedData.callback.display_id}</Link>
+                                        </MythicStyledTableCell>
+                                        <MythicStyledTableCell>
+                                            <Link className="mythic-eventing-resource-link" color={"textPrimary"} underline={"always"} target={"_blank"}
+                                                  href={"/new/task/" + trackedData.display_id}>{trackedData.display_id}</Link>
+                                        </MythicStyledTableCell>
+                                        <MythicStyledTableCell>
+                                            <span className="mythic-eventing-resource-command">{trackedData.command_name}</span> {trackedData.display_params}
+                                        </MythicStyledTableCell>
+                                        <MythicStyledTableCell>
+                                            {trackedData.operator.username}
+                                        </MythicStyledTableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                    <MythicClientSideTablePagination pagination={pagination} />
+                </>
             )}
         </EventingDetailSection>
     )
 }
 function EventDetailsFilesTable({files}){
-    const fileCount = files?.length || 0;
+    const fileRows = files || [];
+    const fileCount = fileRows.length;
+    const pagination = useMythicClientPagination({items: fileRows});
     const [downloadBulk] = useMutation(downloadBulkQuery, {
         onCompleted: (data) => {
             snackActions.dismiss();
@@ -1768,9 +1796,9 @@ function EventDetailsFilesTable({files}){
     const onDownloadBulkPayloads = () => {
         snackActions.info("Zipping up files...");
         let fileIds = [];
-        for(let i = 0; i < files.length; i++){
-            if( !files[i].deleted){
-                fileIds.push(files[i].agent_file_id);
+        for(let i = 0; i < fileRows.length; i++){
+            if( !fileRows[i].deleted){
+                fileIds.push(fileRows[i].agent_file_id);
             }
         }
         downloadBulk({variables:{files: fileIds}})
@@ -1795,45 +1823,48 @@ function EventDetailsFilesTable({files}){
                     description="This workflow has not tracked any files."
                 />
             ) : (
-                <TableContainer className="mythicElement mythic-eventing-detail-table-wrap">
-                    <Table>
-                        <TableHead>
-                            <TableRow>
-                                <MythicStyledTableCell>File name</MythicStyledTableCell>
-                                <MythicStyledTableCell>Comment</MythicStyledTableCell>
-                                <MythicStyledTableCell>Size</MythicStyledTableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {files.map(trackedData => (
-                                <TableRow key={"filemeta" + trackedData.id} hover>
-                                    <MythicStyledTableCell>
-                                        {trackedData.deleted ? (
-                                            <Typography variant="body2" style={{wordBreak: "break-all"}}>
-                                                {b64DecodeUnicode(trackedData.full_remote_path_text) === "" ?
-                                                    b64DecodeUnicode(trackedData.filename_text) :
-                                                    b64DecodeUnicode(trackedData.full_remote_path_text)}
-                                            </Typography>
-                                        ) : (
-                                            <Link className="mythic-eventing-resource-link" color="textPrimary" underline="always" href={"/direct/download/" + trackedData.agent_file_id}>
-                                                {b64DecodeUnicode(trackedData.full_remote_path_text) === "" ?
-                                                    b64DecodeUnicode(trackedData.filename_text) :
-                                                    b64DecodeUnicode(trackedData.full_remote_path_text)}
-                                            </Link>
-                                        )
-                                        }
-                                    </MythicStyledTableCell>
-                                    <MythicStyledTableCell>
-                                        {trackedData.comment}
-                                    </MythicStyledTableCell>
-                                    <MythicStyledTableCell>
-                                        {getStringSize({cellData: {"plaintext": trackedData.size}})}
-                                    </MythicStyledTableCell>
+                <>
+                    <TableContainer className="mythicElement mythic-eventing-detail-table-wrap mythic-fixed-row-table-wrap">
+                        <Table style={{height: "auto"}}>
+                            <TableHead>
+                                <TableRow>
+                                    <MythicStyledTableCell>File name</MythicStyledTableCell>
+                                    <MythicStyledTableCell>Comment</MythicStyledTableCell>
+                                    <MythicStyledTableCell>Size</MythicStyledTableCell>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
+                            </TableHead>
+                            <TableBody>
+                                {pagination.pageData.map(trackedData => (
+                                    <TableRow key={"filemeta" + trackedData.id} hover>
+                                        <MythicStyledTableCell>
+                                            {trackedData.deleted ? (
+                                                <Typography variant="body2" style={{wordBreak: "break-all"}}>
+                                                    {b64DecodeUnicode(trackedData.full_remote_path_text) === "" ?
+                                                        b64DecodeUnicode(trackedData.filename_text) :
+                                                        b64DecodeUnicode(trackedData.full_remote_path_text)}
+                                                </Typography>
+                                            ) : (
+                                                <Link className="mythic-eventing-resource-link" color="textPrimary" underline="always" href={"/direct/download/" + trackedData.agent_file_id}>
+                                                    {b64DecodeUnicode(trackedData.full_remote_path_text) === "" ?
+                                                        b64DecodeUnicode(trackedData.filename_text) :
+                                                        b64DecodeUnicode(trackedData.full_remote_path_text)}
+                                                </Link>
+                                            )
+                                            }
+                                        </MythicStyledTableCell>
+                                        <MythicStyledTableCell>
+                                            {trackedData.comment}
+                                        </MythicStyledTableCell>
+                                        <MythicStyledTableCell>
+                                            {getStringSize({cellData: {"plaintext": trackedData.size}})}
+                                        </MythicStyledTableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                    <MythicClientSideTablePagination pagination={pagination} />
+                </>
             )}
         </EventingDetailSection>
     )

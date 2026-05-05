@@ -4,6 +4,7 @@ import TableRow from '@mui/material/TableRow';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Switch from '@mui/material/Switch';
 import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
+import {toLocalTime} from "../../utilities/Time";
 
 export function APITokenRow(props){
     return (
@@ -26,7 +27,16 @@ export function APITokenRow(props){
                         name="active"
                     />
                 </MythicStyledTableCell>
-                <MythicStyledTableCell>{props.created_by_operator?.username}</MythicStyledTableCell>
+                <MythicStyledTableCell>
+                    <Typography>
+                        {props.created_by_operator?.username}
+                    </Typography>
+                    {props.creation_time &&
+                        <Typography color="textSecondary" style={{fontSize: "0.75rem"}}>
+                            Created at: {toLocalTime(props.creation_time, props.me?.user?.view_utc_time)}
+                        </Typography>
+                    }
+                </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     {(props.scopes || []).join(", ")}
                 </MythicStyledTableCell>

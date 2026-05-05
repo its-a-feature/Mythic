@@ -1,5 +1,4 @@
 import React from 'react';
-import { styled } from '@mui/material/styles';
 import {useQuery, gql} from '@apollo/client';
 import { CreatePayloadNavigationButtons} from './CreatePayloadNavigationButtons';
 import Typography from '@mui/material/Typography';
@@ -7,7 +6,6 @@ import Button from '@mui/material/Button';
 import { snackActions } from '../../utilities/Snackbar';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
@@ -20,40 +18,13 @@ import InfoIconOutline from '@mui/icons-material/InfoOutlined';
 import IconButton from '@mui/material/IconButton';
 import {b64DecodeUnicode} from '../Callbacks/ResponseDisplay';
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
-import { Backdrop, CircularProgress } from '@mui/material';
+import { Backdrop } from '@mui/material';
 import {PayloadsTableRowBuildStatus} from "../Payloads/PayloadsTableRowBuildStatus";
 import {PayloadsTableRowBuildProgress} from "../Payloads/PayloadsTableRowBuildProgress";
+import {MythicLoadingState, MythicTableEmptyState} from "../../MythicComponents/MythicStateDisplay";
+import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
+import {MythicClientSideTablePagination, useMythicClientPagination} from "../../MythicComponents/MythicTablePagination";
 
-
-const PREFIX = 'Step3SelectPayload';
-
-const classes = {
-  root: `${PREFIX}-root`,
-  paper: `${PREFIX}-paper`,
-  button: `${PREFIX}-button`
-};
-
-const Root = styled('div')((
-  {
-    theme
-  }
-) => ({
-  [`& .${classes.root}`]: {
-    margin: 'auto',
-    width: "100%"
-  },
-
-  [`& .${classes.paper}`]: {
-    width: 200,
-    height: 230,
-    overflow: 'auto',
-
-  },
-
-  [`& .${classes.button}`]: {
-    margin: theme.spacing(0.5, 0),
-  }
-}));
 
 const GET_Payload_Types = gql`
 query getWrappablePayloads($payloadType: Int!) {
@@ -107,6 +78,7 @@ export function Step3SelectPayload(props){
             setOpenBackdrop(false);
           }else{
             snackActions.warning("No supported payload for that wrapper");
+            setOpenBackdrop(false);
           }
           
         }
@@ -122,71 +94,66 @@ export function Step3SelectPayload(props){
         props.canceled();
     }
     return (
-        <div style={{
-            height: "100%",
-            display: "flex",
-            flexDirection: "column"
-        }}>
-            {/* Content area that can grow */}
-            <div style={{
-                flexGrow: 1,
-                overflow: "hidden",
-                display: "flex",
-                flexDirection: "column",
-                minHeight: 0 // Important for flex shrinking
-            }}>
-                {/* Top section - fixed height */}
-                <div style={{
-                    display: "flex",
-                    flexShrink: 0 // Don't shrink this section
-                }}>
-                    <div style={{display: "flex", width: "100%", margin: "5px", border: "1px solid grey", borderRadius: "5px", padding: "10px"}}>
-                        <MythicAgentSVGIcon payload_type={props.buildOptions.payload_type} style={{width: "80px", padding: "5px", objectFit: "unset"}} />
+        <div className="mythic-create-flow-shell">
+            <div className="mythic-create-flow-content">
+                <div className="mythic-create-selection-grid">
+                    <section className="mythic-create-section">
+                        <div className="mythic-create-agent-summary">
+                            <div className="mythic-create-agent-icon">
+                                <MythicAgentSVGIcon payload_type={props.buildOptions.payload_type} style={{width: "100%", height: "100%", objectFit: "contain"}} />
+                            </div>
+                            <div className="mythic-create-meta-list">
+                                <div>
+                                    <span className="mythic-create-meta-label">Operating system</span>
+                                    <div className="mythic-create-meta-value">{props.buildOptions.os}</div>
+                                </div>
+                                <div>
+                                    <span className="mythic-create-meta-label">Description</span>
+                                    <div className="mythic-create-meta-value">{props.buildOptions.description}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    <section className="mythic-create-section">
+                        <div className="mythic-create-section-header">
+                            <div>
+                                <Typography component="div" className="mythic-create-section-title">
+                                    Select payload to include
+                                </Typography>
+                                <Typography component="div" className="mythic-create-section-description">
+                                    Pick the existing payload that this wrapper should embed.
+                                </Typography>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <section className="mythic-create-section mythic-create-section-fill">
+                    <div className="mythic-create-section-header">
                         <div>
-                            <Typography variant={"p"} style={{}}>
-                                <b>OS: </b>{props.buildOptions.os}
-                            </Typography><br/>
-                            <Typography variant="body2" component="p" style={{whiteSpace: "pre-wrap"}}>
-                                <b>Description: </b>{props.buildOptions.description}
+                            <Typography component="div" className="mythic-create-section-title">
+                                Compatible payloads
+                            </Typography>
+                            <Typography component="div" className="mythic-create-section-description">
+                                Only payloads matching the selected wrapper type and operating system are shown.
                             </Typography>
                         </div>
                     </div>
-                    <div style={{width: "100%", margin: "5px", border: "1px solid grey", borderRadius: "5px", padding: "10px"}}>
-                        <div style={{width: "100%", display: "flex", alignItems: "flex-start", marginBottom: "10px", flexDirection: "column"}}>
-
-                        </div>
-                    </div>
-                </div>
-
-                {/* Bottom section - scrollable table area */}
-                <div style={{
-                    margin: "5px",
-                    border: props.first ? "1px solid grey" : '',
-                    borderRadius: "5px",
-                    padding: "10px 5px 5px 10px",
-                    display: "flex",
-                    flexDirection: "column",
-                    flexGrow: 1,
-                    minHeight: 0, // Important for flex shrinking
-                    overflow: "hidden"
-                }}>
-                    <Typography variant={"p"} style={{fontWeight: 600}}>
-                        1. Select Payload to Include
-                    </Typography>
-                    <div style={{flexGrow: 1, overflowY: "auto", position: "relative"}}>
+                    <div style={{display: "flex", flexDirection: "column", flexGrow: 1, minHeight: 0, overflow: "hidden", position: "relative"}}>
                         {openBackdrop &&
-                            <Backdrop open={openBackdrop} onClick={()=>{setOpenBackdrop(false);}} style={{zIndex: 2000, position: "absolute"}}>
-                                <CircularProgress color="inherit" disableShrink  />
+                            <Backdrop open={openBackdrop} style={{zIndex: 2000, position: "absolute"}}>
+                                <MythicLoadingState compact title="Loading payloads" description="Fetching compatible payloads." sx={{color: "inherit"}} />
                             </Backdrop>
                         }
-                        <PayloadSelect payloadOptions={payloadOptions} first={props.first} last={props.last}
-                                       canceled={canceled} finished={finished}/>
+                        {!openBackdrop &&
+                            <PayloadSelect payloadOptions={payloadOptions} first={props.first} last={props.last}
+                                           canceled={canceled} finished={finished}/>
+                        }
                     </div>
-                </div>
+                </section>
             </div>
 
-            {/* Navigation buttons - always at bottom */}
-            <div style={{flexShrink: 0}}>
+            <div className="mythic-create-flow-footer">
                 <CreatePayloadNavigationButtons disableNext first={props.first} last={props.last}
                                                 canceled={props.canceled} finished={finished}/>
                 <br/><br/>
@@ -196,34 +163,61 @@ export function Step3SelectPayload(props){
 }
 
 export function PayloadSelect(props) {
+    const payloadOptions = React.useMemo(() => {
+        return Array.isArray(props.payloadOptions) ? props.payloadOptions : [];
+    }, [props.payloadOptions]);
+    const resetKey = React.useMemo(() => {
+        return payloadOptions.map((payload) => payload.id).join(",");
+    }, [payloadOptions]);
+    const pagination = useMythicClientPagination({
+        items: payloadOptions,
+        resetKey,
+        rowsPerPage: 25,
+    });
     const finished = (payload) => {
         props.finished(payload);
     }
     return (
-        <TableContainer className="mythicElement" style={{height: "100%", overflow: "auto"}}>
-            <Table stickyHeader size="small" style={{tableLayout:"fixed", maxWidth: "100%",}}>
-                <TableHead>
-                    <TableRow>
-                        <TableCell style={{width: "6rem"}}> Select</TableCell>
-                        <TableCell style={{width: "15rem"}}>Timestamp</TableCell>
-                        <TableCell>File</TableCell>
-                        <TableCell>Status</TableCell>
-                        <TableCell>Description</TableCell>
-                        <TableCell style={{width: "5rem"}}>Details</TableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
+        <div style={{display: "flex", flexDirection: "column", height: "100%", minHeight: 0}}>
+            <TableContainer
+                className="mythicElement mythic-fixed-row-table-wrap"
+                style={{flex: "1 1 auto", minHeight: 0, overflowY: "auto"}}
+            >
+                <Table stickyHeader size="small" style={{tableLayout:"fixed", height: "auto", maxWidth: "100%"}}>
+                    <TableHead>
+                        <TableRow>
+                            <MythicStyledTableCell style={{width: "6rem"}}>Select</MythicStyledTableCell>
+                            <MythicStyledTableCell style={{width: "15rem"}}>Timestamp</MythicStyledTableCell>
+                            <MythicStyledTableCell>File</MythicStyledTableCell>
+                            <MythicStyledTableCell>Status</MythicStyledTableCell>
+                            <MythicStyledTableCell>Description</MythicStyledTableCell>
+                            <MythicStyledTableCell style={{width: "5rem"}}>Details</MythicStyledTableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
 
-                    {props.payloadOptions?.map( (op) => (
-                        <PayloadsTableRow
-                            onSelected={finished}
-                            key={"payload" + op.id}
-                            payload={op}
-                        />
-                    ))}
-                </TableBody>
-            </Table>
-        </TableContainer>
+                        {payloadOptions.length === 0 ? (
+                            <MythicTableEmptyState
+                                colSpan={6}
+                                compact
+                                title="No compatible payloads"
+                                description="Start fresh or adjust the selected payload type and operating system."
+                                minHeight={180}
+                            />
+                        ) : (
+                            pagination.pageData.map( (op) => (
+                                <PayloadsTableRow
+                                    onSelected={finished}
+                                    key={"payload" + op.id}
+                                    payload={op}
+                                />
+                            ))
+                        )}
+                    </TableBody>
+                </Table>
+            </TableContainer>
+            <MythicClientSideTablePagination id="create-payload-select-pagination" pagination={pagination} />
+        </div>
 
 );
 }
@@ -236,33 +230,35 @@ export function PayloadsTableRow(props){
   }
   return (
       <React.Fragment>
-          <TableRow key={"payload" + props.payload.uuid} hover>
-              <TableCell>
-              <Button className="mythic-table-row-action mythic-table-row-action-hover-success" size="small" onClick={onSelected} variant="contained">Select</Button>
-              </TableCell>
-              <TableCell>{toLocalTime(props.payload.creation_time, me.user.view_utc_time)}</TableCell>
-              <TableCell>{b64DecodeUnicode(props.payload.filemetum.filename_text)}</TableCell>
-              <TableCell>
+          <TableRow key={"payload" + props.payload.uuid} hover onClick={onSelected} style={{cursor: "pointer"}}>
+              <MythicStyledTableCell>
+              <Button className="mythic-table-row-action mythic-table-row-action-hover-info" size="small" onClick={(event) => {event.stopPropagation(); onSelected();}} variant="contained">Select</Button>
+              </MythicStyledTableCell>
+              <MythicStyledTableCell>{toLocalTime(props.payload.creation_time, me.user.view_utc_time)}</MythicStyledTableCell>
+              <MythicStyledTableCell>{b64DecodeUnicode(props.payload.filemetum.filename_text)}</MythicStyledTableCell>
+              <MythicStyledTableCell>
                   <div className="mythic-payload-progress-cell">
                       <PayloadsTableRowBuildStatus {...props.payload} />
                       <PayloadsTableRowBuildProgress {...props.payload} />
                   </div>
-              </TableCell>
-              <TableCell>{props.payload.description}</TableCell>
-              <TableCell>
-                  <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={() => setOpenDetailedView(true)}>
+              </MythicStyledTableCell>
+              <MythicStyledTableCell>{props.payload.description}</MythicStyledTableCell>
+              <MythicStyledTableCell>
+                  <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={(event) => {event.stopPropagation(); setOpenDetailedView(true);}}>
                       <InfoIconOutline fontSize="small" />
                   </IconButton>
-              </TableCell>
+              </MythicStyledTableCell>
           </TableRow>
-          <TableRow>
           {openDetailedView ? (
-            <MythicDialog fullWidth={true} maxWidth="md" open={openDetailedView} me={me}
-                onClose={()=>{setOpenDetailedView(false);}} 
-                innerDialog={<DetailedPayloadTable {...props.payload} me={me} payload_id={props.payload.id} onClose={()=>{setOpenDetailedView(false);}} />}
-            />
+              <TableRow style={{display: "none"}}>
+                  <MythicStyledTableCell colSpan={6}>
+                      <MythicDialog fullWidth={true} maxWidth="md" open={openDetailedView} me={me}
+                          onClose={()=>{setOpenDetailedView(false);}}
+                          innerDialog={<DetailedPayloadTable {...props.payload} me={me} payload_id={props.payload.id} onClose={()=>{setOpenDetailedView(false);}} />}
+                      />
+                  </MythicStyledTableCell>
+              </TableRow>
           ) : null }
-        </TableRow>
       </React.Fragment>
       )
 }

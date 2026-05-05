@@ -48,7 +48,7 @@ function isTrue(value){
 }
 export function CreatePayloadParameter({onChange, parameter_type, default_value, name, required, verifier_regex, id,
                                            description, initialValue, choices, trackedValue, instance_name,
-                                           payload_type, selected_os, dynamic_query_function}){
+                                           payload_type, selected_os, dynamic_query_function, displayMode = "table"}){
     const theme = useTheme();
     const [value, setValue] = React.useState("");
     const [valueNum, setValueNum] = React.useState(0);
@@ -487,11 +487,11 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 )
             case "ChooseOne":
                 return (
-                    <div style={{position: "relative", display: "flex", alignItems: "center", overflow: "hidden"}}>
+                    <div className="mythic-create-inline-control">
                         <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
                             <CircularProgress color="inherit" />
                         </Backdrop>
-                        <FormControl style={{width: "100%"}}>
+                        <FormControl>
                             {ChoiceOptions.length === 0 &&
                                 <InputLabel>{"No Options Available"}</InputLabel>
                             }
@@ -521,8 +521,8 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                         <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
                             <CircularProgress color="inherit" />
                         </Backdrop>
-                        <div style={{width: "100%", display: "flex", alignItems: "center"}}>
-                            <FormControl style={{width: "20%"}}>
+                        <div className="mythic-create-inline-control">
+                            <FormControl style={{flex: "0 1 12rem"}}>
                                 <Select
                                     multiple={false}
                                     disabled={chooseOneCustomValue !== ""}
@@ -537,7 +537,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                                     }
                                 </Select>
                             </FormControl>
-                            OR
+                            <span className="mythic-create-choice-divider">OR</span>
                             <MythicTextField name={name} requiredValue={required} placeholder={"Custom Value"} value={chooseOneCustomValue} multiline={true} maxRows={5}
                                              onChange={onChangeTextChooseOneCustom} display="inline-block"
                             />
@@ -554,11 +554,11 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 )
             case "ChooseMultiple":
                 return (
-                    <div style={{position: "relative", display: "flex", alignItems: "center", overflow: "hidden"}}>
+                    <div className="mythic-create-inline-control">
                         <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
                             <CircularProgress color="inherit" />
                         </Backdrop>
-                        <FormControl style={{width: "100%"}}>
+                        <FormControl>
                             <InputLabel id={name + "select"} style={{paddingTop: "15px"}}>{"Select Multiple"}</InputLabel>
                             {ChoiceOptions.length === 0 &&
                                 <InputLabel>{"No Options Available"}</InputLabel>
@@ -586,7 +586,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 );
             case "Array":
                 return (
-                    <TableContainer className="mythicElement">
+                    <TableContainer className="mythicElement mythic-create-array-table">
                         <Table size="small" style={{tableLayout: "fixed", maxWidth: "100%", "overflow": "auto"}}>
                             <TableBody>
                                 {arrayValue.map( (a, i) => (
@@ -616,7 +616,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 );
             case "TypedArray":
                 return (
-                    <TableContainer className="mythicElement">
+                    <TableContainer className="mythicElement mythic-create-array-table">
                         <Table size="small" style={{tableLayout: "fixed", maxWidth: "100%", "overflow": "auto"}}>
                             <TableBody>
                                 {typedArrayValue.map( (a, i) => (
@@ -662,15 +662,15 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 return (
                     <React.Fragment>
                         {dictValue.map( (opt, i) => (
-                            <div key={"dictval" + i}>
-                                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" style={{width: "5%"}} onClick={(e) => {removeDictEntry(i)}} size="small"><DeleteIcon fontSize="small" /> </IconButton>
-                                <Input style={{width:"20%"}} startAdornment={<Button disabled>Key</Button>} size="small" value={opt.name} onChange={(e) => onChangeDictKey(e, i)}></Input>
-                                <Input style={{width:"75%"}} startAdornment={<Button disabled>value</Button>} size="small" value={opt.value} onChange={(e) => onChangeDictVal(e, i)}></Input>
+                            <div className="mythic-create-dictionary-row" key={"dictval" + i}>
+                                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" onClick={(e) => {removeDictEntry(i)}} size="small"><DeleteIcon fontSize="small" /> </IconButton>
+                                <Input startAdornment={<Button disabled>Key</Button>} size="small" value={opt.name} onChange={(e) => onChangeDictKey(e, i)}></Input>
+                                <Input startAdornment={<Button disabled>Value</Button>} size="small" value={opt.value} onChange={(e) => onChangeDictVal(e, i)}></Input>
                             </div>
                         )
                         )}
                         {dictSelectOptions.length > 0 ? (
-                            <div>
+                            <div className="mythic-create-dictionary-add">
                                 <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-success" size="small" onClick={addDictValEntry}> <AddCircleIcon fontSize="small" /> </IconButton>
                                 <Select size="small" value={dictSelectOptionsChoice} onChange={(e) => setDictSelectOptionsChoice(e.target.value)}>
                                     {dictSelectOptions.map( (selectOpt, i) => (
@@ -796,7 +796,33 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 return true;
         }
     }
-    
+    const isModified = modifiedValue();
+    if(displayMode === "card"){
+        return (
+            <div className={`mythic-create-parameter-card ${isModified ? "mythic-create-parameter-card-modified" : ""}`.trim()} key={"buildparam" + id}>
+                <div className="mythic-create-parameter-copy">
+                    <div className="mythic-create-parameter-title-row">
+                        <Typography component="div" className="mythic-create-parameter-title">
+                            {name}
+                        </Typography>
+                    </div>
+                    <div className="mythic-create-parameter-chips">
+                        <span className="mythic-create-parameter-chip">{parameter_type}</span>
+                        {required && <span className="mythic-create-parameter-chip mythic-create-parameter-chip-required">Required</span>}
+                        {isModified && <span className="mythic-create-parameter-chip mythic-create-parameter-chip-modified">Modified</span>}
+                    </div>
+                    {description &&
+                        <Typography component="div" className="mythic-create-parameter-description">
+                            {description}
+                        </Typography>
+                    }
+                </div>
+                <div className="mythic-create-parameter-control">
+                    {getParameterObject()}
+                </div>
+            </div>
+        )
+    }
     return (
             <TableRow key={"buildparam" + id} hover>
                 <MythicStyledTableCell>
@@ -808,7 +834,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                             {description}
                         </Typography>
 
-                        {modifiedValue() ? (
+                        {isModified ? (
                             <Typography color="warning.main">Modified</Typography>
                         ) : null}
                     </MythicStyledTooltip>

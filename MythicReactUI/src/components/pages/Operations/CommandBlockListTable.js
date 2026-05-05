@@ -252,7 +252,9 @@ function CommandBlockListTableRow(props){
         <TableRow hover>
             <TableCell>
                 <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><DeleteIcon fontSize="small" /></IconButton>
-                <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} open={openDelete}/>
+                {openDelete &&
+                    <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} open={openDelete}/>
+                }
             </TableCell>
             <TableCell>
                 <Button className="mythic-table-row-action" size="small" onClick={()=>{setOpenUpdateDialog(true);}} startIcon={<EditIcon/>} variant="outlined">Edit</Button>
