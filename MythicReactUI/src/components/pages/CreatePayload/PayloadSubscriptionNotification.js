@@ -149,7 +149,7 @@ const SnackMessageError = (props) => {
                     tabSize: 4
                 }}/>
         <DialogActions>
-          <Button variant="contained" onClick={props.onClose} color="primary">
+          <Button className="mythic-table-row-action" variant="contained" onClick={props.onClose}>
             Close
           </Button>
         </DialogActions>
@@ -231,4 +231,3 @@ export function PayloadSubscriptionNotification(props) {
                     innerDialog={<SnackMessageError payloadData={payloadData} onClose={handleErrorClose} />}
                 />;
 }
-

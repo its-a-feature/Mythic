@@ -26,15 +26,18 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faExclamationTriangle} from '@fortawesome/free-solid-svg-icons';
 import { faExternalLinkAlt, faExpandArrowsAlt } from '@fortawesome/free-solid-svg-icons';
 import SearchIcon from '@mui/icons-material/Search';
-import SpeedDial from '@mui/material/SpeedDial';
-import SpeedDialAction from '@mui/material/SpeedDialAction';
-import { Backdrop } from '@mui/material';
+import Button from '@mui/material/Button';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import Divider from '@mui/material/Divider';
 import {downloadFileFromMemory} from '../../utilities/Clipboard';
 import InsertPhotoIcon from '@mui/icons-material/InsertPhoto';
 import html2canvas from 'html2canvas';
 import CloseFullscreenIcon from '@mui/icons-material/CloseFullscreen';
 import CodeOffIcon from '@mui/icons-material/CodeOff';
-import SettingsTwoToneIcon from '@mui/icons-material/SettingsTwoTone';
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import {b64DecodeUnicode} from './ResponseDisplay';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import IconButton from '@mui/material/IconButton';
@@ -88,17 +91,16 @@ export const TaskDisplayContainer = ({task, me}) => {
     return (
       <>
         <Grid container spacing={0} style={{width: "100%"}}>
-            <SpeedDialDisplayGeneric toggleViewBrowserScript={toggleViewBrowserScript}
+            <Grid size={12}>
+              <TaskActionsToolbarGeneric toggleViewBrowserScript={toggleViewBrowserScript}
               toggleSelectAllOutput={toggleSelectAllOutput} 
               toggleOpenSearch={toggleOpenSearch} 
               taskData={task} 
               me={me}
               responseRef={responseRef}
               viewBrowserScript={viewBrowserScript}
-              style={{position: "relative", zIndex: 2, display: "flex", flexDirection: "row-reverse", width: '100%',
-                bottom: "25px", right: "4px", height: 0}}
-              fabStyle={{   }}
               viewAllOutput={selectAllOutput}/>
+            </Grid>
             <Grid size={12}>
               <ResponseDisplay
                 task={task} 
@@ -449,14 +451,14 @@ const SideDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput,
         </div>
     )
 }
-const SpeedDialDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput,
+const TaskActionsToolbarGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput,
                                    toggleOpenSearch, taskData, viewAllOutput, me,
-                                   responseRef, style, fabStyle, viewBrowserScript}) => {
+                                   responseRef, viewBrowserScript}) => {
   const theme = useTheme();
   const [task, setTask] = React.useState(taskData || {});
   const eventingDataRef = React.useRef({name: "", value: 0});
   const [openEventingDialog, setOpenEventingDialog] = React.useState(false);
-  const [openSpeedDial, setOpenSpeedDial] = React.useState(false);
+  const [actionsMenuAnchor, setActionsMenuAnchor] = React.useState(null);
   const [openTaskTagDialog, setOpenTaskTagDialog] = React.useState(false);
   const [openCommentDialog, setOpenCommentDialog] = React.useState(false);
   const [openParametersDialog, setOpenParametersDialog] = React.useState(false);
@@ -478,9 +480,15 @@ const SpeedDialDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput
   React.useEffect( () => {
     setTask(taskData);
   }, [taskData.id, taskData.token, taskData.original_params, taskData.opsec_pre_blocked, taskData.opsec_pre_bypassed, taskData.opsec_post_blocked, taskData.opsec_post_bypassed])
+  const openActionsMenu = (event) => {
+    setActionsMenuAnchor(event.currentTarget);
+  };
+  const closeActionsMenu = () => {
+    setActionsMenuAnchor(null);
+  };
   const onDownloadResponses = () => {
     downloadResponses({variables: {task_id: task.id}});
-    setOpenSpeedDial(false);
+    closeActionsMenu();
   };
   const copyToClipboard = () => {
     let command = task?.command?.cmd || task.command_name;
@@ -490,7 +498,7 @@ const SpeedDialDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput
     }else{
       snackActions.error("Failed to copy text");
     }
-    setOpenSpeedDial(false);
+    closeActionsMenu();
   };
   const [reissueTask] = useMutation(ReissueTaskMutationGQL, {
     onCompleted: data => {
@@ -540,12 +548,15 @@ const SpeedDialDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput
       fakeLink.remove();
 
     })();
+    closeActionsMenu();
   };
   const onReissueTask = () => {
     reissueTask({variables: {task_id: task.id}});
+    closeActionsMenu();
   }
   const onReissueTaskHandler = () => {
     reissueTaskHandler({variables: {task_id: task.id}});
+    closeActionsMenu();
   }
   const onTriggerEventing = () => {
       eventingDataRef.current = {
@@ -553,10 +564,10 @@ const SpeedDialDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput
           value: task.id
       };
       setOpenEventingDialog(true);
+      closeActionsMenu();
   }
   return (
       <React.Fragment>
-        <Backdrop open={openSpeedDial} onClick={()=>{setOpenSpeedDial(false);}} style={{zIndex: 2, position: "absolute"}}/>
         {openTaskTagDialog && <MythicDialog fullWidth={true} maxWidth="lg" open={openTaskTagDialog}
                            onClose={()=>{setOpenTaskTagDialog(false);}}
                            innerDialog={<ViewEditTagsDialog me={me} target_object={"task_id"} target_object_id={task.id} onClose={()=>{setOpenTaskTagDialog(false);}} />}
@@ -601,165 +612,128 @@ const SpeedDialDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput
               }
           />
       }
-        <SpeedDial
-            ariaLabel="Task Speeddial"
-            icon={<SettingsTwoToneIcon fontSize={"large"} />}
-            style={{...style}}
-            onClick={()=>{setOpenSpeedDial(!openSpeedDial)}}
-            FabProps={{...fabStyle, color: "secondary",  size: "small", sx: {minHeight: "30px", height: "30px", width: "30px"}}}
-            open={openSpeedDial}
-            direction="right"
-        >
-          <SpeedDialAction
-              icon={viewBrowserScript ? <CodeOffIcon color={"error"} /> : <CodeIcon color={"success"}/>}
-              arrow
-              tooltipPlacement={"top"}
-              tooltipTitle={"Toggle BrowserScript"}
-              onClick={() => {toggleViewBrowserScript();setOpenSpeedDial(false);}}
-          />
-          <SpeedDialAction
-              icon={viewAllOutput ? <CloseFullscreenIcon color={"error"} /> : <FontAwesomeIcon style={{color: theme.palette.success.main}} icon={faExpandArrowsAlt} size="lg" />}
-              arrow
-              tooltipPlacement={"top"}
-              tooltipTitle={viewAllOutput ? "View Paginated Output" : "View All Output"}
-              onClick={() => {toggleSelectAllOutput();setOpenSpeedDial(false);}}
-          />
-          <SpeedDialAction
-              icon={<SearchIcon color={"info"} />}
-              arrow
-              tooltipPlacement={"top"}
-              tooltipTitle={"Search Output"}
-              onClick={() => {toggleOpenSearch();setOpenSpeedDial(false);}}
-          />
-          <SpeedDialAction
-              icon={<GetAppIcon color={"success"}/>}
-              arrow
-              tooltipPlacement={"top"}
-              tooltipTitle={"Download output"}
-              onClick={onDownloadResponses}
-          />
-          <SpeedDialAction
-              icon={<InsertPhotoIcon/>}
-              arrow
-              tooltipPlacement={"top"}
-              tooltipTitle={"Download screenshot of output"}
-              onClick={onDownloadImageClickPng}
-          />
-          <SpeedDialAction
-              icon={<LocalOfferOutlinedIcon/>}
-              arrow
-              tooltipPlacement={"top"}
-              tooltipTitle={"Edit Tags"}
-              onClick={()=>{setOpenTaskTagDialog(true);setOpenSpeedDial(false);}}
-          />
-          <SpeedDialAction
-              icon={<FontAwesomeIcon icon={faExternalLinkAlt} size="lg" />}
-              arrow
-              tooltipPlacement={"top"}
-              tooltipTitle={"Open Task in New Window"}
-              onClick={()=> {window.open('/new/task/' + task.display_id, "_blank")}}
-          />
-          <SpeedDialAction
-              icon={<FileCopyOutlinedIcon/>}
-              arrow
-              tooltipPlacement={"top"}
-              tooltipTitle={"Copy original params to clipboard"}
-              onClick={copyToClipboard}
-          />
-          <SpeedDialAction
-              icon={<RateReviewOutlinedIcon/>}
-              arrow
-              tooltipPlacement={"top"}
-              tooltipTitle={"Edit Comment"}
-              onClick={()=>{setOpenCommentDialog(true);setOpenSpeedDial(false);}}
-          />
-          <SpeedDialAction
-              icon={<KeyboardIcon/>}
-              arrow
-              tooltipPlacement={"top"}
-              tooltipTitle={"View All Parameters And Timestamps"}
-              onClick={()=>{setOpenParametersDialog(true);setOpenSpeedDial(false);}}
-          />
-          <SpeedDialAction
-              icon={<FontAwesomeIcon style={{color: theme.palette.error.main}} icon={faExclamationTriangle} size="lg" />}
-              arrow
-              tooltipPlacement={"top"}
-              tooltipTitle={"View Stdout/Stderr of Task"}
-              onClick={()=>{setOpenStdoutStderrDialog(true);setOpenSpeedDial(false);}}
-          />
-        <SpeedDialAction
-            icon={<PlayCircleFilledTwoToneIcon />}
-            arrow
-            tooltipPlacement={"top"}
-            tooltipTitle={"Trigger Eventing Based on Task"}
-            onClick={()=>{onTriggerEventing();setOpenSpeedDial(false);}}
-            />
-          {task.opsec_pre_blocked === null ? null : (  task.opsec_pre_bypassed === false ? (
-                  <SpeedDialAction
-                      icon={<LockIcon style={{color: theme.palette.error.main}}/>}
-                      arrow
-                      tooltipPlacement={"top"}
-                      tooltipTitle={"Submit OPSEC PreCheck Bypass Request"}
-                      onClick={()=>{setOpenOpsecDialog({open: true, view: "pre"});setOpenSpeedDial(false);}}
-                  />
-              ): (
-                  <SpeedDialAction
-                      icon={<LockOpenIcon style={{color: theme.palette.success.main}}/>}
-                      arrow
-                      tooltipPlacement={"top"}
-                      tooltipTitle={"View OPSEC PreCheck Data"}
-                      onClick={()=>{setOpenOpsecDialog({open: true, view: "pre"});setOpenSpeedDial(false);}}
-                  />
-              )
-          )
-          }
-          {task.opsec_post_blocked === null ? null : (  task.opsec_post_bypassed === false ? (
-                  <SpeedDialAction
-                      icon={<LockIcon style={{color: theme.palette.error.main}}/>}
-                      arrow
-                      tooltipPlacement={"top"}
-                      tooltipTitle={"Submit OPSEC PostCheck Bypass Request"}
-                      onClick={()=>{setOpenOpsecDialog({open: true, view: "post"});setOpenSpeedDial(false);}}
-                  />
-              ): (
-                  <SpeedDialAction
-                      icon={<LockOpenIcon style={{color: theme.palette.success.main}}/>}
-                      arrow
-                      tooltipPlacement={"top"}
-                      tooltipTitle={"View OPSEC PostCheck Data"}
-                      onClick={()=>{setOpenOpsecDialog({open: true, view: "post"});setOpenSpeedDial(false);}}
-                  />
-              )
-          )
-          }
-          {task.token === null ? null : (
-              <SpeedDialAction
-                  icon={<ConfirmationNumberIcon />}
-                  arrow
-                  tooltipPlacement={"top"}
-                  tooltipTitle={"View Token Information"}
-                  onClick={()=>{setOpenTokenDialog(true);setOpenSpeedDial(false);}}
-              />
-          )}
-          {task.status.toLowerCase().includes("error: container") ? (
-              <SpeedDialAction
-                  icon={<ReplayIcon style={{color: theme.palette.warning.main}}/>}
-                  arrow
-                  tooltipPlacement={"top"}
-                  tooltipTitle={"Resubmit Tasking"}
-                  onClick={onReissueTask}
-              />
-          ) : null}
-          {task.status.toLowerCase().includes("error: task") ? (
-              <SpeedDialAction
-                  icon={<ReplayIcon style={{color: theme.palette.warning.main}}/>}
-                  arrow
-                  tooltipPlacement={"top"}
-                  tooltipTitle={"Resubmit Task Handler"}
-                  onClick={onReissueTaskHandler}
-              />
-          ):null}
-        </SpeedDial>
+        <Paper elevation={0} sx={{
+          alignItems: "center",
+          backgroundColor: theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
+          borderLeft: 0,
+          borderRight: 0,
+          borderTop: 0,
+          borderRadius: 0,
+          display: "flex",
+          gap: 0.5,
+          minHeight: 36,
+          overflowX: "auto",
+          px: 1,
+          py: 0.5,
+        }}>
+          <MythicStyledTooltip title={"Toggle BrowserScript"}>
+            <IconButton size="small" onClick={toggleViewBrowserScript}>
+              {viewBrowserScript ? <CodeOffIcon color={"error"} fontSize="small" /> : <CodeIcon color={"success"} fontSize="small" />}
+            </IconButton>
+          </MythicStyledTooltip>
+          <MythicStyledTooltip title={viewAllOutput ? "View Paginated Output" : "View All Output"}>
+            <IconButton size="small" onClick={toggleSelectAllOutput}>
+              {viewAllOutput ? <CloseFullscreenIcon color={"error"} fontSize="small" /> : <FontAwesomeIcon style={{color: theme.palette.success.main}} icon={faExpandArrowsAlt} size="sm" />}
+            </IconButton>
+          </MythicStyledTooltip>
+          <MythicStyledTooltip title={"Search Output"}>
+            <IconButton size="small" onClick={toggleOpenSearch}>
+              <SearchIcon color={"info"} fontSize="small" />
+            </IconButton>
+          </MythicStyledTooltip>
+          <MythicStyledTooltip title={"Download output"}>
+            <IconButton size="small" onClick={onDownloadResponses}>
+              <GetAppIcon color={"success"} fontSize="small" />
+            </IconButton>
+          </MythicStyledTooltip>
+          <MythicStyledTooltip title={"Download screenshot of output"}>
+            <IconButton size="small" onClick={onDownloadImageClickPng}>
+              <InsertPhotoIcon fontSize="small" />
+            </IconButton>
+          </MythicStyledTooltip>
+          <Button size="small" variant="text" startIcon={<MoreHorizIcon fontSize="small" />} onClick={openActionsMenu}
+                  sx={{ml: 0.25, minWidth: "auto", textTransform: "none"}}>
+            More
+          </Button>
+          <Menu anchorEl={actionsMenuAnchor}
+                open={Boolean(actionsMenuAnchor)}
+                onClose={closeActionsMenu}
+                anchorOrigin={{vertical: "bottom", horizontal: "right"}}
+                transformOrigin={{vertical: "top", horizontal: "right"}}>
+            <MenuItem onClick={()=>{setOpenTaskTagDialog(true);closeActionsMenu();}}>
+              <ListItemIcon><LocalOfferOutlinedIcon fontSize="small" /></ListItemIcon>
+              <ListItemText>Edit Tags</ListItemText>
+            </MenuItem>
+            <MenuItem onClick={()=> {window.open('/new/task/' + task.display_id, "_blank");closeActionsMenu();}}>
+              <ListItemIcon><FontAwesomeIcon icon={faExternalLinkAlt} size="sm" /></ListItemIcon>
+              <ListItemText>Open Task in New Window</ListItemText>
+            </MenuItem>
+            <MenuItem onClick={copyToClipboard}>
+              <ListItemIcon><FileCopyOutlinedIcon fontSize="small" /></ListItemIcon>
+              <ListItemText>Copy original params</ListItemText>
+            </MenuItem>
+            <MenuItem onClick={()=>{setOpenCommentDialog(true);closeActionsMenu();}}>
+              <ListItemIcon><RateReviewOutlinedIcon fontSize="small" /></ListItemIcon>
+              <ListItemText>Edit Comment</ListItemText>
+            </MenuItem>
+            <MenuItem onClick={()=>{setOpenParametersDialog(true);closeActionsMenu();}}>
+              <ListItemIcon><KeyboardIcon fontSize="small" /></ListItemIcon>
+              <ListItemText>View Parameters And Timestamps</ListItemText>
+            </MenuItem>
+            <MenuItem onClick={()=>{setOpenStdoutStderrDialog(true);closeActionsMenu();}}>
+              <ListItemIcon><FontAwesomeIcon style={{color: theme.palette.error.main}} icon={faExclamationTriangle} size="sm" /></ListItemIcon>
+              <ListItemText>View Stdout/Stderr</ListItemText>
+            </MenuItem>
+            <MenuItem onClick={onTriggerEventing}>
+              <ListItemIcon><PlayCircleFilledTwoToneIcon fontSize="small" /></ListItemIcon>
+              <ListItemText>Trigger Eventing Based on Task</ListItemText>
+            </MenuItem>
+            {(task.opsec_pre_blocked !== null || task.opsec_post_blocked !== null || task.token !== null ||
+              task.status.toLowerCase().includes("error: container") || task.status.toLowerCase().includes("error: task")) &&
+              <Divider />
+            }
+            {task.opsec_pre_blocked !== null && (
+              <MenuItem onClick={()=>{setOpenOpsecDialog({open: true, view: "pre"});closeActionsMenu();}}>
+                <ListItemIcon>
+                  {task.opsec_pre_bypassed === false ?
+                    <LockIcon fontSize="small" style={{color: theme.palette.error.main}}/> :
+                    <LockOpenIcon fontSize="small" style={{color: theme.palette.success.main}}/>
+                  }
+                </ListItemIcon>
+                <ListItemText>{task.opsec_pre_bypassed === false ? "Submit OPSEC PreCheck Bypass Request" : "View OPSEC PreCheck Data"}</ListItemText>
+              </MenuItem>
+            )}
+            {task.opsec_post_blocked !== null && (
+              <MenuItem onClick={()=>{setOpenOpsecDialog({open: true, view: "post"});closeActionsMenu();}}>
+                <ListItemIcon>
+                  {task.opsec_post_bypassed === false ?
+                    <LockIcon fontSize="small" style={{color: theme.palette.error.main}}/> :
+                    <LockOpenIcon fontSize="small" style={{color: theme.palette.success.main}}/>
+                  }
+                </ListItemIcon>
+                <ListItemText>{task.opsec_post_bypassed === false ? "Submit OPSEC PostCheck Bypass Request" : "View OPSEC PostCheck Data"}</ListItemText>
+              </MenuItem>
+            )}
+            {task.token !== null && (
+              <MenuItem onClick={()=>{setOpenTokenDialog(true);closeActionsMenu();}}>
+                <ListItemIcon><ConfirmationNumberIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>View Token Information</ListItemText>
+              </MenuItem>
+            )}
+            {task.status.toLowerCase().includes("error: container") && (
+              <MenuItem onClick={onReissueTask}>
+                <ListItemIcon><ReplayIcon fontSize="small" style={{color: theme.palette.warning.main}} /></ListItemIcon>
+                <ListItemText>Resubmit Tasking</ListItemText>
+              </MenuItem>
+            )}
+            {task.status.toLowerCase().includes("error: task") && (
+              <MenuItem onClick={onReissueTaskHandler}>
+                <ListItemIcon><ReplayIcon fontSize="small" style={{color: theme.palette.warning.main}} /></ListItemIcon>
+                <ListItemText>Resubmit Task Handler</ListItemText>
+              </MenuItem>
+            )}
+          </Menu>
+        </Paper>
       </React.Fragment>
 
   )

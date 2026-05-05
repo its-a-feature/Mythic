@@ -2,12 +2,9 @@ import React from 'react';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
-import {useTheme} from '@mui/material/styles';
 import PublicIcon from '@mui/icons-material/Public';
 import {IconButton} from '@mui/material';
 import {gql, useMutation} from '@apollo/client';
@@ -23,8 +20,7 @@ import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import {ConsumingServicesGetIDPMetadataDialog} from "./ConsumingServicesGetIDPMetadataDialog";
 import {C2ProfileListFilesDialog} from "./C2ProfileListFilesDialog";
-import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
-import VisibilityIcon from '@mui/icons-material/Visibility';
+import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
 
 const testWebhookMutation = gql`
 mutation testWebhookWorks($service_type: String!){
@@ -53,7 +49,6 @@ const webhook_events = ["new_alert","new_callback","new_custom","new_feedback", 
 const logging_events = ["new_artifact","new_callback", "new_credential","new_file", "new_keylog",  "new_payload", "new_response", "new_task"];
 
 export const ConsumingServicesTableRow = ({service, showDeleted}) => {
-    const theme = useTheme();
     const openListFilesInformation = React.useRef("");
     const [testWebhook] = useMutation(testWebhookMutation, {
         onCompleted: data => {
@@ -159,6 +154,35 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
             default:
         }
     }, [service]);
+    const renderDeleteButton = (w) => (
+        <MythicStyledTooltip title={w.deleted ? "Restore service" : "Remove service"}>
+            <IconButton
+                className={`mythic-table-row-icon-action ${w.deleted ? "mythic-table-row-icon-action-success" : "mythic-table-row-icon-action-hover-danger"}`}
+                onClick={() => adjustingDelete(w)}
+                size="small"
+            >
+                {w.deleted ? <RestoreFromTrashOutlinedIcon fontSize="small" /> : <DeleteIcon fontSize="small" />}
+            </IconButton>
+        </MythicStyledTooltip>
+    );
+    const renderContainerStatus = (w) => (
+        <MythicStatusChip
+            label={w.container_running ? "Online" : "Offline"}
+            status={w.container_running ? "success" : "error"}
+        />
+    );
+    const renderFileButton = (w) => (
+        <MythicStyledTooltip title={w.container_running ? "View Files" : "Unable to view files since container is offline"}>
+            <IconButton
+                className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                disabled={!w.container_running}
+                onClick={()=>{onOpenListFilesDialog(w.name);}}
+                size="small"
+            >
+                <AttachFileIcon fontSize="small" />
+            </IconButton>
+        </MythicStyledTooltip>
+    );
     const getTableRow = (w) => {
         switch(service.type){
             case "webhook":
@@ -166,19 +190,7 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
                     (showDeleted || !w.deleted) &&
                     <TableRow key={w.id} hover>
                         <MythicTableCell>
-                            {w.deleted ? (
-                                <IconButton onClick={() => {
-                                    adjustingDelete(w);
-                                }} color="success" size="medium">
-                                    <RestoreFromTrashOutlinedIcon/>
-                                </IconButton>
-                            ) : (
-                                <IconButton onClick={() => {
-                                    adjustingDelete(w);
-                                }} color="error" size="medium">
-                                    <DeleteIcon/>
-                                </IconButton>
-                            )}
+                            {renderDeleteButton(w)}
                         </MythicTableCell>
                         <MythicTableCell>
                             <Typography variant={"h5"}>
@@ -190,43 +202,27 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
                             <Typography variant={"body2"}>
                                 <b>Description: </b>{w.description}
                             </Typography>
-
-                            {w.container_running &&
-                                <Typography variant="body2" component="p"
-                                            style={{color: theme.palette.success.main}}>
-                                    <b>{"Online"}</b>
-                                </Typography>
-                            }
-                            {!w.container_running &&
-                                <Typography variant="body2" component="p"
-                                            style={{color: theme.palette.error.main}}>
-                                    <b>{"Offline"}</b>
-                                </Typography>
-                            }
+                            {renderContainerStatus(w)}
                         </MythicTableCell>
                         <MythicTableCell>
-                            <MythicStyledTooltip title={w.container_running ? "View Files" : "Unable to view files since container is offline"}>
-                                <IconButton
-                                    disabled={!w.container_running}
-                                    onClick={()=>{onOpenListFilesDialog(w.name);}}
-                                    size="medium">
-                                    <AttachFileIcon />
-                                </IconButton>
-                            </MythicStyledTooltip>
+                            {renderFileButton(w)}
                         </MythicTableCell>
                         <MythicTableCell>
-                            {webhook_events.map(s => (
-                                <MythicStyledTooltip title={"test webhook " + s} key={w.id + "webhook_" + s}>
-                                    <IconButton
-                                        disabled={!w.subscriptions.includes(s) || !w.container_running}
-                                        onClick={() => {
-                                            issueTestWebhook(s)
-                                        }}
-                                        size="medium">
-                                        <PublicIcon/>
-                                    </IconButton>
-                                </MythicStyledTooltip>
-                            ))}
+                            <div className="mythic-table-row-actions mythic-service-actions">
+                                {webhook_events.map(s => (
+                                    <MythicStyledTooltip title={"test webhook " + s} key={w.id + "webhook_" + s}>
+                                        <IconButton
+                                            className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                                            disabled={!w.subscriptions.includes(s) || !w.container_running}
+                                            onClick={() => {
+                                                issueTestWebhook(s)
+                                            }}
+                                            size="small">
+                                            <PublicIcon fontSize="small" />
+                                        </IconButton>
+                                    </MythicStyledTooltip>
+                                ))}
+                            </div>
                         </MythicTableCell>
                     </TableRow>
                 )
@@ -235,19 +231,7 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
                     (showDeleted || !w.deleted) &&
                     <TableRow key={w.id} hover>
                         <MythicTableCell>
-                            {w.deleted ? (
-                                <IconButton onClick={() => {
-                                    adjustingDelete(w);
-                                }} color="success" size="medium">
-                                    <RestoreFromTrashOutlinedIcon/>
-                                </IconButton>
-                            ) : (
-                                <IconButton onClick={() => {
-                                    adjustingDelete(w);
-                                }} color="error" size="medium">
-                                    <DeleteIcon/>
-                                </IconButton>
-                            )}
+                            {renderDeleteButton(w)}
                         </MythicTableCell>
                         <MythicTableCell>
                             <Typography variant={"h5"}>
@@ -259,42 +243,27 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
                             <Typography variant={"body2"}>
                                 <b>Description: </b>{w.description}
                             </Typography>
-                            {w.container_running &&
-                                <Typography variant="body2" component="p"
-                                            style={{color: theme.palette.success.main}}>
-                                    <b>{"Online"}</b>
-                                </Typography>
-                            }
-                            {!w.container_running &&
-                                <Typography variant="body2" component="p"
-                                            style={{color: theme.palette.error.main}}>
-                                    <b>{"Offline"}</b>
-                                </Typography>
-                            }
+                            {renderContainerStatus(w)}
                         </MythicTableCell>
                         <MythicTableCell>
-                            <MythicStyledTooltip title={w.container_running ? "View Files" : "Unable to view files since container is offline"}>
-                                <IconButton
-                                    disabled={!w.container_running}
-                                    onClick={()=>{onOpenListFilesDialog(w.name);}}
-                                    size="medium">
-                                    <AttachFileIcon />
-                                </IconButton>
-                            </MythicStyledTooltip>
+                            {renderFileButton(w)}
                         </MythicTableCell>
                         <MythicTableCell>
-                            {logging_events.map(s => (
-                                <MythicStyledTooltip title={"test logging " + s} key={w.id + "logging_" + s}>
-                                    <IconButton
-                                        disabled={!w.subscriptions.includes(s) || !w.container_running}
-                                        onClick={() => {
-                                            issueTestLog(s)
-                                        }}
-                                        size="medium">
-                                        <SyncAltIcon/>
-                                    </IconButton>
-                                </MythicStyledTooltip>
-                            ))}
+                            <div className="mythic-table-row-actions mythic-service-actions">
+                                {logging_events.map(s => (
+                                    <MythicStyledTooltip title={"test logging " + s} key={w.id + "logging_" + s}>
+                                        <IconButton
+                                            className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                                            disabled={!w.subscriptions.includes(s) || !w.container_running}
+                                            onClick={() => {
+                                                issueTestLog(s)
+                                            }}
+                                            size="small">
+                                            <SyncAltIcon fontSize="small" />
+                                        </IconButton>
+                                    </MythicStyledTooltip>
+                                ))}
+                            </div>
                         </MythicTableCell>
                     </TableRow>
                 )
@@ -303,19 +272,7 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
                     (showDeleted || !w.deleted) &&
                     <TableRow key={w.id} hover>
                         <MythicTableCell>
-                            {w.deleted ? (
-                                <IconButton onClick={() => {
-                                    adjustingDelete(w);
-                                }} color="success" size="medium">
-                                    <RestoreFromTrashOutlinedIcon/>
-                                </IconButton>
-                            ) : (
-                                <IconButton onClick={() => {
-                                    adjustingDelete(w);
-                                }} color="error" size="medium">
-                                    <DeleteIcon/>
-                                </IconButton>
-                            )}
+                            {renderDeleteButton(w)}
                         </MythicTableCell>
                         <MythicTableCell>
                             <Typography variant={"h5"}>
@@ -327,28 +284,10 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
                             <Typography variant={"body2"}>
                                 <b>Description: </b>{w.description}
                             </Typography>
-                            {w.container_running &&
-                                <Typography variant="body2" component="p"
-                                            style={{color: theme.palette.success.main}}>
-                                    <b>{"Online"}</b>
-                                </Typography>
-                            }
-                            {!w.container_running &&
-                                <Typography variant="body2" component="p"
-                                            style={{color: theme.palette.error.main}}>
-                                    <b>{"Offline"}</b>
-                                </Typography>
-                            }
+                            {renderContainerStatus(w)}
                         </MythicTableCell>
                         <MythicTableCell>
-                            <MythicStyledTooltip title={w.container_running ? "View Files" : "Unable to view files since container is offline"}>
-                                <IconButton
-                                    disabled={!w.container_running}
-                                    onClick={()=>{onOpenListFilesDialog(w.name);}}
-                                    size="medium">
-                                    <AttachFileIcon />
-                                </IconButton>
-                            </MythicStyledTooltip>
+                            {renderFileButton(w)}
                         </MythicTableCell>
                         <MythicTableCell>
                             <Table>
@@ -376,19 +315,7 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
                     (showDeleted || !w.deleted) &&
                     <TableRow key={w.id} hover>
                         <MythicTableCell>
-                            {w.deleted ? (
-                                <IconButton onClick={() => {
-                                    adjustingDelete(w);
-                                }} color="success" size="medium">
-                                    <RestoreFromTrashOutlinedIcon/>
-                                </IconButton>
-                            ) : (
-                                <IconButton onClick={() => {
-                                    adjustingDelete(w);
-                                }} color="error" size="medium">
-                                    <DeleteIcon/>
-                                </IconButton>
-                            )}
+                            {renderDeleteButton(w)}
                         </MythicTableCell>
                         <MythicTableCell>
                             <Typography variant={"h5"}>
@@ -400,36 +327,22 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
                             <Typography variant={"body2"}>
                                 <b>Description: </b>{w.description}
                             </Typography>
-                            {w.container_running &&
-                                <Typography variant="body2" component="p"
-                                            style={{color: theme.palette.success.main}}>
-                                    <b>{"Online"}</b>
-                                </Typography>
-                            }
-                            {!w.container_running &&
-                                <Typography variant="body2" component="p"
-                                            style={{color: theme.palette.error.main}}>
-                                    <b>{"Offline"}</b>
-                                </Typography>
-                            }
+                            {renderContainerStatus(w)}
                         </MythicTableCell>
                         <MythicTableCell>
-                            <MythicStyledTooltip title={w.container_running ? "View Files" : "Unable to view files since container is offline"}>
-                                <IconButton
-                                    disabled={!w.container_running}
-                                    onClick={()=>{onOpenListFilesDialog(w.name);}}
-                                    size="medium">
-                                    <AttachFileIcon />
-                                </IconButton>
-                            </MythicStyledTooltip>
+                            {renderFileButton(w)}
                         </MythicTableCell>
                         <MythicTableCell>
                             {w.subscriptions.map(s => (
                                 <Typography key={s.name + s.type + w.name} style={{display: "block"}}>
                                     <MythicStyledTooltip title={"Fetch Container Metadata"} >
-                                        <IconButton onClick={() => getIDPMetadata(w.name, s.name)}
-                                                    disabled={!w.container_running}>
-                                            <PermIdentityTwoToneIcon />
+                                        <IconButton
+                                            className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                                            onClick={() => getIDPMetadata(w.name, s.name)}
+                                            disabled={!w.container_running}
+                                            size="small"
+                                        >
+                                            <PermIdentityTwoToneIcon fontSize="small" />
                                         </IconButton>
                                     </MythicStyledTooltip>
                                     {s.name}
@@ -470,4 +383,3 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
 
     )
 }
-

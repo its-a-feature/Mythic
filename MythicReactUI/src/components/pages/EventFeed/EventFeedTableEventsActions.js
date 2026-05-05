@@ -27,8 +27,9 @@ export function EventFeedTableEventsActions(props){
             <IconButton
                 aria-controls={"eventmenu" + props.id}
                 aria-haspopup="true"
+                className="mythic-table-row-icon-action"
                 onClick={handleClick}
-                size="large"><MoreVertIcon/>
+                size="small"><MoreVertIcon fontSize="small" />
             </IconButton>
                 <Menu elevation={5} id={"eventmenu" + props.id} anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleClose} >
                     {
@@ -45,4 +46,3 @@ export function EventFeedTableEventsActions(props){
             </ListItemSecondaryAction>
     );
 }
-

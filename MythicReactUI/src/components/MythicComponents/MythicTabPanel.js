@@ -23,6 +23,7 @@ export function MythicTabPanel(props) {
                   display: value === index ? 'flex' : 'none',
                   flexDirection: 'column',
                   flexGrow: 1,
+                  minHeight: 0,
                   width: '100%',
                   maxWidth: '100%',
                   overflowY: "auto",

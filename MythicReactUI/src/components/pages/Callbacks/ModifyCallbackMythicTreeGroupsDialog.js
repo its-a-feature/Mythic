@@ -151,7 +151,7 @@ export function ModifyCallbackMythicTreeGroupsDialog(props){
                     {groups.map( (a, i) => (
                         <TableRow key={'array' + props.name + i} >
                             <MythicStyledTableCell style={{width: "2rem", paddingLeft:"0"}}>
-                                <IconButton onClick={(e) => {removeArrayValue(i)}} size="large"><DeleteIcon color="error" /> </IconButton>
+                                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={(e) => {removeArrayValue(i)}}><DeleteIcon fontSize="small" /> </IconButton>
                             </MythicStyledTableCell>
                             <MythicStyledTableCell>
                                 <MythicTextField required={props.required} fullWidth={true} placeholder={""} value={a} multiline={true} autoFocus={ i > 0}

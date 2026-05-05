@@ -1,11 +1,15 @@
 import React from 'react';
-import Button from '@mui/material/Button';
-import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import {gql, useMutation} from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
 import {DragAndDropFileUpload} from "../Callbacks/TaskParametersDialogRow";
+import {
+  MythicDialogBody,
+  MythicDialogButton,
+  MythicDialogFooter,
+  MythicDialogSection
+} from '../../MythicComponents/MythicDialogLayout';
 
 const create_payload = gql`
  mutation createPayloadMutation($payload: String!) {
@@ -44,17 +48,20 @@ export function ImportPayloadConfigDialog(props) {
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Import Payload Config to Generate New Payload</DialogTitle>
         <DialogContent dividers={true}>
+          <MythicDialogBody>
+            <MythicDialogSection title="Payload Config File" description="Upload an exported payload configuration.">
             <DragAndDropFileUpload value={fileValue} multiple={false} onChange={onFileChange} />
+            </MythicDialogSection>
+          </MythicDialogBody>
         </DialogContent>
-        <DialogActions>
-          <Button variant="contained" onClick={props.onClose} color="primary">
+        <MythicDialogFooter>
+          <MythicDialogButton onClick={props.onClose}>
             Close
-          </Button>
-          <Button variant="contained" onClick={onCommitSubmit} color="success">
+          </MythicDialogButton>
+          <MythicDialogButton intent="primary" onClick={onCommitSubmit}>
             Submit
-          </Button>
-        </DialogActions>
+          </MythicDialogButton>
+        </MythicDialogFooter>
   </React.Fragment>
   );
 }
-

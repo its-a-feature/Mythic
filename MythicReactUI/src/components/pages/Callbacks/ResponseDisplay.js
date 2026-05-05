@@ -18,6 +18,7 @@ import {GetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import {ResponseDisplayGraph} from "./ResponseDisplayGraph";
 import {operatorSettingDefaults} from "../../../cache";
 import {ResponseDisplayTabs} from "./ResponseDisplayTabs";
+import {MythicEmptyState, MythicLoadingState, MythicSearchEmptyState} from "../../MythicComponents/MythicStateDisplay";
 
 const subResponsesStream = gql`
 subscription subResponsesStream($task_id: Int!){
@@ -588,12 +589,47 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
       fetchScripts({variables: {command_id: command_id}});
     }
   }, [command_id, task.id]);
+  const stateSx = {
+    backgroundColor: "transparent",
+    color: "inherit",
+    height: expand ? "100%" : undefined,
+  };
   if(loadingBrowserScript){
-    return null
+    return (
+      <MythicLoadingState
+        compact
+        title="Preparing output"
+        description="Loading the response renderer for this command."
+        sx={stateSx}
+      />
+    )
+  }
+  if(rawResponses.length === 0 && output.length === 0){
+    return search ? (
+      <MythicSearchEmptyState
+        compact
+        description="No task output matched the current search."
+        sx={stateSx}
+      />
+    ) : (
+      <MythicEmptyState
+        compact
+        title="No output yet"
+        description="Task output will appear here as responses arrive."
+        sx={stateSx}
+      />
+    )
   }
   const shouldUseBrowserScript = viewBrowserScript && localViewBrowserScript;
   if(shouldUseBrowserScript && browserScriptData === undefined){
-    return null
+    return (
+      <MythicLoadingState
+        compact
+        title="Rendering output"
+        description="Preparing the browser script view."
+        sx={stateSx}
+      />
+    )
   }
   return (
     shouldUseBrowserScript ? (

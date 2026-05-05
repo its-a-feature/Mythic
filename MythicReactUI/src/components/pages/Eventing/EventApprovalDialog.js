@@ -16,6 +16,7 @@ import {toLocalTime} from "../../utilities/Time";
 import CheckCircleTwoToneIcon from '@mui/icons-material/CheckCircleTwoTone';
 import CancelTwoToneIcon from '@mui/icons-material/CancelTwoTone';
 import {snackActions} from "../../utilities/Snackbar";
+import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
 
 const updateApprovalStatusMutation = gql`
 mutation updateApprovalStatus($eventgroupapproval_id: Int!, $approved: Boolean!) {
@@ -62,7 +63,7 @@ export function EventGroupTableRunAsDialog({eventgroupapprovals, me, onClose, se
             <DialogContent dividers={true} style={{maxHeight: "calc(70vh)"}}>
                 <DialogContentText>
                     Individual users must approve workflows to run under their account and operation leads must approve bot workflows.<br/>
-                    <b>Run As: </b>{selectedEventGroup.run_as} <br/>
+                    <b>Run as: </b>{selectedEventGroup.run_as} <br/>
                     {getRunAsHelp(selectedEventGroup.run_as)}
                 </DialogContentText>
                 <TableContainer className="mythicElement">
@@ -80,43 +81,40 @@ export function EventGroupTableRunAsDialog({eventgroupapprovals, me, onClose, se
                                 <TableCell>{e.operator.username}</TableCell>
                                 <TableCell>
                                     {e.approved ? (
-                                        <>
-                                            <Button disabled style={{marginRight: "10px"}} variant={"contained"} color={"success"}
-                                                    onClick={() => onApprovalClick({id: e.id, approved: true})}>
-                                                <CheckCircleTwoToneIcon color={"success"} style={{marginRight: "5px"}} /> Approved
-                                            </Button>
-                                            <Button disabled={e.operator.id !== me?.user?.id} variant={"contained"} color={"warning"}
+                                        <div className="mythic-table-row-actions">
+                                            <MythicStatusChip label="Approved" status="success" icon={<CheckCircleTwoToneIcon />} />
+                                            <Button className="mythic-table-row-action mythic-table-row-action-hover-warning" disabled={e.operator.id !== me?.user?.id} variant={"contained"}
+                                                    startIcon={<CancelTwoToneIcon fontSize="small" />}
                                                     onClick={() => onApprovalClick({id: e.id, approved: false})}>
-                                                <CancelTwoToneIcon style={{marginRight: "5px"}} /> Deny
+                                                Deny
                                             </Button>
-                                        </>
+                                        </div>
 
                                     ) : e.created_at === e.updated_at ? (
-                                        <>
-                                            <Button disabled={e.operator.id !== me?.user?.id} style={{marginRight: "20px"}}
-                                                    variant={"contained"} color={"success"}
+                                        <div className="mythic-table-row-actions">
+                                            <Button className="mythic-table-row-action mythic-table-row-action-hover-success" disabled={e.operator.id !== me?.user?.id}
+                                                    variant={"contained"}
+                                                    startIcon={<CheckCircleTwoToneIcon fontSize="small" />}
                                                     onClick={() => onApprovalClick({id: e.id, approved: true})}>
-                                                <CheckCircleTwoToneIcon style={{marginRight: "5px"}} /> {"Approve "}
+                                                Approve
                                             </Button>
-                                            <Button disabled={e.operator.id !== me?.user?.id} variant={"contained"}
-                                                    color={"warning"}
+                                            <Button className="mythic-table-row-action mythic-table-row-action-hover-warning" disabled={e.operator.id !== me?.user?.id} variant={"contained"}
+                                                    startIcon={<CancelTwoToneIcon fontSize="small" />}
                                                     onClick={() => onApprovalClick({id: e.id, approved: false})}>
-                                                <CancelTwoToneIcon style={{marginRight: "5px"}} /> Deny
+                                                Deny
                                             </Button>
-                                        </>
+                                        </div>
                                     ) : (
-                                        <>
-                                            <Button style={{marginRight: "20px"}} variant={"contained"} color={"success"}
+                                        <div className="mythic-table-row-actions">
+                                            <Button className="mythic-table-row-action mythic-table-row-action-hover-success" variant={"contained"}
                                                     disabled={e.operator.id !== me?.user?.id}
+                                                    startIcon={<CheckCircleTwoToneIcon fontSize="small" />}
                                                     onClick={() => onApprovalClick({id: e.id, approved: true})}>
-                                                <CheckCircleTwoToneIcon style={{marginRight: "5px"}} /> Approve
+                                                Approve
                                             </Button>
-                                            <Button disabled variant={"contained"} color={"warning"}
-                                                    onClick={() => onApprovalClick({id: e.id, approved: false})}>
-                                                <CancelTwoToneIcon color={"warning"} style={{marginRight: "5px"}} /> Denied
-                                            </Button>
+                                            <MythicStatusChip label="Denied" status="warning" icon={<CancelTwoToneIcon />} />
 
-                                        </>
+                                        </div>
                                     )}
                                 </TableCell>
                                 <TableCell>
@@ -132,7 +130,7 @@ export function EventGroupTableRunAsDialog({eventgroupapprovals, me, onClose, se
 
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose} variant="contained" color="primary">
+                <Button className="mythic-table-row-action" onClick={onClose} variant="contained">
                     Close
                 </Button>
             </DialogActions>

@@ -1,28 +1,24 @@
 import React from 'react';
-import {Button} from '@mui/material';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
 import { OperationTableRow } from './OperationTableRow';
-import Typography from '@mui/material/Typography';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
-import {useTheme} from '@mui/material/styles';
 import {SettingsOperatorDialog} from '../Settings/SettingsOperatorDialog';
 import {snackActions} from '../../utilities/Snackbar';
 import {useMutation, gql} from '@apollo/client';
 import {MythicModifyStringDialog} from '../../MythicComponents/MythicDialog';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
-import { IconButton } from '@mui/material';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import {meState} from "../../../cache";
-import {MythicPageHeader} from "../../MythicComponents/MythicPageHeader";
+import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/MythicPageHeader";
+import {MythicToolbarButton, MythicToolbarToggle} from "../../MythicComponents/MythicTableToolbar";
+import {MythicTableEmptyState} from "../../MythicComponents/MythicStateDisplay";
 
 const newOperatorMutation = gql`
 mutation NewOperator($username: String!, $password: String!) {
@@ -59,7 +55,6 @@ mutation newOperationMutation($name: String){
 `;
 
 export function OperationTable(props){
-    const theme = useTheme();
     const [openNewOperator, setOpenNewOperatorDialog] = React.useState(false);
     const [openNewOperation, setOpenNewOperationDialog] = React.useState(false);
     const [showDeleted, setShowDeleted] = React.useState(false);
@@ -143,72 +138,60 @@ export function OperationTable(props){
     const onSubmitNewOperation = (operation_name) => {
         newOperation({variables: {name: operation_name}})
     }
+    const visibleOperations = props.operations.filter((op) => showDeleted || !op.deleted);
+    const visibleOperationsLabel = visibleOperations.length === 1 ? "1 shown" : `${visibleOperations.length} shown`;
+    const totalOperationsLabel = props.operations.length === 1 ? "1 total" : `${props.operations.length} total`;
     return (
         <>
-            <MythicPageHeader title={"Operations"}>
-                <Button size="small" onClick={() => {setOpenNewOperationDialog(true);}}
-                        style={{ color: "white", whiteSpace: "nowrap"}}
-                        startIcon={<AddCircleIcon color="success" style={{backgroundColor: "white", borderRadius: "10px"}}/>} >
-                    New Operation
-                </Button>
-                <MythicStyledTooltip title={"Create new operator"} tooltipStyle={{}}>
-                    <IconButton size="small"
-                                onClick={()=>{setOpenNewOperatorDialog(true);}}
-                                style={{}}
-                                variant="contained">
-                        <PersonAddIcon />
-                    </IconButton>
-                </MythicStyledTooltip>
-                {showDeleted ? (
-                    <MythicStyledTooltip title={"Hide Deleted Operations"} tooltipStyle={{}}>
-                        <IconButton size="small" style={{}}
-                                    variant="contained" onClick={() => setShowDeleted(!showDeleted)}>
-                            <VisibilityIcon />
-                        </IconButton>
-                    </MythicStyledTooltip>
-                  ) : (
-                    <MythicStyledTooltip title={"Show Deleted Operations"} tooltipStyle={{}}>
-                      <IconButton size="small" style={{}}
-                                  variant="contained" onClick={() => setShowDeleted(!showDeleted)} >
-                          <VisibilityOffIcon />
-                      </IconButton>
-                    </MythicStyledTooltip>
-                  )}
-                {openNewOperator &&
-                    <MythicDialog open={openNewOperator}
-                        onClose={()=>{setOpenNewOperatorDialog(false);}}
-                        innerDialog={<SettingsOperatorDialog title="New Operator" onAccept={onSubmitNewOperator} handleClose={()=>{setOpenNewOperatorDialog(false);}}  {...props}/>}
-                    />
+            <MythicPageHeader
+                title={"Operations"}
+                subtitle={"Create operations, assign operators, and manage engagement state."}
+                meta={
+                    <>
+                        <MythicPageHeaderChip label={visibleOperationsLabel} />
+                        <MythicPageHeaderChip label={totalOperationsLabel} />
+                        {showDeleted && <MythicPageHeaderChip label="Deleted visible" />}
+                    </>
                 }
-                {openNewOperation &&
-                    <MythicDialog
-                        fullWidth={true}
-                        open={openNewOperation}
-                        onClose={() => {setOpenNewOperationDialog(false);}}
-                        innerDialog={
-                            <MythicModifyStringDialog title={"New Operation's Name"}
-                                onClose={() => {setOpenNewOperationDialog(false);}}
-                                value={""}
-                                onSubmit={onSubmitNewOperation}
-                            />
-                        }
-                    />
+                actions={
+                    <>
+                        <MythicToolbarButton variant="contained" color="primary" onClick={() => {setOpenNewOperationDialog(true);}} startIcon={<AddCircleIcon />}>
+                            Operation
+                        </MythicToolbarButton>
+                        <MythicToolbarButton variant="outlined" color="primary" onClick={()=>{setOpenNewOperatorDialog(true);}} startIcon={<PersonAddIcon />}>
+                            Operator
+                        </MythicToolbarButton>
+                        <MythicToolbarToggle
+                            checked={showDeleted}
+                            onClick={() => setShowDeleted(!showDeleted)}
+                            label="Deleted"
+                            activeIcon={<VisibilityIcon fontSize="small" />}
+                            inactiveIcon={<VisibilityOffIcon fontSize="small" />}
+                        />
+                    </>
                 }
-
-            </MythicPageHeader>
+            />
+            {openNewOperator &&
+                <MythicDialog open={openNewOperator}
+                    onClose={()=>{setOpenNewOperatorDialog(false);}}
+                    innerDialog={<SettingsOperatorDialog title="New Operator" onAccept={onSubmitNewOperator} handleClose={()=>{setOpenNewOperatorDialog(false);}}  {...props}/>}
+                />
+            }
+            {openNewOperation &&
+                <MythicDialog
+                    fullWidth={true}
+                    open={openNewOperation}
+                    onClose={() => {setOpenNewOperationDialog(false);}}
+                    innerDialog={
+                        <MythicModifyStringDialog title={"New Operation's Name"}
+                            onClose={() => {setOpenNewOperationDialog(false);}}
+                            value={""}
+                            onSubmit={onSubmitNewOperation}
+                        />
+                    }
+                />
+            }
             <TableContainer className="mythicElement">
-                {props.operations.length === 0 &&
-                    <div style={{display: "flex", flexDirection: "column", flexGrow: 1}}>
-                        <div style={{
-                            position: "absolute",
-                            left: "35%",
-                            top: "50%"
-                        }}>
-                            {"No Operations available!"}<br/>
-                            {"Ask a Mythic admin or operation lead to add you to an operation."}
-                        </div>
-                    </div>
-                }
                 <Table  size="small" style={{"tableLayout": "fixed", "overflow": "scroll"}}>
                     <TableHead>
                         <TableRow>
@@ -222,22 +205,27 @@ export function OperationTable(props){
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {props.operations.map((op) => (
-                            showDeleted || !op.deleted ? (
+                        {visibleOperations.length === 0 &&
+                            <MythicTableEmptyState
+                                colSpan={7}
+                                compact
+                                title={props.operations.length === 0 ? "No operations available" : "No visible operations"}
+                                description={props.operations.length === 0 ? "Ask a Mythic admin or operation lead to add you to an operation." : "Deleted operations are hidden. Toggle Deleted to include them."}
+                            />
+                        }
+                        {visibleOperations.map((op) => (
                                 <OperationTableRow
                                     me={props.me}
                                     key={"operation" + op.id}
-                                onUpdateOperation={onUpdateOperation}
-                                onUpdateCurrentOperation={props.onUpdateCurrentOperation}
-                                updateDeleted={props.updateDeleted}
-                                {...op} operator={props.operator}
-                            />
-                        ) : null
-                    ))}
+                                    onUpdateOperation={onUpdateOperation}
+                                    onUpdateCurrentOperation={props.onUpdateCurrentOperation}
+                                    updateDeleted={props.updateDeleted}
+                                    {...op} operator={props.operator}
+                                />
+                        ))}
                     </TableBody>
                 </Table>
             </TableContainer>
     </>
     )
 }
-

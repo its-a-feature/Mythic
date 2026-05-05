@@ -6,19 +6,18 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
-import Typography from '@mui/material/Typography';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
-import {useTheme} from '@mui/material/styles';
 import {EditBlockListDialog} from './EditBlockListDialog';
 import {snackActions} from '../../utilities/Snackbar';
 import {useMutation, gql} from '@apollo/client';
 import DeleteIcon from '@mui/icons-material/Delete';
 import IconButton from '@mui/material/IconButton';
 import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
-import TuneIcon from '@mui/icons-material/Tune';
-import {MythicPageHeader} from "../../MythicComponents/MythicPageHeader";
+import EditIcon from '@mui/icons-material/Edit';
+import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/MythicPageHeader";
+import {MythicToolbarButton} from "../../MythicComponents/MythicTableToolbar";
+import {MythicTableEmptyState} from "../../MythicComponents/MythicStateDisplay";
 
 const newBlockListEntry = gql`
 mutation newBlockListsEntries($entries: [disabledcommandsprofile_insert_input!]!) {
@@ -58,7 +57,6 @@ mutation deleteBlockListEntries($name: String!, $entries: [Int!]!){
 `;
 
 export function CommandBlockListTable(props){
-    const theme = useTheme();
     const [openNew, setOpenNewDialog] = React.useState(false);
     const [blockLists, setBlockLists] = React.useState([]);
     const [newBlockListEntries] = useMutation(newBlockListEntry, {
@@ -174,22 +172,26 @@ export function CommandBlockListTable(props){
     if(props?.me?.user?.current_operation_id === 0){
         return null;
     }
+    const blockListCountLabel = blockLists.length === 1 ? "1 list" : `${blockLists.length} lists`;
     return (
         <>
-        <MythicPageHeader title={"Command Block Lists"}>
-            <Button size="small"
-                    onClick={()=>{setOpenNewDialog(true);}}
-                    style={{color: "white", whiteSpace: "nowrap"}}
-                    startIcon={<AddCircleIcon color="success" style={{backgroundColor: "white", borderRadius: "10px"}}/>}
-                    >New Block List</Button>
-            {openNew &&
-                <MythicDialog open={openNew} fullWidth={true} maxWidth="lg"
-                    onClose={()=>{setOpenNewDialog(false);}} 
-                    innerDialog={<EditBlockListDialog editable={true} currentSelected={[]} onSubmit={onSubmitNewBlockList} dialogTitle="Create New Block List" onClose={() => setOpenNewDialog(false)}
-                    />}
-                />
+        <MythicPageHeader
+            title={"Command Block Lists"}
+            subtitle={"Control which commands are blocked for selected payload types."}
+            meta={<MythicPageHeaderChip label={blockListCountLabel} />}
+            actions={
+                <MythicToolbarButton variant="contained" color="primary" onClick={()=>{setOpenNewDialog(true);}} startIcon={<AddCircleIcon />}>
+                    Block List
+                </MythicToolbarButton>
             }
-        </MythicPageHeader>
+        />
+        {openNew &&
+            <MythicDialog open={openNew} fullWidth={true} maxWidth="lg"
+                onClose={()=>{setOpenNewDialog(false);}}
+                innerDialog={<EditBlockListDialog editable={true} currentSelected={[]} onSubmit={onSubmitNewBlockList} dialogTitle="Create New Block List" onClose={() => setOpenNewDialog(false)}
+                />}
+            />
+        }
         <TableContainer className="mythicElement">
             <Table  size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
                 <TableHead>
@@ -201,6 +203,14 @@ export function CommandBlockListTable(props){
                     </TableRow>
                 </TableHead>
                 <TableBody>
+                    {blockLists.length === 0 &&
+                        <MythicTableEmptyState
+                            colSpan={4}
+                            compact
+                            title="No command block lists"
+                            description="Create a block list to prevent selected commands from being used in this operation."
+                        />
+                    }
                     {
                         blockLists.map( b => (
                             <CommandBlockListTableRow key={b.name} {...b} onAcceptDelete={onAcceptDelete} onSubmitEdits={onSubmitEdits}/>
@@ -214,7 +224,6 @@ export function CommandBlockListTable(props){
 }
 
 function CommandBlockListTableRow(props){
-    const theme = useTheme();
     const [openDelete, setOpenDeleteDialog] = React.useState(false);
     const [blockedCommandDisplay, setBlockedCommandDisplay] = React.useState([]);
     const [openUpdate, setOpenUpdateDialog] = React.useState(false);
@@ -242,11 +251,11 @@ function CommandBlockListTableRow(props){
     return (
         <TableRow hover>
             <TableCell>
-                <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} color={"error"} variant="contained"><DeleteIcon/></IconButton>
+                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><DeleteIcon fontSize="small" /></IconButton>
                 <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} open={openDelete}/>
             </TableCell>
             <TableCell>
-                <Button size="small" onClick={()=>{setOpenUpdateDialog(true);}} startIcon={<TuneIcon/>} color="primary" variant="contained">Edit</Button>
+                <Button className="mythic-table-row-action" size="small" onClick={()=>{setOpenUpdateDialog(true);}} startIcon={<EditIcon/>} variant="outlined">Edit</Button>
                 {openUpdate &&
                     <MythicDialog open={openUpdate} fullWidth maxWidth={"lg"}
                         onClose={()=>{setOpenUpdateDialog(false);}} 
@@ -266,4 +275,3 @@ function CommandBlockListTableRow(props){
         </TableRow>
     )
 }
-

@@ -1,5 +1,4 @@
 import React from 'react';
-import { styled } from '@mui/material/styles';
 import Button from '@mui/material/Button';
 import Switch from '@mui/material/Switch';
 import DialogActions from '@mui/material/DialogActions';
@@ -7,48 +6,18 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import Select from '@mui/material/Select';
-import Input from '@mui/material/Input';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import ListItemText from '@mui/material/ListItemText';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import { gql, useQuery} from '@apollo/client';
-
-const PREFIX = 'ArtifactTableNewArtifactDialog';
-
-
-const classes = {
-  formControl: `${PREFIX}-formControl`,
-  chips: `${PREFIX}-chips`,
-  chip: `${PREFIX}-chip`,
-  noLabel: `${PREFIX}-noLabel`
-};
-
-const Root = styled('div')((
-  {
-    theme
-  }
-) => ({
-  [`& .${classes.formControl}`]: {
-    margin: theme.spacing(1),
-    width: "50%",
-    marginRight: "5px"
-  },
-
-  [`& .${classes.chips}`]: {
-    display: 'flex',
-    flexWrap: 'wrap',
-  },
-
-  [`& .${classes.chip}`]: {
-    margin: 2,
-  },
-
-  [`& .${classes.noLabel}`]: {
-    marginTop: theme.spacing(2),
-  }
-}));
+import {
+  MythicDialogBody,
+  MythicDialogChoiceDivider,
+  MythicDialogChoiceRow,
+  MythicDialogSection
+} from '../../MythicComponents/MythicDialogLayout';
 
 const artifactHostSearch = gql`
 query artifactHostAndTypeQuery {
@@ -126,81 +95,93 @@ export function ArtifactTableNewArtifactDialog(props) {
     setCustomBaseArtifact(value);
   }
   return (
-    <Root>
+    <React.Fragment>
         <DialogTitle id="form-dialog-title">Register New Artifact</DialogTitle>
       <DialogContent dividers={true}>
-        <div style={{width: "100%", display: "flex", alignItems: "center"}}>
-          <FormControl className={classes.formControl}>
-            <InputLabel id="operator-chip-label">Existing Artifact Type</InputLabel>
-            <Select
-                labelId="operator-chip-label"
-                id="operator-chip"
-                value={baseArtifact}
-                disabled={customBaseArtifact !== ""}
-                onChange={handleBaseArtifactChange}
-                input={<Input/>}
-            >
-              {baseArtifactOptions.map((name) => (
-                  <MenuItem key={name} value={name}>
-                    <ListItemText primary={name}/>
-                  </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          {"OR  "}
-          <MythicTextField value={customBaseArtifact} onChange={handleCustomBaseArtifactChange}
-                           name="Custom Artifact Type" display="inline-block"/>
-        </div>
-        <div style={{width: "100%", display: "flex", alignItems: "center"}}>
-          <FormControl className={classes.formControl}>
-            <InputLabel id="operator-chip-label">Existing Host</InputLabel>
-            <Select
-                labelId="operator-chip-label"
-                id="operator-chip"
-                value={host}
-                disabled={customHost !== ""}
-                onChange={onHostChange}
-                input={<Input/>}
-            >
-              {hostOptions.map((name) => (
-                  <MenuItem key={name} value={name}>
-                    <ListItemText primary={name}/>
-                  </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          {"OR  "}
-          <MythicTextField value={customHost} onChange={onCustomHostChange}
-                           name="New Host" display="inline-block"/>
-        </div>
-        <MythicTextField multiline value={artifact} onChange={onArtifactChange} name="Artifact"/>
-        <FormControlLabel label={"Artifact needs to be cleaned up"}
-                          control={
-                            <Switch
-                                checked={needsCleanup}
-                                onChange={onNeedsCleanupChange}
-                                color="info"
-                                inputProps={{'aria-label': 'primary checkbox'}}
-                                name="needs_cleanup"
-                            />
-                          }
-                          labelPlacement={"start"}
-        />
-        <br/>
-        {needsCleanup &&
-            <FormControlLabel label={"Artifact is already cleaned up"}
-                              labelPlacement={"start"}
-                              control={<Switch
-                                  checked={resolved}
-                                  onChange={onNeedsResolvedChanged}
-                                  color="info"
-                                  inputProps={{'aria-label': 'primary checkbox'}}
-                                  name="resolved"
-                              />}
+        <MythicDialogBody>
+          <MythicDialogSection title="Artifact Type">
+            <MythicDialogChoiceRow>
+              <FormControl fullWidth size="small">
+                <InputLabel id="artifact-type-label">Existing Artifact Type</InputLabel>
+                <Select
+                    labelId="artifact-type-label"
+                    id="artifact-type"
+                    value={baseArtifact}
+                    label="Existing Artifact Type"
+                    disabled={customBaseArtifact !== ""}
+                    onChange={handleBaseArtifactChange}
+                >
+                  {baseArtifactOptions.map((name) => (
+                      <MenuItem key={name} value={name}>
+                        <ListItemText primary={name}/>
+                      </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <MythicDialogChoiceDivider />
+              <MythicTextField value={customBaseArtifact} onChange={handleCustomBaseArtifactChange}
+                               name="Custom Artifact Type"/>
+            </MythicDialogChoiceRow>
+          </MythicDialogSection>
+          <MythicDialogSection title="Host">
+            <MythicDialogChoiceRow>
+              <FormControl fullWidth size="small">
+                <InputLabel id="artifact-host-label">Existing Host</InputLabel>
+                <Select
+                    labelId="artifact-host-label"
+                    id="artifact-host"
+                    value={host}
+                    label="Existing Host"
+                    disabled={customHost !== ""}
+                    onChange={onHostChange}
+                >
+                  {hostOptions.map((name) => (
+                      <MenuItem key={name} value={name}>
+                        <ListItemText primary={name}/>
+                      </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <MythicDialogChoiceDivider />
+              <MythicTextField value={customHost} onChange={onCustomHostChange}
+                               name="New Host"/>
+            </MythicDialogChoiceRow>
+          </MythicDialogSection>
+          <MythicDialogSection title="Artifact">
+            <MythicTextField multiline value={artifact} onChange={onArtifactChange} name="Artifact"/>
+          </MythicDialogSection>
+          <MythicDialogSection title="Cleanup State">
+            <FormControlLabel
+                className="mythic-dialog-switch-row"
+                label={"Artifact needs to be cleaned up"}
+                control={
+                  <Switch
+                      checked={needsCleanup}
+                      onChange={onNeedsCleanupChange}
+                      color="info"
+                      inputProps={{'aria-label': 'primary checkbox'}}
+                      name="needs_cleanup"
+                  />
+                }
+                labelPlacement={"start"}
             />
-        }
+            {needsCleanup &&
+                <FormControlLabel
+                    className="mythic-dialog-switch-row"
+                    label={"Artifact is already cleaned up"}
+                    labelPlacement={"start"}
+                    control={<Switch
+                        checked={resolved}
+                        onChange={onNeedsResolvedChanged}
+                        color="info"
+                        inputProps={{'aria-label': 'primary checkbox'}}
+                        name="resolved"
+                    />}
+                />
+            }
+          </MythicDialogSection>
 
-
+        </MythicDialogBody>
       </DialogContent>
       <DialogActions>
         <Button onClick={props.onClose} variant="contained">
@@ -210,7 +191,6 @@ export function ArtifactTableNewArtifactDialog(props) {
           Create
         </Button>
       </DialogActions>
-    </Root>
+    </React.Fragment>
   );
 }
-

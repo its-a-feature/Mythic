@@ -2,7 +2,6 @@ import React from 'react';
 import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
-import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import {useQuery, gql} from '@apollo/client';
@@ -10,7 +9,13 @@ import {snackActions} from '../../utilities/Snackbar';
 import Switch from '@mui/material/Switch';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import {getReadableTextColor, MythicColorSwatchInput} from '../../MythicComponents/MythicColorInput';
+import {
+  MythicDialogBody,
+  MythicDialogGrid,
+  MythicDialogSection
+} from '../../MythicComponents/MythicDialogLayout';
 
 const GET_OperationData = gql`
 query GetOperations($operation_id: Int!) {
@@ -89,73 +94,65 @@ export function OperationTableRowNotificationsDialog(props) {
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Modify {name}</DialogTitle>
         <DialogContent dividers={true} style={{maxHeight: "calc(70vh)"}}>
-          <DialogContentText>
-            Use this dialog to update some information about an operation.
-          </DialogContentText>
-          <MythicTextField
-            autoFocus
-            value={name}
-            onChange={onTextChange}
-            margin="dense"
-            name="name"
-          />
-          Complete Operation? <Switch checked={complete} onChange={onBoolChange} color="warning" />
-          <MythicTextField
-            margin="dense"
-            value={channel}
-            onChange={onTextChange}
-            name="Webhook Channel"
-          />
-          <MythicTextField
-            margin="dense"
-            value={webhook}
-            onChange={onTextChange}
-            name="Webhook URL"
-          />
-            <MythicTextField
-                margin="dense"
-                value={bannerText}
-                onChange={onTextChange}
-                name="Banner Text"
-            />
-            <Box
-                sx={{
-                    mt: 2,
-                    p: 1.5,
-                    border: "1px solid",
-                    borderColor: "divider",
-                    borderRadius: "8px",
-                    backgroundColor: "background.paper",
-                }}
+          <MythicDialogBody>
+            <MythicDialogSection title="Operation Details">
+              <MythicDialogGrid>
+                <MythicTextField
+                  autoFocus
+                  value={name}
+                  onChange={onTextChange}
+                  name="name"
+                />
+                <FormControlLabel
+                  className="mythic-dialog-switch-row"
+                  label="Complete Operation"
+                  labelPlacement="start"
+                  control={<Switch checked={complete} onChange={onBoolChange} color="warning" />}
+                />
+              </MythicDialogGrid>
+            </MythicDialogSection>
+            <MythicDialogSection title="Webhook Notifications">
+              <MythicDialogGrid>
+                <MythicTextField
+                  value={channel}
+                  onChange={onTextChange}
+                  name="Webhook Channel"
+                />
+                <MythicTextField
+                  value={webhook}
+                  onChange={onTextChange}
+                  name="Webhook URL"
+                />
+              </MythicDialogGrid>
+            </MythicDialogSection>
+            <MythicDialogSection
+                title="Operation Banner"
+                actions={
+                  <MythicColorSwatchInput
+                      color={bannerColor}
+                      label="Operation banner color"
+                      onChange={setBannerColor}
+                  />
+                }
             >
-                <Box sx={{display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, mb: 1}}>
-                    <Box sx={{minWidth: 0}}>
-                        <Typography variant="body2" sx={{fontWeight: 700}}>Banner Color</Typography>
-                        <Typography variant="caption" sx={{color: "text.secondary"}}>Operation banner background</Typography>
-                    </Box>
-                    <MythicColorSwatchInput
-                        color={bannerColor}
-                        label="Operation banner color"
-                        onChange={setBannerColor}
-                    />
-                </Box>
-                <Box
-                    sx={{
-                        minHeight: 38,
-                        px: 1.5,
-                        display: "flex",
-                        alignItems: "center",
-                        borderRadius: "6px",
-                        backgroundColor: bannerColor,
-                        border: "1px solid",
-                        borderColor: "divider",
-                    }}
-                >
-                    <Typography sx={{color: getReadableTextColor(bannerColor), fontWeight: 700}}>
-                        {bannerText || "Operation Banner"}
-                    </Typography>
-                </Box>
-            </Box>
+              <MythicTextField
+                  value={bannerText}
+                  onChange={onTextChange}
+                  name="Banner Text"
+              />
+              <Box
+                  className="mythic-dialog-preview"
+                  sx={{
+                      mt: 1,
+                      backgroundColor: bannerColor,
+                  }}
+              >
+                  <Typography sx={{color: getReadableTextColor(bannerColor), fontWeight: 700}}>
+                      {bannerText || "Operation Banner"}
+                  </Typography>
+              </Box>
+            </MythicDialogSection>
+          </MythicDialogBody>
         </DialogContent>
         <DialogActions>
           <Button onClick={props.onClose} variant="contained" color="primary">

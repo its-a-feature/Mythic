@@ -548,9 +548,13 @@ export const StartFromExistingPayloadOrStartFresh = (
             <div style={{flexShrink: 0}}>
                 <Typography variant={"p"} style={{fontWeight: 600}}>
                     3. Continue from Existing Payload or
-                    <Button size="small" color={"primary"} variant={"contained"} style={{marginLeft: "10px", color: "white", marginBottom: "5px"}}
+                    <Button
+                            className="mythic-table-row-action mythic-table-row-action-hover-success"
+                            size="small"
+                            variant="contained"
+                            style={{marginLeft: "10px", marginBottom: "5px"}}
                             onClick={onStartFresh}
-                            startIcon={<AddCircleIcon color={"success"} style={{backgroundColor: "white", borderRadius: "10px"}}/>} >
+                            startIcon={<AddCircleIcon fontSize="small" />} >
                         Start Fresh
                     </Button>
                 </Typography>

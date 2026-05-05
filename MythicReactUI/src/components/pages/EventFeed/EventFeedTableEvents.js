@@ -6,8 +6,8 @@ import { meState } from '../../../cache';
 import {useReactiveVar} from '@apollo/client';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
-import {useTheme} from '@mui/material/styles';
 import {EventFeedTableEventsActions} from './EventFeedTableEventsActions';
+import {MythicStatusChip} from '../../MythicComponents/MythicStatusChip';
 
 const PREFIX = 'EventFeedTableEvents';
 
@@ -30,35 +30,23 @@ const StyledListItem = styled(ListItem)((
     }
 }));
 
-const GetPreAdornment = ({message}) => {
-    const theme = useTheme();
-    const getColor = React.useCallback(() => {
-        if(message.warning){
-            if(message.resolved){
-                return theme.palette.success.main;
-            } else {
-                return theme.palette.error.main;
-            }
-        }
-        return theme.palette.info.main;
-    }, [theme, message.level, message.resolved, message.warning]);
-    const getSymbol = React.useCallback(() => {
-        if(message.warning){
-            if(message.resolved){
-                return "+";
-            } else {
-                return "!";
-            }
-        }
-        return "*";
-    }, [theme, message.level, message.resolved, message.warning]);
+const GetEventStatusChip = ({message}) => {
+    if(message.warning){
+        return (
+            <MythicStatusChip
+                label={message.resolved ? "Resolved" : "Warning"}
+                status={message.resolved ? "success" : "error"}
+                sx={{mr: 1, flex: "0 0 auto"}}
+            />
+        );
+    }
     return (
-        <>
-            <p style={{display: "inline-block", fontWeight: "bold", color: getColor(), margin: "0 0 0 0"}}>[</p>
-            <p style={{display: "inline-block", fontWeight: "bold", color: getColor(), margin: "0 0 0 0"}}>{getSymbol()}</p>
-            <p style={{display: "inline-block", fontWeight: "bold", color: getColor(), margin: "0 10px 0 0"}}>]</p>
-        </>
-    )
+        <MythicStatusChip
+            label={message.level}
+            status={message.level === "warning" ? "warning" : "info"}
+            sx={{mr: 1, flex: "0 0 auto"}}
+        />
+    );
 }
 export function EventFeedTableEvents(props){
 
@@ -89,8 +77,8 @@ export function EventFeedTableEvents(props){
                     </React.Fragment>
                 }
                 secondary={
-                <div style={{display: "flex", overflowX: "auto"}}>
-                    <GetPreAdornment message={props} />
+                <div style={{display: "flex", alignItems: "flex-start", overflowX: "auto"}}>
+                    <GetEventStatusChip message={props} />
                     <pre style={{  margin: "0 0 0 0px", overflowX: "auto", maxWidth: "90%", wordBreak: "break-all", whiteSpace: "pre-wrap"}}>
                         {props.message}
                     </pre>
@@ -104,5 +92,4 @@ export function EventFeedTableEvents(props){
         </StyledListItem>
     );
 }
-
 

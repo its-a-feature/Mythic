@@ -1,7 +1,6 @@
 import React from 'react';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import Typography from '@mui/material/Typography';
-import {useTheme} from '@mui/material/styles';
 import IconButton from '@mui/material/IconButton';
 import {useMutation, gql} from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
@@ -19,6 +18,7 @@ import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
+import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
 
 const toggleDeleteStatus = gql`
 mutation toggleCustomBrowserDeleteStatus($custombrowser_id: Int!, $deleted: Boolean!){
@@ -29,7 +29,6 @@ mutation toggleCustomBrowserDeleteStatus($custombrowser_id: Int!, $deleted: Bool
 `;
 
 export function CustomBrowserRow({service, showDeleted}) {
-  const theme = useTheme();
   const [openListFilesDialog, setOpenListFilesDialog] = React.useState(false);
   const [openDelete, setOpenDeleteDialog] = React.useState(false);
   const [updateDeleted] = useMutation(toggleDeleteStatus, {
@@ -55,9 +54,9 @@ export function CustomBrowserRow({service, showDeleted}) {
         <TableRow >
             <MythicTableCell>
                 {service.deleted ? (
-                    <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} color="success" variant="contained"><RestoreFromTrashOutlinedIcon/></IconButton>
+                    <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-success" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><RestoreFromTrashOutlinedIcon fontSize="small" /></IconButton>
                 ) : (
-                    <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} color="error" variant="contained"><DeleteIcon/></IconButton>
+                    <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><DeleteIcon fontSize="small" /></IconButton>
                 )}
                 {openDelete &&
                     <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete}
@@ -71,9 +70,9 @@ export function CustomBrowserRow({service, showDeleted}) {
             </MythicTableCell>
             <MythicTableCell>
                 {service.name}
-                <Typography variant="body2" component="p" color={service.container_running ? theme.palette.success.main : theme.palette.error.main} >
-                    <b>{service.container_running ? "Online" : "Offline"}</b>
-                </Typography>
+                <div style={{marginTop: "0.35rem"}}>
+                    <MythicStatusChip label={service.container_running ? "Online" : "Offline"} status={service.container_running ? "success" : "error"} />
+                </div>
             </MythicTableCell>
             <MythicTableCell>
                 {service.type}
@@ -96,10 +95,11 @@ export function CustomBrowserRow({service, showDeleted}) {
             <MythicTableCell>
                 <MythicStyledTooltip title={service.container_running ? "View Files" : "Unable to view files because container is offline"}>
                     <IconButton
+                        className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
                         disabled={!service.container_running}
                         onClick={()=>{setOpenListFilesDialog(true);}}
-                        size="medium">
-                        <AttachFileIcon />
+                        size="small">
+                        <AttachFileIcon fontSize="small" />
                     </IconButton>
                 </MythicStyledTooltip>
             </MythicTableCell>

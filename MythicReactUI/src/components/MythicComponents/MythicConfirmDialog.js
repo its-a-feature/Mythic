@@ -1,10 +1,9 @@
 import React from 'react';
-import Button from '@mui/material/Button';
-import DialogActions from '@mui/material/DialogActions';
 import DialogTitle from '@mui/material/DialogTitle';
 import {MythicDialog} from './MythicDialog';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogContent from '@mui/material/DialogContent';
+import {MythicDialogButton, MythicDialogFooter} from "./MythicDialogLayout";
 
 export function MythicConfirmDialog(props) {
     const handleSubmit = () => {
@@ -14,6 +13,10 @@ export function MythicConfirmDialog(props) {
         }
         props.onClose();
     }
+    const acceptIntent = props.acceptColor === "success" ? "primary" :
+        props.acceptColor === "warning" ? "warning" :
+        props.acceptColor === "info" ? "info" :
+        "destructive";
 
   return (
     <MythicDialog fullWidth={false} maxWidth="sm" open={props.open} onClose={()=>{props.onClose()}} innerDialog={
@@ -26,14 +29,14 @@ export function MythicConfirmDialog(props) {
                 </DialogContentText>
               </DialogContent>
             )}
-            <DialogActions>
-              <Button onClick={props.onClose} variant="contained" color="primary">
+            <MythicDialogFooter>
+              <MythicDialogButton onClick={props.onClose}>
                 {props.cancelText ? (props.cancelText) : ("Cancel")}
-              </Button>
-              <Button onClick={handleSubmit} autoFocus variant="contained" color={props.acceptColor ? (props.acceptColor) : ("error")}>
+              </MythicDialogButton>
+              <MythicDialogButton onClick={handleSubmit} autoFocus intent={acceptIntent}>
                 {props.acceptText ? (props.acceptText) : ("Remove")}
-              </Button>
-            </DialogActions>
+              </MythicDialogButton>
+            </MythicDialogFooter>
         </React.Fragment>
   } />
   );

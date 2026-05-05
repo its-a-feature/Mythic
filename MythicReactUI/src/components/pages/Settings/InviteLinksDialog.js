@@ -1,6 +1,6 @@
 import React from 'react';
 import Button from '@mui/material/Button';
-import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import TableCell from '@mui/material/TableCell';
 import TableRow from '@mui/material/TableRow';
@@ -12,20 +12,26 @@ import Typography from '@mui/material/Typography';
 import {useMutation, useQuery, useLazyQuery, gql} from '@apollo/client';
 import {snackActions} from "../../utilities/Snackbar";
 import IconButton from '@mui/material/IconButton';
-import DeleteIcon from '@mui/icons-material/Delete';
-import RestoreFromTrashOutlinedIcon from '@mui/icons-material/RestoreFromTrashOutlined';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
-import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
 import MythicTextField from "../../MythicComponents/MythicTextField";
 import {copyStringToClipboard} from "../../utilities/Clipboard";
 import {MythicDialog} from "../../MythicComponents/MythicDialog";
-import DialogContentText from '@mui/material/DialogContentText';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
-import Input from '@mui/material/Input';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import {useTheme} from '@mui/material/styles';
 import EditIcon from '@mui/icons-material/Edit';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import {
+    MythicDialogBody,
+    MythicDialogButton,
+    MythicDialogFooter,
+    MythicDialogSection,
+    MythicFormField,
+    MythicFormGrid,
+    MythicFormNote
+} from "../../MythicComponents/MythicDialogLayout";
 
 const GetInviteLinks = gql`
 query getOutstandingInviteLinks {
@@ -118,13 +124,15 @@ export function InviteLinksDialog(props) {
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">
-            Manage Outstanding Invite Links
-            <MythicStyledTooltip tooltipStyle={{float: "right", display: "inline-block"}}
-                                 title={"Generate invite link for somebody to create their own username/password"}>
-                <Button onClick={createInviteLink} variant={"contained"}>
-                    Generate Invite Link
-                </Button>
-            </MythicStyledTooltip>
+            <div className="mythic-dialog-title-row">
+                <span>Manage Outstanding Invite Links</span>
+                <MythicStyledTooltip tooltipStyle={{display: "inline-flex"}}
+                                     title={"Generate invite link for somebody to create their own username/password"}>
+                    <Button className="mythic-dialog-title-action" onClick={createInviteLink} size="small" variant="outlined">
+                        Generate Invite Link
+                    </Button>
+                </MythicStyledTooltip>
+            </div>
         </DialogTitle>
         {openInviteLinksDialog &&
             <MythicDialog open={openInviteLinksDialog}
@@ -135,66 +143,75 @@ export function InviteLinksDialog(props) {
                                                                 existing_invite={selectedInviteRef.current}/>}
             />
         }
-          <TableContainer  className="mythicElement">
-          <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
-              <TableHead>
-                  <TableRow>
-                      <TableCell>Code</TableCell>
-                      <TableCell>Name</TableCell>
-                      <TableCell>Creator</TableCell>
-                      <TableCell>Assigned To</TableCell>
-                      <TableCell style={{width: "9rem"}}>Usage</TableCell>
-                      <TableCell style={{width: "3rem"}}>Link</TableCell>
-                  </TableRow>
-              </TableHead>
-              <TableBody>
-                  {inviteLinks.map( l => (
-                      <TableRow hover key={l.code}>
-                          <TableCell>
-                              <Typography style={{textDecoration: l.valid ? "" : "line-through", display: "inline-block"}}>
-                                  {l.code}
-                              </Typography>
+        <DialogContent dividers={true}>
+            <MythicDialogBody>
+                <MythicDialogSection
+                    title="Outstanding Links"
+                    description="Invite links are temporary and are deleted if Mythic restarts."
+                >
+                    <TableContainer className="mythicElement">
+                        <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
+                            <TableHead>
+                                <TableRow>
+                                    <TableCell>Code</TableCell>
+                                    <TableCell>Name</TableCell>
+                                    <TableCell>Creator</TableCell>
+                                    <TableCell>Assigned To</TableCell>
+                                    <TableCell style={{width: "9rem"}}>Usage</TableCell>
+                                    <TableCell style={{width: "3rem"}}>Link</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {inviteLinks.map( l => (
+                                    <TableRow hover key={l.code}>
+                                        <TableCell>
+                                            <Typography style={{textDecoration: l.valid ? "" : "line-through", display: "inline-block"}}>
+                                                {l.code}
+                                            </Typography>
 
-                          </TableCell>
-                          <TableCell>{l.name}</TableCell>
-                          <TableCell>{l.operator}</TableCell>
-                          <TableCell>
-                              {l.operation_id > 0 &&
-                                <Typography>
-                                    {operationDataRef.current[l.operation_id]} as {l.operation_role}
-                                </Typography>
-                              }
-                          </TableCell>
-                          <TableCell>
-                              <Typography style={{display: "inline-block", fontWeight: "600"}}
-                                          color={l.used >= l.total ? theme.palette.error.main : theme.palette.success.main}>
-                                  {l.used}
-                              </Typography>
-                              <Typography style={{display: "inline-block"}} color={"secondary"}>
-                                  {" /"} {l.total}
-                              </Typography>
-                              <IconButton onClick={() => updateInviteLink(l)}>
-                                  <EditIcon/>
-                              </IconButton>
-                          </TableCell>
-                          <TableCell>
-                              {l.valid &&
-                                  <IconButton size={"small"} color={"success"} onClick={() => copyStringToClipboard(l.link)}>
-                                        <ContentCopyIcon/>
-                                  </IconButton>
-                              }
+                                        </TableCell>
+                                        <TableCell>{l.name}</TableCell>
+                                        <TableCell>{l.operator}</TableCell>
+                                        <TableCell>
+                                            {l.operation_id > 0 &&
+                                                <Typography>
+                                                    {operationDataRef.current[l.operation_id]} as {l.operation_role}
+                                                </Typography>
+                                            }
+                                        </TableCell>
+                                        <TableCell>
+                                            <Typography style={{display: "inline-block", fontWeight: "600"}}
+                                                        color={l.used >= l.total ? theme.palette.error.main : theme.palette.success.main}>
+                                                {l.used}
+                                            </Typography>
+                                            <Typography style={{display: "inline-block"}} color={"secondary"}>
+                                                {" /"} {l.total}
+                                            </Typography>
+                                            <IconButton size="small" onClick={() => updateInviteLink(l)}>
+                                                <EditIcon fontSize="small"/>
+                                            </IconButton>
+                                        </TableCell>
+                                        <TableCell>
+                                            {l.valid &&
+                                                <IconButton size={"small"} color={"success"} onClick={() => copyStringToClipboard(l.link)}>
+                                                    <ContentCopyIcon fontSize="small"/>
+                                                </IconButton>
+                                            }
 
-                          </TableCell>
-                      </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-        </TableContainer>
-        <DialogActions>
-          <Button onClick={props.onClose} variant="contained" color="primary">
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                </MythicDialogSection>
+            </MythicDialogBody>
+        </DialogContent>
+        <MythicDialogFooter>
+          <MythicDialogButton onClick={props.onClose}>
             Cancel
-          </Button>
-        </DialogActions>
+          </MythicDialogButton>
+        </MythicDialogFooter>
   </React.Fragment>
   );
 }
@@ -290,80 +307,99 @@ export function CreateInviteLinksDialog(props) {
     return (
         <React.Fragment>
             <DialogTitle id="form-dialog-title">{props.create ? "Create" : "Update"} Invite Link</DialogTitle>
-            <DialogContentText>
-                <b style={{marginLeft: "10px"}}>{"Note:"}</b> Invite links are deleted if Mythic restarts
-            </DialogContentText>
-            <TableContainer className="mythicElement">
-                <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll", marginRight: "10px"}}>
-                    <TableBody>
-                        <TableRow hover>
-                            <MythicStyledTableCell>Invite Code Name</MythicStyledTableCell>
-                            <MythicStyledTableCell>
-                                <MythicTextField onChange={onChangeText} name={"name"} value={linkData.name}
-                                                 showLabel={false}
-                                                 placeholder={"Descriptive name for link..."} disabled={!props.create} />
-                            </MythicStyledTableCell>
-                        </TableRow>
-                        <TableRow hover>
-                            <MythicStyledTableCell>Custom Invite Code</MythicStyledTableCell>
-                            <MythicStyledTableCell>
-                                <MythicTextField onChange={onChangeText} name={"short_code"} value={linkData.short_code}
-                                                 showLabel={false}
-                                                 placeholder={"Custom Invite Code..."} disabled={!props.create} />
-                            </MythicStyledTableCell>
-                        </TableRow>
-                        <TableRow hover>
-                            <MythicStyledTableCell>Assign to Operation</MythicStyledTableCell>
-                            <MythicStyledTableCell>
-                                <Select
-                                    value={linkData.operation_id}
+            <DialogContent dividers={true}>
+                <MythicDialogBody>
+                    <MythicFormNote>
+                        Invite links are temporary and are deleted if Mythic restarts.
+                    </MythicFormNote>
+                    <MythicDialogSection title="Invite Details">
+                        <MythicFormGrid minWidth="18rem">
+                            <MythicFormField label="Invite Code Name">
+                                <MythicTextField
+                                    onChange={onChangeText}
+                                    name={"name"}
+                                    value={linkData.name}
+                                    showLabel={false}
+                                    placeholder={"Descriptive name for link..."}
                                     disabled={!props.create}
-                                    onChange={onChangeOperationID}
-                                    input={<Input style={{width: "100%"}}/>}
-                                >
-                                    <MenuItem value={0}>Optionally Assign to Operation</MenuItem>
-                                    {operationOptions.map( (opt) => (
-                                        <MenuItem value={opt.id} key={opt.id}>{opt.name}</MenuItem>
-                                    ) )}
-                                </Select>
-                            </MythicStyledTableCell>
-                        </TableRow>
-                        {linkData.operation_id > 0 &&
-                            <TableRow hover>
-                                <MythicStyledTableCell>Desired Role in Operation</MythicStyledTableCell>
-                                <MythicStyledTableCell>
+                                    marginTop="0px"
+                                    marginBottom="0px"
+                                />
+                            </MythicFormField>
+                            <MythicFormField label="Custom Invite Code">
+                                <MythicTextField
+                                    onChange={onChangeText}
+                                    name={"short_code"}
+                                    value={linkData.short_code}
+                                    showLabel={false}
+                                    placeholder={"Custom Invite Code..."}
+                                    disabled={!props.create}
+                                    marginTop="0px"
+                                    marginBottom="0px"
+                                />
+                            </MythicFormField>
+                            <MythicFormField label="Total Uses" required>
+                                <MythicTextField
+                                    onChange={onChangeText}
+                                    name={"total"}
+                                    value={linkData.total}
+                                    showLabel={false}
+                                    type={"Number"}
+                                    marginTop="0px"
+                                    marginBottom="0px"
+                                />
+                            </MythicFormField>
+                        </MythicFormGrid>
+                    </MythicDialogSection>
+                    <MythicDialogSection title="Operation Assignment">
+                        <MythicFormGrid minWidth="18rem">
+                            <MythicFormField label="Assign to Operation" description="Optionally add the invited user to an operation after signup.">
+                                <FormControl fullWidth size="small">
+                                    <InputLabel id="invite-operation-label">Operation</InputLabel>
                                     <Select
-                                        value={linkData.operation_role}
+                                        labelId="invite-operation-label"
+                                        value={linkData.operation_id}
+                                        label="Operation"
                                         disabled={!props.create}
-                                        onChange={onChangeOperationRole}
-                                        input={<Input style={{width: "100%"}}/>}
+                                        onChange={onChangeOperationID}
                                     >
-                                        {operatorRoleOptions.map( (opt) => (
-                                            <MenuItem value={opt} key={opt}>{opt}</MenuItem>
+                                        <MenuItem value={0}>Optionally Assign to Operation</MenuItem>
+                                        {operationOptions.map( (opt) => (
+                                            <MenuItem value={opt.id} key={opt.id}>{opt.name}</MenuItem>
                                         ) )}
                                     </Select>
-                                </MythicStyledTableCell>
-                            </TableRow>
-                        }
-
-                        <TableRow hover>
-                            <MythicStyledTableCell>Total Uses</MythicStyledTableCell>
-                            <MythicStyledTableCell>
-                                <MythicTextField onChange={onChangeText} name={"total"} value={linkData.total}
-                                                 showLabel={false} type={"Number"} />
-                            </MythicStyledTableCell>
-                        </TableRow>
-                    </TableBody>
-                </Table>
-            </TableContainer>
-            <DialogActions>
-                <Button onClick={props.onClose} variant="contained" color="primary">
+                                </FormControl>
+                            </MythicFormField>
+                            {linkData.operation_id > 0 &&
+                                <MythicFormField label="Desired Role in Operation" description="Choose the role they should receive for that operation.">
+                                    <FormControl fullWidth size="small">
+                                        <InputLabel id="invite-role-label">Role</InputLabel>
+                                        <Select
+                                            labelId="invite-role-label"
+                                            value={linkData.operation_role}
+                                            label="Role"
+                                            disabled={!props.create}
+                                            onChange={onChangeOperationRole}
+                                        >
+                                            {operatorRoleOptions.map( (opt) => (
+                                                <MenuItem value={opt} key={opt}>{opt}</MenuItem>
+                                            ) )}
+                                        </Select>
+                                    </FormControl>
+                                </MythicFormField>
+                            }
+                        </MythicFormGrid>
+                    </MythicDialogSection>
+                </MythicDialogBody>
+            </DialogContent>
+            <MythicDialogFooter>
+                <MythicDialogButton onClick={props.onClose}>
                     Cancel
-                </Button>
-                <Button onClick={submit} variant={"contained"} color="success" >
+                </MythicDialogButton>
+                <MythicDialogButton intent="primary" onClick={submit}>
                     {props.create ? "Create" : "Update"}
-                </Button>
-            </DialogActions>
+                </MythicDialogButton>
+            </MythicDialogFooter>
         </React.Fragment>
     );
 }

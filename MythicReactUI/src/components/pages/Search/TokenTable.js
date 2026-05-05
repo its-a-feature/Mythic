@@ -10,7 +10,6 @@ import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
 import { gql, useMutation } from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
-import {useTheme} from '@mui/material/styles';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
@@ -106,7 +105,6 @@ export function TokenTable(props){
 }
 
 function TokenTableRow(props){
-    const theme = useTheme();
     const [openDeleteDialog, setOpenDeleteDialog] = React.useState(false);
     const [viewTokenDialog, setViewTokenDialog] = React.useState(false);
     const [editDescriptionDialog, setEditDescriptionDialog] = React.useState(false);
@@ -142,15 +140,15 @@ function TokenTableRow(props){
                 
                 <MythicStyledTableCell>{props.deleted ? (
                     <MythicStyledTooltip title="Restore Token for use in Tasking">
-                        <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} style={{color: theme.palette.error.main}} variant="contained"><VisibilityOffIcon/></IconButton>
+                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-danger" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><VisibilityOffIcon fontSize="small" /></IconButton>
                     </MythicStyledTooltip>
                 ) : (
                     <MythicStyledTooltip title="Delete Token so it can't be used in Tasking">
-                        <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} style={{color: theme.palette.success.main}} variant="contained"><VisibilityIcon/></IconButton>
+                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-success" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><VisibilityIcon fontSize="small" /></IconButton>
                     </MythicStyledTooltip>
                 )} </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <IconButton onClick={() => setEditUserDialog(true)} size="small"><EditIcon /></IconButton>
+                    <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-info" onClick={() => setEditUserDialog(true)} size="small"><EditIcon fontSize="small" /></IconButton>
                     <Typography variant="body2" style={{wordBreak: "break-all", display: "inline-block"}}>{props.user}</Typography>
 
                     {editUserDialog &&  <MythicDialog fullWidth={true} maxWidth="md" open={editUserDialog}
@@ -161,7 +159,7 @@ function TokenTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell >
                     <MythicStyledTooltip title="View Token Information">
-                        <IconButton size="small" color="primary" onClick={()=>{setViewTokenDialog(true);}}><ConfirmationNumberIcon/></IconButton>
+                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-info" size="small" onClick={()=>{setViewTokenDialog(true);}}><ConfirmationNumberIcon fontSize="small" /></IconButton>
                     </MythicStyledTooltip>
                     <Typography variant="body2" style={{wordBreak: "break-all", display: "inline-block"}}>{props.token_id}</Typography>
                     {viewTokenDialog && <MythicDialog fullWidth={true} maxWidth="md" open={viewTokenDialog}
@@ -170,7 +168,7 @@ function TokenTableRow(props){
                     />}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <IconButton onClick={() => setEditDescriptionDialog(true)} size="small"><EditIcon /></IconButton>
+                    <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-info" onClick={() => setEditDescriptionDialog(true)} size="small"><EditIcon fontSize="small" /></IconButton>
                     <Typography variant="body2" style={{wordBreak: "break-all", display: "inline-block"}}>{props.description}</Typography>
 
                     {editDescriptionDialog && <MythicDialog fullWidth={true} maxWidth="md" open={editDescriptionDialog}
@@ -200,4 +198,3 @@ function TokenTableRow(props){
         </React.Fragment>
     )
 }
-

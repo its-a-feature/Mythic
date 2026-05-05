@@ -23,6 +23,7 @@ import FormControl from "@mui/material/FormControl";
 import WrapTextIcon from '@mui/icons-material/WrapText';
 import {useTheme} from '@mui/material/styles';
 import HeightIcon from '@mui/icons-material/Height';
+import {MythicEmptyState} from "../../MythicComponents/MythicStateDisplay";
 
 const getInteractiveTaskingQuery = gql`
 ${taskingDataFragment}
@@ -297,6 +298,7 @@ const InteractiveTerminalDisplay = ({data, useASNIColor, showTaskStatus, wrapTex
     const terminalRef = React.useRef(null);
     const fitAddonRef = React.useRef(null);
     const resizeObserverRef = React.useRef(null);
+    const fitAnimationFrameRef = React.useRef(null);
     const replayStateRef = React.useRef({settingsKey: "", signatures: []});
     const autoScrollRef = React.useRef(autoScroll);
     const wrapTextRef = React.useRef(wrapText);
@@ -333,6 +335,15 @@ const InteractiveTerminalDisplay = ({data, useASNIColor, showTaskStatus, wrapTex
             console.error(error);
         }
     }, []);
+    const scheduleFitTerminal = React.useCallback( () => {
+        if(fitAnimationFrameRef.current !== null){
+            return;
+        }
+        fitAnimationFrameRef.current = window.requestAnimationFrame(() => {
+            fitAnimationFrameRef.current = null;
+            fitTerminal();
+        });
+    }, [fitTerminal]);
     React.useEffect( () => {
         autoScrollRef.current = autoScroll;
         if(autoScroll){
@@ -341,16 +352,16 @@ const InteractiveTerminalDisplay = ({data, useASNIColor, showTaskStatus, wrapTex
     }, [autoScroll]);
     React.useEffect( () => {
         wrapTextRef.current = wrapText;
-        fitTerminal();
-    }, [wrapText, fitTerminal]);
+        scheduleFitTerminal();
+    }, [wrapText, scheduleFitTerminal]);
     React.useEffect( () => {
         if(wrapText){
             unwrappedColumnCountRef.current = 0;
         } else {
             unwrappedColumnCountRef.current = Math.min(Math.max(longestLineLength + 2, 1), INTERACTIVE_TERMINAL_MAX_UNWRAPPED_COLS);
         }
-        fitTerminal();
-    }, [fitTerminal, longestLineLength, wrapText]);
+        scheduleFitTerminal();
+    }, [longestLineLength, scheduleFitTerminal, wrapText]);
     React.useEffect( () => {
         if(!terminalElementRef.current){
             return;
@@ -370,15 +381,20 @@ const InteractiveTerminalDisplay = ({data, useASNIColor, showTaskStatus, wrapTex
         terminal.open(terminalElementRef.current);
         terminalRef.current = terminal;
         fitAddonRef.current = fitAddon;
-        resizeObserverRef.current = new ResizeObserver(() => fitTerminal());
+        resizeObserverRef.current = new ResizeObserver(() => scheduleFitTerminal());
         if(terminalScrollContainerRef.current){
             resizeObserverRef.current.observe(terminalScrollContainerRef.current);
         }
-        window.requestAnimationFrame(() => {
+        fitAnimationFrameRef.current = window.requestAnimationFrame(() => {
+            fitAnimationFrameRef.current = null;
             fitTerminal();
             setTerminalReady(true);
         });
         return () => {
+            if(fitAnimationFrameRef.current !== null){
+                window.cancelAnimationFrame(fitAnimationFrameRef.current);
+                fitAnimationFrameRef.current = null;
+            }
             resizeObserverRef.current?.disconnect();
             resizeObserverRef.current = null;
             fitAddonRef.current = null;
@@ -396,7 +412,7 @@ const InteractiveTerminalDisplay = ({data, useASNIColor, showTaskStatus, wrapTex
             return;
         }
         const terminal = terminalRef.current;
-        fitTerminal();
+        scheduleFitTerminal();
         const nextSignatures = data.map(getInteractiveTerminalEntrySignature);
         const settingsKey = `${useASNIColor}:${showTaskStatus}:${wrapText}`;
         const previousReplayState = replayStateRef.current;
@@ -429,7 +445,7 @@ const InteractiveTerminalDisplay = ({data, useASNIColor, showTaskStatus, wrapTex
         } else {
             afterWrite();
         }
-    }, [data, showTaskStatus, terminalReady, useASNIColor, wrapText]);
+    }, [data, scheduleFitTerminal, showTaskStatus, terminalReady, useASNIColor, wrapText]);
     return (
         <div
             ref={terminalScrollContainerRef}
@@ -695,12 +711,15 @@ export const ResponseDisplayInteractive = (props) =>{
         }, 2000);
         return () => clearTimeout(timeoutID);
     }, [backdropOpen]);
+    const panelHeight = props.expand ? "100%" : "clamp(260px, 36vh, 500px)";
+    const outputMinHeight = props.expand ? 0 : "160px";
   return (
 
       <div style={{
           display: "flex", overflowY: "auto",
           position: "relative",
-          height: props.expand ? "100%" : undefined,
+          height: panelHeight,
+          minHeight: props.expand ? 0 : "260px",
           maxHeight: props.expand ? "100%" : "500px",
           flexDirection: "column",
           width: "100%",
@@ -725,14 +744,23 @@ export const ResponseDisplayInteractive = (props) =>{
               <SearchBar onSubmitSearch={onSubmitSearch}/>
           }
           <div style={{overflow: "hidden", width: "100%", marginBottom: "5px", height: props.expand ? "100%": undefined,
-              flexGrow: 1, minHeight: "50px"}} ref={props.responseRef}
+              flexGrow: 1, flexShrink: 1, minHeight: outputMinHeight}} ref={props.responseRef}
                id={`ptytask${props.task.id}`}>
-              <InteractiveTerminalDisplay data={visibleOutput}
-                                          useASNIColor={useASNIColor}
-                                          showTaskStatus={showTaskStatus}
-                                          wrapText={wrapText}
-                                          autoScroll={autoScroll}
-                                          theme={theme}/>
+              {visibleOutput.length === 0 && !backdropOpen ? (
+                  <MythicEmptyState
+                      compact
+                      title="No interactive output yet"
+                      description="Interactive tasking and responses will appear here as they arrive."
+                      sx={{backgroundColor: "transparent", color: "inherit", height: "100%"}}
+                  />
+              ) : (
+                  <InteractiveTerminalDisplay data={visibleOutput}
+                                              useASNIColor={useASNIColor}
+                                              showTaskStatus={showTaskStatus}
+                                              wrapText={wrapText}
+                                              autoScroll={autoScroll}
+                                              theme={theme}/>
+              )}
           </div>
           {!props.task?.is_interactive_task &&
               <div style={{width: "100%", display: "inline-flex", alignItems: "flex-end"}}>

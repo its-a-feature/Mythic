@@ -12,6 +12,10 @@ import TableHead from '@mui/material/TableHead';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import {OperationTableRowUpdateOperatorsDialogRow} from './OperationTableRowUpdateOperatorsDialogRow';
+import {
+  MythicDialogBody,
+  MythicDialogSection
+} from '../../MythicComponents/MythicDialogLayout';
 
 const GET_Operations = gql`
 query GetOperation($operation_id: Int!) {
@@ -207,30 +211,34 @@ export function OperationTableRowUpdateOperatorsDialog(props) {
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Modify Operator Assignments</DialogTitle>
         <DialogContent dividers={true}>
-          <TableContainer className="mythicElement" style={{marginTop: "0px"}}>
-              <Table stickyHeader={true} size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
-                  <TableHead>
-                      <TableRow>
-                          <TableCell style={{width: "8rem"}}>Assign to Operation</TableCell>
-                          <TableCell style={{}}>Operator</TableCell>
-                          <TableCell style={{width: "10rem"}}>Role</TableCell>
-                          <TableCell >Block List</TableCell>
-                          <TableCell style={{width: "4rem"}}></TableCell>
-                      </TableRow>
-                  </TableHead>
-                  <TableBody>
-                  
-                  {operators.map( (op) => (
-                      <OperationTableRowUpdateOperatorsDialogRow
-                          key={"operator" + op.id}
-                          operator={op} updateOperator={updateOperator}
-                          commandBlockLists={commandBlockLists}
-                          operation_id={props.id}
-                      />
-                  ))}
-                  </TableBody>
-              </Table>
-          </TableContainer>
+          <MythicDialogBody>
+            <MythicDialogSection title="Operator Access">
+              <TableContainer className="mythicElement mythic-dialog-table-wrap" style={{marginTop: "0px"}}>
+                  <Table stickyHeader={true} size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
+                      <TableHead>
+                          <TableRow>
+                              <TableCell style={{width: "8rem"}}>Assign to Operation</TableCell>
+                              <TableCell style={{}}>Operator</TableCell>
+                              <TableCell style={{width: "10rem"}}>Role</TableCell>
+                              <TableCell >Block List</TableCell>
+                              <TableCell style={{width: "4rem"}}></TableCell>
+                          </TableRow>
+                      </TableHead>
+                      <TableBody>
+
+                      {operators.map( (op) => (
+                          <OperationTableRowUpdateOperatorsDialogRow
+                              key={"operator" + op.id}
+                              operator={op} updateOperator={updateOperator}
+                              commandBlockLists={commandBlockLists}
+                              operation_id={props.id}
+                          />
+                      ))}
+                      </TableBody>
+                  </Table>
+              </TableContainer>
+            </MythicDialogSection>
+          </MythicDialogBody>
         </DialogContent>
         <DialogActions>
           <Button onClick={props.onClose} variant="contained" color="primary">
@@ -243,4 +251,3 @@ export function OperationTableRowUpdateOperatorsDialog(props) {
   </React.Fragment>
   );
 }
-

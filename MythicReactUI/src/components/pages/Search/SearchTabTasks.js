@@ -1,23 +1,18 @@
 import {MythicTabPanel, MythicSearchTabLabel} from '../../MythicComponents/MythicTabPanel';
 import React from 'react';
-import MythicTextField from '../../MythicComponents/MythicTextField';
 import {TaskDisplay} from '../Callbacks/TaskDisplay';
 import AssignmentIcon from '@mui/icons-material/Assignment';
-import Grid from '@mui/material/Grid';
-import SearchIcon from '@mui/icons-material/Search';
-import Tooltip from '@mui/material/Tooltip';
-import {useTheme} from '@mui/material/styles';
-import IconButton from '@mui/material/IconButton';
 import { gql, useQuery } from '@apollo/client';
 import {taskingDataFragment} from '../Callbacks/CallbackMutations'
 import { snackActions } from '../../utilities/Snackbar';
-import Pagination from '@mui/material/Pagination';
 import { Typography } from '@mui/material';
 import MenuItem from '@mui/material/MenuItem';
-import Select from '@mui/material/Select';
 import {TaskDisplayInteractiveSearch} from "./SearchTabInteractiveTasks";
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 import SmartToyTwoToneIcon from '@mui/icons-material/SmartToyTwoTone';
+import {MythicTablePagination} from "../../MythicComponents/MythicTablePagination";
+import {MythicSearchField, MythicTableToolbar, MythicTableToolbarGroup, MythicToolbarSelect} from "../../MythicComponents/MythicTableToolbar";
+import {MythicSearchEmptyState} from "../../MythicComponents/MythicStateDisplay";
 
 const fetchLimit = 50;
 const responseSearch = gql`
@@ -147,7 +142,6 @@ export function SearchTabTasksLabel(props){
 
 const AllOperator = {id: 0, username: "All Operators", account_type: "", active: true, deleted: false}
 const SearchTabTasksSearchPanel = (props) => {
-    const theme = useTheme();
     const [search, setSearch] = React.useState("");
     const [host, setHost] = React.useState("");
     const [searchField, setSearchField] = React.useState("Command and Parameters");
@@ -262,30 +256,17 @@ const SearchTabTasksSearchPanel = (props) => {
         }
     }, [props.value, props.index]);
     return (
-        <Grid container spacing={1} style={{padding: "5px 5px 0px 5px", maxWidth: "100%"}}>
-            <Grid size={2}>
-                <MythicTextField disabled={props.alreadySearching} placeholder="Host..." value={host}
-                                 marginTop={"0px"}
-                                 onChange={handleHostValueChange} onEnter={submitSearch} name="Search by Host..." InputProps={{
-                    style: {padding: 0}
-                }}/>
-            </Grid>
-            <Grid size={4}>
-                <MythicTextField disabled={props.alreadySearching} placeholder="Search..." value={search}
-                                 marginTop={"0px"}
-                    onChange={handleSearchValueChange} onEnter={submitSearch} name="Search..." InputProps={{
-                        endAdornment: 
-                        <React.Fragment>
-                            <Tooltip title="Search">
-                                <IconButton disabled={props.alreadySearching} onClick={submitSearch} size="large"><SearchIcon style={{color: theme.palette.info.main}}/></IconButton>
-                            </Tooltip>
-                        </React.Fragment>,
-                        style: {padding: 0}
-                    }}/>
-            </Grid>
-            <Grid size={2}>
-                <Select
-                    style={{marginBottom: "10px", width: "100%"}}
+        <MythicTableToolbar>
+            <MythicTableToolbarGroup style={{minWidth: "12rem"}}>
+                <MythicSearchField disabled={props.alreadySearching} placeholder="Host..." name="Host" value={host}
+                                   onChange={handleHostValueChange} onEnter={submitSearch}/>
+            </MythicTableToolbarGroup>
+            <MythicTableToolbarGroup grow>
+                <MythicSearchField disabled={props.alreadySearching} value={search}
+                                   onChange={handleSearchValueChange} onEnter={submitSearch} onSearch={submitSearch} />
+            </MythicTableToolbarGroup>
+            <MythicTableToolbarGroup>
+                <MythicToolbarSelect
                     value={searchField}
                     disabled={props.alreadySearching}
                     onChange={handleSearchFieldChange}
@@ -295,16 +276,15 @@ const SearchTabTasksSearchPanel = (props) => {
                             <MenuItem key={"searchopt" + opt} value={opt}>{opt}</MenuItem>
                         ))
                     }
-                </Select>
-            </Grid>
-            <Grid size={2}>
-                <MythicTextField disabled={props.alreadySearching} placeholder="Filter Task Status..." value={filterTaskStatus}
-                                 marginTop={"0px"}
-                        onChange={handleFilterTaskStatusValueChange} onEnter={submitSearch} name="Filter Task Status..."/>
-            </Grid>
-            <Grid size={2}>
-                <Select
-                    style={{marginBottom: "10px", width: "100%"}}
+                </MythicToolbarSelect>
+            </MythicTableToolbarGroup>
+            <MythicTableToolbarGroup style={{minWidth: "13rem"}}>
+                <MythicSearchField disabled={props.alreadySearching} placeholder="Filter Task Status..." name="Status"
+                                   value={filterTaskStatus} onChange={handleFilterTaskStatusValueChange}
+                                   onEnter={submitSearch}/>
+            </MythicTableToolbarGroup>
+            <MythicTableToolbarGroup>
+                <MythicToolbarSelect
                     value={filterOperator}
                     disabled={props.alreadySearching}
                     onChange={handleOperatorFilterChange}
@@ -326,9 +306,9 @@ const SearchTabTasksSearchPanel = (props) => {
                             </MenuItem>
                         ))
                     }
-                </Select>
-            </Grid>
-        </Grid>
+                </MythicToolbarSelect>
+            </MythicTableToolbarGroup>
+        </MythicTableToolbar>
     );
 }
 export const SearchTabTasksPanel = (props) =>{
@@ -789,14 +769,16 @@ export const SearchTabTasksPanel = (props) =>{
 
 
                         ))
-                    ) : (<div style={{display: "flex", justifyContent: "center", alignItems: "center", position: "absolute", left: "50%", top: "50%"}}>No Search Results</div>)
+                    ) : (
+                        <MythicSearchEmptyState
+                            compact
+                            description="Adjust the query, task status, host, or operator filters and search again."
+                            minHeight={180}
+                        />
+                    )
                 }
             </div>
-            <div style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center"}}>
-            <Pagination count={Math.ceil(totalCount / fetchLimit)} variant="outlined" color="info" boundaryCount={1}
-                    siblingCount={1} onChange={onChangePage} showFirstButton={true} showLastButton={true} style={{padding: "20px"}}/>
-                <Typography style={{paddingLeft: "10px"}}>Total Results: {totalCount}</Typography>
-            </div>
+            <MythicTablePagination totalCount={totalCount} fetchLimit={fetchLimit} onChange={onChangePage} color="info" />
         </MythicTabPanel>
     )
 }

@@ -1,19 +1,12 @@
 import React, {useState} from 'react';
-import Button from '@mui/material/Button';
-import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
-import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import {useQuery, gql} from '@apollo/client';
-import TableCell from '@mui/material/TableCell';
-import TableRow from '@mui/material/TableRow';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import LinearProgress from '@mui/material/LinearProgress';
 import { getDefaultChoices } from '../CreatePayload/Step2SelectPayloadType';
 import { getDefaultValueForType } from '../CreatePayload/Step2SelectPayloadType';
+import {MythicDialogBody, MythicDialogButton, MythicDialogFooter, MythicDialogSection} from "../../MythicComponents/MythicDialogLayout";
+import {MythicErrorState, MythicLoadingState} from "../../MythicComponents/MythicStateDisplay";
+import {BuildParameterList} from "./InstalledServiceParameterDetails";
 
 const GET_C2_Details = gql`
 query GetPC2Details($payload_name: String!) {
@@ -78,64 +71,45 @@ export function C2ProfileBuildDialog(props) {
         }
         });
     if (loading) {
-     return <LinearProgress />;
+     return (
+       <>
+         <DialogTitle id="form-dialog-title">{props.container_name}'s Build Parameters</DialogTitle>
+         <DialogContent dividers={true}>
+           <MythicLoadingState title="Loading build parameters" description="Fetching parameter definitions for this C2 profile." minHeight={180} />
+         </DialogContent>
+       </>
+     );
     }
     if (error) {
      console.error(error);
-     return <div>Error! {error.message}</div>;
+     return (
+       <>
+         <DialogTitle id="form-dialog-title">{props.container_name}'s Build Parameters</DialogTitle>
+         <DialogContent dividers={true}>
+           <MythicErrorState title="Unable to load build parameters" description={error.message} minHeight={180} />
+         </DialogContent>
+       </>
+     );
     }
   
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">{props.container_name}'s Build Parameters</DialogTitle>
         <DialogContent dividers={true}>
-          <DialogContentText>
-            These are the build parameters associated with this payload
-          </DialogContentText>
-            <TableContainer className="mythicElement">
-            <Table size="small" aria-label="details" style={{"tableLayout": "fixed", "overflowWrap": "break-word"}}>
-                <TableHead>
-                  <TableRow>
-                    <TableCell style={{width: "20%"}}>Parameter</TableCell>
-                    <TableCell>Value</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {
-                    buildParams.map( (param) => (
-                        <TableRow key={"buildprop" + param.id} hover>
-                            <TableCell>{param.description}</TableCell>
-                            <TableCell>
-                            <b>Scripting/Building Name: </b><pre style={{display: "inline-block", whiteSpace: "pre-wrap", margin: 0}}>{param.name}</pre><br/>
-                            <b>Parameter Type: </b><pre style={{display: "inline-block", whiteSpace: "pre-wrap", margin: 0}}>{param.parameter_type}</pre><br/>
-                            <b>Default Value: </b><pre style={{display: "inline-block", whiteSpace: "pre-wrap", margin: 0}}>{param.default_value}</pre><br/>
-                            {param.choices.length > 0 ? (
-                              <React.Fragment>
-                                <b>Parameter Options: </b><pre style={{display: "inline-block", whiteSpace: "pre-wrap", margin: 0}}>{param.choices}</pre><br/>
-                              </React.Fragment>
-                            ) : null}
-                            <b>Required? </b><pre style={{display: "inline-block", whiteSpace: "pre-wrap", margin: 0}}>{param.required ? "Yes": "No"}</pre><br/>
-                            <b>Verifier Regex: </b><pre style={{display: "inline-block", whiteSpace: "pre-wrap", margin: 0}}>{param.verifier_regex}</pre><br/>
-                            <b>Randomized: </b><pre style={{display: "inline-block", whiteSpace: "pre-wrap", margin: 0}}>{param.randomize ? "Yes": "No"}</pre><br/>
-                            {param.randomize ? (
-                              <React.Fragment>
-                                <b>Format String: </b><pre style={{display: "inline-block", whiteSpace: "pre-wrap", margin: 0}}>{param.format_string}</pre><br/>
-                              </React.Fragment>
-                            ) : (null)}
-                            </TableCell>
-                        </TableRow>
-                    ))
-                    
-                  }
-                </TableBody>
-              </Table>
-            </TableContainer>
+          <MythicDialogBody compact>
+          <MythicDialogSection
+            title="Build Parameters"
+            description={`${buildParams.length} parameter${buildParams.length === 1 ? "" : "s"} defined for this C2 profile.`}
+          >
+            <BuildParameterList parameters={buildParams} />
+          </MythicDialogSection>
+          </MythicDialogBody>
         </DialogContent>
-        <DialogActions>
-          <Button variant="contained" onClick={props.onClose} color="primary">
+        <MythicDialogFooter>
+          <MythicDialogButton onClick={props.onClose}>
             Close
-          </Button>
-        </DialogActions>
+          </MythicDialogButton>
+        </MythicDialogFooter>
   </React.Fragment>
   );
 }

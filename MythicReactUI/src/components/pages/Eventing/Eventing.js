@@ -1,28 +1,26 @@
-import React, {useCallback} from 'react';
+import React from 'react';
 import { gql, useSubscription, useQuery } from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
-import {useTheme} from '@mui/material/styles';
-import Button from '@mui/material/Button';
 import List from '@mui/material/List';
-import ListSubheader from '@mui/material/ListSubheader';
 import Divider from '@mui/material/Divider';
 import ListItem from '@mui/material/ListItem';
-import ListItemText from '@mui/material/ListItemText';
+import TextField from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
 import {EventGroupTable} from "./EventGroupTable";
 import {UploadEventFile} from "../../MythicComponents/MythicFileUpload";
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
-import { IconButton } from '@mui/material';
-import NotificationsOffTwoToneIcon from '@mui/icons-material/NotificationsOffTwoTone';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import SearchIcon from '@mui/icons-material/Search';
 import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import {TestEventGroupFileDialog} from "./CreateEventWorkflowDialog";
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import Split from 'react-split';
-import Paper from '@mui/material/Paper';
 import {CreateEventingStepper} from "./CreateEventingStepper";
 import CategoryIcon from '@mui/icons-material/Category';
+import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
+import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/MythicPageHeader";
+import {MythicToolbarButton, MythicToolbarToggle} from "../../MythicComponents/MythicTableToolbar";
 
 const get_eventgroups = gql`
 query GetEventGroups {
@@ -164,12 +162,31 @@ steps:
     outputs:
       SCRIPT_TASK_ID: id
 `;
+const sidebarFilterOptionsBase = [
+    {key: "all", label: "All"},
+    {key: "runnable", label: "Runnable"},
+    {key: "needs_approval", label: "Needs approval"},
+    {key: "disabled", label: "Disabled"},
+];
+const getEventGroupStatus = (eventGroup) => {
+    if(eventGroup.deleted){
+        return {key: "deleted", label: "Deleted", rank: 3};
+    }
+    if(!eventGroup.active){
+        return {key: "disabled", label: "Disabled", rank: 2};
+    }
+    if(!eventGroup.approved_to_run){
+        return {key: "needs_approval", label: "Needs approval", rank: 1};
+    }
+    return {key: "runnable", label: "Runnable", rank: 0};
+};
 export function Eventing({me}){
-    const theme = useTheme();
     const [openTestModal, setOpenTestModal] = React.useState(false);
     const [openCreateEventingStepper, setOpenCreateEventingStepper] = React.useState(false);
     const [eventgroups, setEventgroups] = React.useState([]);
     const [showDeleted, setShowDeleted] = React.useState(false);
+    const [sidebarSearch, setSidebarSearch] = React.useState("");
+    const [sidebarFilter, setSidebarFilter] = React.useState("all");
     const [selectedEventGroup, setSelectedEventGroup] = React.useState({id: 0});
     const foundQueryEvent = React.useRef(false);
     useQuery(get_eventgroups, {
@@ -255,42 +272,98 @@ export function Eventing({me}){
         }
 
     }, [eventgroups]);
+    const visibleEventGroups = React.useMemo(() => {
+        return eventgroups.filter(e => showDeleted || !e.deleted);
+    }, [eventgroups, showDeleted]);
+    const activeEventGroups = React.useMemo(() => {
+        return eventgroups.filter(e => !e.deleted && e.active);
+    }, [eventgroups]);
+    React.useEffect(() => {
+        if(!showDeleted && sidebarFilter === "deleted"){
+            setSidebarFilter("all");
+        }
+    }, [showDeleted, sidebarFilter]);
+    const sidebarFilterCounts = React.useMemo(() => {
+        return visibleEventGroups.reduce((prev, cur) => {
+            const status = getEventGroupStatus(cur);
+            return {...prev, [status.key]: (prev[status.key] || 0) + 1};
+        }, {runnable: 0, needs_approval: 0, disabled: 0, deleted: 0});
+    }, [visibleEventGroups]);
+    const sidebarFilterOptions = React.useMemo(() => {
+        if(showDeleted){
+            return [...sidebarFilterOptionsBase, {key: "deleted", label: "Deleted"}];
+        }
+        return sidebarFilterOptionsBase;
+    }, [showDeleted]);
+    const filteredEventGroups = React.useMemo(() => {
+        const search = sidebarSearch.trim().toLowerCase();
+        return visibleEventGroups.filter((eventGroup) => {
+            const status = getEventGroupStatus(eventGroup);
+            if(sidebarFilter !== "all" && sidebarFilter !== status.key){
+                return false;
+            }
+            if(search === ""){
+                return true;
+            }
+            const searchText = [
+                eventGroup.name,
+                eventGroup.description,
+                eventGroup.trigger,
+                eventGroup.run_as,
+                eventGroup.operator?.username,
+                ...(Array.isArray(eventGroup.keywords) ? eventGroup.keywords : []),
+            ].filter(Boolean).join(" ").toLowerCase();
+            return searchText.includes(search);
+        }).sort((a, b) => {
+            const statusA = getEventGroupStatus(a);
+            const statusB = getEventGroupStatus(b);
+            if(statusA.rank !== statusB.rank){
+                return statusA.rank - statusB.rank;
+            }
+            return (a.id > b.id) ? -1 : ((b.id > a.id) ? 1 : 0);
+        });
+    }, [sidebarFilter, sidebarSearch, visibleEventGroups]);
+    const selectedEventLabel = selectedEventGroup.id === 0 ? "All runs" : selectedEventGroup.name;
     return (
-        <div style={{display: "flex", flexDirection: "column", height: "100%",  overflowY: "auto"}}>
-            <div style={{display: "flex", flexDirection: "row", height: "100%"}}>
-                <Split direction="horizontal" style={{width: "100%", height: "100%", display: "flex", overflow: "hidden"}} sizes={[20, 80]} >
-                    <div className="bg-gray-base" style={{display: "inline-flex"}}>
+        <MythicPageBody>
+            <MythicPageHeader
+                title="Eventing"
+                subtitle="Create, review, and manually trigger operation workflows."
+                meta={
+                    <>
+                        <MythicPageHeaderChip label={`${visibleEventGroups.length} shown`} />
+                        <MythicPageHeaderChip label={`${activeEventGroups.length} active`} />
+                        <MythicPageHeaderChip label={selectedEventLabel} />
+                        {showDeleted && <MythicPageHeaderChip label="Deleted visible" />}
+                    </>
+                }
+                actions={
+                    <>
+                        <MythicToolbarButton className="mythic-table-row-action-hover-info" variant="outlined" component="label" startIcon={<CloudUploadIcon fontSize="small" />}>
+                            Upload
+                            <input onChange={onFileChange} type="file" multiple hidden/>
+                        </MythicToolbarButton>
+                        <MythicToolbarButton className="mythic-table-row-action-hover-success" variant="outlined" onClick={()=>setOpenTestModal(true)} startIcon={<AddCircleIcon fontSize="small" />}>
+                            Text
+                        </MythicToolbarButton>
+                        <MythicToolbarButton className="mythic-table-row-action-hover-success" variant="outlined" onClick={()=>setOpenCreateEventingStepper(true)} startIcon={<CategoryIcon fontSize="small" />}>
+                            Wizard
+                        </MythicToolbarButton>
+                        <MythicToolbarToggle
+                            className={showDeleted ? "mythic-table-row-action-hover-warning" : "mythic-table-row-action-hover-info"}
+                            checked={showDeleted}
+                            onClick={() => setShowDeleted(!showDeleted)}
+                            label="Deleted"
+                            activeIcon={<VisibilityIcon fontSize="small" />}
+                            inactiveIcon={<VisibilityOffIcon fontSize="small" />}
+                        />
+                    </>
+                }
+            />
+            <div className="mythic-eventing-workspace">
+                <Split direction="horizontal" className="mythic-eventing-split" sizes={[30, 70]} minSize={[360, 520]} >
+                    <div className="mythic-eventing-sidebar">
                         <div style={{width: "100%", height: '100%', display: "flex", flexDirection: "column"}}>
-                            <Paper style={{marginBottom: "5px"}}>
-                                <MythicStyledTooltip title={"Upload complete workflow files"} >
-                                    <Button size={"small"} style={{display: "inline-flex", marginRight: "10px", marginLeft: "10px", marginTop: "5px"}}
-                                            color={"info"} component="label" startIcon={<CloudUploadIcon  />}
-                                    >
-
-                                        Upload
-                                        <input onChange={onFileChange} type="file" multiple hidden/>
-                                    </Button>
-                                </MythicStyledTooltip>
-                                <MythicStyledTooltip title={"Create Workflow with Text Editor"} >
-                                    <Button size={"small"}  color={"success"}
-                                            style={{display: "inline-flex", marginRight: "10px", marginLeft: "10px", marginTop: "5px"}}
-                                            onClick={()=>setOpenTestModal(true)}
-                                            startIcon={<AddCircleIcon style={{backgroundColor: "white", borderRadius: "10px"}}  />}
-                                    >
-                                        Text
-                                    </Button>
-                                </MythicStyledTooltip>
-                                <MythicStyledTooltip title={"Create Workflow with GUI Wizard"} tooltipStyle={{}} >
-                                    <Button size={"small"}  color={"success"}
-                                            style={{display: "inline-flex", marginRight: "10px", marginLeft: "10px", marginTop: "5px"}}
-                                            onClick={()=>setOpenCreateEventingStepper(true)}
-                                            startIcon={<CategoryIcon  />}
-                                    >
-                                        Wizard
-                                    </Button>
-                                </MythicStyledTooltip>
-                            </Paper>
-
                             {openTestModal &&
                                 <MythicDialog fullWidth={true} maxWidth="xl" open={openTestModal}
                                               onClose={(e) => {
@@ -309,54 +382,86 @@ export function Eventing({me}){
                                               innerDialog={<CreateEventingStepper onClose={onCloseStepper} />}
                                 />
                             }
+                            <div className="mythic-eventing-sidebar-toolbar">
+                                <div className="mythic-eventing-sidebar-title-row">
+                                    <div>
+                                        <div className="mythic-eventing-sidebar-title">Registered event groups</div>
+                                        <div className="mythic-eventing-sidebar-subtitle">Browse workflows by run state</div>
+                                    </div>
+                                    <span className="mythic-eventing-sidebar-count">{filteredEventGroups.length}/{visibleEventGroups.length}</span>
+                                </div>
+                                <TextField
+                                    className="mythic-eventing-sidebar-search"
+                                    size="small"
+                                    fullWidth
+                                    placeholder="Search workflows"
+                                    value={sidebarSearch}
+                                    onChange={(event) => setSidebarSearch(event.target.value)}
+                                    InputProps={{
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <SearchIcon fontSize="small" />
+                                            </InputAdornment>
+                                        )
+                                    }}
+                                />
+                                <div className="mythic-eventing-filter-row">
+                                    {sidebarFilterOptions.map((filterOption) => {
+                                        const filterCount = filterOption.key === "all" ? visibleEventGroups.length : sidebarFilterCounts[filterOption.key];
+                                        return (
+                                            <button
+                                                key={filterOption.key}
+                                                type="button"
+                                                onClick={() => setSidebarFilter(filterOption.key)}
+                                                className={`mythic-eventing-filter-button ${sidebarFilter === filterOption.key ? "mythic-eventing-filter-button-active" : ""}`.trim()}
+                                            >
+                                                <span>{filterOption.label}</span>
+                                                <span className="mythic-eventing-filter-count">{filterCount || 0}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
                             <ListItem onClick={() => setSelectedEventGroup({id: 0})}
-                                      className={selectedEventGroup.id === 0 ? "selectedCallback": ""}
-                                style={selectedEventGroup.id === 0 ?
-                                    {paddingTop: 0, paddingBottom: 0, borderLeft: `5px solid ${theme.palette.info.main}`,
-                                        borderRight: `5px solid ${theme.palette.info.main}`} :
-                                    {paddingTop: 0, paddingBottom: 0}}>
-                                <ListItemText primary={"View All Instances"} />
+                                      className={`mythic-eventing-list-item mythic-eventing-list-item-all ${selectedEventGroup.id === 0 ? "mythic-eventing-list-item-selected" : ""}`.trim()}>
+                                <div className="mythic-eventing-status-dot mythic-eventing-status-all" />
+                                <div className="mythic-eventing-list-item-content">
+                                    <div className="mythic-eventing-list-item-main">
+                                        <span className="mythic-eventing-list-item-name">All workflow runs</span>
+                                        <span className="mythic-eventing-row-chip mythic-eventing-row-chip-all">{visibleEventGroups.length}</span>
+                                    </div>
+                                    <div className="mythic-eventing-list-item-meta">Review instances across all event groups</div>
+                                </div>
                             </ListItem>
-                            <div style={{flexGrow: 1, overflowY: "auto", height:"100%"}}>
-                                <List style={{border: 0, backgroundColor: "unset"}}
-                                subheader={
-                                    <ListSubheader style={{lineHeight: "30px"}} component="div">
-                                        Registered Event Groups
-                                        {showDeleted ? (
-                                            <MythicStyledTooltip title={"Hide Deleted Services"} tooltipStyle={{float: "right"}}>
-                                                <IconButton size="small" style={{float: "right", }} variant="contained" onClick={() => setShowDeleted(!showDeleted)}><VisibilityIcon /></IconButton>
-                                            </MythicStyledTooltip>
-
-                                        ) : (
-                                            <MythicStyledTooltip title={"Show Deleted Services"} tooltipStyle={{float: "right"}}>
-                                                <IconButton size="small" style={{float: "right", }} variant="contained" onClick={() => setShowDeleted(!showDeleted)} ><VisibilityOffIcon /></IconButton>
-                                            </MythicStyledTooltip>
-                                        )}
-                                    </ListSubheader>
-                                }>
-                                    {eventgroups.map( (e, i) => (
-                                        (showDeleted || !e.deleted) &&
-                                        <ListItem key={e.id + e.name} onClick={() => setSelectedEventGroup(e)}
-                                                  className={selectedEventGroup.id === e.id ? "selectedCallback": ""}
-                                                  style={selectedEventGroup.id === e.id ?
-                                                      {paddingTop: 0, paddingBottom: 0,
-                                                          borderLeft: `5px solid ${theme.palette.info.main}`, borderRight: `5px solid ${theme.palette.info.main}`,
-                                                      } :
-                                                      {paddingTop: 0, paddingBottom: 0}}>
-                                            {!e.active &&
-                                                <NotificationsOffTwoToneIcon color={"warning"} />
-                                            }
-                                            <ListItemText primary={e.name} style={{
-                                                textDecoration: e.deleted ? "line-through" : ""
-                                            }} />
-                                        </ListItem>
-                                    ))}
+                            <div className="mythic-eventing-list-scroll">
+                                <List className="mythic-eventing-list">
+                                    {filteredEventGroups.length === 0 ? (
+                                        <div className="mythic-eventing-list-empty">No workflows match this view</div>
+                                    ) : filteredEventGroups.map( (eventGroup) => {
+                                        const status = getEventGroupStatus(eventGroup);
+                                        return (
+                                            <ListItem key={eventGroup.id + eventGroup.name} onClick={() => setSelectedEventGroup(eventGroup)}
+                                                      className={`mythic-eventing-list-item ${selectedEventGroup.id === eventGroup.id ? "mythic-eventing-list-item-selected" : ""} mythic-eventing-list-item-${status.key}`.trim()}>
+                                                <div className={`mythic-eventing-status-dot mythic-eventing-status-${status.key}`} />
+                                                <div className="mythic-eventing-list-item-content">
+                                                    <div className="mythic-eventing-list-item-main">
+                                                        <span className={`mythic-eventing-list-item-name ${eventGroup.deleted ? "mythic-eventing-list-item-name-deleted" : ""}`.trim()}>{eventGroup.name}</span>
+                                                        <span className={`mythic-eventing-row-chip mythic-eventing-row-chip-${status.key}`}>{status.label}</span>
+                                                    </div>
+                                                    <div className="mythic-eventing-list-item-meta">
+                                                        <span>{eventGroup.trigger || "No trigger"}</span>
+                                                        <span className="mythic-eventing-runas-chip">{eventGroup.run_as || "unknown"}</span>
+                                                    </div>
+                                                </div>
+                                            </ListItem>
+                                        );
+                                    })}
                                 </List>
                             </div>
                             <Divider />
                         </div>
                     </div>
-                    <div className="bg-gray-light" style={{display: "inline-flex"}}>
+                    <div className="mythic-eventing-content">
                         <div style={{width: "100%", height: "100%"}}>
                             <EventGroupTable selectedEventGroup={selectedEventGroup} me={me} showInstances={true} showGraph={true} />
                         </div>
@@ -364,6 +469,6 @@ export function Eventing({me}){
                 </Split>
 
             </div>
-        </div>
+        </MythicPageBody>
     )
 }

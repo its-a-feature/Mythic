@@ -1,20 +1,14 @@
 import {MythicTabPanel, MythicSearchTabLabel} from '../../MythicComponents/MythicTabPanel';
 import React from 'react';
-import MythicTextField from '../../MythicComponents/MythicTextField';
 import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
-import Grid from '@mui/material/Grid';
-import SearchIcon from '@mui/icons-material/Search';
-import Tooltip from '@mui/material/Tooltip';
-import {useTheme} from '@mui/material/styles';
-import IconButton from '@mui/material/IconButton';
 import { gql, useLazyQuery} from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
-import Pagination from '@mui/material/Pagination';
-import { Typography } from '@mui/material';
 import {TokenTable} from './TokenTable';
 import MenuItem from '@mui/material/MenuItem';
-import Select from '@mui/material/Select';
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
+import {MythicTablePagination} from "../../MythicComponents/MythicTablePagination";
+import {MythicSearchField, MythicTableToolbar, MythicTableToolbarGroup, MythicToolbarSelect} from "../../MythicComponents/MythicTableToolbar";
+import {MythicSearchEmptyState} from "../../MythicComponents/MythicStateDisplay";
 
 const tokenFragment = gql`
 fragment tokenData on token{
@@ -85,7 +79,6 @@ export function SearchTabTokensLabel(props){
 }
 
 const SearchTabTokensSearchPanel = (props) => {
-    const theme = useTheme();
     const [search, setSearch] = React.useState("");
     const [searchField, setSearchField] = React.useState("Host");
     const searchFieldOptions = ["User/Group", "SID", "Host"];
@@ -138,22 +131,12 @@ const SearchTabTokensSearchPanel = (props) => {
         }
     }, [props.value, props.index])
     return (
-        <Grid container spacing={2} style={{padding: "5px 5px 0 5px", maxWidth: "100%"}}>
-            <Grid size={6}>
-                <MythicTextField placeholder="Search..." value={search} marginTop={"0px"}
-                    onChange={handleSearchValueChange} onEnter={submitSearch} name="Search..." InputProps={{
-                        endAdornment: 
-                        <React.Fragment>
-                            <Tooltip title="Search">
-                                <IconButton onClick={submitSearch} size="large"><SearchIcon style={{color: theme.palette.info.main}}/></IconButton>
-                            </Tooltip>
-                        </React.Fragment>,
-                        style: {padding: 0}
-                    }}/>
-            </Grid>
-            <Grid size={2}>
-                <Select
-                    style={{marginBottom: "10px", width: "15rem"}}
+        <MythicTableToolbar>
+            <MythicTableToolbarGroup grow>
+                <MythicSearchField value={search} onChange={handleSearchValueChange} onEnter={submitSearch} onSearch={submitSearch} />
+            </MythicTableToolbarGroup>
+            <MythicTableToolbarGroup>
+                <MythicToolbarSelect
                     value={searchField}
                     onChange={handleSearchFieldChange}
                 >
@@ -162,9 +145,9 @@ const SearchTabTokensSearchPanel = (props) => {
                             <MenuItem key={"searchopt" + opt} value={opt}>{opt}</MenuItem>
                         ))
                     }
-                </Select>
-            </Grid>
-        </Grid>
+                </MythicToolbarSelect>
+            </MythicTableToolbarGroup>
+        </MythicTableToolbar>
     );
 }
 export const SearchTabTokensPanel = (props) =>{
@@ -274,14 +257,14 @@ export const SearchTabTokensPanel = (props) =>{
             <div style={{overflowY: "auto", flexGrow: 1}}>
                 {tokenData.length > 0 ? (
                     <TokenTable tokens={tokenData} />) : (
-                    <div style={{display: "flex", justifyContent: "center", alignItems: "center", position: "absolute", left: "50%", top: "50%"}}>No Search Results</div>
+                    <MythicSearchEmptyState
+                        compact
+                        description="Adjust the user/group, SID, or host query and search again."
+                        minHeight={180}
+                    />
                 )}
             </div>
-            <div style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center",  paddingTop: "5px", paddingBottom: "10px"}}>
-            <Pagination count={Math.ceil(totalCount / fetchLimit)} variant="outlined" color="info" boundaryCount={1}
-                    siblingCount={1} onChange={onChangePage} showFirstButton={true} showLastButton={true} style={{padding: "20px"}}/>
-                <Typography style={{paddingLeft: "10px"}}>Total Results: {totalCount}</Typography>
-            </div>
+            <MythicTablePagination totalCount={totalCount} fetchLimit={fetchLimit} onChange={onChangePage} color="info" />
         </MythicTabPanel>
     )
 }

@@ -238,18 +238,20 @@ export function PayloadsTableRow(props){
       <React.Fragment>
           <TableRow key={"payload" + props.payload.uuid} hover>
               <TableCell>
-              <Button size="small" onClick={onSelected} color="primary" variant="contained">Select</Button>
+              <Button className="mythic-table-row-action mythic-table-row-action-hover-success" size="small" onClick={onSelected} variant="contained">Select</Button>
               </TableCell>
               <TableCell>{toLocalTime(props.payload.creation_time, me.user.view_utc_time)}</TableCell>
               <TableCell>{b64DecodeUnicode(props.payload.filemetum.filename_text)}</TableCell>
               <TableCell>
+                  <div className="mythic-payload-progress-cell">
                       <PayloadsTableRowBuildStatus {...props.payload} />
                       <PayloadsTableRowBuildProgress {...props.payload} />
+                  </div>
               </TableCell>
               <TableCell>{props.payload.description}</TableCell>
               <TableCell>
-                  <IconButton size="small" color="info" onClick={() => setOpenDetailedView(true)}>
-                      <InfoIconOutline />
+                  <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={() => setOpenDetailedView(true)}>
+                      <InfoIconOutline fontSize="small" />
                   </IconButton>
               </TableCell>
           </TableRow>

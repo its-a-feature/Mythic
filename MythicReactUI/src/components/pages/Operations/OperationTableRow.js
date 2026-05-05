@@ -17,6 +17,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import RestoreFromTrashOutlinedIcon from '@mui/icons-material/RestoreFromTrashOutlined';
 import {restartWebsockets} from '../../../index';
 import {useNavigate} from 'react-router-dom';
+import {MythicStatusChip} from '../../MythicComponents/MythicStatusChip';
 
 export const updateCurrentOperationMutation = gql`
 mutation updateCurrentOpertionMutation($operator_id: Int!, $operation_id: Int!) {
@@ -121,11 +122,25 @@ export function OperationTableRow(props){
             <TableRow key={props.id} hover>
                 <TableCell>
                 {props.deleted ? (
-                  <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} color="success" variant="contained"
-                          disabled={me?.user?.current_operation_id !== props.id}><RestoreFromTrashOutlinedIcon/> </IconButton>
+                  <IconButton
+                      aria-label="restore operation"
+                      className="mythic-table-row-icon-action mythic-table-row-icon-action-success"
+                      size="small"
+                      onClick={()=>{setOpenDeleteDialog(true);}}
+                      disabled={me?.user?.current_operation_id !== props.id}
+                  >
+                      <RestoreFromTrashOutlinedIcon fontSize="small"/>
+                  </IconButton>
                 ) : (
-                  <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} color="error" variant="contained"
-                          disabled={me?.user?.current_operation_id !== props.id}><DeleteIcon/> </IconButton>
+                  <IconButton
+                      aria-label="delete operation"
+                      className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger"
+                      size="small"
+                      onClick={()=>{setOpenDeleteDialog(true);}}
+                      disabled={me?.user?.current_operation_id !== props.id}
+                  >
+                      <DeleteIcon fontSize="small"/>
+                  </IconButton>
                 )}
                 {openDelete && 
                     <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} 
@@ -134,9 +149,9 @@ export function OperationTableRow(props){
                       acceptColor={props.deleted ? "success": "error"} />
                   }
                 </TableCell>
-                <TableCell><Button size="small" onClick={()=>{setOpenUpdateNotifications(true);}} startIcon={<EditIcon/>}
+                <TableCell><Button className="mythic-table-row-action" size="small" onClick={()=>{setOpenUpdateNotifications(true);}} startIcon={<EditIcon/>}
                                    disabled={me?.user?.current_operation_id !== props.id}
-                                   color={props.complete ? "success" : "primary"} variant="contained">Edit</Button>
+                                   variant="outlined">Edit</Button>
                 {openUpdateNotifications && 
                     <MythicDialog open={openUpdateNotifications} fullWidth maxWidth={"lg"}
                         onClose={()=>{setOpenUpdateNotifications(false);}} 
@@ -144,9 +159,9 @@ export function OperationTableRow(props){
                      />
                 }
                 </TableCell>
-                <TableCell><Button size="small" onClick={()=>{setOpenUpdateOperators(true);}}
+                <TableCell><Button className="mythic-table-row-action" size="small" onClick={()=>{setOpenUpdateOperators(true);}}
                                    disabled={me?.user?.current_operation_id !== props.id}
-                                   startIcon={<AssignmentIndIcon/>} color={props.complete ? "success" : "primary"} variant="contained">Edit</Button>
+                                   startIcon={<AssignmentIndIcon/>} variant="outlined">Edit</Button>
                 {openUpdateOperators && 
                     <MythicDialog open={openUpdateOperators} maxHeight={"calc(80vh)"} fullWidth maxWidth={"lg"}
                         onClose={()=>{setOpenUpdateOperators(false);}} 
@@ -154,18 +169,30 @@ export function OperationTableRow(props){
                      />
                 }
                 </TableCell>
-                <TableCell>{props.name} {props.complete ? " (Completed) " : ""}</TableCell>
+                <TableCell>
+                    <div className="mythic-status-stack">
+                        <span>{props.name}</span>
+                        {props.complete &&
+                            <MythicStatusChip label="Completed" status="completed" />
+                        }
+                        {props.deleted &&
+                            <MythicStatusChip label="Deleted" status="deleted" />
+                        }
+                    </div>
+                </TableCell>
                 <TableCell>{props.admin.username}</TableCell>
                 <TableCell>
-                <Button size="small" startIcon={<AssessmentIcon/>}
-                        onClick={() => {navigate("/new")}} color="primary"
+                <Button className="mythic-table-row-action" size="small" startIcon={<AssessmentIcon/>}
+                        onClick={() => {navigate("/new")}}
                         disabled={me?.user?.current_operation_id !== props.id}
-                        variant="contained">Analysis</Button>
+                        variant="outlined">Analysis</Button>
                 </TableCell>
                 <TableCell>
-                    {props.id === me.user.current_operation_id ? ("Current Operation") : (
+                    {props.id === me.user.current_operation_id ? (
+                      <MythicStatusChip label="Current" status="active" />
+                    ) : (
                       <React.Fragment>
-                        <Button size="small" startIcon={<PlayArrowIcon/>} onClick={makeCurrentOperation} color="info" variant="contained">Make Current</Button>
+                        <Button className="mythic-table-row-action" size="small" startIcon={<PlayArrowIcon/>} onClick={makeCurrentOperation} variant="outlined">Make Current</Button>
                       </React.Fragment>
                     )}
                 </TableCell>
@@ -173,4 +200,3 @@ export function OperationTableRow(props){
         </React.Fragment>
         )
 }
-

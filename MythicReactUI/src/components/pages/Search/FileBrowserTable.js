@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import {Button, IconButton, Typography, Link} from '@mui/material';
+import {IconButton, Typography, Link} from '@mui/material';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -133,7 +133,13 @@ function FileBrowserTableRow(props){
 
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <IconButton onClick={() => setEditCommentDialogOpen(true)} size="small" style={{display: "inline-block"}}><EditIcon /></IconButton>
+                    <IconButton
+                        className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
+                        onClick={() => setEditCommentDialogOpen(true)}
+                        size="small"
+                    >
+                        <EditIcon fontSize="small" />
+                    </IconButton>
                     <Typography variant="body2" style={{wordBreak: "break-all", display: "inline-block"}}>{props.comment}</Typography>
                     </MythicStyledTableCell>
                 <MythicStyledTableCell>
@@ -141,12 +147,26 @@ function FileBrowserTableRow(props){
                     <TagsDisplay tags={props.tags} />
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <Button color="primary" variant="contained" onClick={() => setViewPermissionsDialogOpen(true)}><PlaylistAddCheckIcon /></Button>
+                    <MythicStyledTooltip title="View permissions data">
+                        <IconButton
+                            className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
+                            size="small"
+                            onClick={() => setViewPermissionsDialogOpen(true)}
+                        >
+                            <PlaylistAddCheckIcon fontSize="small" />
+                        </IconButton>
+                    </MythicStyledTooltip>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     {props.filemeta.length > 0 ? (
                         <MythicStyledTooltip title="View Download History and Download Files">
-                            <Button color="primary" variant="contained" onClick={() => setFileHistoryDialogOpen(true)}><HistoryIcon /></Button>
+                            <IconButton
+                                className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
+                                size="small"
+                                onClick={() => setFileHistoryDialogOpen(true)}
+                            >
+                                <HistoryIcon fontSize="small" />
+                            </IconButton>
                         </MythicStyledTooltip>
                     ): (null)}
                 </MythicStyledTableCell>
@@ -154,4 +174,3 @@ function FileBrowserTableRow(props){
         </React.Fragment>
     )
 }
-

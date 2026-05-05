@@ -114,14 +114,13 @@ export function EventGroupTableEditDialog({onClose, selectedEventGroup, includeS
                 <ResponseDisplayPlaintext plaintext={workflowRef.current} onChangeContent={updateWorkflow} initial_mode={outputFormat} expand={true} />
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose} variant="contained" color="primary">
+                <Button className="mythic-table-row-action" onClick={onClose} variant="contained">
                     Close
                 </Button>
-                <Button onClick={includeSteps ? submitAsFile : onUpdateClick} variant="contained" color="success">
+                <Button className="mythic-table-row-action mythic-table-row-action-hover-success" onClick={includeSteps ? submitAsFile : onUpdateClick} variant="contained">
                     {includeSteps ? "Create New Workflow": "Update"}
                 </Button>
             </DialogActions>
         </React.Fragment>
     );
 }
-

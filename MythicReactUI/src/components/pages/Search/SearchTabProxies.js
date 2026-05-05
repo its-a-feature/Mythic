@@ -1,5 +1,5 @@
 import {MythicTabPanel, MythicSearchTabLabel} from '../../MythicComponents/MythicTabPanel';
-import React, { useEffect } from 'react';
+import React from 'react';
 import { gql, useSubscription} from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
 import {ProxySearchTable} from './ProxySearchTable';
@@ -7,8 +7,8 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faSocks} from '@fortawesome/free-solid-svg-icons';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
-import {IconButton} from '@mui/material';
+import {MythicTableToolbar, MythicTableToolbarGroup, MythicToolbarToggle} from "../../MythicComponents/MythicTableToolbar";
+import {MythicSearchEmptyState} from "../../MythicComponents/MythicStateDisplay";
 
 const callbackPortsSub = gql`
 subscription portsSub{
@@ -82,22 +82,25 @@ export const SearchTabSocksPanel = (props) =>{
 
     return (
         <MythicTabPanel {...props} >
-            <div>
-                {showDeleted ? (
-                    <MythicStyledTooltip title={"Hide Stopped Proxies"} tooltipStyle={{float: "right"}}>
-                        <IconButton size="small" style={{float: "right", marginTop: "5px"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)}><VisibilityIcon /></IconButton>
-                    </MythicStyledTooltip>
-
-                ) : (
-                    <MythicStyledTooltip title={"Show Stopped Proxies"} tooltipStyle={{float: "right"}}>
-                        <IconButton size="small" style={{float: "right",  marginTop: "5px"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)} ><VisibilityOffIcon /></IconButton>
-                    </MythicStyledTooltip>
-                )}
-            </div>
+            <MythicTableToolbar>
+                <MythicTableToolbarGroup grow>
+                    <MythicToolbarToggle
+                        checked={showDeleted}
+                        onClick={() => setShowDeleted(!showDeleted)}
+                        label="Stopped"
+                        activeIcon={<VisibilityIcon fontSize="small" />}
+                        inactiveIcon={<VisibilityOffIcon fontSize="small" />}
+                    />
+                </MythicTableToolbarGroup>
+            </MythicTableToolbar>
             <div style={{overflowY: "auto", height: "100%", display: "flex", flexDirection: "column"}}>
                 {callbackData.length > 0 ? (
                     <ProxySearchTable callbacks={callbackData} showDeleted={showDeleted} />) : (
-                    <div style={{display: "flex", justifyContent: "center", alignItems: "center", position: "absolute", left: "50%", top: "50%"}}>No Search Results</div>
+                    <MythicSearchEmptyState
+                        compact
+                        description="No callback port forwards match the current stopped filter."
+                        minHeight={180}
+                    />
                 )}
             </div>
         </MythicTabPanel>

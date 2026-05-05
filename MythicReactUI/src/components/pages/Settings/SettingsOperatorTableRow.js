@@ -1,5 +1,5 @@
 import React from 'react';
-import {Button, DialogActions, DialogContent, DialogContentText, DialogTitle, Link, TextField} from '@mui/material';
+import {Button, DialogContent, DialogTitle, Link, TextField} from '@mui/material';
 import TableRow from '@mui/material/TableRow';
 import Switch from '@mui/material/Switch';
 import Box from '@mui/material/Box';
@@ -34,6 +34,12 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import {copyStringToClipboard} from "../../utilities/Clipboard";
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 import {MythicDataGrid} from "../../MythicComponents/MythicDataGrid";
+import {
+    MythicDialogBody,
+    MythicDialogButton,
+    MythicDialogFooter,
+    MythicFormNote
+} from "../../MythicComponents/MythicDialogLayout";
 
 const createAPITokenMutation = gql`
 mutation createAPITokenMutation($operator_id: Int, $name: String, $scopes: [String!]){
@@ -221,10 +227,9 @@ export function SettingsOperatorTableRow(props){
         <React.Fragment>
             <TableRow key={props.id}>
                 <MythicStyledTableCell >
-                    <IconButton size="large" onClick={()=>{setOpenDeleteDialog(true);}}
-                              disabled={(isMe || !props.userIsAdmin)} color={props.deleted ? "success": "error"}
-                              variant="contained">
-                        {props.deleted ? <RestoreFromTrashIcon /> : <DeleteIcon/>}
+                    <IconButton className={`mythic-table-row-icon-action ${props.deleted ? "mythic-table-row-icon-action-success" : "mythic-table-row-icon-action-hover-danger"}`} size="small" onClick={()=>{setOpenDeleteDialog(true);}}
+                              disabled={(isMe || !props.userIsAdmin)}>
+                        {props.deleted ? <RestoreFromTrashIcon fontSize="small" /> : <DeleteIcon fontSize="small" />}
                     </IconButton>
                   {openDelete && 
                       <MythicDialog open={openDelete} 
@@ -361,25 +366,32 @@ export function SettingsOperatorTableRow(props){
                     <MythicStyledTableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={10}>
                       <Collapse in={open} timeout="auto" unmountOnExit>
                         <Box margin={1}>
-                          <Typography variant="h6" gutterBottom component="div" style={{display: "inline-block"}}>
-                            API Tokens
-                          </Typography>
-                            {showDeleted ? (
-                                <MythicStyledTooltip title={"Hide API Tokens"} tooltipStyle={{float: "right"}}>
-                                    <IconButton size="small" style={{float: "right"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)}><VisibilityIcon /></IconButton>
-                                </MythicStyledTooltip>
+                          <div className="mythic-detail-section-header">
+                            <Typography component="div" className="mythic-detail-section-title">
+                              API Tokens
+                            </Typography>
+                            <div className="mythic-detail-section-actions">
+                              {showDeleted ? (
+                                  <MythicStyledTooltip title={"Hide API Tokens"}>
+                                      <IconButton className="mythic-dialog-title-action" size="small" onClick={() => setShowDeleted(!showDeleted)}><VisibilityIcon fontSize="small" /></IconButton>
+                                  </MythicStyledTooltip>
 
-                            ) : (
-                                <MythicStyledTooltip title={"Show Deleted API Tokens"} tooltipStyle={{float: "right"}}>
-                                    <IconButton size="small" style={{float: "right"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)} ><VisibilityOffIcon /></IconButton>
-                                </MythicStyledTooltip>
-                            )}
-
-                          <Button size="small" onClick={() => {setOpenNewAPIToken(true)}} style={{marginRight: "20px", float: "right"}}
-                                  variant={"contained"}
-                                  startIcon={<AddCircleOutlineOutlinedIcon color="success" />} >
-                              API Token
-                          </Button>
+                              ) : (
+                                  <MythicStyledTooltip title={"Show Deleted API Tokens"}>
+                                      <IconButton className="mythic-dialog-title-action" size="small" onClick={() => setShowDeleted(!showDeleted)}><VisibilityOffIcon fontSize="small" /></IconButton>
+                                  </MythicStyledTooltip>
+                              )}
+                              <Button
+                                  className="mythic-dialog-title-action"
+                                  size="small"
+                                  onClick={() => {setOpenNewAPIToken(true)}}
+                                  variant="outlined"
+                                  startIcon={<AddCircleOutlineOutlinedIcon fontSize="small" />}
+                              >
+                                  API Token
+                              </Button>
+                            </div>
+                          </div>
                             {openNewAPIToken &&
                                 <MythicDialog open={openNewAPIToken}
                                               fullWidth={true}
@@ -414,9 +426,8 @@ const columns = [
         width: 60,
         renderCell: (params) => (
             params.row.deleted ? null : (
-                <IconButton size="small" onClick={() => {params.row.onDeleteAPIToken(params.row.id)}}
-                            color="error" variant="contained">
-                    <DeleteIcon/>
+                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={() => {params.row.onDeleteAPIToken(params.row.id)}}>
+                    <DeleteIcon fontSize="small" />
                 </IconButton>
             )
         ),
@@ -514,26 +525,27 @@ const APITokenValueDialog = ({tokenValue, onClose}) => {
         <>
             <DialogTitle id="form-dialog-title">Copy API Token</DialogTitle>
             <DialogContent dividers={true}>
-                <DialogContentText>
-                    This token value is only shown once. Copy it now before closing this dialog.
-                </DialogContentText>
-                <TextField
-                    fullWidth
-                    multiline
-                    minRows={4}
-                    value={tokenValue}
-                    InputProps={{readOnly: true}}
-                    sx={{mt: 2}}
-                />
+                <MythicDialogBody>
+                    <MythicFormNote>
+                        This token value is only shown once. Copy it now before closing this dialog.
+                    </MythicFormNote>
+                    <TextField
+                        fullWidth
+                        multiline
+                        minRows={4}
+                        value={tokenValue}
+                        InputProps={{readOnly: true}}
+                    />
+                </MythicDialogBody>
             </DialogContent>
-            <DialogActions>
-                <Button onClick={onCopyTokenValue} variant="contained" color="success" startIcon={<ContentCopyIcon />}>
+            <MythicDialogFooter>
+                <MythicDialogButton onClick={onCopyTokenValue} startIcon={<ContentCopyIcon />}>
                     Copy
-                </Button>
-                <Button onClick={onClose} variant="contained" color="primary">
+                </MythicDialogButton>
+                <MythicDialogButton intent="primary" onClick={onClose}>
                     I Copied It
-                </Button>
-            </DialogActions>
+                </MythicDialogButton>
+            </MythicDialogFooter>
         </>
     );
 }
