@@ -1,11 +1,13 @@
 import React from 'react';
 import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import TableRow from '@mui/material/TableRow';
 import Switch from '@mui/material/Switch';
 import Box from '@mui/material/Box';
+import IconButton from '@mui/material/IconButton';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import Link from '@mui/material/Link';
@@ -15,11 +17,11 @@ import {GetMythicSetting, useSetMythicSetting} from "../../MythicComponents/Myth
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import Input from '@mui/material/Input';
-import IconButton from '@mui/material/IconButton';
 import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
-import {operatorSettingDefaults, taskingContextFieldsOptions, taskTimestampDisplayFieldOptions} from "../../../cache";
+import {normalizeTaskingDisplayFields, operatorSettingDefaults, taskingContextFieldsOptions, taskingDisplayFieldOptions, taskTimestampDisplayFieldOptions} from "../../../cache";
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import DragHandleIcon from '@mui/icons-material/DragHandle';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {snackActions} from "../../utilities/Snackbar";
 import {userSettingsQuery} from "../../App";
@@ -28,6 +30,21 @@ import {useLazyQuery } from '@apollo/client';
 import PhoneCallbackIcon from '@mui/icons-material/PhoneCallback';
 import ColorLensIcon from '@mui/icons-material/ColorLens';
 import {MythicColorSwatchInput} from "../../MythicComponents/MythicColorInput";
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import {MythicDialog} from "../../MythicComponents/MythicDialog";
+import {
+    MythicDialogBody,
+    MythicDialogButton,
+    MythicDialogFooter,
+    MythicDialogSection,
+} from "../../MythicComponents/MythicDialogLayout";
+import {reorder} from "../../MythicComponents/MythicDraggableList";
+import {
+    Draggable,
+    DragDropContext,
+    Droppable,
+} from "@hello-pangea/dnd";
 
 const interactTypeOptions = [
     {value: "interact", display: "Accordions"},
@@ -39,6 +56,200 @@ const commonFontFamilies = [
     "-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\"",
     "Monaco"
 ];
+const getTaskingDisplayOption = (fieldName) => {
+    return taskingDisplayFieldOptions.find((option) => option.name === fieldName);
+}
+const getTaskingDisplayLayoutItems = (visibleFields) => {
+    const visibleSet = new Set(visibleFields);
+    const orderedVisibleItems = visibleFields.reduce((prev, fieldName) => {
+        const option = getTaskingDisplayOption(fieldName);
+        if(option){
+            return [...prev, {...option, visible: true}];
+        }
+        return prev;
+    }, []);
+    const hiddenItems = taskingDisplayFieldOptions.reduce((prev, option) => {
+        if(visibleSet.has(option.name)){
+            return prev;
+        }
+        return [...prev, {...option, visible: false}];
+    }, []);
+    return [...orderedVisibleItems, ...hiddenItems];
+}
+const TaskingMetadataSummary = ({value, onChange}) => {
+    const [openLayoutDialog, setOpenLayoutDialog] = React.useState(false);
+    const selectedOptions = value.map(getTaskingDisplayOption).filter(Boolean);
+    const hiddenCount = taskingDisplayFieldOptions.length - selectedOptions.length;
+    const onSubmitLayout = (items) => {
+        onChange(normalizeTaskingDisplayFields(items.reduce((prev, item) => {
+            if(item.visible){
+                return [...prev, item.name];
+            }
+            return prev;
+        }, [])));
+        setOpenLayoutDialog(false);
+    }
+    return (
+        <>
+            <Box className="mythic-tasking-visibility-panel mythic-tasking-visibility-summary-panel">
+                <Box>
+                    <Typography component="div" className="mythic-tasking-visibility-title">
+                        Tasking metadata
+                    </Typography>
+                    <Typography component="div" className="mythic-tasking-visibility-description">
+                        Selected chips appear in this order above task commands.
+                    </Typography>
+                </Box>
+                <Box className="mythic-tasking-visibility-summary-actions">
+                    <Typography component="div" className="mythic-tasking-visibility-count">
+                        {selectedOptions.length} shown{hiddenCount > 0 ? `, ${hiddenCount} hidden` : ""}
+                    </Typography>
+                    <Button
+                        className="mythic-dialog-title-action mythic-tasking-visibility-manage-button"
+                        onClick={() => setOpenLayoutDialog(true)}
+                        size="small"
+                        variant="outlined"
+                    >
+                        Manage
+                    </Button>
+                </Box>
+                <Box className="mythic-tasking-visibility-chip-row">
+                    {selectedOptions.length > 0 ? (
+                        selectedOptions.map((option, index) => (
+                            <span className="mythic-tasking-visibility-chip" key={option.name}>
+                                <span className="mythic-tasking-visibility-chip-index">{index + 1}</span>
+                                {option.display}
+                            </span>
+                        ))
+                    ) : (
+                        <Typography component="div" className="mythic-tasking-visibility-empty">
+                            No tasking metadata selected.
+                        </Typography>
+                    )}
+                </Box>
+            </Box>
+            {openLayoutDialog &&
+                <MythicDialog
+                    open={openLayoutDialog}
+                    onClose={() => setOpenLayoutDialog(false)}
+                    maxWidth="sm"
+                    innerDialog={
+                        <TaskingMetadataLayoutDialog
+                            initialItems={getTaskingDisplayLayoutItems(value)}
+                            onClose={() => setOpenLayoutDialog(false)}
+                            onReset={() => onSubmitLayout(getTaskingDisplayLayoutItems(operatorSettingDefaults.taskingDisplayFields))}
+                            onSubmit={onSubmitLayout}
+                        />
+                    }
+                />
+            }
+        </>
+    )
+}
+const TaskingMetadataLayoutDialog = ({initialItems, onClose, onReset, onSubmit}) => {
+    const [items, setItems] = React.useState(initialItems);
+    const onDragEnd = ({destination, source}) => {
+        if(!destination){
+            return;
+        }
+        setItems(reorder(items, source.index, destination.index));
+    }
+    const onToggleVisibility = (index) => {
+        setItems(items.map((item, itemIndex) => {
+            if(itemIndex === index){
+                return {...item, visible: !item.visible};
+            }
+            return item;
+        }));
+    }
+    return (
+        <>
+            <DialogTitle id="form-dialog-title">Tasking Metadata Layout</DialogTitle>
+            <DialogContent dividers={true} sx={{p: 0}}>
+                <MythicDialogBody sx={{height: "min(70vh, 38rem)", p: 1}}>
+                    <MythicDialogSection
+                        title="Metadata Chips"
+                        description="Drag to set display order. Toggle visibility to choose what appears in tasking."
+                        sx={{display: "flex", flexDirection: "column", flex: "1 1 auto", minHeight: 0}}
+                    >
+                        <TaskingMetadataDraggableList
+                            items={items}
+                            onDragEnd={onDragEnd}
+                            onToggleVisibility={onToggleVisibility}
+                        />
+                    </MythicDialogSection>
+                </MythicDialogBody>
+            </DialogContent>
+            <MythicDialogFooter>
+                <MythicDialogButton onClick={onClose}>
+                    Cancel
+                </MythicDialogButton>
+                <MythicDialogButton onClick={onReset} intent="warning">
+                    Reset
+                </MythicDialogButton>
+                <MythicDialogButton onClick={() => onSubmit(items)} intent="primary">
+                    Save
+                </MythicDialogButton>
+            </MythicDialogFooter>
+        </>
+    )
+}
+const TaskingMetadataDraggableList = ({items, onDragEnd, onToggleVisibility}) => {
+    return (
+        <DragDropContext onDragEnd={onDragEnd}>
+            <Droppable droppableId="tasking-metadata-layout-list">
+                {(provided) => (
+                    <div className="mythic-reorder-list" ref={provided.innerRef} {...provided.droppableProps}>
+                        {items.map((item, index) => (
+                            <TaskingMetadataDraggableListItem
+                                item={item}
+                                index={index}
+                                key={item.name}
+                                onToggleVisibility={onToggleVisibility}
+                            />
+                        ))}
+                        {provided.placeholder}
+                    </div>
+                )}
+            </Droppable>
+        </DragDropContext>
+    )
+}
+const TaskingMetadataDraggableListItem = ({item, index, onToggleVisibility}) => {
+    return (
+        <Draggable draggableId={item.name} index={index}>
+            {(provided, snapshot) => (
+                <div
+                    ref={provided.innerRef}
+                    className={`mythic-reorder-row mythic-tasking-metadata-row${snapshot.isDragging ? " mythic-reorder-row-dragging" : ""}${item.visible ? "" : " mythic-reorder-row-disabled"}`}
+                    {...provided.draggableProps}
+                >
+                    <span className="mythic-reorder-drag-handle" {...provided.dragHandleProps}>
+                        <DragHandleIcon fontSize="small" />
+                    </span>
+                    <div className="mythic-reorder-row-main">
+                        <span className="mythic-reorder-row-title">{item.display}</span>
+                        <span className="mythic-reorder-row-description">{item.description}</span>
+                    </div>
+                    <div className="mythic-reorder-row-actions">
+                        <IconButton
+                            aria-label={item.visible ? `Hide ${item.display}` : `Show ${item.display}`}
+                            className={`mythic-table-row-icon-action ${item.visible ? "mythic-table-row-icon-action-hover-danger" : "mythic-table-row-icon-action-hover-info"}`}
+                            size="small"
+                            onClick={() => onToggleVisibility(index)}
+                        >
+                            {item.visible ? (
+                                <VisibilityIcon fontSize="small" />
+                            ) : (
+                                <VisibilityOffIcon fontSize="small" />
+                            )}
+                        </IconButton>
+                    </div>
+                </div>
+            )}
+        </Draggable>
+    )
+}
 const isValidColor = (color) =>{
     if(typeof color !== "string"){
         return false;
@@ -502,17 +713,8 @@ export function SettingsOperatorUIConfigDialog(props) {
     const initialShowMediaValue = GetMythicSetting({setting_name: "showMedia", default_value: operatorSettingDefaults.showMedia});
     const [showMedia, setShowMedia] = React.useState(initialShowMediaValue);
 
-    const initialHideUsernameValue = GetMythicSetting({setting_name: "hideUsernames", default_value: operatorSettingDefaults.hideUsernames});
-    const [hideUsernames, setHideUsernames] = React.useState(initialHideUsernameValue);
-
-    const initialShowIPValue = GetMythicSetting({setting_name: "showIP", default_value: operatorSettingDefaults.showIP});
-    const [showIP, setShowIP] = React.useState(initialShowIPValue);
-
-    const initialShowHostnameValue = GetMythicSetting({setting_name: "showHostname", default_value: operatorSettingDefaults.showHostname});
-    const [showHostname, setShowHostname] = React.useState(initialShowHostnameValue);
-
-    const initialShowCallbackGroupsValue = GetMythicSetting({setting_name: "showCallbackGroups", default_value: operatorSettingDefaults.showCallbackGroups});
-    const [showCallbackGroups, setShowCallbackGroups] = React.useState(initialShowCallbackGroupsValue);
+    const initialTaskingDisplayFields = normalizeTaskingDisplayFields(GetMythicSetting({setting_name: "taskingDisplayFields", default_value: operatorSettingDefaults.taskingDisplayFields}));
+    const [taskingDisplayFields, setTaskingDisplayFields] = React.useState(initialTaskingDisplayFields);
 
     const initialUseDisplayParamsForCLIHistory = GetMythicSetting({setting_name: "useDisplayParamsForCLIHistory", default_value: operatorSettingDefaults.useDisplayParamsForCLIHistory});
     const [useDisplayParamsForCLIHistory, setUseDisplayParamsForCLIHistory] = React.useState(initialUseDisplayParamsForCLIHistory);
@@ -652,12 +854,6 @@ export function SettingsOperatorUIConfigDialog(props) {
     const onChangeFontFamily = (name, value, error) => {
       setFontFamily(value);
     }
-    const onHideUsernamesChanged = (evt) => {
-      setHideUsernames(!hideUsernames);
-    }
-    const onShowIPChanged = (evt) => {
-        setShowIP(!showIP);
-    }
     const onHideBrowserTaskingChanged = (evt) => {
         setHideBrowserTasking(!hideBrowserTasking);
     }
@@ -666,12 +862,6 @@ export function SettingsOperatorUIConfigDialog(props) {
     }
     const onHideTaskingContextChanged = (evt) => {
         setHideTaskingContext(!hideTaskingContext);
-    }
-    const onShowHostnameChanged = (evt) => {
-        setShowHostname(!showHostname);
-    }
-    const onShowCallbackGroupsChanged = (evt) => {
-        setShowCallbackGroups(!showCallbackGroups);
     }
     const onShowMediaChanged = (evt) => {
         setShowMedia(!showMedia);
@@ -703,10 +893,7 @@ export function SettingsOperatorUIConfigDialog(props) {
           }))
       }
       updateSettings({settings: {
-              hideUsernames,
-              showIP,
-              showHostname,
-              showCallbackGroups,
+              taskingDisplayFields: normalizeTaskingDisplayFields(taskingDisplayFields),
               fontSize: parseInt(fontSize),
               fontFamily,
               showMedia,
@@ -730,10 +917,7 @@ export function SettingsOperatorUIConfigDialog(props) {
     const setDefaults = () => {
       setFontSize(operatorSettingDefaults.fontSize);
       setFontFamily(operatorSettingDefaults.fontFamily);
-      setHideUsernames(operatorSettingDefaults.hideUsernames);
-      setShowIP(operatorSettingDefaults.showIP);
-      setShowHostname(operatorSettingDefaults.showHostname);
-      setShowCallbackGroups(operatorSettingDefaults.showCallbackGroups);
+      setTaskingDisplayFields(operatorSettingDefaults.taskingDisplayFields);
       setShowMedia(operatorSettingDefaults.showMedia);
       setInteractType(operatorSettingDefaults.interactType);
       setUseDisplayParamsForCLIHistory(operatorSettingDefaults.useDisplayParamsForCLIHistory);
@@ -762,10 +946,7 @@ export function SettingsOperatorUIConfigDialog(props) {
             try{
                 let jsonData = JSON.parse(String(contents));
                 let currentSettings = {
-                    hideUsernames,
-                    showIP,
-                    showHostname,
-                    showCallbackGroups,
+                    taskingDisplayFields,
                     fontSize: parseInt(fontSize),
                     fontFamily,
                     showMedia,
@@ -778,7 +959,9 @@ export function SettingsOperatorUIConfigDialog(props) {
                     showOPSECBypassUsername,
                     palette: palette
                 }
-                updateSettings({settings: {...currentSettings, ...jsonData}});
+                const mergedSettings = {...currentSettings, ...jsonData};
+                mergedSettings.taskingDisplayFields = normalizeTaskingDisplayFields(mergedSettings.taskingDisplayFields);
+                updateSettings({settings: mergedSettings});
                 snackActions.info("Updating settings");
                 props.onClose();
             }catch(error){
@@ -818,29 +1001,54 @@ export function SettingsOperatorUIConfigDialog(props) {
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">
-            Configure UI Settings
-            <div style={{float: "right", display: "flex", alignItems: "center"}}>
-                <MythicStyledTooltip title={"Export Preferences"} tooltipStyle={{float: "right"}}>
-                    <IconButton onClick={getCurrentPreferences}>
-                        <CloudDownloadIcon />
-                    </IconButton>
-                </MythicStyledTooltip>
-                <MythicStyledTooltip title={"Export Only Color Preferences"} tooltipStyle={{float: "right"}}>
-                    <IconButton  onClick={getCurrentColorPreferences}>
-                        <CloudDownloadIcon fontSize={"medium"} />
-                        <ColorLensIcon color={"success"} fontSize={"small"} style={{marginLeft: "-8px", marginTop: "7px"}} />
-                    </IconButton>
-                </MythicStyledTooltip>
-                <MythicStyledTooltip title={"Import Preferences"} tooltipStyle={{float: "right"}}>
-                    <IconButton  onClick={()=>fileInputRef.current.click()} >
-                        <CloudUploadIcon color={"success"}/>
-                        <input ref={fileInputRef} onChange={onFileChange} type="file" hidden />
-                    </IconButton>
-                </MythicStyledTooltip>
-            </div>
-            <Typography variant={"body2"}>
-                Community themes are located on <Link target={"_blank"} href={"https://github.com/MythicMeta/CommunityThemes"}>GitHub</Link>
-            </Typography>
+            <Box className="mythic-dialog-title-row mythic-ui-settings-title-row">
+                <Box className="mythic-ui-settings-title-copy">
+                    <Typography component="div" className="mythic-ui-settings-title">
+                        Configure UI Settings
+                    </Typography>
+                    <Typography variant={"body2"} className="mythic-ui-settings-subtitle">
+                        Community themes are located on <Link target={"_blank"} href={"https://github.com/MythicMeta/CommunityThemes"}>GitHub</Link>
+                    </Typography>
+                </Box>
+                <Box className="mythic-ui-settings-title-actions">
+                    <MythicStyledTooltip title={"Copy all preferences as JSON"}>
+                        <Button
+                            className="mythic-dialog-title-action mythic-ui-settings-title-button mythic-ui-settings-title-button-info"
+                            onClick={getCurrentPreferences}
+                            size="small"
+                            variant="outlined"
+                            startIcon={<CloudDownloadIcon fontSize="small" />}
+                        >
+                            Export
+                        </Button>
+                    </MythicStyledTooltip>
+                    <MythicStyledTooltip title={"Copy only color preferences as JSON"}>
+                        <Button
+                            className="mythic-dialog-title-action mythic-ui-settings-title-button mythic-ui-settings-title-button-info"
+                            onClick={getCurrentColorPreferences}
+                            size="small"
+                            variant="outlined"
+                            startIcon={
+                                <ColorLensIcon fontSize="small" />
+                            }
+                        >
+                            Export Colors
+                        </Button>
+                    </MythicStyledTooltip>
+                    <MythicStyledTooltip title={"Import preferences from a JSON file"}>
+                        <Button
+                            className="mythic-dialog-title-action mythic-ui-settings-title-button mythic-ui-settings-title-button-success"
+                            onClick={()=>fileInputRef.current.click()}
+                            size="small"
+                            variant="outlined"
+                            startIcon={<CloudUploadIcon fontSize="small" />}
+                        >
+                            Import
+                            <input ref={fileInputRef} onChange={onFileChange} type="file" hidden />
+                        </Button>
+                    </MythicStyledTooltip>
+                </Box>
+            </Box>
         </DialogTitle>
         <TableContainer className="mythicElement" style={{paddingLeft: "10px", paddingRight: "10px"}}>
           <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
@@ -862,52 +1070,9 @@ export function SettingsOperatorUIConfigDialog(props) {
                           </Select>
                     </MythicStyledTableCell>
                     </TableRow>
-                  <TableRow hover>
-                  <MythicStyledTableCell>Hide Usernames In Tasking</MythicStyledTableCell>
-                  <MythicStyledTableCell>
-                    <Switch
-                      checked={hideUsernames}
-                      onChange={onHideUsernamesChanged}
-                      color="info"
-                      inputProps={{ 'aria-label': 'info checkbox' }}
-                      name="hide_usernames"
-                    />
-                  </MythicStyledTableCell>
-                </TableRow>
-                  <TableRow hover>
-                      <MythicStyledTableCell>Show Callback IP In Tasking</MythicStyledTableCell>
-                      <MythicStyledTableCell>
-                          <Switch
-                              checked={showIP}
-                              onChange={onShowIPChanged}
-                              color="info"
-                              inputProps={{ 'aria-label': 'info checkbox' }}
-                              name="show_ip"
-                          />
-                      </MythicStyledTableCell>
-                  </TableRow>
-                  <TableRow hover>
-                      <MythicStyledTableCell>Show Callback Hostname In Tasking</MythicStyledTableCell>
-                      <MythicStyledTableCell>
-                          <Switch
-                              checked={showHostname}
-                              onChange={onShowHostnameChanged}
-                              color="info"
-                              inputProps={{ 'aria-label': 'info checkbox' }}
-                              name="show_hostname"
-                          />
-                      </MythicStyledTableCell>
-                  </TableRow>
-                  <TableRow hover>
-                      <MythicStyledTableCell>Show Callback Groups In Tasking</MythicStyledTableCell>
-                      <MythicStyledTableCell>
-                          <Switch
-                              checked={showCallbackGroups}
-                              onChange={onShowCallbackGroupsChanged}
-                              color="info"
-                              inputProps={{ 'aria-label': 'info checkbox' }}
-                              name="show_callback_groups"
-                          />
+                  <TableRow>
+                      <MythicStyledTableCell colSpan={2} style={{paddingTop: "16px", paddingBottom: "16px"}}>
+                          <TaskingMetadataSummary value={taskingDisplayFields} onChange={setTaskingDisplayFields} />
                       </MythicStyledTableCell>
                   </TableRow>
                   <TableRow hover>

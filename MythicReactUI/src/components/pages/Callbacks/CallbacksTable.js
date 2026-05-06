@@ -114,7 +114,7 @@ export const ipCompare = (a, b) => {
     }
 }
 const callbackTableInitialColumns = [
-    {key: "id", type: 'number', name: "Interact", width: 150, disableDoubleClick: true},
+    {key: "id", type: 'number', name: "Interact", width: 175, disableDoubleClick: true},
     {key: "mythictree_groups", type: 'array', name: "Groups", width: 150},
     {key: "ip", type: 'ip', name: "IP", width: 150},
     {key: "external_ip",type: 'string', name: "External IP", width: 150},
@@ -1014,7 +1014,7 @@ function CallbacksTablePreMemo(props){
                 sortIndicatorIndex={sortColumn}
                 sortDirection={sortData.sortDirection}
                 items={sortedData}
-                rowHeight={GetComputedFontSize() + 7}
+                rowHeight={GetComputedFontSize() + 10}
                 onClickHeader={onClickHeader}
                 onDoubleClickRow={onRowDoubleClick}
                 contextMenuOptions={contextMenuOptions}

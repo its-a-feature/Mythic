@@ -683,7 +683,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
     return (
         <MythicTabPanel index={index} value={value}>
             <Split direction="horizontal" style={{width: "100%", height: "100%", display: "flex", overflow: "hidden"}} sizes={[30, 70]} >
-                <div className="bg-gray-base" style={{display: "inline-flex"}}>
+                <div className="bg-gray-base" style={{display: "inline-flex", height: "100%", minHeight: 0, minWidth: 0, overflow: "hidden"}}>
                     <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={true}>
                         <CircularProgress color="inherit" />
                     </Backdrop>
@@ -702,8 +702,8 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
                     />
 
                 </div>
-                <div className="bg-gray-light" style={{display: "inline-flex"}}>
-                    <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, overflow: "hidden" }}>
+                <div className="bg-gray-light" style={{display: "inline-flex", height: "100%", minHeight: 0, minWidth: 0, overflow: "hidden"}}>
+                    <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minHeight: 0, minWidth: 0, overflow: "hidden" }}>
                         <div style={{ flexGrow: 0 }}>
                             <FileBrowserTableTop
                                 tabInfo={tabInfo}
@@ -720,7 +720,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
                                 baseUIFeature={baseUIFeature}
                             />
                         </div>
-                        <div style={{ flexGrow: 1 }}>
+                        <div style={{ flex: "1 1 auto", minHeight: 0, minWidth: 0, overflow: "hidden" }}>
                             <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={true}>
                                 <CircularProgress color="inherit" />
                             </Backdrop>
@@ -917,7 +917,7 @@ const FileBrowserTableTop = ({
         autoTaskLsOnEmptyDirectoriesRef.current = autoTaskLsOnEmptyDirectories;
     }, [autoTaskLsOnEmptyDirectories]);
     return (
-        <Grid container spacing={0} style={{ paddingTop: '10px' }}>
+        <Grid container spacing={0} className="mythic-file-browser-tableTop">
             <Grid size={12}>
                 <MythicTextField
                     placeholder={selectedFolderData.host}
@@ -925,93 +925,98 @@ const FileBrowserTableTop = ({
                     onEnter={goToDirectory}
                     onChange={onChangePath}
                     name={placeHolder}
+                    marginTop="0"
+                    marginBottom="0"
                     InputProps={{
+                        className: "mythic-file-browser-pathInput",
                         endAdornment: (
-                            <React.Fragment>
+                            <div className="mythic-file-browser-toolbarGroup mythic-file-browser-toolbarGroupEnd">
                                 <MythicStyledTooltip title={`Task current callback (${tabInfo["displayID"]}) to list contents`}>
-                                    <IconButton style={{ padding: '3px' }}
-                                                onClick={onLocalListFilesButton}
-                                                size="large">
-                                        <RefreshIcon color='info' />
+                                    <IconButton
+                                        className="mythic-file-browser-iconButton mythic-file-browser-hoverInfo"
+                                        onClick={onLocalListFilesButton}
+                                        size="small">
+                                        <RefreshIcon fontSize="small" />
                                     </IconButton>
                                 </MythicStyledTooltip>
                                 <MythicStyledTooltip title={`Upload file to folder via current callback (${tabInfo["displayID"]})`}>
-                                    <IconButton style={{ padding: '3px' }}
-                                                onClick={onLocalUploadFileButton}
-                                                size="large">
-                                        <CloudUploadIcon color="info" />
+                                    <IconButton
+                                        className="mythic-file-browser-iconButton mythic-file-browser-hoverInfo"
+                                        onClick={onLocalUploadFileButton}
+                                        size="small">
+                                        <CloudUploadIcon fontSize="small" />
                                     </IconButton>
                                 </MythicStyledTooltip>
                                 {autoTaskLsOnEmptyDirectories ? (
                                     <MythicStyledTooltip title={"Currently tasking listing on empty directories, click to toggle off"} >
-                                        <IconButton style={{padding: "3px"}}
-                                                    onClick={onToggleAutoTaskLsOnEmptyDirectories}
-                                                    size={"large"}>
-                                            <PlaylistAddIcon color={"success"} ></PlaylistAddIcon>
+                                        <IconButton
+                                            className="mythic-file-browser-iconButton mythic-file-browser-activeSuccess mythic-file-browser-hoverSuccess"
+                                            onClick={onToggleAutoTaskLsOnEmptyDirectories}
+                                            size="small">
+                                            <PlaylistAddIcon fontSize="small" />
                                         </IconButton>
                                     </MythicStyledTooltip>
                                 ) : (
                                     <MythicStyledTooltip title={"Currently not tasking listing on empty directories, click to toggle on"} >
-                                        <IconButton style={{padding: "3px"}}
-                                                    onClick={onToggleAutoTaskLsOnEmptyDirectories}
-                                                    size={"large"}>
-                                            <PlaylistRemoveIcon color={"secondary"} ></PlaylistRemoveIcon>
+                                        <IconButton
+                                            className="mythic-file-browser-iconButton mythic-file-browser-hoverWarning"
+                                            onClick={onToggleAutoTaskLsOnEmptyDirectories}
+                                            size="small">
+                                            <PlaylistRemoveIcon fontSize="small" />
                                         </IconButton>
                                     </MythicStyledTooltip>
                                 )}
                                 <MythicStyledTooltip title={showDeletedFiles ? 'Hide Deleted Files' : 'Show Deleted Files'}>
                                     <IconButton
-                                        style={{ padding: '3px' }}
+                                        className={`mythic-file-browser-iconButton mythic-file-browser-hoverWarning ${showDeletedFiles ? "mythic-file-browser-activeWarning" : ""}`}
                                         onClick={onLocalToggleShowDeletedFiles}
-                                        size="large">
+                                        size="small">
                                         {showDeletedFiles ? (
-                                            <VisibilityIcon color="success" />
+                                            <VisibilityIcon fontSize="small" />
                                         ) : (
-                                            <VisibilityOffIcon color="error"  />
+                                            <VisibilityOffIcon fontSize="small" />
                                         )}
                                     </IconButton>
                                 </MythicStyledTooltip>
-                            </React.Fragment>
+                            </div>
                         ),
                         startAdornment: (
-                            <div style={{display: "inline-flex",
-                                alignItems: "center",
-                                borderRight: "1px solid grey",
-                                marginRight: "10px",
-                                padding: "0 5px 0 0"}}>
+                            <div className="mythic-file-browser-toolbarGroup mythic-file-browser-toolbarGroupStart">
                                 {tokenOptions.length > 0 &&
-                                    <CallbacksTabsTaskingInputTokenSelect width={"100%"}
-                                        options={tokenOptions} changeSelectedToken={changeSelectedToken}/>
+                                    <div className="mythic-file-browser-tokenSelect">
+                                        <CallbacksTabsTaskingInputTokenSelect width={"100%"}
+                                            options={tokenOptions} changeSelectedToken={changeSelectedToken}/>
+                                    </div>
                                 }
                                 <MythicStyledTooltip title={`Move back to previous listing`}>
-                                    <IconButton style={{ padding: '3px' }}
-                                                disabled={historyIndex >= history.length -1 }
-                                                onClick={moveIndexToPreviousListing}
-                                                color='info'
-                                                size="large">
-                                        <ArrowBackIcon />
+                                    <IconButton
+                                        className="mythic-file-browser-iconButton mythic-file-browser-hoverInfo"
+                                        disabled={historyIndex >= history.length -1 }
+                                        onClick={moveIndexToPreviousListing}
+                                        size="small">
+                                        <ArrowBackIcon fontSize="small" />
                                     </IconButton>
                                 </MythicStyledTooltip>
                                 <MythicStyledTooltip title={`Move to next listing`}>
-                                    <IconButton style={{ padding: '3px' }}
-                                                disabled={historyIndex <= 0}
-                                                onClick={moveIndexToNextListing}
-                                                size="large"
-                                                color='info'>
-                                        <ArrowForwardIcon  />
+                                    <IconButton
+                                        className="mythic-file-browser-iconButton mythic-file-browser-hoverInfo"
+                                        disabled={historyIndex <= 0}
+                                        onClick={moveIndexToNextListing}
+                                        size="small">
+                                        <ArrowForwardIcon fontSize="small" />
                                     </IconButton>
                                 </MythicStyledTooltip>
                                 <MythicStyledTooltip title={"Move up a directory"} >
-                                    <IconButton style={{padding: "0 0 0 0"}}
-                                                onClick={onLocalMoveUpDirectoryButton}
-                                                disabled={!selectedFolderData?.parent_path_text || selectedFolderData?.parent_path_text?.length === 0 || selectedFolderData.root || fullPath === ""}
+                                    <IconButton
+                                        className="mythic-file-browser-iconButton mythic-file-browser-hoverInfo"
+                                        onClick={onLocalMoveUpDirectoryButton}
+                                        disabled={!selectedFolderData?.parent_path_text || selectedFolderData?.parent_path_text?.length === 0 || selectedFolderData.root || fullPath === ""}
                                     >
-                                        <KeyboardReturnIcon style={{rotate: "90deg"}} ></KeyboardReturnIcon>
+                                        <KeyboardReturnIcon fontSize="small" style={{rotate: "90deg"}} />
                                     </IconButton>
                                 </MythicStyledTooltip>
 
                         </div>),
-                        style: {  },
                     }}
                 />
             </Grid>

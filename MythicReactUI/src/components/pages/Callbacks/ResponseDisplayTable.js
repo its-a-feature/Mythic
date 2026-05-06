@@ -808,10 +808,10 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
     return expand ? {flexGrow: 1,
           minHeight: gridData.length > 0 ? Math.min(maxHeight, dataHeight) : headerHeight,
           width: "100%", position: "relative"} :
-        {height: dataHeight, position: "relative"}
+        {height: dataHeight, position: "relative", width: "100%"}
   }, [expand, dataHeight, gridData]);
   return (
-        <div style={{height: "100%", display: "flex", flexDirection: "column", position: "relative", width: "100%"}}>
+        <div className="mythic-response-table" style={{height: "100%", position: "relative"}}>
             {table?.title && (
                 <MythicSectionHeader
                     dense
@@ -820,7 +820,7 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
                 />
             )}
 
-          <div style={tableStyle}>
+          <div className="mythic-response-table-grid" style={tableStyle}>
             <MythicResizableGrid
                   columns={columns}
                   sortIndicatorIndex={sortColumn}

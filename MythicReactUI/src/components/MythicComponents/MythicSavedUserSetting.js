@@ -19,10 +19,7 @@ export const GetComputedFontSize = () => {
 }
 /*
 setting_name options:
-    hideUsernames
-    showIP
-    showHostname
-    showCallbackGroups
+    taskingDisplayFields
     showMedia
     interactType
 
