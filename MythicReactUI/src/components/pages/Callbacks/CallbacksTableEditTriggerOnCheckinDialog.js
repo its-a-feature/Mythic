@@ -1,18 +1,17 @@
 import React, {useEffect} from 'react';
-import Button from '@mui/material/Button';
-import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import Box from '@mui/material/Box';
-import AceEditor from 'react-ace';
-import "ace-builds/src-noconflict/mode-json";
-import "ace-builds/src-noconflict/theme-github";
-import "ace-builds/src-noconflict/theme-monokai";
-import "ace-builds/src-noconflict/ext-searchbox";
-import {useTheme} from '@mui/material/styles';
-import {HexColorInput, HexColorPicker} from 'react-colorful';
 import Typography from '@mui/material/Typography';
+import NotificationsActiveTwoToneIcon from '@mui/icons-material/NotificationsActiveTwoTone';
 import MythicTextField from "../../MythicComponents/MythicTextField";
+import {
+    MythicDialogBody,
+    MythicDialogButton,
+    MythicDialogFooter,
+    MythicDialogSection,
+    MythicForm,
+    MythicFormField
+} from "../../MythicComponents/MythicDialogLayout";
 
 export function CallbacksTableEditTriggerOnCheckinDialog(props) {
     const [comment, setComment] = React.useState(0);
@@ -31,29 +30,73 @@ export function CallbacksTableEditTriggerOnCheckinDialog(props) {
     }
   return (
     <React.Fragment>
-        <DialogTitle id="form-dialog-title">{"Adjust this callback's trigger threshold"}</DialogTitle>
-        <DialogContent dividers={true} style={{height: "100%"}}>
-            <Typography >
-                This adjusts how long, in minutes, this callback must <b>not</b> checkin before finally checking in to trigger an <b>eventing workflow</b> (trigger is callback_checkin).
-            </Typography>
-            <Typography >
-                A zero value means never trigger.
-            </Typography>
-            <Typography >
-                If no eventing workflow for <b>callback_checkin</b> that matches the right payload_types and supported_os restrictions, then nothing will happen.
-            </Typography>
-            <MythicTextField autoFocus={true} onChange={onChange} type={"number"} value={comment} onEnter={onSubmit} name={"trigger threshold in minutes"} showLabel={false} />
+        <DialogTitle id="form-dialog-title">Callback check-in alert</DialogTitle>
+        <DialogContent dividers={true}>
+            <MythicDialogBody>
+                <div className="mythic-callback-trigger-summary">
+                    <span className={`mythic-callback-trigger-summary-icon ${comment > 0 ? "mythic-callback-trigger-summary-icon-active" : ""}`}>
+                        <NotificationsActiveTwoToneIcon fontSize="small" />
+                    </span>
+                    <div className="mythic-callback-trigger-summary-copy">
+                        <Typography className="mythic-callback-trigger-summary-title">
+                            {comment > 0 ? `Alert after ${comment} minute${comment === 1 ? "" : "s"} without a check-in` : "Alerting disabled"}
+                        </Typography>
+                        <Typography className="mythic-callback-trigger-summary-description">
+                            This setting only triggers when the callback checks in after crossing the configured threshold.
+                        </Typography>
+                    </div>
+                </div>
+                <MythicDialogSection
+                    title="Threshold"
+                    description="Set how many minutes this callback can remain silent before its next check-in can trigger eventing."
+                >
+                    <MythicForm>
+                        <MythicFormField
+                            label="Minutes without a check-in"
+                            description="Use 0 to disable this alert for the callback."
+                        >
+                            <div className="mythic-form-field-control">
+                                <MythicTextField
+                                    autoFocus={true}
+                                    onChange={onChange}
+                                    type="number"
+                                    value={comment}
+                                    onEnter={onSubmit}
+                                    name="Trigger threshold"
+                                    showLabel={false}
+                                    marginTop="0"
+                                    marginBottom="0"
+                                    InputProps={{inputProps: {min: 0}}}
+                                />
+                            </div>
+                        </MythicFormField>
+                    </MythicForm>
+                </MythicDialogSection>
+                <MythicDialogSection title="Eventing behavior">
+                    <div className="mythic-callback-trigger-rule-list">
+                        <div className="mythic-callback-trigger-rule">
+                            Trigger name: <strong>callback_checkin</strong>
+                        </div>
+                        <div className="mythic-callback-trigger-rule">
+                            Matching workflow filters still apply, including payload type and supported OS restrictions.
+                        </div>
+                        <div className="mythic-callback-trigger-rule">
+                            If no matching workflow exists, no workflow will run.
+                        </div>
+                    </div>
+                </MythicDialogSection>
+            </MythicDialogBody>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={props.onClose} variant="contained" color="primary">
+        <MythicDialogFooter>
+          <MythicDialogButton onClick={props.onClose}>
             Close
-          </Button>
+          </MythicDialogButton>
             {props.onSubmit &&
-                <Button onClick={onSubmit} variant="contained" color="success">
-                    Submit
-                </Button>
+                <MythicDialogButton onClick={onSubmit} intent="primary">
+                    Save Threshold
+                </MythicDialogButton>
             }
-        </DialogActions>
+        </MythicDialogFooter>
     </React.Fragment>
   );
 }

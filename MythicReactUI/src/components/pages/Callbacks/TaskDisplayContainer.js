@@ -657,7 +657,6 @@ const TaskActionsToolbarGeneric = ({toggleViewBrowserScript, toggleSelectAllOutp
           </MythicStyledTooltip>
           <Button size="small" variant="text" startIcon={<MoreHorizIcon fontSize="small" />} onClick={openActionsMenu}
                   sx={{ml: 0.25, minWidth: "auto", textTransform: "none"}}>
-            More
           </Button>
           <Menu anchorEl={actionsMenuAnchor}
                 open={Boolean(actionsMenuAnchor)}
