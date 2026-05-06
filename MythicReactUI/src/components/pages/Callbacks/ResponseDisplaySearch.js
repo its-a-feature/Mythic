@@ -1,5 +1,6 @@
 import React from 'react';
-import {  Link } from '@mui/material';
+import {Button} from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 
 
@@ -16,16 +17,22 @@ export const ResponseDisplaySearch = (props) =>{
         scrollContent()
     }, []);
   return (
-    <>
-      <pre style={{display: "inline-block", whiteSpace: "pre-wrap"}}>
+    <div className="mythic-response-inline-output">
+      <pre className="mythic-response-inline-text">
         {props.search?.plaintext || ""}
       </pre>
       
       <MythicStyledTooltip title={props.search?.hoverText || "View on Search Page"} >
-        <Link component="a" target="_blank" href={window.location.origin + "/new/search/?" + props.search.search}>
-            {props.search?.name || ""}
-        </Link>
-      </MythicStyledTooltip><br/>
-    </>
+        <Button
+          className="mythic-table-row-action mythic-table-row-action-hover-info mythic-response-inline-action"
+          component="a"
+          target="_blank"
+          href={window.location.origin + "/new/search/?" + props.search.search}
+          startIcon={<SearchIcon />}
+        >
+            {props.search?.name || "Open search"}
+        </Button>
+      </MythicStyledTooltip>
+    </div>
   );   
 }
