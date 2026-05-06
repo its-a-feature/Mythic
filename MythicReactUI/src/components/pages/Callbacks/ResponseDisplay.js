@@ -643,9 +643,10 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
 }
 
 export function ResponseDisplayBrowserScriptComponent({output, browserScriptData, task, expand, displayType, allowPlaintextFallback=true}) {
+  const hasBrowserScriptData = browserScriptData && Object.keys(browserScriptData).length > 0;
   return (
-      <>
-        {Object.keys(browserScriptData).length > 0 ? (
+      <div className={`mythic-browser-script-response${expand ? " mythic-browser-script-response-expanded" : ""}`}>
+        {hasBrowserScriptData ? (
             <>
               {browserScriptData?.screenshot?.map( (scr, index) => (
                   <ResponseDisplayScreenshot key={"screenshot" + index + 'fortask' + task.id} task={task} {...scr}
@@ -692,6 +693,6 @@ export function ResponseDisplayBrowserScriptComponent({output, browserScriptData
                 ) : null
             )
         }
-      </>
+      </div>
   )
 }

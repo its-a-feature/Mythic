@@ -17,17 +17,23 @@ export const ResponseDisplayDownload = (props) =>{
         scrollContent()
     }, []);
   return (
-    <>
-      <pre style={{display: "inline-block"}}>
+    <div className="mythic-response-inline-output">
+      <pre className="mythic-response-inline-text">
         {props.download?.plaintext || ""}
       </pre>
       
       <MythicStyledTooltip title={props?.download?.hoverText || "Download payload"} >
-        <Button variant={props.download?.variant || "contained"} component="a" target="_blank" color="primary" href={"/api/v1.4/files/download/" + props.download.agent_file_id} download
+        <Button
+          className="mythic-table-row-action mythic-table-row-action-hover-info mythic-response-inline-action"
+          variant={props.download?.variant || "text"}
+          component="a"
+          target="_blank"
+          href={"/api/v1.4/files/download/" + props.download.agent_file_id}
+          download
           startIcon={<GetAppIcon />}>
-            {props.download?.name || ""}
+            {props.download?.name || "Download"}
         </Button>
-      </MythicStyledTooltip><br/>
-    </>
+      </MythicStyledTooltip>
+    </div>
   );   
 }

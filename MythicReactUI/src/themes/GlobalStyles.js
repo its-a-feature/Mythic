@@ -1512,6 +1512,139 @@ tspan {
     overflow: auto;
     padding: 0.55rem;
 }
+.mythic-browser-script-response {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    min-width: 0;
+    width: 100%;
+}
+.mythic-browser-script-response-expanded {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+.mythic-browser-script-response-expanded > *:only-child {
+    min-height: 0;
+}
+.mythic-response-media {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    width: 100%;
+}
+.mythic-response-media-metadata {
+    flex: 0 0 auto !important;
+    max-height: none !important;
+    min-height: fit-content !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+}
+.mythic-response-media-tabs {
+    flex: 0 0 auto;
+}
+.mythic-response-media-panel {
+    min-width: 0;
+}
+.mythic-response-media-panel[hidden] {
+    display: none !important;
+}
+.mythic-response-inline-output {
+    align-items: center;
+    color: ${(props) => props.theme.palette.text.primary};
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    min-height: 34px;
+    min-width: 0;
+    width: 100%;
+}
+.mythic-response-inline-text {
+    color: ${(props) => props.theme.palette.text.primary};
+    display: inline-block;
+    flex: 0 1 auto;
+    margin: 0;
+    max-width: 100%;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+.mythic-response-inline-action {
+    flex: 0 0 auto;
+}
+.mythic-response-tabs {
+    background-color: ${(props) => props.theme.surfaces?.raised || props.theme.palette.background.paper};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    max-width: 100%;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+    width: 100%;
+}
+.mythic-response-tabs-bar {
+    background-color: ${(props) => props.theme.surfaces?.muted || props.theme.palette.background.paper};
+    border-bottom: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    flex: 0 0 auto;
+    min-width: 0;
+    overflow: hidden;
+    padding: 0.35rem;
+}
+.mythic-response-tabs-list {
+    min-height: 34px;
+}
+.mythic-response-tabs-list .MuiTabs-flexContainer {
+    gap: 0.35rem;
+}
+.mythic-response-tabs-list .MuiTabs-scrollButtons {
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    color: ${(props) => props.theme.palette.text.secondary};
+    min-height: 30px;
+    width: 30px;
+}
+.mythic-response-tab {
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.045) : alpha(props.theme.palette.common.black, 0.028)} !important;
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor} !important;
+    border-radius: ${(props) => props.theme.shape.borderRadius}px !important;
+    color: ${(props) => props.theme.palette.text.secondary} !important;
+    font-size: 0.76rem;
+    font-weight: 750;
+    line-height: 1.2;
+    max-width: min(18rem, 60vw);
+    min-height: 30px;
+    min-width: 0;
+    padding: 0.35rem 0.7rem;
+    text-transform: none;
+}
+.mythic-response-tab:hover {
+    background-color: ${(props) => alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.18 : 0.08)} !important;
+    border-color: ${(props) => alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.42 : 0.28)} !important;
+    color: ${(props) => props.theme.palette.text.primary} !important;
+}
+.mythic-response-tab.Mui-selected {
+    background-color: ${(props) => alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.24 : 0.12)} !important;
+    border-color: ${(props) => alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.62 : 0.42)} !important;
+    color: ${(props) => props.theme.palette.primary.main} !important;
+}
+.mythic-response-tab-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-response-tabs-panel {
+    flex: 1 1 auto;
+    flex-direction: column;
+    max-width: 100%;
+    min-height: 0;
+    min-width: 0;
+    overflow: auto;
+    padding: 0.5rem;
+    width: 100%;
+}
 .mythic-browser-scripts-table {
     max-width: 100%;
     min-width: 60rem;
