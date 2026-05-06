@@ -436,7 +436,7 @@ export function CallbacksTop(props){
        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
     return (
-      <div style={{height: "100%", width: "100%"}}>
+      <div style={{height: "100%", flex: "1 1 auto", minWidth: 0, overflow: "hidden"}}>
           <CallbackGraphEdgesContext.Provider value={callbackEdges.current}>
               <OnOpenTabContext.Provider value={onOpenTabLocal}>
                   <OnOpenTabsContext.Provider value={onOpenTabsLocal}>
