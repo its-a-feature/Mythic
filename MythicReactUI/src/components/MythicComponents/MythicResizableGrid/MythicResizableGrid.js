@@ -7,12 +7,183 @@ import HeaderCell from './HeaderCell';
 import Cell from './Cell';
 import {classes} from './styles';
 import {GetMythicSetting, useSetMythicSetting} from "../MythicSavedUserSetting";
+import FitScreenIcon from '@mui/icons-material/FitScreen';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import ViewColumnIcon from '@mui/icons-material/ViewColumn';
 
 const HeaderCellContext = createContext({});
 
 const MIN_COLUMN_WIDTH = 100;
 const MIN_FLEX_COLUMN_WIDTH = 150;
+const AUTOSIZE_HORIZONTAL_PADDING = 44;
+const AUTOSIZE_HEADER_EXTRA_WIDTH = 28;
+const headerMenuIconStyle = {fontSize: "1rem", marginRight: "8px"};
 
+let autosizeCanvas;
+
+const getNumericWidth = (value) => {
+    const width = Number(value);
+    return Number.isFinite(width) ? width : undefined;
+};
+const getColumnMinWidth = (column) => {
+    const configuredMinWidth = getNumericWidth(column?.minWidth);
+    return Math.max(configuredMinWidth || 0, column?.fillWidth ? MIN_FLEX_COLUMN_WIDTH : MIN_COLUMN_WIDTH);
+};
+const getColumnMaxWidth = (column) => {
+    const configuredMaxWidth = getNumericWidth(column?.maxWidth);
+    return configuredMaxWidth && configuredMaxWidth > 0 ? configuredMaxWidth : Infinity;
+};
+const clampColumnWidth = (column, width) => {
+    const minWidth = getColumnMinWidth(column);
+    const maxWidth = getColumnMaxWidth(column);
+    const numericWidth = getNumericWidth(width) || minWidth;
+    return Math.floor(Math.min(maxWidth, Math.max(numericWidth, minWidth)));
+};
+const getPreferredColumnWidth = (column) => {
+    return column?.width === undefined ? getColumnMinWidth(column) : column.width;
+};
+const distributeFillWidth = ({columns, columnWidths, totalWidth}) => {
+    const availableWidth = Math.max(0, Math.floor(totalWidth || 0));
+    const currentWidth = columnWidths.reduce((a, b) => a + b, 0);
+    const widthDifference = availableWidth - currentWidth;
+    if(widthDifference <= 0 || columns.length === 0){
+        return columnWidths;
+    }
+    const fillColumnIndexes = columns.reduce((previous, column, index) => {
+        return column.fillWidth ? [...previous, index] : previous;
+    }, []);
+    const targetIndexes = fillColumnIndexes.length > 0 ? fillColumnIndexes : [columns.length - 1];
+    let remainingWidth = widthDifference;
+    const updatedColumnWidths = [...columnWidths];
+    for(let i = 0; i < targetIndexes.length; i++){
+        const columnIndex = targetIndexes[i];
+        const share = i === targetIndexes.length - 1 ? remainingWidth : Math.floor(widthDifference / targetIndexes.length);
+        const currentColumnWidth = updatedColumnWidths[columnIndex];
+        const nextColumnWidth = clampColumnWidth(columns[columnIndex], currentColumnWidth + share);
+        updatedColumnWidths[columnIndex] = nextColumnWidth;
+        remainingWidth -= nextColumnWidth - currentColumnWidth;
+    }
+    return updatedColumnWidths;
+};
+const getInitialColumnWidths = ({columns, savedWidths = [], totalWidth = 0}) => {
+    const hasSavedWidths = savedWidths.length === columns.length;
+    const baseColumnWidths = columns.map((column, index) => {
+        return clampColumnWidth(column, hasSavedWidths ? savedWidths[index] : getPreferredColumnWidth(column));
+    });
+    if(hasSavedWidths){
+        return baseColumnWidths;
+    }
+    return distributeFillWidth({columns, columnWidths: baseColumnWidths, totalWidth});
+};
+const areColumnWidthsEqual = (first = [], second = []) => {
+    if(first.length !== second.length){
+        return false;
+    }
+    return first.every((width, index) => Math.floor(width || MIN_COLUMN_WIDTH) === Math.floor(second[index] || MIN_COLUMN_WIDTH));
+};
+const normalizeColumnWidths = (columnWidths = []) => {
+    return columnWidths.map((columnWidth) => Math.floor(getNumericWidth(columnWidth) || MIN_COLUMN_WIDTH));
+};
+const getMeasureContext = () => {
+    if(typeof document === "undefined"){
+        return null;
+    }
+    if(autosizeCanvas === undefined){
+        autosizeCanvas = document.createElement("canvas");
+    }
+    const context = autosizeCanvas.getContext("2d");
+    if(context === null){
+        return null;
+    }
+    const referenceElement = document.querySelector(`.${classes.cell}`) || document.body;
+    const computedStyle = window.getComputedStyle(referenceElement);
+    context.font = [
+        computedStyle.fontStyle,
+        computedStyle.fontVariant,
+        computedStyle.fontWeight,
+        computedStyle.fontSize,
+        computedStyle.fontFamily,
+    ].join(" ");
+    return context;
+};
+const getDisplayText = (value) => {
+    if(value === undefined || value === null){
+        return "";
+    }
+    if(typeof value === "string"){
+        const trimmedValue = value.trim();
+        if(trimmedValue.startsWith("[")){
+            try{
+                const parsedValue = JSON.parse(trimmedValue);
+                if(Array.isArray(parsedValue) && parsedValue.length > 0){
+                    return getDisplayText(parsedValue[0]);
+                }
+            }catch(error){
+                // Keep the original string when it is not a serialized array.
+            }
+        }
+        return value;
+    }
+    if(typeof value === "number" || typeof value === "boolean"){
+        return String(value);
+    }
+    if(Array.isArray(value)){
+        return value.map((entry) => getDisplayText(entry)).filter(Boolean).join(", ");
+    }
+    if(React.isValidElement(value)){
+        return getDisplayText(value.props?.cellData || value.props?.children);
+    }
+    if(typeof value === "object"){
+        if(value.plaintext !== undefined){
+            return getDisplayText(value.plaintext);
+        }
+        if(value.name !== undefined){
+            return getDisplayText(value.name);
+        }
+        if(value.button?.name !== undefined){
+            return getDisplayText(value.button.name);
+        }
+        if(value.display !== undefined){
+            return getDisplayText(value.display);
+        }
+        return "";
+    }
+    return "";
+};
+const getCellAutosizeText = ({column, cell}) => {
+    const cellProps = cell?.props || {};
+    const columnKey = column?.key || column?.plaintext;
+    const rowData = cellProps.rowData || {};
+    const cellDataText = getDisplayText(cellProps.cellData);
+    if(cellDataText !== ""){
+        return cellDataText;
+    }
+    if(columnKey !== undefined){
+        return getDisplayText(rowData?.[columnKey]);
+    }
+    return getDisplayText(cell);
+};
+const measureAutosizeText = (context, text) => {
+    const normalizedText = getDisplayText(text);
+    if(normalizedText === ""){
+        return 0;
+    }
+    const lines = normalizedText.split(/\r?\n/);
+    return lines.reduce((longestLineWidth, line) => {
+        const textWidth = context ? context.measureText(line).width : line.length * 8;
+        return Math.max(longestLineWidth, textWidth);
+    }, 0);
+};
+const getAutosizedColumnWidth = ({column, columnIndex, headerNameKey, items}) => {
+    const measureContext = getMeasureContext();
+    const headerText = getDisplayText(column?.[headerNameKey] || column?.name || column?.plaintext);
+    const headerWidth = measureAutosizeText(measureContext, headerText.toUpperCase()) + AUTOSIZE_HEADER_EXTRA_WIDTH;
+    const widestCellWidth = items.reduce((widestWidth, itemRow) => {
+        const cellText = getCellAutosizeText({column, cell: itemRow[columnIndex]});
+        return Math.max(widestWidth, measureAutosizeText(measureContext, cellText));
+    }, 0);
+    return clampColumnWidth(column, Math.max(headerWidth, widestCellWidth) + AUTOSIZE_HORIZONTAL_PADDING);
+};
 
 const CellRendererPreMemo = ({ style, rowIndex, columnIndex, data }) => {
     return rowIndex === 0 ? null : <Cell style={style} rowIndex={rowIndex} columnIndex={columnIndex} data={data} />;
@@ -20,12 +191,16 @@ const CellRendererPreMemo = ({ style, rowIndex, columnIndex, data }) => {
 const CellRenderer = React.memo(CellRendererPreMemo);
 const innerElementType = React.forwardRef(({ children, style }, ref) => {
     const HeaderCellData = useContext(HeaderCellContext);
+    const resizingColumnIndex = HeaderCellData.resizingColumnIndex;
+    const resizeGuideLeft = resizingColumnIndex >= 0 ?
+        HeaderCellData.columnWidths.slice(0, resizingColumnIndex + 1).reduce((a, b) => a + b, 0) :
+        -1;
     const onHeaderDoubleClick = React.useCallback( (e, columnIndex) => {
         if (HeaderCellData.columns[columnIndex].disableAutosize) return;
         HeaderCellData.autosizeColumn({columnIndex});
     }, [HeaderCellData.columns, HeaderCellData.autosizeColumn]);
     return (
-        <div ref={ref} style={style}>
+        <div ref={ref} style={{...style, position: "relative"}}>
             {/* always render header cells */}
             <div
                 className={classes.headerCellRow}
@@ -63,6 +238,15 @@ const innerElementType = React.forwardRef(({ children, style }, ref) => {
             </div>
             {/* render other cells as usual */}
             {children}
+            {resizingColumnIndex >= 0 &&
+                <div
+                    className={classes.resizeGuide}
+                    style={{
+                        left: resizeGuideLeft,
+                        height: style.height,
+                    }}
+                />
+            }
         </div>
     );
 });
@@ -93,14 +277,11 @@ const ResizableGridWrapper = ({
     const { width: scrollbarWidth } = useScrollbarSize();
     const localColumnsRef = React.useRef(columns);
     const initialSavedWidths = name === undefined ? [] : GetMythicSetting({setting_name: `${name}_column_widths`, default_value: {}, output: "json-array"});
-    const [columnWidths, setColumnWidths] = useState(columns.map((column, index) => {
-        if(initialSavedWidths.length > 0){
-            return initialSavedWidths[index];
-        }
-        if(column.fillWidth){
-            return Math.max(column?.width || 0, MIN_FLEX_COLUMN_WIDTH);
-        }
-        return Math.max(column?.width || 0, MIN_COLUMN_WIDTH);
+    const savedColumnWidths = Array.isArray(initialSavedWidths) ? initialSavedWidths : [];
+    const [columnWidths, setColumnWidths] = useState(() => getInitialColumnWidths({
+        columns,
+        savedWidths: savedColumnWidths,
+        totalWidth: AutoSizerProps.width - scrollbarWidth,
     }));
     const gridUUID = React.useMemo( () => GetShortRandomString(), []);
     const gridRef = useRef(null);
@@ -112,9 +293,14 @@ const ResizableGridWrapper = ({
     const [resizingColumnIndex, setResizingColumnIndex] = useState(-1);
     const [updateSetting] = useSetMythicSetting();
     const setColumnWidthsAndRef = useCallback( (newColumnWidths, resetColumnIndex=0) => {
+        const normalizedColumnWidths = normalizeColumnWidths(newColumnWidths);
+        if(areColumnWidthsEqual(columnWidthsRef.current, normalizedColumnWidths)){
+            return false;
+        }
         lastResetColumnIndexRef.current = resetColumnIndex;
-        columnWidthsRef.current = newColumnWidths;
-        setColumnWidths(newColumnWidths);
+        columnWidthsRef.current = normalizedColumnWidths;
+        setColumnWidths(normalizedColumnWidths);
+        return true;
     }, []);
     const getColumnWidth = useCallback(
         (index) => {
@@ -132,33 +318,17 @@ const ResizableGridWrapper = ({
         [rowHeight, headerRowHeight]
     );
     useEffect(() => {
-        if(initialSavedWidths.length > 0 && localColumnsRef.current.length === columns.length){
+        if(savedColumnWidths.length === columns.length && localColumnsRef.current.length === columns.length){
             return;
         }
         localColumnsRef.current = columns;
-        const totalWidth = AutoSizerProps.width - scrollbarWidth;
-        const updatedColumnWidths = columns.map((column, index) => {
-            return column.width || MIN_COLUMN_WIDTH
+        const updatedColumnWidths = getInitialColumnWidths({
+            columns,
+            savedWidths: [],
+            totalWidth: AutoSizerProps.width - scrollbarWidth,
         });
-        const totalWidthDiff = totalWidth - updatedColumnWidths.reduce((a, b) => a + b, 0);
-        if (totalWidthDiff !== 0) {
-            let updatedWidthIndexs = [];
-            for(let i = 0; i < columns.length; i++){
-                // check if any of the columns have the `fillWidth` property to true
-                if(columns[i]["fillWidth"]){
-                    updatedWidthIndexs.push(i);
-                }
-            }
-            if(updatedWidthIndexs.length === 0){
-                updatedWidthIndexs.push(columns.length - 1);
-            }
-            for(let i = 0; i < updatedWidthIndexs.length; i++){
-                updatedColumnWidths[updatedWidthIndexs[i]] += Math.max(totalWidthDiff / updatedWidthIndexs.length, MIN_FLEX_COLUMN_WIDTH);
-            }
-            //updatedColumnWidths[updatedWidthIndex] += totalWidthDiff;
-        }
-        setColumnWidthsAndRef(updatedColumnWidths);
-        if(name !== undefined){
+        const didUpdateWidths = setColumnWidthsAndRef(updatedColumnWidths);
+        if(didUpdateWidths && name !== undefined){
             updateSetting({setting_name: `${name}_column_widths`, value: updatedColumnWidths});
         }
 
@@ -197,7 +367,7 @@ const ResizableGridWrapper = ({
                     return;
                 }
                 const resizeDelta = currentResize.latestClientX - currentResize.startClientX;
-                const nextColumnWidth = Math.floor(Math.max(currentResize.startWidth + resizeDelta, MIN_COLUMN_WIDTH));
+                const nextColumnWidth = clampColumnWidth(columns[currentResize.columnIndex], currentResize.startWidth + resizeDelta);
                 const updatedColumnWidths = currentResize.initialWidths.map( (columnWidth, index) => {
                     return currentResize.columnIndex === index ? nextColumnWidth : columnWidth;
                 });
@@ -223,13 +393,13 @@ const ResizableGridWrapper = ({
                 resizeFrameRef.current = null;
             }
             const resizeDelta = clientX - currentResize.startClientX;
-            const nextColumnWidth = Math.floor(Math.max(currentResize.startWidth + resizeDelta, MIN_COLUMN_WIDTH));
+            const nextColumnWidth = clampColumnWidth(columns[currentResize.columnIndex], currentResize.startWidth + resizeDelta);
             const updatedColumnWidths = currentResize.initialWidths.map( (columnWidth, index) => {
                 return currentResize.columnIndex === index ? nextColumnWidth : columnWidth;
             });
             activeResizeRef.current = null;
-            setColumnWidthsAndRef(updatedColumnWidths, currentResize.columnIndex);
-            if(name !== undefined){
+            const didUpdateWidths = setColumnWidthsAndRef(updatedColumnWidths, currentResize.columnIndex);
+            if(didUpdateWidths && name !== undefined){
                 updateSetting({setting_name: `${name}_column_widths`, value: updatedColumnWidths});
             }
             setResizingColumnIndex(-1);
@@ -270,100 +440,74 @@ const ResizableGridWrapper = ({
         };
     }, []);
     const autosizeColumn =  useCallback( ({columnIndex}) => {
-        if(columns[columnIndex].disableDoubleClick){
+        const column = columns[columnIndex];
+        if(column?.disableDoubleClick || column?.disableAutosize){
             return
         }
-        const longestElementInColumn = Math.max(...items.map((itemRow) => {
-            if(columns[columnIndex].key === undefined){
-                if(columns[columnIndex].plaintext){
-                    columns[columnIndex].key = columns[columnIndex].plaintext;
-                } else {
-                    return 30;
-                }
-            }
-            if(columns[columnIndex].key !== undefined){
-                if(columns[columnIndex].key.includes("time")){
-                    return 30;
-                }
-                if(columns[columnIndex].key === "mythictree_groups"){
-                    return itemRow[columnIndex]?.props?.cellData.length;
-                }
-                if(columns[columnIndex].type === "size"){
-                    if(itemRow[columnIndex]?.props?.cellData !== undefined){
-                        if(typeof itemRow[columnIndex]?.props?.cellData === 'number'){
-                            return String(itemRow[columnIndex]?.props?.cellData)?.length;
-                        }
-                        return String(itemRow[columnIndex]?.props?.cellData?.plaintext)?.length;
-                    }
-                    return itemRow[columnIndex].length;
-                }
-                try{
-                    items = JSON.parse(itemRow[columnIndex]?.props?.rowData?.[columns[columnIndex].key]);
-                    if(Array.isArray(items) && items.length > 0){
-                        return String(items[0]).length;
-                    }
-                }catch(error){
-                    //console.log(itemRow[columnIndex]?.props?.rowData?.[columns[columnIndex].key])
-                }
-                if(typeof itemRow[columnIndex]?.props?.cellData === 'string' ){
-                    return itemRow[columnIndex]?.props?.cellData.length;
-                }
-
-                let data = itemRow[columnIndex]?.props?.rowData?.[columns[columnIndex].key];
-                if(columns[columnIndex].inMetadata){
-                    return itemRow[columnIndex]?.props?.cellData.length;
-                }
-                if(data === undefined){
-                    return MIN_COLUMN_WIDTH;
-                }
-                if(data.plaintext){
-                    return String(data.plaintext)?.length;
-                } else if(data?.button?.name) {
-                    return String(data?.button?.name)?.length ;
-                } else {
-                    return MIN_COLUMN_WIDTH;
-                }
-                //return String(itemRow[columnIndex]?.props?.rowData?.[columns[columnIndex].key]).length || -1;
-            } else if(typeof(itemRow[columnIndex]?.props?.cellData) === "string") {
-                try {
-                    items = JSON.parse(itemRow[columnIndex]?.props?.cellData);
-                    if (Array.isArray(items) && items.length > 0) {
-                        return String(items[0]).length;
-                    }
-                } catch (error) {
-                    return itemRow[columnIndex]?.props?.cellData.length;
-                }
-            } else if(Array.isArray(itemRow[columnIndex]?.props?.cellData)){
-                return itemRow[columnIndex]?.props?.cellData.join(", ").length;
-            }else {
-                return itemRow[columnIndex]?.props?.cellData?.length || -1;
-            }
-
-        }));
-        const updatedColumnWidths = columnWidths.map((columnWidth, index) => {
+        const currentColumnWidths = columnWidthsRef.current;
+        const updatedColumnWidths = currentColumnWidths.map((columnWidth, index) => {
             if (columnIndex === index) {
-                if(isNaN(longestElementInColumn)){
-                    return MIN_COLUMN_WIDTH;
-                }
-                return Math.floor(Math.max(longestElementInColumn * 10 + 40, MIN_COLUMN_WIDTH));
+                return getAutosizedColumnWidth({column, columnIndex, headerNameKey, items});
             }
             return Math.floor(columnWidth);
         });
-        //console.log(updatedColumnWidths, columnWidths, longestElementInColumn);
-        let updatedValues = false;
-        for(let i = 0; i < updatedColumnWidths.length; i++){
-            if(updatedColumnWidths[i] !== columnWidths[i]){
-                updatedValues = true;
-                break;
-            }
-        }
-        if(updatedValues){
-            setColumnWidthsAndRef(updatedColumnWidths, columnIndex);
+        const didUpdateWidths = setColumnWidthsAndRef(updatedColumnWidths, columnIndex);
+        if(didUpdateWidths){
             if(name !== undefined){
                 updateSetting({setting_name: `${name}_column_widths`, value: updatedColumnWidths});
             }
         }
-    }, [columnWidths, columns, items, name, setColumnWidthsAndRef, updateSetting]);
+    }, [columns, headerNameKey, items, name, setColumnWidthsAndRef, updateSetting]);
+    const autosizeAllColumns = useCallback( () => {
+        const currentColumnWidths = columnWidthsRef.current;
+        const updatedColumnWidths = currentColumnWidths.map((columnWidth, columnIndex) => {
+            const column = columns[columnIndex];
+            if(column?.disableDoubleClick || column?.disableAutosize){
+                return Math.floor(columnWidth);
+            }
+            return getAutosizedColumnWidth({column, columnIndex, headerNameKey, items});
+        });
+        const didUpdateWidths = setColumnWidthsAndRef(updatedColumnWidths, 0);
+        if(didUpdateWidths && name !== undefined){
+            updateSetting({setting_name: `${name}_column_widths`, value: updatedColumnWidths});
+        }
+    }, [columns, headerNameKey, items, name, setColumnWidthsAndRef, updateSetting]);
+    const resetColumnWidths = useCallback( () => {
+        const updatedColumnWidths = getInitialColumnWidths({
+            columns,
+            savedWidths: [],
+            totalWidth: AutoSizerProps.width - scrollbarWidth,
+        });
+        const didUpdateWidths = setColumnWidthsAndRef(updatedColumnWidths, 0);
+        if(didUpdateWidths && name !== undefined){
+            updateSetting({setting_name: `${name}_column_widths`, value: updatedColumnWidths});
+        }
+    }, [AutoSizerProps.width, columns, name, scrollbarWidth, setColumnWidthsAndRef, updateSetting]);
+    const headerContextMenuOptions = React.useMemo( () => {
+        const sizingOptions = [
+            {
+                name: "Autosize Column",
+                type: "item",
+                icon: <FitScreenIcon style={headerMenuIconStyle} />,
+                disabled: ({columnIndex}) => columns[columnIndex]?.disableDoubleClick || columns[columnIndex]?.disableAutosize,
+                click: ({columnIndex}) => autosizeColumn({columnIndex}),
+            },
+            {
+                name: "Autosize All Columns",
+                type: "item",
+                icon: <ViewColumnIcon style={headerMenuIconStyle} />,
+                disabled: columns.every((column) => column?.disableDoubleClick || column?.disableAutosize),
+                click: () => autosizeAllColumns(),
+            },
+            {
+                name: "Reset Column Widths",
+                type: "item",
+                icon: <RestartAltIcon style={headerMenuIconStyle} />,
+                click: () => resetColumnWidths(),
+            },
+        ];
+        return [...sizingOptions, ...(contextMenuOptions || [])];
+    }, [autosizeAllColumns, autosizeColumn, columns, contextMenuOptions, resetColumnWidths]);
 
     useEffect( () => {
         if(callbackTableGridRef){
@@ -378,7 +522,7 @@ const ResizableGridWrapper = ({
         "headerNameKey": headerNameKey,
         "onClickHeader": onClickHeader,
         "autosizeColumn": autosizeColumn,
-        "contextMenuOptions": contextMenuOptions,
+        "contextMenuOptions": headerContextMenuOptions,
         "sortIndicatorIndex": sortIndicatorIndex,
         "sortDirection": sortDirection,
         "getColumnWidth": getColumnWidth,
@@ -390,6 +534,7 @@ const ResizableGridWrapper = ({
         <>
             <HeaderCellContext.Provider value={headerCellData}>
                 <VariableSizeGrid
+                    className={classes.grid}
                     height={Math.max(1, AutoSizerProps.height)}
                     width={AutoSizerProps.width}
                     columnCount={columns.length}
@@ -432,29 +577,31 @@ const MythicResizableGrid = ({
     name,
 }) => {
     return (
-        <AutoSizer style={{height: "100%"}}>
-            {(AutoSizerProps) => (
-                <ResizableGridWrapper
-                    name={name}
-                    columns={columns}
-                    callbackTableGridRef={callbackTableGridRef}
-                    headerNameKey={headerNameKey}
-                    sortIndicatorIndex={sortIndicatorIndex}
-                    sortDirection={sortDirection}
-                    items={items}
-                    widthMeasureKey={widthMeasureKey}
-                    rowHeight={rowHeight}
-                    headerRowHeight={headerRowHeight}
-                    onClickHeader={onClickHeader}
-                    onDoubleClickRow={onDoubleClickRow}
-                    contextMenuOptions={contextMenuOptions}
-                    rowContextMenuOptions={rowContextMenuOptions}
-                    onRowContextMenuClick={onRowContextMenuClick}
-                    onRowClick={onRowClick}
-                    {...AutoSizerProps}
-                />
-            )}
-        </AutoSizer>
+        <div className={classes.root}>
+            <AutoSizer style={{height: "100%", width: "100%"}}>
+                {(AutoSizerProps) => (
+                    <ResizableGridWrapper
+                        name={name}
+                        columns={columns}
+                        callbackTableGridRef={callbackTableGridRef}
+                        headerNameKey={headerNameKey}
+                        sortIndicatorIndex={sortIndicatorIndex}
+                        sortDirection={sortDirection}
+                        items={items}
+                        widthMeasureKey={widthMeasureKey}
+                        rowHeight={rowHeight}
+                        headerRowHeight={headerRowHeight}
+                        onClickHeader={onClickHeader}
+                        onDoubleClickRow={onDoubleClickRow}
+                        contextMenuOptions={contextMenuOptions}
+                        rowContextMenuOptions={rowContextMenuOptions}
+                        onRowContextMenuClick={onRowContextMenuClick}
+                        onRowClick={onRowClick}
+                        {...AutoSizerProps}
+                    />
+                )}
+            </AutoSizer>
+        </div>
     );
 };
 

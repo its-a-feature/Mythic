@@ -418,10 +418,10 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
     return (
         <MythicTabPanel index={index} value={value} >
             <Split direction="horizontal" minSize={[0,0]} sizes={[30, 70]}
-                   style={{width: "100%", height: "100%", overflow: "auto", display: "flex", justifyContent: "flex-end"}} >
-                <div className="bg-gray-base" style={{display: "inline-flex", flexDirection: "column"}} >
+                   style={{width: "100%", height: "100%", minWidth: 0, overflow: "hidden", display: "flex"}} >
+                <div className="bg-gray-base" style={{display: "inline-flex", flexDirection: "column", minWidth: 0, overflow: "hidden"}} >
 
-                    <div style={{overflowY: "auto", flexGrow: 1}} id={`taskingPanelSplit${tabInfo.callbackID}`}>
+                    <div style={{overflowY: "auto", overflowX: "hidden", flexGrow: 1, minWidth: 0}} id={`taskingPanelSplit${tabInfo.callbackID}`}>
 
                         {!fetchedAllTasks &&
                             <MythicStyledTooltip title="Fetch Older Tasks">
@@ -450,7 +450,7 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
                     </div>
 
                 </div>
-                <div className="bg-gray-light" style={{display: "inline-flex", flexDirection: "column", height: "100%", width: "100%"}}>
+                <div className="bg-gray-light" style={{display: "inline-flex", flexDirection: "column", height: "100%", minWidth: 0, overflow: "hidden", width: "100%"}}>
                     {selectedTask.id > 0 && <TaskDisplayFlat key={"taskinteractdisplaysplit" + selectedTask.id} me={me} task={selectedTask}
                                                              command_id={selectedTask.command == null ? 0 : selectedTask.command.id}
                                                              filterOptions={filterOptions}
@@ -483,7 +483,7 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
 }
 const CallbacksTabsTaskingSplitTable = ({selectedTask, me}) => {
     return (
-            <div  style={{width: "100%", height: "100%", overflowY: "auto", display: "flex", flexDirection: "column"}} >
+            <div  style={{width: "100%", flex: "1 1 auto", minHeight: 0, minWidth: 0, overflow: "hidden", display: "flex", flexDirection: "column"}} >
                     {selectedTask.id > 0 &&
                         <TaskDisplayContainerFlat key={selectedTask.id} me={me} task={selectedTask} />
                     }

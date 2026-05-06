@@ -435,33 +435,35 @@ const FileBrowserVirtualTreePreMemo = ({
       }
   }, [selectedFolderData, flattenedNodes]);
   return flattenedNodes.length > 0 ? (
-    <StyledAutoSizer>
-    {(AutoSizerProps) => (
-      <List
-        itemData={flattenedNodes}
-        layout="vertical"
-        height={AutoSizerProps.height}
-        width={AutoSizerProps.width}
-        itemCount={flattenedNodes.length}
-        itemKey={itemKey}
-        itemSize={24}
-        ref={gridRef}
-      >
-        {(ListProps) => (
-          <VirtualTreeRow
-            {...ListProps}
-            tabInfo={tabInfo}
-            selectedFolderData={selectedFolderData}
-            treeRootData={treeRootData}
-            onSelectNode={onSelectNode}
-            onExpandNode={onExpandNode}
-            onCollapseNode={onCollapseNode}
-            onContextMenu={onContextMenu}
-          />
-        )}
-      </List>
-    )}
-  </StyledAutoSizer>
+    <div style={{height: "100%", width: "100%", minHeight: 0, minWidth: 0, overflow: "hidden"}}>
+      <StyledAutoSizer style={{height: "100%", width: "100%"}}>
+      {(AutoSizerProps) => (
+        <List
+          itemData={flattenedNodes}
+          layout="vertical"
+          height={AutoSizerProps.height}
+          width={AutoSizerProps.width}
+          itemCount={flattenedNodes.length}
+          itemKey={itemKey}
+          itemSize={24}
+          ref={gridRef}
+        >
+          {(ListProps) => (
+            <VirtualTreeRow
+              {...ListProps}
+              tabInfo={tabInfo}
+              selectedFolderData={selectedFolderData}
+              treeRootData={treeRootData}
+              onSelectNode={onSelectNode}
+              onExpandNode={onExpandNode}
+              onCollapseNode={onCollapseNode}
+              onContextMenu={onContextMenu}
+            />
+          )}
+        </List>
+      )}
+    </StyledAutoSizer>
+    </div>
   ) : null;
 };
 export const FileBrowserVirtualTree = React.memo(FileBrowserVirtualTreePreMemo);

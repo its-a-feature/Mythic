@@ -14,11 +14,11 @@ import {gql, useSubscription } from '@apollo/client';
 import {TaskDisplayContainer, TaskDisplayContainerConsole} from './TaskDisplayContainer';
 import {TagsDisplay} from '../../MythicComponents/MythicTag';
 import {taskingDataFragment} from './CallbackMutations';
-import {GetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
+import {GetMythicSetting, useGetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import PlayCircleFilledTwoToneIcon from '@mui/icons-material/PlayCircleFilledTwoTone';
 import CropRotateTwoToneIcon from '@mui/icons-material/CropRotateTwoTone';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
-import {operatorSettingDefaults} from "../../../cache";
+import {normalizeTaskingDisplayFields, operatorSettingDefaults} from "../../../cache";
 import {TaskFromUIButton} from "./TaskFromUIButton";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {faSkullCrossbones} from '@fortawesome/free-solid-svg-icons';
@@ -406,6 +406,66 @@ const getCallbackPrimaryIP = (task) => {
     return "";
   }
 }
+const useTaskingDisplayFields = () => {
+  const taskingDisplayFields = useGetMythicSetting({setting_name: "taskingDisplayFields", default_value: operatorSettingDefaults.taskingDisplayFields});
+  return React.useMemo(() => normalizeTaskingDisplayFields(taskingDisplayFields), [taskingDisplayFields]);
+}
+const TaskingMetadataField = ({fieldName, task, displayTimestamp, me, compactTimestamp=false}) => {
+  const ipValue = getCallbackPrimaryIP(task);
+  const callbackGroups = task.callback.mythictree_groups?.join(', ') || "";
+  switch(fieldName){
+    case "timestamp":
+      return (
+        <TaskMetaItem title={"Task timestamp"} icon={<AccessTimeIcon />}>
+          {compactTimestamp ? toLocalTimeShort(displayTimestamp, me?.user?.view_utc_time || false) : toLocalTime(displayTimestamp, me?.user?.view_utc_time || false)}
+        </TaskMetaItem>
+      );
+    case "task":
+      return (
+        <TaskMetaItem title={"View Task in separate page"} icon={<NumbersIcon />}>
+          <Link underline="hover" target="_blank" href={"/new/task/" + task.display_id}>T-{task.display_id}</Link>
+        </TaskMetaItem>
+      );
+    case "username":
+      return (
+        <TaskMetaItem title={"Operator"} icon={<PersonOutlineIcon />}>
+          {task.operator.username}
+        </TaskMetaItem>
+      );
+    case "callback":
+      return (
+        <TaskMetaItem title={"View Callback in separate page"}>
+          <Link underline="hover" target="_blank" href={"/new/callbacks/" + task.callback.display_id}>C-{task.callback.display_id}</Link>
+        </TaskMetaItem>
+      );
+    case "host":
+      return (
+        <TaskMetaItem title={"Host"} icon={<ComputerIcon />}>
+          {task.callback.host}
+        </TaskMetaItem>
+      );
+    case "ip":
+      return ipValue !== "" ? (
+        <TaskMetaItem title={"IP address"} icon={<PublicIcon />}>
+          {ipValue}
+        </TaskMetaItem>
+      ) : null;
+    case "groups":
+      return callbackGroups !== "" ? (
+        <TaskMetaItem title={"Callback groups"}>
+          {callbackGroups}
+        </TaskMetaItem>
+      ) : null;
+    case "payload_type":
+      return task?.command?.payloadtype?.name ? (
+        <TaskMetaItem title={"Payload type"}>
+          {task.command.payloadtype.name}
+        </TaskMetaItem>
+      ) : null;
+    default:
+      return null;
+  }
+}
 const TaskMetaItem = ({children, icon, title, style}) => {
   const item = (
     <span className={classes.taskMetaItem} style={style}>
@@ -450,18 +510,13 @@ const ColoredTaskDisplay = ({task, theme, children, expanded}) => {
 }
 export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayChildren, toggleDisplayChildren, expanded, compact=false }) => {
   const [displayComment, setDisplayComment] = React.useState(false);
-  const initialHideUsernameValue = GetMythicSetting({setting_name: "hideUsernames", default_value: operatorSettingDefaults.hideUsernames});
-  const initialShowIPValue = GetMythicSetting({setting_name: "showIP", default_value: operatorSettingDefaults.showIP});
-  const ipValue = getCallbackPrimaryIP(task);
-  const initialShowHostnameValue = GetMythicSetting({setting_name: "showHostname", default_value: operatorSettingDefaults.showHostname});
-  const initialShowCallbackGroupsValue = GetMythicSetting({setting_name: "showCallbackGroups", default_value: operatorSettingDefaults.showCallbackGroups});
+  const taskingDisplayFields = useTaskingDisplayFields();
   const initialTaskTimestampDisplayField = GetMythicSetting({setting_name: "taskTimestampDisplayField", default_value: operatorSettingDefaults.taskTimestampDisplayField});
   const initialShowOPSECBypassUsername = GetMythicSetting({setting_name: "showOPSECBypassUsername", default_value: operatorSettingDefaults.showOPSECBypassUsername});
   const displayTimestamp = task[initialTaskTimestampDisplayField] ? task[initialTaskTimestampDisplayField] : task.timestamp;
   const [openKillTaskButton, setOpenKillTaskButton] = React.useState({open: false});
   const command = task?.command?.cmd || task.command_name;
   const commandLine = command + " " + task.display_params;
-  const callbackGroups = task.callback.mythictree_groups?.join(', ') || "";
   const opsecBypassUsers = [
     task?.opsec_pre_bypass_user?.username,
     task?.opsec_post_bypass_user?.username,
@@ -499,40 +554,15 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
               </div>
           )}
           <div className={classes.taskMetaRow} onClick={preventPropagation}>
-            <TaskMetaItem title={"Task timestamp"} icon={<AccessTimeIcon />}>
-              {toLocalTime(displayTimestamp, me?.user?.view_utc_time || false)}
-            </TaskMetaItem>
-            <TaskMetaItem title={"View Task in separate page"} icon={<NumbersIcon />}>
-              <Link underline="hover" target="_blank" href={"/new/task/" + task.display_id}>T-{task.display_id}</Link>
-            </TaskMetaItem>
-            {!initialHideUsernameValue &&
-              <TaskMetaItem title={"Operator"} icon={<PersonOutlineIcon />}>
-                {task.operator.username}
-              </TaskMetaItem>
-            }
-            <TaskMetaItem title={"View Callback in separate page"}>
-              <Link underline="hover" target="_blank" href={"/new/callbacks/" + task.callback.display_id}>C-{task.callback.display_id}</Link>
-            </TaskMetaItem>
-            {initialShowHostnameValue &&
-              <TaskMetaItem title={"Host"} icon={<ComputerIcon />}>
-                {task.callback.host}
-              </TaskMetaItem>
-            }
-            {initialShowIPValue && ipValue !== "" &&
-              <TaskMetaItem title={"IP address"} icon={<PublicIcon />}>
-                {ipValue}
-              </TaskMetaItem>
-            }
-            {initialShowCallbackGroupsValue && callbackGroups !== "" &&
-              <TaskMetaItem title={"Callback groups"}>
-                {callbackGroups}
-              </TaskMetaItem>
-            }
-            {task?.command?.payloadtype?.name &&
-              <TaskMetaItem title={"Payload type"}>
-                {task.command.payloadtype.name}
-              </TaskMetaItem>
-            }
+            {taskingDisplayFields.map((fieldName) => (
+              <TaskingMetadataField
+                displayTimestamp={displayTimestamp}
+                fieldName={fieldName}
+                key={fieldName}
+                me={me}
+                task={task}
+              />
+            ))}
             {initialShowOPSECBypassUsername && opsecBypassUsers !== "" &&
               <TaskMetaItem title={"The specified usernames approved OPSEC bypasses for this task"} icon={<LockOpenIcon />}>
                 {opsecBypassUsers}
@@ -1155,13 +1185,10 @@ const TaskRowConsole = ({task, filterOptions, me, newlyIssuedTasks, indentLevel}
   )
 }
 export const ColoredTaskLabelConsole = ({task, theme, me, taskDivID, onClick, displayChildren, toggleDisplayChildren, expanded }) => {
-  const initialHideUsernameValue = GetMythicSetting({setting_name: "hideUsernames", default_value: operatorSettingDefaults.hideUsernames});
+  const taskingDisplayFields = useTaskingDisplayFields();
   const initialTaskTimestampDisplayField = GetMythicSetting({setting_name: "taskTimestampDisplayField", default_value: operatorSettingDefaults.taskTimestampDisplayField});
   const displayTimestamp = task[initialTaskTimestampDisplayField] ? task[initialTaskTimestampDisplayField] : task.timestamp;
-  const initialShowHostnameValue = GetMythicSetting({setting_name: "showHostname", default_value: operatorSettingDefaults.showHostname});
-  const initialShowIPValue = GetMythicSetting({setting_name: "showIP", default_value: operatorSettingDefaults.showIP});
   const [openKillTaskButton, setOpenKillTaskButton] = React.useState({open: false});
-  const ipValue = getCallbackPrimaryIP(task);
   const command = task?.command?.cmd || task.command_name;
   const commandLine = command + " " + task.display_params;
   const preventPropagation = (e) => {
@@ -1178,27 +1205,16 @@ export const ColoredTaskLabelConsole = ({task, theme, me, taskDivID, onClick, di
 	    <ColoredTaskDisplayConsole task={task} theme={theme} expanded={expanded}>
 	        <div id={taskDivID} className={classes.taskHeaderBody}>
             <div className={classes.taskMetaRow} onClick={preventPropagation}>
-              <TaskMetaItem title={"Task timestamp"} icon={<AccessTimeIcon />}>
-                {toLocalTimeShort(displayTimestamp, me?.user?.view_utc_time || false)}
-              </TaskMetaItem>
-              {!initialHideUsernameValue &&
-                <TaskMetaItem title={"Operator"} icon={<PersonOutlineIcon />}>
-                  {task.operator.username}
-                </TaskMetaItem>
-              }
-              <TaskMetaItem title={"View Task in separate page"} icon={<NumbersIcon />}>
-                <Link underline="hover" target="_blank" href={"/new/task/" + task.display_id}>T-{task.display_id}</Link>
-              </TaskMetaItem>
-              {initialShowHostnameValue &&
-                <TaskMetaItem title={"Host"} icon={<ComputerIcon />}>
-                  {task.callback.host}
-                </TaskMetaItem>
-              }
-              {initialShowIPValue && ipValue !== "" &&
-                <TaskMetaItem title={"IP address"} icon={<PublicIcon />}>
-                  {ipValue}
-                </TaskMetaItem>
-              }
+              {taskingDisplayFields.map((fieldName) => (
+                <TaskingMetadataField
+                  compactTimestamp
+                  displayTimestamp={displayTimestamp}
+                  fieldName={fieldName}
+                  key={fieldName}
+                  me={me}
+                  task={task}
+                />
+              ))}
               {(task.opsec_pre_blocked && !task.opsec_pre_bypassed) &&
                 <TaskMetaItem title={"OPSEC blocked before tasking"} icon={<WarningAmberIcon />}>
                   OPSEC pre
