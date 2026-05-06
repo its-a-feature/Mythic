@@ -138,7 +138,8 @@ export const TaskDisplayContainerFlat = ({task, me}) => {
   }, [searchOutput]);
 
   return (
-        <div style={{ height: "100%", position: "relative", display: "flex",  overflowY: "auto", justifyContent: "flex-end" }}>
+        <div style={{height: "100%", minWidth: 0, overflow: "hidden", position: "relative", display: "flex", width: "100%"}}>
+          <div style={{display: "flex", flex: "1 1 auto", height: "100%", minWidth: 0, overflow: "hidden"}}>
             <ResponseDisplay
                 key={task.id}
                 task={task}
@@ -150,6 +151,8 @@ export const TaskDisplayContainerFlat = ({task, me}) => {
                 expand={true}
                 responseRef={responseRef}
             />
+          </div>
+          <div style={{flex: "0 0 30px", height: "100%", minWidth: "30px", overflow: "hidden", zIndex: 2}}>
           <SideDisplayGeneric toggleViewBrowserScript={toggleViewBrowserScript}
                                 toggleSelectAllOutput={toggleSelectAllOutput}
                                 toggleOpenSearch={toggleOpenSearch}
@@ -159,6 +162,7 @@ export const TaskDisplayContainerFlat = ({task, me}) => {
                                 style={{position: "absolute", bottom: "15px", zIndex: 2}}
                                 fabStyle={{  }}
                                 viewAllOutput={selectAllOutput}/>
+          </div>
         </div>
 
   )

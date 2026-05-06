@@ -8,13 +8,9 @@ import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import InputLabel from '@mui/material/InputLabel';
 import Input from '@mui/material/Input';
-import TableCell from '@mui/material/TableCell';
-import TableRow from '@mui/material/TableRow';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableContainer from '@mui/material/TableContainer';
-import Paper from '@mui/material/Paper';
-import MythicStyledTableCell from "./MythicTableCell";
+import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
 
 export function MythicSelectFromListDialog(props) {
     const [options, setOptions] = React.useState([]);
@@ -78,9 +74,16 @@ export function MythicSelectFromListDialog(props) {
 
 export function MythicSelectFromRawListDialog(props) {
   const [options, setOptions] = React.useState([]);
+  const actionText = props.action || "Select";
   const handleSubmit = (selected) => {
       props.onSubmit(selected);
       props.onClose();
+  }
+  const handleKeyDown = (event, selected) => {
+      if(event.key === "Enter" || event.key === " "){
+          event.preventDefault();
+          handleSubmit(selected);
+      }
   }
   useEffect( () => {
       //expects options to be an array of dictionaries with a "display" field for what gets presented to the user
@@ -90,22 +93,33 @@ export function MythicSelectFromRawListDialog(props) {
 return (
   <React.Fragment>
       <DialogTitle >{props.title}</DialogTitle>
-      <div style={{height: "100%", display: "flex"}}>
-          <TableContainer component={Paper} className="mythicElement" style={{flexGrow: 1, overflowY: "auto"}}>
-              <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
-                  <TableBody style={{whiteSpace: "pre"}}>
-                      {options.map( (choice, i) => (
-                          <TableRow hover key={choice + i}>
-                              <MythicStyledTableCell style={{width: "5rem"}}>
-                                  <Button onClick={() => handleSubmit(choice)} variant="contained" color="primary">Select</Button>
-                              </MythicStyledTableCell>
-                              <MythicStyledTableCell>{choice}</MythicStyledTableCell>
-                          </TableRow>
-                      ))}
-                  </TableBody>
-              </Table>
-          </TableContainer>
-      </div>
+      <DialogContent dividers={true} className="mythic-raw-select-dialog-content">
+          {options.length === 0 ? (
+              <Box className="mythic-raw-select-empty">
+                  <Typography variant="body2">No options available</Typography>
+              </Box>
+          ) : (
+              <Stack className="mythic-raw-select-list">
+                  {options.map( (choice, i) => (
+                      <Box
+                          key={String(choice) + i}
+                          className="mythic-raw-select-row"
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => handleSubmit(choice)}
+                          onKeyDown={(event) => handleKeyDown(event, choice)}
+                      >
+                          <Typography className="mythic-raw-select-value" title={String(choice)}>
+                              {String(choice)}
+                          </Typography>
+                          <Button className="mythic-dialog-button-info mythic-raw-select-action" variant="outlined" size="small" tabIndex={-1}>
+                              {actionText}
+                          </Button>
+                      </Box>
+                  ))}
+              </Stack>
+          )}
+      </DialogContent>
       <DialogActions>
         <Button onClick={props.onClose} variant="contained" color="primary">
           Close

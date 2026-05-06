@@ -34,7 +34,6 @@ import {faSocks} from '@fortawesome/free-solid-svg-icons';
 import {TagsDisplay, ViewEditTags} from "../../MythicComponents/MythicTag";
 
 export const CallbacksTableIDCell = React.memo(({rowData, callbackDropdown}) =>{
-    const theme = useTheme();
     const dropdownAnchorRef = React.useRef(null);
     const onOpenTab = useContext(OnOpenTabContext);
     const interactType = GetMythicSetting({setting_name: "interactType", default_value: "interact"})
@@ -104,41 +103,53 @@ export const CallbacksTableIDCell = React.memo(({rowData, callbackDropdown}) =>{
     const localOnOpenTab = () => {
         onOpenTab({tabType: interactType, tabID: rowDataStatic.id + interactType, callbackID: rowDataStatic.id,  displayID: rowDataStatic.display_id});
     }
-    let defaultInteractIcon = <KeyboardIcon style={{paddingRight: "5px"}}/>;
+    let defaultInteractIcon = <KeyboardIcon fontSize="small" />;
     if(interactType === "interactSplit"){
-        defaultInteractIcon = <VerticalSplitIcon style={{paddingRight: "5px"}}/>;
+        defaultInteractIcon = <VerticalSplitIcon fontSize="small" />;
     } else if(interactType === "interactConsole"){
-        defaultInteractIcon = <TerminalIcon style={{paddingRight: "5px"}}/>;
+        defaultInteractIcon = <TerminalIcon fontSize="small" />;
     }
+    const highIntegrity = rowDataStatic.integrity_level > 3;
+    const lockOwner = rowDataStatic.locked_operator?.username || "unknown operator";
 
     return (
-        <div id={`callbacksTableID${rowDataStatic.id}`} style={{display: "inline-flex", alignItems: "flex-start"}}>
-            <IconButton style={{padding: 0, margin: 0}} color={rowDataStatic.integrity_level > 2 ? "error" : ""}
-                onClick={(evt) => {evt.stopPropagation();localOnOpenTab()}}
-            >
-                {rowDataStatic.locked ? (<LockIcon  style={{marginRight: "10px"}} />):(defaultInteractIcon)}
-            </IconButton>
-        {rowDataStatic.display_id}
+        <div id={`callbacksTableID${rowDataStatic.id}`} className="mythic-callback-interactCell">
+            <MythicStyledTooltip title={`Open ${interactType === "interactSplit" ? "split" : interactType === "interactConsole" ? "console" : "tasking"} view${highIntegrity ? " - high integrity callback" : ""}`}>
+                <IconButton
+                    className={`mythic-callback-iconButton mythic-callback-interactButton ${highIntegrity ? "mythic-callback-interactButtonHighIntegrity" : ""}`}
+                    onClick={(evt) => {evt.stopPropagation();localOnOpenTab()}}
+                >
+                    {defaultInteractIcon}
+                </IconButton>
+            </MythicStyledTooltip>
+            <span className="mythic-callback-displayId">{rowDataStatic.display_id}</span>
             <IconButton
-                style={{margin: 0, padding: 0}}
-                color={rowDataStatic.integrity_level > 2 ? "error" : ""}
+                className={`mythic-callback-iconButton mythic-callback-menuButton ${highIntegrity ? "mythic-callback-menuButtonHighIntegrity" : ""}`}
                 aria-haspopup="menu"
                 onClick={handleDropdownToggle}
                 ref={dropdownAnchorRef}
             >
-            <ArrowDropDownIcon/>
+                <ArrowDropDownIcon fontSize="small" />
             </IconButton>
+            {rowDataStatic.locked &&
+                <MythicStyledTooltip title={`Locked by ${lockOwner}`}>
+                    <span className="mythic-callback-lockBadge">
+                        <LockIcon fontSize="inherit" />
+                        <span>Locked</span>
+                    </span>
+                </MythicStyledTooltip>
+            }
             {rowDataStatic.trigger_on_checkin_after_time > 0 &&
                 <MythicStyledTooltip title={`Alert on callback after no checkin for ${rowDataStatic.trigger_on_checkin_after_time} minutes`}>
-                    <NotificationsActiveTwoToneIcon color={"success"}/>
+                    <NotificationsActiveTwoToneIcon className="mythic-callback-statusIcon mythic-callback-statusIconSuccess" fontSize="small" />
                 </MythicStyledTooltip>
             }
             {rowDataStatic.callbackports.length > 0 &&
                 <MythicStyledTooltip title={proxyMessage()}>
-                    <FontAwesomeIcon icon={faSocks} size="lg" style={{color: theme.palette.success.main}}/>
+                    <FontAwesomeIcon icon={faSocks} className="mythic-callback-statusIcon mythic-callback-statusIconSuccess" />
                 </MythicStyledTooltip>
             }
-    </div>
+        </div>
     )
 },
     areEqual)

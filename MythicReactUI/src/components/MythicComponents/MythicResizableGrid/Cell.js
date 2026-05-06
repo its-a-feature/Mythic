@@ -13,13 +13,22 @@ const CellPreMemo = ({ style, rowIndex, columnIndex, data  }) => {
     const cellStyle = item?.props?.cellData?.cellStyle || {};
     const rowStyle = data.items[rowIndex][columnIndex]?.props?.rowData?.rowStyle || {};
     const contextMenuLocationRef = React.useRef({x: 0, y: 0});
+    const ownsContextRowRef = React.useRef(false);
+    const updateRowClass = useCallback((className, shouldAdd) => {
+        const cells = document.getElementsByClassName(rowClassName);
+        if(cells.length > 0){
+            for(const cell of cells){
+                cell.classList.toggle(className, shouldAdd);
+            }
+        }
+    }, [rowClassName]);
     const handleDoubleClick = useCallback(
         (e) => {
             e.preventDefault();
             e.stopPropagation();
             data.onDoubleClickRow(e, rowIndex - 1, data.items[rowIndex][columnIndex]?.props?.rowData); // minus 1 to account for header row
         },
-        [data, rowIndex]
+        [columnIndex, data, rowIndex]
     );
     const handleClick = (event) => {
         event.preventDefault();
@@ -29,22 +38,23 @@ const CellPreMemo = ({ style, rowIndex, columnIndex, data  }) => {
         }
     };
     const selectedClass = data.items[rowIndex][columnIndex]?.props?.rowData?.selected ? "selectedCallback" : "";
-    const onMouseEnter = () => {
-        const cells = document.getElementsByClassName(rowClassName);
-        if(cells.length > 0){
-            for(const cell of cells){
-                cell.classList.add(classes.hoveredRow);
-            }
+    const rowFirstCellClass = columnIndex === 0 ? classes.rowFirstCell : "";
+    const rowLastCellClass = columnIndex === data.items[rowIndex].length - 1 ? classes.rowLastCell : "";
+    const rowInteractiveClass = data.onRowClick ? classes.rowInteractive : "";
+    const setHoveredRow = useCallback((enabled) => {
+        updateRowClass(classes.hoveredRow, enabled);
+    }, [updateRowClass]);
+    const setContextRow = useCallback((enabled) => {
+        updateRowClass(classes.contextRow, enabled);
+    }, [updateRowClass]);
+    const onMouseEnter = useCallback(() => {
+        setHoveredRow(true);
+    }, [setHoveredRow]);
+    const onMouseLeave = useCallback(() => {
+        if(!ownsContextRowRef.current){
+            setHoveredRow(false);
         }
-    }
-    const onMouseLeave = () => {
-        const cells = document.getElementsByClassName(rowClassName);
-        if(cells.length > 0){
-            for(const cell of cells){
-                cell.classList.remove(classes.hoveredRow);
-            }
-        }
-    }
+    }, [setHoveredRow]);
     const handleMenuItemClick = (event, clickOption) => {
         event.preventDefault();
         event.stopPropagation();
@@ -52,10 +62,24 @@ const CellPreMemo = ({ style, rowIndex, columnIndex, data  }) => {
         setOpenContextMenu(false);
     };
     React.useEffect( () => {
-        if(!openContextMenu){
-            onMouseLeave();
+        if(openContextMenu){
+            ownsContextRowRef.current = true;
+            setContextRow(true);
+            setHoveredRow(true);
+        } else if(ownsContextRowRef.current){
+            ownsContextRowRef.current = false;
+            setContextRow(false);
+            setHoveredRow(false);
         }
-    }, [openContextMenu]);
+    }, [openContextMenu, setContextRow, setHoveredRow]);
+    React.useEffect( () => {
+        return () => {
+            if(ownsContextRowRef.current){
+                setContextRow(false);
+                setHoveredRow(false);
+            }
+        };
+    }, [setContextRow, setHoveredRow]);
     const handleContextClick = useCallback(
         (event) => {
             event.preventDefault();
@@ -83,7 +107,7 @@ const CellPreMemo = ({ style, rowIndex, columnIndex, data  }) => {
     );
     return (
         <div style={{...style, ...cellStyle, ...rowStyle}}
-            className={`${classes.cell} ${rowClassName} ${rowHighlight} ${selectedClass}`}
+            className={`${classes.cell} ${rowClassName} ${rowHighlight} ${selectedClass} ${rowFirstCellClass} ${rowLastCellClass} ${rowInteractiveClass}`}
             onDoubleClick={handleDoubleClick}
             onClick={handleClick}
             onMouseEnter={onMouseEnter}

@@ -18,6 +18,61 @@ export const taskTimestampDisplayFieldOptions = [
         display: "When Agent Picked up Task",
     }
 ]
+export const taskingDisplayFieldOptions = [
+    {
+        name: "timestamp",
+        display: "Timestamp",
+        description: "Show the configured task timestamp."
+    },
+    {
+        name: "task",
+        display: "Task number",
+        description: "Show the T-number link for each task."
+    },
+    {
+        name: "username",
+        display: "Username",
+        description: "Show the operator that issued the task."
+    },
+    {
+        name: "callback",
+        display: "Callback number",
+        description: "Show the C-number link for the task callback."
+    },
+    {
+        name: "host",
+        display: "Host",
+        description: "Show the callback host."
+    },
+    {
+        name: "ip",
+        display: "IP address",
+        description: "Show the callback primary IP."
+    },
+    {
+        name: "groups",
+        display: "Callback groups",
+        description: "Show the callback's tree groups."
+    },
+    {
+        name: "payload_type",
+        display: "Payload type",
+        description: "Show the task payload type."
+    },
+];
+export const defaultTaskingDisplayFields = ["timestamp", "task", "username", "callback", "payload_type"];
+export const normalizeTaskingDisplayFields = (fields) => {
+    if(!Array.isArray(fields)){
+        return [...defaultTaskingDisplayFields];
+    }
+    const validFieldNames = taskingDisplayFieldOptions.map((option) => option.name);
+    return fields.reduce( (prev, fieldName) => {
+        if(validFieldNames.includes(fieldName) && !prev.includes(fieldName)){
+            return [...prev, fieldName];
+        }
+        return prev;
+    }, []);
+}
 export const taskingContextFieldsOptions = ["impersonation_context", "cwd", "user", "host", "ip", "pid", "process_short_name", "extra_info", "architecture"].sort();
 export const defaultShortcuts = [
     "ActiveCallbacks", "Payloads", "PayloadTypesAndC2",
@@ -29,11 +84,8 @@ export const operatorSettingDefaults =  {
     navBarOpen: false,
     fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     showMedia: true,
-    hideUsernames: false,
-    showIP: false,
-    showHostname: false,
     showOPSECBypassUsername: false,
-    showCallbackGroups: false,
+    taskingDisplayFields: defaultTaskingDisplayFields,
     useDisplayParamsForCLIHistory: true,
     interactType: "interactSplit",
     taskTimestampDisplayField: "timestamp",

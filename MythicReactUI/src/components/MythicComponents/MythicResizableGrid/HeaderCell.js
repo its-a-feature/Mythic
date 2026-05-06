@@ -3,8 +3,9 @@ import { useCallback } from 'react';
 import useSingleAndDoubleClick from '../../utilities/useSingleAndDoubleClick';
 import {classes} from './styles';
 import React from 'react';
-import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faFilter} from '@fortawesome/free-solid-svg-icons';
+import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import {ContextMenu} from "./Cell";
 
 const HeaderCell = ({
@@ -21,6 +22,9 @@ const HeaderCell = ({
     const dropdownAnchorRef = React.useRef(null);
     const item = data.items[rowIndex][columnIndex];
     const isFiltered = item?.filtered || false;
+    const isSorted = sortIndicatorIndex === columnIndex;
+    const HeaderSortIcon = sortDirection === 'ASC' ? KeyboardArrowUpIcon : KeyboardArrowDownIcon;
+    const headerLabel = item?.[headerNameKey] || "";
     const contextMenuLocationRef = React.useRef({x: 0, y: 0});
     const handleClick = useCallback(
         (e) => {
@@ -59,38 +63,69 @@ const HeaderCell = ({
         []
     );
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
+    const menuContext = React.useMemo(() => {
+        return {columnIndex, rowIndex, data: data.items[rowIndex][columnIndex]?.props?.rowData || {}};
+    }, [columnIndex, data.items, rowIndex]);
+    const resolvedContextMenuOptions = React.useMemo(() => {
+        const resolveOption = (option) => {
+            const resolvedOption = {
+                ...option,
+                disabled: typeof option.disabled === "function" ? option.disabled(menuContext) : option.disabled,
+            };
+            if(option.menuItems){
+                resolvedOption.menuItems = option.menuItems.map(resolveOption);
+            }
+            return resolvedOption;
+        };
+        return contextMenuOptions.map(resolveOption);
+    }, [contextMenuOptions, menuContext]);
     const handleContextClick = useCallback(
         (event) => {
             event.preventDefault();
-            if(item.disableFilterMenu){
-                return;
-            }
-            if(contextMenuOptions && contextMenuOptions.length > 0){
+            if(resolvedContextMenuOptions && resolvedContextMenuOptions.length > 0){
                 contextMenuLocationRef.current.x = event.clientX;
                 contextMenuLocationRef.current.y = event.clientY;
                 setOpenContextMenu(true);
             }
         },
-        [contextMenuOptions, columnIndex] // eslint-disable-line react-hooks/exhaustive-deps
+        [resolvedContextMenuOptions]
     );
     const handleMenuItemClick = (event, clickOption) => {
         event.preventDefault();
         event.stopPropagation();
-        clickOption({event, columnIndex, rowIndex, data: data.items[rowIndex][columnIndex]?.props?.rowData || {}});
+        clickOption({event, ...menuContext});
         setOpenContextMenu(false);
     };
 
     const handleClicks = useSingleAndDoubleClick(handleClick, handleDoubleClick);
+    const className = `${classes.headerCell} ${item.disableSort ? classes.headerCellNoSort : ""}`;
 
     return (
-        <div style={style} className={classes.headerCell} onClick={handleClicks} onContextMenu={handleContextClick} ref={dropdownAnchorRef}>
-            <Box display='flex' alignItems='center' justifyContent='space-between' width='100%'>
-                <Typography className={classes.cellInner} variant='body1'>
-                    {item[headerNameKey].toUpperCase()}
+        <div
+            style={style}
+            className={className}
+            onClick={handleClicks}
+            onContextMenu={handleContextClick}
+            ref={dropdownAnchorRef}
+            title={typeof headerLabel === "string" ? headerLabel : undefined}
+        >
+            <Box className={classes.headerContent}>
+                <Typography className={`${classes.cellInner} ${classes.headerLabel}`} component='div' variant='body1'>
+                    {typeof headerLabel === "string" ? headerLabel : headerLabel}
                 </Typography>
-                {isFiltered && <FontAwesomeIcon icon={faFilter} />}
-                {sortIndicatorIndex === columnIndex && (sortDirection === 'ASC' ? <div>↑</div> : <div>↓</div>)}
-                <ContextMenu dropdownAnchorRef={dropdownAnchorRef} contextMenuOptions={contextMenuOptions}
+                <Box className={classes.headerActions}>
+                    {isFiltered &&
+                        <span className={`${classes.headerIndicator} ${classes.headerFilterIcon}`} title="Filtered">
+                            <FilterAltOutlinedIcon fontSize="inherit" />
+                        </span>
+                    }
+                    {isSorted &&
+                        <span className={`${classes.headerIndicator} ${classes.headerSortIcon}`} title={`Sorted ${sortDirection === 'ASC' ? 'ascending' : 'descending'}`}>
+                            <HeaderSortIcon fontSize="inherit" />
+                        </span>
+                    }
+                </Box>
+                <ContextMenu dropdownAnchorRef={dropdownAnchorRef} contextMenuOptions={resolvedContextMenuOptions}
                              disableFilterMenu={item?.disableFilterMenu} openContextMenu={openContextMenu}
                              contextMenuLocationRef={contextMenuLocationRef}
                              setOpenContextMenu={setOpenContextMenu} handleMenuItemClick={handleMenuItemClick}
@@ -100,7 +135,7 @@ const HeaderCell = ({
                 <div
                     role="separator"
                     aria-orientation="vertical"
-                    aria-label={`Resize ${item[headerNameKey]} column`}
+                    aria-label={`Resize ${typeof headerLabel === "string" ? headerLabel : "column"} column`}
                     className={`${classes.headerResizeHandle} ${isResizing ? classes.headerResizeHandleActive : ""}`}
                     onPointerDown={handleResizePointerDown}
                     onDoubleClick={handleResizeDoubleClick}

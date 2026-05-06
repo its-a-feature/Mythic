@@ -364,7 +364,7 @@ const NonInteractiveResponseDisplay = (props) => {
         {props.searchOutput &&
             <SearchBar onSubmitSearch={onSubmitSearch} />
         }
-        <div style={{overflowY: "auto", flexGrow: 1, width: "100%", height: props.expand ? "100%": undefined, display: "flex", flexDirection: "column"}} ref={props.responseRef}>
+        <div style={{overflowY: "auto", overflowX: "hidden", flexGrow: 1, minWidth: 0, width: "100%", height: props.expand ? "100%": undefined, display: "flex", flexDirection: "column"}} ref={props.responseRef}>
           <ResponseDisplayComponent rawResponses={rawResponses} viewBrowserScript={props.viewBrowserScript}
                                     output={output} command_id={props.command_id} displayType={"accordion"}
                                     task={props.task} search={search} expand={props.expand}/>
@@ -430,7 +430,7 @@ export const NonInteractiveResponseDisplayConsole = (props) => {
 
   return (
       <React.Fragment>
-        <div style={{overflowY: "auto", width: "100%", height: props.expand ? "100%" : undefined}}
+        <div style={{overflowY: "auto", overflowX: "hidden", minWidth: 0, width: "100%", height: props.expand ? "100%" : undefined}}
              ref={props.responseRef}>
           <ResponseDisplayComponent rawResponses={rawResponses} viewBrowserScript={props.viewBrowserScript}
                                     output={output} command_id={props.command_id} displayType={"console"}
