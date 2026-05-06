@@ -100,6 +100,12 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
     const displayType = mimeType(media?.filename);
     const [value, setValue] = React.useState(displayType !== undefined ? 0 : 1);
     const [fileMetaData, setFileMetaData] = React.useState({});
+    const panelStyle = {
+        flex: "1 1 auto",
+        minHeight: expand ? 0 : "24rem",
+        overflow: "auto",
+        width: "100%",
+    };
     const fetchedData = ({data}) => {
         if(data.filemeta.length > 0){
             setFileMetaData({
@@ -129,9 +135,9 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
         setValue(newValue);
     }
     return (
-        <div style={{display: "flex", height: "100%", flexDirection: "column"}}>
+        <div className="mythic-response-media" style={{height: expand ? "100%" : undefined, minHeight: expand ? 0 : "24rem"}}>
             <DisplayFileMetaData fileMetaData={fileMetaData} />
-            <AppBar color={'default'} position='static' className={"no-box-shadow"}>
+            <AppBar color={'default'} position='static' className={"no-box-shadow mythic-response-media-tabs"}>
                 <Tabs
                     value={value}
                     onChange={handleChange}
@@ -158,7 +164,7 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
                     </MythicStyledTooltip>
                 </Tabs>
             </AppBar>
-            <div hidden={value !== 0}  style={{height: "100%", overflow: "auto"}} role='tabpanel' >
+            <div hidden={value !== 0} className="mythic-response-media-panel" style={panelStyle} role='tabpanel' >
                 {value === 0 &&
                     <DisplayMedia agent_file_id={media?.agent_file_id || ""}
                                   task={task} filename={media?.filename || undefined}
@@ -166,7 +172,7 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
                                   expand={expand} />
                 }
             </div>
-            <div hidden={value !== 1} style={{height: "100%", overflow: "auto"}} role='tabpanel' >
+            <div hidden={value !== 1} className="mythic-response-media-panel" style={panelStyle} role='tabpanel' >
                 {value === 1 &&
                     <DisplayText agent_file_id={media?.agent_file_id || ""}
                                  task={task} filename={media?.filename || undefined}
@@ -174,7 +180,7 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
                                  expand={expand} preview />
                 }
             </div>
-            <div hidden={value !== 2} style={{height: "100%", overflow: "auto"}} role='tabpanel' >
+            <div hidden={value !== 2} className="mythic-response-media-panel" style={panelStyle} role='tabpanel' >
                 {value === 2 &&
                     <DisplayHex agent_file_id={media?.agent_file_id || ""}
                                 task={task} filename={media?.filename || undefined}
@@ -183,7 +189,7 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
                 }
 
             </div>
-            <div hidden={value !== 3} style={{height: "100%", overflow: "auto"}} role='tabpanel' >
+            <div hidden={value !== 3} className="mythic-response-media-panel" style={panelStyle} role='tabpanel' >
                 {value === 3 &&
                     <DisplayDatabase agent_file_id={media?.agent_file_id || ""}
                                 task={task} filename={media?.filename || undefined}
@@ -376,7 +382,7 @@ export const DisplayMedia = ({agent_file_id, filename, expand, task, fileMetaDat
 const MaxRenderSize = 2000000; // 2MB
 const DisplayFileMetaData = ({fileMetaData}) => {
     return (
-        <TableContainer className="mythicElement">
+        <TableContainer className="mythicElement mythic-response-media-metadata">
         <Table style={{marginLeft: "0px", width: "100%", tableLayout: "fixed"}}>
             <TableHead>
                 <TableRow>

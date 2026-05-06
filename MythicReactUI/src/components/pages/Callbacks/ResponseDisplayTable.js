@@ -3,8 +3,6 @@ import {Button} from '@mui/material';
 import {MythicViewJSONAsTableDialog, MythicDialog, MythicModifyStringDialog} from '../../MythicComponents/MythicDialog';
 import { MythicDisplayTextDialog } from '../../MythicComponents/MythicDisplayTextDialog';
 import { ResponseDisplayTableDialogTable } from './ResponseDisplayTableDialogTable';
-import Paper from '@mui/material/Paper';
-import Typography from '@mui/material/Typography';
 import {useTheme} from '@mui/material/styles';
 import 'react-virtualized/styles.css';
 import {TaskFromUIButton} from './TaskFromUIButton';
@@ -22,6 +20,7 @@ import {Dropdown, DropdownMenuItem} from "../../MythicComponents/MythicNestedMen
 import {GetComputedFontSize} from "../../MythicComponents/MythicSavedUserSetting";
 import {TableFilterDialog} from "./TableFilterDialog";
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import {MythicSectionHeader} from "../../MythicComponents/MythicPageHeader";
 
 const onCopyToClipboard = (data) => {
   let result = copyStringToClipboard(data);
@@ -238,6 +237,9 @@ const ResponseDisplayTableSizeCell = ({cellData, rowData}) => {
   );
 }
 const actionCellButtonStyle = {paddingTop: 0, paddingBottom: 0};
+const getActionButtonClassName = (intent = "info") => {
+  return `mythic-table-row-action mythic-table-row-action-hover-${intent}`;
+}
 const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
   return (
     <div style={{ height: "100%"}}>
@@ -304,7 +306,8 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
         return (
             <React.Fragment>
               <MythicStyledTooltip title={cellData?.button?.hoverText || "View Data"} >
-                <Button size="small" color="info"
+                <Button size="small"
+                        className={getActionButtonClassName("info")}
                         onClick={() => setOpenButton(true)} disabled={cellData?.button?.disabled || false}
                         startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.disabled ? "unset" :  getIconColor(theme, cellData?.button?.startIconColor)}}/> : null}
                         style={{...actionCellButtonStyle}}
@@ -323,7 +326,8 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
         return (
             <React.Fragment>
               <MythicStyledTooltip title={cellData?.button?.hoverText || "View Data"} >
-                <Button size="small" color="info"
+                <Button size="small"
+                        className={getActionButtonClassName("info")}
                         onClick={() => setOpenButton(true)} disabled={cellData?.button?.disabled || false}
                         startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.disabled ? "unset" :  getIconColor(theme, cellData?.button?.startIconColor)}}/> : null}
                         style={{...actionCellButtonStyle}}
@@ -340,7 +344,8 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
         return (
             <React.Fragment>
               <MythicStyledTooltip title={cellData?.button?.hoverText || "View Data"} >
-                <Button size="small" color="info"
+                <Button size="small"
+                        className={getActionButtonClassName("info")}
                         onClick={() => setOpenButton(true)} disabled={cellData?.button?.disabled || false}
                         startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.disabled ? "unset" :  getIconColor(theme, cellData?.button?.startIconColor || "")}}/> : null}
                         style={{...actionCellButtonStyle}}
@@ -359,7 +364,8 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
         return (
             <React.Fragment>
               <MythicStyledTooltip title={cellData?.button?.hoverText || "Submit Task"}>
-                <Button size="small" onClick={() => setOpenTaskingButton(true)} disabled={cellData?.button?.disabled || false}  color="warning"
+                <Button size="small" onClick={() => setOpenTaskingButton(true)} disabled={cellData?.button?.disabled || false}
+                        className={getActionButtonClassName("warning")}
                         startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.disabled ? "unset" : getIconColor(theme, cellData?.button?.startIconColor || "")}}/> : undefined}
                         style={{...actionCellButtonStyle}}
                 >{cellData?.button?.name ? cellData?.button?.name : cellData?.button?.startIcon ? undefined : "Submit Task"}</Button>
@@ -409,9 +415,10 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
                   />
               }
               <Button size="small" ref={dropdownAnchorRef}
+                      className={getActionButtonClassName("info")}
                       onClick={() => setOpenDropdownButton(true)} disabled={cellData?.button?.disabled || false}
                       startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.disabled ? "unset" :  getIconColor(theme, cellData?.button?.startIconColor || "")}}/> : null}
-                      style={{...actionCellButtonStyle, color: theme.palette.text.primary}}
+                      style={{...actionCellButtonStyle}}
               >{cellData?.button?.name || " "} <ArrowDropDownIcon />
               </Button>
               <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
@@ -459,7 +466,6 @@ const createRowCells = ({row, rowIndex, headers, callback_id}) => {
   })
 }
 export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
-  const theme = useTheme();
   const rowHeight = GetComputedFontSize() + 7;
   const headerHeight = GetComputedFontSize() + 32;
   const maxHeight = 375;
@@ -807,11 +813,11 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
   return (
         <div style={{height: "100%", display: "flex", flexDirection: "column", position: "relative", width: "100%"}}>
             {table?.title && (
-                <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main}} variant={"elevation"}>
-                  <Typography variant="h6" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
-                    {table.title}
-                  </Typography>
-                </Paper>
+                <MythicSectionHeader
+                    dense
+                    title={table.title}
+                    sx={{mt: 0, mb: 0.5, minHeight: 40}}
+                />
             )}
 
           <div style={tableStyle}>

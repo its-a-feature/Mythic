@@ -1,5 +1,6 @@
 import React from 'react';
 import {Button} from '@mui/material';
+import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import {ResponseDisplayScreenshotModal} from './ResponseDisplayScreenshotModal';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
@@ -22,19 +23,26 @@ export const ResponseDisplayScreenshot = (props) =>{
         scrollContent()
     }, []);
   return (
-    <>
+    <div className="mythic-response-inline-output">
       {openScreenshot &&
           <MythicDialog fullWidth={true} maxWidth="xl" open={openScreenshot}
               onClose={()=>{setOpenScreenshot(false);}}
               innerDialog={<ResponseDisplayScreenshotModal images={[props.agent_file_id]} onClose={()=>{setOpenScreenshot(false);}} />}
           />
       }
-      <pre style={{display: "inline-block"}}>
+      <pre className="mythic-response-inline-text">
         {props?.plaintext || ""}
       </pre>
       <MythicStyledTooltip title={props?.hoverText || "View Screenshot (s)"}  >
-        <Button color="primary" variant={props.variant ? props.variant : "contained"} onClick={clickOpenScreenshot} style={{marginBottom: "10px"}}>{props.name}</Button>
+        <Button
+            className="mythic-table-row-action mythic-table-row-action-hover-info mythic-response-inline-action"
+            variant={props.variant ? props.variant : "text"}
+            onClick={clickOpenScreenshot}
+            startIcon={<CameraAltIcon />}
+        >
+          {props.name || "View screenshot"}
+        </Button>
       </MythicStyledTooltip>
-    </>
+    </div>
   );   
 }
