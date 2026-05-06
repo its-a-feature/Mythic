@@ -584,6 +584,39 @@ tspan {
     overflow: hidden;
     width: 100%;
 }
+.mythic-callback-interactCell > span[data-tooltip-id="my-tooltip"] {
+    align-items: center;
+    display: inline-flex !important;
+    flex: 0 0 auto;
+    height: 22px;
+    line-height: 1;
+}
+.mythic-callback-cellInline {
+    align-items: center;
+    display: inline-flex;
+    gap: 0.28rem;
+    height: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    width: 100%;
+}
+.mythic-callback-cellInlineCenter {
+    justify-content: center;
+}
+.mythic-callback-cellInline > span[data-tooltip-id="my-tooltip"] {
+    align-items: center;
+    display: inline-flex !important;
+    flex: 0 0 auto;
+    height: 22px;
+    line-height: 1;
+}
+.mythic-callback-cellText {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 .mythic-callback-iconButton.MuiIconButton-root {
     border: 1px solid transparent;
     border-radius: ${(props) => props.theme.shape.borderRadius}px;
@@ -597,6 +630,59 @@ tspan {
 .mythic-callback-iconButton.MuiIconButton-root:hover {
     background-color: ${(props) => alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.16 : 0.09)};
     color: ${(props) => props.theme.palette.primary.main};
+}
+.mythic-callback-cellIconButton.MuiIconButton-root {
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? "rgba(255,255,255,0.045)" : "rgba(0,0,0,0.025)"};
+    border-color: ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+}
+.mythic-callback-cellIconButton.MuiIconButton-root svg {
+    display: block;
+    font-size: 0.92rem;
+}
+.mythic-callback-cellIconButtonNeutral.MuiIconButton-root:hover {
+    background-color: ${(props) => alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.16 : 0.09)};
+    border-color: ${(props) => alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.42 : 0.28)};
+    color: ${(props) => props.theme.palette.primary.main};
+}
+.mythic-callback-cellIconButtonSuccess.MuiIconButton-root {
+    background-color: ${(props) => alpha(props.theme.palette.success.main, props.theme.palette.mode === "dark" ? 0.12 : 0.07)};
+    border-color: ${(props) => alpha(props.theme.palette.success.main, props.theme.palette.mode === "dark" ? 0.32 : 0.2)};
+    color: ${(props) => props.theme.palette.success.main};
+}
+.mythic-callback-cellIconButtonSuccess.MuiIconButton-root:hover {
+    background-color: ${(props) => alpha(props.theme.palette.success.main, props.theme.palette.mode === "dark" ? 0.2 : 0.12)};
+    border-color: ${(props) => alpha(props.theme.palette.success.main, props.theme.palette.mode === "dark" ? 0.54 : 0.36)};
+    color: ${(props) => props.theme.palette.success.main};
+}
+.mythic-callback-cellIconButtonInfo.MuiIconButton-root {
+    background-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.12 : 0.07)};
+    border-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.32 : 0.2)};
+    color: ${(props) => props.theme.palette.info.main};
+}
+.mythic-callback-cellIconButtonInfo.MuiIconButton-root:hover {
+    background-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.2 : 0.12)};
+    border-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.54 : 0.36)};
+    color: ${(props) => props.theme.palette.info.main};
+}
+.mythic-callback-cellIconButtonWarning.MuiIconButton-root {
+    background-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.12 : 0.07)};
+    border-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.32 : 0.2)};
+    color: ${(props) => props.theme.palette.warning.main};
+}
+.mythic-callback-cellIconButtonWarning.MuiIconButton-root:hover {
+    background-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.2 : 0.12)};
+    border-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.54 : 0.36)};
+    color: ${(props) => props.theme.palette.warning.main};
+}
+.mythic-callback-cellIconButtonError.MuiIconButton-root {
+    background-color: ${(props) => alpha(props.theme.palette.error.main, props.theme.palette.mode === "dark" ? 0.12 : 0.07)};
+    border-color: ${(props) => alpha(props.theme.palette.error.main, props.theme.palette.mode === "dark" ? 0.32 : 0.2)};
+    color: ${(props) => props.theme.palette.error.main};
+}
+.mythic-callback-cellIconButtonError.MuiIconButton-root:hover {
+    background-color: ${(props) => alpha(props.theme.palette.error.main, props.theme.palette.mode === "dark" ? 0.2 : 0.12)};
+    border-color: ${(props) => alpha(props.theme.palette.error.main, props.theme.palette.mode === "dark" ? 0.54 : 0.36)};
+    color: ${(props) => props.theme.palette.error.main};
 }
 .mythic-callback-interactButtonHighIntegrity.MuiIconButton-root {
     background-color: ${(props) => alpha(props.theme.palette.error.main, props.theme.palette.mode === "dark" ? 0.18 : 0.1)};
@@ -615,44 +701,130 @@ tspan {
     color: ${(props) => props.theme.palette.error.main};
 }
 .mythic-callback-displayId {
+    align-items: center;
     color: ${(props) => props.theme.palette.text.primary};
+    display: inline-flex;
     flex: 0 0 auto;
     font-weight: 700;
-    line-height: 1;
+    height: 22px;
+    line-height: 22px;
     max-width: 3.8rem;
     overflow: hidden;
     text-overflow: ellipsis;
 }
-.mythic-callback-lockBadge {
+.mythic-callback-statusBadge {
     align-items: center;
-    background-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.18 : 0.12)};
-    border: 1px solid ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.46 : 0.34)};
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? "rgba(255,255,255,0.045)" : "rgba(0,0,0,0.025)"};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
     border-radius: ${(props) => props.theme.shape.borderRadius}px;
-    color: ${(props) => props.theme.palette.warning.main};
+    color: ${(props) => props.theme.palette.text.secondary};
     display: inline-flex;
-    flex: 0 1 auto;
-    font-size: 0.68rem;
-    font-weight: 700;
-    gap: 0.12rem;
-    height: 18px;
-    line-height: 1;
-    min-width: 0;
-    overflow: hidden;
-    padding: 0 0.28rem;
-    text-overflow: ellipsis;
-}
-.mythic-callback-lockBadge span {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.mythic-callback-statusIcon {
     flex: 0 0 auto;
-    font-size: 0.9rem;
+    font-size: 0.82rem;
+    height: 20px;
+    justify-content: center;
+    line-height: 1;
     margin-left: 0.08rem;
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+    width: 22px;
 }
-.mythic-callback-statusIconSuccess {
-    color: ${(props) => props.theme.palette.success.main};
+.mythic-callback-statusBadgeAlert {
+    background-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.14 : 0.08)};
+    border-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.36 : 0.24)};
+    color: ${(props) => props.theme.palette.warning.main};
+}
+.mythic-callback-statusBadgeProxy {
+    background-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.12 : 0.07)};
+    border-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.32 : 0.2)};
+    color: ${(props) => props.theme.palette.info.main};
+}
+.mythic-callback-statusBadgeLock {
+    background-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.12 : 0.07)};
+    border-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.32 : 0.2)};
+    color: ${(props) => props.theme.palette.warning.main};
+}
+.mythic-callback-statusBadgeDead {
+    background-color: ${(props) => alpha(props.theme.palette.error.main, props.theme.palette.mode === "dark" ? 0.12 : 0.07)};
+    border-color: ${(props) => alpha(props.theme.palette.error.main, props.theme.palette.mode === "dark" ? 0.32 : 0.2)};
+    color: ${(props) => props.theme.palette.error.main};
+}
+.mythic-callback-statusBadgeAlert:hover {
+    background-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.22 : 0.13)};
+    border-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.58 : 0.42)};
+}
+.mythic-callback-statusBadgeProxy:hover {
+    background-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.2 : 0.12)};
+    border-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.54 : 0.36)};
+}
+.mythic-callback-statusBadgeLock:hover {
+    background-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.2 : 0.12)};
+    border-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.54 : 0.36)};
+}
+.mythic-callback-statusBadgeDead:hover {
+    background-color: ${(props) => alpha(props.theme.palette.error.main, props.theme.palette.mode === "dark" ? 0.2 : 0.12)};
+    border-color: ${(props) => alpha(props.theme.palette.error.main, props.theme.palette.mode === "dark" ? 0.54 : 0.36)};
+}
+.mythic-callback-statusBadge svg {
+    display: block;
+    font-size: inherit;
+}
+.mythic-callback-trigger-summary {
+    align-items: flex-start;
+    background-color: ${(props) => props.theme.surfaces?.muted || props.theme.palette.background.paper};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    display: flex;
+    gap: 0.75rem;
+    min-width: 0;
+    padding: 0.75rem;
+}
+.mythic-callback-trigger-summary-icon {
+    align-items: center;
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? "rgba(255,255,255,0.045)" : "rgba(0,0,0,0.025)"};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    color: ${(props) => props.theme.palette.text.secondary};
+    display: inline-flex;
+    flex: 0 0 auto;
+    height: 34px;
+    justify-content: center;
+    width: 34px;
+}
+.mythic-callback-trigger-summary-icon-active {
+    background-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.16 : 0.1)};
+    border-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.42 : 0.3)};
+    color: ${(props) => props.theme.palette.warning.main};
+}
+.mythic-callback-trigger-summary-copy {
+    min-width: 0;
+}
+.mythic-callback-trigger-summary-title.MuiTypography-root {
+    color: ${(props) => props.theme.palette.text.primary};
+    font-size: 0.9rem;
+    font-weight: 800;
+    line-height: 1.25;
+}
+.mythic-callback-trigger-summary-description.MuiTypography-root {
+    color: ${(props) => props.theme.palette.text.secondary};
+    font-size: 0.78rem;
+    line-height: 1.4;
+    margin-top: 0.2rem;
+}
+.mythic-callback-trigger-rule-list {
+    display: grid;
+    gap: 0.45rem;
+}
+.mythic-callback-trigger-rule {
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? "rgba(255,255,255,0.035)" : "rgba(0,0,0,0.025)"};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    color: ${(props) => props.theme.palette.text.secondary};
+    font-size: 0.78rem;
+    line-height: 1.4;
+    padding: 0.55rem 0.65rem;
+}
+.mythic-callback-trigger-rule strong {
+    color: ${(props) => props.theme.palette.text.primary};
 }
 .MythicInteractiveTerminal {
     background-color: ${(props) => props.theme.outputBackgroundColor};
