@@ -15,7 +15,6 @@ import {
 } from './CallbackMutations';
 import {useMutation } from '@apollo/client';
 import SnoozeIcon from '@mui/icons-material/Snooze';
-import {useTheme} from '@mui/material/styles';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {faQuestion, faSkullCrossbones, faRobot} from '@fortawesome/free-solid-svg-icons';
 import {faLinux, faApple, faWindows, faChrome, faAndroid} from '@fortawesome/free-brands-svg-icons';
@@ -133,20 +132,23 @@ export const CallbacksTableIDCell = React.memo(({rowData, callbackDropdown}) =>{
             </IconButton>
             {rowDataStatic.locked &&
                 <MythicStyledTooltip title={`Locked by ${lockOwner}`}>
-                    <span className="mythic-callback-lockBadge">
+                    <span className="mythic-callback-statusBadge mythic-callback-statusBadgeLock">
                         <LockIcon fontSize="inherit" />
-                        <span>Locked</span>
                     </span>
                 </MythicStyledTooltip>
             }
             {rowDataStatic.trigger_on_checkin_after_time > 0 &&
                 <MythicStyledTooltip title={`Alert on callback after no checkin for ${rowDataStatic.trigger_on_checkin_after_time} minutes`}>
-                    <NotificationsActiveTwoToneIcon className="mythic-callback-statusIcon mythic-callback-statusIconSuccess" fontSize="small" />
+                    <span className="mythic-callback-statusBadge mythic-callback-statusBadgeAlert">
+                        <NotificationsActiveTwoToneIcon fontSize="inherit" />
+                    </span>
                 </MythicStyledTooltip>
             }
             {rowDataStatic.callbackports.length > 0 &&
                 <MythicStyledTooltip title={proxyMessage()}>
-                    <FontAwesomeIcon icon={faSocks} className="mythic-callback-statusIcon mythic-callback-statusIconSuccess" />
+                    <span className="mythic-callback-statusBadge mythic-callback-statusBadgeProxy">
+                        <FontAwesomeIcon icon={faSocks} />
+                    </span>
                 </MythicStyledTooltip>
             }
         </div>
@@ -168,32 +170,34 @@ export const CallbacksTableLastCheckinCell = React.memo( ({rowData, cellData, me
         return moment(rowData.last_checkin + "Z", "YYYY-MM-DDTHH:mm:ss.SSSSSSZ").subtract(me?.user?.server_skew || 0, 'millisecond').fromNow(true);
         //return newTime;
     }
-    const theme = useTheme();
     if(rowData?.payload?.payloadtype?.agent_type !== "agent"){
         return ""
     }
     if(rowData.last_checkin === "1970-01-01T00:00:00"){
         return (
-            <>
-            {rowData.dead &&
-                <MythicStyledTooltip title={"Based on callback's last checkin and sleep info, it's likely dead"}>
-                    <FontAwesomeIcon disabled icon={faSkullCrossbones} style={{
-                        color: theme.palette.error.main, cursor: "pointer", marginRight: "10px",}} />
-                </MythicStyledTooltip>
-            }
-            {"Streaming Now"}
-            </>
+            <div className="mythic-callback-cellInline">
+                {rowData.dead &&
+                    <MythicStyledTooltip title={"Based on callback's last checkin and sleep info, it's likely dead"}>
+                        <span className="mythic-callback-statusBadge mythic-callback-statusBadgeDead">
+                            <FontAwesomeIcon icon={faSkullCrossbones} />
+                        </span>
+                    </MythicStyledTooltip>
+                }
+                <span className="mythic-callback-cellText">Streaming Now</span>
+            </div>
 
         )
     }
     return (
-        <div style={{display: "flex", alignItems: "center"}}>
+        <div className="mythic-callback-cellInline">
             {rowData.dead &&
                 <MythicStyledTooltip title={"Based on callback's last checkin and sleep info, it's likely dead"}>
-                    <FontAwesomeIcon icon={faSkullCrossbones} style={{
-                        color: theme.palette.error.main, cursor: "pointer", marginRight: "10px",}} />
+                    <span className="mythic-callback-statusBadge mythic-callback-statusBadgeDead">
+                        <FontAwesomeIcon icon={faSkullCrossbones} />
+                    </span>
                 </MythicStyledTooltip>
             }
+            <span className="mythic-callback-cellText">
                 <Moment filter={adjustOutput} interval={1000} parse={"YYYY-MM-DDTHH:mm:ss.SSSSSSZ"}
                     withTitle
                     titleFormat={"YYYY-MM-DD HH:mm:ss"}
@@ -201,6 +205,7 @@ export const CallbacksTableLastCheckinCell = React.memo( ({rowData, cellData, me
                 >
                     {rowData.last_checkin + "Z"}
                 </Moment>
+            </span>
         </div>
         
     )
@@ -231,7 +236,8 @@ export const CallbacksTableIPCell = React.memo(({cellData, rowData}) => {
     const updateIPsInfo = React.useCallback( ({callback_display_id, ips}) => {
         updateIPs({variables: {callback_display_id: callback_display_id, ips}})
     }, []);
-    const onClick = () => {
+    const onClick = (event) => {
+        event.stopPropagation();
         setOpenPickIP(true);
     }
     const editIPSubmit = (selected_ip) => {
@@ -251,13 +257,18 @@ export const CallbacksTableIPCell = React.memo(({cellData, rowData}) => {
     }, [cellData]);
     return (
         <>
-            <div style={{display: "inline-flex", alignItems: "center", height: "100%"}}>
+            <div className="mythic-callback-cellInline">
                 {options.length > 1 &&
                     <MythicStyledTooltip title={"Adjust Displayed"}>
-                        <UnfoldMoreIcon onClick={onClick} style={{paddingTop: "5px", cursor: "pointer", width: "unset"}} />
+                        <IconButton
+                            className="mythic-callback-iconButton mythic-callback-cellIconButton"
+                            onClick={onClick}
+                        >
+                            <UnfoldMoreIcon fontSize="small" />
+                        </IconButton>
                     </MythicStyledTooltip>
                 }
-                {displayIP}
+                <span className="mythic-callback-cellText">{displayIP}</span>
             </div>
             {openPickIP && 
                 <MythicDialog fullWidth={true} open={openPickIP} onClose={() => {setOpenPickIP(false);}}
@@ -275,11 +286,10 @@ export const CallbacksTableIPCell = React.memo(({cellData, rowData}) => {
     )
 }, areEqual)
 export const CallbacksTableC2Cell = React.memo(({rowData}) => {
-    const theme = useTheme();
     const [localRowData, setLocalRowData] = React.useState(rowData);
     const initialCallbackGraphEdges = useContext(CallbackGraphEdgesContext);
     const onOpenTab = useContext(OnOpenTabContext);
-    const [activeEgress, setActiveEgress] = React.useState(theme.palette.success.main);
+    const [egressActive, setEgressActive] = React.useState(true);
     const [hasEgressRoute, setHasEgressRoute] = React.useState(true);
     const [openC2Dialog, setOpenC2Dialog] = React.useState(false);
     const [callbackgraphedges, setCallbackgraphedges] = React.useState([]);
@@ -363,11 +373,11 @@ export const CallbacksTableC2Cell = React.memo(({rowData}) => {
             return false
         });
         if(activeRoutes.length === 0){
-            setActiveEgress(theme.palette.error.main);
+            setEgressActive(false);
         }else{
-            setActiveEgress(theme.palette.success.main);
+            setEgressActive(true);
         }
-    }, [callbackgraphedges, theme.palette.success.main, theme.palette.error.main]);
+    }, [callbackgraphedges]);
     useEffect( () => {
         if(rowData.id !== localRowData.id){
             setLocalRowData(rowData);
@@ -376,12 +386,20 @@ export const CallbacksTableC2Cell = React.memo(({rowData}) => {
     if(rowData?.payload?.payloadtype?.agent_type !== "agent"){
         return null
     }
+    const c2ButtonClass = `mythic-callback-iconButton mythic-callback-cellIconButton ${egressActive && hasEgressRoute ? "mythic-callback-cellIconButtonSuccess" : "mythic-callback-cellIconButtonError"}`;
+    const c2Tooltip = hasEgressRoute ?
+        (egressActive ? "View C2 path information" : "No active egress route. View C2 path information") :
+        "No egress route detected. View C2 path information";
     return (
-        <div>
-            {hasEgressRoute ? 
-                <WifiIcon onClick={onOpenC2Dialog} style={{color: activeEgress, cursor: "pointer"}}/> : 
-                <InsertLinkTwoToneIcon onClick={onOpenC2Dialog} style={{color: activeEgress, cursor: "pointer"}} />
-            }
+        <div className="mythic-callback-cellInline mythic-callback-cellInlineCenter">
+            <MythicStyledTooltip title={c2Tooltip}>
+                <IconButton className={c2ButtonClass} onClick={onOpenC2Dialog}>
+                    {hasEgressRoute ?
+                        <WifiIcon fontSize="small" /> :
+                        <InsertLinkTwoToneIcon fontSize="small" />
+                    }
+                </IconButton>
+            </MythicStyledTooltip>
             {openC2Dialog &&
                 <MythicDialog 
                     fullWidth={true} 
@@ -408,34 +426,42 @@ export const CallbacksTableOSCell = React.memo( ({rowData, cellData}) => {
     const [openOSDialog, setOpenOSDialog] = React.useState(false);
     const getOSIcon = useCallback( () => {
         if(rowData?.payload?.payloadtype?.agent_type !== "agent"){
-            return <FontAwesomeIcon icon={faRobot} style={{cursor: "pointer"}} onClick={displayOSInfo} />
+            return <FontAwesomeIcon icon={faRobot} />
         }
         switch(rowData.payload.os.toLowerCase()){
             case "windows":
-                return <FontAwesomeIcon icon={faWindows}  style={{cursor: "pointer"}} onClick={displayOSInfo} />
+                return <FontAwesomeIcon icon={faWindows} />
             case "linux":
             case "centos":
             case "redhat":
             case "debian":
             case "fedora":
             case "freebsd":
-                return <FontAwesomeIcon icon={faLinux}  style={{cursor: "pointer"}} onClick={displayOSInfo} />
+                return <FontAwesomeIcon icon={faLinux} />
             case "macos":
-                return <FontAwesomeIcon icon={faApple} style={{cursor: "pointer"}} onClick={displayOSInfo}/>
+                return <FontAwesomeIcon icon={faApple} />
             case "chrome":
-                return <FontAwesomeIcon icon={faChrome} style={{cursor: "pointer"}} onClick={displayOSInfo} />
+                return <FontAwesomeIcon icon={faChrome} />
             case "android":
-                return <FontAwesomeIcon icon={faAndroid}  style={{cursor: "pointer"}} onClick={displayOSInfo} />
+                return <FontAwesomeIcon icon={faAndroid} />
             default:
-                return <FontAwesomeIcon icon={faQuestion}  style={{cursor: "pointer"}} onClick={displayOSInfo} />
+                return <FontAwesomeIcon icon={faQuestion} />
         }
     }, [rowData?.payload?.os]);
-    const displayOSInfo = React.useCallback( () => {
+    const displayOSInfo = React.useCallback( (event) => {
+        event.stopPropagation();
         setOpenOSDialog(true);
     }, []);
     return (
-        <div>
-            {getOSIcon()}
+        <div className="mythic-callback-cellInline mythic-callback-cellInlineCenter">
+            <MythicStyledTooltip title={"View operating system information"}>
+                <IconButton
+                    className="mythic-callback-iconButton mythic-callback-cellIconButton mythic-callback-cellIconButtonNeutral"
+                    onClick={displayOSInfo}
+                >
+                    {getOSIcon()}
+                </IconButton>
+            </MythicStyledTooltip>
             { openOSDialog &&
                 <MythicDisplayTextDialog 
                     onClose={()=>{setOpenOSDialog(false);}} 
@@ -452,7 +478,6 @@ export const CallbacksTableOSCell = React.memo( ({rowData, cellData}) => {
     )
 }, areEqual);
 export const CallbacksTableSleepCell = React.memo( ({rowData, cellData, updateSleepInfo}) => {
-    const theme = useTheme();
     const [openSleepDialog, setOpenSleepDialog] = React.useState(false);
     const editSleepSubmit = (sleep) => {
         updateSleepInfo({sleep_info: sleep, callback_display_id: rowData.display_id});
@@ -465,10 +490,15 @@ export const CallbacksTableSleepCell = React.memo( ({rowData, cellData, updateSl
         return null
     }
     return (
-        <div style={{height: "100%", display: "flex", alignItems: "center"}}>
-            <SnoozeIcon onClick={onOpenSleepDialog} 
-                style={{color: cellData === "" ? theme.palette.warning.main : theme.palette.info.main, cursor: "pointer"}}
-            />
+        <div className="mythic-callback-cellInline mythic-callback-cellInlineCenter">
+            <MythicStyledTooltip title={cellData === "" ? "No sleep information set" : "View or edit sleep information"}>
+                <IconButton
+                    className={`mythic-callback-iconButton mythic-callback-cellIconButton ${cellData === "" ? "mythic-callback-cellIconButtonWarning" : "mythic-callback-cellIconButtonInfo"}`}
+                    onClick={onOpenSleepDialog}
+                >
+                    <SnoozeIcon fontSize="small" />
+                </IconButton>
+            </MythicStyledTooltip>
             { openSleepDialog &&
                 <MythicDialog fullWidth={true} open={openSleepDialog} maxWidth={"md"}
                               style={{height: "100%"}}
