@@ -217,9 +217,10 @@ export function Callbacks({me}) {
                    minSize={[0,0]}
                    onDragEnd={(sizes) => localStorage.setItem('callbackTableSplitSizes', JSON.stringify(sizes))}
                    style={{ height: "100%" }}>
-                <div style={{display: "flex", flexDirection: "row-reverse"}}>
+                <div style={{display: "flex", flexDirection: "row-reverse", height: "100%", minWidth: 0, overflow: "hidden"}}>
                     <Paper elevation={0} style={{
                         width: "34px",
+                        flex: "0 0 34px",
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "center",
