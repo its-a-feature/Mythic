@@ -15,6 +15,7 @@ import {useTheme} from '@mui/material/styles';
 import {taskingDataFragment} from '../Callbacks/CallbackMutations'
 import {meState} from "../../../cache";
 import { useReactiveVar } from '@apollo/client';
+import {TaskDisplayInteractiveSearch} from "../Search/SearchTabInteractiveTasks";
 
 const tasksQuery = gql`
 ${taskingDataFragment}
@@ -258,7 +259,11 @@ export function SingleTaskView(props){
                 task.type === "task" ? (
                     <div key={"taskdisplay:" + task.display_id} style={{marginRight: "5px"}}>
                         <div style={{width: removing ? "95%" : "100%", display: "inline-block"}}>
-                            <TaskDisplay me={me} task={task} command_id={task.command === null ? 0 : task.command.id} />
+                            {task.is_interactive_task ? (
+                                <TaskDisplayInteractiveSearch key={"taskinteractdisplay" + task.id} me={me} task={task} responsesSurrounding={5} />
+                            ) : (
+                                <TaskDisplay key={"taskinteractdisplay" + task.id} me={me} task={task} command_id={task.command == null ? 0 : task.command.id} />
+                            )}
                         </div>
                         {removing ? (
                             <Switch
