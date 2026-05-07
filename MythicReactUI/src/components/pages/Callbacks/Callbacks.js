@@ -226,8 +226,10 @@ export function Callbacks({me}) {
                         alignItems: "center",
                         overflow: "hidden",
                         backgroundColor: theme.palette.background.paper,
-                        border: `1px solid ${theme.borderColor}`,
+                        borderTop: `1px solid ${theme.borderColor}`,
                         borderRight: 0,
+                        borderBottom: `1px solid ${theme.borderColor}`,
+                        borderLeft: `1px solid ${theme.borderColor}`,
                         borderRadius: `${theme.shape.borderRadius}px 0 0 ${theme.shape.borderRadius}px`,
                         paddingTop: "3px",
                     }}>

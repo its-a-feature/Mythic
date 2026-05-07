@@ -2,6 +2,8 @@ package webcontroller
 
 import (
 	"encoding/json"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -9,7 +11,6 @@ import (
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/pelletier/go-toml/v2"
 	"gopkg.in/yaml.v3"
-	"net/http"
 )
 
 type EventingExportInput struct {
@@ -90,9 +91,11 @@ func getFormattedEventingFile(eventGroup *databaseStructs.EventGroup, includeSte
 		RunAs:       eventGroup.RunAs,
 	}
 	if includeSteps {
-		err := database.DB.Select(&eventGroup.Steps, `SELECT * FROM eventstep WHERE eventgroup_id=$1`, eventGroup.ID)
-		if err != nil {
-			logging.LogError(err, "failed to get eventgroup steps")
+		if len(eventGroup.Steps) == 0 {
+			err := database.DB.Select(&eventGroup.Steps, `SELECT * FROM eventstep WHERE eventgroup_id=$1`, eventGroup.ID)
+			if err != nil {
+				logging.LogError(err, "failed to get eventgroup steps")
+			}
 		}
 		for _, step := range eventGroup.Steps {
 			exportedEventGroup.Steps = append(exportedEventGroup.Steps, eventing.EventStep{

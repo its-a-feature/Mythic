@@ -2,13 +2,19 @@ import React from 'react';
 import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { useReactiveVar } from '@apollo/client';
+import { gql, useLazyQuery, useReactiveVar } from '@apollo/client';
 import {meState} from "../../../cache";
 import {Typography, IconButton, Switch} from '@mui/material';
 import FormControl from '@mui/material/FormControl';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
 import {CreatePayloadParameter} from "../CreatePayload/CreatePayloadParameter";
 import MythicTextField from "../../MythicComponents/MythicTextField";
 import {ResponseDisplayPlaintext} from "../Callbacks/ResponseDisplayPlaintext";
@@ -17,12 +23,18 @@ import { useTheme } from '@mui/material/styles';
 import {useDebounce} from "../../utilities/useDebounce";
 import {MythicDialog, MythicModifyStringDialog} from "../../MythicComponents/MythicDialog";
 import {testFileWebhookMutation} from "./CreateEventWorkflowDialog";
-import { useLazyQuery } from '@apollo/client';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import {EventStepRenderDialog} from "./EventStepRender";
 import {UploadEventFile, UploadEventGroupFile} from "../../MythicComponents/MythicFileUpload";
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
+import SearchIcon from '@mui/icons-material/Search';
+import TerminalIcon from '@mui/icons-material/Terminal';
+import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
+import {MythicTableEmptyState, MythicTableLoadingState} from "../../MythicComponents/MythicStateDisplay";
+import {MythicClientSideTablePagination, useMythicClientPagination} from "../../MythicComponents/MythicTablePagination";
+import {TaskParametersDialog} from "../Callbacks/TaskParametersDialog";
+import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 
 function getSteps(){
     return ['Trigger Metadata', 'Steps', 'Confirm']
@@ -65,12 +77,194 @@ const callbackFields = [
     "id", "display_id", "agent_callback_id", "init_callback", "last_checkin", "user", "host", "pid", "ip", "external_ip", "process_name",
     "description", "operator_id", "active", "registered_payload_id", "integrity_level", "locked", "locked_operator_id", "operation_id",
     "crypto_type", "dec_key", "enc_key", "os", "architecture", "domain", "extra_info", "sleep_info", "timestamp", "mythictree_groups",
-    "dead", "eventstepinstance_id", "process_short_name", "color", "trigger_on_checkin_after_time"
+    "dead", "eventstepinstance_id", "process_short_name", "color", "trigger_on_checkin_after_time", "cwd", "impersonation_context"
 ].sort();
 const tagFields = [
     "id", "url", "data", "source", "operation_id", "filemeta_id", "mythictree_id", "credential_id",
     "task_id", "taskartifact_id", "keylog_id", "response_id", "tagtype"
 ].sort();
+const callbackTriggerTaskCreateInputName = "CALLBACK_DISPLAY_ID";
+const callbackTriggerNames = ["callback_checkin", "callback_new"];
+const eventingTaskCreateExecutedTasksQuery = gql`
+query EventingTaskCreateExecutedTasksQuery($operation_id: Int!, $command_name: String!) {
+    task(where: {operation_id: {_eq: $operation_id}, _or: [{command_name: {_eq: $command_name}}, {command: {cmd: {_eq: $command_name}}}]}, order_by: {id: desc}, limit: 200) {
+        id
+        display_id
+        command_name
+        display_params
+        mythic_parsed_params
+        original_params
+        parameter_group_name
+        timestamp
+        callback {
+            display_id
+            user
+            host
+            payload {
+                payloadtype {
+                    name
+                }
+            }
+        }
+        command {
+            cmd
+            payloadtype {
+                name
+            }
+        }
+    }
+}
+`;
+const eventingTaskCreateCallbacksQuery = gql`
+query EventingTaskCreateCallbacksQuery($operation_id: Int!, $command_name: String!) {
+    loadedcommands(where: {callback: {active: {_eq: true}, operation_id: {_eq: $operation_id}}, command: {cmd: {_eq: $command_name}, deleted: {_eq: false}}}, order_by: {callback_id: desc}) {
+        id
+        callback {
+            id
+            display_id
+            user
+            host
+            description
+            operation_id
+            payload {
+                payloadtype {
+                    id
+                    name
+                }
+            }
+        }
+        command {
+            id
+            cmd
+            help_cmd
+            description
+            needs_admin
+            payload_type_id
+            attributes
+            supported_ui_features
+            payloadtype {
+                id
+                name
+            }
+            commandparameters {
+                id
+                type
+            }
+        }
+    }
+}
+`;
+const getCallbackDisplayIdInput = () => ({
+    name: callbackTriggerTaskCreateInputName,
+    type: "env",
+    value: "",
+    value_type: "display_id",
+});
+const getTaskCreateDefaultsForTrigger = (trigger) => {
+    if(!callbackTriggerNames.includes(trigger)){
+        return {inputs: [], action_data: {}};
+    }
+    return {
+        inputs: [getCallbackDisplayIdInput()],
+        action_data: {
+            callback_display_id: callbackTriggerTaskCreateInputName,
+        },
+    };
+}
+const upsertStepInputs = (existingInputs = [], inputsToUpsert = []) => {
+    const nextInputs = Array.isArray(existingInputs) ? existingInputs.map((input) => ({...input})) : [];
+    inputsToUpsert.forEach((input) => {
+        const existingIndex = nextInputs.findIndex((currentInput) => currentInput.name === input.name);
+        if(existingIndex >= 0){
+            nextInputs[existingIndex] = {...nextInputs[existingIndex], ...input};
+        }else{
+            nextInputs.push({...input});
+        }
+    });
+    return nextInputs;
+}
+const getSafeEventingInputName = (value, fallback = "FILE") => {
+    const safeValue = String(value || fallback).replace(/[^a-zA-Z0-9_]/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "");
+    return (safeValue || fallback).toUpperCase();
+}
+const getUniqueEventingInputName = (baseName, existingNames) => {
+    let nextName = baseName;
+    let count = 2;
+    while(existingNames.has(nextName)){
+        nextName = `${baseName}_${count}`;
+        count += 1;
+    }
+    existingNames.add(nextName);
+    return nextName;
+}
+const parseTaskCreateParameters = (value) => {
+    if(value === undefined || value === null || value === ""){
+        return {};
+    }
+    if(typeof value !== "string"){
+        return value;
+    }
+    try{
+        return JSON.parse(value);
+    }catch(error){
+        return value;
+    }
+}
+const formatTaskCreateParameters = (value) => {
+    if(typeof value === "string"){
+        try{
+            return JSON.stringify(JSON.parse(value), null, 4);
+        }catch(error){
+            return value;
+        }
+    }
+    return JSON.stringify(value || {}, null, 4);
+}
+const isValidJsonObjectOrArray = (value) => {
+    if(typeof value !== "string" || value.trim() === ""){
+        return false;
+    }
+    try{
+        const parsed = JSON.parse(value);
+        return parsed !== null && typeof parsed === "object";
+    }catch(error){
+        return false;
+    }
+}
+const getExistingTaskParameterFill = (task) => {
+    const parsedParams = task.mythic_parsed_params || "";
+    if(parsedParams.trim() !== ""){
+        return {
+            type: "dictionary",
+            value: parseTaskCreateParameters(parsedParams),
+        };
+    }
+    const originalParams = task.original_params || "";
+    if(isValidJsonObjectOrArray(originalParams)){
+        return {
+            type: "dictionary",
+            value: JSON.parse(originalParams),
+        };
+    }
+    return {
+        type: "string",
+        value: originalParams,
+    };
+}
+const getFilteredEventingRows = (rows, filterText, getSearchText) => {
+    const normalizedFilter = filterText.trim().toLowerCase();
+    if(normalizedFilter === ""){
+        return rows;
+    }
+    return rows.filter((row) => getSearchText(row).toLowerCase().includes(normalizedFilter));
+}
+const getEventingTaskCallbackDisplay = (task) => {
+    if(!task.callback){
+        return "Unknown callback";
+    }
+    return `${task.callback.display_id} - ${task.callback.user || ""}@${task.callback.host || ""}`;
+}
+const getEventingTaskPayloadType = (task) => task.command?.payloadtype?.name || task.callback?.payload?.payloadtype?.name || "";
 function CreateEventingStepperNavigationButtons(props){
     const me = useReactiveVar(meState);
     const disabledButtons = (me?.user?.current_operation_id || 0) <= 0;
@@ -529,7 +723,23 @@ const GetMultipleFileSelect = ({prevData, updateData}) => {
         }
     }, [])
     const onFileMultChange = (evt) => {
-        setFiles([...evt.target.files]);
+        const selectedFiles = [...evt.target.files];
+        setFiles((currentFiles) => {
+            const existingFiles = new Set(currentFiles.map((file) => `${file.name}:${file.size}:${file.lastModified}`));
+            const newFiles = selectedFiles.filter((file) => {
+                const fileKey = `${file.name}:${file.size}:${file.lastModified}`;
+                if(existingFiles.has(fileKey)){
+                    return false;
+                }
+                existingFiles.add(fileKey);
+                return true;
+            });
+            return [...currentFiles, ...newFiles];
+        });
+        evt.target.value = "";
+    }
+    const removeFile = (index) => {
+        setFiles((currentFiles) => currentFiles.filter((_, i) => i !== index));
     }
     return (
         <div className="mythic-eventing-file-select">
@@ -540,7 +750,12 @@ const GetMultipleFileSelect = ({prevData, updateData}) => {
             { files.length > 0 &&
                 <div className="mythic-eventing-file-chip-list">
                     {files?.map((f, i) => (
-                        <span className="mythic-eventing-file-chip" key={"selected-file" + f.name + i}>{f.name}</span>
+                        <span className="mythic-eventing-file-chip" key={"selected-file" + f.name + i}>
+                            <span className="mythic-eventing-file-chip-name">{f.name}</span>
+                            <IconButton className="mythic-eventing-file-chip-remove" size="small" aria-label={"Remove " + f.name} onClick={() => removeFile(i)}>
+                                <DeleteIcon fontSize="small" />
+                            </IconButton>
+                        </span>
                     ))}
                 </div>
             }
@@ -803,7 +1018,7 @@ const EventingActionDataField = ({label, description, required = false, children
                     {label}
                 </Typography>
                 {required &&
-                    <span className="mythic-eventing-action-data-chip mythic-eventing-action-data-chip-required">Required</span>
+                    <span className="mythic-eventing-action-data-chip">Required</span>
                 }
             </div>
             {description &&
@@ -820,9 +1035,10 @@ const EventingActionDataField = ({label, description, required = false, children
 const EventingStepEmptyInline = ({children}) => (
     <div className="mythic-eventing-step-empty-inline">{children}</div>
 )
-const EventingStepInputs = ({updateStep, index, localInputOptions, step1Data, prevData}) => {
+const EventingStepInputs = ({updateStep, index, localInputOptions, step1Data, prevData, syncKey = ""}) => {
     const theme = useTheme();
-    const [localInputs, setLocalInputs] = React.useState([]);
+    const [localInputs, setLocalInputs] = React.useState(Array.isArray(prevData) ? prevData : []);
+    const skipNextInputUpdate = React.useRef(false);
     const addLocalInput = () => {
         const newLocalInputs = [...localInputs, {
             name: "",
@@ -867,6 +1083,10 @@ const EventingStepInputs = ({updateStep, index, localInputOptions, step1Data, pr
     }
     const debouncedLocalInput = useDebounce(localInputs, debounceDelay);
     React.useEffect( () => {
+        if(skipNextInputUpdate.current){
+            skipNextInputUpdate.current = false;
+            return;
+        }
         updateStep(index, "inputs", debouncedLocalInput);
     }, [debouncedLocalInput]);
     React.useEffect( () => {
@@ -874,6 +1094,12 @@ const EventingStepInputs = ({updateStep, index, localInputOptions, step1Data, pr
             setLocalInputs(prevData);
         }
     }, [prevData]);
+    React.useEffect( () => {
+        if(syncKey !== ""){
+            skipNextInputUpdate.current = true;
+            setLocalInputs(prevData || []);
+        }
+    }, [syncKey]);
     return (
         <div className="mythic-eventing-step-dynamic-section">
             <div className="mythic-eventing-step-list">
@@ -1063,8 +1289,209 @@ const EventingStepOutputs = ({updateStep, index, selectedAction, prevData}) => {
         </div>
     )
 }
-const EventingStepActionDataTaskCreate = ({allSteps, updateStep, index, prevData}) => {
+const EventingTaskCreateExistingTaskDialog = ({loading, onClose, onSelect, tasks}) => {
+    const [filterText, setFilterText] = React.useState("");
+    const filteredTasks = React.useMemo(() => {
+        return getFilteredEventingRows(tasks, filterText, (task) => [
+            task.display_id,
+            task.command_name,
+            getEventingTaskCallbackDisplay(task),
+            getEventingTaskPayloadType(task),
+            task.parameter_group_name,
+            task.display_params,
+            task.original_params,
+            task.mythic_parsed_params,
+        ].join(" "));
+    }, [filterText, tasks]);
+    const pagination = useMythicClientPagination({
+        items: filteredTasks,
+        resetKey: `${tasks.length}:${filterText}`,
+        rowsPerPage: 10,
+    });
+    return (
+        <>
+            <DialogTitle>Select an executed task</DialogTitle>
+            <DialogContent dividers={true}>
+                <Typography className="mythic-eventing-task-helper-summary" component="div">
+                    Pick a previous task to copy its parsed parameters and parameter group into this step.
+                </Typography>
+                <div className="mythic-eventing-task-helper-filter">
+                    <TextField
+                        fullWidth
+                        label="Filter tasks"
+                        onChange={(event) => setFilterText(event.target.value)}
+                        size="small"
+                        value={filterText}
+                    />
+                </div>
+                <TableContainer className="mythicElement mythic-dialog-table-wrap mythic-fixed-row-table-wrap mythic-eventing-task-helper-table">
+                    <Table stickyHeader size="small" style={{height: "auto"}}>
+                        <TableHead>
+                            <TableRow>
+                                <MythicStyledTableCell style={{width: "6rem"}}>Task</MythicStyledTableCell>
+                                <MythicStyledTableCell>Callback</MythicStyledTableCell>
+                                <MythicStyledTableCell style={{width: "8rem"}}>Payload type</MythicStyledTableCell>
+                                <MythicStyledTableCell style={{width: "9rem"}}>Parameter group</MythicStyledTableCell>
+                                <MythicStyledTableCell>Display parameters</MythicStyledTableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {loading ? (
+                                <MythicTableLoadingState
+                                    colSpan={5}
+                                    columns={5}
+                                    compact
+                                    rows={4}
+                                    title="Loading tasks"
+                                    description="Fetching previous executions."
+                                    minHeight={120}
+                                />
+                            ) : filteredTasks.length === 0 ? (
+                                <MythicTableEmptyState
+                                    colSpan={5}
+                                    compact
+                                    title="No matching tasks"
+                                    description="No previous executions were found for that command."
+                                    minHeight={180}
+                                />
+                            ) : pagination.pageData.map((task) => (
+                                <TableRow
+                                    hover
+                                    key={task.id}
+                                    onClick={() => onSelect(task)}
+                                    style={{cursor: "pointer"}}
+                                    tabIndex={0}
+                                >
+                                    <MythicStyledTableCell>{task.display_id}</MythicStyledTableCell>
+                                    <MythicStyledTableCell>{getEventingTaskCallbackDisplay(task)}</MythicStyledTableCell>
+                                    <MythicStyledTableCell>{getEventingTaskPayloadType(task)}</MythicStyledTableCell>
+                                    <MythicStyledTableCell>{task.parameter_group_name || "Default"}</MythicStyledTableCell>
+                                    <MythicStyledTableCell>
+                                        <Typography className="mythic-eventing-task-helper-preview" component="div">
+                                            {task.display_params || task.original_params || task.mythic_parsed_params || "No parameters"}
+                                        </Typography>
+                                    </MythicStyledTableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+                {!loading &&
+                    <MythicClientSideTablePagination pagination={pagination} />
+                }
+            </DialogContent>
+            <DialogActions>
+                <Button className="mythic-table-row-action" onClick={onClose} variant="outlined">Close</Button>
+            </DialogActions>
+        </>
+    )
+}
+const EventingTaskCreateCallbackDialog = ({callbacks, loading, onClose, onSelect}) => {
+    const [filterText, setFilterText] = React.useState("");
+    const sortedCallbacks = React.useMemo(() => {
+        return [...callbacks].sort((left, right) => (right.callback?.id || 0) - (left.callback?.id || 0));
+    }, [callbacks]);
+    const filteredCallbacks = React.useMemo(() => {
+        return getFilteredEventingRows(sortedCallbacks, filterText, (entry) => [
+            entry.callback?.display_id,
+            entry.callback?.user,
+            entry.callback?.host,
+            entry.callback?.description,
+            entry.callback?.payload?.payloadtype?.name,
+            entry.command?.payloadtype?.name,
+            entry.command?.cmd,
+        ].join(" "));
+    }, [filterText, sortedCallbacks]);
+    const pagination = useMythicClientPagination({
+        items: filteredCallbacks,
+        resetKey: `${callbacks.length}:${filterText}`,
+        rowsPerPage: 10,
+    });
+    return (
+        <>
+            <DialogTitle>Select a callback for tasking</DialogTitle>
+            <DialogContent dividers={true}>
+                <Typography className="mythic-eventing-task-helper-summary" component="div">
+                    Choose an active callback that has this command loaded, then fill out the tasking modal without submitting a task.
+                </Typography>
+                <div className="mythic-eventing-task-helper-filter">
+                    <TextField
+                        fullWidth
+                        label="Filter callbacks"
+                        onChange={(event) => setFilterText(event.target.value)}
+                        size="small"
+                        value={filterText}
+                    />
+                </div>
+                <TableContainer className="mythicElement mythic-dialog-table-wrap mythic-fixed-row-table-wrap mythic-eventing-task-helper-table">
+                    <Table stickyHeader size="small" style={{height: "auto"}}>
+                        <TableHead>
+                            <TableRow>
+                                <MythicStyledTableCell style={{width: "6rem"}}>Callback</MythicStyledTableCell>
+                                <MythicStyledTableCell>User</MythicStyledTableCell>
+                                <MythicStyledTableCell>Host</MythicStyledTableCell>
+                                <MythicStyledTableCell style={{width: "8rem"}}>Callback type</MythicStyledTableCell>
+                                <MythicStyledTableCell style={{width: "8rem"}}>Command type</MythicStyledTableCell>
+                                <MythicStyledTableCell>Description</MythicStyledTableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {loading ? (
+                                <MythicTableLoadingState
+                                    colSpan={6}
+                                    columns={6}
+                                    compact
+                                    rows={4}
+                                    title="Loading callbacks"
+                                    description="Finding active callbacks with this command."
+                                    minHeight={120}
+                                />
+                            ) : filteredCallbacks.length === 0 ? (
+                                <MythicTableEmptyState
+                                    colSpan={6}
+                                    compact
+                                    title="No matching callbacks"
+                                    description="No active callbacks have this command loaded."
+                                    minHeight={180}
+                                />
+                            ) : pagination.pageData.map((entry) => (
+                                <TableRow
+                                    hover
+                                    key={entry.id}
+                                    onClick={() => onSelect(entry)}
+                                    style={{cursor: "pointer"}}
+                                    tabIndex={0}
+                                >
+                                    <MythicStyledTableCell>{entry.callback.display_id}</MythicStyledTableCell>
+                                    <MythicStyledTableCell>{entry.callback.user}</MythicStyledTableCell>
+                                    <MythicStyledTableCell>{entry.callback.host}</MythicStyledTableCell>
+                                    <MythicStyledTableCell>{entry.callback.payload?.payloadtype?.name}</MythicStyledTableCell>
+                                    <MythicStyledTableCell>{entry.command.payloadtype?.name}</MythicStyledTableCell>
+                                    <MythicStyledTableCell>{entry.callback.description}</MythicStyledTableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+                {!loading &&
+                    <MythicClientSideTablePagination pagination={pagination} />
+                }
+            </DialogContent>
+            <DialogActions>
+                <Button className="mythic-table-row-action" onClick={onClose} variant="outlined">Close</Button>
+            </DialogActions>
+        </>
+    )
+}
+const EventingStepActionDataTaskCreate = ({updateStep, index, prevData, step1Data, currentInputs, updateStepInputs, updateStep1Data}) => {
+    const me = useReactiveVar(meState);
     const paramsDictionaryRef = React.useRef("");
+    const appliedCallbackDefaultRef = React.useRef(false);
+    const [openExistingTaskDialog, setOpenExistingTaskDialog] = React.useState(false);
+    const [openCallbackDialog, setOpenCallbackDialog] = React.useState(false);
+    const [taskOptions, setTaskOptions] = React.useState([]);
+    const [callbackOptions, setCallbackOptions] = React.useState([]);
+    const [taskingParameterContext, setTaskingParameterContext] = React.useState({open: false, callback: null, command: null});
     const [actionData, setActionData] = React.useState({
         callback_display_id: "",
         command_name: "",
@@ -1075,6 +1502,45 @@ const EventingStepActionDataTaskCreate = ({allSteps, updateStep, index, prevData
         parent_task_id: "",
         is_interactive_task: false,
         interactive_task_type:"0"
+    });
+    const operationId = me?.user?.current_operation_id || 0;
+    const [getExecutedTasks, {loading: loadingExecutedTasks}] = useLazyQuery(eventingTaskCreateExecutedTasksQuery, {
+        fetchPolicy: "no-cache",
+        onCompleted: (data) => {
+            const payloadType = actionData.payload_type.trim();
+            const tasks = (data?.task || []).filter((task) => {
+                if(payloadType === ""){
+                    return true;
+                }
+                return task.command?.payloadtype?.name === payloadType || task.callback?.payload?.payloadtype?.name === payloadType;
+            });
+            setTaskOptions(tasks);
+            setOpenExistingTaskDialog(true);
+        },
+        onError: (data) => {
+            console.log(data);
+            snackActions.error("Failed to load previous task executions");
+            setOpenExistingTaskDialog(false);
+        }
+    });
+    const [getTaskingCallbacks, {loading: loadingTaskingCallbacks}] = useLazyQuery(eventingTaskCreateCallbacksQuery, {
+        fetchPolicy: "no-cache",
+        onCompleted: (data) => {
+            const payloadType = actionData.payload_type.trim();
+            const callbacks = (data?.loadedcommands || []).filter((entry) => {
+                if(payloadType === ""){
+                    return true;
+                }
+                return entry.command?.payloadtype?.name === payloadType || entry.callback?.payload?.payloadtype?.name === payloadType;
+            });
+            setCallbackOptions(callbacks);
+            setOpenCallbackDialog(true);
+        },
+        onError: (data) => {
+            console.log(data);
+            snackActions.error("Failed to load callbacks for tasking");
+            setOpenCallbackDialog(false);
+        }
     });
     const debouncedLocalOutput = useDebounce(actionData, debounceDelay);
     React.useEffect( () => {
@@ -1091,11 +1557,17 @@ const EventingStepActionDataTaskCreate = ({allSteps, updateStep, index, prevData
         if(actionData.params.length > 0){
             simplifiedParams.params = actionData.params;
         }
-        if(actionData.params_dictionary.length > 0){
+        const paramsDictionaryValue = actionData.params_dictionary;
+        const hasParamsDictionary = typeof paramsDictionaryValue === "string" ?
+            paramsDictionaryValue.length > 0 :
+            Object.keys(paramsDictionaryValue || {}).length > 0;
+        if(hasParamsDictionary){
             try{
-                simplifiedParams.params_dictionary = JSON.parse(actionData.params_dictionary);
+                simplifiedParams.params_dictionary = typeof paramsDictionaryValue === "string" ?
+                    JSON.parse(paramsDictionaryValue) :
+                    paramsDictionaryValue;
             }catch{
-                simplifiedParams.params_dictionary = actionData.params_dictionary;
+                simplifiedParams.params_dictionary = paramsDictionaryValue;
             }
         }
         if(actionData.parameter_group_name.length > 0 && actionData.parameter_group_name !== "Default"){
@@ -1117,6 +1589,139 @@ const EventingStepActionDataTaskCreate = ({allSteps, updateStep, index, prevData
         paramsDictionaryRef.current = newValue;
         setActionData({...actionData, params_dictionary: newValue});
     }
+    const fetchExistingTasks = () => {
+        const commandName = actionData.command_name.trim();
+        if(commandName === ""){
+            snackActions.warning("Specify a command name first");
+            return;
+        }
+        if(operationId <= 0){
+            snackActions.warning("Select an operation before querying tasks");
+            return;
+        }
+        setTaskOptions([]);
+        setOpenExistingTaskDialog(true);
+        getExecutedTasks({variables: {operation_id: operationId, command_name: commandName}});
+    }
+    const fetchTaskingCallbacks = () => {
+        const commandName = actionData.command_name.trim();
+        if(commandName === ""){
+            snackActions.warning("Specify a command name first");
+            return;
+        }
+        if(operationId <= 0){
+            snackActions.warning("Select an operation before querying callbacks");
+            return;
+        }
+        setCallbackOptions([]);
+        setOpenCallbackDialog(true);
+        getTaskingCallbacks({variables: {operation_id: operationId, command_name: commandName}});
+    }
+    const applyParametersToActionData = ({commandName, parameterGroupName, parameters, payloadType}) => {
+        const formattedParameters = formatTaskCreateParameters(parameters);
+        paramsDictionaryRef.current = formattedParameters;
+        setActionData((current) => ({
+            ...current,
+            command_name: commandName || current.command_name,
+            payload_type: payloadType || current.payload_type,
+            params: "",
+            params_dictionary: formattedParameters,
+            parameter_group_name: parameterGroupName || "Default",
+        }));
+    }
+    const applyParameterStringToActionData = ({commandName, parameterGroupName, parameters, payloadType}) => {
+        paramsDictionaryRef.current = "";
+        setActionData((current) => ({
+            ...current,
+            command_name: commandName || current.command_name,
+            payload_type: payloadType || current.payload_type,
+            params: parameters || "",
+            params_dictionary: "",
+            parameter_group_name: parameterGroupName || "Default",
+        }));
+    }
+    const selectExistingTask = (task) => {
+        const parameterFill = getExistingTaskParameterFill(task);
+        const taskFillData = {
+            commandName: task.command_name || task.command?.cmd || actionData.command_name,
+            parameterGroupName: task.parameter_group_name || "Default",
+            payloadType: task.command?.payloadtype?.name || actionData.payload_type,
+        };
+        if(parameterFill.type === "dictionary"){
+            applyParametersToActionData({
+                ...taskFillData,
+                parameters: parameterFill.value,
+            });
+        }else{
+            applyParameterStringToActionData({
+                ...taskFillData,
+                parameters: parameterFill.value,
+            });
+        }
+        setOpenExistingTaskDialog(false);
+        snackActions.success("Copied parameters from task " + task.display_id);
+    }
+    const selectTaskingCallback = (entry) => {
+        setOpenCallbackDialog(false);
+        setTaskingParameterContext({
+            open: true,
+            callback: entry.callback,
+            command: {...entry.command, parsedParameters: {}},
+        });
+    }
+    const applyCapturedFilesToInputs = (parameters, capturedFiles) => {
+        if(!Array.isArray(capturedFiles) || capturedFiles.length === 0 || typeof parameters !== "object" || parameters === null || Array.isArray(parameters)){
+            return parameters;
+        }
+        const nextParameters = {...parameters};
+        const existingInputNames = new Set((currentInputs || []).map((input) => input.name).filter(Boolean));
+        const newInputs = [];
+        const filesToRegister = [];
+        const existingFileNames = new Set((step1Data?.files || []).map((file) => file?.name).filter(Boolean));
+        capturedFiles.forEach((fileEntry) => {
+            const baseName = getSafeEventingInputName(fileEntry.inputName || `FILE_${fileEntry.parameterName}`, "FILE");
+            const inputName = getUniqueEventingInputName(baseName, existingInputNames);
+            if(Array.isArray(nextParameters[fileEntry.parameterName])){
+                const values = [...nextParameters[fileEntry.parameterName]];
+                values[fileEntry.index || 0] = inputName;
+                nextParameters[fileEntry.parameterName] = values;
+            }else{
+                nextParameters[fileEntry.parameterName] = inputName;
+            }
+            newInputs.push({
+                name: inputName,
+                type: "upload",
+                value: fileEntry.filename,
+                value_type: "",
+            });
+            if(fileEntry.file?.name && !existingFileNames.has(fileEntry.file.name)){
+                filesToRegister.push(fileEntry.file);
+                existingFileNames.add(fileEntry.file.name);
+            }
+        });
+        if(newInputs.length > 0){
+            updateStepInputs(upsertStepInputs(currentInputs || [], newInputs));
+        }
+        if(filesToRegister.length > 0 && updateStep1Data){
+            updateStep1Data((currentStep1Data) => ({
+                ...currentStep1Data,
+                files: [...(currentStep1Data?.files || []), ...filesToRegister],
+            }));
+        }
+        return nextParameters;
+    }
+    const submitCapturedTaskingParameters = (cmd, newParameters, files, selectedParameterGroup, payloadType, metadata) => {
+        const parsedParameters = metadata?.collapsedParameters || parseTaskCreateParameters(newParameters);
+        const parametersWithFileInputs = applyCapturedFilesToInputs(parsedParameters, metadata?.capturedFiles || files);
+        applyParametersToActionData({
+            commandName: cmd,
+            parameterGroupName: selectedParameterGroup,
+            parameters: parametersWithFileInputs,
+            payloadType,
+        });
+        setTaskingParameterContext({open: false, callback: null, command: null});
+        snackActions.success("Captured tasking parameters for the eventing step");
+    }
     React.useEffect( () => {
         if(prevData){
             let updatedData = {...actionData, ...prevData};
@@ -1124,18 +1729,73 @@ const EventingStepActionDataTaskCreate = ({allSteps, updateStep, index, prevData
                 paramsDictionaryRef.current = JSON.stringify(updatedData.params_dictionary, null, 4);
                 updatedData.params_dictionary = JSON.stringify(updatedData.params_dictionary, null, 4);
            } else {
-                paramsDictionaryRef.current = JSON.stringify(prevData?.params_dictionary || "");
+                paramsDictionaryRef.current = updatedData.params_dictionary || "";
             }
             setActionData(updatedData);
         }
     }, []);
+    React.useEffect( () => {
+        if(appliedCallbackDefaultRef.current || !callbackTriggerNames.includes(step1Data?.trigger)){
+            return;
+        }
+        const callbackInput = getCallbackDisplayIdInput();
+        if(!(currentInputs || []).some((input) => input.name === callbackTriggerTaskCreateInputName)){
+            updateStepInputs(upsertStepInputs(currentInputs || [], [callbackInput]));
+        }
+        setActionData((current) => {
+            if(current.callback_display_id.length > 0){
+                return current;
+            }
+            return {...current, callback_display_id: callbackTriggerTaskCreateInputName};
+        });
+        appliedCallbackDefaultRef.current = true;
+    }, [currentInputs, step1Data?.trigger, updateStepInputs]);
     return (
         <EventingActionDataShell>
-            <EventingActionDataField label="Callback Display ID" required>
+            <EventingActionDataField label="Callback Display ID"
+                                     required
+                                     description={"This is the display ID of the callback where you want to execute this task. Callback checkin and callback new triggers can use CALLBACK_DISPLAY_ID from env.display_id automatically."}
+            >
                 <MythicTextField onChange={onChangeValue} value={actionData.callback_display_id} name={"callback_display_id"} />
             </EventingActionDataField>
-            <EventingActionDataField label="Command Name" required>
-                <MythicTextField onChange={onChangeValue} value={actionData.command_name} name={"command_name"} />
+            <EventingActionDataField
+                label="Command Name"
+                required
+                description={"This is the name of the command you want to execute. If this command is part of a command augmentation container (like forge), then you need to also specify that container's name in the payload_type field below."}
+            >
+                <div className="mythic-eventing-task-create-command-row">
+                    <MythicTextField onChange={onChangeValue} value={actionData.command_name} name={"command_name"} />
+                    <div className="mythic-eventing-task-create-command-actions">
+                        <MythicStyledTooltip title="Use the parsed parameters from a previous execution of this command">
+                            <span>
+                                <Button
+                                    className="mythic-table-row-action mythic-table-row-action-hover-info"
+                                    disabled={actionData.command_name.trim() === ""}
+                                    onClick={fetchExistingTasks}
+                                    size="small"
+                                    startIcon={<SearchIcon fontSize="small" />}
+                                    variant="outlined"
+                                >
+                                    Use task
+                                </Button>
+                            </span>
+                        </MythicStyledTooltip>
+                        <MythicStyledTooltip title="Open the normal tasking modal on a selected callback and capture the final parameters">
+                            <span>
+                                <Button
+                                    className="mythic-table-row-action mythic-table-row-action-hover-info"
+                                    disabled={actionData.command_name.trim() === ""}
+                                    onClick={fetchTaskingCallbacks}
+                                    size="small"
+                                    startIcon={<TerminalIcon fontSize="small" />}
+                                    variant="outlined"
+                                >
+                                    Build params
+                                </Button>
+                            </span>
+                        </MythicStyledTooltip>
+                    </div>
+                </div>
             </EventingActionDataField>
             <EventingActionDataField
                 label="Payload Type"
@@ -1181,6 +1841,51 @@ const EventingStepActionDataTaskCreate = ({allSteps, updateStep, index, prevData
                 >
                     <MythicTextField onChange={onChangeValue} value={actionData.interactive_task_type} name={"interactive_task_type"} />
                 </EventingActionDataField>
+            }
+            {openExistingTaskDialog &&
+                <MythicDialog
+                    fullWidth={true}
+                    maxWidth="lg"
+                    open={openExistingTaskDialog}
+                    onClose={() => setOpenExistingTaskDialog(false)}
+                    innerDialog={<EventingTaskCreateExistingTaskDialog
+                        loading={loadingExecutedTasks}
+                        onClose={() => setOpenExistingTaskDialog(false)}
+                        onSelect={selectExistingTask}
+                        tasks={taskOptions}
+                    />}
+                />
+            }
+            {openCallbackDialog &&
+                <MythicDialog
+                    fullWidth={true}
+                    maxWidth="lg"
+                    open={openCallbackDialog}
+                    onClose={() => setOpenCallbackDialog(false)}
+                    innerDialog={<EventingTaskCreateCallbackDialog
+                        callbacks={callbackOptions}
+                        loading={loadingTaskingCallbacks}
+                        onClose={() => setOpenCallbackDialog(false)}
+                        onSelect={selectTaskingCallback}
+                    />}
+                />
+            }
+            {taskingParameterContext.open &&
+                <MythicDialog
+                    fullWidth={true}
+                    maxWidth="lg"
+                    open={taskingParameterContext.open}
+                    onClose={() => setTaskingParameterContext({open: false, callback: null, command: null})}
+                    innerDialog={<TaskParametersDialog
+                        captureOnly={true}
+                        command={taskingParameterContext.command}
+                        callback_id={taskingParameterContext.callback.id}
+                        payloadtype_id={taskingParameterContext.callback.payload.payloadtype.id}
+                        operation_id={taskingParameterContext.callback.operation_id}
+                        onSubmit={submitCapturedTaskingParameters}
+                        onClose={() => setTaskingParameterContext({open: false, callback: null, command: null})}
+                    />}
+                />
             }
         </EventingActionDataShell>
     )
@@ -1231,10 +1936,18 @@ const EventingStepActionDataCustomFunction = ({allSteps, updateStep, index, prev
     }, []);
     return (
         <EventingActionDataShell>
-            <EventingActionDataField label="Container Name" required>
+            <EventingActionDataField
+                label="Container Name"
+                required
+                description={"This is the name of the container where the function is located"}
+            >
                 <MythicTextField onChange={onChangeValue} value={actionData.container_name} name={"container_name"} />
             </EventingActionDataField>
-            <EventingActionDataField label="Function Name" required>
+            <EventingActionDataField
+                label="Function Name"
+                required
+                description={"This is the specific function to call"}
+            >
                 <MythicTextField onChange={onChangeValue} value={actionData.function_name} name={"function_name"} />
             </EventingActionDataField>
             <EventingActionDataField
@@ -1311,10 +2024,18 @@ const EventingStepActionDataConditionalCheck = ({allSteps, updateStep, index, pr
     }, []);
     return (
         <EventingActionDataShell>
-            <EventingActionDataField label="Container Name" required>
+            <EventingActionDataField
+                label="Container Name"
+                required
+                description={"This is the name of the container where the function is located"}
+            >
                 <MythicTextField onChange={onChangeValue} value={actionData.container_name} name={"container_name"} />
             </EventingActionDataField>
-            <EventingActionDataField label="Function Name" required>
+            <EventingActionDataField
+                label="Function Name"
+                required
+                description={"This is the function that will determine if the steps called out in the \"Step Names\" array should be skipped or not."}
+            >
                 <MythicTextField onChange={onChangeValue} value={actionData.function_name} name={"function_name"} />
             </EventingActionDataField>
             <EventingActionDataField
@@ -1747,7 +2468,7 @@ const actionOptionsData = {
     }
 
 }
-const EventingStep = ({step, allSteps, updateStep, index, step1Data}) => {
+const EventingStep = ({step, allSteps, updateStep, index, step1Data, updateStep1Data}) => {
     const [name, setName] = React.useState(step.name);
     const [description, setDescription] = React.useState(step.description);
     const [selectedAction, setSelectedAction] = React.useState(step.action);
@@ -1756,6 +2477,7 @@ const EventingStep = ({step, allSteps, updateStep, index, step1Data}) => {
     const [updatedActionOptions, setUpdatedActionOptions] = React.useState([]);
     const [continueOnError, setContinueOnError] = React.useState(step.continue_on_error || false);
     const [localInputOptions, setLocalInputOptions] = React.useState([]);
+    const [inputEditorData, setInputEditorData] = React.useState(null);
 
     const onChangeName = (name, value, error) => {
         setName(value);
@@ -1811,6 +2533,14 @@ const EventingStep = ({step, allSteps, updateStep, index, step1Data}) => {
         setContinueOnError(evt.target.checked)
         updateStep(index, "continue_on_error", evt.target.checked);
     }
+    const updateStepInputs = React.useCallback((nextInputs) => {
+        setInputEditorData(nextInputs);
+        updateStep(index, "inputs", nextInputs);
+    }, [index, updateStep]);
+    const onInputsUpdatedFromEditor = React.useCallback((stepIndex, fieldName, nextInputs) => {
+        setInputEditorData(null);
+        updateStep(stepIndex, fieldName, nextInputs);
+    }, [updateStep]);
     React.useEffect( () => {
         let actions = [...actionOptions];
         if(step1Data.trigger !== "task_intercept"){
@@ -1908,8 +2638,9 @@ const EventingStep = ({step, allSteps, updateStep, index, step1Data}) => {
                         description="Map values from triggers, environment data, Mythic, or earlier step outputs."
                     >
                         <EventingStepInputs index={index} localInputOptions={localInputOptions}
-                                            step1Data={step1Data} updateStep={updateStep}
-                                            prevData={step?.inputs || []}/>
+                                            step1Data={step1Data} updateStep={onInputsUpdatedFromEditor}
+                                            prevData={inputEditorData || step?.inputs || []}
+                                            syncKey={inputEditorData ? JSON.stringify(inputEditorData) : ""}/>
                     </EventingStepConfigSection>
                     <EventingStepConfigSection
                         title="Outputs"
@@ -1927,7 +2658,11 @@ const EventingStep = ({step, allSteps, updateStep, index, step1Data}) => {
                 >
                     <div className="mythic-eventing-step-action-data">
                         {ActionDataElement !== null && ActionDataElement !== undefined &&
-                            <ActionDataElement allSteps={allSteps} updateStep={updateStep} index={index} prevData={step?.action_data} />
+                            <ActionDataElement allSteps={allSteps} updateStep={updateStep} index={index}
+                                               prevData={step?.action_data} step1Data={step1Data}
+                                               currentInputs={inputEditorData || step?.inputs || []}
+                                               updateStepInputs={updateStepInputs}
+                                               updateStep1Data={updateStep1Data} />
                         }
                     </div>
                 </EventingStepConfigSection>
@@ -1991,18 +2726,19 @@ Action data:
 Outputs:
     Outputs are a dictionary with key/value pairs that allow you to expose data after one step for use in another step. Similar to Inputs, this allows you to forward along data that you might not know while writing the workflow. For example, an action that creates a new task might return that task's ID as output for use in a subsequent action. Some actions, like custom_function and conditional_check, allow you to return arbitrary other outputs that aren't defined in this workflow for you to use in subsequent tasks as well.
     `;
-const CreateEventingStep2 = ({finished, back, first, last, cancel, prevData, step1Data}) => {
+const CreateEventingStep2 = ({finished, back, first, last, cancel, prevData, step1Data, updateStep1Data}) => {
     const [steps, setSteps] = React.useState(prevData ? prevData : []);
     const [displayHelp, setDisplayHelp] = React.useState(false);
     const [activeStepIndex, setActiveStepIndex] = React.useState(0);
     const stepRefs = React.useRef({});
     const addStep = () => {
+        const taskCreateDefaults = getTaskCreateDefaultsForTrigger(step1Data?.trigger);
         setSteps([...steps, {
             name: "",
             description: "",
-            inputs: [],
+            inputs: taskCreateDefaults.inputs,
             action: "task_create",
-            action_data: {},
+            action_data: taskCreateDefaults.action_data,
             outputs: [],
             depends_on: [],
             environment: {},
@@ -2026,6 +2762,9 @@ const CreateEventingStep2 = ({finished, back, first, last, cancel, prevData, ste
     }
     const finishedStep2 = () => {
         finished(steps);
+    }
+    const backStep2 = () => {
+        back(steps);
     }
     const stepScrollRef = React.useRef(null);
     const updateActiveStepFromScroll = React.useCallback(() => {
@@ -2140,12 +2879,13 @@ const CreateEventingStep2 = ({finished, back, first, last, cancel, prevData, ste
                                     <DeleteIcon fontSize="small" />
                                 </IconButton>
                             </div>
-                            <EventingStep step={s} allSteps={steps} updateStep={updateStep} index={i} step1Data={step1Data}/>
+                            <EventingStep step={s} allSteps={steps} updateStep={updateStep} index={i}
+                                          step1Data={step1Data} updateStep1Data={updateStep1Data}/>
                         </div>
                     ))}
                 </div>
             </div>
-            <CreateEventingStepperNavigationButtons first={first} last={last} finished={finishedStep2} back={back} cancel={cancel} />
+            <CreateEventingStepperNavigationButtons first={first} last={last} finished={finishedStep2} back={backStep2} cancel={cancel} />
         </div>
     )
 }
@@ -2155,47 +2895,8 @@ const CreateEventingStep3 = ({finished, back, first, last, cancel, prevData, ste
     const [openEventStepRender, setOpenEventStepRender] = React.useState({open: false, data: {}});
     const [renderedVersion, setRenderedVersion] = React.useState("");
     const [outputFormat, setOutputFormat] = React.useState("json");
-    const [testFileMutation] = useLazyQuery(testFileWebhookMutation, {
-        fetchPolicy: "no-cache",
-        onCompleted: (data) => {
-            if(data.eventingTestFile.status === "success"){
-                setRenderedVersion(data.eventingTestFile.formatted_output);
-                snackActions.success("Valid file!");
-            } else {
-                snackActions.error(data.eventingTestFile.error);
-            }
-        },
-        onError: (data) => {
-            console.log(data);
-        }
-    });
-    const [testFileForGraphMutation] = useLazyQuery(testFileWebhookMutation, {
-        fetchPolicy: "no-cache",
-        onCompleted: (data) => {
-            if(data.eventingTestFile.status === "success"){
-                setOpenEventStepRender({open: true, data: data.eventingTestFile.parsed_workflow});
-            } else {
-                snackActions.error(data.eventingTestFile.error);
-            }
-        },
-        onError: (data) => {
-            console.log(data);
-        }
-    })
-    const previewGraph = () => {
-        testFileForGraphMutation({variables: {file_contents: renderedVersion}});
-    }
-    const testOutput = () => {
-        testFileMutation({variables: {file_contents: renderedVersion, output_format: outputFormat}})
-    }
-    const onChangeFileFormat = (e) => {
-        testFileMutation({variables: {file_contents: renderedVersion, output_format: e.target.value}});
-        setOutputFormat(e.target.value);
-    }
-    const onChangeFileText = (newText) => {
-        setRenderedVersion(newText);
-    }
-    React.useEffect( () => {
+    const generatedWorkflowRef = React.useRef(null);
+    const buildRenderedWorkflowData = React.useCallback(() => {
         let finalStepData = {
             name: step1Data.name,
             description: step1Data.description,
@@ -2214,7 +2915,7 @@ const CreateEventingStep3 = ({finished, back, first, last, cancel, prevData, ste
                 finalStepData.environment = JSON.parse(step1Data.environment);
             }catch(error){
                 snackActions.warning("Environment data from step 1 isn't JSON");
-                return;
+                return null;
             }
         }
         for(let i = 0; i < step2Data.length; i++){
@@ -2251,9 +2952,70 @@ const CreateEventingStep3 = ({finished, back, first, last, cancel, prevData, ste
             }
             finalStepData.steps.push(stepData);
         }
+        return finalStepData;
+    }, [step1Data, step2Data]);
+    const [testFileMutation] = useLazyQuery(testFileWebhookMutation, {
+        fetchPolicy: "no-cache",
+        onCompleted: (data) => {
+            if(data.eventingTestFile.status === "success"){
+                snackActions.success("Valid file!");
+            } else {
+                snackActions.error(data.eventingTestFile.error);
+            }
+        },
+        onError: (data) => {
+            console.log(data);
+        }
+    });
+    const [formatFileMutation] = useLazyQuery(testFileWebhookMutation, {
+        fetchPolicy: "no-cache",
+        onCompleted: (data) => {
+            if(data.eventingTestFile.status === "success"){
+                setRenderedVersion(data.eventingTestFile.formatted_output);
+                snackActions.success("Valid file!");
+            } else {
+                snackActions.error(data.eventingTestFile.error);
+            }
+        },
+        onError: (data) => {
+            console.log(data);
+        }
+    });
+    const [testFileForGraphMutation] = useLazyQuery(testFileWebhookMutation, {
+        fetchPolicy: "no-cache",
+        onCompleted: (data) => {
+            if(data.eventingTestFile.status === "success"){
+                setOpenEventStepRender({open: true, data: data.eventingTestFile.parsed_workflow});
+            } else {
+                snackActions.error(data.eventingTestFile.error);
+            }
+        },
+        onError: (data) => {
+            console.log(data);
+        }
+    })
+    const previewGraph = () => {
+        testFileForGraphMutation({variables: {file_contents: renderedVersion}});
+    }
+    const testOutput = () => {
+        testFileMutation({variables: {file_contents: renderedVersion, output_format: outputFormat}})
+    }
+    const onChangeFileFormat = (e) => {
+        const nextOutputFormat = e.target.value;
+        setOutputFormat(nextOutputFormat);
+        formatFileMutation({variables: {file_contents: renderedVersion, output_format: nextOutputFormat}});
+    }
+    const onChangeFileText = (newText) => {
+        setRenderedVersion(newText);
+    }
+    React.useEffect( () => {
+        let finalStepData = buildRenderedWorkflowData();
+        if(finalStepData === null){
+            return;
+        }
+        generatedWorkflowRef.current = finalStepData;
         setRenderedVersion(JSON.stringify(finalStepData, null, 2));
-        //setRenderedVersion(JSON.stringify(step2Data, null, 2));
-    }, []);
+    }, [buildRenderedWorkflowData]);
     const finishedStep3 = async () => {
         let blob = new Blob([renderedVersion], { type: 'text/plain' });
         let file = new File([blob], `${step1Data.name}.${outputFormat}`, {type: "text/plain"});
@@ -2330,23 +3092,40 @@ const CreateEventingStep3 = ({finished, back, first, last, cancel, prevData, ste
 export function CreateEventingStepper(props){
       const [payload, setPayload] = React.useState({});
       const [activeStep, setActiveStep] = React.useState(0);
+      const updateStep1Data = React.useCallback((step1DataUpdate) => {
+        setPayload((currentPayload) => {
+            const currentStep1Data = currentPayload[0] || {};
+            const nextStep1Data = typeof step1DataUpdate === "function" ?
+                step1DataUpdate(currentStep1Data) :
+                {...currentStep1Data, ...step1DataUpdate};
+            return {...currentPayload, 0: nextStep1Data};
+        });
+      }, []);
       const getStepContent = (step) => {
           switch (step) {
             case 0:
-              return <CreateEventingStep1 prevData={payload[0]} finished={handleStepData} back={cancelStep} first={true} last={false} cancel={() => props.onClose(null, true)}/>;
+              return <CreateEventingStep1 prevData={payload[0]} finished={handleStepData} back={() => cancelStep()} first={true} last={false} cancel={() => props.onClose(null, true)}/>;
             case 1:
-              return <CreateEventingStep2 prevData={payload[1]} step1Data={payload[0]} finished={handleStepData} back={cancelStep} first={false} last={false} cancel={() => props.onClose(null, true)}/>;
+              return <CreateEventingStep2 prevData={payload[1]} step1Data={payload[0]} updateStep1Data={updateStep1Data} finished={handleStepData} back={cancelStep} first={false} last={false} cancel={() => props.onClose(null, true)}/>;
           case 2:
-              return <CreateEventingStep3 prevData={payload[2]} step1Data={payload[0]} step2Data={payload[1]} finished={finished} back={cancelStep} first={false} last={true} cancel={() => props.onClose(null, true)}/>;
+              return <CreateEventingStep3 prevData={payload[2]} step1Data={payload[0]} step2Data={payload[1]} finished={finished} back={() => cancelStep()} first={false} last={true} cancel={() => props.onClose(null, true)}/>;
           default:
               return "unknown step";
           }
         }
       const handleStepData = (stepData) => {
-        setPayload({...payload, [activeStep]: stepData});
+        const nextPayload = {...payload, [activeStep]: stepData};
+        if(activeStep === 0 && payload[0]?.trigger !== undefined && payload[0]?.trigger !== stepData.trigger){
+            delete nextPayload[1];
+            delete nextPayload[2];
+        }
+        setPayload(nextPayload);
         handleNext();
       }
-      const cancelStep = () => {
+      const cancelStep = (stepData) => {
+        if(stepData !== undefined){
+            setPayload({...payload, [activeStep]: stepData});
+        }
         handleBack();
       }
       const steps = getSteps();

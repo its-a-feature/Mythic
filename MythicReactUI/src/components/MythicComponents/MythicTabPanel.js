@@ -9,7 +9,7 @@ import MenuList from '@mui/material/MenuList';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import Paper from '@mui/material/Paper';
 import Badge from '@mui/material/Badge';
-import {useTheme} from '@mui/material/styles';
+import {alpha, useTheme} from '@mui/material/styles';
 import {
     Draggable,
 } from "@hello-pangea/dnd";
@@ -100,6 +100,8 @@ export function MythicTabLabel(props) {
                     {(() => {
                         const selected = selectedIndex === index || snapshot.isDragging;
                         const tabAccent = tabInfo?.color || theme.palette.primary.main;
+                        const selectedTabSurface = theme.palette.background.paper;
+                        const selectedTabAccent = alpha(tabAccent, theme.palette.mode === "dark" ? 0.34 : 0.2);
                         return (
                     <Tab
                         label={
@@ -120,10 +122,14 @@ export function MythicTabLabel(props) {
                             margin: "0 3px 0 0",
                             minHeight: "32px",
                             borderRadius: `${theme.shape.borderRadius}px ${theme.shape.borderRadius}px 0 0`,
-                            border: `1px solid ${theme.borderColor}`,
                             borderTop: `2px solid ${selected ? tabAccent : "transparent"}`,
+                            borderRight: `1px solid ${theme.borderColor}`,
                             borderBottom: selected ? `1px solid ${theme.palette.background.paper}` : `1px solid ${theme.borderColor}`,
-                            backgroundColor: selected ? theme.palette.background.paper : theme.surfaces?.muted,
+                            borderLeft: `1px solid ${theme.borderColor}`,
+                            backgroundColor: selected ? selectedTabSurface : theme.surfaces?.muted,
+                            backgroundImage: selected ?
+                                `linear-gradient(180deg, ${selectedTabAccent} 0%, ${selectedTabSurface} 82%)` :
+                                "none",
                             color: theme.palette.text.primary,
                         }}
                     />
