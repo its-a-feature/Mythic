@@ -1,11 +1,8 @@
 import React, {useEffect} from 'react';
 import {gql, useLazyQuery, useSubscription} from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
-import {ResponseDisplayScreenshot} from './ResponseDisplayScreenshot';
 import {ResponseDisplayPlaintext} from './ResponseDisplayPlaintext';
 import {ResponseDisplayTable} from './ResponseDisplayTable';
-import {ResponseDisplayDownload} from './ResponseDisplayDownload';
-import {ResponseDisplaySearch} from './ResponseDisplaySearch';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import SearchIcon from '@mui/icons-material/Search';
 import {useTheme} from '@mui/material/styles';
@@ -316,8 +313,7 @@ const NonInteractiveResponseDisplay = (props) => {
     const pageStartIndex = (currentPageRef.current - 1) * pageSize;
     const pageEndIndex = currentPageRef.current * pageSize;
     const streamedStartIndex = Math.max(0, currentTotalCount - newStreamedResponses.length);
-    const streamedEndIndex = currentTotalCount;
-    if(streamedStartIndex >= pageEndIndex || streamedEndIndex <= pageStartIndex){
+    if(streamedStartIndex >= pageEndIndex || currentTotalCount <= pageStartIndex){
       return;
     }
     const visibleStreamedResponses = newStreamedResponses.reduce( (responses, response, index) => {
@@ -648,11 +644,6 @@ export function ResponseDisplayBrowserScriptComponent({output, browserScriptData
       <div className={`mythic-browser-script-response${expand ? " mythic-browser-script-response-expanded" : ""}`}>
         {hasBrowserScriptData ? (
             <>
-              {browserScriptData?.screenshot?.map( (scr, index) => (
-                  <ResponseDisplayScreenshot key={"screenshot" + index + 'fortask' + task.id} task={task} {...scr}
-                                             displayType={displayType} expand={expand} />
-              ))
-              }
               {browserScriptData?.plaintext !== undefined &&
                   <ResponseDisplayPlaintext plaintext={browserScriptData["plaintext"]} task={task}
                                             expand={expand} displayType={displayType} />
@@ -662,16 +653,6 @@ export function ResponseDisplayBrowserScriptComponent({output, browserScriptData
                                         table={table} key={"tablefortask" + task.id + "table" + index}
                                         displayType={displayType}
                   />
-              ))
-              }
-              {browserScriptData?.download?.map( (dl, index) => (
-                  <ResponseDisplayDownload download={dl} task={task} displayType={displayType}
-                                           key={"download" + index + "fortask" + task.id} />
-              ))
-              }
-              {browserScriptData?.search?.map( (s, index) => (
-                  <ResponseDisplaySearch search={s} task={task} displayType={displayType}
-                                         key={"searchlink" + index + "fortask" + task.id} />
               ))
               }
               {browserScriptData?.media?.map( (s, index) => (
