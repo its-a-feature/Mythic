@@ -26,6 +26,39 @@ import {MythicDialogButton, MythicDialogFooter} from "./MythicDialogLayout";
 let mythicDialogIdCounter = 0;
 let mythicDialogStack = [];
 
+const MythicDraggableDialogPaper = React.forwardRef(function MythicDraggableDialogPaper(props, ref) {
+    const {
+        draggableCancel,
+        draggableHandle,
+        draggableOnStart,
+        draggableOnStop,
+        ...paperProps
+    } = props;
+    const nodeRef = React.useRef(null);
+    const setPaperRef = React.useCallback((node) => {
+        nodeRef.current = node;
+        if(typeof ref === "function"){
+            ref(node);
+        } else if(ref){
+            ref.current = node;
+        }
+    }, [ref]);
+    const onStart = React.useCallback((event, data) => {
+        return draggableOnStart?.(event, data, nodeRef.current);
+    }, [draggableOnStart]);
+    return (
+        <Draggable
+            nodeRef={nodeRef}
+            handle={draggableHandle}
+            cancel={draggableCancel}
+            onStart={onStart}
+            onStop={draggableOnStop}
+        >
+            <Paper {...paperProps} ref={setPaperRef} />
+        </Draggable>
+    );
+});
+
 export function MythicDialog(props) {
     const theme = useTheme();
     const dialogIdRef = React.useRef(null);
@@ -45,7 +78,6 @@ export function MythicDialog(props) {
         hideBackdrop: false,
         modified: false
     });
-    const nodeRef = React.useRef(null);
     const descriptionElementRef = React.useRef(null);
     React.useEffect(() => {
         if(!props.open){
@@ -94,55 +126,52 @@ export function MythicDialog(props) {
         }
         props.onClose?.();
     }
-    const onStart = (e) => {
+    const onStart = React.useCallback((e, _data, paperNode) => {
         if(e){
             e.stopPropagation();
             e.preventDefault();
         }
-        if(!draggedState.modified){
-            setDraggedState({
-                style: {
-                    height: e.target.offsetParent.offsetHeight  + "px",
-                    width: e.target.offsetParent.offsetWidth + "px",
-                    margin: "auto",
-                    overflowY: "auto",
-                },
+        setDraggedState((currentState) => {
+            if(currentState.modified){
+                return currentState;
+            }
+            const dragTarget = paperNode || e?.target?.closest?.(".MuiPaper-root") || e?.target?.offsetParent;
+            const targetWidth = dragTarget?.offsetWidth || e?.target?.offsetParent?.offsetWidth || 0;
+            return {
+                style: {},
                 paperStyle: {
-                    //height: e.target.offsetParent.offsetHeight + "px",
-                    width: e.target.offsetParent.offsetWidth + "px",
+                    ...(targetWidth > 0 ? {width: targetWidth + "px"} : {}),
                     margin: 0,
                     overflowY: "auto",
                 },
                 containerStyle: {
-                    height: "fit-content",
-                    overflowY: "auto"
+                    overflow: "visible",
                 },
                 hideBackdrop: true,
                 modified: true,
-            })
-        }
-    }
-    const onStop = (e) => {
+            };
+        });
+    }, []);
+    const onStop = React.useCallback((e) => {
         if(e){
             e.stopPropagation();
             e.preventDefault();
         }
-    }
+    }, []);
   return (
-      <Draggable
-          nodeRef={nodeRef}
-          handle="#mythic-draggable-title"
-          cancel={'[class*="MuiDialogContent-root"]'}
-          onStart={onStart}
-          onStop={onStop}
-      >
           <Dialog
-            ref={nodeRef}
             open={props.open}
             onClose={handleOnClose}
             scroll="paper"
             maxWidth={props.maxWidth}
             fullWidth={true}
+            PaperComponent={MythicDraggableDialogPaper}
+            PaperProps={{
+                draggableHandle: "#mythic-draggable-title",
+                draggableCancel: '[class*="MuiDialogContent-root"]',
+                draggableOnStart: onStart,
+                draggableOnStop: onStop,
+            }}
             style={{...props.style, ...draggedState.style}}
             disableEnforceFocus={true}
             disablePortal={false}
@@ -165,7 +194,6 @@ export function MythicDialog(props) {
           >
             {props.innerDialog}
           </Dialog>
-      </Draggable>
   );
 }
 

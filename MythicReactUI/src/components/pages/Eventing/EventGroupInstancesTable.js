@@ -20,6 +20,7 @@ import {copyStringToClipboard} from "../../utilities/Clipboard";
 import {ipCompare} from "../Callbacks/CallbacksTable";
 import MythicResizableGrid from "../../MythicComponents/MythicResizableGrid";
 import {CallbacksTableStringCell} from "../Callbacks/CallbacksTableRow";
+import {GetComputedFontSize} from "../../MythicComponents/MythicSavedUserSetting";
 
 const cancelEventGroupInstanceMutation = gql(`
 mutation cancelEventGroupInstanceMutation($eventgroupinstance_id: Int!){
@@ -79,6 +80,7 @@ export const adjustOutput = (e, newTime) => {
 
 function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, setSelectedInstance, selectedInstanceID}){
     const callbackTableGridRef = React.useRef();
+    const eventingRowHeight = Math.max(GetComputedFontSize() + 22, 42);
     const [openDeleteDialog, setOpenDeleteDialog] = React.useState(false);
     const [openRetryDialog, setOpenRetryDialog] = React.useState(false);
     const [openRunAgainDialog, setOpenRunAgainDialog] = React.useState(false);
@@ -311,13 +313,13 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
                         return <CallbacksTableStringCell rowData={row} cellData={row.trigger} />
                     case "Time":
                         return (
-                            <div>
-                                <div style={{display: "flex", flexDirection: "row", alignItems: "center"}}>
-                                    <CalendarMonthTwoToneIcon style={{marginRight: "10px"}}/>
+                            <div className="mythic-eventing-instances-time-cell">
+                                <div className="mythic-eventing-instances-time-line">
+                                    <CalendarMonthTwoToneIcon fontSize="small" />
                                     {toLocalTime(row?.created_at, me?.user?.view_utc_time)}
                                 </div>
-                                <div style={{display: "flex", flexDirection: "row", alignItems: "center"}}>
-                                    <AccessAlarmTwoToneIcon style={{marginRight: "10px"}}/>
+                                <div className="mythic-eventing-instances-time-line mythic-eventing-instances-time-secondary">
+                                    <AccessAlarmTwoToneIcon fontSize="small" />
                                     {row.end_timestamp === null &&
                                         <Moment filter={(newTime) => adjustOutput(row, newTime)} interval={1000}
                                                 parse={"YYYY-MM-DDTHH:mm:ss.SSSSSSZ"}
@@ -400,15 +402,15 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
         return [];
     }
     return (
-        <div style={{ width: '100%', overflow: "auto", flexGrow: 1, display: "flex", position: "relative"}}>
+        <div className="mythic-eventing-instances-grid">
             <MythicResizableGrid
+                name={"eventing_instances_table"}
                 callbackTableGridRef={callbackTableGridRef}
                 columns={columns}
                 sortIndicatorIndex={sortColumn}
                 sortDirection={sortData.sortDirection}
                 items={sortedData}
-                rowHeight={40}
-                headerRowHeight={20}
+                rowHeight={eventingRowHeight}
                 onClickHeader={onClickHeader}
                 onDoubleClickRow={onRowDoubleClick}
                 contextMenuOptions={contextMenuOptions}
