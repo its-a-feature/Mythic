@@ -23,7 +23,6 @@ import {CallbacksTabsHideMultipleDialog, CallbacksTabsSelectMultipleDialog} from
 import {CallbacksTabsTaskMultipleDialog} from "./CallbacksTabsTaskMultipleDialog";
 import ip6 from 'ip6';
 import {CallbacksContext, OnOpenTabContext, OnOpenTabsContext} from "./CallbacksTop";
-import {useTheme} from '@mui/material/styles';
 import {GetMythicSetting, useSetMythicSetting, GetComputedFontSize} from "../../MythicComponents/MythicSavedUserSetting";
 import {DetailedCallbackTable} from "./DetailedCallbackTable";
 import {ModifyCallbackMythicTreeGroupsDialog} from "./ModifyCallbackMythicTreeGroupsDialog";
@@ -53,10 +52,10 @@ import NotificationsOffTwoToneIcon from '@mui/icons-material/NotificationsOffTwo
 import {CallbacksTableEditTriggerOnCheckinDialog} from "./CallbacksTableEditTriggerOnCheckinDialog";
 import {CallbacksTableColumnsReorderDialog} from "./CallbacksTableColumnsReorderDialog";
 import PlayCircleFilledTwoToneIcon from '@mui/icons-material/PlayCircleFilledTwoTone';
-import Typography from '@mui/material/Typography';
 import {EventTriggerContextSelectDialog} from "../Eventing/EventTriggerContextSelect";
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 import {faFilter} from '@fortawesome/free-solid-svg-icons';
+import {getReadableTextColor, isValidHexColor} from "../../MythicComponents/MythicColorInput";
 
 export const getCustomBrowsersQuery = gql(`
 query getCustomBrowsersQuery{
@@ -132,12 +131,20 @@ const callbackTableInitialColumns = [
     {key: "process_short_name", type: 'string', name: "Process Name", fillWidth: true},
     {key: "tags", type: 'tags', name: "Tags", fillWidth: false, disableDoubleClick: true, width: 150}
 ];
+const getCallbackRowStyle = (row) => {
+    if(!isValidHexColor(row.color)){
+        return {};
+    }
+    return {
+        backgroundColor: row.color,
+        color: getReadableTextColor(row.color),
+    };
+}
 function CallbacksTablePreMemo(props){
     const callbacks = useContext(CallbacksContext);
     const onOpenTab = useContext(OnOpenTabContext);
     const onOpenTabs = useContext(OnOpenTabsContext);
     const interactType = GetMythicSetting({setting_name: "interactType", default_value: "interact", output: "string"});
-    const theme = useTheme();
     const [loadingSettings, setLoadingSettings] = React.useState(true);
     const [columnOrder, setColumnOrder] = React.useState(callbackTableInitialColumns);
     const [openReorderDialog, setOpenReorderDialog] = React.useState(false);
@@ -155,6 +162,7 @@ function CallbacksTablePreMemo(props){
         setOpenEditMythicTreeGroupsDialog(true);
     }
     const [openEditDescriptionDialog, setOpenEditDescriptionDialog] = React.useState(false);
+    const [callbackLocalUpdates, setCallbackLocalUpdates] = React.useState({});
     const [updateDescriptionMutation] = useMutation(updateDescriptionCallbackMutation, {
         update: (cache, {data}) => {
             if(data.updateCallback.status === "success"){
@@ -170,6 +178,16 @@ function CallbacksTablePreMemo(props){
         }
     });
     const updateDescriptionRef = React.useRef({payload_description: "", callback_display_id: 0, description: "", color: ""});
+    const applyCallbackLocalUpdate = React.useCallback(({callback_display_id, description, color}) => {
+        setCallbackLocalUpdates((currentUpdates) => ({
+            ...currentUpdates,
+            [String(callback_display_id)]: {description, color},
+        }));
+        const callbackIndex = callbacks.findIndex((callback) => callback.display_id === callback_display_id);
+        if(callbackIndex !== -1){
+            callbacks[callbackIndex] = {...callbacks[callbackIndex], description, color};
+        }
+    }, [callbacks]);
     const updateDescription = ({payload_description, callback_display_id, description, color}) => {
         updateDescriptionRef.current = {
             payload_description: payload_description,
@@ -196,8 +214,26 @@ function CallbacksTablePreMemo(props){
         }
     }
     const updateDescriptionSubmit = React.useCallback( ({callback_display_id, description, color}) => {
-        updateDescriptionMutation({variables: {callback_display_id: callback_display_id, description, color}})
-    }, []);
+        const previousCallback = callbacks.find((callback) => callback.display_id === callback_display_id);
+        applyCallbackLocalUpdate({callback_display_id, description, color});
+        updateDescriptionMutation({variables: {callback_display_id: callback_display_id, description, color}}).then(({data}) => {
+            if(data?.updateCallback?.status !== "success" && previousCallback){
+                applyCallbackLocalUpdate({
+                    callback_display_id,
+                    description: previousCallback.description,
+                    color: previousCallback.color,
+                });
+            }
+        }).catch(() => {
+            if(previousCallback){
+                applyCallbackLocalUpdate({
+                    callback_display_id,
+                    description: previousCallback.description,
+                    color: previousCallback.color,
+                });
+            }
+        });
+    }, [applyCallbackLocalUpdate, callbacks, updateDescriptionMutation]);
     const [openCallbackDropdown, setOpenCallbackDropdown] = React.useState(false);
     const callbackDropdownRef = React.useRef({options: [], callback: {}});
     const [clickedCallbackID, setClickedCallbackId] = React.useState(0);
@@ -349,19 +385,41 @@ function CallbacksTablePreMemo(props){
     async function getCustomBrowsersForContextMenu(){
         return await getCustomBrowsers({}).then(result => {return result.data?.custombrowser});
     }
+    const callbackMenuIcon = (icon, intent = "neutral") => (
+        <span className={`mythic-callback-action-menu-icon mythic-callback-action-menu-icon-${intent}`}>
+            {icon}
+        </span>
+    );
+    const callbackMenuLabel = (primary, secondary) => (
+        <span className="mythic-callback-action-menu-label">
+            <span className="mythic-callback-action-menu-label-primary">{primary}</span>
+            {secondary &&
+                <span className="mythic-callback-action-menu-label-secondary">{secondary}</span>
+            }
+        </span>
+    );
+    const callbackMenuSection = (label) => ({
+        name: <span className="mythic-callback-action-menu-section-label">{label}</span>,
+        icon: null,
+        click: ({event}) => {},
+        type: "item",
+        disabled: true,
+        className: "mythic-callback-action-menu-section"
+    });
     async function onRowContextClick({rowDataStatic}) {
         // based on row, return updated options array?
-        let defaultInteractIcon = <KeyboardIcon style={{paddingRight: "5px"}}/>;
+        let defaultInteractIcon = <KeyboardIcon fontSize="small"/>;
         if(interactType === "interactSplit"){
-            defaultInteractIcon = <VerticalSplitIcon style={{paddingRight: "5px"}}/>;
+            defaultInteractIcon = <VerticalSplitIcon fontSize="small"/>;
         } else if(interactType === "interactConsole"){
-            defaultInteractIcon = <TerminalIcon style={{paddingRight: "5px"}}/>;
+            defaultInteractIcon = <TerminalIcon fontSize="small"/>;
         }
         let customBrowsers = await getCustomBrowsersForContextMenu();
         customBrowsers = customBrowsers.map(b => {
             return {
                 name: b.name,
-                icon: b.type === 'file' ? <FontAwesomeIcon icon={faFolderOpen} style={{color: theme.folderColor, cursor: "pointer", marginRight: "10px"}} /> : <AccountTreeIcon style={{paddingRight: "5px"}}/>,
+                icon: callbackMenuIcon(b.type === 'file' ? <FontAwesomeIcon icon={faFolderOpen} /> : <AccountTreeIcon fontSize="small" />),
+                className: "mythic-callback-action-menu-item",
                 click: ({event}) => {
                     event.preventDefault();
                     event.stopPropagation();
@@ -379,20 +437,15 @@ function CallbacksTablePreMemo(props){
         })
         return  [
             {
-                name: <div style={{display: "flex", flexDirection: "column"}}>
-                        <Typography>
-                            {"Callback: " + rowDataStatic.display_id}
-                        </Typography>
-                        <Typography style={{fontSize: theme?.typography.pxToRem(12),}}>
-                            {rowDataStatic.user + "@" + rowDataStatic.host}
-                        </Typography>
-                    </div>,
+                name: callbackMenuLabel("Callback " + rowDataStatic.display_id, rowDataStatic.user + "@" + rowDataStatic.host),
                 icon: null, click: ({event}) => {},
                 type: "item",
-                disabled: true
+                disabled: true,
+                className: "mythic-callback-action-menu-header"
             },
+            callbackMenuSection("Tasking"),
             {
-                name: "Interact", icon: defaultInteractIcon, click: ({event}) => {
+                name: "Interact", icon: callbackMenuIcon(defaultInteractIcon, "primary"), className: "mythic-callback-action-menu-item", click: ({event}) => {
                     event.stopPropagation();
                     const tabType = interactType;
                     onOpenTab({
@@ -404,7 +457,55 @@ function CallbacksTablePreMemo(props){
                 }, type: "item"
             },
             {
-                name: "Edit Description and Color", icon: <EditIcon style={{paddingRight: "5px"}} />, click:({event}) => {
+                name: "Tasking Views", icon: callbackMenuIcon(<VerticalSplitIcon fontSize="small" />), click: () => {}, type: "menu", className: "mythic-callback-action-menu-item",
+                menuItems: [
+                    {
+                        name: 'Default Tasking', icon: callbackMenuIcon(<KeyboardIcon fontSize="small"/>), className: "mythic-callback-action-menu-item", click: ({event}) => {
+                            event.stopPropagation();
+                            const tabType = "interact";
+                            onOpenTab({
+                                tabType: tabType,
+                                tabID: rowDataStatic.id + tabType,
+                                callbackID: rowDataStatic.id,
+                                color: rowDataStatic.color,
+                                displayID: rowDataStatic.display_id});
+                        }
+                    },
+                    {
+                        name: 'Split Tasking', icon: callbackMenuIcon(<VerticalSplitIcon fontSize="small"/>), className: "mythic-callback-action-menu-item", click: ({event}) => {
+                            event.stopPropagation();
+                            const tabType = "interactSplit";
+                            onOpenTab({
+                                tabType: tabType,
+                                tabID: rowDataStatic.id + tabType,
+                                callbackID: rowDataStatic.id,
+                                color: rowDataStatic.color,
+                                displayID: rowDataStatic.display_id});
+                        }
+                    },
+                    {
+                        name: "Console View", icon: callbackMenuIcon(<TerminalIcon fontSize="small"/>), className: "mythic-callback-action-menu-item", click: ({event}) => {
+                            event.stopPropagation();
+                            const tabType = "interactConsole";
+                            onOpenTab({
+                                tabType: tabType,
+                                tabID: rowDataStatic.id + tabType,
+                                callbackID: rowDataStatic.id,
+                                color: rowDataStatic.color,
+                                displayID: rowDataStatic.display_id});
+                        }
+                    },
+                    {
+                        name: "Expand Callback", icon: callbackMenuIcon(<OpenInNewIcon fontSize="small" />), className: "mythic-callback-action-menu-item", click: ({event}) => {
+                            event.stopPropagation();
+                            window.open("/new/callbacks/" + rowDataStatic.display_id, "_blank").focus();
+                        }
+                    },
+                ]
+            },
+            callbackMenuSection("Callback State"),
+            {
+                name: "Edit Description and Color", icon: callbackMenuIcon(<EditIcon fontSize="small" />), className: "mythic-callback-action-menu-item", click:({event}) => {
                     event.stopPropagation();
                     updateDescription({payload_description: rowDataStatic.payload.description,
                         callback_display_id: rowDataStatic.display_id,
@@ -414,28 +515,9 @@ function CallbacksTablePreMemo(props){
                 }, type: "item"
             },
             {
-                name: 'Hide Callback', icon: <VisibilityOffIcon color={"warning"} style={{paddingRight: "5px"}}/>, click: ({event}) => {
-                    event.stopPropagation();
-                    hideCallback({variables: {callback_display_id: rowDataStatic.display_id}});
-                }, type: "item"
-            },
-            {
-                name: "Exit Callback", icon: <FontAwesomeIcon icon={faSkullCrossbones} style={{color: theme.palette.error.main, cursor: "pointer", marginRight: "8px"}} />,
-                click: ({event}) => {
-                    taskingData.current = {
-                        "parameters": "",
-                        "ui_feature": "callback_table:exit",
-                        "getConfirmation": true,
-                        id: rowDataStatic.id,
-                        display_id: rowDataStatic.display_id,
-                        acceptText: "exit"
-                    };
-                    setOpenTaskingButton(true);
-                }, type: "item"
-            },
-            {
                 name: rowDataStatic.locked ? 'Unlock (Locked by ' + rowDataStatic.locked_operator.username + ')' : 'Lock Callback',
-                icon: rowDataStatic.locked ? (<LockIcon color={"error"} style={{paddingRight: "5px"}}/>) : (<LockOpenIcon color={"success"} style={{paddingRight: "5px"}} />),
+                icon: callbackMenuIcon(rowDataStatic.locked ? <LockIcon fontSize="small"/> : <LockOpenIcon fontSize="small" />, rowDataStatic.locked ? "warning" : "neutral"),
+                className: "mythic-callback-action-menu-item",
                 click: ({event}) => {
                     event.stopPropagation();
                     if(rowDataStatic.locked){
@@ -448,17 +530,39 @@ function CallbacksTablePreMemo(props){
             {
                 name: rowDataStatic.trigger_on_checkin_after_time > 0 ? "Adjust Alert Trigger" : "Add New Alert Trigger",
                 type: "item",
-                icon: rowDataStatic.trigger_on_checkin_after_time > 0 ? (<NotificationsOffTwoToneIcon color={"warning"} style={{paddingRight: "5px"}} />) : (<NotificationsActiveTwoToneIcon color={"success"} style={{paddingRight: "5px"}}/>),
+                icon: callbackMenuIcon(rowDataStatic.trigger_on_checkin_after_time > 0 ? <NotificationsOffTwoToneIcon fontSize="small" /> : <NotificationsActiveTwoToneIcon fontSize="small"/>, rowDataStatic.trigger_on_checkin_after_time > 0 ? "warning" : "neutral"),
+                className: "mythic-callback-action-menu-item",
                 click: ({event}) => {
                     event.stopPropagation();
                     setOpenTriggerDialog({open: true, trigger_on_checkin_after_time: rowDataStatic.trigger_on_checkin_after_time, display_id: rowDataStatic.display_id})
                 }
             },
             {
-                name: "Eventing", icon: <PlayCircleFilledTwoToneIcon />, click: (event) => {}, type: "menu",
+                name: 'Hide Callback', icon: callbackMenuIcon(<VisibilityOffIcon fontSize="small"/>, "warning"), className: "mythic-callback-action-menu-item", click: ({event}) => {
+                    event.stopPropagation();
+                    hideCallback({variables: {callback_display_id: rowDataStatic.display_id}});
+                }, type: "item"
+            },
+            {
+                name: "Exit Callback", icon: callbackMenuIcon(<FontAwesomeIcon icon={faSkullCrossbones} />, "error"), className: "mythic-callback-action-menu-item",
+                click: ({event}) => {
+                    taskingData.current = {
+                        "parameters": "",
+                        "ui_feature": "callback_table:exit",
+                        "getConfirmation": true,
+                        id: rowDataStatic.id,
+                        display_id: rowDataStatic.display_id,
+                        acceptText: "exit"
+                    };
+                    setOpenTaskingButton(true);
+                }, type: "item"
+            },
+            callbackMenuSection("Workflows and Browsers"),
+            {
+                name: "Eventing", icon: callbackMenuIcon(<PlayCircleFilledTwoToneIcon fontSize="small" />), click: (event) => {}, type: "menu", className: "mythic-callback-action-menu-item",
                 menuItems: [
                     {
-                        name: "Start Eventing Workflow", icon: <PlayCircleFilledTwoToneIcon style={{paddingRight: "5px"}} />,
+                        name: "Start Eventing Workflow", icon: callbackMenuIcon(<PlayCircleFilledTwoToneIcon fontSize="small" />), className: "mythic-callback-action-menu-item",
                         click: ({event}) => {
                             eventingDataRef.current = {
                                 name: "callback_id",
@@ -470,10 +574,10 @@ function CallbacksTablePreMemo(props){
                 ]
             },
             {
-                name: "Browsers", icon: null, click: () => {}, type: "menu",
+                name: "Browsers", icon: callbackMenuIcon(<AccountTreeIcon fontSize="small" />), click: () => {}, type: "menu", className: "mythic-callback-action-menu-item",
                 menuItems: [
                     {
-                        name: 'File Browser', icon: <FontAwesomeIcon icon={faFolderOpen} style={{color: theme.folderColor, cursor: "pointer", marginRight: "10px"}} />,
+                        name: 'File Browser', icon: callbackMenuIcon(<FontAwesomeIcon icon={faFolderOpen} />), className: "mythic-callback-action-menu-item",
                         click: ({event}) => {
                             event.preventDefault();
                             event.stopPropagation();
@@ -487,7 +591,7 @@ function CallbacksTablePreMemo(props){
                         }
                     },
                     {
-                        name: 'Process Browser', icon: <AccountTreeIcon style={{paddingRight: "5px"}}/>,
+                        name: 'Process Browser', icon: callbackMenuIcon(<AccountTreeIcon fontSize="small"/>), className: "mythic-callback-action-menu-item",
                         click: ({event}) => {
                             event.preventDefault();
                             event.stopPropagation();
@@ -501,105 +605,63 @@ function CallbacksTablePreMemo(props){
                         }
                     },
                     {
-                        name: <div style={{display: "flex", flexDirection: "column", width: "100%"}}>
-                            <Typography>
-                                {"Custom Agent Browsers:"}
-                            </Typography>
-                        </div>,
+                        name: <span className="mythic-callback-action-menu-section-label">Custom Agent Browsers</span>,
                         icon: null, click: ({event}) => {},
                         type: "item",
-                        disabled: true
+                        disabled: true,
+                        className: "mythic-callback-action-menu-section"
                     },
                     ...customBrowsers
                 ]
             },
             {
-                name: "Bulk Actions", icon: null, click: (event) => { }, type: "menu",
+                name: "Other Callbacks", icon: callbackMenuIcon(<OpenInNewIcon fontSize="small" />), click: () => {}, type: "menu", className: "mythic-callback-action-menu-item",
                 menuItems: [
                     {
-                        name: "Hide Multiple", icon: <VisibilityOffIcon color={"warning"} style={{paddingRight: "5px"}}/>,
-                        click: ({event}) => {
-                            setOpenHideMultipleDialog(true);
+                        name: "Interact", icon: callbackMenuIcon(<KeyboardIcon fontSize="small"/>), className: "mythic-callback-action-menu-item", click: ({event}) => {
+                            setOpenMultipleTabsDialog({open: true, tabType: "interact"});
                         }
                     },
                     {
-                        name: "Task Multiple", icon: <FontAwesomeIcon icon={faList} style={{cursor: "pointer", marginRight: "10px"}} />,
-                        click: ({event}) => {
-                            setOpenTaskMultipleDialog({open: true, data: rowDataStatic});
+                        name: "Split Tasking", icon: callbackMenuIcon(<VerticalSplitIcon fontSize="small"/>), className: "mythic-callback-action-menu-item", click: ({event}) => {
+                            setOpenMultipleTabsDialog({open: true, tabType: "interactSplit"});
                         }
                     },
                     {
-                        name: "Start Multiple Eventing Workflows", icon: <PlayCircleFilledTwoToneIcon style={{paddingRight: "5px"}}/>,
-                        click: ({event}) => {
-                            setOpenEventingMultipleDialog(true);
+                        name: "Console View", icon: callbackMenuIcon(<TerminalIcon fontSize="small"/>), className: "mythic-callback-action-menu-item", click: ({event}) => {
+                            setOpenMultipleTabsDialog({open: true, tabType: "interactConsole"});
+                        }
+                    },
+                    {
+                        name: "File Browser", icon: callbackMenuIcon(<FontAwesomeIcon icon={faFolderOpen} />), className: "mythic-callback-action-menu-item", click: ({event}) => {
+                            setOpenMultipleTabsDialog({open: true, tabType: "fileBrowser"});
+                        }
+                    },
+                    {
+                        name: "Process Browser", icon:  callbackMenuIcon(<AccountTreeIcon fontSize="small"/>), className: "mythic-callback-action-menu-item", click: ({event}) => {
+                            setOpenMultipleTabsDialog({open: true, tabType: "processBrowser"});
                         }
                     }
                 ]
             },
+            callbackMenuSection("Metadata"),
             {
-                name: "Tasking Views", icon: null, click: () => {}, type: "menu",
+                name: "Metadata", icon: callbackMenuIcon(<InfoIcon fontSize="small" />), click: () => {}, type: "menu", className: "mythic-callback-action-menu-item",
                 menuItems: [
                     {
-                        name: 'Default Tasking', icon: <KeyboardIcon style={{paddingRight: "5px"}}/>, click: ({event}) => {
-                            event.stopPropagation();
-                            const tabType = "interact";
-                            onOpenTab({
-                                tabType: tabType,
-                                tabID: rowDataStatic.id + tabType,
-                                callbackID: rowDataStatic.id,
-                                color: rowDataStatic.color,
-                                displayID: rowDataStatic.display_id});
-                        }
-                    },
-                    {
-                        name: 'Split Tasking', icon: <VerticalSplitIcon style={{paddingRight: "5px"}}/>, click: ({event}) => {
-                            event.stopPropagation();
-                            const tabType = "interactSplit";
-                            onOpenTab({
-                                tabType: tabType,
-                                tabID: rowDataStatic.id + tabType,
-                                callbackID: rowDataStatic.id,
-                                color: rowDataStatic.color,
-                                displayID: rowDataStatic.display_id});
-                        }
-                    },
-                    {
-                        name: "Console View", icon: <TerminalIcon style={{paddingRight: "5px"}}/>, click: ({event}) => {
-                            event.stopPropagation();
-                            const tabType = "interactConsole";
-                            onOpenTab({
-                                tabType: tabType,
-                                tabID: rowDataStatic.id + tabType,
-                                callbackID: rowDataStatic.id,
-                                color: rowDataStatic.color,
-                                displayID: rowDataStatic.display_id});
-                        }
-                    },
-                    {
-                        name: "Expand Callback", icon: <OpenInNewIcon style={{paddingRight: "5px"}} />, click: ({event}) => {
-                            event.stopPropagation();
-                            window.open("/new/callbacks/" + rowDataStatic.display_id, "_blank").focus();
-                        }
-                    },
-                ]
-            },
-            {
-                name: "Metadata", icon: null, click: () => {}, type: "menu",
-                menuItems: [
-                    {
-                        name: "Export Callback", icon: <ImportExportIcon style={{paddingRight: "5px"}} />, click: ({event}) => {
+                        name: "Export Callback", icon: callbackMenuIcon(<ImportExportIcon fontSize="small" />), className: "mythic-callback-action-menu-item", click: ({event}) => {
                             event.stopPropagation();
                             exportConfig({variables: {agent_callback_id: rowDataStatic.agent_callback_id}});
                         }
                     },
                     {
-                        name: "View Metadata", icon: <InfoIcon color={"info"} style={{paddingRight: "5px"}} />, click: ({event}) => {
+                        name: "View Metadata", icon: callbackMenuIcon(<InfoIcon fontSize="small" />), className: "mythic-callback-action-menu-item", click: ({event}) => {
                             event.stopPropagation();
                             metaDialog(rowDataStatic.id);
                         }
                     },
                     {
-                        name: "Modify Groupings", icon: <WidgetsIcon color={"info"} style={{paddingRight: "5px"}} />, click: ({event}) => {
+                        name: "Modify Groupings", icon: callbackMenuIcon(<WidgetsIcon fontSize="small" />), className: "mythic-callback-action-menu-item", click: ({event}) => {
                             event.stopPropagation();
                             editMythicTreeGroupsDialog(rowDataStatic.id);
                         }
@@ -607,31 +669,24 @@ function CallbacksTablePreMemo(props){
                 ]
             },
             {
-                name: "Other Callbacks", icon: null, click: () => {}, type: "menu",
+                name: "Bulk Actions", icon: callbackMenuIcon(<FontAwesomeIcon icon={faList} />), click: (event) => { }, type: "menu", className: "mythic-callback-action-menu-item",
                 menuItems: [
                     {
-                        name: "Interact", icon: <KeyboardIcon style={{paddingRight: "5px"}}/>, click: ({event}) => {
-                            setOpenMultipleTabsDialog({open: true, tabType: "interact"});
+                        name: "Hide Multiple", icon: callbackMenuIcon(<VisibilityOffIcon fontSize="small"/>, "warning"), className: "mythic-callback-action-menu-item",
+                        click: ({event}) => {
+                            setOpenHideMultipleDialog(true);
                         }
                     },
                     {
-                        name: "Split Tasking", icon: <VerticalSplitIcon style={{paddingRight: "5px"}}/>, click: ({event}) => {
-                            setOpenMultipleTabsDialog({open: true, tabType: "interactSplit"});
+                        name: "Task Multiple", icon: callbackMenuIcon(<FontAwesomeIcon icon={faList} />), className: "mythic-callback-action-menu-item",
+                        click: ({event}) => {
+                            setOpenTaskMultipleDialog({open: true, data: rowDataStatic});
                         }
                     },
                     {
-                        name: "Console View", icon: <TerminalIcon style={{paddingRight: "5px"}}/>, click: ({event}) => {
-                            setOpenMultipleTabsDialog({open: true, tabType: "interactConsole"});
-                        }
-                    },
-                    {
-                        name: "File Browser", icon: <FontAwesomeIcon icon={faFolderOpen} style={{color: theme.folderColor, cursor: "pointer", marginRight: "10px"}} />, click: ({event}) => {
-                            setOpenMultipleTabsDialog({open: true, tabType: "fileBrowser"});
-                        }
-                    },
-                    {
-                        name: "Process Browser", icon:  <AccountTreeIcon style={{paddingRight: "5px"}}/>, click: ({event}) => {
-                            setOpenMultipleTabsDialog({open: true, tabType: "processBrowser"});
+                        name: "Start Multiple Eventing Workflows", icon: callbackMenuIcon(<PlayCircleFilledTwoToneIcon fontSize="small"/>), className: "mythic-callback-action-menu-item",
+                        click: ({event}) => {
+                            setOpenEventingMultipleDialog(true);
                         }
                     }
                 ]
@@ -779,7 +834,10 @@ function CallbacksTablePreMemo(props){
       return false;
     }
     const sortedData = React.useMemo(() => {
-      const tempData = [...callbacks];
+      const tempData = callbacks.map((callback) => {
+          const localUpdate = callbackLocalUpdates[String(callback.display_id)];
+          return localUpdate ? {...callback, ...localUpdate} : callback;
+      });
 
       if (sortData.sortType === 'number' || sortData.sortType === 'size' || sortData.sortType === 'date') {
           tempData.sort((a, b) => (parseInt(a[sortData.sortKey]) > parseInt(b[sortData.sortKey]) ? 1 : -1));
@@ -823,7 +881,7 @@ function CallbacksTablePreMemo(props){
                             return <CallbacksTableIDCell
                                 rowData={{...row,
                                     selected: row.id === clickedCallbackID,
-                                    rowStyle: {backgroundColor: `${row.color}`},
+                                    rowStyle: getCallbackRowStyle(row),
                                 }}
                                 key={`callback${row.id}_${c.name}`}
                                 callbackDropdown={callbackDropdown}
@@ -834,7 +892,7 @@ function CallbacksTablePreMemo(props){
                                 cellData={row.mythictree_groups.join(", ")}
                                 rowData={{...row,
                                     selected: row.id === clickedCallbackID,
-                                    rowStyle: {backgroundColor: `${row.color}`},
+                                    rowStyle: getCallbackRowStyle(row),
                                 }}
                             />;
                         case "IP":
@@ -843,105 +901,105 @@ function CallbacksTablePreMemo(props){
                                 cellData={row.ip}
                                 rowData={{...row,
                                     selected: row.id === clickedCallbackID,
-                                    rowStyle: {backgroundColor: `${row.color}`},
+                                    rowStyle: getCallbackRowStyle(row),
                                 }}
                                 callback_id={row.id} />;
                         case "External IP":
                             return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.external_ip}
                                                              rowData={{...row,
                                                                  selected: row.id === clickedCallbackID,
-                                                                 rowStyle: {backgroundColor: `${row.color}`},
+                                                                 rowStyle: getCallbackRowStyle(row),
                                                              }} />;
                         case "Host":
                             return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.host}
                                                              rowData={{...row,
                                                                  selected: row.id === clickedCallbackID,
-                                                                 rowStyle: {backgroundColor: `${row.color}`},
+                                                                 rowStyle: getCallbackRowStyle(row),
                                                              }} />;
                         case "User":
                             return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.user + (row.impersonation_context === "" ? "" : ` [${row.impersonation_context}]`)}
                                                              rowData={{...row,
                                                                  selected: row.id === clickedCallbackID,
-                                                                 rowStyle: {backgroundColor: `${row.color}`},
+                                                                 rowStyle: getCallbackRowStyle(row),
                                                              }} />;
                         case "Domain":
                             return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.domain}
                                                              rowData={{...row,
                                                                  selected: row.id === clickedCallbackID,
-                                                                 rowStyle: {backgroundColor: `${row.color}`},
+                                                                 rowStyle: getCallbackRowStyle(row),
                                                              }} />;
                         case "OS":
                             return <CallbacksTableOSCell key={`callback${row.id}_${c.name}`}
                                                          rowData={{...row,
                                                              selected: row.id === clickedCallbackID,
-                                                             rowStyle: {backgroundColor: `${row.color}`},
+                                                             rowStyle: getCallbackRowStyle(row),
                                                          }}
                                                          cellData={row.os} />;
                         case "Arch":
                             return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`}
                                                              rowData={{...row,
                                                                  selected: row.id === clickedCallbackID,
-                                                                 rowStyle: {backgroundColor: `${row.color}`},
+                                                                 rowStyle: getCallbackRowStyle(row),
                                                              }}
                                                              cellData={row.architecture} />;
                         case "PID":
                             return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.pid}
                                                              rowData={{...row,
                                                                  selected: row.id === clickedCallbackID,
-                                                                 rowStyle: {backgroundColor: `${row.color}`},
+                                                                 rowStyle: getCallbackRowStyle(row),
                                                              }} />;
                         case "Last Checkin":
                             return <CallbacksTableLastCheckinCell key={`callback${row.id}_${c.name}`} me={props.me}
                                                                   rowData={{...row,
                                                                       selected: row.id === clickedCallbackID,
-                                                                      rowStyle: {backgroundColor: `${row.color}`},
+                                                                      rowStyle: getCallbackRowStyle(row),
                                                                   }}
                                                                   cellData={row.last_checkin} />;
                         case "Description":
                             return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.description}
                                                              rowData={{...row,
                                                                  selected: row.id === clickedCallbackID,
-                                                                 rowStyle: {backgroundColor: `${row.color}`},
+                                                                 rowStyle: getCallbackRowStyle(row),
                                                              }} />;
                         case "Sleep":
                             return <CallbacksTableSleepCell key={`callback${row.id}_${c.name}`}
                                                             rowData={{...row,
                                                                 selected: row.id === clickedCallbackID,
-                                                                rowStyle: {backgroundColor: `${row.color}`},
+                                                                rowStyle: getCallbackRowStyle(row),
                                                             }}
                                                             cellData={row.sleep_info} updateSleepInfo={updateSleepInfo} />;
                         case "Agent":
                             return <CallbacksTablePayloadTypeCell key={`callback${row.id}_${c.name}`}
                                                                   rowData={{...row,
                                                                       selected: row.id === clickedCallbackID,
-                                                                      rowStyle: {backgroundColor: `${row.color}`},
+                                                                      rowStyle: getCallbackRowStyle(row),
                                                                   }}
                                                                   cellData={row.payload.payloadtype.name}/>;
                         case "C2":
                             return <CallbacksTableC2Cell key={`callback${row.id}_c2`}
                                                          rowData={{...row,
                                                              selected: row.id === clickedCallbackID,
-                                                             rowStyle: {backgroundColor: `${row.color}`},
+                                                             rowStyle: getCallbackRowStyle(row),
                                                          }} />
                         case "Process Name":
                             return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`}
                                                              cellData={row.process_short_name}
                                                              rowData={{...row,
                                                                  selected: row.id === clickedCallbackID,
-                                                                 rowStyle: {backgroundColor: `${row.color}`},
+                                                                 rowStyle: getCallbackRowStyle(row),
                                                              }} />;
                         case "Tags":
                             return <CallbacksTableTagsCell key={`callback${row.id}_${c.name}`}
                                                              cellData={row.tags}
                                                              rowData={{...row,
                                                                  selected: row.id === clickedCallbackID,
-                                                                 rowStyle: {backgroundColor: `${row.color}`},
+                                                                 rowStyle: getCallbackRowStyle(row),
                                                              }} />;
                     }
                 })];
             }
         }, [])
-    }, [callbacks, sortData, filterOptions, columnVisibility, clickedCallbackID]);
+    }, [callbacks, callbackLocalUpdates, sortData, filterOptions, columnVisibility, clickedCallbackID]);
     const onSubmitFilterOptions = (value) => {
         setFilterOptions({...filterOptions, [selectedColumn.key]: value });
       try{
@@ -1087,11 +1145,13 @@ function CallbacksTablePreMemo(props){
                         isOpen={callbackDropdownRef.current.dropdownAnchorRef}
                         onOpen={setOpenCallbackDropdown}
                         externallyOpen={openCallbackDropdown}
+                        minWidth={285}
                         menu={
                             callbackDropdownRef.current.options.map((option, index) => (
                                 option.type === 'item' ? (
                                     <DropdownMenuItem
-                                        key={option.name}
+                                        key={"callback-action-" + index}
+                                        className={option.className}
                                         disabled={option.disabled}
                                         onClick={(event) => handleMenuItemClick(event, option.click)}
                                     >
@@ -1099,12 +1159,15 @@ function CallbacksTablePreMemo(props){
                                     </DropdownMenuItem>
                                 ) : option.type === 'menu' ? (
                                     <DropdownNestedMenuItem
-                                        label={option.name}
+                                        key={"callback-action-" + index}
+                                        className={option.className}
+                                        label={<span className="mythic-callback-action-menu-nested-label">{option.icon}{option.name}</span>}
                                         disabled={option.disabled}
                                         menu={
                                             option.menuItems.map((menuOption, indx) => (
                                                 <DropdownMenuItem
-                                                    key={menuOption.name}
+                                                    key={"callback-action-" + index + "-" + indx}
+                                                    className={menuOption.className}
                                                     disabled={menuOption.disabled}
                                                     onClick={(event) => handleMenuItemClick(event, menuOption.click)}
                                                 >
