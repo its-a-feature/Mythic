@@ -14,15 +14,7 @@ import {
     EventStepRenderFlowWithProvider
 } from "./EventStepRender";
 import OpenInNewTwoToneIcon from '@mui/icons-material/OpenInNewTwoTone';
-import AddCircleIcon from '@mui/icons-material/AddCircle';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
-import IconButton from '@mui/material/IconButton';
-import MythicTableCell from "../../MythicComponents/MythicTableCell";
+import ContentCopyTwoToneIcon from '@mui/icons-material/ContentCopyTwoTone';
 import {EventGroupInstances} from "./EventGroupInstances";
 import DeleteIcon from '@mui/icons-material/Delete';
 import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
@@ -40,8 +32,9 @@ import LayersTwoToneIcon from '@mui/icons-material/LayersTwoTone';
 import {EventGroupConsumingContainersDialog} from "./EventGroupConsumingContainersDialog";
 import CalendarMonthTwoToneIcon from '@mui/icons-material/CalendarMonthTwoTone';
 import {EventGroupTableEditDialog} from "./EventEditEventGroupDialog";
-import EditIcon from '@mui/icons-material/Edit';
+import EditNoteTwoToneIcon from '@mui/icons-material/EditNoteTwoTone';
 import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/MythicPageHeader";
+import {MythicStateChip} from "../../MythicComponents/MythicStateChip";
 
 const updateDeleteStatusMutation = gql(`
 mutation updateDeleteStatusMutation($eventgroup_id: Int!, $deleted: Boolean!) {
@@ -151,49 +144,6 @@ export function EventGroupTable({selectedEventGroup, me, showInstances, showGrap
          }
          {selectedEventGroup.id !== 0 &&
              <>
-                 <MythicPageHeader
-                     dense
-                     title={selectedEventGroup?.name}
-                     subtitle={selectedEventGroup?.description}
-                     meta={
-                         <>
-                             <MythicPageHeaderChip
-                                 icon={selectedEventGroup.active ? <NotificationsActiveTwoToneIcon /> : <NotificationsOffTwoToneIcon />}
-                                 label={selectedEventGroup.active ? "Enabled" : "Disabled"}
-                                 status={selectedEventGroup.active ? "enabled" : "disabled"}
-                             />
-                             <MythicPageHeaderChip label={selectedEventGroup.trigger} />
-                             <MythicPageHeaderChip label={selectedEventGroup.run_as || "unknown"} />
-                             <MythicPageHeaderChip
-                                 label={selectedEventGroup.approved_to_run ? "Approved" : "Needs approval"}
-                                 status={selectedEventGroup.approved_to_run ? "success" : "warning"}
-                             />
-                             {selectedEventGroup.deleted && <MythicPageHeaderChip label="Deleted" status="error" />}
-                         </>
-                     }
-                     actions={
-                         <>
-                             {selectedEventGroup.deleted ? (
-                                 <Button className="mythic-table-row-action-hover-success" variant="outlined" size="small" startIcon={<RestoreFromTrashIcon fontSize="small" />} onClick={onAcceptDelete}>
-                                     Restore
-                                 </Button>
-                             ) : (
-                                 <Button className="mythic-table-row-action-hover-danger" variant="outlined" size="small" startIcon={<DeleteIcon fontSize="small" />} onClick={() => setOpenDeleteDialog(true)}>
-                                     Delete
-                                 </Button>
-                             )}
-                             {selectedEventGroup.active ? (
-                                 <Button className="mythic-table-row-action-hover-warning" variant="outlined" size="small" startIcon={<NotificationsActiveTwoToneIcon fontSize="small" />} onClick={() => setOpenActiveDialog(true)}>
-                                     Disable
-                                 </Button>
-                             ) : (
-                                 <Button className="mythic-table-row-action-hover-success" variant="outlined" size="small" startIcon={<NotificationsOffTwoToneIcon fontSize="small" />} onClick={onAcceptActive}>
-                                     Enable
-                                 </Button>
-                             )}
-                         </>
-                     }
-                 />
                  {openDeleteDialog &&
                      <MythicConfirmDialog onClose={() => {
                          setOpenDeleteDialog(false);
@@ -206,142 +156,25 @@ export function EventGroupTable({selectedEventGroup, me, showInstances, showGrap
                                           acceptText={"Disable"}
                      />
                  }
-                 <TableContainer className="mythicElement">
-                 <Table>
-                     <TableHead>
-                         <TableRow>
-                             <TableCell>Created</TableCell>
-                             <TableCell style={{width: "10rem"}}>Trigger</TableCell>
-                             <TableCell>Keywords</TableCell>
-                             <TableCell style={{width: "4rem"}}>Context</TableCell>
-                             <TableCell style={{width: "3rem"}}>Env</TableCell>
-                             <TableCell style={{width: "10rem"}}>Run as</TableCell>
-                             <TableCell style={{width: "15rem"}}>Actions</TableCell>
-                         </TableRow>
-                     </TableHead>
-                     <TableBody>
-                         <TableRow>
-                             <MythicTableCell>{selectedEventGroup?.operator?.username} @ {toLocalTime(selectedEventGroup?.created_at, me?.user?.view_utc_time)}</MythicTableCell>
-                             <MythicTableCell>{selectedEventGroup.trigger}
-                                 {selectedEventGroup.trigger === "cron" &&
-                                     <div style={{display: "flex", flexDirection: "row", alignItems: "center"}}>
-                                         <CalendarMonthTwoToneIcon style={{marginRight: "10px"}}/>
-                                         {toLocalTime(selectedEventGroup.next_scheduled_run, me?.user?.view_utc_time)}
-                                     </div>
-                                 }
-                             </MythicTableCell>
-                             <MythicTableCell
-                                 style={{breakWord: "break-all"}}>{selectedEventGroup.keywords.length > 0 && (
-                                 <>{""}{selectedEventGroup.keywords?.join(", ")}</>
-                             )}
-                             </MythicTableCell>
-                             <MythicTableCell >
-                                 {selectedEventGroup.trigger_data &&
-                                     <IconButton onClick={() => {
-                                         setOpenTriggerDataView(true);
-                                     }} className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small">
-                                         <InfoTwoToneIcon fontSize="small" />
-                                     </IconButton>
-                                 }
-                             </MythicTableCell>
-                             <MythicTableCell>
-                                 {selectedEventGroup.environment &&
-                                     <IconButton onClick={() => {
-                                         setOpenEnvView(true);
-                                     }} className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small">
-                                         <InfoTwoToneIcon fontSize="small" />
-                                     </IconButton>
-                                 }
-                             </MythicTableCell>
-                             <MythicTableCell>
-                                 <div style={{display: "flex", alignItems: "center"}}>
-                                     {selectedEventGroup.approved_to_run ?
-                                         (
-                                             <MythicStyledTooltip title={"all user approvals received"}>
-                                                 <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-success" size="small" onClick={() => setOpenApprovalDialog(true)}>
-                                                     <ChecklistRtlTwoToneIcon fontSize="small" />
-                                                 </IconButton>
-
-                                             </MythicStyledTooltip>
-
-                                         ) : (
-                                             <MythicStyledTooltip title={"missing user approvals"}>
-                                                 <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-danger" size="small" onClick={() => setOpenApprovalDialog(true)}>
-                                                     <RuleTwoToneIcon fontSize="small" />
-                                                 </IconButton>
-
-                                             </MythicStyledTooltip>
-
-                                         )
-                                     }
-                                     {selectedEventGroup.run_as}
-                                 </div>
-
-                             </MythicTableCell>
-                             <MythicTableCell>
-                                 <div className="mythic-table-row-actions mythic-table-row-actions-nowrap">
-                                 <MythicStyledTooltip title={"Edit Workflow Metadata (not steps)"}>
-                                     <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={() => {setOpenEditDialog(true)}}>
-                                         <EditIcon fontSize="small" />
-                                     </IconButton>
-                                 </MythicStyledTooltip>
-                                 {selectedEventGroup.trigger === "manual" &&
-                                     <MythicStyledTooltip title={"Trigger manually now"}>
-                                         <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-success" size="small" onClick={onTriggerManual}>
-                                             <PlayCircleFilledTwoToneIcon fontSize="small" />
-                                         </IconButton>
-                                     </MythicStyledTooltip>
-                                 }
-                                 <MythicStyledTooltip title={"Large Graph View"}>
-                                     <IconButton onClick={() => {
-                                         setOpenEventStepRender(true);
-                                     }} className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small">
-                                         <OpenInNewTwoToneIcon fontSize="small" />
-                                     </IconButton>
-                                 </MythicStyledTooltip>
-                                 <MythicStyledTooltip title={"Create New Workflow From This One"}>
-                                     <IconButton onClick={() => {
-                                         setOpenFileView(true);
-                                     }} className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-success" size="small">
-                                         <AddCircleIcon fontSize="small" />
-                                     </IconButton>
-                                 </MythicStyledTooltip>
-                                 <MythicStyledTooltip title={"Manage Associated Files"}>
-                                     <IconButton onClick={() => {
-                                         setOpenFileManageView(true);
-                                     }} className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small">
-                                         <Badge badgeContent={selectedEventGroup.filemeta.length}  color="secondary">
-                                             <AttachFileIcon fontSize="small" />
-                                         </Badge>
-                                     </IconButton>
-                                 </MythicStyledTooltip>
-                                 {selectedEventGroup.keywords.length > 0 &&
-                                     <MythicStyledTooltip title={"Manually execute via keyword"}>
-                                         <IconButton onClick={() => {
-                                             setOpenTriggerKeyword(true);
-                                         }} className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-success" size="small">
-                                             <SpellcheckIcon fontSize="small" />
-                                         </IconButton>
-                                     </MythicStyledTooltip>
-                                 }
-                                 {selectedEventGroup.eventgroupconsumingcontainers.length > 0 &&
-                                        <MythicStyledTooltip title={"View details about associated eventing containers"} >
-                                            <Badge badgeContent={consumingContainersErrors} color={"error"}>
-                                                <IconButton onClick={() => {
-                                                    setOpenConsumingContainerDialog(true);
-                                                }} className={`mythic-table-row-icon-action ${consumingContainersErrors > 0 ? "mythic-table-row-icon-action-danger" : "mythic-table-row-icon-action-hover-info"}`} size="small">
-                                                    <LayersTwoToneIcon fontSize="small" />
-                                                </IconButton>
-                                            </Badge>
-                                        </MythicStyledTooltip>
-                                 }
-                                 </div>
-
-                             </MythicTableCell>
-                         </TableRow>
-                     </TableBody>
-                 </Table>
-                 </TableContainer>
+                 <EventGroupWorkflowOverview
+                     consumingContainersErrors={consumingContainersErrors}
+                     me={me}
+                     onClone={() => setOpenFileView(true)}
+                     onDelete={() => setOpenDeleteDialog(true)}
+                     onDisable={() => setOpenActiveDialog(true)}
+                     onEdit={() => setOpenEditDialog(true)}
+                     onEnable={onAcceptActive}
+                     onManageFiles={() => setOpenFileManageView(true)}
+                     onOpenApproval={() => setOpenApprovalDialog(true)}
+                     onOpenContainers={() => setOpenConsumingContainerDialog(true)}
+                     onOpenEnvironment={() => setOpenEnvView(true)}
+                     onOpenGraph={() => setOpenEventStepRender(true)}
+                     onOpenKeywordTrigger={() => setOpenTriggerKeyword(true)}
+                     onOpenTriggerData={() => setOpenTriggerDataView(true)}
+                     onRestore={onAcceptDelete}
+                     onTriggerManual={onTriggerManual}
+                     selectedEventGroup={selectedEventGroup}
+                 />
              </>
          }
          {showGraph && <RenderSteps selectedInstanceID={selectedInstanceID} selectedEventGroup={selectedEventGroup} />}
@@ -447,6 +280,256 @@ export function EventGroupTable({selectedEventGroup, me, showInstances, showGrap
          }
      </div>
  )
+}
+
+function EventGroupWorkflowOverview({
+    consumingContainersErrors,
+    me,
+    onClone,
+    onDelete,
+    onDisable,
+    onEdit,
+    onEnable,
+    onManageFiles,
+    onOpenApproval,
+    onOpenContainers,
+    onOpenEnvironment,
+    onOpenGraph,
+    onOpenKeywordTrigger,
+    onOpenTriggerData,
+    onRestore,
+    onTriggerManual,
+    selectedEventGroup,
+}) {
+    const keywords = selectedEventGroup?.keywords || [];
+    const visibleKeywords = keywords.slice(0, 6);
+    const hiddenKeywordCount = Math.max(keywords.length - visibleKeywords.length, 0);
+    const fileCount = selectedEventGroup?.filemeta?.length || 0;
+    const consumingContainers = selectedEventGroup?.eventgroupconsumingcontainers || [];
+    const hasTriggerData = hasWorkflowDetailValue(selectedEventGroup?.trigger_data);
+    const hasEnvironment = hasWorkflowDetailValue(selectedEventGroup?.environment);
+    const isApproved = Boolean(selectedEventGroup?.approved_to_run);
+    const createdBy = selectedEventGroup?.operator?.username || "unknown";
+    const createdAt = toLocalTime(selectedEventGroup?.created_at, me?.user?.view_utc_time);
+
+    return (
+        <div className="mythic-eventing-workflow-overview">
+            <div className="mythic-eventing-workflow-overview-header">
+                <div className="mythic-eventing-workflow-overview-title-block">
+                    <div className="mythic-eventing-workflow-overview-title-row">
+                        <span className="mythic-eventing-workflow-overview-title">{selectedEventGroup?.name}</span>
+                        <MythicPageHeaderChip
+                            icon={selectedEventGroup?.active ? <NotificationsActiveTwoToneIcon /> : <NotificationsOffTwoToneIcon />}
+                            label={selectedEventGroup?.active ? "Enabled" : "Disabled"}
+                            status={selectedEventGroup?.active ? "enabled" : "disabled"}
+                        />
+                        {selectedEventGroup?.deleted && <MythicPageHeaderChip label="Deleted" status="error" />}
+                    </div>
+                    {selectedEventGroup?.description &&
+                        <div className="mythic-eventing-workflow-overview-description">{selectedEventGroup.description}</div>
+                    }
+                </div>
+                <div className="mythic-eventing-workflow-overview-header-actions">
+                    {selectedEventGroup?.deleted ? (
+                        <Button className="mythic-table-row-action mythic-table-row-action-hover-success" variant="outlined" size="small" startIcon={<RestoreFromTrashIcon fontSize="small" />} onClick={onRestore}>
+                            Restore
+                        </Button>
+                    ) : (
+                        <Button className="mythic-table-row-action mythic-table-row-action-hover-danger" variant="outlined" size="small" startIcon={<DeleteIcon fontSize="small" />} onClick={onDelete}>
+                            Delete
+                        </Button>
+                    )}
+                    {selectedEventGroup?.active ? (
+                        <Button className="mythic-table-row-action mythic-table-row-action-hover-warning" variant="outlined" size="small" startIcon={<NotificationsActiveTwoToneIcon fontSize="small" />} onClick={onDisable}>
+                            Disable
+                        </Button>
+                    ) : (
+                        <Button className="mythic-table-row-action mythic-table-row-action-hover-success" variant="outlined" size="small" startIcon={<NotificationsOffTwoToneIcon fontSize="small" />} onClick={onEnable}>
+                            Enable
+                        </Button>
+                    )}
+                </div>
+            </div>
+            <div className="mythic-eventing-workflow-overview-section mythic-eventing-workflow-overview-primary">
+                <div className="mythic-eventing-workflow-overview-field">
+                    <span className="mythic-eventing-workflow-overview-label">Created by</span>
+                    <span className="mythic-eventing-workflow-overview-value">{createdBy}</span>
+                    <span className="mythic-eventing-workflow-overview-subvalue">{createdAt}</span>
+                </div>
+                <div className="mythic-eventing-workflow-overview-field">
+                    <span className="mythic-eventing-workflow-overview-label">Trigger behavior</span>
+                    <div className="mythic-eventing-workflow-chip-row">
+                        <MythicStateChip compact label={selectedEventGroup?.trigger || "unknown"} state="info" />
+                    </div>
+                    {selectedEventGroup?.trigger === "cron" &&
+                        <span className="mythic-eventing-workflow-overview-subvalue mythic-eventing-workflow-overview-icon-line">
+                            <CalendarMonthTwoToneIcon fontSize="small" />
+                            {toLocalTime(selectedEventGroup?.next_scheduled_run, me?.user?.view_utc_time)}
+                        </span>
+                    }
+                </div>
+            </div>
+
+            <div className="mythic-eventing-workflow-overview-section">
+                <div className="mythic-eventing-workflow-overview-field">
+                    <span className="mythic-eventing-workflow-overview-label">Keywords</span>
+                    <div className="mythic-eventing-workflow-chip-row">
+                        {keywords.length === 0 ? (
+                            <MythicStateChip compact label="No keywords" state="neutral" />
+                        ) : (
+                            <>
+                                {visibleKeywords.map((keyword, index) => (
+                                    <span className="mythic-eventing-workflow-keyword-chip" key={`${keyword}-${index}`}>{keyword}</span>
+                                ))}
+                                {hiddenKeywordCount > 0 &&
+                                    <MythicStyledTooltip title={keywords.join(", ")}>
+                                        <span className="mythic-eventing-workflow-keyword-chip mythic-eventing-workflow-keyword-more">+{hiddenKeywordCount} more</span>
+                                    </MythicStyledTooltip>
+                                }
+                            </>
+                        )}
+                    </div>
+                </div>
+                <div className="mythic-eventing-workflow-overview-field">
+                    <span className="mythic-eventing-workflow-overview-label">Run context</span>
+                    <div className="mythic-eventing-workflow-chip-row">
+                        <MythicStateChip compact label={selectedEventGroup?.run_as || "unknown"} state="neutral" />
+                        <Button
+                            className={`mythic-eventing-workflow-approval-button mythic-eventing-workflow-approval-${isApproved ? "approved" : "needs-approval"}`.trim()}
+                            size="small"
+                            startIcon={isApproved ? <ChecklistRtlTwoToneIcon fontSize="small" /> : <RuleTwoToneIcon fontSize="small" />}
+                            onClick={onOpenApproval}
+                        >
+                            {isApproved ? "Approved" : "Needs approval"}
+                        </Button>
+                    </div>
+                </div>
+            </div>
+
+            <div className="mythic-eventing-workflow-overview-section mythic-eventing-workflow-overview-actions">
+                <div className="mythic-eventing-workflow-action-group">
+                    <span className="mythic-eventing-workflow-overview-label">Attached details</span>
+                    <div className="mythic-eventing-workflow-button-row">
+                        <Button
+                            className="mythic-table-row-action mythic-table-row-action-hover-info"
+                            disabled={!hasTriggerData}
+                            size="small"
+                            startIcon={<InfoTwoToneIcon fontSize="small" />}
+                            onClick={onOpenTriggerData}
+                        >
+                            Trigger data
+                        </Button>
+                        <Button
+                            className="mythic-table-row-action mythic-table-row-action-hover-info"
+                            disabled={!hasEnvironment}
+                            size="small"
+                            startIcon={<InfoTwoToneIcon fontSize="small" />}
+                            onClick={onOpenEnvironment}
+                        >
+                            Environment
+                        </Button>
+                        <Button
+                            className="mythic-table-row-action mythic-table-row-action-hover-info"
+                            size="small"
+                            startIcon={
+                                <Badge badgeContent={fileCount} color="secondary">
+                                    <AttachFileIcon fontSize="small" />
+                                </Badge>
+                            }
+                            onClick={onManageFiles}
+                        >
+                            Files
+                        </Button>
+                        {consumingContainers.length > 0 &&
+                            <Button
+                                className={`mythic-table-row-action ${consumingContainersErrors > 0 ? "mythic-table-row-action-hover-danger" : "mythic-table-row-action-hover-info"}`.trim()}
+                                size="small"
+                                startIcon={
+                                    <Badge badgeContent={consumingContainersErrors} color="error">
+                                        <LayersTwoToneIcon fontSize="small" />
+                                    </Badge>
+                                }
+                                onClick={onOpenContainers}
+                            >
+                                Containers
+                            </Button>
+                        }
+                    </div>
+                </div>
+                <div className="mythic-eventing-workflow-action-group">
+                    <span className="mythic-eventing-workflow-overview-label">Workflow actions</span>
+                    <div className="mythic-eventing-workflow-button-row">
+                        {selectedEventGroup?.trigger === "manual" &&
+                            <Button
+                                className="mythic-table-row-action mythic-table-row-action-hover-success"
+                                size="small"
+                                startIcon={<PlayCircleFilledTwoToneIcon fontSize="small" />}
+                                onClick={onTriggerManual}
+                            >
+                                Run now
+                            </Button>
+                        }
+                        {keywords.length > 0 &&
+                            <Button
+                                className="mythic-table-row-action mythic-table-row-action-hover-success"
+                                size="small"
+                                startIcon={<SpellcheckIcon fontSize="small" />}
+                                onClick={onOpenKeywordTrigger}
+                            >
+                                Keyword run
+                            </Button>
+                        }
+                        <MythicStyledTooltip title="Edit workflow metadata and settings, not steps">
+                            <Button
+                                className="mythic-table-row-action mythic-table-row-action-hover-info"
+                                size="small"
+                                startIcon={<EditNoteTwoToneIcon fontSize="small" />}
+                                onClick={onEdit}
+                            >
+                                Edit details
+                            </Button>
+                        </MythicStyledTooltip>
+                        <MythicStyledTooltip title="Large graph view">
+                            <Button
+                                className="mythic-table-row-action mythic-table-row-action-hover-info"
+                                size="small"
+                                startIcon={<OpenInNewTwoToneIcon fontSize="small" />}
+                                onClick={onOpenGraph}
+                            >
+                                Open graph
+                            </Button>
+                        </MythicStyledTooltip>
+                        <MythicStyledTooltip title="Create a new workflow using this workflow as the starting point">
+                            <Button
+                                className="mythic-table-row-action mythic-table-row-action-hover-success"
+                                size="small"
+                                startIcon={<ContentCopyTwoToneIcon fontSize="small" />}
+                                onClick={onClone}
+                            >
+                                Duplicate workflow
+                            </Button>
+                        </MythicStyledTooltip>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function hasWorkflowDetailValue(value) {
+    if(value === null || value === undefined){
+        return false;
+    }
+    if(typeof value === "string"){
+        return value.trim().length > 0;
+    }
+    if(Array.isArray(value)){
+        return value.length > 0;
+    }
+    if(typeof value === "object"){
+        return Object.keys(value).length > 0;
+    }
+    return Boolean(value);
 }
 
 function RenderSteps({selectedEventGroup, selectedInstanceID}){

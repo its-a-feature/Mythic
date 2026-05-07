@@ -87,6 +87,7 @@ subscription GetEventStepInstances($eventgroupinstance_id: Int!) {
         description
         depends_on
         order
+        action
     }
     created_at
     updated_at
@@ -108,6 +109,7 @@ query getEventStepInstanceDetails($eventstepinstance_id: Int!){
         created_at
         order
         end_timestamp
+        action
         action_data
         stdout
         stderr
@@ -554,14 +556,14 @@ function EventNode({data}) {
             <div className={`mythic-eventing-flow-node mythic-eventing-flow-node-${getEventingStatusClass(data?.status)}`.trim()}>
                 <div className="mythic-eventing-flow-node-main">
                     <EventingStatusChip data={data}/>
-                    <Typography className="mythic-eventing-flow-node-title">{data.name}</Typography>
+                    {data.status &&
+                        <GetTimeDuration data={data} />
+                    }
                 </div>
+                <Typography className="mythic-eventing-flow-node-title">{data.name}</Typography>
                 <div className="mythic-eventing-flow-node-meta">
                     {data.action &&
                         <span className="mythic-eventing-flow-node-action">{data.action}</span>
-                    }
-                    {data.status &&
-                        <GetTimeDuration data={data} />
                     }
                 </div>
             </div>
