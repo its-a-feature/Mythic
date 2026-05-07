@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useContext} from 'react';
-import {MythicDialog, MythicModifyStringDialog} from '../../MythicComponents/MythicDialog';
+import {MythicDialog} from '../../MythicComponents/MythicDialog';
 import {
     exportCallbackConfigQuery,
     hideCallbackMutation, lockCallbackMutation, unlockCallbackMutation, updateCallbackTriggerMutation,
@@ -56,6 +56,12 @@ import {EventTriggerContextSelectDialog} from "../Eventing/EventTriggerContextSe
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 import {faFilter} from '@fortawesome/free-solid-svg-icons';
 import {getReadableTextColor, isValidHexColor} from "../../MythicComponents/MythicColorInput";
+import {
+    GridColumnFilterDialog,
+    getUpdatedGridFilterOptions,
+    gridValuePassesFilter,
+    isGridColumnFilterActive
+} from "../../MythicComponents/MythicResizableGrid/GridColumnFilterDialog";
 
 export const getCustomBrowsersQuery = gql(`
 query getCustomBrowsersQuery{
@@ -749,7 +755,7 @@ function CallbacksTablePreMemo(props){
       () =>
           columnOrder.reduce( (prev, cur) => {
           if(columnVisibility.visible.includes(cur.name) || cur.name === "Interact"){
-            if(filterOptions[cur.key] && String(filterOptions[cur.key]).length > 0){
+            if(isGridColumnFilterActive(filterOptions[cur.key])){
                 return [...prev, {...cur, filtered: true}];
             }else{
                 return [...prev, {...cur}];
@@ -820,16 +826,19 @@ function CallbacksTablePreMemo(props){
     }, [])
     const filterRow = (row) => {
       for(const [key,value] of Object.entries(filterOptions)){
-          if(key === "agent"){
-            if(!String(row.payload.payloadtype.name).toLowerCase().includes(String(value).toLowerCase())){
-              return true;
-            }
+          if(key === "agent") {
+              if (!gridValuePassesFilter(row.payload.payloadtype.name, value)) {
+                  return true;
+              }
+          }else if(key === "id"){
+              if (!gridValuePassesFilter(row.display_id, value)) {
+                  return true;
+              }
           }else{
-            if(!String(row[key]).toLowerCase().includes(String(value).toLowerCase())){
+            if(!gridValuePassesFilter(row[key], value)){
               return true;
             }
           }
-          
       }
       return false;
     }
@@ -1001,9 +1010,10 @@ function CallbacksTablePreMemo(props){
         }, [])
     }, [callbacks, callbackLocalUpdates, sortData, filterOptions, columnVisibility, clickedCallbackID]);
     const onSubmitFilterOptions = (value) => {
-        setFilterOptions({...filterOptions, [selectedColumn.key]: value });
+        const nextFilterOptions = getUpdatedGridFilterOptions(filterOptions, selectedColumn.key, value);
+        setFilterOptions(nextFilterOptions);
       try{
-          updateSetting({setting_name: "callbacks_table_filter_options", value: {...filterOptions, [selectedColumn.key]: value }});
+          updateSetting({setting_name: "callbacks_table_filter_options", value: nextFilterOptions});
       }catch(error){
           console.log("failed to save filter options");
       }
@@ -1072,7 +1082,7 @@ function CallbacksTablePreMemo(props){
                 sortIndicatorIndex={sortColumn}
                 sortDirection={sortData.sortDirection}
                 items={sortedData}
-                rowHeight={GetComputedFontSize() + 10}
+                rowHeight={GetComputedFontSize() + 15}
                 onClickHeader={onClickHeader}
                 onDoubleClickRow={onRowDoubleClick}
                 contextMenuOptions={contextMenuOptions}
@@ -1081,10 +1091,10 @@ function CallbacksTablePreMemo(props){
           {openContextMenu &&
               <MythicDialog fullWidth={true} maxWidth="sm" open={openContextMenu}
                   onClose={()=>{setOpenContextMenu(false);}} 
-                  innerDialog={<MythicModifyStringDialog
-                      title='Filter Column'
+                  innerDialog={<GridColumnFilterDialog
                       onSubmit={onSubmitFilterOptions}
-                      value={filterOptions[selectedColumn.key]}
+                      filterValue={filterOptions[selectedColumn.key]}
+                      selectedColumn={selectedColumn}
                       onClose={() => {
                           setOpenContextMenu(false);
                       }}

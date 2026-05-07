@@ -26,6 +26,12 @@ import {
     useSetMythicSetting
 } from "../../MythicComponents/MythicSavedUserSetting";
 import {CallbacksTableColumnsReorderDialog} from "./CallbacksTableColumnsReorderDialog";
+import {
+    GridColumnFilterDialog,
+    getUpdatedGridFilterOptions,
+    gridValuePassesFilter,
+    isGridColumnFilterActive
+} from "../../MythicComponents/MythicResizableGrid/GridColumnFilterDialog";
 
 const getPermissionsDataQuery = gql`
     query getPermissionsQuery($mythictree_id: Int!) {
@@ -216,7 +222,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         () =>
             columnOrder.reduce( (prev, cur) => {
                 if(columnVisibility.visible.includes(cur.name)){
-                    if(filterOptions[cur.key] && String(filterOptions[cur.key]).length > 0){
+                    if(isGridColumnFilterActive(filterOptions[cur.key])){
                         return [...prev, {...cur, filtered: true}];
                     }else{
                         return [...prev, {...cur}];
@@ -393,10 +399,10 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         return tempData;
     }, [allData, sortData]);
     const onSubmitFilterOptions = (value) => {
-        let newValue = value ? value : "";
+        const nextFilterOptions = getUpdatedGridFilterOptions(filterOptions, selectedColumn.current?.key, value);
+        setFilterOptions(nextFilterOptions);
         try{
-            setFilterOptions({...filterOptions, [selectedColumn.current.key]: newValue });
-            updateSetting({setting_name: `process_browser_filter_options`, value: {...filterOptions,[selectedColumn.current.key]: newValue }});
+            updateSetting({setting_name: `process_browser_filter_options`, value: nextFilterOptions});
         }catch(error){
             console.log("failed to save filter options", error, filterOptions, selectedColumn.current.key, newValue);
         }
@@ -423,11 +429,11 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         for(const [key,value] of Object.entries(filterOptions)){
             if(treeRootData[group][host][rowData.full_path_text] === undefined){return true}
             if(filterOptionInMetadata[key]){
-                if(!String(treeRootData[group][host][rowData.full_path_text ]?.metadata[key]).toLowerCase().includes(value)){
+                if(!gridValuePassesFilter(treeRootData[group][host][rowData.full_path_text ]?.metadata[key], value)){
                     return true;
                 }
             }else{
-                if(!String(treeRootData[group][host][rowData.full_path_text][key]).toLowerCase().includes(value)){
+                if(!gridValuePassesFilter(treeRootData[group][host][rowData.full_path_text][key], value)){
                     return true;
                 }
             }
@@ -765,10 +771,10 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                 <MythicDialog fullWidth={true} maxWidth="sm" open={openContextMenu}
                               onClose={()=>{setOpenContextMenu(false);}}
                               innerDialog={
-                                  <MythicModifyStringDialog
-                                      title='Filter Column'
+                                  <GridColumnFilterDialog
                                       onSubmit={onSubmitFilterOptions}
-                                      value={String(filterOptions[selectedColumn.current.key])}
+                                      filterValue={filterOptions[selectedColumn.current?.key]}
+                                      selectedColumn={selectedColumn.current}
                                       onClose={() => {
                                           setOpenContextMenu(false);
                                       }}

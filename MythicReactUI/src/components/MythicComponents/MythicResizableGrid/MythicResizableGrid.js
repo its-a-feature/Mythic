@@ -10,6 +10,7 @@ import {GetMythicSetting, useSetMythicSetting} from "../MythicSavedUserSetting";
 import FitScreenIcon from '@mui/icons-material/FitScreen';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import ViewColumnIcon from '@mui/icons-material/ViewColumn';
+import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
 
 const HeaderCellContext = createContext({});
 
@@ -18,6 +19,21 @@ const MIN_FLEX_COLUMN_WIDTH = 150;
 const AUTOSIZE_HORIZONTAL_PADDING = 44;
 const AUTOSIZE_HEADER_EXTRA_WIDTH = 28;
 const headerMenuIconStyle = {fontSize: "1rem", marginRight: "8px"};
+const normalizeHeaderContextMenuOption = (option) => {
+    if(option?.name === "Filter Column"){
+        return {
+            ...option,
+            icon: <FilterAltOutlinedIcon style={headerMenuIconStyle} />,
+        };
+    }
+    if(option?.menuItems){
+        return {
+            ...option,
+            menuItems: option.menuItems.map(normalizeHeaderContextMenuOption),
+        };
+    }
+    return option;
+};
 
 let autosizeCanvas;
 
@@ -506,7 +522,7 @@ const ResizableGridWrapper = ({
                 click: () => resetColumnWidths(),
             },
         ];
-        return [...sizingOptions, ...(contextMenuOptions || [])];
+        return [...sizingOptions, ...(contextMenuOptions || []).map(normalizeHeaderContextMenuOption)];
     }, [autosizeAllColumns, autosizeColumn, columns, contextMenuOptions, resetColumnWidths]);
 
     useEffect( () => {

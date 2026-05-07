@@ -15,7 +15,8 @@ function ResponseDisplayTabsLabel(props) {
                 </span>
             }
             className="mythic-response-tab"
-            wrapped={true}
+            title={typeof label === "string" ? label : undefined}
+            wrapped={false}
             {...a11yProps(index)}
             {...other}
         />
@@ -64,7 +65,7 @@ export function ResponseDisplayTabs({ tabs, task, expand, displayType, output })
                     TabIndicatorProps={{style: {
                         display: "none",
                     }}}
-                    aria-label='scrollable tabs'>
+                    aria-label='browser script response tabs'>
                     {tabs.map((tab, index) =>  (
                         <ResponseDisplayTabsLabel
                             key={'tablabel' + task.id + index}
