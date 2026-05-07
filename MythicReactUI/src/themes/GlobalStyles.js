@@ -5157,6 +5157,261 @@ tspan {
     min-height: 200px;
     overflow: hidden;
 }
+.mythic-eventing-workflow-overview {
+    background-color: ${(props) => props.theme.surfaces?.raised || props.theme.palette.background.paper};
+    background-image: ${(props) => `linear-gradient(90deg, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.12 : 0.06)} 0%, ${alpha(props.theme.palette.background.paper, 0)} 48%)`};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    box-shadow: ${(props) => props.theme.palette.mode === "dark" ? "inset 0 1px 0 rgba(255,255,255,0.055)" : "inset 0 1px 0 rgba(255,255,255,0.78)"};
+    color: ${(props) => props.theme.palette.text.primary};
+    display: grid;
+    flex: 0 0 auto;
+    gap: 0.75rem;
+    grid-template-columns: minmax(10.5rem, 0.55fr) minmax(16rem, 0.82fr) minmax(31rem, 2.2fr);
+    min-width: 0;
+    overflow: visible;
+    padding: 0.72rem 0.78rem;
+    width: 100%;
+}
+.mythic-eventing-workflow-overview-header {
+    align-items: flex-start;
+    border-bottom: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    display: flex;
+    gap: 0.75rem;
+    grid-column: 1 / -1;
+    justify-content: space-between;
+    min-width: 0;
+    padding-bottom: 0.7rem;
+}
+.mythic-eventing-workflow-overview-title-block {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 0.28rem;
+    min-width: 0;
+}
+.mythic-eventing-workflow-overview-title-row {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    min-width: 0;
+}
+.mythic-eventing-workflow-overview-title {
+    color: ${(props) => props.theme.palette.text.primary};
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    line-height: 1.18;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.mythic-eventing-workflow-overview-description {
+    color: ${(props) => props.theme.palette.text.secondary};
+    font-size: 0.78rem;
+    font-weight: 650;
+    line-height: 1.35;
+    max-width: 64rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.mythic-eventing-workflow-overview-header-actions {
+    align-items: center;
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    justify-content: flex-end;
+    max-width: 100%;
+}
+.mythic-eventing-workflow-overview-header-actions .MuiButton-root.mythic-table-row-action {
+    min-width: 6.5rem;
+}
+.mythic-eventing-workflow-overview-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.62rem;
+    min-width: 0;
+}
+.mythic-eventing-workflow-overview-section + .mythic-eventing-workflow-overview-section {
+    border-left: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    padding-left: 0.75rem;
+}
+.mythic-eventing-workflow-overview-primary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.62rem;
+}
+.mythic-eventing-workflow-overview-field,
+.mythic-eventing-workflow-action-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.34rem;
+    min-width: 0;
+}
+.mythic-eventing-workflow-overview-label {
+    color: ${(props) => props.theme.palette.text.secondary};
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    line-height: 1.15;
+}
+.mythic-eventing-workflow-overview-value {
+    color: ${(props) => props.theme.palette.text.primary};
+    font-size: 0.86rem;
+    font-weight: 800;
+    line-height: 1.25;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.mythic-eventing-workflow-overview-subvalue {
+    color: ${(props) => props.theme.palette.text.secondary};
+    font-size: 0.76rem;
+    font-weight: 650;
+    line-height: 1.3;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.mythic-eventing-workflow-overview-icon-line {
+    align-items: center;
+    display: inline-flex;
+    gap: 0.35rem;
+}
+.mythic-eventing-workflow-overview-icon-line svg {
+    color: ${(props) => props.theme.palette.text.secondary};
+    flex: 0 0 auto;
+    font-size: 0.95rem;
+}
+.mythic-eventing-workflow-chip-row,
+.mythic-eventing-workflow-button-row {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    min-width: 0;
+}
+.mythic-eventing-workflow-keyword-chip {
+    align-items: center;
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.055) : alpha(props.theme.palette.common.black, 0.035)};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: 999px;
+    color: ${(props) => props.theme.palette.text.primary};
+    display: inline-flex;
+    font-size: 0.7rem;
+    font-weight: 760;
+    line-height: 1.1;
+    max-width: 16rem;
+    min-height: 1.35rem;
+    overflow: hidden;
+    padding: 0.18rem 0.46rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-eventing-workflow-keyword-more {
+    color: ${(props) => props.theme.palette.text.secondary};
+}
+.mythic-eventing-workflow-overview-actions {
+    gap: 0.7rem;
+}
+.mythic-eventing-workflow-button-row .MuiButton-root.mythic-table-row-action {
+    gap: 0.25rem;
+    min-width: auto;
+    padding-left: 0.55rem;
+    padding-right: 0.65rem;
+}
+.mythic-eventing-workflow-button-row .MuiButton-startIcon {
+    margin-left: 0;
+    margin-right: 0.28rem;
+}
+.MuiButton-root.mythic-eventing-workflow-approval-button {
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.055) : alpha(props.theme.palette.common.black, 0.035)} !important;
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor} !important;
+    border-radius: ${(props) => props.theme.shape.borderRadius}px !important;
+    box-shadow: none !important;
+    font-size: 0.72rem;
+    font-weight: 800;
+    min-height: 1.5rem;
+    padding: 0.15rem 0.55rem;
+    text-transform: none;
+}
+.MuiButton-root.mythic-eventing-workflow-approval-button .MuiButton-startIcon {
+    margin-left: 0;
+    margin-right: 0.28rem;
+}
+.MuiButton-root.mythic-eventing-workflow-approval-approved {
+    background-color: ${(props) => alpha(props.theme.palette.success.main, props.theme.palette.mode === "dark" ? 0.18 : 0.1)} !important;
+    border-color: ${(props) => alpha(props.theme.palette.success.main, props.theme.palette.mode === "dark" ? 0.48 : 0.32)} !important;
+    color: ${(props) => props.theme.palette.success.main} !important;
+}
+.MuiButton-root.mythic-eventing-workflow-approval-approved:hover {
+    background-color: ${(props) => alpha(props.theme.palette.success.main, props.theme.palette.mode === "dark" ? 0.26 : 0.16)} !important;
+    border-color: ${(props) => alpha(props.theme.palette.success.main, props.theme.palette.mode === "dark" ? 0.66 : 0.48)} !important;
+}
+.MuiButton-root.mythic-eventing-workflow-approval-needs-approval {
+    background-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.2 : 0.12)} !important;
+    border-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.5 : 0.34)} !important;
+    color: ${(props) => props.theme.palette.warning.main} !important;
+}
+.MuiButton-root.mythic-eventing-workflow-approval-needs-approval:hover {
+    background-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.28 : 0.18)} !important;
+    border-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.68 : 0.5)} !important;
+}
+@media (max-width: 1180px) {
+    .mythic-eventing-workflow-overview {
+        grid-template-columns: 1fr;
+    }
+    .mythic-eventing-workflow-overview-header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+    .mythic-eventing-workflow-overview-header-actions {
+        justify-content: flex-start;
+    }
+    .mythic-eventing-workflow-overview-section + .mythic-eventing-workflow-overview-section {
+        border-left: 0;
+        border-top: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+        padding-left: 0;
+        padding-top: 0.65rem;
+    }
+}
+.mythic-eventing-instances-grid {
+    display: flex;
+    flex: 1 1 auto;
+    height: 100%;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+    position: relative;
+    width: 100%;
+}
+.mythic-eventing-instances-time-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+    justify-content: center;
+    min-width: 0;
+    overflow: hidden;
+    width: 100%;
+}
+.mythic-eventing-instances-time-line {
+    align-items: center;
+    display: flex;
+    gap: 0.38rem;
+    line-height: 1.25;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-eventing-instances-time-line svg {
+    color: ${(props) => props.theme.palette.text.secondary};
+    flex: 0 0 auto;
+    font-size: 0.92rem;
+}
+.mythic-eventing-instances-time-secondary {
+    color: ${(props) => props.theme.palette.text.secondary};
+    font-size: 0.78rem;
+}
 .mythic-eventing-flow-canvas {
     background-color: ${(props) => props.theme.surfaces?.muted || props.theme.palette.background.default};
     height: 100%;
@@ -5254,7 +5509,9 @@ tspan {
 }
 .mythic-eventing-flow-node-main {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
     gap: 0.35rem;
     min-width: 0;
 }
