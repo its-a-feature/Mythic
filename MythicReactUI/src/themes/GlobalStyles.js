@@ -423,6 +423,7 @@ tspan {
 }
 .MythicResizableGrid-headerIndicator {
     align-items: center;
+    appearance: none;
     background-color: ${(props) => props.theme.palette.background.paper};
     border: 1px solid ${(props) => alpha(props.theme.palette.text.primary, props.theme.palette.mode === "dark" ? 0.28 : 0.22)};
     border-radius: ${(props) => props.theme.shape.borderRadius}px;
@@ -430,15 +431,23 @@ tspan {
     display: inline-flex;
     flex: 0 0 auto;
     font-size: 0.95rem;
+    font-family: inherit;
     height: 18px;
     justify-content: center;
     line-height: 1;
+    margin: 0;
+    padding: 0;
     width: 18px;
 }
 .MythicResizableGrid-headerFilterIcon {
     background-color: ${(props) => alpha(props.theme.palette.mode === "dark" ? props.theme.palette.info.light : props.theme.palette.info.dark || props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.24 : 0.14)};
     border-color: ${(props) => alpha(props.theme.palette.mode === "dark" ? props.theme.palette.info.light : props.theme.palette.info.dark || props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.72 : 0.5)};
     color: ${(props) => props.theme.palette.mode === "dark" ? props.theme.palette.info.light : props.theme.palette.info.dark || props.theme.palette.info.main};
+    cursor: pointer;
+}
+.MythicResizableGrid-headerFilterIcon:hover {
+    background-color: ${(props) => alpha(props.theme.palette.mode === "dark" ? props.theme.palette.info.light : props.theme.palette.info.dark || props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.34 : 0.22)};
+    border-color: ${(props) => alpha(props.theme.palette.mode === "dark" ? props.theme.palette.info.light : props.theme.palette.info.dark || props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.86 : 0.68)};
 }
 .MythicResizableGrid-headerSortIcon {
     background-color: ${(props) => alpha(props.theme.palette.mode === "dark" ? props.theme.palette.primary.light : props.theme.palette.primary.dark || props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.24 : 0.14)};
@@ -592,6 +601,61 @@ tspan {
     text-overflow: ellipsis;
     white-space: nowrap;
     width: 100%;
+}
+.mythic-grid-filter-dialog {
+    background-color: ${(props) => props.theme.surfaces?.raised || props.theme.palette.background.paper};
+    color: ${(props) => props.theme.palette.text.primary};
+}
+.mythic-grid-filter-dialog-title {
+    background-color: ${(props) => props.theme.pageHeader?.main || props.theme.surfaces?.muted || props.theme.palette.background.default};
+    background-image: ${(props) => `linear-gradient(90deg, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.18 : 0.1)} 0%, ${alpha(props.theme.palette.text.primary, props.theme.palette.mode === "dark" ? 0.045 : 0.035)} 100%)`};
+    border-bottom: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    color: ${(props) => props.theme.palette.text.primary};
+    font-size: 0.98rem !important;
+    font-weight: 850 !important;
+    line-height: 1.2 !important;
+    padding: 0.85rem 1rem !important;
+}
+.mythic-grid-filter-dialog-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    min-width: min(38rem, calc(100vw - 3rem));
+    padding: 1rem !important;
+}
+.mythic-grid-filter-dialog-copy {
+    color: ${(props) => props.theme.palette.text.secondary};
+    font-size: 0.78rem;
+    font-weight: 650;
+    line-height: 1.35;
+}
+.mythic-grid-filter-dialog-mode-row {
+    align-items: center;
+    display: flex;
+    gap: 0.75rem;
+    justify-content: space-between;
+}
+.mythic-grid-filter-dialog-label {
+    color: ${(props) => props.theme.palette.text.primary};
+    font-size: 0.8rem;
+    font-weight: 800;
+}
+.mythic-grid-filter-dialog-fields {
+    display: grid;
+    gap: 0.85rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.mythic-grid-filter-dialog-actions {
+    border-top: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    padding: 0.7rem 1rem !important;
+}
+@media (max-width: 720px) {
+    .mythic-grid-filter-dialog-content {
+        min-width: 0;
+    }
+    .mythic-grid-filter-dialog-fields {
+        grid-template-columns: 1fr;
+    }
 }
 .mythic-callback-interactCell {
     align-items: center;
@@ -2674,15 +2738,22 @@ tspan {
     padding: 0.35rem;
 }
 .mythic-response-tabs-list {
+    max-height: 34px;
     min-height: 34px;
 }
 .mythic-response-tabs-list .MuiTabs-flexContainer {
+    flex-wrap: nowrap;
     gap: 0.35rem;
+}
+.mythic-response-tabs-list .MuiTabs-scroller {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
 }
 .mythic-response-tabs-list .MuiTabs-scrollButtons {
     border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
     border-radius: ${(props) => props.theme.shape.borderRadius}px;
     color: ${(props) => props.theme.palette.text.secondary};
+    flex: 0 0 30px;
     min-height: 30px;
     width: 30px;
 }
@@ -2691,12 +2762,14 @@ tspan {
     border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor} !important;
     border-radius: ${(props) => props.theme.shape.borderRadius}px !important;
     color: ${(props) => props.theme.palette.text.secondary} !important;
+    flex: 0 0 auto;
     font-size: 0.76rem;
     font-weight: 750;
     line-height: 1.2;
-    max-width: min(18rem, 60vw);
+    max-width: min(16rem, 55vw);
     min-height: 30px;
     min-width: 0;
+    overflow: hidden;
     padding: 0.35rem 0.7rem;
     text-transform: none;
 }
@@ -2711,6 +2784,7 @@ tspan {
     color: ${(props) => props.theme.palette.primary.main} !important;
 }
 .mythic-response-tab-label {
+    display: block;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -2739,6 +2813,27 @@ tspan {
     min-width: 0;
     overflow: hidden;
     width: 100%;
+}
+.mythic-response-table-cell {
+    align-items: center;
+    display: inline-flex;
+    gap: 0.3rem;
+    max-width: 100%;
+    min-width: 0;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+.mythic-response-table-action-cell {
+    gap: 0.45rem;
+}
+.mythic-response-table-cell pre {
+    line-height: 1.2;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.mythic-response-table-cell .MuiIconButton-root {
+    flex: 0 0 auto;
 }
 .mythic-browser-scripts-table {
     max-width: 100%;

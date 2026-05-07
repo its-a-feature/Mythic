@@ -13,7 +13,7 @@ import Moment from 'react-moment';
 import moment from 'moment';
 import CastConnectedTwoToneIcon from '@mui/icons-material/CastConnectedTwoTone';
 import {snackActions} from "../../utilities/Snackbar";
-import {MythicDialog, MythicModifyStringDialog} from "../../MythicComponents/MythicDialog";
+import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import OpenInNewTwoToneIcon from '@mui/icons-material/OpenInNewTwoTone';
 import IosShareIcon from '@mui/icons-material/IosShare';
 import {copyStringToClipboard} from "../../utilities/Clipboard";
@@ -21,6 +21,12 @@ import {ipCompare} from "../Callbacks/CallbacksTable";
 import MythicResizableGrid from "../../MythicComponents/MythicResizableGrid";
 import {CallbacksTableStringCell} from "../Callbacks/CallbacksTableRow";
 import {GetComputedFontSize} from "../../MythicComponents/MythicSavedUserSetting";
+import {
+    GridColumnFilterDialog,
+    getUpdatedGridFilterOptions,
+    gridValuePassesFilter,
+    isGridColumnFilterActive
+} from "../../MythicComponents/MythicResizableGrid/GridColumnFilterDialog";
 
 const cancelEventGroupInstanceMutation = gql(`
 mutation cancelEventGroupInstanceMutation($eventgroupinstance_id: Int!){
@@ -183,7 +189,7 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
                 {key: "operator", type: 'string', name: "Operator", inMetadata: true, fillWidth: true, disableSort: true,},
                 {key: "cancel", type: 'string', name: "Action", width: 70, disableSort: true, disableFilter: true},
             ]?.reduce( (prev, cur) => {
-                if(filterOptions[cur.key] && String(filterOptions[cur.key]).length > 0){
+                if(isGridColumnFilterActive(filterOptions[cur.key])){
                     return [...prev, {...cur, filtered: true}];
                 }else{
                     return [...prev, {...cur}];
@@ -212,11 +218,20 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
     const filterRow = (row) => {
         for(const [key,value] of Object.entries(filterOptions)){
             if(key === "operator"){
-                if(!String(row?.operator?.username).toLowerCase().includes(String(value).toLowerCase())){
+                if(!gridValuePassesFilter(row?.operator?.username, value)){
+                    return true;
+                }
+            }else if(key === "eventgroup"){
+                if(!gridValuePassesFilter(row?.eventgroup?.name, value)){
+                    return true;
+                }
+            }else if(key === "time"){
+                const timeFilterValue = `${row?.created_at || ""} ${row?.created_at ? toLocalTime(row.created_at, me?.user?.view_utc_time) : ""} ${row?.end_timestamp || ""}`;
+                if(!gridValuePassesFilter(timeFilterValue, value)){
                     return true;
                 }
             }else {
-                if(!String(row[key]).toLowerCase().includes(String(value).toLowerCase())){
+                if(!gridValuePassesFilter(row[key], value)){
                     return true;
                 }
             }
@@ -380,7 +395,7 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
     const [selectedColumn, setSelectedColumn] = React.useState({});
     const onSubmitFilterOptions = (value) => {
-        setFilterOptions({...filterOptions, [selectedColumn.key]: value });
+        setFilterOptions(getUpdatedGridFilterOptions(filterOptions, selectedColumn.key, value));
     }
     const contextMenuOptions = [{
         name: 'Filter Column', type: "item", icon: null,
@@ -420,10 +435,10 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
                 <MythicDialog fullWidth={true} maxWidth="sm" open={openContextMenu}
                               onClose={()=>{setOpenContextMenu(false);}}
                               innerDialog={
-                                  <MythicModifyStringDialog
-                                      title='Filter Column'
+                                  <GridColumnFilterDialog
                                       onSubmit={onSubmitFilterOptions}
-                                      value={filterOptions[selectedColumn.key]}
+                                      filterValue={filterOptions[selectedColumn.key]}
+                                      selectedColumn={selectedColumn}
                                       onClose={() => {
                                           setOpenContextMenu(false);
                                       }}

@@ -1,6 +1,6 @@
 import React, {useEffect, useRef} from 'react';
 import {Button} from '@mui/material';
-import {MythicViewJSONAsTableDialog, MythicDialog, MythicModifyStringDialog} from '../../MythicComponents/MythicDialog';
+import {MythicViewJSONAsTableDialog, MythicDialog} from '../../MythicComponents/MythicDialog';
 import { MythicDisplayTextDialog } from '../../MythicComponents/MythicDisplayTextDialog';
 import { ResponseDisplayTableDialogTable } from './ResponseDisplayTableDialogTable';
 import {useTheme} from '@mui/material/styles';
@@ -18,9 +18,14 @@ import {faList, faTrashAlt, faSkullCrossbones, faCamera, faSyringe, faFolder, fa
   faFileImage, faCopy, faBoxOpen, faFileAlt, faCirclePlus, faCheck, faSquareXmark, faRotate } from '@fortawesome/free-solid-svg-icons';
 import {Dropdown, DropdownMenuItem} from "../../MythicComponents/MythicNestedMenus";
 import {GetComputedFontSize} from "../../MythicComponents/MythicSavedUserSetting";
-import {TableFilterDialog} from "./TableFilterDialog";
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import {MythicSectionHeader} from "../../MythicComponents/MythicPageHeader";
+import {
+  GridColumnFilterDialog,
+  getUpdatedGridFilterOptions,
+  gridValuePassesFilter,
+  isGridColumnFilterActive
+} from "../../MythicComponents/MythicResizableGrid/GridColumnFilterDialog";
 
 const onCopyToClipboard = (data) => {
   let result = copyStringToClipboard(data);
@@ -142,7 +147,7 @@ const ResponseDisplayTableFontAwesomeEndIcon = ({cellData}) => {
 }
 const ResponseDisplayTableStringCell = ({cellData, rowData}) => {
   return (
-    <div style={{...(cellData?.cellStyle || null), height: "100%"}}>
+    <div className="mythic-response-table-cell" style={{...(cellData?.cellStyle || null), height: "100%"}}>
       <ResponseDisplayTableStringCellCopy cellData={cellData} />
       <ResponseDisplayTableFontAwesomeStartIcon cellData={cellData} />
       {cellData?.plaintextHoverText? (
@@ -163,7 +168,7 @@ const ResponseDisplayTableStringCell = ({cellData, rowData}) => {
 }
 const ResponseDisplayTableNumberCell = ({cellData, rowData}) => {
   return (
-    <div style={{...(cellData?.cellStyle || null), height: "100%"}}>
+    <div className="mythic-response-table-cell" style={{...(cellData?.cellStyle || null), height: "100%"}}>
       {cellData?.copyIcon? 
         <MythicStyledTooltip title={"Copy to clipboard"}>
             <IconButton onClick={() => onCopyToClipboard(cellData["plaintext"])} size="small">
@@ -220,7 +225,7 @@ export const getStringSize = ({cellData}) => {
 }
 const ResponseDisplayTableSizeCell = ({cellData, rowData}) => {
   return (
-    <div style={{...(cellData?.cellStyle || null), height: "100%"}}>
+    <div className="mythic-response-table-cell" style={{...(cellData?.cellStyle || null), height: "100%"}}>
         {cellData?.plaintextHoverText? (
         <MythicStyledTooltip title={cellData.plaintextHoverText} >
           <pre style={{display: "inline-block", margin: 0}}>
@@ -242,7 +247,7 @@ const getActionButtonClassName = (intent = "info") => {
 }
 const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
   return (
-    <div style={{ height: "100%"}}>
+    <div className="mythic-response-table-cell mythic-response-table-action-cell" style={{ height: "100%"}}>
       {cellData?.plaintext && cellData.plaintext}
       {cellData?.button && <ResponseDisplayTableActionCellButton cellData={cellData} callback_id={callback_id} />}
     </div>
@@ -466,8 +471,8 @@ const createRowCells = ({row, rowIndex, headers, callback_id}) => {
   })
 }
 export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
-  const rowHeight = GetComputedFontSize() + 7;
-  const headerHeight = GetComputedFontSize() + 32;
+  const rowHeight = GetComputedFontSize() + 15;
+  const headerHeight = GetComputedFontSize() + 35;
   const maxHeight = 375;
   const [dataHeight, setDataHeight] = React.useState(maxHeight);
   const [allData, setAllData] = React.useState([]);
@@ -477,7 +482,7 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
   const columns = React.useMemo(
       () =>
           table?.headers?.reduce( (prev, cur) => {
-            if(filterOptions[cur.plaintext] && String(filterOptions[cur.plaintext]).length > 0){
+            if(isGridColumnFilterActive(filterOptions[cur.plaintext])){
               return [...prev, {...cur, filtered: true}];
             }else{
               return [...prev, {...cur}];
@@ -488,7 +493,7 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
   const [sortData, setSortData] = React.useState({sortKey: null, sortType: null, sortDirection: "ASC"})
   const filterRow = (row) => {
     for(const [key,value] of Object.entries(filterOptions)){
-      if(!String(row[key].plaintext).toLowerCase().includes(String(value).toLowerCase())){
+      if(!gridValuePassesFilter(row[key]?.plaintext, value)){
         return true;
       }
     }
@@ -592,7 +597,7 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
     }, [sortedData, table?.headers, callback_id]
   );
     const onSubmitFilterOptions = (value) => {
-        setFilterOptions({...filterOptions, [selectedColumn.key]: value });
+        setFilterOptions(getUpdatedGridFilterOptions(filterOptions, selectedColumn.key, value));
     }
 
   const filterOutButtonsFromRowData = (data) => {
@@ -838,10 +843,10 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
                 <MythicDialog fullWidth={true} maxWidth="sm" open={openContextMenu}
                               onClose={()=>{setOpenContextMenu(false);}}
                               innerDialog={
-                                  <MythicModifyStringDialog
-                                      title='Filter Column'
+                                  <GridColumnFilterDialog
                                       onSubmit={onSubmitFilterOptions}
-                                      value={filterOptions[selectedColumn.key]}
+                                      filterValue={filterOptions[selectedColumn.key]}
+                                      selectedColumn={selectedColumn}
                                       onClose={() => {
                                           setOpenContextMenu(false);
                                       }}

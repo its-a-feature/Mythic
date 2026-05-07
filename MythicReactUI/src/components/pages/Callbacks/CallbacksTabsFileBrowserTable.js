@@ -41,6 +41,12 @@ import {
     useSetMythicSetting
 } from "../../MythicComponents/MythicSavedUserSetting";
 import {CallbacksTableColumnsReorderDialog} from "./CallbacksTableColumnsReorderDialog";
+import {
+    GridColumnFilterDialog,
+    getUpdatedGridFilterOptions,
+    gridValuePassesFilter,
+    isGridColumnFilterActive
+} from "../../MythicComponents/MythicResizableGrid/GridColumnFilterDialog";
 
 const getFileDownloadHistory = gql`
     query getFileDownloadHistory($full_path_text: String!, $host: String!, $group: [String!]) {
@@ -107,7 +113,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
         () =>
             columnOrder.reduce( (prev, cur) => {
                 if(columnVisibility.visible.includes(cur.name)){
-                    if(filterOptions[cur.key] && String(filterOptions[cur.key]).length > 0){
+                    if(isGridColumnFilterActive(filterOptions[cur.key])){
                         return [...prev, {...cur, filtered: true}];
                     }else{
                         return [...prev, {...cur}];
@@ -197,9 +203,10 @@ export const CallbacksTabsFileBrowserTable = (props) => {
         return tempData;
     }, [allData, sortData]);
     const onSubmitFilterOptions = (value) => {
-        setFilterOptions({...filterOptions, [selectedColumn.key]: value });
+        const nextFilterOptions = getUpdatedGridFilterOptions(filterOptions, selectedColumn.key, value);
+        setFilterOptions(nextFilterOptions);
         try{
-            updateSetting({setting_name: `file_browser_filter_options`, value: {...filterOptions,[selectedColumn.key]: value }});
+            updateSetting({setting_name: `file_browser_filter_options`, value: nextFilterOptions});
         }catch(error){
             console.log("failed to save filter options");
         }
@@ -214,7 +221,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
             return true;
         }
         for(const [key,value] of Object.entries(filterOptions)){
-            if(!String(props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row][key]).toLowerCase().includes(value)){
+            if(!gridValuePassesFilter(props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row][key], value)){
                 return true;
             }
         }
@@ -735,10 +742,10 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                 <MythicDialog fullWidth={true} maxWidth="sm" open={openContextMenu}
                               onClose={()=>{setOpenContextMenu(false);}}
                               innerDialog={
-                                  <MythicModifyStringDialog
-                                      title='Filter Column'
+                                  <GridColumnFilterDialog
                                       onSubmit={onSubmitFilterOptions}
-                                      value={filterOptions[selectedColumn.key]}
+                                      filterValue={filterOptions[selectedColumn.key]}
+                                      selectedColumn={selectedColumn}
                                       onClose={() => {
                                           setOpenContextMenu(false);
                                       }}

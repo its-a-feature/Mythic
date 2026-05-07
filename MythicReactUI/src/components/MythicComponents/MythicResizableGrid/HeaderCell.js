@@ -96,6 +96,22 @@ const HeaderCell = ({
         clickOption({event, ...menuContext});
         setOpenContextMenu(false);
     };
+    const filterMenuOption = React.useMemo(
+        () => resolvedContextMenuOptions.find((option) => option.type === "item" && option.name === "Filter Column"),
+        [resolvedContextMenuOptions]
+    );
+    const handleFilterIndicatorClick = useCallback(
+        (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if(filterMenuOption?.disabled || !filterMenuOption?.click){
+                return;
+            }
+            filterMenuOption.click({event, ...menuContext});
+            setOpenContextMenu(false);
+        },
+        [filterMenuOption, menuContext]
+    );
 
     const handleClicks = useSingleAndDoubleClick(handleClick, handleDoubleClick);
     const className = `${classes.headerCell} ${item.disableSort ? classes.headerCellNoSort : ""}`;
@@ -115,9 +131,15 @@ const HeaderCell = ({
                 </Typography>
                 <Box className={classes.headerActions}>
                     {isFiltered &&
-                        <span className={`${classes.headerIndicator} ${classes.headerFilterIcon}`} title="Filtered">
+                        <button
+                            aria-label={`Edit filter for ${typeof headerLabel === "string" ? headerLabel : "column"}`}
+                            className={`${classes.headerIndicator} ${classes.headerFilterIcon}`}
+                            onClick={handleFilterIndicatorClick}
+                            title="Edit Filter"
+                            type="button"
+                        >
                             <FilterAltOutlinedIcon fontSize="inherit" />
-                        </span>
+                        </button>
                     }
                     {isSorted &&
                         <span className={`${classes.headerIndicator} ${classes.headerSortIcon}`} title={`Sorted ${sortDirection === 'ASC' ? 'ascending' : 'descending'}`}>
