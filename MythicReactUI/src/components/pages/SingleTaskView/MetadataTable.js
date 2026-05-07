@@ -66,11 +66,10 @@ query taskMetadataQuery($task_range: [Int!]) {
       display_id
     }
   }`;
+const lazyQueryOptions = {fetchPolicy: "no-cache"};
 export function TaskMetadataTable(props){
    const [tasks, setTasks] = React.useState([]);
-
-   const getMetadata = useMythicLazyQuery(MetadataQuery, {fetchPolicy: "no-cache"
-    });
+   const getMetadata = useMythicLazyQuery(MetadataQuery, lazyQueryOptions);
     useEffect( () => {
         getMetadata({variables: {task_range: props.taskIDs } }).then(({data}) => {
             setTasks(data.task);
