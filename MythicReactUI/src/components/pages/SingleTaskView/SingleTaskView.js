@@ -20,6 +20,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
 import {MythicPageHeader, MythicPageHeaderChip, MythicSectionHeader} from "../../MythicComponents/MythicPageHeader";
 import {MythicToolbarButton} from "../../MythicComponents/MythicTableToolbar";
+import {TaskDisplayInteractiveSearch} from "../Search/SearchTabInteractiveTasks";
 
 const tasksQuery = gql`
 ${taskingDataFragment}
@@ -313,7 +314,13 @@ export function SingleTaskView(props){
                 task.type === "task" ? (
                     <div className={`mythic-single-task-card-row${removing ? " mythic-single-task-card-row-removing" : ""}`} key={"taskdisplay:" + task.display_id}>
                         <div className="mythic-single-task-display">
-                            <TaskDisplay me={me} task={task} command_id={task.command === null ? 0 : task.command.id} />
+                            {
+                                task.is_interactive_task ? (
+                                    <TaskDisplayInteractiveSearch key={"taskinteractdisplay" + task.id} me={me} task={task} responsesSurrounding={5} />
+                                ) : (
+                                    <TaskDisplay key={"taskinteractdisplay" + task.id} me={me} task={task} command_id={task.command == null ? 0 : task.command.id} />
+                                )
+                            }
                         </div>
                         {removing ? (
                             <label className={`mythic-single-task-remove-control${task.checked ? " mythic-single-task-remove-control-selected" : ""}`}>
