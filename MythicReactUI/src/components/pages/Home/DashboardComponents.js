@@ -46,12 +46,13 @@ const DashboardCard = ({
     className = "",
     editing,
     removeElement,
+    size = "standard",
     title,
     width = "100%",
 }) => {
     return (
         <Paper
-            className={`mythic-dashboard-card ${className}`.trim()}
+            className={`mythic-dashboard-card mythic-dashboard-card-${size} ${className}`.trim()}
             elevation={0}
             style={{width}}
         >
@@ -107,25 +108,27 @@ export const DashboardEmptyCard = ({action, children, editing, removeElement, ti
 );
 
 const DashboardNoDataState = ({
+    action,
     title = "No data yet",
     description = "This dashboard element will populate when matching operation activity exists.",
 }) => (
     <MythicEmptyState
+        action={action}
         compact
         title={title}
         description={description}
-        minHeight={132}
-        sx={{p: 0}}
+        minHeight={0}
+        sx={{flex: "1 1 auto", height: "100%", minHeight: 0, p: 0}}
     />
 );
 
 export const PieChartCard = ({
                           data, width = "100%", additionalStyles, innerElement,
                                  margin = {
-        left: 10,
-        right: 10,
-        top: 10,
-        bottom: 10,
+        left: 8,
+        right: 8,
+        top: 8,
+        bottom: 8,
     }, colors,
                                  onClick, title = "", editing, removeElement, customizeElement
                       }) => {
@@ -142,75 +145,85 @@ export const PieChartCard = ({
                 <>
                     {customizeElement}
                     <MythicStyledTooltip title={showLegend ? "Hide Legend" : "Show Legend"}>
-                        <IconButton className="mythic-dashboard-icon-button" onClick={toggleLegend} size="small">
+                        <IconButton className="mythic-dashboard-icon-button mythic-dashboard-icon-button-hover-info" onClick={toggleLegend} size="small">
                             {showLegend ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
                         </IconButton>
                     </MythicStyledTooltip>
                 </>
             }
+            bodyClassName="mythic-dashboard-chart-body"
             editing={editing}
             removeElement={removeElement}
             title={title}
             width={width}
         >
             {hasChartData ? (
-                <PieChart
-                    skipAnimation={true}
-                    series={[
-                        {
-                            // item has id, label, value, data
-                            //arcLabel: (item) => `${item.label}`,
-                            //arcLabelMinAngle: 35,
-                            //arcLabelRadius: "60%",
-                            data: chartData,
-                            highlightScope: {fade: 'global', highlighted: 'item'},
-                            faded: {innerRadius: 0, additionalRadius: -10, color: 'gray'},
-                            paddingAngle: 1,
-                            cornerRadius: 4,
-                            innerRadius: 0,
-                            ...additionalStyles
-                        },
-                    ]}
-                    height={200}
-                    margin={margin}
-                    sx={{
-                        [`& .${pieArcLabelClasses.root}`]: {
-                            fill: 'white',
-                            fontWeight: 'bold',
-                        },
-                    }}
-                    colors={colors || getDashboardColors(theme)}
-                    onItemClick={onClick}
-                    hideLegend={!showLegend}
-                    slotProps={{
-                        legend: {
-                            direction: "vertical", // "horizontal"
-                            sx: {
-                                gap: "4px", // itemGap (distance between legend items)
-                                // CSS class
-                                ['.MuiChartsLegend-series']: {
-                                    gap: '8px', // markGap (distance between legend dot and text)
-                                },
-                                [`.MuiChartsLegend-mark`]: {
-                                    height: 12, // size of the legend dot
-                                    width: 12,
-                                },
+                <div className="mythic-dashboard-chart-canvas mythic-dashboard-chart-canvas-pie">
+                    <PieChart
+                        skipAnimation={true}
+                        series={[
+                            {
+                                data: chartData,
+                                highlightScope: {fade: 'global', highlighted: 'item'},
+                                faded: {innerRadius: 0, additionalRadius: -10, color: 'gray'},
+                                paddingAngle: 1,
+                                cornerRadius: 4,
+                                innerRadius: 0,
+                                ...additionalStyles
+                            },
+                        ]}
+                        height={210}
+                        margin={margin}
+                        sx={{
+                            [`& .${pieArcLabelClasses.root}`]: {
+                                fill: 'white',
+                                fontWeight: 'bold',
+                            },
+                        }}
+                        colors={colors || getDashboardColors(theme)}
+                        onItemClick={onClick}
+                        hideLegend={!showLegend}
+                        slotProps={{
+                            legend: {
+                                direction: "vertical",
+                                sx: {
+                                    gap: "5px",
+                                    ['.MuiChartsLegend-series']: {
+                                        gap: '8px',
+                                    },
+                                    [`.MuiChartsLegend-mark`]: {
+                                        height: 10,
+                                        rx: 2,
+                                        width: 10,
+                                    },
+                                    [`.MuiChartsLegend-label`]: {
+                                        fontSize: 11,
+                                        fontWeight: 650,
+                                    },
+                                }
                             }
-                        }
-                    }}>
-                    {innerElement}
-                </PieChart>
+                        }}>
+                        {innerElement}
+                    </PieChart>
+                </div>
             ) : (
-                <DashboardNoDataState />
+                <div className="mythic-dashboard-chart-canvas mythic-dashboard-chart-canvas-empty">
+                    <DashboardNoDataState />
+                </div>
             )}
         </DashboardCard>
     );
 }
 export const GaugeCard = ({data, width = "100%", title = "", editing, removeElement, customizeElement }) => {
     const theme = useTheme();
+    const online = data?.online || 0;
+    const total = data?.total || 0;
+    const percentOnline = total > 0 ? Math.round((online / total) * 100) : 0;
+    const statusLevel = total === 0 ? "neutral" : percentOnline > 85 ? "success" : percentOnline > 50 ? "warning" : "danger";
+    const statusLabel = total === 0 ? "No services" : percentOnline > 85 ? "Healthy" : percentOnline > 50 ? "Degraded" : "Attention";
     const getFillColor = () => {
-        if(data['total'] === 0){return theme.palette.text.disabled}
-        let ratio = data['online'] / data['total'];
+        if(total === 0){return theme.palette.text.disabled}
+        let ratio = online / total;
         if( ratio > 0.85){
             return theme.palette.success.main;
         }else if(ratio > 0.5){
@@ -222,55 +235,105 @@ export const GaugeCard = ({data, width = "100%", title = "", editing, removeElem
     return (
         <DashboardCard
             actions={customizeElement}
-            bodyClassName="mythic-dashboard-card-body-centered"
+            bodyClassName="mythic-dashboard-kpi-body"
             editing={editing}
             removeElement={removeElement}
+            size="metric"
             title={title}
             width={width}
         >
-            <Gauge
-                height={200}
-                width={200}
-                skipAnimation={true}
-                valueMax={data['total'] > 0 ? data['total'] : 100}
-                value={data['online']}
-                innerRadius={"70%"}
-                cornerRadius="20%"
-                text={({ value, valueMax }) => `${value} / ${valueMax}`}
-                sx={() => ({
-                    [`& .MuiGauge-valueText > text > tspan`]: {
-                        fontSize: 30,
-                    },
-                    [`.MuiGauge-valueArc`]: {
-                        fill: getFillColor(),
-                    },
-                })}
-            >
-            </Gauge>
+            <div className="mythic-dashboard-service-kpi">
+                <div className="mythic-dashboard-kpi-main">
+                    <div className="mythic-dashboard-kpi-status-row">
+                        <span className={`mythic-dashboard-kpi-chip mythic-dashboard-kpi-chip-${statusLevel}`}>
+                            {statusLabel}
+                        </span>
+                        <span className="mythic-dashboard-kpi-percent">{percentOnline}%</span>
+                    </div>
+                    <div className="mythic-dashboard-kpi-value-row">
+                        <span className="mythic-dashboard-kpi-value">{online}</span>
+                        <span className="mythic-dashboard-kpi-total">/ {total}</span>
+                    </div>
+                    <div className="mythic-dashboard-kpi-label">
+                        Services online
+                    </div>
+                </div>
+                <div className="mythic-dashboard-kpi-gauge">
+                    <Gauge
+                        height={112}
+                        width={112}
+                        skipAnimation={true}
+                        valueMax={total > 0 ? total : 100}
+                        value={online}
+                        innerRadius={"72%"}
+                        cornerRadius="20%"
+                        text={() => `${percentOnline}%`}
+                        sx={() => ({
+                            [`& .MuiGauge-valueText > text > tspan`]: {
+                                fontSize: 18,
+                                fontWeight: 850,
+                            },
+                            [`.MuiGauge-valueArc`]: {
+                                fill: getFillColor(),
+                            },
+                        })}
+                    >
+                    </Gauge>
+                </div>
+            </div>
         </DashboardCard>
     );
 }
-export const CallbackDataCard = ({mainTitle, secondTitle, mainElement, secondaryElement, width="100%",
-                                 editing, removeElement}) => {
+export const CallbackDataCard = ({mainTitle, primaryValue, totalValue, primaryLabel, secondaryValue, secondaryLabel,
+                                 statusLabel = "Tracking", statusLevel = "info", onClick, width="100%",
+                                 actions, editing, removeElement}) => {
+    const handleKeyDown = (event) => {
+        if(!onClick){
+            return;
+        }
+        if(event.key === "Enter" || event.key === " "){
+            event.preventDefault();
+            onClick();
+        }
+    };
     return (
         <DashboardCard
-            bodyClassName="mythic-dashboard-metric-body"
+            actions={actions}
+            bodyClassName="mythic-dashboard-kpi-body"
             editing={editing}
             removeElement={removeElement}
+            size="metric"
             title={mainTitle}
             width={width}
         >
-                <div className="mythic-dashboard-metric-content">
-                    <MythicStyledTooltip title={"Go to Active Callbacks"}>
-                        <div className="mythic-dashboard-metric-link">
-                            {mainElement}
-                            <div className="mythic-dashboard-metric-label">
-                                {secondTitle}
-                            </div>
-                            {secondaryElement}
+            <MythicStyledTooltip title={"Go to Active Callbacks"}>
+                <div
+                    className="mythic-dashboard-callback-kpi"
+                    onClick={onClick}
+                    onKeyDown={handleKeyDown}
+                    role={onClick ? "button" : undefined}
+                    tabIndex={onClick ? 0 : undefined}
+                >
+                    <div className="mythic-dashboard-kpi-main">
+                        <div className="mythic-dashboard-kpi-status-row">
+                            <span className={`mythic-dashboard-kpi-chip mythic-dashboard-kpi-chip-${statusLevel}`}>
+                                {statusLabel}
+                            </span>
                         </div>
-                    </MythicStyledTooltip>
+                        <div className="mythic-dashboard-kpi-value-row">
+                            <span className="mythic-dashboard-kpi-value">{primaryValue}</span>
+                            <span className="mythic-dashboard-kpi-total">/ {totalValue}</span>
+                        </div>
+                        <div className="mythic-dashboard-kpi-label">
+                            {primaryLabel}
+                        </div>
+                    </div>
+                    <div className="mythic-dashboard-kpi-secondary-panel">
+                        <span className="mythic-dashboard-kpi-secondary-value">{secondaryValue}</span>
+                        <span className="mythic-dashboard-kpi-secondary-label">{secondaryLabel}</span>
+                    </div>
                 </div>
+            </MythicStyledTooltip>
         </DashboardCard>
     )
 }
@@ -285,21 +348,32 @@ export const TableDataCard = ({
     empty = false,
     emptyTitle,
     emptyDescription,
+    emptyAction,
+    summary = true,
+    tableClassName = "",
 }) => {
+    const tableClasses = [
+        "mythic-dashboard-table",
+        summary ? "mythic-dashboard-summary-table" : "",
+        tableClassName,
+    ].filter(Boolean).join(" ");
     return (
         <DashboardCard
             actions={customizeElement}
             bodyClassName="mythic-dashboard-table-body"
             editing={editing}
             removeElement={removeElement}
+            size="table"
             title={title}
             width={width}
         >
             {empty ? (
-                <DashboardNoDataState title={emptyTitle} description={emptyDescription} />
+                <TableContainer className="mythic-dashboard-table-container mythic-dashboard-empty-container mythicElement">
+                    <DashboardNoDataState title={emptyTitle} description={emptyDescription} action={emptyAction} />
+                </TableContainer>
             ) : (
                 <TableContainer className="mythic-dashboard-table-container mythicElement">
-                    <Table className="mythic-dashboard-table" stickyHeader size="small">
+                    <Table className={tableClasses} stickyHeader size="small">
                         {tableHead}
                         {tableBody}
                     </Table>
@@ -338,57 +412,57 @@ export const LineTimeChartCard = ({data, additionalStyles}) => {
         }
     };
     return (
-        <DashboardCard title="Tasks Issued per Day">
-            <LineChart
-                xAxis={[
-                    {
-                        dataKey: 'x',
-                        //valueFormatter: (v) => (new Date(v)).toISOString().substr(0, 10),
-                        scaleType: "time",
-                        min: data[value[0]]?.x || 0,
-                        max: data[value[1]]?.x || 0,
-                        id: 'bottomAxis',
-                        labelStyle: {
-                            fontSize: 10,
-                        },
-                        tickLabelStyle: {
-                            angle: 25,
-                            textAnchor: 'start',
-                            fontSize: 5,
-                        },
+        <DashboardCard bodyClassName="mythic-dashboard-chart-body" title="Tasks Issued per Day" size="wide">
+            <div className="mythic-dashboard-chart-canvas mythic-dashboard-chart-canvas-line">
+                <LineChart
+                    xAxis={[
+                        {
+                            dataKey: 'x',
+                            scaleType: "time",
+                            min: data[value[0]]?.x || 0,
+                            max: data[value[1]]?.x || 0,
+                            id: 'bottomAxis',
+                            labelStyle: {
+                                fontSize: 10,
+                            },
+                            tickLabelStyle: {
+                                angle: 0,
+                                fontSize: 10,
+                            },
 
-                    },
-                ]}
-                series={[
-                    {
-                        dataKey: 'y',
-                        label: "mythic_admin",
-                        showMark: ({index}) => index % 2 === 0,
-                        //color: "#4e79a7"
-                    }
-                ]}
-                sx={{
-                    [`.${axisClasses.left} .${axisClasses.label}`]: {
-                        transform: 'translate(-25px, 0)',
-                    },
-                    [`.${axisClasses.right} .${axisClasses.label}`]: {
-                        transform: 'translate(30px, 0)',
-                    },
-                }}
-                margin={{ top: 10 }}
-                dataset={data}
-                height={200}
-                {...additionalStyles}
-            ></LineChart>
-            <Slider
-                value={value}
-                onChange={handleChange}
-                valueLabelDisplay="auto"
-                min={range[0]}
-                max={range[1]}
-                className="mythic-dashboard-slider"
-                sx={{ width: "80%" }}
-            />
+                        },
+                    ]}
+                    series={[
+                        {
+                            dataKey: 'y',
+                            label: "mythic_admin",
+                            showMark: ({index}) => index % 2 === 0,
+                        }
+                    ]}
+                    sx={{
+                        [`.${axisClasses.left} .${axisClasses.label}`]: {
+                            transform: 'translate(-25px, 0)',
+                        },
+                        [`.${axisClasses.right} .${axisClasses.label}`]: {
+                            transform: 'translate(30px, 0)',
+                        },
+                    }}
+                    margin={{ top: 18, right: 20, bottom: 28, left: 42 }}
+                    dataset={data}
+                    height={186}
+                    {...additionalStyles}
+                ></LineChart>
+            </div>
+            <div className="mythic-dashboard-chart-slider-row">
+                <Slider
+                    value={value}
+                    onChange={handleChange}
+                    valueLabelDisplay="auto"
+                    min={range[0]}
+                    max={range[1]}
+                    className="mythic-dashboard-slider"
+                />
+            </div>
         </DashboardCard>
 
     )
@@ -450,73 +524,79 @@ export const LineTimeMultiChartCard = ({data, additionalStyles, colors, view_utc
                 <>
                     {customizeElement}
                     <MythicStyledTooltip title={showLegend ? "Hide Legend" : "Show Legend"}>
-                        <IconButton className="mythic-dashboard-icon-button" onClick={toggleLegend} size="small">
+                        <IconButton className="mythic-dashboard-icon-button mythic-dashboard-icon-button-hover-info" onClick={toggleLegend} size="small">
                             {showLegend ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
                         </IconButton>
                     </MythicStyledTooltip>
                 </>
             }
+            bodyClassName="mythic-dashboard-chart-body"
             editing={editing}
             removeElement={removeElement}
+            size="wide"
             title={`Activity per Day ${view_utc_time ? "(UTC)" : `(${Intl?.DateTimeFormat()?.resolvedOptions()?.timeZone})`}`}
         >
             {hasChartData ? (
                 <>
-                    <LineChart
-                        colors={colors || getDashboardColors(theme)}
-                        hideLegend={!showLegend}
-                        xAxis={[
-                            {
-                                data: data.x,
-                                scaleType: "time",
-                                min: data?.x?.[value[0]] || 0,
-                                max: data?.x?.[value[1]] || 0,
-                                id: 'bottomAxis',
-                                tickMinStep: 86400000,
-                                labelStyle: {
+                    <div className="mythic-dashboard-chart-canvas mythic-dashboard-chart-canvas-line">
+                        <LineChart
+                            colors={colors || getDashboardColors(theme)}
+                            hideLegend={!showLegend}
+                            xAxis={[
+                                {
+                                    data: data.x,
+                                    scaleType: "time",
+                                    min: data?.x?.[value[0]] || 0,
+                                    max: data?.x?.[value[1]] || 0,
+                                    id: 'bottomAxis',
+                                    tickMinStep: 86400000,
+                                    labelStyle: {
+                                        fontSize: 10,
+                                    },
+                                    tickLabelStyle: {
+                                        angle: 0,
+                                        fontSize: 10,
+                                    },
+                                },
+                            ]}
+                            yAxis={[
+                                {id: "taskAxis", scaleType: "linear", label: "Tasks Issued"},
+                                {id: "callbackAxis", scaleType: "linear", label: "Active Callbacks", position: "right"}
+                            ]}
+                            series={data.y}
+                            sx={{
+                                [`.${axisClasses.left} .${axisClasses.label}`]: {
                                     fontSize: 10,
                                 },
-                                tickLabelStyle: {
-                                    angle: 25,
-                                    textAnchor: 'start',
-                                    fontSize: 5,
+                                [`.${axisClasses.right} .${axisClasses.label}`]: {
+                                    fontSize: 10,
                                 },
-                            },
-                        ]}
-                        yAxis={[
-                            {id: "taskAxis", scaleType: "linear", label: "Tasks Issued"},
-                            {id: "callbackAxis", scaleType: "linear", label: "Active Callbacks", position: "right"}
-                        ]}
-                        series={data.y}
-                        sx={{
-                            [`.${axisClasses.left} .${axisClasses.label}`]: {
-                                //transform: 'translate(-25px, 0)',
-                            },
-                            [`.${axisClasses.right} .${axisClasses.label}`]: {
-                                //transform: 'translate(30px, 0)',
-                            },
-                        }}
-                        margin={{  }}
-                        height={200}
-                        {...additionalStyles}
-                    ></LineChart>
-                    <Slider
-                        value={value}
-                        onChange={handleChange}
-                        size={"small"}
-                        valueLabelDisplay={"auto"}
-                        valueLabelFormat={sliderVal => sliderDate(sliderVal, view_utc_time)}
-                        min={range[0]}
-                        max={range[1]}
-                        className="mythic-dashboard-slider"
-                        sx={{ width: "80%" }}
-                    />
+                            }}
+                            margin={{ top: 18, right: 46, bottom: 30, left: 48 }}
+                            height={186}
+                            {...additionalStyles}
+                        ></LineChart>
+                    </div>
+                    <div className="mythic-dashboard-chart-slider-row">
+                        <Slider
+                            value={value}
+                            onChange={handleChange}
+                            size={"small"}
+                            valueLabelDisplay={"auto"}
+                            valueLabelFormat={sliderVal => sliderDate(sliderVal, view_utc_time)}
+                            min={range[0]}
+                            max={range[1]}
+                            className="mythic-dashboard-slider"
+                        />
+                    </div>
                 </>
             ) : (
-                <DashboardNoDataState
-                    title="No activity yet"
-                    description="Task and callback activity will appear here once the operation has timeline data."
-                />
+                <div className="mythic-dashboard-chart-canvas mythic-dashboard-chart-canvas-empty">
+                    <DashboardNoDataState
+                        title="No activity yet"
+                        description="Task and callback activity will appear here once the operation has timeline data."
+                    />
+                </div>
             )}
         </DashboardCard>
 
