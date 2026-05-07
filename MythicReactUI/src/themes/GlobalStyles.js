@@ -3337,13 +3337,17 @@ tspan {
 }
 .mythic-dashboard-row {
     align-items: stretch;
-    display: flex;
+    display: grid;
     flex: 0 0 auto;
-    flex-wrap: wrap;
     gap: 0.75rem;
+    grid-auto-flow: dense;
+    grid-template-columns: var(--mythic-dashboard-row-template, repeat(auto-fit, minmax(min(100%, 19rem), 1fr)));
     min-width: 0;
     padding: 0 0.75rem;
     width: 100%;
+}
+.mythic-dashboard-row-editing {
+    align-items: start;
 }
 .mythic-dashboard-card {
     background-color: ${(props) => props.theme.surfaces?.raised || props.theme.palette.background.paper};
@@ -3353,23 +3357,59 @@ tspan {
     display: flex;
     flex: 1 1 18rem;
     flex-direction: column;
+    grid-column: span 1;
     height: var(--mythic-dashboard-card-height, 18rem);
     max-height: var(--mythic-dashboard-card-height, 18rem);
     min-height: var(--mythic-dashboard-card-height, 18rem);
-    min-width: min(100%, 18rem);
+    min-width: 0;
     overflow: hidden;
+    position: relative;
+    transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+    width: 100%;
+}
+.mythic-dashboard-card:hover {
+    border-color: ${(props) => alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.34 : 0.24)};
+    box-shadow: ${(props) => props.theme.palette.mode === "dark" ? `inset 0 1px 0 ${alpha(props.theme.palette.common.white, 0.055)}, 0 8px 18px ${alpha(props.theme.palette.common.black, 0.18)}` : `0 8px 18px ${alpha(props.theme.palette.common.black, 0.08)}`} !important;
+}
+.mythic-dashboard-card-wide {
+    grid-column: span 2;
+}
+.mythic-dashboard-card-table {
+    grid-column: span 2;
+    max-width: min(100%, 58rem);
+}
+.mythic-dashboard-row > .mythic-dashboard-card-table:only-child {
+    max-width: min(100%, 64rem);
+}
+.mythic-dashboard-card-metric {
+    grid-column: span 1;
 }
 .mythic-dashboard-card-header {
     align-items: center;
     background-color: ${(props) => props.theme.surfaces?.muted || props.theme.palette.background.default};
-    border-bottom: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    background-image: ${(props) => {
+        const headerTextColor = props.theme.pageHeaderText?.main || props.theme.palette.text.primary;
+        return `linear-gradient(90deg, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.16 : 0.09)} 0%, ${alpha(headerTextColor, props.theme.palette.mode === "dark" ? 0.05 : 0.035)} 100%)`;
+    }};
+    border-bottom: 1px solid ${(props) => alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.34 : 0.2)};
     display: flex;
     flex: 0 0 auto;
     gap: 0.65rem;
     justify-content: space-between;
     min-height: 42px;
     min-width: 0;
-    padding: 0.55rem 0.65rem;
+    overflow: hidden;
+    padding: 0.55rem 0.65rem 0.55rem 0.85rem;
+    position: relative;
+}
+.mythic-dashboard-card-header::before {
+    background-color: ${(props) => props.theme.palette.primary.main};
+    bottom: 0;
+    content: "";
+    left: 0;
+    position: absolute;
+    top: 0;
+    width: 4px;
 }
 .mythic-dashboard-card-title {
     color: ${(props) => props.theme.palette.text.primary};
@@ -3423,10 +3463,22 @@ tspan {
 .mythic-dashboard-icon-button-hover-danger:hover {
     color: ${(props) => props.theme.palette.error.main} !important;
 }
+.mythic-dashboard-icon-button-hover-info:hover {
+    background-color: ${(props) => props.theme.palette.info.main + "2b"} !important;
+    border-color: ${(props) => props.theme.palette.info.main + "88"} !important;
+    color: ${(props) => props.theme.palette.info.main} !important;
+}
 .mythic-dashboard-icon-button.Mui-disabled {
     background-color: ${(props) => props.theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)"} !important;
     border-color: ${(props) => props.theme.table?.borderSoft || props.theme.borderColor} !important;
     color: ${(props) => props.theme.palette.text.disabled} !important;
+}
+.mythic-dashboard-perspective-toggle {
+    flex: 0 1 auto;
+    min-width: 0;
+}
+.mythic-dashboard-perspective-toggle .MuiToggleButton-root {
+    min-width: 5.6rem !important;
 }
 .mythic-dashboard-primary-button,
 .mythic-dashboard-table-action {
@@ -3452,34 +3504,244 @@ tspan {
 .mythic-dashboard-table-action:hover {
     background-color: ${(props) => props.theme.palette.mode === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)"} !important;
 }
-.mythic-dashboard-table-action-info {
-    background-color: ${(props) => props.theme.palette.info.main + "1c"} !important;
-    border-color: ${(props) => props.theme.palette.info.main + "66"} !important;
-    color: ${(props) => props.theme.palette.info.main} !important;
-}
-.mythic-dashboard-table-action-info:hover {
-    background-color: ${(props) => props.theme.palette.info.main + "2b"} !important;
-    border-color: ${(props) => props.theme.palette.info.main + "88"} !important;
+.mythic-dashboard-table-action-hover-danger:hover {
+    background-color: ${(props) => props.theme.palette.error.main + "2b"} !important;
+    border-color: ${(props) => props.theme.palette.error.main + "88"} !important;
+    color: ${(props) => props.theme.palette.error.main} !important;
 }
 .mythic-dashboard-table-action.Mui-disabled {
     background-color: ${(props) => props.theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)"} !important;
     border-color: ${(props) => props.theme.table?.borderSoft || props.theme.borderColor} !important;
     color: ${(props) => props.theme.palette.text.disabled} !important;
 }
+.mythic-dashboard-chart-body {
+    gap: 0.35rem;
+    padding: 0.5rem 0.55rem 0.55rem;
+}
+.mythic-dashboard-chart-canvas {
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.028) : alpha(props.theme.palette.common.black, 0.014)};
+    background-image: ${(props) => `linear-gradient(135deg, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.1 : 0.055)} 0%, ${alpha(props.theme.palette.background.paper, 0)} 62%)`};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+    width: 100%;
+}
+.mythic-dashboard-chart-canvas-pie {
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem;
+}
+.mythic-dashboard-chart-canvas-line {
+    align-items: stretch;
+    justify-content: center;
+    padding: 0.2rem 0.3rem 0;
+}
+.mythic-dashboard-chart-canvas-empty {
+    align-items: stretch;
+    justify-content: stretch;
+    padding: 0.75rem;
+}
+.mythic-dashboard-chart-canvas .MuiChartsLegend-root {
+    color: ${(props) => props.theme.palette.text.secondary};
+}
+.mythic-dashboard-chart-canvas .MuiChartsAxis-line,
+.mythic-dashboard-chart-canvas .MuiChartsAxis-tick {
+    stroke: ${(props) => props.theme.table?.border || props.theme.borderColor};
+}
+.mythic-dashboard-chart-canvas .MuiChartsAxis-tickLabel,
+.mythic-dashboard-chart-canvas .MuiChartsAxis-label {
+    fill: ${(props) => props.theme.palette.text.secondary} !important;
+}
+.mythic-dashboard-chart-slider-row {
+    align-items: center;
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.03) : alpha(props.theme.palette.common.black, 0.018)};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    display: flex;
+    flex: 0 0 auto;
+    justify-content: center;
+    min-height: 2rem;
+    padding: 0.15rem 0.8rem;
+}
 .mythic-dashboard-table-body {
     padding: 0;
 }
+.mythic-dashboard-empty-container {
+    display: flex;
+    overflow: hidden;
+}
 .mythic-dashboard-table-container {
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.018) : alpha(props.theme.palette.common.black, 0.01)};
     flex: 1 1 auto;
     height: 100%;
     max-height: 100%;
     min-height: 0;
+    min-width: 0;
     overflow: auto;
+    scrollbar-gutter: stable;
     width: 100%;
 }
 .mythic-dashboard-table {
     max-width: 100%;
+    min-width: 100%;
     overflow: auto;
+    width: 100%;
+}
+.mythic-dashboard-summary-table {
+    table-layout: fixed;
+}
+.mythic-dashboard-card-table .MuiTableCell-root {
+    vertical-align: middle;
+}
+.mythic-dashboard-summary-table .MuiTableCell-root {
+    font-size: 0.75rem;
+    height: 2.15rem;
+    line-height: 1.25;
+    overflow: hidden;
+    padding-bottom: 0.35rem !important;
+    padding-top: 0.35rem !important;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-dashboard-summary-table .MuiTableRow-hover:hover .MuiTableCell-root {
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.035) : alpha(props.theme.palette.common.black, 0.025)};
+}
+.mythic-dashboard-table-cell-primary {
+    min-width: 0;
+}
+.mythic-dashboard-table-cell-tight,
+.mythic-dashboard-table-cell-count,
+.mythic-dashboard-table-cell-actions {
+    text-align: right;
+    white-space: nowrap !important;
+    width: 1%;
+}
+.mythic-dashboard-table-cell-count {
+    color: ${(props) => props.theme.palette.text.primary};
+    font-weight: 850;
+}
+.mythic-dashboard-table-cell-actions {
+    min-width: 6.25rem;
+}
+.mythic-dashboard-table-cell-wrap {
+    overflow: visible !important;
+    overflow-wrap: anywhere;
+    white-space: normal !important;
+}
+.mythic-dashboard-table-cell-account {
+    align-items: flex-start;
+    display: flex !important;
+    flex-direction: row;
+    gap: 0.45rem;
+}
+.mythic-dashboard-table-cell-wrap .MuiTypography-root,
+.mythic-dashboard-table-comment {
+    overflow-wrap: anywhere;
+    white-space: normal !important;
+}
+.mythic-dashboard-table-identity,
+.mythic-dashboard-table-file-row,
+.mythic-dashboard-table-actions-inline {
+    align-items: center;
+    display: flex;
+    gap: 0.45rem;
+    min-width: 0;
+}
+.mythic-dashboard-table-actions-inline {
+    justify-content: flex-end;
+}
+.mythic-dashboard-table-file-row {
+    max-width: 100%;
+}
+.mythic-dashboard-table-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+    min-width: 0;
+}
+.mythic-dashboard-table-primary-text,
+.mythic-dashboard-table-link,
+.mythic-dashboard-summary-table .MuiTypography-root {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-dashboard-table-primary-text,
+.mythic-dashboard-table-link {
+    display: inline-block;
+    max-width: 100%;
+}
+.mythic-dashboard-table-secondary {
+    color: ${(props) => props.theme.palette.text.secondary};
+    font-size: 0.7rem !important;
+    font-weight: 650;
+    line-height: 1.2 !important;
+}
+.mythic-dashboard-table-cell-wrap .MuiTypography-root,
+.mythic-dashboard-table-cell-wrap .mythic-dashboard-table-primary-text,
+.mythic-dashboard-table-cell-wrap .mythic-dashboard-table-secondary {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal !important;
+}
+.mythic-dashboard-table-icon-action {
+    color: ${(props) => props.theme.palette.text.secondary};
+    cursor: pointer;
+    display: inline-block;
+    flex: 0 0 auto;
+    height: 1.1rem;
+    width: 1.1rem;
+}
+.mythic-dashboard-table-icon-action:hover,
+.mythic-dashboard-table-icon-action-info:hover {
+    color: ${(props) => props.theme.palette.info.main};
+}
+.mythic-dashboard-tasking-table {
+    table-layout: fixed;
+}
+.mythic-dashboard-tasking-cell {
+    max-width: 0;
+    min-width: 0;
+    overflow: hidden;
+    width: 100%;
+}
+.mythic-dashboard-tasking-list {
+    display: flex;
+    flex-direction: column;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    width: 100%;
+}
+.mythic-dashboard-tasking-list .TaskDisplay-root,
+.mythic-dashboard-tasking-list .TaskDisplayAccordion-root,
+.mythic-dashboard-tasking-list .TaskDisplayAccordion-content,
+.mythic-dashboard-tasking-list .TaskDisplayAccordionDetails-root {
+    max-width: 100%;
+    min-width: 0;
+}
+.mythic-dashboard-tasking-list .MuiAccordion-root,
+.mythic-dashboard-tasking-list .MuiGrid-root,
+.mythic-dashboard-tasking-list .mythic-response-table,
+.mythic-dashboard-tasking-list .mythic-response-table-grid {
+    max-width: 100%;
+    min-width: 0;
+    width: 100%;
+}
+.mythic-dashboard-tasking-list .MuiCollapse-root,
+.mythic-dashboard-tasking-list .MuiCollapse-wrapper,
+.mythic-dashboard-tasking-list .MuiCollapse-wrapperInner {
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+}
+.mythic-dashboard-card-table .MuiButton-root {
+    white-space: nowrap;
 }
 .mythic-dashboard-screenshot-row {
     align-items: center;
@@ -3557,6 +3819,182 @@ tspan {
 .mythic-dashboard-metric-title-row .MuiFormControl-root {
     margin: 0 !important;
 }
+.mythic-dashboard-kpi-body {
+    padding: 0.55rem 0.65rem 0.65rem;
+}
+.mythic-dashboard-widget-settings-popover {
+    background-color: ${(props) => props.theme.surfaces?.raised || props.theme.palette.background.paper};
+    border: 1px solid ${(props) => props.theme.table?.border || props.theme.borderColor};
+    color: ${(props) => props.theme.palette.text.primary};
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    max-width: 17rem;
+    min-width: 14rem;
+    padding: 0.8rem;
+}
+.mythic-dashboard-widget-settings-title {
+    color: ${(props) => props.theme.palette.text.primary};
+    font-size: 0.82rem;
+    font-weight: 850;
+    line-height: 1.2;
+}
+.mythic-dashboard-widget-settings-copy {
+    color: ${(props) => props.theme.palette.text.secondary};
+    font-size: 0.72rem;
+    font-weight: 650;
+    line-height: 1.35;
+}
+.mythic-dashboard-callback-kpi,
+.mythic-dashboard-service-kpi {
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.035) : alpha(props.theme.palette.common.black, 0.018)};
+    background-image: ${(props) => `linear-gradient(135deg, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.13 : 0.075)} 0%, ${alpha(props.theme.palette.background.paper, 0)} 58%)`};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    display: flex;
+    flex: 1 1 auto;
+    gap: 0.75rem;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+    padding: 0.8rem;
+}
+.mythic-dashboard-callback-kpi {
+    cursor: pointer;
+    flex-direction: column;
+    justify-content: space-between;
+}
+.mythic-dashboard-callback-kpi:hover,
+.mythic-dashboard-callback-kpi:focus-visible {
+    border-color: ${(props) => alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.52 : 0.34)};
+    outline: none;
+}
+.mythic-dashboard-service-kpi {
+    align-items: center;
+    flex-direction: row;
+    justify-content: space-between;
+}
+.mythic-dashboard-kpi-main {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 0;
+    min-width: 0;
+}
+.mythic-dashboard-kpi-status-row {
+    align-items: center;
+    display: flex;
+    gap: 0.45rem;
+    justify-content: space-between;
+    min-width: 0;
+}
+.mythic-dashboard-kpi-chip {
+    align-items: center;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-size: 0.66rem;
+    font-weight: 850;
+    line-height: 1;
+    max-width: 100%;
+    overflow: hidden;
+    padding: 0.25rem 0.45rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-dashboard-kpi-chip-info {
+    background-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.22 : 0.12)};
+    border-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.52 : 0.34)};
+    color: ${(props) => props.theme.palette.info.main};
+}
+.mythic-dashboard-kpi-chip-success {
+    background-color: ${(props) => alpha(props.theme.palette.success.main, props.theme.palette.mode === "dark" ? 0.22 : 0.12)};
+    border-color: ${(props) => alpha(props.theme.palette.success.main, props.theme.palette.mode === "dark" ? 0.52 : 0.34)};
+    color: ${(props) => props.theme.palette.success.main};
+}
+.mythic-dashboard-kpi-chip-warning {
+    background-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.24 : 0.14)};
+    border-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.52 : 0.34)};
+    color: ${(props) => props.theme.palette.warning.main};
+}
+.mythic-dashboard-kpi-chip-danger {
+    background-color: ${(props) => alpha(props.theme.palette.error.main, props.theme.palette.mode === "dark" ? 0.22 : 0.12)};
+    border-color: ${(props) => alpha(props.theme.palette.error.main, props.theme.palette.mode === "dark" ? 0.52 : 0.34)};
+    color: ${(props) => props.theme.palette.error.main};
+}
+.mythic-dashboard-kpi-chip-neutral {
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.06) : alpha(props.theme.palette.common.black, 0.035)};
+    border-color: ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    color: ${(props) => props.theme.palette.text.secondary};
+}
+.mythic-dashboard-kpi-percent {
+    color: ${(props) => props.theme.palette.text.secondary};
+    flex: 0 0 auto;
+    font-size: 0.74rem;
+    font-weight: 850;
+    line-height: 1;
+}
+.mythic-dashboard-kpi-value-row {
+    align-items: baseline;
+    display: flex;
+    gap: 0.35rem;
+    min-width: 0;
+}
+.mythic-dashboard-kpi-value {
+    color: ${(props) => props.theme.palette.text.primary};
+    font-size: 3.35rem;
+    font-weight: 880;
+    letter-spacing: 0;
+    line-height: 0.98;
+}
+.mythic-dashboard-kpi-total {
+    color: ${(props) => props.theme.palette.text.secondary};
+    font-size: 1.25rem;
+    font-weight: 760;
+    line-height: 1;
+}
+.mythic-dashboard-kpi-label {
+    color: ${(props) => props.theme.palette.text.secondary};
+    font-size: 0.78rem;
+    font-weight: 750;
+    letter-spacing: 0;
+    line-height: 1.25;
+    margin-top: 0.25rem;
+}
+.mythic-dashboard-kpi-secondary-panel {
+    align-items: center;
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.045) : alpha(props.theme.palette.common.black, 0.025)};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    display: flex;
+    gap: 0.5rem;
+    min-width: 0;
+    padding: 0.55rem 0.65rem;
+}
+.mythic-dashboard-kpi-secondary-value {
+    color: ${(props) => props.theme.palette.text.primary};
+    flex: 0 0 auto;
+    font-size: 1.65rem;
+    font-weight: 880;
+    line-height: 1;
+}
+.mythic-dashboard-kpi-secondary-label {
+    color: ${(props) => props.theme.palette.text.secondary};
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.25;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.mythic-dashboard-kpi-gauge {
+    align-items: center;
+    display: flex;
+    flex: 0 0 7rem;
+    justify-content: center;
+    min-width: 7rem;
+}
 .mythic-dashboard-metric-content,
 .mythic-dashboard-metric-link {
     display: flex;
@@ -3596,7 +4034,15 @@ tspan {
 }
 .mythic-dashboard-slider {
     align-self: center;
-    margin-top: 0.65rem;
+    margin: 0;
+    width: min(100%, 32rem);
+}
+.mythic-dashboard-slider .MuiSlider-rail {
+    opacity: 0.28;
+}
+.mythic-dashboard-slider .MuiSlider-thumb {
+    height: 12px;
+    width: 12px;
 }
 .mythic-dashboard-edit-rail {
     align-items: center;
@@ -3609,6 +4055,172 @@ tspan {
     gap: 0.4rem;
     justify-content: center;
     padding: 0.45rem;
+}
+.mythic-dashboard-edit-toolbar {
+    align-items: center;
+    background-color: ${(props) => {
+        const headerSurface = props.theme.pageHeader?.main || props.theme.surfaces?.muted || props.theme.palette.background.paper;
+        return props.theme.palette.mode === "dark" ? headerSurface : alpha(props.theme.palette.primary.main, 0.16);
+    }} !important;
+    background-image: ${(props) => `linear-gradient(90deg, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.44 : 0.32)} 0%, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.22 : 0.22)} 42%, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.08 : 0.12)} 100%)`} !important;
+    border: 1px solid ${(props) => alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.55 : 0.38)};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    box-shadow: inset 0 1px 0 ${(props) => alpha(props.theme.pageHeaderText?.main || props.theme.palette.text.primary, 0.22)}, 0 2px 6px ${(props) => alpha(props.theme.palette.common.black, props.theme.palette.mode === "dark" ? 0.24 : 0.1)};
+    color: ${(props) => props.theme.pageHeaderText?.main || props.theme.palette.text.primary};
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    grid-column: 1 / -1;
+    justify-content: space-between;
+    min-width: 0;
+    overflow: hidden;
+    padding: 0.52rem 0.65rem 0.52rem 1rem;
+    position: relative;
+}
+.mythic-dashboard-edit-toolbar::before {
+    background-color: ${(props) => props.theme.palette.primary.main};
+    bottom: 0;
+    box-shadow: 0 0 0 1px ${(props) => alpha(props.theme.pageHeaderText?.main || props.theme.palette.text.primary, 0.2)};
+    content: "";
+    left: 0;
+    position: absolute;
+    top: 0;
+    width: 6px;
+}
+.mythic-dashboard-edit-toolbar-title {
+    color: inherit;
+    font-size: 0.78rem;
+    font-weight: 850;
+    letter-spacing: 0;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+.mythic-dashboard-edit-toolbar-actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    justify-content: flex-end;
+    min-width: 0;
+}
+.mythic-dashboard-edit-toolbar .MuiButton-root.mythic-dashboard-table-action {
+    background-color: ${(props) => alpha(props.theme.pageHeaderText?.main || props.theme.palette.text.primary, 0.1)} !important;
+    border-color: ${(props) => alpha(props.theme.pageHeaderText?.main || props.theme.palette.text.primary, 0.24)} !important;
+    color: ${(props) => props.theme.pageHeaderText?.main || props.theme.palette.text.primary} !important;
+}
+.mythic-dashboard-edit-toolbar .MuiButton-root.mythic-dashboard-table-action:hover {
+    background-color: ${(props) => alpha(props.theme.pageHeaderText?.main || props.theme.palette.text.primary, 0.16)} !important;
+    border-color: ${(props) => alpha(props.theme.pageHeaderText?.main || props.theme.palette.text.primary, 0.42)} !important;
+}
+.mythic-dashboard-edit-toolbar .MuiButton-root.mythic-table-row-action-hover-info:hover {
+    background-color: ${(props) => props.theme.palette.info.main + "2b"} !important;
+    border-color: ${(props) => props.theme.palette.info.main + "88"} !important;
+    color: ${(props) => props.theme.palette.info.main} !important;
+}
+.mythic-dashboard-edit-toolbar .MuiButton-root.mythic-dashboard-table-action-hover-danger:hover {
+    background-color: ${(props) => props.theme.palette.error.main + "2b"} !important;
+    border-color: ${(props) => props.theme.palette.error.main + "88"} !important;
+    color: ${(props) => props.theme.palette.error.main} !important;
+}
+.mythic-dashboard-widget-dialog {
+    background-color: ${(props) => props.theme.surfaces?.muted || props.theme.palette.background.default};
+    min-height: 28rem;
+}
+.mythic-dashboard-widget-dialog-header {
+    align-items: center;
+    background-color: ${(props) => props.theme.surfaces?.raised || props.theme.palette.background.paper};
+    background-image: ${(props) => {
+        const headerTextColor = props.theme.palette.text.primary;
+        return `linear-gradient(90deg, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.12 : 0.07)} 0%, ${alpha(headerTextColor, props.theme.palette.mode === "dark" ? 0.045 : 0.035)} 100%)`;
+    }};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    display: flex;
+    gap: 0.75rem;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    min-width: 0;
+    padding: 0.7rem 0.8rem;
+}
+.mythic-dashboard-widget-dialog-title {
+    color: ${(props) => props.theme.palette.text.primary};
+    font-size: 0.9rem;
+    font-weight: 850;
+    line-height: 1.2;
+}
+.mythic-dashboard-widget-dialog-subtitle {
+    color: ${(props) => props.theme.palette.text.secondary};
+    font-size: 0.74rem;
+    font-weight: 650;
+    line-height: 1.25;
+    margin-top: 0.18rem;
+}
+.mythic-dashboard-widget-grid {
+    display: grid;
+    gap: 0.65rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+    min-width: 0;
+}
+.mythic-dashboard-widget-option {
+    background-color: ${(props) => props.theme.surfaces?.raised || props.theme.palette.background.paper};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    box-shadow: ${(props) => props.theme.palette.mode === "dark" ? "inset 0 1px 0 rgba(255,255,255,0.04)" : "0 1px 2px rgba(15,23,42,0.05)"};
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-height: 6.4rem;
+    min-width: 0;
+    padding: 0.7rem;
+    transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+.mythic-dashboard-widget-option:hover,
+.mythic-dashboard-widget-option:focus-visible {
+    background-color: ${(props) => props.theme.palette.primary.main + "10"};
+    border-color: ${(props) => alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.5 : 0.34)};
+    box-shadow: ${(props) => props.theme.palette.mode === "dark" ? `inset 0 1px 0 ${alpha(props.theme.palette.common.white, 0.055)}, 0 8px 18px ${alpha(props.theme.palette.common.black, 0.18)}` : `0 8px 18px ${alpha(props.theme.palette.common.black, 0.08)}`};
+    outline: none;
+}
+.mythic-dashboard-widget-option-selected {
+    background-image: ${(props) => `linear-gradient(135deg, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.18 : 0.1)} 0%, ${alpha(props.theme.palette.background.paper, 0)} 60%)`};
+    border-color: ${(props) => alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.68 : 0.48)};
+}
+.mythic-dashboard-widget-option-top {
+    align-items: flex-start;
+    display: flex;
+    gap: 0.5rem;
+    justify-content: space-between;
+    min-width: 0;
+}
+.mythic-dashboard-widget-option-title {
+    color: ${(props) => props.theme.palette.text.primary};
+    font-size: 0.84rem;
+    font-weight: 820;
+    line-height: 1.2;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.mythic-dashboard-widget-option-summary {
+    color: ${(props) => props.theme.palette.text.secondary};
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+.mythic-dashboard-widget-category {
+    align-items: center;
+    background-color: ${(props) => props.theme.palette.primary.main + "18"};
+    border: 1px solid ${(props) => props.theme.palette.primary.main + "45"};
+    border-radius: 999px;
+    color: ${(props) => props.theme.palette.primary.main};
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-size: 0.64rem;
+    font-weight: 850;
+    line-height: 1;
+    padding: 0.24rem 0.42rem;
+    white-space: nowrap;
 }
 .mythic-dashboard-loading-overlay {
     align-items: center;
@@ -3628,6 +4240,31 @@ tspan {
     font-size: 0.84rem;
     font-weight: 750;
     padding: 0.75rem 0.9rem;
+}
+@media (max-width: 900px) {
+    .mythic-dashboard-row {
+        grid-template-columns: 1fr;
+    }
+    .mythic-dashboard-card,
+    .mythic-dashboard-card-wide,
+    .mythic-dashboard-card-table {
+        grid-column: span 1;
+        max-width: 100%;
+    }
+    .mythic-dashboard-perspective-toggle {
+        width: 100%;
+    }
+    .mythic-dashboard-perspective-toggle .MuiToggleButton-root {
+        flex: 1 1 0;
+        min-width: 0 !important;
+    }
+    .mythic-dashboard-edit-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+    .mythic-dashboard-edit-toolbar-actions {
+        justify-content: flex-start;
+    }
 }
 .mythic-form-code-editor {
     border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
@@ -5543,10 +6180,11 @@ tspan {
 }
 .mythic-eventing-flow-node-action {
     align-items: center;
-    background-color: ${(props) => props.theme.palette.mode === "dark" ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.035)"};
+    background-color: ${(props) => props.theme.palette.info.main + "16"};
+    border-color: ${(props) => props.theme.palette.info.main + "45"};
+    color: ${(props) => props.theme.palette.info.main};
     border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
     border-radius: ${(props) => props.theme.shape.borderRadius}px;
-    color: ${(props) => props.theme.palette.text.secondary};
     display: inline-flex;
     font-size: 0.66rem;
     font-weight: 750;
