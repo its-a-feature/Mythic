@@ -288,6 +288,13 @@ export const commandInParsedParameters = (cmd, parsedParameters) =>{
     }
     return undefined
 }
+const getCaptureFileInputName = (parameterName, index) => {
+    const safeName = String(parameterName || "file").replace(/[^a-zA-Z0-9_]/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "").toUpperCase();
+    return `FILE_${safeName || "PARAMETER"}${index === undefined ? "" : "_" + (index + 1)}`;
+}
+const isSelectedFileObject = (value) => {
+    return value !== undefined && value !== null && typeof value !== "string" && value.name !== undefined && value.name !== "";
+}
 export function TaskParametersDialog(props) {
     const [backdropOpen, setBackdropOpen] = React.useState(false);
     const [commandInfo, setCommandInfo] = useState({});
@@ -839,6 +846,7 @@ export function TaskParametersDialog(props) {
     }, [selectedParameterGroup, rawParameters, loadedCommandsLoading, allCommandsLoading, loadedAllEdgesLoading, requiredPieces, loadedAllPayloadsLoading, loadedCredentialsLoading, loadedAllPayloadsOnHostsLoading, props.callback_id, props.choices]);
     const onSubmit = async () => {
         let newFileUUIDs = [];
+        let capturedFiles = [];
         let collapsedParameters = {};
         for(const param of parameters){
             switch(param.type){
@@ -863,6 +871,25 @@ export function TaskParametersDialog(props) {
                     collapsedParameters[param.name] = param.value;
                     break
                 case "File":
+                    if(props.captureOnly){
+                        if(isSelectedFileObject(param.value)){
+                            const inputName = getCaptureFileInputName(param.name);
+                            capturedFiles.push({
+                                file: param.value,
+                                filename: param.value.name,
+                                index: 0,
+                                inputName,
+                                parameterName: param.name,
+                            });
+                            collapsedParameters[param.name] = inputName;
+                        }else if(typeof param.value === "string" && param.value.length > 0){
+                            collapsedParameters[param.name] = param.value;
+                        }else if(param.required){
+                            snackActions.warning("Missing file for " + param.display_name);
+                            return;
+                        }
+                        break;
+                    }
                     const newUUID = await UploadTaskFile(param.value, "Uploaded as part of tasking");
                     if(newUUID){
                         if(newUUID !== "Missing file in form"){
@@ -874,6 +901,30 @@ export function TaskParametersDialog(props) {
                     }
                     break;
                 case "FileMultiple":
+                    if(props.captureOnly){
+                        let fileInputNames = [];
+                        for(let i = 0; i < param.value.length; i++){
+                            if(typeof param.value[i] === "string"){
+                                fileInputNames.push(param.value[i]);
+                            }else if(isSelectedFileObject(param.value[i])){
+                                const inputName = getCaptureFileInputName(param.name, i);
+                                capturedFiles.push({
+                                    file: param.value[i],
+                                    filename: param.value[i].name,
+                                    index: i,
+                                    inputName,
+                                    parameterName: param.name,
+                                });
+                                fileInputNames.push(inputName);
+                            }
+                        }
+                        if(fileInputNames.length === 0 && param.required){
+                            snackActions.warning("Missing files for " + param.display_name);
+                            return;
+                        }
+                        collapsedParameters[param.name] = fileInputNames;
+                        break;
+                    }
                     let fileIDs = [];
                     for(let i = 0; i < param.value.length; i++){
                         if(typeof param.value[i] === "string"){
@@ -908,7 +959,10 @@ export function TaskParametersDialog(props) {
             }
         }
         setBackdropOpen(false);
-        props.onSubmit(commandInfo.cmd, JSON.stringify(collapsedParameters), newFileUUIDs, selectedParameterGroup, commandInfo?.payloadtype?.name);
+        props.onSubmit(commandInfo.cmd, JSON.stringify(collapsedParameters), props.captureOnly ? capturedFiles : newFileUUIDs, selectedParameterGroup, commandInfo?.payloadtype?.name, {
+            capturedFiles,
+            collapsedParameters,
+        });
         
     }
     const onAgentConnectAddNewPayloadOnHost = (host, payload) => {
@@ -1038,7 +1092,7 @@ export function TaskParametersDialog(props) {
             Close
           </Button>
           <Button onClick={onSubmit} disabled={submenuOpenPreventTask} variant="contained" color="warning">
-            Task
+            {props.captureOnly ? "Use Parameters" : "Task"}
           </Button>
         </DialogActions>
   </React.Fragment>

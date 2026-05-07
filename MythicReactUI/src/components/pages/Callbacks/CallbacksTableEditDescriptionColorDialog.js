@@ -11,7 +11,7 @@ import "ace-builds/src-noconflict/theme-monokai";
 import "ace-builds/src-noconflict/ext-searchbox";
 import {useTheme} from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
-import {isValidHexColor, MythicColorSwatchInput} from '../../MythicComponents/MythicColorInput';
+import {getReadableTextColor, isValidHexColor, MythicColorSwatchInput} from '../../MythicComponents/MythicColorInput';
 
 export function CallbacksTableEditDescriptionColorDialog(props) {
   const [comment, setComment] = React.useState("");
@@ -42,7 +42,10 @@ export function CallbacksTableEditDescriptionColorDialog(props) {
         setColor(props.color);
     }, [props.description, props.color]);
     const previewColor = isValidHexColor(color) ? color : "";
-    const previewBorder = previewColor === "" ? "1px dashed" : `2px solid ${previewColor}`;
+    const darkPreviewBackground = previewColor || "#1f2937";
+    const lightPreviewBackground = previewColor || "#f8fafc";
+    const darkPreviewTextColor = previewColor ? getReadableTextColor(previewColor) : "#ffffff";
+    const lightPreviewTextColor = previewColor ? getReadableTextColor(previewColor) : "#111827";
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">{props.title}</DialogTitle>
@@ -77,7 +80,7 @@ export function CallbacksTableEditDescriptionColorDialog(props) {
                     <Box sx={{display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, mb: 1}}>
                         <Box sx={{minWidth: 0}}>
                             <Typography variant="body2" sx={{fontWeight: 700}}>Callback Color</Typography>
-                            <Typography variant="caption" sx={{color: "text.secondary"}}>Callback row and tasking accent</Typography>
+                            <Typography variant="caption" sx={{color: "text.secondary"}}>Callback row background and tasking accent</Typography>
                         </Box>
                         <Box sx={{display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", justifyContent: "flex-end"}}>
                             <MythicColorSwatchInput
@@ -98,12 +101,12 @@ export function CallbacksTableEditDescriptionColorDialog(props) {
                                 display: "flex",
                                 alignItems: "center",
                                 borderRadius: "6px",
-                                border: previewBorder,
-                                borderColor: previewColor === "" ? "divider" : previewColor,
-                                backgroundColor: "#1f2937",
+                                border: "1px solid",
+                                borderColor: "divider",
+                                backgroundColor: darkPreviewBackground,
                             }}
                         >
-                            <Typography sx={{color: "#ffffff", fontWeight: 700}}>Dark callback row</Typography>
+                            <Typography sx={{color: darkPreviewTextColor, fontWeight: 700}}>Dark callback row</Typography>
                         </Box>
                         <Box
                             sx={{
@@ -112,12 +115,12 @@ export function CallbacksTableEditDescriptionColorDialog(props) {
                                 display: "flex",
                                 alignItems: "center",
                                 borderRadius: "6px",
-                                border: previewBorder,
-                                borderColor: previewColor === "" ? "divider" : previewColor,
-                                backgroundColor: "#f8fafc",
+                                border: "1px solid",
+                                borderColor: "divider",
+                                backgroundColor: lightPreviewBackground,
                             }}
                         >
-                            <Typography sx={{color: "#111827", fontWeight: 700}}>Light callback row</Typography>
+                            <Typography sx={{color: lightPreviewTextColor, fontWeight: 700}}>Light callback row</Typography>
                         </Box>
                     </Box>
                 </Box>

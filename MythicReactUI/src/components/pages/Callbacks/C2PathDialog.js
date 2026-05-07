@@ -1,7 +1,7 @@
 import React, {useEffect, useCallback, useMemo, useState} from 'react';
 import Button from '@mui/material/Button';
-import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
 import ELK from 'elkjs/lib/elk.bundled.js';
 import {useTheme} from '@mui/material/styles';
 import OutlinedInput from '@mui/material/OutlinedInput';
@@ -39,6 +39,7 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { MythicAgentSVGIconNoTooltip} from "../../MythicComponents/MythicAgentSVGIcon";
 import {ImageWithAuth} from "../../utilities/ImageWithAuth";
+import {MythicDialogButton, MythicDialogFooter} from "../../MythicComponents/MythicDialogLayout";
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -249,23 +250,50 @@ export function C2PathDialog({callback, callbackgraphedges, onClose, onOpenTab})
         },
     ]}, [getLinkCommands, hideCallback, viewConfig, onOpenTab]);
 
+    const activeEdgeCount = callbackgraphedges?.filter(edge => edge.end_timestamp === null).length || 0;
+    const totalEdgeCount = callbackgraphedges?.length || 0;
+    const egressEdgeCount = callbackgraphedges?.filter(edge => !edge.c2profile?.is_p2p).length || 0;
+    const p2pEdgeCount = callbackgraphedges?.filter(edge => edge.c2profile?.is_p2p).length || 0;
 
     return (
     <>
-        <div style={{padding: "10px"}}>
-            <Typography variant='h4' style={{display:"inline-block", marginTop: "10px"}}>
-            Callback {callback.display_id}'s Egress Path
-            </Typography>
-            <div style={{float: "right"}}>
-                <FormControl sx={{ width: 200,  marginTop: "10px" }}>
-                    <InputLabel id="demo-chip-label">Group Callbacks By</InputLabel>
+        <DialogTitle className="mythic-c2-path-title">
+            <div className="mythic-c2-path-title-row">
+                <div className="mythic-c2-path-title-copy">
+                    <Typography component="div" className="mythic-c2-path-title-text">
+                        Callback {callback.display_id}'s Egress Path
+                    </Typography>
+                    <Typography component="div" className="mythic-c2-path-title-subtitle">
+                        Review routes, grouping, and link-tasking options for this callback.
+                    </Typography>
+                </div>
+                <div className="mythic-c2-path-summary">
+                    <span className="mythic-c2-path-summary-chip">{activeEdgeCount} active</span>
+                    <span className="mythic-c2-path-summary-chip">{totalEdgeCount} total</span>
+                    <span className="mythic-c2-path-summary-chip">{egressEdgeCount} egress</span>
+                    <span className="mythic-c2-path-summary-chip">{p2pEdgeCount} p2p</span>
+                </div>
+            </div>
+        </DialogTitle>
+        <DialogContent dividers={true} className="mythic-c2-path-content">
+            <div className="mythic-c2-path-toolbar">
+                <div className="mythic-c2-path-toolbar-copy">
+                    <Typography component="div" className="mythic-c2-path-toolbar-title">
+                        Graph View
+                    </Typography>
+                    <Typography component="div" className="mythic-c2-path-toolbar-description">
+                        Adjust labels and grouping without changing callback state.
+                    </Typography>
+                </div>
+                <div className="mythic-c2-path-controls">
+                <FormControl size="small" className="mythic-c2-path-control">
+                    <InputLabel id="c2-path-group-label">Group By</InputLabel>
                     <Select
-                    labelId="demo-chip-label"
-                    id="demo-chip"
-                    
+                    labelId="c2-path-group-label"
+                    id="c2-path-group"
                     value={selectedGroupBy}
                     onChange={handleGroupByChange}
-                    input={<OutlinedInput id="select-chip" label="Group Callbacks By" />}
+                    input={<OutlinedInput id="select-c2-path-group" label="Group By" />}
                     >
                     {groupByOptions.map((name) => (
                         <MenuItem
@@ -277,16 +305,17 @@ export function C2PathDialog({callback, callbackgraphedges, onClose, onOpenTab})
                     ))}
                     </Select>
                 </FormControl>
-                <FormControl sx={{minWidth: 300, marginTop: "10px"}}>
-                    <InputLabel id="demo-multiple-chip-label">Display Properties per Callback</InputLabel>
+                <FormControl size="small" className="mythic-c2-path-control mythic-c2-path-control-wide">
+                    <InputLabel id="c2-path-label-components-label">Display Properties</InputLabel>
                     <Select
-                    labelId="demo-multiple-chip-label"
-                    id="demo-multiple-chip"
+                    labelId="c2-path-label-components-label"
+                    id="c2-path-label-components"
                     multiple
                     value={selectedComponentOptions}
                     onChange={handleChange}
-                    input={<OutlinedInput id="select-multiple-chip" label="Display Properties per Callback" />}
+                    input={<OutlinedInput id="select-c2-path-label-components" label="Display Properties" />}
                     MenuProps={MenuProps}
+                    renderValue={(selected) => selected.join(", ")}
                     >
                     {labelComponentOptions.map((name) => (
                         <MenuItem
@@ -299,9 +328,8 @@ export function C2PathDialog({callback, callbackgraphedges, onClose, onOpenTab})
                     ))}
                     </Select>
                 </FormControl>
+                </div>
             </div>
-        </div>
-        <DialogContent style={{height: "calc(70vh)" }}>
             {manuallyRemoveEdgeDialogOpen &&
                 <MythicDialog fullWidth={true} maxWidth="sm" open={manuallyRemoveEdgeDialogOpen}
                               onClose={()=>{setManuallyRemoveEdgeDialogOpen(false);}}
@@ -330,19 +358,21 @@ export function C2PathDialog({callback, callbackgraphedges, onClose, onOpenTab})
                                                                        action={"select"} display={"display"} identifier={"display"}/>}
                 />
             }
-            <DrawC2PathElementsFlowWithProvider
-                providedNodes={[callback]}
-                edges={callbackgraphedges}
-                view_config={viewConfig}
-                theme={theme}
-                contextMenu={contextMenu}
-            />
+            <div className="mythic-c2-path-canvas">
+                <DrawC2PathElementsFlowWithProvider
+                    providedNodes={[callback]}
+                    edges={callbackgraphedges}
+                    view_config={viewConfig}
+                    theme={theme}
+                    contextMenu={contextMenu}
+                />
+            </div>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={onClose} variant="contained" color="primary">
+        <MythicDialogFooter>
+          <MythicDialogButton onClick={onClose}>
             Close
-          </Button>
-        </DialogActions>
+          </MythicDialogButton>
+        </MythicDialogFooter>
     </>
   );
 }

@@ -498,6 +498,26 @@ const TaskTagDisplay = ({task}) => {
     <TagsDisplay tags={task.tags} />
   )
 }
+const isTaskHeaderInteractiveClick = (e) => {
+  const clickedInteractiveElement = e.target?.closest?.(
+    `a, button, [role="button"], input, select, textarea`
+  );
+  return Boolean(clickedInteractiveElement && e.currentTarget.contains(clickedInteractiveElement));
+}
+const handleTaskHeaderClick = (e, onClick) => {
+  if(window.getSelection().toString() !== ""){
+    return;
+  }
+  if(isTaskHeaderInteractiveClick(e)){
+    e.stopPropagation();
+    return;
+  }
+  if(onClick){
+    e.stopPropagation();
+    e.preventDefault();
+    onClick(e);
+  }
+}
 const ColoredTaskDisplay = ({task, theme, children, expanded}) => {
   const themeColor = getTaskAccentColor(task, theme);
   return(
@@ -529,11 +549,6 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
     e.stopPropagation();
     //e.preventDefault();
   }
-  const onLocalClick = (e) => {
-    if(onClick){
-      onClick(e);
-    }
-  }
   const onClickKillIcon = (e, open) => {
     if(e){
       e.stopPropagation();
@@ -542,7 +557,8 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
   }
   return (
       <ColoredTaskDisplay task={task} theme={theme} expanded={expanded} >
-        <div id={taskDivID} className={compact ? `${classes.taskHeaderBody} ${classes.taskHeaderBodyCompact}` : classes.taskHeaderBody}>
+        <div id={taskDivID} className={compact ? `${classes.taskHeaderBody} ${classes.taskHeaderBodyCompact}` : classes.taskHeaderBody}
+             onClick={(e) => handleTaskHeaderClick(e, onClick)}>
           {displayComment && (
               <div className={classes.taskCommentBlock} onClick={preventPropagation}>
                 <Typography component="div" sx={{fontSize: "0.72rem", fontWeight: 800, color: theme.palette.text.secondary, mb: 0.5}}>
@@ -553,7 +569,7 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
                 </Typography>
               </div>
           )}
-          <div className={classes.taskMetaRow} onClick={preventPropagation}>
+          <div className={classes.taskMetaRow}>
             {taskingDisplayFields.map((fieldName) => (
               <TaskingMetadataField
                 displayTimestamp={displayTimestamp}
@@ -603,7 +619,7 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
               }
             </span>
           </div>
-          <div className={classes.taskCommandRow} onClick={onLocalClick}>
+          <div className={classes.taskCommandRow}>
             {task.tasks.length > 0 &&
               <IconButton className={classes.taskChildToggle} size="small" onClick={toggleDisplayChildren}>
                 {displayChildren ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
@@ -999,6 +1015,7 @@ const TaskLabel = ({task, dropdownOpen, toggleTaskDropdown, me, newlyIssuedTasks
           <ColoredTaskLabel theme={theme} task={task} me={me} taskDivID={'scrolltotask' + task.id}
             displayChildren={displayChildren} toggleDisplayChildren={toggleDisplayChildren}
                             expanded={dropdownOpen}
+                            onClick={toggleTaskDropdown}
           />
         </StyledAccordionSummary>
         <TaskDisplayContainer key={task.id} me={me} task={task} />
@@ -1191,10 +1208,6 @@ export const ColoredTaskLabelConsole = ({task, theme, me, taskDivID, onClick, di
   const [openKillTaskButton, setOpenKillTaskButton] = React.useState({open: false});
   const command = task?.command?.cmd || task.command_name;
   const commandLine = command + " " + task.display_params;
-  const preventPropagation = (e) => {
-    e.stopPropagation();
-    //e.preventDefault();
-  }
   const onClickKillIcon = (e, open) => {
     if(e){
       e.stopPropagation();
@@ -1203,8 +1216,9 @@ export const ColoredTaskLabelConsole = ({task, theme, me, taskDivID, onClick, di
   }
   return (
 	    <ColoredTaskDisplayConsole task={task} theme={theme} expanded={expanded}>
-	        <div id={taskDivID} className={classes.taskHeaderBody}>
-            <div className={classes.taskMetaRow} onClick={preventPropagation}>
+	        <div id={taskDivID} className={classes.taskHeaderBody}
+               onClick={(e) => handleTaskHeaderClick(e, onClick)}>
+            <div className={classes.taskMetaRow}>
               {taskingDisplayFields.map((fieldName) => (
                 <TaskingMetadataField
                   compactTimestamp
