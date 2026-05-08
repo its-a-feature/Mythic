@@ -18,7 +18,7 @@ import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
-import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
+import {InstalledServiceContainerStatus} from "./InstalledServiceStatus";
 
 const toggleDeleteStatus = gql`
 mutation toggleCustomBrowserDeleteStatus($custombrowser_id: Int!, $deleted: Boolean!){
@@ -69,9 +69,9 @@ export function CustomBrowserRow({service, showDeleted}) {
                 <FontAwesomeIcon icon={faFolderOpen} style={{width: "60px", height: "60px"}} />
             </MythicTableCell>
             <MythicTableCell>
-                {service.name}
-                <div style={{marginTop: "0.35rem"}}>
-                    <MythicStatusChip label={service.container_running ? "Online" : "Offline"} status={service.container_running ? "success" : "error"} />
+                <div className="mythic-installed-service-identity">
+                    <span className="mythic-installed-service-name">{service.name}</span>
+                    <InstalledServiceContainerStatus isOnline={service.container_running} />
                 </div>
             </MythicTableCell>
             <MythicTableCell>

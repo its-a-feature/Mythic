@@ -296,7 +296,7 @@ export function EventFeed({}){
   const resolveViewableErrors = useCallback( () => {
     snackActions.info("Resolving Errors...");
     const resolveIds = operationeventlog.reduce( (prev, cur) => {
-      if(cur.level === "warning" && !cur.resolved){
+      if(cur.warning && !cur.resolved){
         return [...prev, cur.id];
       }else{
         return [...prev];

@@ -18,7 +18,7 @@ import {PayloadTypeCommandDialog} from "./PayloadTypeCommandsDialog";
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import {C2ProfileListFilesDialog} from "./C2ProfileListFilesDialog";
 import AttachFileIcon from '@mui/icons-material/AttachFile';
-import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
+import {InstalledServiceContainerStatus} from "./InstalledServiceStatus";
 
 const toggleDeleteStatus = gql`
 mutation togglePayloadTypeDeleteStatus($payloadtype_id: Int!, $deleted: Boolean!){
@@ -84,7 +84,10 @@ export function PayloadTypeRow({service, showDeleted}){
                     <MythicAgentSVGIcon payload_type={service.name} style={{width: "80px", padding: "5px", objectFit: "unset"}} />
                 </MythicTableCell>
                 <MythicTableCell>
-                    {service.name}
+                    <div className="mythic-installed-service-identity">
+                        <span className="mythic-installed-service-name">{service.name}</span>
+                        <InstalledServiceContainerStatus isOnline={service.container_running} />
+                    </div>
                 </MythicTableCell>
                 <MythicTableCell>
                     {service.wrapper ? "Wrapper" : service.agent_type === "agent" ? "Agent" : service.agent_type === "service" ? "3rd Party Service" : "Command Augmentation"}
@@ -109,9 +112,6 @@ export function PayloadTypeRow({service, showDeleted}){
                     <Typography variant="body2" component="p" style={{whiteSpace: "pre-wrap"}}>
                         <b>Description: </b>{service.note}
                     </Typography>
-                </MythicTableCell>
-                <MythicTableCell>
-                    <MythicStatusChip label={service.container_running ? "Online" : "Offline"} status={service.container_running ? "success" : "error"} />
                 </MythicTableCell>
                 <MythicTableCell>
                     <div className="mythic-table-row-actions">

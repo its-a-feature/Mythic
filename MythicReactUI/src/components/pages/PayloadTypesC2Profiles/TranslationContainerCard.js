@@ -15,7 +15,7 @@ import MythicTableCell from "../../MythicComponents/MythicTableCell";
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import {C2ProfileListFilesDialog} from "./C2ProfileListFilesDialog";
-import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
+import {InstalledServiceContainerStatus} from "./InstalledServiceStatus";
 
 const toggleDeleteStatus = gql`
 mutation toggleC2ProfileDeleteStatus($translationcontainer_id: Int!, $deleted: Boolean!){
@@ -66,7 +66,10 @@ export function TranslationContainerRow({service, showDeleted}) {
                 <FontAwesomeIcon icon={faLanguage} style={{width: "80px", height: "80px"}} />
             </MythicTableCell>
             <MythicTableCell>
-                {service.name}
+                <div className="mythic-installed-service-identity">
+                    <span className="mythic-installed-service-name">{service.name}</span>
+                    <InstalledServiceContainerStatus isOnline={service.container_running} />
+                </div>
             </MythicTableCell>
             <MythicTableCell>
                 Translation
@@ -81,9 +84,6 @@ export function TranslationContainerRow({service, showDeleted}) {
                 <Typography variant="body2" component="p" style={{whiteSpace: "pre-wrap"}}>
                     <b>Description: </b>{service.description}
                 </Typography>
-            </MythicTableCell>
-            <MythicTableCell>
-                <MythicStatusChip label={service.container_running ? "Online" : "Offline"} status={service.container_running ? "success" : "error"} />
             </MythicTableCell>
             <MythicTableCell>
                 <div className="mythic-table-row-actions">

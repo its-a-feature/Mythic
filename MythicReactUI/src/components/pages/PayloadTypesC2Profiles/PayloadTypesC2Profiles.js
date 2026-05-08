@@ -477,7 +477,6 @@ A few examples are github.com/MythicAgents/bloodhound and github.com/MythicAgent
                                 <MythicTableCell>Service</MythicTableCell>
                                 <MythicTableCell style={{width: "4rem"}}>Type</MythicTableCell>
                                 <MythicTableCell>Metadata</MythicTableCell>
-                                <MythicTableCell>Status</MythicTableCell>
                                 <MythicTableCell style={{width: "12rem"}}>Actions</MythicTableCell>
                             </TableRow>
                         </TableHead>

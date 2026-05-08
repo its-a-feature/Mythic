@@ -351,8 +351,18 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 			}
 		}
 		if task.Command.ID == 0 {
-			logging.LogError(nil, "failed to find command matching payload type")
-			response.Error = "failed to find command matching payload type"
+			if createTaskInput.PayloadType != nil && *createTaskInput.PayloadType != "" {
+				logging.LogError(nil, "explicit payload type provided", "payload type", *createTaskInput.PayloadType, "no loaded commands match that payload type and name")
+				response.Error = fmt.Sprintf("This %s callback has no commands loaded that match the name (%s) and payload type (%s) provided.",
+					callback.Payload.Payloadtype.Name,
+					createTaskInput.CommandName,
+					*createTaskInput.PayloadType)
+			} else {
+				logging.LogError(nil, "failed to find command for callback's payload type", "command", createTaskInput.CommandName, "payload type", callback.Payload.Payloadtype.Name)
+				response.Error = fmt.Sprintf("This %s callback has no commands loaded that match the name %s",
+					callback.Payload.Payloadtype.Name,
+					createTaskInput.CommandName)
+			}
 			return response
 		}
 		task.CommandID.Int64 = int64(task.Command.ID)
