@@ -1,9 +1,11 @@
 package webcontroller
 
 import (
+	"encoding/json"
+	"net/http"
+
 	"github.com/its-a-feature/Mythic/database"
 	"github.com/its-a-feature/Mythic/eventing"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -72,14 +74,16 @@ func TagCreateWebhook(c *gin.Context) {
 		Source:    input.Input.Source,
 		TagTypeID: input.Input.TagTypeID,
 	}
-	switch input.Input.Data.(type) {
-	case string:
+	var jsonData json.RawMessage
+	err = json.Unmarshal([]byte(input.Input.Data.(string)), &jsonData)
+	if err != nil {
 		databaseObj.Data = rabbitmq.GetMythicJSONTextFromStruct(map[string]interface{}{
 			"input": input.Input.Data,
 		})
-	default:
-		databaseObj.Data = rabbitmq.GetMythicJSONTextFromStruct(input.Input.Data)
+	} else {
+		databaseObj.Data = rabbitmq.GetMythicJSONTextFromStruct(jsonData)
 	}
+
 	APITokenID, ok := c.Get("apitokens-id")
 	associatedWithValidObject := false
 	if ok {

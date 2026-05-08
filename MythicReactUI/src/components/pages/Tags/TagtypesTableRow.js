@@ -7,8 +7,8 @@ import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {NewTagtypesDialog} from './NewTagtypesDialog';
-import Chip from '@mui/material/Chip';
 import EditIcon from '@mui/icons-material/Edit';
+import {TagTypeChip} from "../../MythicComponents/MythicTagChip";
 
 
 export function TagtypesTableRow(props){
@@ -49,7 +49,7 @@ export function TagtypesTableRow(props){
                     {props.tags_aggregate.aggregate.count}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                  <Chip label={props.name} size="small" style={{backgroundColor:props.color}} />
+                  <TagTypeChip tagtype={props} />
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                   {props.description}

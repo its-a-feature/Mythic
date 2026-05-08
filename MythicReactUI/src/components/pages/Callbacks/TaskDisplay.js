@@ -56,6 +56,7 @@ export const classes = {
   taskCommandTextCompact: `${PREFIX}-taskCommandTextCompact`,
   taskCommandName: `${PREFIX}-taskCommandName`,
   taskCommandParams: `${PREFIX}-taskCommandParams`,
+  taskTags: `${PREFIX}-taskTags`,
   taskChildToggle: `${PREFIX}-taskChildToggle`,
   taskCommentBlock: `${PREFIX}-taskCommentBlock`,
   consolePrompt: `${PREFIX}-consolePrompt`
@@ -231,6 +232,9 @@ export const StyledPaper = styled(Paper)((
     minWidth: 0,
     width: "100%",
   },
+  [`& .${classes.taskHeaderBodyCompact} .${classes.taskCommandRow}`]: {
+    alignItems: "center",
+  },
   [`& .${classes.taskCommandText}`]: {
     color: theme.taskPromptCommandTextColor,
     flex: "1 1 auto",
@@ -251,6 +255,33 @@ export const StyledPaper = styled(Paper)((
   [`& .${classes.taskCommandParams}`]: {
     color: theme.palette.text.primary,
     overflowWrap: "anywhere",
+  },
+  [`& .${classes.taskTags}`]: {
+    alignItems: "center",
+    display: "inline-flex",
+    flex: "0 1 auto",
+    flexWrap: "wrap",
+    gap: 3,
+    justifyContent: "flex-end",
+    marginLeft: "auto",
+    maxWidth: "34%",
+    minWidth: 0,
+    "& .MuiChip-root": {
+      float: "none !important",
+      height: "16px !important",
+      margin: 0,
+      maxWidth: "10rem",
+    },
+    "& .MuiChip-label": {
+      minWidth: 0,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+    },
+  },
+  [`& .${classes.taskHeaderBodyCompact} .${classes.taskTags}`]: {
+    flexWrap: "nowrap",
+    maxHeight: 20,
+    overflow: "hidden",
   },
   [`& .${classes.taskChildToggle}`]: {
     color: theme.palette.text.secondary,
@@ -494,8 +525,13 @@ const TaskHeaderAction = ({title, children, ...props}) => (
   </MythicStyledTooltip>
 )
 const TaskTagDisplay = ({task}) => {
+  if(!task.tags || task.tags.length === 0){
+    return null;
+  }
   return (
-    <TagsDisplay tags={task.tags} />
+    <span className={classes.taskTags}>
+      <TagsDisplay tags={task.tags} />
+    </span>
   )
 }
 const isTaskHeaderInteractiveClick = (e) => {
@@ -628,6 +664,7 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
             <MythicStyledTooltip maxWidth={"calc(80vw)"}
                                  enterDelay={2000}
                                  placement={"top"}
+                                 tooltipStyle={{display: "block", flex: "1 1 auto", minWidth: 0}}
                                  title={commandLine} >
               <Typography className={compact ? `${classes.taskCommandText} ${classes.taskCommandTextCompact}` : classes.taskCommandText} component="div">
                 <span className={classes.taskCommandName}>{command}</span>
@@ -636,8 +673,8 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
                 }
               </Typography>
             </MythicStyledTooltip>
+            <TaskTagDisplay task={task}/>
           </div>
-          <TaskTagDisplay task={task}/>
         </div>
         {openKillTaskButton.open &&
             <TaskFromUIButton ui_feature={"task:job_kill"}
