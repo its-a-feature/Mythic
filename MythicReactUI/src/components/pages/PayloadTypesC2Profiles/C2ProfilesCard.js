@@ -33,8 +33,7 @@ import TableRow from '@mui/material/TableRow';
 import MythicTableCell from "../../MythicComponents/MythicTableCell";
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
-import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import {C2ProfileStatusSummary} from "./InstalledServiceStatus";
 
 
 const toggleDeleteStatus = gql`
@@ -148,8 +147,6 @@ export function C2ProfilesRow({service, showDeleted}) {
     if(service.deleted && !showDeleted){
         return null;
     }
-    const containerStatus = !service.container_running ? "error" : service.is_p2p ? "success" : "neutral";
-    const containerIcon = service.container_running && !service.is_p2p ? <CheckCircleOutlineIcon /> : undefined;
     return (
         <>
             <TableRow hover>
@@ -178,7 +175,10 @@ export function C2ProfilesRow({service, showDeleted}) {
 
                 </MythicTableCell>
                 <MythicTableCell>
-                    {service.name}
+                    <div className="mythic-installed-service-identity">
+                        <span className="mythic-installed-service-name">{service.name}</span>
+                        <C2ProfileStatusSummary service={service} />
+                    </div>
                 </MythicTableCell>
                 <MythicTableCell>{service.is_p2p ? "P2P" : "Egress"}</MythicTableCell>
                 <MythicTableCell>
@@ -196,29 +196,6 @@ export function C2ProfilesRow({service, showDeleted}) {
                     <Typography variant="body2" component="p" style={{whiteSpace: "pre-wrap"}}>
                         <b>Description: </b>{service.description}
                     </Typography>
-                </MythicTableCell>
-                <MythicTableCell>
-                    <Typography variant="body2" component="p" >
-                        <b>Container Status: </b>
-                    </Typography>
-                    <MythicStatusChip
-                        label={service.container_running ? "Online" : "Offline"}
-                        icon={containerIcon}
-                        status={containerStatus}
-                        showIcon
-                    />
-                    {!service.is_p2p &&
-                        <React.Fragment>
-                            <Typography variant="body2" component="p" >
-                                <b>C2 Server Status: </b>
-                            </Typography>
-                            <MythicStatusChip
-                                label={!service.container_running ? "Unavailable" : service.running ? "Accepting Connections" : "Not Accepting Connections"}
-                                status={!service.container_running ? "neutral" : service.running ? "success" : "error"}
-                                showIcon={service.container_running}
-                            />
-                        </React.Fragment>
-                    }
                 </MythicTableCell>
                 <MythicTableCell>
                     {service.container_running ? (

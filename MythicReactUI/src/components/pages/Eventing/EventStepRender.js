@@ -89,6 +89,7 @@ subscription GetEventStepInstances($eventgroupinstance_id: Int!) {
         order
         action
     }
+    eventgroupinstance_id
     created_at
     updated_at
     end_timestamp
@@ -109,7 +110,6 @@ query getEventStepInstanceDetails($eventstepinstance_id: Int!){
         created_at
         order
         end_timestamp
-        action
         action_data
         stdout
         stderr
@@ -399,7 +399,7 @@ const getStatusClass = (status) => {
 }
 const hasEventingStatus = (status) => status !== undefined && status !== null && status !== "";
 const getEventingStatusClass = (status) => hasEventingStatus(status) ? getStatusClass(status) : "configured";
-const EventingStatusChip = ({data}) => {
+export const EventingStatusChip = ({data}) => {
     const hasStatus = hasEventingStatus(data?.status);
     return (
         <span className={`mythic-eventing-status-chip mythic-eventing-status-chip-${getEventingStatusClass(data?.status)}`.trim()}>
@@ -429,11 +429,46 @@ const stringifyEventingValue = (value) => {
     }
 }
 const EventingCodeBlock = ({value, emptyText="No data"}) => {
+    const theme = useTheme();
     const displayValue = stringifyEventingValue(value);
+    const formattedValue = React.useMemo(() => {
+        if(displayValue === ""){
+            return "";
+        }
+        try{
+            return JSON.stringify(JSON.parse(displayValue), null, 2);
+        }catch(error){
+            return JSON.stringify(displayValue, null, 2);
+        }
+    }, [displayValue]);
+    const lineCount = Math.max(3, Math.min(18, formattedValue.split("\n").length));
     return (
-        <pre className={`mythic-eventing-code-block ${displayValue === "" ? "mythic-eventing-code-block-empty" : ""}`.trim()}>
-            {displayValue === "" ? emptyText : displayValue}
-        </pre>
+        <div className={`mythic-eventing-code-block ${displayValue === "" ? "mythic-eventing-code-block-empty" : ""}`.trim()}>
+            {displayValue === "" ? (
+                emptyText
+            ) : (
+                <AceEditor
+                    mode="json"
+                    theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}
+                    fontSize={13}
+                    showGutter={true}
+                    highlightActiveLine={false}
+                    readOnly={true}
+                    showPrintMargin={false}
+                    value={formattedValue}
+                    width="100%"
+                    minLines={lineCount}
+                    maxLines={18}
+                    wrapEnabled={true}
+                    setOptions={{
+                        showLineNumbers: true,
+                        tabSize: 2,
+                        useWorker: false,
+                    }}
+                    editorProps={{$blockScrolling: true}}
+                />
+            )}
+        </div>
     )
 }
 const EventingDetailSection = ({title, subtitle, count, actions, children, className = "", collapsible = false, defaultExpanded = false}) => {
@@ -862,6 +897,7 @@ function EventStepInstanceRender({selectedEventGroupInstance}) {
     const [graphData, setGraphData] = React.useState({nodes: [], edges: [], groups: []});
     const {fitView} = useReactFlow()
     const updateNodeInternals = useUpdateNodeInternals();
+    const selectedEventGroupInstanceRef = React.useRef(selectedEventGroupInstance);
     const [retryFromEventStep] = useMutation(retryFromEventStepMutation, {
         onCompleted: (data) => {
             if(data.eventingTriggerRetryFromStep.status === "success"){
@@ -883,21 +919,33 @@ function EventStepInstanceRender({selectedEventGroupInstance}) {
         []
     );
     const viewportRef = React.useRef(null);
+    React.useEffect(() => {
+        selectedEventGroupInstanceRef.current = selectedEventGroupInstance;
+        setSteps([]);
+        setNodes([]);
+        setEdges([]);
+        setGraphData({nodes: [], edges: [], groups: []});
+        setOpenContextMenu(false);
+    }, [selectedEventGroupInstance]);
     useSubscription(sub_eventstepinstance, {
         variables: {eventgroupinstance_id: selectedEventGroupInstance},
         fetchPolicy: "no-cache",
         onData: ({data}) => {
-            const newSteps = data.data.eventstepinstance_stream.reduce( (prev, cur) => {
-                let indx = prev.findIndex( ({id}) => id === cur.id);
-                if(indx > -1){
-                    let updatingPrev = [...prev];
-                    updatingPrev[indx] = cur;
-                    return [...updatingPrev];
-                }
-                return [...prev, cur];
-            }, [...steps]);
-            newSteps.sort((a,b) => (a.id > b.id) ? -1 : ((b.id > a.id) ? 1 : 0));
-            setSteps(newSteps);
+            const activeEventGroupInstance = selectedEventGroupInstanceRef.current;
+            setSteps((previousSteps) => {
+                const incomingSteps = data.data.eventstepinstance_stream.filter((cur) => `${cur.eventgroupinstance_id}` === `${activeEventGroupInstance}`);
+                const newSteps = incomingSteps.reduce( (prev, cur) => {
+                    let indx = prev.findIndex( ({id}) => id === cur.id);
+                    if(indx > -1){
+                        let updatingPrev = [...prev];
+                        updatingPrev[indx] = cur;
+                        return [...updatingPrev];
+                    }
+                    return [...prev, cur];
+                }, [...previousSteps]);
+                newSteps.sort((a,b) => (a.id > b.id) ? -1 : ((b.id > a.id) ? 1 : 0));
+                return newSteps;
+            });
         }
     });
     const contextMenu = React.useMemo(() => {return [
@@ -1079,6 +1127,9 @@ function EventStepInstanceRender({selectedEventGroupInstance}) {
                     }
                     fitView();
                 });
+            } else {
+                setNodes([]);
+                setEdges([]);
             }
         })();
     }, [graphData]);
