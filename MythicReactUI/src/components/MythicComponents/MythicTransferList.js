@@ -24,8 +24,8 @@ export const StyledDivider = styled(Divider)((
     }
 ) => ({
     [`&.${classes.divider}`]: {
-        backgroundColor: "rgb(100, 170, 204)",
-        border: "2px solid rgba(100, 170, 204)"
+        backgroundColor: theme.palette.primary.main,
+        border: `2px solid ${theme.palette.primary.main}`
     }
 }));
 export const StyledButton = styled(Button)((

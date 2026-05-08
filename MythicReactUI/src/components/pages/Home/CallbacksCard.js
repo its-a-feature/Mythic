@@ -12,7 +12,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Popover from '@mui/material/Popover';
-import {CallbackDataCard, DashboardEmptyCard, GaugeCard, LineTimeMultiChartCard, PieChartCard, TableDataCard} from './DashboardComponents';
+import {CallbackDataCard, DashboardEmptyCard, GaugeCard, getDashboardColors, LineTimeMultiChartCard, PieChartCard, TableDataCard} from './DashboardComponents';
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {b64DecodeUnicode} from "../Callbacks/ResponseDisplay";
@@ -226,19 +226,6 @@ function getNormalizedTaskStatusColor (theme, taskStatus) {
 }
 // Hour in milliseconds
 const ONE_HOUR = 60 * 60 * 1000;
-const errorColors = [
-    "#de1212",
-    "#d56b6b",
-    "#de6012",
-    "#de126e",
-    "#d712de",
-    "#e06597",
-    "#de7d54",
-    "#640909",
-    "#7e0a86",
-    "#832f0b",
-];
-
 const dashboardOptions = ["operator", "lead", "custom"];
 const dashboardElementGridSpans = {
     "Activity Timeline": 2,
@@ -1204,6 +1191,7 @@ const MyOperationsDashboardElement = ({me, data, reloadDashboard, editing, remov
     )
 }
 const Top10CommandErrorStatsDashboardElement = ({me, data, editing, removeElement}) => {
+    const theme = useTheme();
     const navigate = useNavigate();
     const [commands, setCommands] = React.useState([]);
     const handleErrorTaskClick = (event, item) => {
@@ -1231,14 +1219,15 @@ const Top10CommandErrorStatsDashboardElement = ({me, data, editing, removeElemen
                 value: value
             })
         }
+        const chartColors = getDashboardColors(theme);
         commandErrorArrayOptions = commandErrorArrayOptions.sort((a, b) => b.value - a.value).slice(0, 10).map( (c, i) => {
             return {
                 ...c,
-                color: errorColors[i]
+                color: chartColors[(i + 3) % chartColors.length]
             }
         })
         setCommands(commandErrorArrayOptions);
-    }, [data]);
+    }, [data, theme]);
     return (
         <PieChartCard data={commands} onClick={handleErrorTaskClick}
                            title={"Top 10 Command Error Stats"} hidden={false}
@@ -1363,6 +1352,7 @@ const TaskStatusDashboardElement = ({me, data, editing, removeElement}) => {
     )
 }
 const ActivityPerDayDashboardElement = ({me, data, editing, removeElement}) => {
+    const theme = useTheme();
     const [tasksPerDay, setTasksPerDay] = React.useState({x: [], y: []});
     React.useEffect( () => {
         let callbackData = {};
@@ -1448,7 +1438,7 @@ const ActivityPerDayDashboardElement = ({me, data, editing, removeElement}) => {
                         highlighted: "series",
                         faded: "global",
                     },
-                    color: '#44b636',
+                    color: theme.palette.success.main,
                     yAxisId: "callbackAxis",
                 })
             }
@@ -1464,7 +1454,7 @@ const ActivityPerDayDashboardElement = ({me, data, editing, removeElement}) => {
             })
         }
         setTasksPerDay({x: taskDayArrayOptions, y: taskDayArrayOperatorOptions});
-    }, [data]);
+    }, [data, theme.palette.success.main]);
     return (
         <LineTimeMultiChartCard data={tasksPerDay} view_utc_time={me?.user?.view_utc_time} editing={editing}
                                 removeElement={removeElement}/>

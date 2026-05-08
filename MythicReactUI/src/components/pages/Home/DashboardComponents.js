@@ -16,27 +16,14 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import Paper from "@mui/material/Paper";
 import {MythicEmptyState} from "../../MythicComponents/MythicStateDisplay";
 
-const fallbackDashboardColors = [
-    '#09bdff',
-    '#39b86f',
-    '#d69d2d',
-    '#d65c6b',
-    '#7b6fd6',
-    '#24a3a3',
-    '#9c6ade',
-    '#d47f38',
-    '#4e7ad7',
-    '#90a955',
-];
-
-const getDashboardColors = (theme) => [
+export const getDashboardColors = (theme) => [
     theme.palette.info.main,
     theme.palette.success.main,
     theme.palette.warning.main,
     theme.palette.error.main,
     theme.palette.secondary.main,
     theme.palette.primary.main,
-    ...fallbackDashboardColors,
+    ...(theme.chartSeriesColors || []),
 ];
 
 const DashboardCard = ({

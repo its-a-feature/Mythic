@@ -14,6 +14,7 @@ import { MythicDisplayTextDialog} from '../../MythicComponents/MythicDisplayText
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import { SelectPayloadTypeDialog } from './SelectPayloadTypeDialog';
 import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/MythicPageHeader";
+import {useTheme} from "@mui/material/styles";
 
 
 export function MitreGrid({entries, onGetCommands, onGetTasks, onGetCommandsFiltered, onGetTasksFiltered, onFilterByTags, showCountGrouping}){
@@ -56,6 +57,7 @@ export function MitreGrid({entries, onGetCommands, onGetTasks, onGetCommandsFilt
 }
 
 function PoperDropdown({onGetCommands, onGetTasks, onGetCommandsFiltered, onGetTasksFiltered, onFilterByTags, setBackdropOpen, entries, showCountGrouping}){
+    const theme = useTheme();
     const dropdownAnchorRef = React.useRef(null);
     const [dropdownOpen, setDropdownOpen] = React.useState(false);
     const [openLicense, setOpenLicense] = React.useState(false);
@@ -164,9 +166,9 @@ function PoperDropdown({onGetCommands, onGetTasks, onGetCommandsFiltered, onGetT
             ],
             "gradient": {
                 "colors": [
-                    "#ff6666ff",
-                    "#ffe766ff",
-                    "#8ec843ff"
+                    theme.palette.error.main,
+                    theme.palette.warning.main,
+                    theme.palette.success.main
                 ],
                 "minValue": 0,
                 "maxValue": 100
@@ -175,7 +177,7 @@ function PoperDropdown({onGetCommands, onGetTasks, onGetCommandsFiltered, onGetT
             "metadata": [],
             "links": [],
             "showTacticRowBackground": false,
-            "tacticRowBackground": "#dddddd",
+            "tacticRowBackground": theme.tableHeader,
             "selectTechniquesAcrossTactics": true,
             "selectSubtechniquesWithParent": false
         };
@@ -190,7 +192,7 @@ function PoperDropdown({onGetCommands, onGetTasks, onGetCommandsFiltered, onGetT
                             {
                                 "techniqueID": entries[key].rows[i].t_num,
                                 "tactic": key.replaceAll(" ", "-").toLowerCase(),
-                                "color": "#bc3b24",
+                                "color": theme.palette.error.main,
                                 "enabled": true,
                                 "comment": "",
                                 "metadata": [],
@@ -206,7 +208,7 @@ function PoperDropdown({onGetCommands, onGetTasks, onGetCommandsFiltered, onGetT
                             {
                                 "techniqueID": entries[key].rows[i].t_num,
                                 "tactic": key.replaceAll(" ", "-").toLowerCase(),
-                                "color": "#bc3b24",
+                                "color": theme.palette.error.main,
                                 "enabled": true,
                                 "comment": "",
                                 "metadata": [],

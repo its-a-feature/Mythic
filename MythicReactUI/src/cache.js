@@ -130,6 +130,14 @@ export const operatorSettingDefaults =  {
             dark: '#161b22',
             light: '#ffffff'
         },
+        surfaceRaised: {
+            dark: '#1b222c',
+            light: '#ffffff'
+        },
+        surfaceMuted: {
+            dark: '#121820',
+            light: '#eef2f6'
+        },
         tableHeader: {
             dark: '#484848',
             light: '#c4c4c4'
@@ -142,9 +150,93 @@ export const operatorSettingDefaults =  {
             dark: '#171d25',
             light: '#ffffff'
         },
+        pageHeaderText: {
+            dark: "#e5e7eb",
+            light: "#111827",
+        },
+        sectionHeaderAccent: {
+            dark: "#8ab4f8",
+            light: "#2563eb",
+        },
+        sectionHeaderGradientStart: {
+            dark: "#374760",
+            light: "#d8e3fb",
+        },
+        sectionHeaderGradientMiddle: {
+            dark: "#253040",
+            light: "#edf3fe",
+        },
+        sectionHeaderGradientEnd: {
+            dark: "#242a31",
+            light: "#f5f6f7",
+        },
+        subtleAccentGradientStart: {
+            dark: "#1d2b3f",
+            light: "#edf4ff",
+        },
+        subtleAccentGradientEnd: {
+            dark: "#161b22",
+            light: "#ffffff",
+        },
+        graphGroupColor: {
+            dark: "#394c5d",
+            light: "#d3d7e8",
+        },
+        speedDialAction: {
+            dark: "#495054",
+            light: "#ffffff",
+        },
+        chartSeries1: {
+            dark: "#09bdff",
+            light: "#09bdff",
+        },
+        chartSeries2: {
+            dark: "#39b86f",
+            light: "#39b86f",
+        },
+        chartSeries3: {
+            dark: "#d69d2d",
+            light: "#d69d2d",
+        },
+        chartSeries4: {
+            dark: "#d65c6b",
+            light: "#d65c6b",
+        },
+        chartSeries5: {
+            dark: "#7b6fd6",
+            light: "#7b6fd6",
+        },
+        chartSeries6: {
+            dark: "#24a3a3",
+            light: "#24a3a3",
+        },
+        chartSeries7: {
+            dark: "#9c6ade",
+            light: "#9c6ade",
+        },
+        chartSeries8: {
+            dark: "#d47f38",
+            light: "#d47f38",
+        },
+        chartSeries9: {
+            dark: "#4e7ad7",
+            light: "#4e7ad7",
+        },
+        chartSeries10: {
+            dark: "#90a955",
+            light: "#90a955",
+        },
         text: {
             dark: "#e5e7eb",
             light: "#111827",
+        },
+        textSecondary: {
+            dark: "#9ca3af",
+            light: "#475569",
+        },
+        textDisabled: {
+            dark: "#6b7280",
+            light: "#94a3b8",
         },
         selectedCallbackColor: {
             dark: '#1e3a5f',
@@ -197,6 +289,10 @@ export const operatorSettingDefaults =  {
         emptyFolderColor: {
             dark: '#94a3b8',
             light: '#64748b'
+        },
+        folderColor: {
+            dark: '#f1d592',
+            light: '#f1d592'
         },
         outputBackgroundColor: {
             dark: '#0b1017',

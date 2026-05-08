@@ -62,6 +62,22 @@ query getUserSettings {
 }
 `;
 
+const normalizeBackgroundImageValue = (value) => {
+    if(typeof value !== "string" || value.length === 0){
+        return null;
+    }
+    if(value.startsWith("data:image/")){
+        return `url("${value}")`;
+    }
+    if(value.startsWith("url(\"data:image/") && !value.endsWith("\")")){
+        return `${value}")`;
+    }
+    if(value.startsWith("url(data:image/") && !value.endsWith(")")){
+        return `${value})`;
+    }
+    return value;
+}
+
 const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefaults) => {
     const isDark = themeMode === "dark";
     const mode = isDark ? "dark" : "light";
@@ -76,15 +92,24 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
         return color;
     };
     const textPrimary = getColor("text");
-    const textSecondary = isDark ? "#9ca3af" : "#475569";
+    const textSecondary = getColor("textSecondary");
     const borderColor = getColor("borderColor");
     const backgroundDefault = getColor("background");
     const backgroundPaper = getColor("paper");
+    const surfaceRaised = getColor("surfaceRaised");
+    const surfaceMuted = getColor("surfaceMuted");
     const navBackground = getColor("navBarColor");
     const navAccent = getColor("navBarBottomColor");
     const navText = getColor("navBarText");
     const navIcon = getColor("navBarIcons");
     const primary = getColor("primary");
+    const sectionHeaderAccent = getColor("sectionHeaderAccent");
+    const sectionHeaderGradientStart = getColor("sectionHeaderGradientStart");
+    const sectionHeaderGradientMiddle = getColor("sectionHeaderGradientMiddle");
+    const sectionHeaderGradientEnd = getColor("sectionHeaderGradientEnd");
+    const subtleAccentGradientStart = getColor("subtleAccentGradientStart");
+    const subtleAccentGradientEnd = getColor("subtleAccentGradientEnd");
+    const chartSeriesColors = Array.from({length: 10}, (_, index) => getColor(`chartSeries${index + 1}`));
     const tableHeaderColor = getColor("tableHeader");
     const tableHoverColor = getColor("tableHover");
     const tableRowStripeColor = withAlpha(tableHoverColor, isDark ? "55" : "66");
@@ -99,7 +124,12 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
             borderRadius: 6,
         },
         pageHeaderText: {
-            main: textPrimary,
+            main: getColor("pageHeaderText"),
+        },
+        gradients: {
+            sectionHeader: `linear-gradient(90deg, ${sectionHeaderGradientStart} 0%, ${sectionHeaderGradientMiddle} 48%, ${sectionHeaderGradientEnd} 100%)`,
+            subtleAccent: `linear-gradient(135deg, ${subtleAccentGradientStart} 0%, ${subtleAccentGradientEnd} 62%)`,
+            subtleAccentHorizontal: `linear-gradient(90deg, ${subtleAccentGradientStart} 0%, ${subtleAccentGradientEnd} 100%)`,
         },
         navigation: {
             background: `linear-gradient(180deg, ${navBackground}, ${navAccent})`,
@@ -112,11 +142,18 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
             muted: withAlpha(navText, "B3"),
             accent: navAccent,
         },
+        sectionHeader: {
+            accent: sectionHeaderAccent,
+            gradientStart: sectionHeaderGradientStart,
+            gradientMiddle: sectionHeaderGradientMiddle,
+            gradientEnd: sectionHeaderGradientEnd,
+        },
+        chartSeriesColors,
         surfaces: {
             app: backgroundDefault,
             paper: backgroundPaper,
-            raised: isDark ? "#1b222c" : "#ffffff",
-            muted: isDark ? withAlpha(backgroundDefault, "DD") : withAlpha(backgroundDefault, "EE"),
+            raised: surfaceRaised,
+            muted: surfaceMuted,
             hover: tableRowHoverColor,
             selected: tableSelectedColor,
         },
@@ -639,27 +676,35 @@ export function App(props) {
                                 preferences?.palette?.background?.light || operatorSettingDefaults.palette.background.light,
                             paper: themeMode === "dark" ?  preferences?.palette?.paper?.dark || operatorSettingDefaults.palette.paper.dark :
                                 preferences?.palette?.paper?.light || operatorSettingDefaults.palette.paper.light,
-                            image: themeMode === "dark" ?  preferences?.palette?.backgroundImage?.dark || operatorSettingDefaults.palette.backgroundImage.dark :
-                                preferences?.palette?.backgroundImage?.light || operatorSettingDefaults.palette.backgroundImage.light,
+                            image: normalizeBackgroundImageValue(themeMode === "dark" ?  preferences?.palette?.backgroundImage?.dark || operatorSettingDefaults.palette.backgroundImage.dark :
+                                preferences?.palette?.backgroundImage?.light || operatorSettingDefaults.palette.backgroundImage.light),
                         },
                         text: {
                             primary: themeMode === 'dark' ? preferences?.palette?.text?.dark || operatorSettingDefaults.palette.text.dark :
                                 preferences?.palette?.text?.light || operatorSettingDefaults.palette.text.light,
-                            secondary: themeMode === 'dark' ? '#9ca3af' : '#475569',
-                            disabled: themeMode === 'dark' ? '#6b7280' : '#94a3b8',
+                            secondary: themeMode === 'dark' ? preferences?.palette?.textSecondary?.dark || operatorSettingDefaults.palette.textSecondary.dark :
+                                preferences?.palette?.textSecondary?.light || operatorSettingDefaults.palette.textSecondary.light,
+                            disabled: themeMode === 'dark' ? preferences?.palette?.textDisabled?.dark || operatorSettingDefaults.palette.textDisabled.dark :
+                                preferences?.palette?.textDisabled?.light || operatorSettingDefaults.palette.textDisabled.light,
                             contrast: themeMode === 'dark' ? '#000' : '#fff',
                         },
                         action: {
-                            hover: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.07)' : 'rgba(15, 23, 42, 0.06)',
-                            selected: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.11)' : 'rgba(37, 99, 235, 0.10)',
-                            focus: themeMode === 'dark' ? 'rgba(138, 180, 248, 0.20)' : 'rgba(37, 99, 235, 0.18)',
+                            hover: themeMode === 'dark' ? `${preferences?.palette?.tableHover?.dark || operatorSettingDefaults.palette.tableHover.dark}CC` :
+                                `${preferences?.palette?.tableHover?.light || operatorSettingDefaults.palette.tableHover.light}CC`,
+                            selected: themeMode === 'dark' ? `${preferences?.palette?.selectedCallbackColor?.dark || operatorSettingDefaults.palette.selectedCallbackColor.dark}99` :
+                                `${preferences?.palette?.selectedCallbackColor?.light || operatorSettingDefaults.palette.selectedCallbackColor.light}99`,
+                            focus: themeMode === 'dark' ? `${preferences?.palette?.primary?.dark || operatorSettingDefaults.palette.primary.dark}55` :
+                                `${preferences?.palette?.primary?.light || operatorSettingDefaults.palette.primary.light}33`,
                         },
                         divider: themeMode === 'dark' ? preferences?.palette?.borderColor?.dark || operatorSettingDefaults.palette.borderColor.dark :
                             preferences?.palette?.borderColor?.light || operatorSettingDefaults.palette.borderColor.light,
-                        graphGroupRGBA: themeMode === 'dark' ? 'rgba(57, 76, 93, 0.5)' : 'rgba(211, 215, 232, 0.5)',
-                        speedDialAction: themeMode === 'dark' ? '#495054' : '#ffffff',
+                        graphGroupRGBA: themeMode === 'dark' ? `${preferences?.palette?.graphGroupColor?.dark || operatorSettingDefaults.palette.graphGroupColor.dark}80` :
+                            `${preferences?.palette?.graphGroupColor?.light || operatorSettingDefaults.palette.graphGroupColor.light}80`,
+                        speedDialAction: themeMode === 'dark' ? preferences?.palette?.speedDialAction?.dark || operatorSettingDefaults.palette.speedDialAction.dark :
+                            preferences?.palette?.speedDialAction?.light || operatorSettingDefaults.palette.speedDialAction.light,
                     },
-                    folderColor: '#f1d592',
+                    folderColor: themeMode === 'dark' ? preferences?.palette?.folderColor?.dark || operatorSettingDefaults.palette.folderColor.dark :
+                        preferences?.palette?.folderColor?.light || operatorSettingDefaults.palette.folderColor.light,
                     tableHeader: themeMode === 'dark' ? preferences?.palette?.tableHeader?.dark || operatorSettingDefaults.palette.tableHeader.dark :
                         preferences?.palette?.tableHeader?.light || operatorSettingDefaults.palette.tableHeader.light,
                     selectedCallbackColor: themeMode === 'dark' ? preferences?.palette?.selectedCallbackColor?.dark || operatorSettingDefaults.palette.selectedCallbackColor.dark :
@@ -677,8 +722,8 @@ export function App(props) {
                             preferences?.palette?.pageHeader?.light || operatorSettingDefaults.palette.pageHeader.light,
                     },
                     pageHeaderText: {
-                        main: themeMode === 'dark' ? preferences?.palette?.text?.dark || operatorSettingDefaults.palette.text.dark :
-                            preferences?.palette?.text?.light || operatorSettingDefaults.palette.text.light,
+                        main: themeMode === 'dark' ? preferences?.palette?.pageHeaderText?.dark || operatorSettingDefaults.palette.pageHeaderText.dark :
+                            preferences?.palette?.pageHeaderText?.light || operatorSettingDefaults.palette.pageHeaderText.light,
                     },
                     topAppBarColor: themeMode === 'dark' ? (preferences?.palette?.navBarColor?.dark || operatorSettingDefaults.palette.navBarColor.dark) :
                         (preferences?.palette?.navBarColor?.light || operatorSettingDefaults.palette.navBarColor.light),
@@ -751,27 +796,35 @@ export function App(props) {
                                 operatorSettingDefaults.palette.background.light,
                             paper: themeMode === "dark" ?  operatorSettingDefaults.palette.paper.dark :
                                 operatorSettingDefaults.palette.paper.light,
-                            image: themeMode === "dark" ?  operatorSettingDefaults.palette.backgroundImage.dark :
-                                operatorSettingDefaults.palette.backgroundImage.light,
+                            image: normalizeBackgroundImageValue(themeMode === "dark" ?  operatorSettingDefaults.palette.backgroundImage.dark :
+                                operatorSettingDefaults.palette.backgroundImage.light),
                         },
                         text: {
                             primary: themeMode === 'dark' ? operatorSettingDefaults.palette.text.dark :
                                 operatorSettingDefaults.palette.text.light,
-                            secondary: themeMode === 'dark' ? '#9ca3af' : '#475569',
-                            disabled: themeMode === 'dark' ? '#6b7280' : '#94a3b8',
+                            secondary: themeMode === 'dark' ? operatorSettingDefaults.palette.textSecondary.dark :
+                                operatorSettingDefaults.palette.textSecondary.light,
+                            disabled: themeMode === 'dark' ? operatorSettingDefaults.palette.textDisabled.dark :
+                                operatorSettingDefaults.palette.textDisabled.light,
                             contrast: themeMode === 'dark' ? '#000' : '#fff',
                         },
                         action: {
-                            hover: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.07)' : 'rgba(15, 23, 42, 0.06)',
-                            selected: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.11)' : 'rgba(37, 99, 235, 0.10)',
-                            focus: themeMode === 'dark' ? 'rgba(138, 180, 248, 0.20)' : 'rgba(37, 99, 235, 0.18)',
+                            hover: themeMode === 'dark' ? `${operatorSettingDefaults.palette.tableHover.dark}CC` :
+                                `${operatorSettingDefaults.palette.tableHover.light}CC`,
+                            selected: themeMode === 'dark' ? `${operatorSettingDefaults.palette.selectedCallbackColor.dark}99` :
+                                `${operatorSettingDefaults.palette.selectedCallbackColor.light}99`,
+                            focus: themeMode === 'dark' ? `${operatorSettingDefaults.palette.primary.dark}55` :
+                                `${operatorSettingDefaults.palette.primary.light}33`,
                         },
                         divider: themeMode === 'dark' ? operatorSettingDefaults.palette.borderColor.dark :
                             operatorSettingDefaults.palette.borderColor.light,
-                        graphGroupRGBA: themeMode === 'dark' ? 'rgba(57, 76, 93, 0.5)' : 'rgba(211, 215, 232, 0.5)',
-                        speedDialAction: themeMode === 'dark' ? '#495054' : '#ffffff',
+                        graphGroupRGBA: themeMode === 'dark' ? `${operatorSettingDefaults.palette.graphGroupColor.dark}80` :
+                            `${operatorSettingDefaults.palette.graphGroupColor.light}80`,
+                        speedDialAction: themeMode === 'dark' ? operatorSettingDefaults.palette.speedDialAction.dark :
+                            operatorSettingDefaults.palette.speedDialAction.light,
                     },
-                    folderColor: '#f1d592',
+                    folderColor: themeMode === 'dark' ? operatorSettingDefaults.palette.folderColor.dark :
+                        operatorSettingDefaults.palette.folderColor.light,
                     tableHeader: themeMode === 'dark' ? operatorSettingDefaults.palette.tableHeader.dark :
                         operatorSettingDefaults.palette.tableHeader.light,
                     selectedCallbackColor: themeMode === 'dark' ? operatorSettingDefaults.palette.selectedCallbackColor.dark :
@@ -789,8 +842,8 @@ export function App(props) {
                             operatorSettingDefaults.palette.pageHeader.light,
                     },
                     pageHeaderText: {
-                        main: themeMode === 'dark' ? operatorSettingDefaults.palette.text.dark :
-                            operatorSettingDefaults.palette.text.light,
+                        main: themeMode === 'dark' ? operatorSettingDefaults.palette.pageHeaderText.dark :
+                            operatorSettingDefaults.palette.pageHeaderText.light,
                     },
                     topAppBarColor: themeMode === 'dark' ? operatorSettingDefaults.palette.navBarColor.dark :
                         operatorSettingDefaults.palette.navBarColor.light,

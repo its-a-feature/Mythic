@@ -623,7 +623,7 @@ const TaskActionsToolbarGeneric = ({toggleViewBrowserScript, toggleSelectAllOutp
       }
         <Paper className="mythic-response-actions-toolbar" elevation={0} sx={{
           alignItems: "center",
-          backgroundColor: theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
+          backgroundColor: theme.surfaces?.muted || theme.palette.background.default,
           borderLeft: 0,
           borderRight: 0,
           borderTop: 0,
