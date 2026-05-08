@@ -1,17 +1,17 @@
 import React, {} from 'react';
-import {EventStepInstanceRenderDialog, GetStatusSymbol} from "./EventStepRender";
+import {EventingStatusChip, EventStepInstanceRenderDialog} from "./EventStepRender";
 import {toLocalTime} from "../../utilities/Time";
-import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
 import { gql, useMutation } from '@apollo/client';
 import CalendarMonthTwoToneIcon from '@mui/icons-material/CalendarMonthTwoTone';
 import AccessAlarmTwoToneIcon from '@mui/icons-material/AccessAlarmTwoTone';
 import CancelTwoToneIcon from '@mui/icons-material/CancelTwoTone';
 import ReplayIcon from '@mui/icons-material/Replay';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import IconButton from '@mui/material/IconButton';
+import ClickAwayListener from '@mui/material/ClickAwayListener';
 import Moment from 'react-moment';
 import moment from 'moment';
-import CastConnectedTwoToneIcon from '@mui/icons-material/CastConnectedTwoTone';
 import {snackActions} from "../../utilities/Snackbar";
 import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import OpenInNewTwoToneIcon from '@mui/icons-material/OpenInNewTwoTone';
@@ -27,6 +27,7 @@ import {
     gridValuePassesFilter,
     isGridColumnFilterActive
 } from "../../MythicComponents/MythicResizableGrid/GridColumnFilterDialog";
+import {Dropdown, DropdownMenuItem} from "../../MythicComponents/MythicNestedMenus";
 
 const cancelEventGroupInstanceMutation = gql(`
 mutation cancelEventGroupInstanceMutation($eventgroupinstance_id: Int!){
@@ -83,6 +84,29 @@ export const adjustOutput = (e, newTime) => {
     return newTime;
 }
 
+const EventingGridCell = ({children, className = "", rowData}) => (
+    <div className={`mythic-eventing-instance-cell ${className}`.trim()} data-selected={rowData?.selected ? "true" : undefined}>
+        {children}
+    </div>
+);
+const eventingInstanceMenuIconStyle = {fontSize: "1rem", marginRight: "8px"};
+const EventingInstanceIdCell = ({onOpenMenu, rowData}) => (
+    <EventingGridCell className="mythic-eventing-instance-id-cell" rowData={rowData}>
+        <span className="mythic-eventing-instance-id">{rowData.id}</span>
+        <IconButton
+            aria-haspopup="menu"
+            className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info mythic-eventing-instance-id-menu-button"
+            onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onOpenMenu({event, rowData});
+            }}
+            size="small"
+        >
+            <ArrowDropDownIcon fontSize="small" />
+        </IconButton>
+    </EventingGridCell>
+);
 
 function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, setSelectedInstance, selectedInstanceID}){
     const callbackTableGridRef = React.useRef();
@@ -91,6 +115,8 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
     const [openRetryDialog, setOpenRetryDialog] = React.useState(false);
     const [openRunAgainDialog, setOpenRunAgainDialog] = React.useState(false);
     const [openEventStepRender, setOpenEventStepRender] = React.useState(false);
+    const [openInstanceDropdown, setOpenInstanceDropdown] = React.useState(false);
+    const instanceDropdownRef = React.useRef({options: [], anchor: null});
     const selectedLocalInstanceID = React.useRef(0);
     const selectedLocalEventGroup = React.useRef({});
     const foundQueryEvent = React.useRef(false);
@@ -162,6 +188,90 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
         copyStringToClipboard(path);
         snackActions.success("copied shareable link to clipboard");
     }
+    const getInstanceMenuOptions = (row) => {
+        if(!row?.id){
+            return [];
+        }
+        const controlOptions = [];
+        if(row.end_timestamp === null){
+            controlOptions.push({
+                name: "Cancel workflow",
+                type: "item",
+                icon: <CancelTwoToneIcon style={eventingInstanceMenuIconStyle} />,
+                className: "mythic-menu-item-hover-warning",
+                click: ({event}) => {
+                    event?.preventDefault();
+                    event?.stopPropagation();
+                    onOpenCancelDialog({id: row.id});
+                },
+            });
+        }else if(row.status === "error" || row.status === "cancelled"){
+            controlOptions.push({
+                name: "Retry failed / cancelled steps",
+                type: "item",
+                icon: <ReplayIcon style={eventingInstanceMenuIconStyle} />,
+                className: "mythic-menu-item-hover-warning",
+                click: ({event}) => {
+                    event?.preventDefault();
+                    event?.stopPropagation();
+                    onOpenRetryDialog({id: row.id});
+                },
+            });
+        }else if(row.status === "success"){
+            controlOptions.push({
+                name: "Run again",
+                type: "item",
+                icon: <ReplayIcon style={eventingInstanceMenuIconStyle} />,
+                className: "mythic-menu-item-hover-success",
+                click: ({event}) => {
+                    event?.preventDefault();
+                    event?.stopPropagation();
+                    onOpenRunAgainDialog({id: row.id});
+                },
+            });
+        }
+        return [
+            {
+                name: "Open graph in modal",
+                type: "item",
+                icon: <OpenInNewTwoToneIcon style={eventingInstanceMenuIconStyle} />,
+                className: "mythic-menu-item-hover-info",
+                click: ({event}) => {
+                    event?.preventDefault();
+                    event?.stopPropagation();
+                    openViewInstanceLargeDialog(row);
+                },
+            },
+            {
+                name: "Copy shareable link",
+                type: "item",
+                icon: <IosShareIcon style={eventingInstanceMenuIconStyle} />,
+                className: "mythic-menu-item-hover-info",
+                click: ({event}) => {
+                    event?.preventDefault();
+                    event?.stopPropagation();
+                    onSaveToClipboard(row);
+                },
+            },
+            ...controlOptions,
+        ];
+    }
+    const openInstanceMenu = ({event, rowData}) => {
+        instanceDropdownRef.current = {
+            anchor: event?.currentTarget || event?.target,
+            options: getInstanceMenuOptions(rowData),
+        };
+        setOpenInstanceDropdown(true);
+    }
+    const closeInstanceMenu = () => {
+        setOpenInstanceDropdown(false);
+    }
+    const handleInstanceMenuItemClick = (event, clickOption) => {
+        event.preventDefault();
+        event.stopPropagation();
+        clickOption({event});
+        setOpenInstanceDropdown(false);
+    }
     const [sortData, setSortData] = React.useState({"sortKey": null, "sortDirection": null, "sortType": null});
     const [filterOptions, setFilterOptions] = React.useState({});
     React.useEffect( () => {
@@ -181,13 +291,12 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
     const columns = React.useMemo(
         () =>
             [
-                {key: "id", type: "number", name: "ID", width: 60,  enableHiding: false, disableSort: false, disableFilter: true},
-                {key: "status", type: 'string', name: "Status", width: 150, disableSort: true, enableHiding: false},
+                {key: "id", type: "number", name: "ID", width: 92,  enableHiding: false, disableSort: false, disableFilter: true},
+                {key: "status", type: 'string', name: "Status", width: 140, disableSort: false, enableHiding: false},
                 {key: "eventgroup", type: 'string', name: "Event Group", inMetadata: true, fillWidth: true, disableSort: false,  enableHiding: false},
                 {key: "trigger", type: 'string', name: "Trigger", fillWidth: true, disableSort: false, enableHiding: false},
                 {key: "time", type: 'date', name: "Time", width: 300, disableSort: true,},
                 {key: "operator", type: 'string', name: "Operator", inMetadata: true, fillWidth: true, disableSort: true,},
-                {key: "cancel", type: 'string', name: "Action", width: 70, disableSort: true, disableFilter: true},
             ]?.reduce( (prev, cur) => {
                 if(isGridColumnFilterActive(filterOptions[cur.key])){
                     return [...prev, {...cur, filtered: true}];
@@ -285,50 +394,24 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
             if(filterRow(row)){
                 return [...prev];
             }
+            const selectedRow = {...row, selected: row.id === selectedInstanceID};
             return [...prev, columns.map( c => {
                 switch(c.name){
                     case "ID":
-                        return <CallbacksTableStringCell rowData={row} cellData={row.id} />
+                        return <EventingInstanceIdCell rowData={selectedRow} onOpenMenu={openInstanceMenu} />
                     case "Status":
                         return (
-                            <div className="mythic-table-row-actions mythic-table-row-actions-nowrap">
-                                <GetStatusSymbol data={row} />
-                                {
-                                    selectedInstanceID === 0 ?
-                                        (
-                                            <MythicStyledTooltip title={"View Graph Above"} >
-                                                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={() => {setSelectedInstance(row.id);}} >
-                                                    <CastConnectedTwoToneIcon fontSize="small" />
-                                                </IconButton>
-                                            </MythicStyledTooltip>
-                                        ) :
-                                        (
-                                            <MythicStyledTooltip title={"Stop viewing graph"} >
-                                                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={() => {setSelectedInstance(0);}} >
-                                                    <CancelTwoToneIcon fontSize="small" />
-                                                </IconButton>
-                                            </MythicStyledTooltip>
-                                        )
-                                }
-                                <MythicStyledTooltip title={"Open Graph in Modal"}>
-                                    <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={() => {openViewInstanceLargeDialog(row)}}>
-                                        <OpenInNewTwoToneIcon fontSize="small" />
-                                    </IconButton>
-                                </MythicStyledTooltip>
-                                <MythicStyledTooltip title={"Copy shareable link to workflow"}>
-                                    <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={() => onSaveToClipboard(row)}>
-                                        <IosShareIcon fontSize="small" />
-                                    </IconButton>
-                                </MythicStyledTooltip>
-                            </div>
+                            <EventingGridCell className="mythic-eventing-instance-status-cell" rowData={selectedRow}>
+                                <EventingStatusChip data={row} />
+                            </EventingGridCell>
                         )
                     case "Event Group":
-                        return <CallbacksTableStringCell rowData={row} cellData={row.eventgroup.name} />
+                        return <CallbacksTableStringCell rowData={selectedRow} cellData={row.eventgroup.name} />
                     case "Trigger":
-                        return <CallbacksTableStringCell rowData={row} cellData={row.trigger} />
+                        return <CallbacksTableStringCell rowData={selectedRow} cellData={row.trigger} />
                     case "Time":
                         return (
-                            <div className="mythic-eventing-instances-time-cell">
+                            <EventingGridCell className="mythic-eventing-instances-time-cell" rowData={selectedRow}>
                                 <div className="mythic-eventing-instances-time-line">
                                     <CalendarMonthTwoToneIcon fontSize="small" />
                                     {toLocalTime(row?.created_at, me?.user?.view_utc_time)}
@@ -355,42 +438,14 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
                                         </Moment>
                                     }
                                 </div>
-                            </div>
+                            </EventingGridCell>
                         )
                     case "Operator":
-                        return <CallbacksTableStringCell rowData={row} cellData={row?.operator?.username} />
-                    case "Action":
-                        return (
-                            <div className="mythic-table-row-actions mythic-table-row-actions-nowrap">
-                                {row.end_timestamp === null ? (
-                                <MythicStyledTooltip title={"Cancel Eventing"} >
-                                    <IconButton onClick={() => {onOpenCancelDialog({id: row.id});}}
-                                                className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-warning" size="small">
-                                        <CancelTwoToneIcon fontSize="small" />
-                                    </IconButton>
-                                </MythicStyledTooltip>
-                                ) : row.status === "error" || row.status === "cancelled" ? (
-                                <MythicStyledTooltip title={"Retry Failed / Canceled Steps"} >
-                                    <IconButton onClick={() => {onOpenRetryDialog({id: row.id});}}
-                                                className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-warning" size="small">
-                                        <ReplayIcon fontSize="small" />
-                                    </IconButton>
-                                </MythicStyledTooltip>
-                                ) : row.status === "success" ? (
-                                <MythicStyledTooltip  title={"Run Again"} >
-                                    <IconButton onClick={() => {onOpenRunAgainDialog({id: row.id});}}
-                                                className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-success" size="small">
-                                        <ReplayIcon fontSize="small" />
-                                    </IconButton>
-                                </MythicStyledTooltip>
-                                ) : null}
-                            </div>
-
-                        )
+                        return <CallbacksTableStringCell rowData={selectedRow} cellData={row?.operator?.username} />
                 }
             })]
         }, []);
-    }, [sortData, filterOptions, selectedInstanceID, eventgroups]);
+    }, [sortData, filterOptions, selectedInstanceID, eventgroups, columns]);
     const sortColumn = columns.findIndex((column) => column.key === sortData.sortKey);
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
     const [selectedColumn, setSelectedColumn] = React.useState({});
@@ -413,8 +468,20 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
     const onRowDoubleClick = () => {
 
     }
+    const onRowClick = ({event, rowDataStatic}) => {
+        if(event.target?.closest?.("button") || event.target?.closest?.("a")){
+            return;
+        }
+        if(rowDataStatic?.id === selectedInstanceID){
+            setSelectedInstance(0);
+            return;
+        }
+        if(rowDataStatic?.id){
+            setSelectedInstance(rowDataStatic.id);
+        }
+    }
     const onRowContextClick = ({rowDataStatic}) => {
-        return [];
+        return getInstanceMenuOptions(rowDataStatic);
     }
     return (
         <div className="mythic-eventing-instances-grid">
@@ -428,6 +495,7 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
                 rowHeight={eventingRowHeight}
                 onClickHeader={onClickHeader}
                 onDoubleClickRow={onRowDoubleClick}
+                onRowClick={onRowClick}
                 contextMenuOptions={contextMenuOptions}
                 onRowContextMenuClick={onRowContextClick}
             />
@@ -445,6 +513,28 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
                                   />
                               }
                 />
+            }
+            {openInstanceDropdown &&
+                <ClickAwayListener onClickAway={closeInstanceMenu} mouseEvent={"onMouseDown"}>
+                    <Dropdown
+                        isOpen={instanceDropdownRef.current.anchor}
+                        onOpen={setOpenInstanceDropdown}
+                        externallyOpen={openInstanceDropdown}
+                        minWidth={250}
+                        menu={
+                            instanceDropdownRef.current.options.map((option, index) => (
+                                <DropdownMenuItem
+                                    key={"eventing-instance-action-" + index}
+                                    className={option.className}
+                                    disabled={option.disabled}
+                                    onClick={(event) => handleInstanceMenuItemClick(event, option.click)}
+                                >
+                                    {option.icon}{option.name}
+                                </DropdownMenuItem>
+                            ))
+                        }
+                    />
+                </ClickAwayListener>
             }
             {openDeleteDialog &&
                 <MythicConfirmDialog onClose={() => {

@@ -20,7 +20,7 @@ import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import {ConsumingServicesGetIDPMetadataDialog} from "./ConsumingServicesGetIDPMetadataDialog";
 import {C2ProfileListFilesDialog} from "./C2ProfileListFilesDialog";
-import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
+import {InstalledServiceContainerStatus} from "./InstalledServiceStatus";
 
 const testWebhookMutation = gql`
 mutation testWebhookWorks($service_type: String!){
@@ -166,10 +166,7 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
         </MythicStyledTooltip>
     );
     const renderContainerStatus = (w) => (
-        <MythicStatusChip
-            label={w.container_running ? "Online" : "Offline"}
-            status={w.container_running ? "success" : "error"}
-        />
+        <InstalledServiceContainerStatus isOnline={w.container_running} />
     );
     const renderFileButton = (w) => (
         <MythicStyledTooltip title={w.container_running ? "View Files" : "Unable to view files since container is offline"}>
@@ -196,13 +193,13 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
                             <Typography variant={"h5"}>
                                 {w.name}
                             </Typography>
+                            {renderContainerStatus(w)}
                             <Typography variant={"body"}>
                                 <b>Type: </b>{w.type}
                             </Typography>
                             <Typography variant={"body2"}>
                                 <b>Description: </b>{w.description}
                             </Typography>
-                            {renderContainerStatus(w)}
                         </MythicTableCell>
                         <MythicTableCell>
                             {renderFileButton(w)}
@@ -237,13 +234,13 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
                             <Typography variant={"h5"}>
                                 {w.name}
                             </Typography>
+                            {renderContainerStatus(w)}
                             <Typography variant={"body"}>
                                 <b>Type: </b>{w.type}
                             </Typography>
                             <Typography variant={"body2"}>
                                 <b>Description: </b>{w.description}
                             </Typography>
-                            {renderContainerStatus(w)}
                         </MythicTableCell>
                         <MythicTableCell>
                             {renderFileButton(w)}
@@ -278,13 +275,13 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
                             <Typography variant={"h5"}>
                                 {w.name}
                             </Typography>
+                            {renderContainerStatus(w)}
                             <Typography variant={"body"}>
                                 <b>Type: </b>{w.type}
                             </Typography>
                             <Typography variant={"body2"}>
                                 <b>Description: </b>{w.description}
                             </Typography>
-                            {renderContainerStatus(w)}
                         </MythicTableCell>
                         <MythicTableCell>
                             {renderFileButton(w)}
@@ -321,13 +318,13 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
                             <Typography variant={"h5"}>
                                 {w.name}
                             </Typography>
+                            {renderContainerStatus(w)}
                             <Typography variant={"body"}>
                                 <b>Type: </b>{w.type}
                             </Typography>
                             <Typography variant={"body2"}>
                                 <b>Description: </b>{w.description}
                             </Typography>
-                            {renderContainerStatus(w)}
                         </MythicTableCell>
                         <MythicTableCell>
                             {renderFileButton(w)}
