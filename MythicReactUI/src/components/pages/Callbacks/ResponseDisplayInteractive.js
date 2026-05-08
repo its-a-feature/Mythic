@@ -1,14 +1,12 @@
 import React from 'react';
-import MythicTextField from '../../MythicComponents/MythicTextField';
-import {createTaskingMutation, taskingDataFragment} from './CallbackMutations';
+import {createTaskingMutation} from './CallbackMutations';
 import {snackActions} from "../../utilities/Snackbar";
 import { gql, useLazyQuery, useMutation, useSubscription } from '@apollo/client';
 import {b64DecodeUnicode} from "./ResponseDisplay";
 import {SearchBar} from './ResponseDisplay';
 import Pagination from '@mui/material/Pagination';
-import {Typography, CircularProgress, Select, IconButton, Backdrop} from '@mui/material';
+import {Typography, CircularProgress, Backdrop, Menu} from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import Input from '@mui/material/Input';
 import MenuItem from '@mui/material/MenuItem';
 import Anser from "anser";
 import PaletteIcon from '@mui/icons-material/Palette';
@@ -17,22 +15,10 @@ import './ResponseDisplayInteractiveANSI.css';
 import {Terminal} from '@xterm/xterm';
 import {FitAddon} from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
-import KeyboardReturnIcon from '@mui/icons-material/KeyboardReturn';
-import InputLabel from "@mui/material/InputLabel";
-import FormControl from "@mui/material/FormControl";
 import WrapTextIcon from '@mui/icons-material/WrapText';
 import {useTheme} from '@mui/material/styles';
 import HeightIcon from '@mui/icons-material/Height';
-import {MythicEmptyState} from "../../MythicComponents/MythicStateDisplay";
 
-const getInteractiveTaskingQuery = gql`
-${taskingDataFragment}
-subscription getTasking($parent_task_id: Int!){
-    task_stream(where: {parent_task_id: {_eq: $parent_task_id}, is_interactive_task: {_eq: true}}, batch_size: 50, cursor: {initial_value: {timestamp: "1970-01-01"}}) {
-        ...taskData
-    }
-}
- `;
 const subResponsesQuery = gql`
 subscription subResponsesQuery($task_id: Int!) {
   response_stream(where: {task_id: {_eq: $task_id}}, batch_size: 50, cursor: {initial_value: {id: 0}}) {
@@ -60,7 +46,6 @@ query getInteractiveResponsesPage($task_id: Int!, $fetchLimit: Int!, $offset: In
   }
 }`;
 const MAX_INTERACTIVE_SELECT_ALL_RESPONSES = 5000;
-const MAX_INTERACTIVE_TASK_WINDOW = 1000;
 const getInteractiveResponseWhereClause = (taskID, search) => {
     if(search === undefined || search === ""){
         return {task_id: {_eq: taskID}};
@@ -90,21 +75,6 @@ const sortInteractiveEntries = (entries) => {
             return 1;
         }
         return (a.id || 0) < (b.id || 0) ? -1 : 1;
-    });
-}
-const mergeInteractiveTaskData = ({existingTasks, incomingTasks, limit}) => {
-    const taskMap = new Map();
-    existingTasks.forEach( (task) => taskMap.set(task.id, task));
-    incomingTasks.forEach( (task) => taskMap.set(task.id, task));
-    const mergedTasks = sortInteractiveEntries(Array.from(taskMap.values()));
-    if(mergedTasks.length <= limit){
-        return mergedTasks;
-    }
-    return mergedTasks.slice(-limit);
-}
-const getVisibleInteractiveTasks = ({taskData, search}) => {
-    return search === "" ? taskData : taskData.filter( (task) => {
-        return (task.display_params || task.original_params || "").toLowerCase().includes(search.toLowerCase());
     });
 }
 const getTaskingStatus = (task) => {
@@ -232,11 +202,15 @@ const INTERACTIVE_TERMINAL_SCROLLBACK = 5000;
 const INTERACTIVE_TERMINAL_MAX_UNWRAPPED_COLS = 300;
 const ANSI_STYLE_CODE_REGEX = /\x1b\[[0-?]*[ -/]*m/g;
 const TERMINAL_CONTROL_CODE_REGEX = /\x1b\][^\x07]*(?:\x07|\x1b\\)|\x1b\[[0-?]*[ -/]*[@-~]|\x1b[ -/]*[@-~]/g;
+const TERMINAL_QUERY_CODE_REGEX = /\x1bc|\x1b\[(?:\?|>)?[0-9;]*[cn]|\x1b\](?:4|10|11|12);[^\x07]*(?:\x07|\x1b\\)/g;
 const stripAnsiStyleCodes = (value) => {
     return value.replace(ANSI_STYLE_CODE_REGEX, "");
 }
 const getTerminalText = (value) => {
     return value === undefined || value === null ? "" : String(value);
+}
+const sanitizeTerminalOutput = (value) => {
+    return getTerminalText(value).replace(TERMINAL_QUERY_CODE_REGEX, "");
 }
 const getInteractiveTerminalTheme = (theme) => {
     return {
@@ -253,7 +227,7 @@ const getInteractiveTerminalEntrySignature = (entry) => {
     return `task:${entry.id}:${entry.status}:${entry.original_params}:${entry.display_params}`;
 }
 const getInteractiveTerminalMeasurementText = (value) => {
-    return getTerminalText(value).replace(TERMINAL_CONTROL_CODE_REGEX, "");
+    return sanitizeTerminalOutput(value).replace(TERMINAL_CONTROL_CODE_REGEX, "");
 }
 const getInteractiveTerminalEntryMeasurementText = (entry) => {
     if(entry.response !== undefined){
@@ -282,7 +256,8 @@ const getInteractiveTerminalTaskStatus = ({task, useASNIColor}) => {
 }
 const formatInteractiveTerminalEntry = ({entry, useASNIColor, showTaskStatus}) => {
     if(entry.response !== undefined){
-        const response = useASNIColor ? getTerminalText(entry.response) : stripAnsiStyleCodes(getTerminalText(entry.response));
+        const terminalResponse = sanitizeTerminalOutput(entry.response);
+        const response = useASNIColor ? terminalResponse : stripAnsiStyleCodes(terminalResponse);
         if(entry.is_error && useASNIColor){
             return `\x1b[37;41m${response}\x1b[0m`;
         }
@@ -292,7 +267,19 @@ const formatInteractiveTerminalEntry = ({entry, useASNIColor, showTaskStatus}) =
     const prompt = useASNIColor ? "\x1b[36m> \x1b[0m" : "> ";
     return `\r\n${status}${prompt}${getTerminalText(entry.original_params || entry.display_params)}\r\n`;
 }
-const InteractiveTerminalDisplay = ({data, useASNIColor, showTaskStatus, wrapText, autoScroll, theme}) => {
+const InteractiveTerminalDisplay = ({
+    data,
+    useASNIColor,
+    showTaskStatus,
+    wrapText,
+    autoScroll,
+    theme,
+    canSendInput,
+    inputMode,
+    lineInputBuffer,
+    onTerminalInput,
+    onTerminalKeyEvent,
+}) => {
     const terminalScrollContainerRef = React.useRef(null);
     const terminalElementRef = React.useRef(null);
     const terminalRef = React.useRef(null);
@@ -302,6 +289,12 @@ const InteractiveTerminalDisplay = ({data, useASNIColor, showTaskStatus, wrapTex
     const replayStateRef = React.useRef({settingsKey: "", signatures: []});
     const autoScrollRef = React.useRef(autoScroll);
     const wrapTextRef = React.useRef(wrapText);
+    const canSendInputRef = React.useRef(canSendInput);
+    const inputModeRef = React.useRef(inputMode);
+    const lineInputBufferRef = React.useRef(lineInputBuffer);
+    const localEchoVisibleRef = React.useRef(false);
+    const onTerminalInputRef = React.useRef(onTerminalInput);
+    const onTerminalKeyEventRef = React.useRef(onTerminalKeyEvent);
     const unwrappedColumnCountRef = React.useRef(0);
     const [terminalReady, setTerminalReady] = React.useState(false);
     const longestLineLength = React.useMemo( () => {
@@ -344,6 +337,26 @@ const InteractiveTerminalDisplay = ({data, useASNIColor, showTaskStatus, wrapTex
             fitTerminal();
         });
     }, [fitTerminal]);
+    const writeLocalTerminalAction = React.useCallback( (action) => {
+        const terminal = terminalRef.current;
+        if(!terminal || !action){
+            return;
+        }
+        if(action.erase){
+            for(let i = 0; i < action.erase; i++){
+                terminal.write("\b \b");
+            }
+        }
+        if(action.write){
+            terminal.write(action.write);
+        }
+        if(action.erase || action.write){
+            localEchoVisibleRef.current = true;
+            if(autoScrollRef.current){
+                terminal.scrollToBottom();
+            }
+        }
+    }, []);
     React.useEffect( () => {
         autoScrollRef.current = autoScroll;
         if(autoScroll){
@@ -354,6 +367,27 @@ const InteractiveTerminalDisplay = ({data, useASNIColor, showTaskStatus, wrapTex
         wrapTextRef.current = wrapText;
         scheduleFitTerminal();
     }, [wrapText, scheduleFitTerminal]);
+    React.useEffect( () => {
+        canSendInputRef.current = canSendInput;
+        if(terminalRef.current){
+            terminalRef.current.options.disableStdin = !canSendInput;
+            if(canSendInput){
+                terminalRef.current.focus();
+            }
+        }
+    }, [canSendInput]);
+    React.useEffect( () => {
+        inputModeRef.current = inputMode;
+    }, [inputMode]);
+    React.useEffect( () => {
+        lineInputBufferRef.current = lineInputBuffer;
+    }, [lineInputBuffer]);
+    React.useEffect( () => {
+        onTerminalInputRef.current = onTerminalInput;
+    }, [onTerminalInput]);
+    React.useEffect( () => {
+        onTerminalKeyEventRef.current = onTerminalKeyEvent;
+    }, [onTerminalKeyEvent]);
     React.useEffect( () => {
         if(wrapText){
             unwrappedColumnCountRef.current = 0;
@@ -370,11 +404,37 @@ const InteractiveTerminalDisplay = ({data, useASNIColor, showTaskStatus, wrapTex
             allowTransparency: true,
             convertEol: true,
             cursorBlink: true,
-            disableStdin: true,
+            disableStdin: !canSendInputRef.current,
             fontFamily: 'Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
             fontSize: 13,
             scrollback: INTERACTIVE_TERMINAL_SCROLLBACK,
             theme: getInteractiveTerminalTheme(theme),
+        });
+        const keyDisposable = terminal.onKey(({key}) => {
+            writeLocalTerminalAction(onTerminalInputRef.current?.(key));
+        });
+        const handleTerminalPaste = (event) => {
+            if(!canSendInputRef.current){
+                return;
+            }
+            const pastedText = event.clipboardData?.getData("text") || "";
+            if(pastedText === ""){
+                return;
+            }
+            event.preventDefault();
+            writeLocalTerminalAction(onTerminalInputRef.current?.(pastedText));
+        };
+        terminalElementRef.current.addEventListener("paste", handleTerminalPaste);
+        terminal.attachCustomKeyEventHandler((event) => {
+            if(!onTerminalKeyEventRef.current){
+                return true;
+            }
+            const result = onTerminalKeyEventRef.current(event);
+            if(typeof result === "boolean"){
+                return result;
+            }
+            writeLocalTerminalAction(result);
+            return result?.handled ? false : true;
         });
         const fitAddon = new FitAddon();
         terminal.loadAddon(fitAddon);
@@ -389,6 +449,9 @@ const InteractiveTerminalDisplay = ({data, useASNIColor, showTaskStatus, wrapTex
             fitAnimationFrameRef.current = null;
             fitTerminal();
             setTerminalReady(true);
+            if(canSendInputRef.current){
+                terminal.focus();
+            }
         });
         return () => {
             if(fitAnimationFrameRef.current !== null){
@@ -399,6 +462,8 @@ const InteractiveTerminalDisplay = ({data, useASNIColor, showTaskStatus, wrapTex
             resizeObserverRef.current = null;
             fitAddonRef.current = null;
             terminalRef.current = null;
+            terminalElementRef.current?.removeEventListener("paste", handleTerminalPaste);
+            keyDisposable.dispose();
             terminal.dispose();
         }
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -414,9 +479,13 @@ const InteractiveTerminalDisplay = ({data, useASNIColor, showTaskStatus, wrapTex
         const terminal = terminalRef.current;
         scheduleFitTerminal();
         const nextSignatures = data.map(getInteractiveTerminalEntrySignature);
-        const settingsKey = `${useASNIColor}:${showTaskStatus}:${wrapText}`;
+        const settingsKey = `${useASNIColor}:${showTaskStatus}:${wrapText}:${inputMode}`;
         const previousReplayState = replayStateRef.current;
-        const canAppend = previousReplayState.settingsKey === settingsKey &&
+        const hasPendingLineInput = canSendInputRef.current &&
+            inputModeRef.current === "line" &&
+            lineInputBufferRef.current.length > 0;
+        const canAppend = !hasPendingLineInput &&
+            previousReplayState.settingsKey === settingsKey &&
             nextSignatures.length >= previousReplayState.signatures.length &&
             previousReplayState.signatures.every((signature, index) => signature === nextSignatures[index]);
         const previousViewportY = terminal.buffer.active.viewportY;
@@ -434,6 +503,19 @@ const InteractiveTerminalDisplay = ({data, useASNIColor, showTaskStatus, wrapTex
             signatures: nextSignatures,
         };
         const afterWrite = () => {
+            const pendingLineInput = lineInputBufferRef.current;
+            if(canSendInputRef.current && inputModeRef.current === "line" && pendingLineInput.length > 0){
+                terminal.write(pendingLineInput.replaceAll("\n", "\r\n"), () => {
+                    localEchoVisibleRef.current = true;
+                    if(autoScrollRef.current){
+                        terminal.scrollToBottom();
+                    } else {
+                        terminal.scrollToLine(previousViewportY);
+                    }
+                });
+                return;
+            }
+            localEchoVisibleRef.current = false;
             if(autoScrollRef.current){
                 terminal.scrollToBottom();
             } else {
@@ -445,63 +527,130 @@ const InteractiveTerminalDisplay = ({data, useASNIColor, showTaskStatus, wrapTex
         } else {
             afterWrite();
         }
-    }, [data, scheduleFitTerminal, showTaskStatus, terminalReady, useASNIColor, wrapText]);
+    }, [data, inputMode, scheduleFitTerminal, showTaskStatus, terminalReady, useASNIColor, wrapText]);
     return (
-        <div
-            ref={terminalScrollContainerRef}
-            className={"MythicInteractiveTerminal"}
-            style={{
-                height: "100%",
-                minHeight: "50px",
-                overflowX: wrapText ? "hidden" : "auto",
-                overflowY: "hidden",
-                width: "100%",
-            }}>
-            <div ref={terminalElementRef} style={{height: "100%", width: "100%"}} />
+        <div className={`mythic-interactive-terminal-shell${canSendInput ? " mythic-interactive-terminal-shell-input" : ""}`}>
+            <div
+                ref={terminalScrollContainerRef}
+                className={"MythicInteractiveTerminal"}
+                onClick={() => terminalRef.current?.focus()}
+                style={{
+                    height: "100%",
+                    minHeight: "50px",
+                    overflowX: wrapText ? "hidden" : "auto",
+                    overflowY: "hidden",
+                    width: "100%",
+                }}>
+                <div ref={terminalElementRef} style={{height: "100%", width: "100%"}} />
+            </div>
+            {data.length === 0 &&
+                <div className="mythic-interactive-terminal-empty-hint" onMouseDown={() => terminalRef.current?.focus()}>
+                    No interactive output yet
+                </div>
+            }
         </div>
     )
 }
 
-const InteractiveMessageTypes = [
-    {"name": "None", "value": -1, "text": "None"},
-    {"name": "Tab", "value": 13, "text": "^I"},
-    {"name": "Backspace", "value": 12, "text": "^H"},
-    {"name": "Exit", "value": 3, "text": "exit"},
-    {"name": "Escape", "value": 4, "text": "^["},
-    {"name": "Ctrl+A", "value": 5, "text": "^A"},
-    {"name": "Ctrl+B", "value": 6, "text": "^B"},
-    {"name": "Ctrl+C", "value": 7, "text": "^C"},
-    {"name": "Ctrl+D", "value": 8, "text": "^D"},
-    {"name": "Ctrl+E", "value": 9, "text": "^E"},
-    {"name": "Ctrl+F", "value": 10, "text": "^F"},
-    {"name": "Ctrl+G", "value": 11, "text": "^G"},
-    {"name": "Ctrl+K", "value": 14, "text": "^K"},
-    {"name": "Ctrl+L", "value": 15, "text": "^L"},
-    {"name": "Ctrl+N", "value": 16, "text": "^N"},
-    {"name": "Ctrl+P", "value": 17, "text": "^P"},
-    {"name": "Ctrl+Q", "value": 18, "text": "^Q"},
-    {"name": "Ctrl+R", "value": 19, "text": "^R"},
-    {"name": "Ctrl+S", "value": 20, "text": "^S"},
-    {"name": "Ctrl+U", "value": 21, "text": "^U"},
-    {"name": "Ctrl+W", "value": 22, "text": "^W"},
-    {"name": "Ctrl+Y", "value": 23, "text": "^Y"},
-    {"name": "Ctrl+Z", "value": 24, "text": "^Z"},
-]
 const EnterOptions = [
     {"value": "", "name": "None"},
     {"value": "\n", "name": "LF"},
     {"value": "\r", "name": "CR"},
     {"value": "\r\n", "name": "CRLF"}
 ];
+const RAW_PRINTABLE_BATCH_DELAY_MS = 150;
+const PENDING_INPUT_EVENT_TTL_MS = 6000;
+const MAX_PENDING_INPUT_EVENTS = 10;
+const CONTROL_INPUTS_BY_DATA = {
+    "\t": {"name": "Tab", "value": 13, "text": "^I", "label": "Tab"},
+    "\b": {"name": "Backspace", "value": 12, "text": "^H", "label": "Backspace"},
+    "\x7f": {"name": "Backspace", "value": 12, "text": "^H", "label": "Backspace"},
+    "\x1b": {"name": "Escape", "value": 4, "text": "^[", "label": "Esc"},
+    "\x01": {"name": "Ctrl+A", "value": 5, "text": "^A", "label": "Ctrl+A"},
+    "\x02": {"name": "Ctrl+B", "value": 6, "text": "^B", "label": "Ctrl+B"},
+    "\x03": {"name": "Ctrl+C", "value": 7, "text": "^C", "label": "Ctrl+C"},
+    "\x04": {"name": "Ctrl+D", "value": 8, "text": "^D", "label": "Ctrl+D"},
+    "\x05": {"name": "Ctrl+E", "value": 9, "text": "^E", "label": "Ctrl+E"},
+    "\x06": {"name": "Ctrl+F", "value": 10, "text": "^F", "label": "Ctrl+F"},
+    "\x07": {"name": "Ctrl+G", "value": 11, "text": "^G", "label": "Ctrl+G"},
+    "\x0b": {"name": "Ctrl+K", "value": 14, "text": "^K", "label": "Ctrl+K"},
+    "\x0c": {"name": "Ctrl+L", "value": 15, "text": "^L", "label": "Ctrl+L"},
+    "\x0e": {"name": "Ctrl+N", "value": 16, "text": "^N", "label": "Ctrl+N"},
+    "\x10": {"name": "Ctrl+P", "value": 17, "text": "^P", "label": "Ctrl+P"},
+    "\x11": {"name": "Ctrl+Q", "value": 18, "text": "^Q", "label": "Ctrl+Q"},
+    "\x12": {"name": "Ctrl+R", "value": 19, "text": "^R", "label": "Ctrl+R"},
+    "\x13": {"name": "Ctrl+S", "value": 20, "text": "^S", "label": "Ctrl+S"},
+    "\x15": {"name": "Ctrl+U", "value": 21, "text": "^U", "label": "Ctrl+U"},
+    "\x17": {"name": "Ctrl+W", "value": 22, "text": "^W", "label": "Ctrl+W"},
+    "\x19": {"name": "Ctrl+Y", "value": 23, "text": "^Y", "label": "Ctrl+Y"},
+    "\x1a": {"name": "Ctrl+Z", "value": 24, "text": "^Z", "label": "Ctrl+Z"},
+};
+const TERMINAL_ESCAPE_SEQUENCE_LABELS = {
+    "\x1b[A": "Up",
+    "\x1b[B": "Down",
+    "\x1b[C": "Right",
+    "\x1b[D": "Left",
+    "\x1b[H": "Home",
+    "\x1b[F": "End",
+    "\x1b[3~": "Delete",
+    "\x1b[5~": "Page Up",
+    "\x1b[6~": "Page Down",
+};
+const TERMINAL_KEY_EVENT_INPUTS = {
+    ArrowUp: "\x1b[A",
+    ArrowDown: "\x1b[B",
+    ArrowRight: "\x1b[C",
+    ArrowLeft: "\x1b[D",
+    Home: "\x1b[H",
+    End: "\x1b[F",
+    Delete: "\x1b[3~",
+    PageUp: "\x1b[5~",
+    PageDown: "\x1b[6~",
+};
+const isPrintableTerminalText = (value) => {
+    return value !== "" && !/[\x00-\x1f\x7f]/.test(value) && !value.startsWith("\x1b");
+};
+const getTerminalInputLabel = (value) => {
+    if(value === ""){
+        return "None";
+    }
+    if(TERMINAL_ESCAPE_SEQUENCE_LABELS[value]){
+        return TERMINAL_ESCAPE_SEQUENCE_LABELS[value];
+    }
+    if(CONTROL_INPUTS_BY_DATA[value]){
+        return CONTROL_INPUTS_BY_DATA[value].label;
+    }
+    if(value.startsWith("\x1b")){
+        return "Esc sequence";
+    }
+    if(value === "\n"){
+        return "LF";
+    }
+    if(value === "\r"){
+        return "CR";
+    }
+    if(value === "\r\n"){
+        return "CRLF";
+    }
+    const displayValue = value.replaceAll("\n", "\\n").replaceAll("\r", "\\r").replaceAll("\t", "\\t");
+    if(displayValue.length > 18){
+        return displayValue.slice(0, 18) + "...";
+    }
+    return displayValue === " " ? "Space" : displayValue;
+};
+const normalizeLineBufferInput = (value) => {
+    return value.replaceAll("\r\n", "\n").replaceAll("\r", "\n");
+};
 export const ResponseDisplayInteractive = (props) =>{
     const theme = useTheme();
     const [backdropOpen, setBackdropOpen] = React.useState(false);
     const pageSize = React.useRef(100);
     const highestFetched = React.useRef(0);
-    const [taskData, setTaskData] = React.useState([]);
-    const taskDataRef = React.useRef([]);
     const [rawResponses, setRawResponses] = React.useState([]);
     const rawResponsesRef = React.useRef([]);
+    const rawPrintableInputBufferRef = React.useRef("");
+    const rawPrintableInputTimerRef = React.useRef(null);
+    const lineInputBufferRef = React.useRef("");
     const [search, setSearch] = React.useState("");
     const [totalCount, setTotalCount] = React.useState(0);
     const totalCountRef = React.useRef(0);
@@ -510,9 +659,12 @@ export const ResponseDisplayInteractive = (props) =>{
     const taskResponseCountRef = React.useRef(props.task.response_count || 0);
     const selectAllWarningShown = React.useRef(false);
     const [useASNIColor, setUseANSIColor] = React.useState(true);
-    const [showTaskStatus, setShowTaskStatus] = React.useState(true);
     const [wrapText, setWrapText] = React.useState(true);
     const [autoScroll, setAutoScroll] = React.useState(true);
+    const [inputMode, setInputMode] = React.useState("line");
+    const [lineInputBuffer, setLineInputBuffer] = React.useState("");
+    const [selectedEnterOption, setSelectedEnterOption] = React.useState(1);
+    const [pendingInputEvents, setPendingInputEvents] = React.useState([]);
     const setTrackedTotalCount = React.useCallback( (newTotalCount) => {
         totalCountRef.current = newTotalCount;
         setTotalCount(newTotalCount);
@@ -524,26 +676,80 @@ export const ResponseDisplayInteractive = (props) =>{
         }
     }, []);
     const visibleOutput = React.useMemo( () => {
-        const visibleTasks = getVisibleInteractiveTasks({taskData, search});
-        return sortInteractiveEntries([...rawResponses, ...visibleTasks]);
-    }, [taskData, rawResponses, search]);
+        return sortInteractiveEntries(rawResponses);
+    }, [rawResponses]);
     React.useEffect( () => {
         rawResponsesRef.current = rawResponses;
     }, [rawResponses]);
     React.useEffect( () => {
-        taskDataRef.current = taskData;
-    }, [taskData]);
+        lineInputBufferRef.current = lineInputBuffer;
+    }, [lineInputBuffer]);
+    React.useEffect( () => {
+        if(pendingInputEvents.length === 0){
+            return;
+        }
+        const timeoutID = setTimeout(() => {
+            const cutoff = Date.now() - PENDING_INPUT_EVENT_TTL_MS;
+            setPendingInputEvents((current) => current.filter((event) => event.timestamp >= cutoff));
+        }, 1000);
+        return () => clearTimeout(timeoutID);
+    }, [pendingInputEvents]);
+    React.useEffect( () => {
+        return () => {
+            if(rawPrintableInputTimerRef.current !== null){
+                clearTimeout(rawPrintableInputTimerRef.current);
+                rawPrintableInputTimerRef.current = null;
+            }
+        };
+    }, []);
+    const setTrackedLineInputBuffer = React.useCallback( (value) => {
+        const nextValue = typeof value === "function" ? value(lineInputBufferRef.current) : value;
+        lineInputBufferRef.current = nextValue;
+        setLineInputBuffer(nextValue);
+    }, []);
+    const addPendingInputEvent = React.useCallback( (label) => {
+        setPendingInputEvents((current) => {
+            const nextEvents = [...current, {
+                id: `${Date.now()}-${Math.random()}`,
+                label,
+                timestamp: Date.now(),
+            }];
+            return nextEvents.slice(-MAX_PENDING_INPUT_EVENTS);
+        });
+    }, []);
+    const [createTask] = useMutation(createTaskingMutation, {
+        update: (cache, {data}) => {
+            if(data.createTask.status === "error"){
+                snackActions.error(data.createTask.error);
+            }
+        },
+        onError: data => {
+            console.error(data);
+            snackActions.error("Failed to send interactive input: " + data.message);
+        }
+    });
     const [fetchResponsePageQuery] = useLazyQuery(getInteractiveResponsesPageQuery, {
         fetchPolicy: "no-cache",
         onCompleted: (data) => {
             const responseArray = data.response.map(decodeInteractiveResponse);
-            rawResponsesRef.current = responseArray;
-            setRawResponses(responseArray);
-            const aggregateCount = getInteractiveAggregateCount(data);
+            const shouldPreserveStreamedResponses = search === "" && (props.selectAllOutput || currentPageRef.current === 1);
+            const nextResponses = shouldPreserveStreamedResponses ? (() => {
+                const responseMap = new Map();
+                rawResponsesRef.current.forEach((response) => responseMap.set(response.id, response));
+                responseArray.forEach((response) => responseMap.set(response.id, response));
+                return Array.from(responseMap.values()).sort((a,b) => a.id > b.id ? 1 : -1).slice(0, props.selectAllOutput ? MAX_INTERACTIVE_SELECT_ALL_RESPONSES : pageSize.current);
+            })() : responseArray;
+            rawResponsesRef.current = nextResponses;
+            setRawResponses(nextResponses);
+            if(nextResponses.length > 0){
+                setPendingInputEvents([]);
+            }
+            const aggregateCount = Math.max(getInteractiveAggregateCount(data), shouldPreserveStreamedResponses ? nextResponses.length : 0);
             setTrackedTotalCount(aggregateCount);
-            highestFetched.current = Math.max(highestFetched.current, getInteractiveLatestResponseID(data));
+            const latestResponseID = getInteractiveLatestResponseID(data);
+            highestFetched.current = Math.max(highestFetched.current, aggregateCount > 0 ? latestResponseID : 0);
             if(props.selectAllOutput){
-                warnSelectAllCapped(responseArray.length, aggregateCount);
+                warnSelectAllCapped(nextResponses.length, aggregateCount);
             }
             setBackdropOpen(false);
         },
@@ -569,9 +775,7 @@ export const ResponseDisplayInteractive = (props) =>{
     }, [fetchResponsePageQuery, props.selectAllOutput, props.task.id, search]);
     React.useEffect( () => {
         rawResponsesRef.current = [];
-        taskDataRef.current = [];
         setRawResponses([]);
-        setTaskData([]);
         highestFetched.current = 0;
         currentPageRef.current = 1;
         setCurrentPage(1);
@@ -583,26 +787,6 @@ export const ResponseDisplayInteractive = (props) =>{
         selectAllWarningShown.current = false;
         fetchResponsePage(1);
     }, [fetchResponsePage]);
-    const {loading: loadingTasks} = useSubscription(getInteractiveTaskingQuery, {
-      variables: {parent_task_id: props.task.id},
-      onError: data => {
-          console.error(data)
-      },
-      fetchPolicy: "no-cache",
-      onData: ({data}) => {
-          const newTaskData = mergeInteractiveTaskData({
-              existingTasks: taskDataRef.current,
-              incomingTasks: data?.data?.task_stream || [],
-              limit: MAX_INTERACTIVE_TASK_WINDOW,
-          });
-          taskDataRef.current = newTaskData;
-          setTaskData(newTaskData);
-          if(backdropOpen){
-              setBackdropOpen(false);
-          }
-
-      }
-    })
     const subscriptionDataCallback = React.useCallback( ({data}) => {
         const streamedResponses = data?.data?.response_stream || [];
         if(streamedResponses.length === 0){
@@ -612,6 +796,7 @@ export const ResponseDisplayInteractive = (props) =>{
         if(newResponses.length === 0){
             return;
         }
+        setPendingInputEvents([]);
         highestFetched.current = Math.max(highestFetched.current, ...newResponses.map(r => r.id));
         if(search !== ""){
             const lowerCaseSearch = search.toLowerCase();
@@ -623,11 +808,14 @@ export const ResponseDisplayInteractive = (props) =>{
             }
             return;
         }
-        const currentTotalCount = Math.max(totalCountRef.current, taskResponseCountRef.current);
+        const previousTotalCount = Math.max(totalCountRef.current, taskResponseCountRef.current);
+        const nextTotalCount = previousTotalCount + newResponses.length;
+        taskResponseCountRef.current = Math.max(taskResponseCountRef.current, nextTotalCount);
+        setTrackedTotalCount(nextTotalCount);
         if(props.selectAllOutput){
             const previousResponses = rawResponsesRef.current;
             if(previousResponses.length >= MAX_INTERACTIVE_SELECT_ALL_RESPONSES){
-                warnSelectAllCapped(previousResponses.length, currentTotalCount);
+                warnSelectAllCapped(previousResponses.length, nextTotalCount);
                 return;
             }
             const remainingSlots = MAX_INTERACTIVE_SELECT_ALL_RESPONSES - previousResponses.length;
@@ -635,13 +823,13 @@ export const ResponseDisplayInteractive = (props) =>{
             const mergedResponses = [...previousResponses, ...decodedResponses].sort( (a,b) => a.id > b.id ? 1 : -1);
             rawResponsesRef.current = mergedResponses;
             setRawResponses(mergedResponses);
-            warnSelectAllCapped(mergedResponses.length, currentTotalCount);
+            warnSelectAllCapped(mergedResponses.length, nextTotalCount);
             return;
         }
         const pageStartIndex = (currentPageRef.current - 1) * pageSize.current;
         const pageEndIndex = currentPageRef.current * pageSize.current;
-        const streamedStartIndex = Math.max(0, currentTotalCount - newResponses.length);
-        const streamedEndIndex = currentTotalCount;
+        const streamedStartIndex = previousTotalCount;
+        const streamedEndIndex = nextTotalCount;
         if(streamedStartIndex >= pageEndIndex || streamedEndIndex <= pageStartIndex){
             return;
         }
@@ -663,7 +851,7 @@ export const ResponseDisplayInteractive = (props) =>{
         if(backdropOpen){
             setBackdropOpen(false);
         }
-    }, [backdropOpen, fetchResponsePage, props.selectAllOutput, search, warnSelectAllCapped]);
+    }, [backdropOpen, fetchResponsePage, props.selectAllOutput, search, setTrackedTotalCount, warnSelectAllCapped]);
     useSubscription(subResponsesQuery, {
         variables: {task_id: props.task.id},
         fetchPolicy: "no-cache",
@@ -686,22 +874,185 @@ export const ResponseDisplayInteractive = (props) =>{
     const toggleANSIColor = () => {
         setUseANSIColor(!useASNIColor);
     }
-    const toggleShowTaskStatus = () => {
-        setShowTaskStatus(!showTaskStatus);
-    }
     const toggleWrapText = () => {
         setWrapText(!wrapText);
     }
     const toggleAutoScroll = () => {
         setAutoScroll(current => !current);
     }
-    React.useEffect( () => {
-        if(loadingTasks){
-            setBackdropOpen(true);
-        }else{
-            setBackdropOpen(false);
+    const canSendTerminalInput = !props.task?.is_interactive_task;
+    const sendInteractiveInput = React.useCallback( ({
+        params,
+        originalParams,
+        interactiveTaskType=0,
+        pendingLabel,
+    }) => {
+        if(!canSendTerminalInput){
+            return;
         }
-    }, [loadingTasks]);
+        if(interactiveTaskType === 0 && (params === undefined || params === null || params === "")){
+            return;
+        }
+        createTask({variables: {
+                callback_display_id: props.task.callback.display_id,
+                command: props.task.command.cmd,
+                params: params || "",
+                tasking_location: "command_line",
+                original_params: originalParams !== undefined ? originalParams : params,
+                parameter_group_name: "default",
+                parent_task_id: props.task.id,
+                is_interactive_task: true,
+                interactive_task_type: interactiveTaskType,
+            }});
+        addPendingInputEvent(pendingLabel || getTerminalInputLabel(originalParams !== undefined ? originalParams : params));
+    }, [addPendingInputEvent, canSendTerminalInput, createTask, props.task.callback.display_id, props.task.command.cmd, props.task.id]);
+    const sendTerminalData = React.useCallback( (terminalData) => {
+        const controlInput = CONTROL_INPUTS_BY_DATA[terminalData];
+        if(controlInput){
+            sendInteractiveInput({
+                params: "",
+                originalParams: controlInput.text,
+                interactiveTaskType: controlInput.value,
+                pendingLabel: controlInput.label,
+            });
+            return;
+        }
+        sendInteractiveInput({
+            params: terminalData,
+            originalParams: getTerminalInputLabel(terminalData),
+            interactiveTaskType: 0,
+            pendingLabel: getTerminalInputLabel(terminalData),
+        });
+    }, [sendInteractiveInput]);
+    const flushRawPrintableInput = React.useCallback( () => {
+        if(rawPrintableInputTimerRef.current !== null){
+            clearTimeout(rawPrintableInputTimerRef.current);
+            rawPrintableInputTimerRef.current = null;
+        }
+        const bufferedInput = rawPrintableInputBufferRef.current;
+        rawPrintableInputBufferRef.current = "";
+        if(bufferedInput.length > 0){
+            sendInteractiveInput({
+                params: bufferedInput,
+                originalParams: bufferedInput,
+                interactiveTaskType: 0,
+                pendingLabel: getTerminalInputLabel(bufferedInput),
+            });
+        }
+    }, [sendInteractiveInput]);
+    const queueRawPrintableInput = React.useCallback( (terminalData) => {
+        rawPrintableInputBufferRef.current += terminalData;
+        if(rawPrintableInputTimerRef.current !== null){
+            clearTimeout(rawPrintableInputTimerRef.current);
+        }
+        rawPrintableInputTimerRef.current = setTimeout(() => {
+            flushRawPrintableInput();
+        }, RAW_PRINTABLE_BATCH_DELAY_MS);
+    }, [flushRawPrintableInput]);
+    const submitLineInput = React.useCallback( () => {
+        const enterValue = EnterOptions[selectedEnterOption]?.value || "";
+        const lineValue = lineInputBufferRef.current + enterValue;
+        if(lineValue.length === 0){
+            return;
+        }
+        sendInteractiveInput({
+            params: lineValue,
+            originalParams: lineValue,
+            interactiveTaskType: 0,
+            pendingLabel: getTerminalInputLabel(lineValue),
+        });
+        setTrackedLineInputBuffer("");
+    }, [selectedEnterOption, sendInteractiveInput, setTrackedLineInputBuffer]);
+    const handleTerminalData = React.useCallback( (terminalData) => {
+        if(!canSendTerminalInput){
+            return null;
+        }
+        if(inputMode === "raw"){
+            if(terminalData === "\r" || terminalData === "\n"){
+                flushRawPrintableInput();
+                const enterValue = EnterOptions[selectedEnterOption]?.value || "";
+                sendInteractiveInput({
+                    params: enterValue,
+                    originalParams: enterValue,
+                    interactiveTaskType: 0,
+                    pendingLabel: `Enter ${EnterOptions[selectedEnterOption]?.name || "None"}`,
+                });
+                return null;
+            }
+            if(isPrintableTerminalText(terminalData)){
+                queueRawPrintableInput(terminalData);
+                return null;
+            }
+            flushRawPrintableInput();
+            sendTerminalData(terminalData);
+            return null;
+        }
+        if(terminalData === "\r" || terminalData === "\n"){
+            submitLineInput();
+            return {write: "\r\n"};
+        }
+        if(terminalData === "\x7f" || terminalData === "\b"){
+            const currentBuffer = lineInputBufferRef.current;
+            if(currentBuffer.length === 0){
+                return null;
+            }
+            setTrackedLineInputBuffer((current) => Array.from(current).slice(0, -1).join(""));
+            return {erase: 1};
+        }
+        if(terminalData === "\t"){
+            setTrackedLineInputBuffer((current) => current + "\t");
+            return {write: "\t"};
+        }
+        if(CONTROL_INPUTS_BY_DATA[terminalData] || terminalData.startsWith("\x1b")){
+            sendTerminalData(terminalData);
+            return null;
+        }
+        const normalizedInput = normalizeLineBufferInput(terminalData);
+        setTrackedLineInputBuffer((current) => current + normalizedInput);
+        return {write: normalizedInput.replaceAll("\n", "\r\n")};
+    }, [
+        canSendTerminalInput,
+        flushRawPrintableInput,
+        inputMode,
+        queueRawPrintableInput,
+        selectedEnterOption,
+        sendInteractiveInput,
+        sendTerminalData,
+        setTrackedLineInputBuffer,
+        submitLineInput,
+    ]);
+    const handleTerminalKeyEvent = React.useCallback( (event) => {
+        if(!canSendTerminalInput){
+            return true;
+        }
+        if(inputMode === "raw" && event.type === "keydown" && TERMINAL_KEY_EVENT_INPUTS[event.key]){
+            event.preventDefault();
+            flushRawPrintableInput();
+            sendTerminalData(TERMINAL_KEY_EVENT_INPUTS[event.key]);
+            return {handled: true};
+        }
+        if(inputMode === "line" && event.type === "keydown" && event.key === "Tab"){
+            event.preventDefault();
+            setTrackedLineInputBuffer((current) => current + "\t");
+            return {handled: true, write: "\t"};
+        }
+        if(inputMode === "line" && event.type === "keydown" && event.key === "Enter" && event.shiftKey){
+            event.preventDefault();
+            setTrackedLineInputBuffer((current) => current + "\n");
+            return {handled: true, write: "\r\n"};
+        }
+        return true;
+    }, [canSendTerminalInput, flushRawPrintableInput, inputMode, sendTerminalData, setTrackedLineInputBuffer]);
+    const onChangeInputMode = (value) => {
+        flushRawPrintableInput();
+        if(value === "raw"){
+            setTrackedLineInputBuffer("");
+        }
+        setInputMode(value);
+    };
+    const onChangeSelectEnterOption = (value) => {
+        setSelectedEnterOption(value);
+    };
     React.useEffect(() => {
         if(!backdropOpen){
             return;
@@ -736,42 +1087,45 @@ export const ResponseDisplayInteractive = (props) =>{
                   display: "flex", flexDirection: "column"}}>
                   <CircularProgress color="inherit" />
                   <Typography variant={"h5"}>
-                      Fetching Interactive Task Data....
+                      Fetching Interactive Responses....
                   </Typography>
               </div>
           </Backdrop>
           {props.searchOutput &&
               <SearchBar onSubmitSearch={onSubmitSearch}/>
           }
-          <div style={{overflow: "hidden", width: "100%", marginBottom: "5px", height: props.expand ? "100%": undefined,
-              flexGrow: 1, flexShrink: 1, minHeight: outputMinHeight}} ref={props.responseRef}
-               id={`ptytask${props.task.id}`}>
-              {visibleOutput.length === 0 && !backdropOpen ? (
-                  <MythicEmptyState
-                      compact
-                      title="No interactive output yet"
-                      description="Interactive tasking and responses will appear here as they arrive."
-                      sx={{backgroundColor: "transparent", color: "inherit", height: "100%"}}
+          <div className="mythic-interactive-terminal-frame" ref={props.responseRef} id={`ptytask${props.task.id}`}>
+              {canSendTerminalInput &&
+                  <InteractiveTerminalToolbar
+                      theme={theme}
+                      inputMode={inputMode}
+                      onChangeInputMode={onChangeInputMode}
+                      selectedEnterOption={selectedEnterOption}
+                      onChangeSelectEnterOption={onChangeSelectEnterOption}
+                      pendingInputEvents={pendingInputEvents}
+                      useASNIColor={useASNIColor}
+                      toggleANSIColor={toggleANSIColor}
+                      wrapText={wrapText}
+                      toggleWrapText={toggleWrapText}
+                      autoScroll={autoScroll}
+                      toggleAutoScroll={toggleAutoScroll}
                   />
-              ) : (
+              }
+              <div style={{overflow: "hidden", width: "100%", marginBottom: "5px", height: props.expand ? "100%": undefined,
+                  display: "flex", flexDirection: "column", flexGrow: 1, flexShrink: 1, minHeight: outputMinHeight}}>
                   <InteractiveTerminalDisplay data={visibleOutput}
                                               useASNIColor={useASNIColor}
-                                              showTaskStatus={showTaskStatus}
+                                              showTaskStatus={false}
                                               wrapText={wrapText}
                                               autoScroll={autoScroll}
-                                              theme={theme}/>
-              )}
-          </div>
-          {!props.task?.is_interactive_task &&
-              <div style={{width: "100%", display: "inline-flex", alignItems: "flex-end"}}>
-                  <InteractiveTaskingBar task={props.task} taskData={taskData}
-                                         useASNIColor={useASNIColor} toggleANSIColor={toggleANSIColor}
-                                         showTaskStatus={showTaskStatus} toggleShowTaskStatus={toggleShowTaskStatus}
-                                         wrapText={wrapText} toggleWrapText={toggleWrapText}
-                                         autoScroll={autoScroll} toggleAutoScroll={toggleAutoScroll}
-                  />
+                                              theme={theme}
+                                              canSendInput={canSendTerminalInput}
+                                              inputMode={inputMode}
+                                              lineInputBuffer={lineInputBuffer}
+                                              onTerminalInput={handleTerminalData}
+                                              onTerminalKeyEvent={handleTerminalKeyEvent}/>
               </div>
-          }
+          </div>
 
           <InteractivePaginationBar totalCount={totalCount} currentPage={currentPage}
                                     onSubmitPageChange={onSubmitPageChange} expand={props.expand}
@@ -780,220 +1134,109 @@ export const ResponseDisplayInteractive = (props) =>{
   )
 
 }
-const InteractiveTaskingBar = ({
-                                   task, taskData, useASNIColor, toggleANSIColor,
-                                   showTaskStatus, toggleShowTaskStatus, wrapText, toggleWrapText,
-                                   autoScroll, toggleAutoScroll
-                               }) => {
-    const [inputText, setInputText] = React.useState("");
-    const theme = useTheme();
-    const [createTask] = useMutation(createTaskingMutation, {
-        update: (cache, {data}) => {
-            if(data.createTask.status === "error"){
-                snackActions.error(data.createTask.error);
-            }else{
-            }
-        },
-        onError: data => {
-            console.error(data);
-        }
-    });
-    const [taskOptionsIndex, setTaskOptionsIndex] = React.useState(-1);
-    const [taskOptions, setTaskOptions] = React.useState([]);
-    const [selectedEnterOption, setSelectedEnterOption] = React.useState(1);
-    const [selectedControlOption, setSelectedControlOption] = React.useState(0);
-    React.useEffect( () => {
-        const newTaskOptions = taskData.filter( t => t.display_params.length > 1 && (t.interactive_task_type === 0 || t.interactive_task_type === 8));
-        newTaskOptions.sort( (a,b) => a.id > b.id ? -1 : 1);
-        setTaskOptions(newTaskOptions);
-    }, [taskData]);
-    const onInputChange = (name, value, error, event) => {
-        if(event !== null && event !== undefined){
-            if(event.key === "ArrowUp"){
-                event.preventDefault();
-                event.stopPropagation();
-                if(taskOptions.length === 0){
-                    snackActions.warning("No previous tasks")
-                    return;
-                }
-                let newIndex = (taskOptionsIndex + 1);
-                if(newIndex > taskOptions.length -1){
-                    newIndex = taskOptions.length -1;
-                }
-                setTaskOptionsIndex(newIndex);
-                setInputText(taskOptions[newIndex].display_params.trim());
-            }else if(event.key === "ArrowDown"){
-                event.preventDefault();
-                event.stopPropagation();
-                if(taskData.length === 0){
-                    snackActions.warning("No next tasks")
-                    return;
-                }
-                let newIndex = (taskOptionsIndex -1);
-                if(newIndex < 0){
-                    setTaskOptionsIndex(-1);
-                    setInputText("");
-                } else {
-                    setTaskOptionsIndex(newIndex);
-                    setInputText(taskOptions[newIndex].display_params.trim());
-                }
-
-            }else{
-                setInputText(value);
-            }
-        } else {
-            setInputText(value);
-        }
-
-
-    }
-    const submitTask = (event) => {
-        event.stopPropagation();
-        event.preventDefault();
-        if(event.shiftKey){
-            setInputText(inputText + EnterOptions[selectedEnterOption].value);
-            return;
-        }
-        if(event.metaKey || event.ctrlKey){
-            setInputText(inputText + EnterOptions[selectedEnterOption].value);
-            return;
-        }
-        if(InteractiveMessageTypes[selectedControlOption].value > 0){
-            let ctrlSequence = InteractiveMessageTypes[selectedControlOption].text;
-            let enterOption = EnterOptions[selectedEnterOption].value;
-            let originalParams = inputText + ctrlSequence + enterOption;
-            // if we're looking at a tab, never send enter along with it
-            if (InteractiveMessageTypes[selectedControlOption].value === 8){
-                originalParams = inputText + ctrlSequence;
-                enterOption = "";
-            // if we're looking at escape, never send enter along with it
-            } else if(InteractiveMessageTypes[selectedControlOption].value === 4){
-                originalParams = ctrlSequence + inputText;
-                enterOption = "";
-            }
-            createTask({variables: {
-                    callback_display_id: task.callback.display_id,
-                    command: task.command.cmd,
-                    params: inputText + enterOption,
-                    tasking_location: "command_line",
-                    original_params: originalParams,
-                    parameter_group_name: "default",
-                    parent_task_id: task.id,
-                    is_interactive_task: true,
-                    interactive_task_type: InteractiveMessageTypes[selectedControlOption].value,
-                }})
-        }else {
-            // no control option selected, just send data along as input
-            createTask({variables: {
-                    callback_display_id: task.callback.display_id,
-                    command: task.command.cmd,
-                    params: inputText + EnterOptions[selectedEnterOption].value,
-                    tasking_location: "command_line",
-                    original_params: inputText + EnterOptions[selectedEnterOption].value,
-                    parameter_group_name: "default",
-                    parent_task_id: task.id,
-                    is_interactive_task: true,
-                    interactive_task_type: 0,
-                }})
-        }
-        setInputText("");
-        setSelectedControlOption(0);
-        setTaskOptionsIndex(-1);
-    }
-    const onChangeSelect = (event) => {
-        event.stopPropagation();
-        event.preventDefault();
-        setSelectedControlOption(event.target.value);
-    }
-    const onChangeSelectEnterOption = (event) => {
-        event.stopPropagation();
-        event.preventDefault();
-        setSelectedEnterOption(event.target.value);
-    }
+const InteractiveTerminalToolbar = ({
+    theme,
+    inputMode,
+    onChangeInputMode,
+    selectedEnterOption,
+    onChangeSelectEnterOption,
+    pendingInputEvents,
+    useASNIColor,
+    toggleANSIColor,
+    wrapText,
+    toggleWrapText,
+    autoScroll,
+    toggleAutoScroll,
+}) => {
+    const [enterAnchorEl, setEnterAnchorEl] = React.useState(null);
+    const selectedEnter = EnterOptions[selectedEnterOption] || EnterOptions[0];
+    const openEnterMenu = (event) => {
+        setEnterAnchorEl(event.currentTarget);
+    };
+    const closeEnterMenu = () => {
+        setEnterAnchorEl(null);
+    };
+    const toggleInputMode = () => {
+        onChangeInputMode(inputMode === "raw" ? "line" : "raw");
+    };
+    const selectEnterOption = (index) => {
+        onChangeSelectEnterOption(index);
+        closeEnterMenu();
+    };
     return (
-        <div style={{
-            display: "flex",
-            alignItems: "flex-end",
-            //backgroundColor: theme.outputBackgroundColor + (theme.palette.mode === 'dark' ? "F0" : "50"),
-            color: theme.outputTextColor,
-            paddingTop: "5px",
-            border: "1px solid grey",
-            borderRadius: "4px",
-            width: "100%"}}>
-            <FormControl style={{width: "10rem", marginTop: "2px", color: theme.outputTextColor}} >
-                <InputLabel id="control-label" style={{color: theme.outputTextColor}}>Controls</InputLabel>
-                <Select
-                    labelId="control-label"
-                    id="control-select"
-                    value={selectedControlOption}
-                    onChange={onChangeSelect}
-                    sx={{
-                        // Target the icon element directly within the Select
-                        '.MuiSelect-icon': {
-                            color: theme.outputTextColor, // Set your desired color
-                        },
-                    }}
-                    input={<Input style={{margin: 0, color: theme.outputTextColor}} />}
-                >
-                    {InteractiveMessageTypes.map( (opt,index) => (
-                        <MenuItem value={index} key={opt.name}>{opt.name}</MenuItem>
-                    ) )}
-                </Select>
-            </FormControl>
-
-            <MythicTextField autoFocus={true} maxRows={5} multiline={true} onChange={onInputChange} onEnter={submitTask}
-                             value={inputText} variant={"standard"} placeholder={">_ type here..."} inline={true}
-                             debounceDelay={50}
-                             marginBottom={"0px"} InputProps={{style: { width: "100%", color: theme.outputTextColor}}}/>
-            <FormControl style={{width: "7rem", color: theme.outputTextColor}} >
-                <Select
-                    labelId="linefeed-label"
-                    id="linefeed-control"
-                    value={selectedEnterOption}
-                    autoWidth
-                    sx={{
-                        // Target the icon element directly within the Select
-                        '.MuiSelect-icon': {
-                            color: theme.outputTextColor, // Set your desired color
-                        },
-                    }}
-                    onChange={onChangeSelectEnterOption}
-                    input={<Input style={{color: theme.outputTextColor}} />}
-                    IconComponent={KeyboardReturnIcon}
-                >
-                    {EnterOptions.map( (opt,index) => (
-                        <MenuItem value={index} key={opt.name}>{opt.name}</MenuItem>
-                    ) )}
-                </Select>
-            </FormControl>
-            <MythicStyledTooltip title={useASNIColor ?  "Disable ANSI Color" : "Enable ANSI Color"} >
-                <IconButton onClick={toggleANSIColor} style={{paddingLeft: 0, paddingRight: 0,}} disableRipple={true} disableFocusRipple={true}>
-                    <PaletteIcon color={useASNIColor ? "success" : "secondary"}
-                                 style={{cursor: "pointer"}}
-                    />
-                </IconButton>
-            </MythicStyledTooltip>
-            <MythicStyledTooltip title={showTaskStatus ?  "Hide Task Status" : "Show Task Status"} >
-                <IconButton onClick={toggleShowTaskStatus} style={{paddingLeft: 0, paddingRight: 0}} disableRipple={true} disableFocusRipple={true}>
-                    <CheckCircleOutlineIcon color={showTaskStatus ? "success" : "secondary"}
-                                            style={{cursor: "pointer",}}
-                    />
-                </IconButton>
-            </MythicStyledTooltip>
-            <MythicStyledTooltip title={wrapText ?  "Unwrap Text" : "Wrap Text"} >
-                <IconButton onClick={toggleWrapText} style={{paddingLeft: 0, paddingRight: 0}} disableRipple={true} disableFocusRipple={true}>
-                    <WrapTextIcon color={wrapText ? "success" : "secondary"}
-                                  style={{cursor: "pointer"}}
-                    />
-                </IconButton>
-            </MythicStyledTooltip>
-            <MythicStyledTooltip title={autoScroll ?  "Stop Auto Scroll" : "Auto Scroll"} >
-                <IconButton onClick={toggleAutoScroll} style={{paddingLeft: 0, paddingRight: 0}} disableRipple={true} disableFocusRipple={true}>
-                    <HeightIcon color={autoScroll ? "success" : "secondary"}
-                                  style={{cursor: "pointer"}}
-                    />
-                </IconButton>
-            </MythicStyledTooltip>
+        <div className="mythic-interactive-terminal-toolbar">
+            <div className="mythic-interactive-terminal-toolbar-row">
+                <button
+                    type="button"
+                    className="mythic-interactive-terminal-config-chip"
+                    onClick={toggleInputMode}
+                    style={{color: theme.outputTextColor}}>
+                    {inputMode === "raw" ? "Raw key mode" : "Line mode"}
+                </button>
+                <button
+                    type="button"
+                    className="mythic-interactive-terminal-config-chip mythic-interactive-terminal-enter-chip"
+                    onClick={openEnterMenu}
+                    style={{color: theme.outputTextColor}}>
+                    Enter: {selectedEnter.name}
+                </button>
+                <Menu
+                    anchorEl={enterAnchorEl}
+                    open={Boolean(enterAnchorEl)}
+                    onClose={closeEnterMenu}>
+                    {EnterOptions.map((option, index) => (
+                        <MenuItem
+                            key={option.name}
+                            selected={index === selectedEnterOption}
+                            onClick={() => selectEnterOption(index)}>
+                            {option.name}
+                        </MenuItem>
+                    ))}
+                </Menu>
+                {pendingInputEvents.length > 0 &&
+                    <div className="mythic-interactive-terminal-pending">
+                        <span>Awaiting output</span>
+                        {pendingInputEvents.map((event) => (
+                            <span className="mythic-interactive-terminal-pending-chip" key={event.id}>{event.label}</span>
+                        ))}
+                    </div>
+                }
+                <div className="mythic-interactive-terminal-toolbar-spacer" />
+                <div className="mythic-interactive-terminal-toggle-group" role="group" aria-label="Terminal display options">
+                    <MythicStyledTooltip title={useASNIColor ?  "Disable ANSI Color" : "Enable ANSI Color"} >
+                        <button
+                            aria-pressed={useASNIColor}
+                            className={`mythic-interactive-terminal-toggle-button${useASNIColor ? "" : " is-off"}`}
+                            onClick={toggleANSIColor}
+                            type="button">
+                            <PaletteIcon fontSize="small" />
+                        </button>
+                    </MythicStyledTooltip>
+                    <MythicStyledTooltip title={wrapText ?  "Unwrap Text" : "Wrap Text"} >
+                        <button
+                            aria-pressed={wrapText}
+                            className={`mythic-interactive-terminal-toggle-button${wrapText ? "" : " is-off"}`}
+                            onClick={toggleWrapText}
+                            type="button">
+                            <WrapTextIcon fontSize="small" />
+                        </button>
+                    </MythicStyledTooltip>
+                    <MythicStyledTooltip title={autoScroll ?  "Stop Auto Scroll" : "Auto Scroll"} >
+                        <button
+                            aria-pressed={autoScroll}
+                            className={`mythic-interactive-terminal-toggle-button${autoScroll ? "" : " is-off"}`}
+                            onClick={toggleAutoScroll}
+                            type="button">
+                            <HeightIcon fontSize="small" />
+                        </button>
+                    </MythicStyledTooltip>
+                </div>
+            </div>
+            {inputMode === "raw" &&
+                <div className="mythic-interactive-terminal-raw-warning">
+                    Raw key mode sends every keypress as its own task. Wait for the agent to echo before typing ahead.
+                </div>
+            }
         </div>
     )
 }

@@ -1205,6 +1205,168 @@ tspan {
 .MythicInteractiveTerminal .xterm-viewport {
     background-color: transparent !important;
 }
+.mythic-interactive-terminal-frame {
+    border: 1px solid ${(props) => alpha(props.theme.outputTextColor || props.theme.palette.text.primary, props.theme.palette.mode === "dark" ? 0.26 : 0.18)};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    width: 100%;
+}
+.mythic-interactive-terminal-toolbar {
+    align-items: stretch;
+    background-color: ${(props) => alpha(props.theme.outputBackgroundColor || props.theme.palette.background.paper, props.theme.palette.mode === "dark" ? 0.86 : 0.72)};
+    border-bottom: 1px solid ${(props) => alpha(props.theme.outputTextColor || props.theme.palette.text.primary, props.theme.palette.mode === "dark" ? 0.2 : 0.16)};
+    color: ${(props) => props.theme.outputTextColor};
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 0.3rem;
+    min-height: 2.35rem;
+    min-width: 0;
+    padding: 0.3rem 0.45rem;
+}
+.mythic-interactive-terminal-toolbar-row {
+    align-items: center;
+    display: flex;
+    gap: 0.45rem;
+    min-width: 0;
+    width: 100%;
+}
+.mythic-interactive-terminal-config-chip {
+    align-items: center;
+    background-color: ${(props) => alpha(props.theme.outputTextColor || props.theme.palette.text.primary, props.theme.palette.mode === "dark" ? 0.1 : 0.07)};
+    border: 1px solid ${(props) => alpha(props.theme.outputTextColor || props.theme.palette.text.primary, props.theme.palette.mode === "dark" ? 0.24 : 0.2)};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    cursor: pointer;
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-size: 0.72rem;
+    font-weight: 800;
+    gap: 0.3rem;
+    line-height: 1;
+    min-height: 1.65rem;
+    padding: 0.28rem 0.48rem;
+}
+.mythic-interactive-terminal-config-chip:hover {
+    background-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.2 : 0.12)};
+    border-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.48 : 0.34)};
+}
+.mythic-interactive-terminal-toolbar-spacer {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.mythic-interactive-terminal-toggle-group {
+    align-items: center;
+    background-color: ${(props) => alpha(props.theme.outputTextColor || props.theme.palette.text.primary, props.theme.palette.mode === "dark" ? 0.08 : 0.05)};
+    border: 1px solid ${(props) => alpha(props.theme.outputTextColor || props.theme.palette.text.primary, props.theme.palette.mode === "dark" ? 0.2 : 0.16)};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    display: inline-flex;
+    flex: 0 0 auto;
+    overflow: hidden;
+}
+.mythic-interactive-terminal-toggle-button {
+    align-items: center;
+    background-color: transparent;
+    border: 0;
+    border-right: 1px solid ${(props) => alpha(props.theme.outputTextColor || props.theme.palette.text.primary, props.theme.palette.mode === "dark" ? 0.18 : 0.14)};
+    color: ${(props) => alpha(props.theme.outputTextColor || props.theme.palette.text.primary, 0.72)};
+    cursor: pointer;
+    display: inline-flex;
+    flex: 0 0 auto;
+    height: 1.8rem;
+    justify-content: center;
+    padding: 0;
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+    width: 1.8rem;
+}
+.mythic-interactive-terminal-toggle-button:last-child {
+    border-right: 0;
+}
+.mythic-interactive-terminal-toggle-button:hover {
+    background-color: ${(props) => alpha(props.theme.outputTextColor || props.theme.palette.text.primary, props.theme.palette.mode === "dark" ? 0.12 : 0.08)};
+    color: ${(props) => props.theme.outputTextColor || props.theme.palette.text.primary};
+}
+.mythic-interactive-terminal-toggle-button.is-off {
+    background-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.2 : 0.13)};
+    color: ${(props) => props.theme.palette.warning.main};
+}
+.mythic-interactive-terminal-toggle-button.is-off:hover {
+    background-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.28 : 0.2)};
+    color: ${(props) => props.theme.palette.warning.main};
+}
+.mythic-interactive-terminal-shell {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    position: relative;
+    width: 100%;
+}
+.mythic-interactive-terminal-empty-hint {
+    color: ${(props) => alpha(props.theme.outputTextColor || props.theme.palette.text.primary, 0.58)};
+    font-family: Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.8rem;
+    left: 0.75rem;
+    pointer-events: none;
+    position: absolute;
+    top: 0.65rem;
+}
+.mythic-interactive-terminal-pending-chip {
+    border: 1px solid ${(props) => alpha(props.theme.outputTextColor || props.theme.palette.text.primary, props.theme.palette.mode === "dark" ? 0.24 : 0.2)};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    color: ${(props) => props.theme.outputTextColor};
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-size: 0.68rem;
+    font-weight: 800;
+    line-height: 1;
+    padding: 0.22rem 0.36rem;
+}
+.mythic-interactive-terminal-pending {
+    align-items: center;
+    color: ${(props) => alpha(props.theme.outputTextColor || props.theme.palette.text.primary, 0.7)};
+    display: flex;
+    flex: 0 1 auto;
+    gap: 0.3rem;
+    margin-left: 0.15rem;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+}
+.mythic-interactive-terminal-pending > span:first-child {
+    flex: 0 0 auto;
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+.mythic-interactive-terminal-pending-chip {
+    background-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.18 : 0.12)};
+    border-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.38 : 0.28)};
+    max-width: 9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.mythic-interactive-terminal-raw-warning {
+    background-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.16 : 0.1)};
+    border: 1px solid ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.34 : 0.24)};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    color: ${(props) => alpha(props.theme.outputTextColor || props.theme.palette.text.primary, 0.82)};
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.35;
+    padding: 0.35rem 0.5rem;
+}
+@media (max-width: 760px) {
+    .mythic-interactive-terminal-toolbar-row {
+        flex-wrap: wrap;
+    }
+    .mythic-interactive-terminal-config-chip {
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+}
 .Toastify__toast {
     word-break: break-all;
     white-space: pre-wrap !important;
