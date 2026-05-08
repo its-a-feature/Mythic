@@ -6,6 +6,7 @@ import {gql, useMutation} from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import {Typography, Box, Chip} from '@mui/material';
+import {useTheme} from '@mui/material/styles';
 import {
   MythicDialogBody,
   MythicDialogButton,
@@ -15,6 +16,7 @@ import {
   MythicFormGrid
 } from "../../MythicComponents/MythicDialogLayout";
 import {isValidHexColor, MythicColorSwatchInput} from "../../MythicComponents/MythicColorInput";
+import {getTagReadableTextColor} from "../../MythicComponents/MythicTagChip";
 
 const newTagtypeMutation = gql`
 mutation newTagType($name: String!, $description: String!, $color: String!) {
@@ -33,9 +35,11 @@ mutation updateTagType($id: Int!, $name: String!, $description: String!, $color:
 `;
 
 const TagColorPreview = ({mode, color, label}) => {
+  const theme = useTheme();
   const darkMode = mode === "dark";
   const hasValidColor = isValidHexColor(color);
   const textColor = darkMode ? "#ffffff" : "#111827";
+  const chipTextColor = hasValidColor ? getTagReadableTextColor(theme, color) : textColor;
   const surfaceColor = darkMode ? "#1f2937" : "#f8fafc";
   const surfaceBorderColor = darkMode ? "rgba(255,255,255,0.16)" : "rgba(17,24,39,0.12)";
   const chipBorderColor = hasValidColor ? (darkMode ? "rgba(255,255,255,0.2)" : "rgba(17,24,39,0.16)") : surfaceBorderColor;
@@ -69,9 +73,10 @@ const TagColorPreview = ({mode, color, label}) => {
             border: "1px solid",
             borderColor: chipBorderColor,
             borderStyle: hasValidColor ? "solid" : "dashed",
-            color: textColor,
+            color: chipTextColor,
             fontWeight: 800,
             "& .MuiChip-label": {
+              color: "inherit",
               px: 1,
               minWidth: 0,
               overflow: "hidden",
