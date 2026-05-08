@@ -64,7 +64,7 @@ const StyledMythicDialog = styled(MythicDialog)((
 
     [`& .${classes.checkIcon}`]: {
         fontSize: 20,
-        color: '#b3b3b3',
+        color: theme.palette.text.secondary,
         paddingRight: 4,
     },
 

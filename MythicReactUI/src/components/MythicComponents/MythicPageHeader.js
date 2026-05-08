@@ -249,10 +249,7 @@ export const MythicSectionHeader = ({
 }) => {
     const theme = useTheme();
     const headerTextColor = theme.pageHeaderText?.main || theme.palette.text.primary;
-    const sectionAccentColor = theme.palette.primary.main;
-    const sectionOverlayStart = alpha(sectionAccentColor, theme.palette.mode === "dark" ? 0.28 : 0.18);
-    const sectionOverlayMiddle = alpha(sectionAccentColor, theme.palette.mode === "dark" ? 0.12 : 0.08);
-    const sectionOverlayEnd = alpha(headerTextColor, theme.palette.mode === "dark" ? 0.055 : 0.04);
+    const sectionAccentColor = theme.sectionHeader?.accent || theme.palette.primary.main;
     return (
         <MythicPageHeader
             actions={actions}
@@ -261,7 +258,7 @@ export const MythicSectionHeader = ({
             subtitle={subtitle}
             title={title}
             sx={{
-                backgroundImage: `linear-gradient(90deg, ${sectionOverlayStart} 0%, ${sectionOverlayMiddle} 48%, ${sectionOverlayEnd} 100%)`,
+                backgroundImage: theme.gradients?.sectionHeader,
                 borderColor: alpha(sectionAccentColor, theme.palette.mode === "dark" ? 0.55 : 0.38),
                 boxShadow: `inset 0 1px 0 ${alpha(headerTextColor, 0.22)}, 0 2px 6px ${alpha(theme.palette.common.black, theme.palette.mode === "dark" ? 0.28 : 0.12)}`,
                 mb: 0.5,

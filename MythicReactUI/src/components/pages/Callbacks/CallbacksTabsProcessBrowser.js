@@ -142,6 +142,7 @@ export function CallbacksTabsProcessBrowserLabel(props){
     )
 }
 export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me, setNewDataForTab}) =>{
+    const theme = useTheme();
     const fromNow = React.useRef((new Date()));
     const [backdropOpen, setBackdropOpen] = React.useState(false);
     const [expandOrCollapseAll, setExpandOrCollapseAll] = React.useState(false);
@@ -410,9 +411,9 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me, set
                     <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute",}} invisible={false}>
                         <div style={{
                             borderRadius: "4px",
-                            border: "1px solid black",
+                            border: `1px solid ${theme.palette.divider}`,
                             padding: "5px",
-                            backgroundColor: "rgba(37,37,37,0.92)", color: "white",
+                            backgroundColor: theme.palette.background.contrast, color: theme.palette.text.contrast,
                             alignItems: "center",
                             display: "flex", flexDirection: "column"}}>
                             <CircularProgress color="inherit" />

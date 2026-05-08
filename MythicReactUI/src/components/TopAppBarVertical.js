@@ -881,7 +881,7 @@ export function TopAppBarVertical(props) {
         <StyledListItem className={classes.listSubHeader} style={{display: me?.user?.current_operation_id === 0 ? "" : "none"}}>
             <ListItemText primary={
                 <>
-                    <Link style={{display: "inline-flex", alignItems: "center", paddingRight: "10px", color: "#f84d4d",
+                    <Link style={{display: "inline-flex", alignItems: "center", paddingRight: "10px", color: theme.palette.error.main,
                         fontWeight: "bold",}} to="/new/operations">
                         {"CLICK TO SET OPERATION!"}
                     </Link>
