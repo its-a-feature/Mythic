@@ -1,6 +1,8 @@
 import React from 'react';
 import Box from '@mui/material/Box';
-import {HexColorInput} from 'react-colorful';
+import ClickAwayListener from '@mui/material/ClickAwayListener';
+import Popper from '@mui/material/Popper';
+import {HexColorInput, HexColorPicker} from 'react-colorful';
 
 export const isValidHexColor = (color) => {
     if(typeof color !== "string"){
@@ -27,54 +29,92 @@ export const getReadableTextColor = (backgroundColor) => {
 }
 
 export const MythicColorSwatchInput = ({color, label, onChange, inputWidth = "96px", sx = {}}) => {
+    const [pickerOpen, setPickerOpen] = React.useState(false);
+    const swatchRef = React.useRef(null);
     const safeColor = isValidHexColor(color) ? color : "#000000";
     return (
-        <Box sx={{display: "flex", alignItems: "center", gap: 1, minWidth: 0, ...sx}}>
-            <Box
-                component="input"
-                type="color"
-                value={safeColor}
-                onChange={(evt) => onChange(evt.target.value)}
-                aria-label={label}
-                sx={{
-                    width: 34,
-                    height: 30,
-                    flex: "0 0 auto",
-                    p: 0,
-                    border: "none",
-                    backgroundColor: "transparent",
-                    cursor: "pointer",
-                    "&::-webkit-color-swatch-wrapper": {p: 0},
-                    "&::-webkit-color-swatch": {
+        <ClickAwayListener onClickAway={() => setPickerOpen(false)}>
+            <Box sx={{display: "flex", alignItems: "center", gap: 1, minWidth: 0, position: "relative", ...sx}}>
+                <Box
+                    component="button"
+                    type="button"
+                    ref={swatchRef}
+                    onClick={(evt) => {
+                        evt.preventDefault();
+                        evt.stopPropagation();
+                        setPickerOpen((open) => !open);
+                    }}
+                    aria-label={label}
+                    aria-expanded={pickerOpen}
+                    sx={{
+                        alignItems: "center",
+                        backgroundColor: "transparent",
                         border: "1px solid",
                         borderColor: "divider",
                         borderRadius: "4px",
-                    },
-                    "&::-moz-color-swatch": {
-                        border: "1px solid",
-                        borderColor: "divider",
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        flex: "0 0 auto",
+                        height: 30,
+                        justifyContent: "center",
+                        p: "2px",
+                        width: 34,
+                    }}
+                >
+                    <Box
+                        sx={{
+                            backgroundColor: safeColor,
+                            borderRadius: "3px",
+                            height: "100%",
+                            width: "100%",
+                        }}
+                    />
+                </Box>
+                <Popper
+                    open={pickerOpen}
+                    anchorEl={swatchRef.current}
+                    placement="bottom-start"
+                    style={{zIndex: 100000}}
+                >
+                    <Box
+                        onMouseDown={(evt) => evt.stopPropagation()}
+                        onClick={(evt) => evt.stopPropagation()}
+                        sx={{
+                            backgroundColor: "background.paper",
+                            border: "1px solid",
+                            borderColor: "divider",
+                            borderRadius: "6px",
+                            boxShadow: 8,
+                            mt: 0.5,
+                            p: 1,
+                            "& .react-colorful": {
+                                width: 210,
+                                height: 160,
+                            },
+                        }}
+                    >
+                        <HexColorPicker color={safeColor} onChange={onChange} />
+                    </Box>
+                </Popper>
+                <HexColorInput
+                    color={color}
+                    onChange={onChange}
+                    prefixed={true}
+                    style={{
+                        width: inputWidth,
+                        minWidth: 0,
+                        height: "30px",
+                        boxSizing: "border-box",
                         borderRadius: "4px",
-                    },
-                }}
-            />
-            <HexColorInput
-                color={color}
-                onChange={onChange}
-                prefixed={true}
-                style={{
-                    width: inputWidth,
-                    minWidth: 0,
-                    height: "30px",
-                    boxSizing: "border-box",
-                    borderRadius: "4px",
-                    border: "1px solid rgba(128,128,128,0.45)",
-                    background: "transparent",
-                    color: "inherit",
-                    padding: "0 8px",
-                    fontFamily: "inherit",
-                    fontSize: "0.85rem",
-                }}
-            />
-        </Box>
+                        border: "1px solid rgba(128,128,128,0.45)",
+                        background: "transparent",
+                        color: "inherit",
+                        padding: "0 8px",
+                        fontFamily: "inherit",
+                        fontSize: "0.85rem",
+                    }}
+                />
+            </Box>
+        </ClickAwayListener>
     );
 }

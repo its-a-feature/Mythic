@@ -2410,6 +2410,103 @@ tspan {
     line-height: 1.4;
     padding: 0.65rem 0.75rem;
 }
+.mythic-tag-editor-frame {
+    background-color: ${(props) => props.theme.palette.background.paper};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    min-width: 0;
+    overflow: hidden;
+    width: 100%;
+}
+.mythic-tag-editor-frame .ace_editor {
+    background-color: ${(props) => props.theme.palette.background.paper} !important;
+}
+.mythic-tag-data-split {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    min-width: 0;
+    width: 100%;
+}
+.mythic-tag-data-preview-frame {
+    background-color: ${(props) => props.theme.palette.background.paper};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    color: ${(props) => props.theme.palette.text.primary};
+    max-height: 30rem;
+    min-height: 10rem;
+    min-width: 0;
+    overflow: auto;
+    padding: 0.55rem;
+}
+.mythic-tag-data-preview-frame-full {
+    max-height: min(48vh, 34rem);
+}
+.mythic-tag-readonly-value {
+    align-items: center;
+    background-color: ${(props) => props.theme.palette.background.paper};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    color: ${(props) => props.theme.palette.text.primary};
+    display: flex;
+    font-size: 0.84rem;
+    line-height: 1.35;
+    min-height: 34px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    padding: 0.45rem 0.6rem;
+    width: 100%;
+}
+.mythic-tag-data-preview-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 0;
+}
+.mythic-tag-data-preview-row {
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? "rgba(255,255,255,0.035)" : "rgba(0,0,0,0.018)"};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    display: grid;
+    gap: 0.5rem;
+    grid-template-columns: minmax(7rem, 0.35fr) minmax(0, 1fr);
+    min-width: 0;
+    padding: 0.45rem 0.55rem;
+}
+.mythic-tag-data-preview-key {
+    color: ${(props) => props.theme.palette.text.secondary};
+    font-size: 0.76rem;
+    font-weight: 800;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-tag-data-preview-value {
+    color: ${(props) => props.theme.palette.text.primary};
+    font-size: 0.82rem;
+    line-height: 1.35;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.mythic-tag-data-preview-value pre {
+    margin: 0;
+    white-space: pre-wrap;
+}
+.mythic-tag-data-preview-empty {
+    align-items: center;
+    color: ${(props) => props.theme.palette.text.secondary};
+    display: flex;
+    font-size: 0.82rem;
+    justify-content: center;
+    min-height: 9rem;
+    text-align: center;
+}
+@media (max-width: 900px) {
+    .mythic-tag-data-split {
+        grid-template-columns: 1fr;
+    }
+}
 .mythic-form-switch-row {
     align-items: center;
     background-color: ${(props) => props.theme.palette.background.paper};
@@ -6893,6 +6990,70 @@ tspan {
     background-color: ${(props) => props.theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)"} !important;
     border-color: ${(props) => props.theme.table?.borderSoft || props.theme.borderColor} !important;
     color: ${(props) => props.theme.palette.text.disabled} !important;
+}
+.MuiIconButton-root.mythic-response-action-button {
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.045) : alpha(props.theme.palette.common.black, 0.028)} !important;
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor} !important;
+    border-radius: ${(props) => props.theme.shape.borderRadius}px !important;
+    box-shadow: none !important;
+    color: ${(props) => props.theme.palette.text.secondary} !important;
+    height: 30px;
+    padding: 0;
+    transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
+    width: 30px;
+}
+.MuiIconButton-root.mythic-response-action-button .MuiSvgIcon-root,
+.MuiIconButton-root.mythic-response-action-button .svg-inline--fa {
+    color: inherit !important;
+}
+.MuiIconButton-root.mythic-response-action-button:hover {
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.085) : alpha(props.theme.palette.common.black, 0.052)} !important;
+    border-color: ${(props) => props.theme.table?.border || props.theme.borderColor} !important;
+    color: ${(props) => props.theme.palette.text.primary} !important;
+}
+.mythic-response-action-menu {
+    padding: 0.25rem !important;
+}
+.mythic-response-action-menu .MuiMenuItem-root.mythic-response-action-menu-item {
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    color: ${(props) => props.theme.palette.text.secondary};
+    min-height: 34px;
+}
+.mythic-response-action-menu .MuiMenuItem-root.mythic-response-action-menu-item .MuiListItemIcon-root {
+    color: inherit;
+    min-width: 2rem;
+}
+.mythic-response-action-menu .MuiMenuItem-root.mythic-response-action-menu-item .MuiSvgIcon-root,
+.mythic-response-action-menu .MuiMenuItem-root.mythic-response-action-menu-item .svg-inline--fa {
+    color: inherit !important;
+}
+.MuiIconButton-root.mythic-response-action-button.mythic-response-action-hover-info:hover,
+.mythic-response-action-menu .MuiMenuItem-root.mythic-response-action-hover-info:hover,
+.mythic-response-action-menu .MuiMenuItem-root.mythic-response-action-hover-info.Mui-focusVisible {
+    background-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.18 : 0.1)} !important;
+    border-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.54 : 0.36)} !important;
+    color: ${(props) => props.theme.palette.info.main} !important;
+}
+.MuiIconButton-root.mythic-response-action-button.mythic-response-action-hover-success:hover,
+.mythic-response-action-menu .MuiMenuItem-root.mythic-response-action-hover-success:hover,
+.mythic-response-action-menu .MuiMenuItem-root.mythic-response-action-hover-success.Mui-focusVisible {
+    background-color: ${(props) => alpha(props.theme.palette.success.main, props.theme.palette.mode === "dark" ? 0.18 : 0.1)} !important;
+    border-color: ${(props) => alpha(props.theme.palette.success.main, props.theme.palette.mode === "dark" ? 0.54 : 0.36)} !important;
+    color: ${(props) => props.theme.palette.success.main} !important;
+}
+.MuiIconButton-root.mythic-response-action-button.mythic-response-action-hover-warning:hover,
+.mythic-response-action-menu .MuiMenuItem-root.mythic-response-action-hover-warning:hover,
+.mythic-response-action-menu .MuiMenuItem-root.mythic-response-action-hover-warning.Mui-focusVisible {
+    background-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.2 : 0.12)} !important;
+    border-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.58 : 0.4)} !important;
+    color: ${(props) => props.theme.palette.warning.main} !important;
+}
+.MuiIconButton-root.mythic-response-action-button.mythic-response-action-hover-danger:hover,
+.mythic-response-action-menu .MuiMenuItem-root.mythic-response-action-hover-danger:hover,
+.mythic-response-action-menu .MuiMenuItem-root.mythic-response-action-hover-danger.Mui-focusVisible {
+    background-color: ${(props) => alpha(props.theme.palette.error.main, props.theme.palette.mode === "dark" ? 0.18 : 0.1)} !important;
+    border-color: ${(props) => alpha(props.theme.palette.error.main, props.theme.palette.mode === "dark" ? 0.56 : 0.38)} !important;
+    color: ${(props) => props.theme.palette.error.main} !important;
 }
 .mythic-menu-item-hover-danger .MuiSvgIcon-root {
     color: inherit !important;

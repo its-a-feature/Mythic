@@ -1,16 +1,9 @@
 import React from 'react';
 import Button from '@mui/material/Button';
-import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
-import DialogTitle from '@mui/material/DialogTitle';
 import MythicTextField from './MythicTextField';
 import {useQuery, gql, useMutation} from '@apollo/client';
-import { Select, Input, MenuItem, Link, IconButton } from '@mui/material';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableRow from '@mui/material/TableRow';
+import { Box, Select, MenuItem, Link, IconButton } from '@mui/material';
 import AceEditor from 'react-ace';
 import 'ace-builds/src-noconflict/mode-json';
 import 'ace-builds/src-noconflict/theme-monokai';
@@ -25,11 +18,20 @@ import Chip from '@mui/material/Chip';
 import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined';
 import {MythicStyledTooltip} from "./MythicStyledTooltip";
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import Typography from '@mui/material/Typography';
-import MythicStyledTableCell from "./MythicTableCell";
 import {meState} from "../../cache";
 import { useReactiveVar } from '@apollo/client';
 import {MythicDraggableDialogTitle} from "./MythicDraggableDialogTitle";
+import {NewTagtypesDialog} from "../pages/Tags/NewTagtypesDialog";
+import {getTagReadableTextColor, TagTypeChip} from "./MythicTagChip";
+import {
+  MythicDialogBody,
+  MythicDialogButton,
+  MythicDialogFooter,
+  MythicDialogSection,
+  MythicFormField,
+  MythicFormGrid,
+  MythicFormNote
+} from "./MythicDialogLayout";
 
 const createNewTagMutationTemplate = ({target_object}) => {
   // target_object should be something like "task_id"
@@ -121,8 +123,11 @@ export const TagsDisplay = ({tags, expand}) => {
   )
 }
 const TagChipDisplay = ({tag, expand}) => {
+  const theme = useTheme();
   const [openTagDisplay, setOpenTagDisplay] = React.useState(false);
   const [label, setLabel] = React.useState(expand ? tag.tagtype.name : tag.tagtype.name[0]);
+  const color = tag?.tagtype?.color || "";
+  const textColor = getTagReadableTextColor(theme, color);
   const onSelectTag = (event, tag) => {
     if(event){
       event.preventDefault();
@@ -152,9 +157,18 @@ const TagChipDisplay = ({tag, expand}) => {
   return (
     <React.Fragment>
       <Chip onMouseOver={onMouseOver} onMouseOut={onMouseOut} label={label} size="small" onClick={(e) => onSelectTag(e)}
-            style={{float: "right", backgroundColor:tag.tagtype.color, height: "15px"}}
             sx={{
-              "& .MuiChip-label": {overflow: "visible"}
+              backgroundColor: color || "transparent",
+              color: textColor,
+              float: "right",
+              height: "15px",
+              "& .MuiChip-label": {
+                color: "inherit",
+                overflow: "visible"
+              },
+              "&:hover": {
+                backgroundColor: color || "transparent",
+              },
             }}
       />
       {openTagDisplay && 
@@ -220,6 +234,56 @@ const StringTagDataEntry = ({name, value}) => {
   }
   return value;
 }
+const RenderedTagDataPreview = ({data}) => {
+  const trimmedData = typeof data === "string" ? data.trim() : data;
+  if(trimmedData === ""){
+    return <Box className="mythic-tag-data-preview-empty">No JSON data to render.</Box>;
+  }
+  try {
+    const parsedData = typeof data === "string" ? JSON.parse(data) : data;
+    if(parsedData === null || typeof parsedData !== "object"){
+      return (
+          <Box className="mythic-tag-data-preview-row">
+            <Box className="mythic-tag-data-preview-key">value</Box>
+            <Box className="mythic-tag-data-preview-value">{String(parsedData)}</Box>
+          </Box>
+      );
+    }
+    const entries = Array.isArray(parsedData) ?
+        parsedData.map((value, index) => [`[${index}]`, value]) :
+        Object.entries(parsedData);
+    if(entries.length === 0){
+      return <Box className="mythic-tag-data-preview-empty">JSON object is empty.</Box>;
+    }
+    return (
+        <Box className="mythic-tag-data-preview-list">
+          {entries.map(([key, value]) => (
+              <Box className="mythic-tag-data-preview-row" key={key}>
+                <Box className="mythic-tag-data-preview-key">{key}</Box>
+                <Box className="mythic-tag-data-preview-value">
+                  {typeof value === "string" ? (
+                      <StringTagDataEntry name={key} value={value} />
+                  ) : typeof value === "boolean" ? (
+                      value ? "True" : "False"
+                  ) : typeof value === "object" && value !== null ? (
+                      <pre>{JSON.stringify(value, null, 2)}</pre>
+                  ) : (
+                      String(value)
+                  )}
+                </Box>
+              </Box>
+          ))}
+        </Box>
+    );
+  } catch (error) {
+    return <Box className="mythic-tag-data-preview-empty">Enter valid JSON to render a preview.</Box>;
+  }
+}
+const TagReadonlyValue = ({children}) => (
+    <Box className="mythic-tag-readonly-value">
+      {children || "None"}
+    </Box>
+)
 function ViewTagDialog(props) {
   const theme = useTheme();
   const [selectedTag, setSelectedTag] = React.useState({});
@@ -277,118 +341,81 @@ function ViewTagDialog(props) {
     }
     props.onClose(event);
   }
-  const stopClicks = (e) => {
+  const stopPropagation = (e) => {
     e.stopPropagation();
-    e.preventDefault();
   }
+  const rawData = selectedTag?.is_json ? JSON.stringify(selectedTag?.data || {}, null, 2) : selectedTag?.data || "";
 return (
   <React.Fragment>
-      <DialogTitle id="form-dialog-title" onClick={stopClicks}>View Tag</DialogTitle>
-        <TableContainer className="mythicElement" onClick={stopClicks}>
-          <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
-              <TableBody>
-                <TableRow hover>
-                  <TableCell style={{width: "20%"}}>Tag Type</TableCell>
-                  <TableCell style={{display: "inline-flex", flexDirection: "row", width: "100%"}}>
-                    <Chip label={selectedTag?.tagtype?.name||""} size="small" style={{float: "right", backgroundColor:selectedTag?.tagtype?.color||""}} />
-                    <ViewEditTags target_object={objectInfo.object_type} target_object_id={objectInfo.object_id} me={props.me} />
-                  </TableCell>
-                </TableRow>
-                <TableRow hover>
-                  <TableCell>Description</TableCell>
-                  <TableCell>{selectedTag?.tagtype?.description || ""}</TableCell>
-                </TableRow>
-                <TableRow hover>
-                  <MythicStyledTableCell>Source</MythicStyledTableCell>
-                  <MythicStyledTableCell>
-                    {selectedTag?.source ||""}
-                  </MythicStyledTableCell>
-                </TableRow>
-                <TableRow hover>
-                  <MythicStyledTableCell>Reference URL</MythicStyledTableCell>
-                  <MythicStyledTableCell>
-                    {selectedTag?.url === "" ? (
-                        "No reference link provided"
-                    ) : (
-                        <Link href={selectedTag?.url || "#"} color="textPrimary" target="_blank" referrerPolicy='no'>{selectedTag?.url ? "click here" : "No reference link provided"}</Link>
-                    )}
-                  </MythicStyledTableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Data</TableCell>
-                  <TableCell>
-                    {selectedTag?.is_json ? (
-                      <TableContainer  className="mythicElement">
-                        <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
-                          <TableBody>
-                            {Object.keys(selectedTag.data).map( key => (
-                              <TableRow key={key} hover>
-                                <MythicStyledTableCell>{key}</MythicStyledTableCell>
-                                {typeof selectedTag.data[key] === "string" ? (
-                                    <MythicStyledTableCell style={{whiteSpace: "pre-wrap"}}>
-                                      <StringTagDataEntry name={key} value={String(selectedTag.data[key])} />
-                                    </MythicStyledTableCell>
-                                ) : typeof selectedTag.data[key] === "object" ? (
-                                    Array.isArray(selectedTag.data[key]) ? (
-                                        <TableCell style={{whiteSpace: "pre-wrap"}}>{JSON.stringify(selectedTag.data[key], null, 2)}</TableCell>
-                                    ) : (
-                                        <MythicStyledTableCell>
-                                          <Table size={"small"} >
-                                            <TableBody>
-                                              {Object.keys(selectedTag.data[key]).map(key2 => (
-                                                  <TableRow key={key2} >
-                                                    <MythicStyledTableCell>{key2}</MythicStyledTableCell>
-                                                    <MythicStyledTableCell>
-                                                      <StringTagDataEntry name={key2} value={String(selectedTag.data[key][key2])} />
-                                                    </MythicStyledTableCell>
-                                                  </TableRow>
-                                              ))}
-                                            </TableBody>
-
-                                          </Table>
-                                        </MythicStyledTableCell>
-                                    )
-                                ) : typeof selectedTag.data[key] === "boolean" ? (
-                                    <MythicStyledTableCell>{selectedTag.data[key] ? "True" : "False"}</MythicStyledTableCell>
-                                ) :
-                                (
-                                    <MythicStyledTableCell>{String(selectedTag.data[key])}</MythicStyledTableCell>
-                                )
-                                }
-
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                    ) : (
-                      <AceEditor 
-                        mode="json"
-                        theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}
-                        fontSize={14}
-                        showGutter={true}
-                        maxLines={20}
-                        highlightActiveLine={false}
-                        value={selectedTag?.data || ""}
-                        width={"100%"}
-                        setOptions={{
-                          showLineNumbers: true,
-                          tabSize: 4,
-                          useWorker: false,
-                          wrapBehavioursEnabled: true,
-                          wrap: true
-                        }}/>
-                    )}
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-          </Table>
-        </TableContainer>
-      <DialogActions onClick={(e) => e.stopPropagation()}>
-        <Button onClick={onClose} variant="contained" color="primary">
+      <MythicDraggableDialogTitle>View Tag</MythicDraggableDialogTitle>
+      <DialogContent dividers={true} style={{width: "100%"}} onClick={stopPropagation}>
+        <MythicDialogBody>
+          <MythicDialogSection
+              title="Tag Type"
+              description={selectedTag?.tagtype?.description || "No description provided."}
+              actions={
+                objectInfo.object_type !== "" &&
+                  <ViewEditTags target_object={objectInfo.object_type} target_object_id={objectInfo.object_id} me={props.me} />
+              }
+          >
+            {selectedTag?.tagtype &&
+              <TagTypeChip tagtype={selectedTag.tagtype} />
+            }
+          </MythicDialogSection>
+          <MythicDialogSection title="Reference Details">
+            <MythicFormGrid minWidth="16rem">
+              <MythicFormField label="Source">
+                <TagReadonlyValue>{selectedTag?.source || "None"}</TagReadonlyValue>
+              </MythicFormField>
+              <MythicFormField label="External URL">
+                <TagReadonlyValue>
+                  {selectedTag?.url ? (
+                      <Link href={selectedTag.url} color="textPrimary" target="_blank" referrerPolicy='no'>
+                        {selectedTag.url}
+                      </Link>
+                  ) : (
+                      "No reference link provided"
+                  )}
+                </TagReadonlyValue>
+              </MythicFormField>
+            </MythicFormGrid>
+          </MythicDialogSection>
+          <MythicDialogSection title="Tag Data">
+            {selectedTag?.is_json ? (
+                <Box className="mythic-tag-data-preview-frame mythic-tag-data-preview-frame-full">
+                  <RenderedTagDataPreview data={selectedTag?.data || {}} />
+                </Box>
+            ) : (
+                <Box className="mythic-tag-editor-frame">
+                  <AceEditor
+                      mode="json"
+                      theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}
+                      fontSize={14}
+                      showGutter={true}
+                      showPrintMargin={false}
+                      minLines={8}
+                      maxLines={18}
+                      highlightActiveLine={false}
+                      readOnly={true}
+                      value={rawData}
+                      width={"100%"}
+                      setOptions={{
+                        showLineNumbers: true,
+                        tabSize: 4,
+                        useWorker: false,
+                        wrapBehavioursEnabled: true,
+                        wrap: true
+                      }}/>
+                </Box>
+            )}
+          </MythicDialogSection>
+        </MythicDialogBody>
+      </DialogContent>
+      <MythicDialogFooter onClick={stopPropagation}>
+        <MythicDialogButton onClick={onClose}>
           Close
-        </Button>
-      </DialogActions>
+        </MythicDialogButton>
+      </MythicDialogFooter>
 </React.Fragment>
 );
 }
@@ -486,8 +513,15 @@ const handleTaskTypeChange = (evt) => {
     setNewData(String(evt.target.value.data));
   }
 }
-const handleNewTagCreate = ({tagtype_id, source, url, data, id}) => {
-  props.onClose();
+const handleNewTagCreate = ({tagtype_id, source, url, data, id, tagtype}) => {
+  const newTag = {id, source, url, data, tagtype_id, tagtype};
+  const newTags = [...existingTags, newTag].sort((a, b) => a.tagtype.name.localeCompare(b.tagtype.name));
+  setExistingTags(newTags);
+  setSelectedTag(newTag);
+  setNewSource(source);
+  setNewURL(url);
+  setNewData(data);
+  setOpenNewDialog(false);
 }
 const onAcceptDelete = () => {
   deleteTag({variables: {tag_id: selectedTag.id}});
@@ -506,88 +540,117 @@ return (
             onClose={()=>{setOpenNewDialog(false);}} 
             onSubmit={handleNewTagCreate} />}
       />}
-          <Table size="small" style={{ width: "100%", overflow: "scroll"}}>
-              <TableBody>
-                <TableRow hover>
-                  <MythicStyledTableCell style={{width: "30%"}}>Select Existing Tag to Edit or Add New</MythicStyledTableCell>
-                  <MythicStyledTableCell style={{display: "inline-flex", flexDirection: "row-reverse"}}>
-                    <MythicStyledTooltip title={"Add New Tag"}>
-                      <IconButton variant='contained' color="success" style={{float: "right"}} onClick={() => setOpenNewDialog(true)} >
-                        <AddCircleOutlineIcon />
+        <MythicDialogBody>
+          <MythicDialogSection
+              title="Tag Selection"
+              description={existingTags.length === 0 ? "No tags are attached yet." : "Choose the tag you want to update."}
+              actions={
+                <MythicStyledTooltip title={"Add New Tag"}>
+                  <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-success" size="small" onClick={() => setOpenNewDialog(true)}>
+                    <AddCircleOutlineIcon fontSize="small" />
+                  </IconButton>
+                </MythicStyledTooltip>
+              }
+          >
+            {existingTags.length === 0 ? (
+              <MythicFormNote>
+                Add a tag to capture source, reference, and structured data for this item.
+              </MythicFormNote>
+            ) : (
+              <Box sx={{display: "grid", gap: 1, gridTemplateColumns: {xs: "1fr", md: selectedTag.id ? "minmax(0, 1fr) auto" : "1fr"}, alignItems: "end"}}>
+                <MythicFormField label="Existing Tag">
+                  <Select
+                      fullWidth
+                      size="small"
+                      value={selectedTag}
+                      onChange={handleTaskTypeChange}
+                      renderValue={(tag) => tag?.id ? <TagTypeChip tagtype={tag.tagtype} /> : "Select a tag"}
+                  >
+                    {existingTags.map( (opt) => (
+                        <MenuItem value={opt} key={opt.id}>
+                          <TagTypeChip tagtype={opt.tagtype} />
+                        </MenuItem>
+                    ) )}
+                  </Select>
+                </MythicFormField>
+                {selectedTag.id &&
+                  <MythicStyledTooltip title={"Delete Tag"}>
+                    <Box sx={{alignItems: "center", alignSelf: "end", display: "flex", height: 38}}>
+                      <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={()=>{setOpenDeleteDialog(true);}}>
+                        <DeleteIcon fontSize="small" />
                       </IconButton>
-                    </MythicStyledTooltip>
-                    <Select
-                        labelId="demo-dialog-select-label"
-                        id="demo-dialog-select"
-                        value={selectedTag}
-                        onChange={handleTaskTypeChange}
-                        input={<Input />}
-                      >
-                        {existingTags.map( (opt) => (
-                            <MenuItem value={opt} key={opt.id}>
-                              <Chip label={opt.tagtype.name} size="small" style={{float: "right", backgroundColor:opt.tagtype.color}} />
-                            </MenuItem>
-                        ) )}
-                      </Select>
-                    {selectedTag.id &&
-                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" style={{float: "right"}} onClick={()=>{setOpenDeleteDialog(true);}}><DeleteIcon fontSize="small" /></IconButton>
+                    </Box>
+                  </MythicStyledTooltip>
+                }
+                {selectedTag.id && selectedTag?.tagtype?.description &&
+                  <Box sx={{gridColumn: "1 / -1"}}>
+                    <MythicFormNote>{selectedTag.tagtype.description}</MythicFormNote>
+                  </Box>
+                }
+              </Box>
+            )}
+            {openDelete &&
+              <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} open={openDelete}/>
+            }
+          </MythicDialogSection>
+          {selectedTag.id &&
+            <>
+              <MythicDialogSection title="Reference Details">
+                <MythicFormGrid minWidth="16rem">
+                  <MythicFormField label="Source">
+                    <MythicTextField value={newSource} onChange={onChangeSource} name="Source of tag data" showLabel={false} marginTop="0" marginBottom="0" />
+                  </MythicFormField>
+                  <MythicFormField label="External URL">
+                    <MythicTextField value={newURL} onChange={onChangeURL} name="External URL reference" showLabel={false} marginTop="0" marginBottom="0" />
+                    {newURL &&
+                      <Link href={newURL} color="textPrimary" target="_blank" referrerPolicy='no' sx={{display: "inline-flex", mt: 0.5, fontSize: "0.78rem"}}>
+                        Open reference
+                      </Link>
                     }
-                      {openDelete && 
-                        <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} open={openDelete}/>
-                      }
-                  </MythicStyledTableCell>
-                </TableRow>
-                <TableRow hover>
-                  <MythicStyledTableCell>Tag Description</MythicStyledTableCell>
-                  <MythicStyledTableCell>{selectedTag?.tagtype?.description || ""}</MythicStyledTableCell>
-                </TableRow>
-                <TableRow hover>
-                  <MythicStyledTableCell>Source</MythicStyledTableCell>
-                  <MythicStyledTableCell>
-                    <MythicTextField value={newSource} onChange={onChangeSource} name="Source of tag data" />
-                  </MythicStyledTableCell>
-                </TableRow>
-                <TableRow hover>
-                  <MythicStyledTableCell>External URL</MythicStyledTableCell>
-                  <MythicStyledTableCell>
-                    <MythicTextField value={newURL} onChange={onChangeURL} name="External URL reference" />
-                    <Link href={newURL} color="textPrimary" target="_blank" referrerPolicy='no'>{newURL ? "click here" : ""}</Link>
-                  </MythicStyledTableCell>
-                </TableRow>
-                <TableRow hover>
-                  <MythicStyledTableCell>JSON Data</MythicStyledTableCell>
-                  <MythicStyledTableCell>
-                  <AceEditor 
-                    mode="json"
-                    theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}
-                    onChange={onEditorChange}
-                    fontSize={14}
-                    showGutter={true}
-                    maxLines={20}
-                    highlightActiveLine={true}
-                    value={newData}
-                    width={"100%"}
-                    setOptions={{
-                      showLineNumbers: true,
-                      tabSize: 4,
-                      useWorker: false
-                    }}/>
-                  </MythicStyledTableCell>
-                </TableRow>
-              </TableBody>
-          </Table>
+                  </MythicFormField>
+                </MythicFormGrid>
+              </MythicDialogSection>
+              <MythicDialogSection title="JSON Data">
+                <Box className="mythic-tag-data-split">
+                  <Box className="mythic-tag-editor-frame">
+                    <AceEditor
+                        mode="json"
+                        theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}
+                        onChange={onEditorChange}
+                        fontSize={14}
+                        showGutter={true}
+                        showPrintMargin={false}
+                        minLines={10}
+                        maxLines={18}
+                        highlightActiveLine={true}
+                        value={newData}
+                        width={"100%"}
+                        setOptions={{
+                          showLineNumbers: true,
+                          tabSize: 4,
+                          useWorker: false,
+                          wrap: true
+                        }}/>
+                  </Box>
+                  <Box className="mythic-tag-data-preview-frame">
+                    <RenderedTagDataPreview data={newData} />
+                  </Box>
+                </Box>
+              </MythicDialogSection>
+            </>
+          }
+        </MythicDialogBody>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={props.onClose} variant="contained" color="primary">
+      <MythicDialogFooter>
+        <MythicDialogButton onClick={props.onClose}>
           Close
-        </Button>
+        </MythicDialogButton>
         {selectedTag.id &&
-            <Button onClick={onSubmit} variant="contained" color="success">
+            <MythicDialogButton intent="primary" onClick={onSubmit}>
               Submit
-            </Button>
+            </MythicDialogButton>
         }
-
-      </DialogActions>
+      </MythicDialogFooter>
 </React.Fragment>
 );
 }
@@ -598,7 +661,8 @@ export function NewTagDialog(props) {
     const [newData, setNewData] = React.useState("");
     const [selectedTagType, setSelectedTagType] = React.useState("");
     const [existingTagTypes, setExistingTagTypes] = React.useState([]);
-    const { loading, error } = useQuery(getTagtypesQuery, {
+    const [openNewTagTypeDialog, setOpenNewTagTypeDialog] = React.useState(false);
+    useQuery(getTagtypesQuery, {
         onCompleted: data => {
           setExistingTagTypes(data.tagtype);
           if(data.tagtype.length > 0){
@@ -611,7 +675,7 @@ export function NewTagDialog(props) {
     onCompleted: data => {
       if(data.createTag.status === "success"){
         snackActions.success("Successfully created new tag!");
-        props.onSubmit({source:newSource, url:newURL, data:newData, tagtype_id:selectedTagType.id, id: data.createTag.id});
+        props.onSubmit({source:newSource, url:newURL, data:newData, tagtype_id:selectedTagType.id, id: data.createTag.id, tagtype: selectedTagType});
         props.onClose()
       } else {
         snackActions.error(data.createTag.error);
@@ -624,6 +688,11 @@ export function NewTagDialog(props) {
   })
   const handleTaskTypeChange = (evt) => {
     setSelectedTagType(evt.target.value);
+  }
+  const onNewTagType = ({name, description, id, color}) => {
+    const newTagType = {name, description, id, color};
+    setExistingTagTypes((prev) => [...prev, newTagType].sort((a, b) => a.name.localeCompare(b.name)));
+    setSelectedTagType(newTagType);
   }
   const onSubmit = () => {
     newTag({variables: 
@@ -644,87 +713,103 @@ export function NewTagDialog(props) {
 
   return (
     <React.Fragment>
+        {openNewTagTypeDialog &&
+          <MythicDialog fullWidth={true} maxWidth="md" open={openNewTagTypeDialog}
+                        onClose={()=>{setOpenNewTagTypeDialog(false);}}
+                        innerDialog={
+                          <NewTagtypesDialog
+                              onClose={()=>{setOpenNewTagTypeDialog(false);}}
+                              onSubmit={onNewTagType}
+                          />
+                        }
+          />
+        }
         <MythicDraggableDialogTitle >Add New Tag</MythicDraggableDialogTitle>
         <DialogContent dividers={true} style={{width: "100%"}}>
-          <Table size="small" style={{ overflow: "scroll", width: "100%"}}>
-                <TableBody>
-                  <TableRow hover>
-                    <MythicStyledTableCell style={{width: "20%"}}>
-                      <Typography>
-                        Tag
-                      </Typography>
-                      <Typography  size="small" component="span" style={{fontSize: theme.typography.pxToRem(15)}}>
-                        To create a new tag type click <Link style={{wordBreak: "break-all"}}
-                                                             color="textPrimary"
-                                                             href={"/new/tagtypes"}
-                                                             underline="always" target="_blank">
-                        here
-                      </Link>
-                      </Typography>
-                    </MythicStyledTableCell>
-                    <MythicStyledTableCell>
-                      <Select
-                        labelId="demo-dialog-select-label"
-                        id="demo-dialog-select"
-                        value={selectedTagType}
-                        onChange={handleTaskTypeChange}
-                        input={<Input style={{width: "100%"}}/>}
-                      >
-                        {existingTagTypes.map( (opt) => (
-                            <MenuItem value={opt} key={opt.name}>
-                              <Chip label={opt.name} size="small" style={{ backgroundColor:opt.color}} />
-                            </MenuItem>
-                        ) )}
-                      </Select>
-                    </MythicStyledTableCell>
-                  </TableRow>
-                  <TableRow hover>
-                    <MythicStyledTableCell>Source</MythicStyledTableCell>
-                    <MythicStyledTableCell>
-                      <MythicTextField value={newSource} onChange={onChangeSource} name="Source of tag data" />
-                    </MythicStyledTableCell>
-                  </TableRow>
-                  <TableRow hover>
-                    <MythicStyledTableCell>External URL</MythicStyledTableCell>
-                    <MythicStyledTableCell>
-                      <MythicTextField value={newURL} onChange={onChangeURL} name="External URL reference" />
-                      <Link href={newURL} color="textPrimary" target="_blank" referrerPolicy='no'>{newURL}</Link>
-                    </MythicStyledTableCell>
-                  </TableRow>
-                  <TableRow hover>
-                    <MythicStyledTableCell>JSON Data</MythicStyledTableCell>
-                    <MythicStyledTableCell>
-                    <AceEditor 
+          <MythicDialogBody>
+            <MythicDialogSection
+                title="Tag Type"
+                description="Select the taxonomy entry this tag should use."
+                actions={
+                  <Button className="mythic-table-row-action mythic-table-row-action-hover-info" size="small" variant="outlined" onClick={() => setOpenNewTagTypeDialog(true)}>
+                    Manage Tag Types
+                  </Button>
+                }
+            >
+              <MythicFormField label="Tag">
+                <Select
+                    fullWidth
+                    size="small"
+                    value={selectedTagType}
+                    onChange={handleTaskTypeChange}
+                    displayEmpty
+                    renderValue={(tagtype) => tagtype?.id ? <TagTypeChip tagtype={tagtype} /> : "No tag types available"}
+                >
+                  {existingTagTypes.map( (opt) => (
+                      <MenuItem value={opt} key={opt.name}>
+                        <TagTypeChip tagtype={opt} />
+                      </MenuItem>
+                  ) )}
+                </Select>
+              </MythicFormField>
+              {selectedTagType?.description &&
+                <MythicFormNote>{selectedTagType.description}</MythicFormNote>
+              }
+            </MythicDialogSection>
+            <MythicDialogSection title="Reference Details">
+              <MythicFormGrid minWidth="16rem">
+                <MythicFormField label="Source">
+                  <MythicTextField value={newSource} onChange={onChangeSource} name="Source of tag data" showLabel={false} marginTop="0" marginBottom="0" />
+                </MythicFormField>
+                <MythicFormField label="External URL">
+                  <MythicTextField value={newURL} onChange={onChangeURL} name="External URL reference" showLabel={false} marginTop="0" marginBottom="0" />
+                  {newURL &&
+                    <Link href={newURL} color="textPrimary" target="_blank" referrerPolicy='no' sx={{display: "inline-flex", mt: 0.5, fontSize: "0.78rem"}}>
+                      Open reference
+                    </Link>
+                  }
+                </MythicFormField>
+              </MythicFormGrid>
+            </MythicDialogSection>
+            <MythicDialogSection title="JSON Data">
+              <Box className="mythic-tag-data-split">
+                <Box className="mythic-tag-editor-frame">
+                  <AceEditor
                       mode="json"
                       theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}
                       onChange={onEditorChange}
                       fontSize={14}
                       showGutter={true}
-                      maxLines={20}
+                      showPrintMargin={false}
+                      minLines={10}
+                      maxLines={18}
                       highlightActiveLine={true}
                       value={newData}
                       width={"100%"}
                       setOptions={{
                         showLineNumbers: true,
                         tabSize: 4,
-                        useWorker: false
+                        useWorker: false,
+                        wrap: true
                       }}/>
-                    </MythicStyledTableCell>
-                  </TableRow>
-                </TableBody>
-            </Table>
+                </Box>
+                <Box className="mythic-tag-data-preview-frame">
+                  <RenderedTagDataPreview data={newData} />
+                </Box>
+              </Box>
+            </MythicDialogSection>
+          </MythicDialogBody>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={props.onClose} variant="contained" color="primary">
+        <MythicDialogFooter>
+          <MythicDialogButton onClick={props.onClose}>
             Close
-          </Button>
+          </MythicDialogButton>
           {selectedTagType !== "" &&
-              <Button onClick={onSubmit} variant="contained" color="success">
+              <MythicDialogButton intent="primary" onClick={onSubmit}>
                 Submit
-              </Button>
+              </MythicDialogButton>
           }
-
-        </DialogActions>
+        </MythicDialogFooter>
   </React.Fragment>
   );
 }
