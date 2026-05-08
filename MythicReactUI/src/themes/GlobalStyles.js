@@ -1,6 +1,19 @@
 import { createGlobalStyle} from "styled-components"
 import {alpha} from "@mui/material/styles";
 // hex transparencies https://gist.github.com/lopspower/03fb1cc0ac9f32ef38f4
+const getSectionHeaderAccent = (props) => props.theme.sectionHeader?.accent || props.theme.palette.primary.main;
+const getSectionHeaderGradient = (props) => {
+    if(props.theme.gradients?.sectionHeader){
+        return props.theme.gradients.sectionHeader;
+    }
+    const headerTextColor = props.theme.pageHeaderText?.main || props.theme.palette.text.primary;
+    return `linear-gradient(90deg, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.28 : 0.18)} 0%, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.12 : 0.08)} 48%, ${alpha(headerTextColor, props.theme.palette.mode === "dark" ? 0.055 : 0.04)} 100%)`;
+};
+const getSubtleAccentGradient = (props) => props.theme.gradients?.subtleAccent ||
+    `linear-gradient(135deg, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.13 : 0.075)} 0%, ${alpha(props.theme.palette.background.paper, 0)} 62%)`;
+const getSubtleAccentHorizontalGradient = (props) => props.theme.gradients?.subtleAccentHorizontal ||
+    `linear-gradient(90deg, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.12 : 0.07)} 0%, ${alpha(props.theme.palette.background.paper, 0)} 100%)`;
+
 export const GlobalStyles = createGlobalStyle`
 body {
     margin: 0;
@@ -183,7 +196,7 @@ tspan {
 }
 
 .resizer.isResizing {
-  background: blue;
+  background: ${(props) => props.theme.sectionHeader?.accent || props.theme.palette.primary.main};
   opacity: 1;
 }
 .groupNode {
@@ -608,9 +621,9 @@ tspan {
 }
 .mythic-grid-filter-dialog-title {
     background-color: ${(props) => props.theme.pageHeader?.main || props.theme.surfaces?.muted || props.theme.palette.background.default};
-    background-image: ${(props) => `linear-gradient(90deg, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.18 : 0.1)} 0%, ${alpha(props.theme.palette.text.primary, props.theme.palette.mode === "dark" ? 0.045 : 0.035)} 100%)`};
+    background-image: ${getSectionHeaderGradient};
     border-bottom: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
-    color: ${(props) => props.theme.palette.text.primary};
+    color: ${(props) => props.theme.pageHeaderText?.main || props.theme.palette.text.primary};
     font-size: 0.98rem !important;
     font-weight: 850 !important;
     line-height: 1.2 !important;
@@ -1839,11 +1852,8 @@ tspan {
 .mythic-detail-section-header {
     align-items: center;
     background-color: ${(props) => props.theme.pageHeader.main};
-    background-image: ${(props) => {
-        const headerTextColor = props.theme.pageHeaderText?.main || props.theme.palette.text.primary;
-        return `linear-gradient(90deg, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.28 : 0.18)} 0%, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.12 : 0.08)} 48%, ${alpha(headerTextColor, props.theme.palette.mode === "dark" ? 0.055 : 0.04)} 100%)`;
-    }};
-    border: 1px solid ${(props) => alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.55 : 0.38)};
+    background-image: ${getSectionHeaderGradient};
+    border: 1px solid ${(props) => alpha(getSectionHeaderAccent(props), props.theme.palette.mode === "dark" ? 0.55 : 0.38)};
     border-radius: ${(props) => props.theme.shape.borderRadius}px;
     box-shadow: inset 0 1px 0 ${(props) => alpha(props.theme.pageHeaderText?.main || props.theme.palette.text.primary, 0.22)}, 0 2px 6px ${(props) => alpha(props.theme.palette.common.black, props.theme.palette.mode === "dark" ? 0.28 : 0.12)};
     color: ${(props) => props.theme.pageHeaderText?.main || props.theme.palette.text.primary};
@@ -1860,7 +1870,7 @@ tspan {
     width: 100%;
 }
 .mythic-detail-section-header::before {
-    background-color: ${(props) => props.theme.palette.primary.main};
+    background-color: ${getSectionHeaderAccent};
     bottom: 0;
     box-shadow: 0 0 0 1px ${(props) => alpha(props.theme.pageHeaderText?.main || props.theme.palette.text.primary, 0.2)};
     content: "";
@@ -1870,18 +1880,15 @@ tspan {
     width: 6px;
 }
 .mythic-section-header {
-    background-image: ${(props) => {
-        const headerTextColor = props.theme.pageHeaderText?.main || props.theme.palette.text.primary;
-        return `linear-gradient(90deg, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.28 : 0.18)} 0%, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.12 : 0.08)} 48%, ${alpha(headerTextColor, props.theme.palette.mode === "dark" ? 0.055 : 0.04)} 100%)`;
-    }} !important;
-    border-color: ${(props) => alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.55 : 0.38)} !important;
+    background-image: ${getSectionHeaderGradient} !important;
+    border-color: ${(props) => alpha(getSectionHeaderAccent(props), props.theme.palette.mode === "dark" ? 0.55 : 0.38)} !important;
     box-shadow: inset 0 1px 0 ${(props) => alpha(props.theme.pageHeaderText?.main || props.theme.palette.text.primary, 0.22)}, 0 2px 6px ${(props) => alpha(props.theme.palette.common.black, props.theme.palette.mode === "dark" ? 0.28 : 0.12)} !important;
     overflow: hidden !important;
     padding-left: 1rem !important;
     position: relative !important;
 }
 .mythic-section-header::before {
-    background-color: ${(props) => props.theme.palette.primary.main};
+    background-color: ${getSectionHeaderAccent};
     bottom: 0;
     box-shadow: 0 0 0 1px ${(props) => alpha(props.theme.pageHeaderText?.main || props.theme.palette.text.primary, 0.2)};
     content: "";
@@ -3490,10 +3497,7 @@ tspan {
     min-width: 0;
 }
 .mythic-create-parameter-group-header {
-    background-image: ${(props) => {
-        const headerTextColor = props.theme.pageHeaderText?.main || props.theme.palette.text.primary;
-        return `linear-gradient(90deg, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.18 : 0.1)} 0%, ${alpha(headerTextColor, props.theme.palette.mode === "dark" ? 0.055 : 0.04)} 100%)`;
-    }};
+    background-image: ${getSectionHeaderGradient};
     border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
     border-radius: ${(props) => props.theme.shape.borderRadius}px;
     color: ${(props) => props.theme.pageHeaderText?.main || props.theme.palette.text.primary};
@@ -3508,10 +3512,7 @@ tspan {
     min-width: 0;
 }
 .mythic-create-summary-group-header {
-    background-image: ${(props) => {
-        const headerTextColor = props.theme.pageHeaderText?.main || props.theme.palette.text.primary;
-        return `linear-gradient(90deg, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.18 : 0.1)} 0%, ${alpha(headerTextColor, props.theme.palette.mode === "dark" ? 0.055 : 0.04)} 100%)`;
-    }};
+    background-image: ${getSectionHeaderGradient};
     border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
     border-radius: ${(props) => props.theme.shape.borderRadius}px;
     color: ${(props) => props.theme.palette.text.primary};
@@ -3741,11 +3742,8 @@ tspan {
 .mythic-dashboard-card-header {
     align-items: center;
     background-color: ${(props) => props.theme.surfaces?.muted || props.theme.palette.background.default};
-    background-image: ${(props) => {
-        const headerTextColor = props.theme.pageHeaderText?.main || props.theme.palette.text.primary;
-        return `linear-gradient(90deg, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.16 : 0.09)} 0%, ${alpha(headerTextColor, props.theme.palette.mode === "dark" ? 0.05 : 0.035)} 100%)`;
-    }};
-    border-bottom: 1px solid ${(props) => alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.34 : 0.2)};
+    background-image: ${getSectionHeaderGradient};
+    border-bottom: 1px solid ${(props) => alpha(getSectionHeaderAccent(props), props.theme.palette.mode === "dark" ? 0.34 : 0.2)};
     display: flex;
     flex: 0 0 auto;
     gap: 0.65rem;
@@ -3757,7 +3755,7 @@ tspan {
     position: relative;
 }
 .mythic-dashboard-card-header::before {
-    background-color: ${(props) => props.theme.palette.primary.main};
+    background-color: ${getSectionHeaderAccent};
     bottom: 0;
     content: "";
     left: 0;
@@ -3874,7 +3872,7 @@ tspan {
 }
 .mythic-dashboard-chart-canvas {
     background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.028) : alpha(props.theme.palette.common.black, 0.014)};
-    background-image: ${(props) => `linear-gradient(135deg, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.1 : 0.055)} 0%, ${alpha(props.theme.palette.background.paper, 0)} 62%)`};
+    background-image: ${getSubtleAccentGradient};
     border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
     border-radius: ${(props) => props.theme.shape.borderRadius}px;
     display: flex;
@@ -4202,7 +4200,7 @@ tspan {
 .mythic-dashboard-callback-kpi,
 .mythic-dashboard-service-kpi {
     background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.035) : alpha(props.theme.palette.common.black, 0.018)};
-    background-image: ${(props) => `linear-gradient(135deg, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.13 : 0.075)} 0%, ${alpha(props.theme.palette.background.paper, 0)} 58%)`};
+    background-image: ${getSubtleAccentGradient};
     border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
     border-radius: ${(props) => props.theme.shape.borderRadius}px;
     display: flex;
@@ -4412,12 +4410,9 @@ tspan {
 }
 .mythic-dashboard-edit-toolbar {
     align-items: center;
-    background-color: ${(props) => {
-        const headerSurface = props.theme.pageHeader?.main || props.theme.surfaces?.muted || props.theme.palette.background.paper;
-        return props.theme.palette.mode === "dark" ? headerSurface : alpha(props.theme.palette.primary.main, 0.16);
-    }} !important;
-    background-image: ${(props) => `linear-gradient(90deg, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.44 : 0.32)} 0%, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.22 : 0.22)} 42%, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.08 : 0.12)} 100%)`} !important;
-    border: 1px solid ${(props) => alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.55 : 0.38)};
+    background-color: ${(props) => props.theme.pageHeader?.main || props.theme.surfaces?.muted || props.theme.palette.background.paper} !important;
+    background-image: ${getSectionHeaderGradient} !important;
+    border: 1px solid ${(props) => alpha(getSectionHeaderAccent(props), props.theme.palette.mode === "dark" ? 0.55 : 0.38)};
     border-radius: ${(props) => props.theme.shape.borderRadius}px;
     box-shadow: inset 0 1px 0 ${(props) => alpha(props.theme.pageHeaderText?.main || props.theme.palette.text.primary, 0.22)}, 0 2px 6px ${(props) => alpha(props.theme.palette.common.black, props.theme.palette.mode === "dark" ? 0.24 : 0.1)};
     color: ${(props) => props.theme.pageHeaderText?.main || props.theme.palette.text.primary};
@@ -4432,7 +4427,7 @@ tspan {
     position: relative;
 }
 .mythic-dashboard-edit-toolbar::before {
-    background-color: ${(props) => props.theme.palette.primary.main};
+    background-color: ${getSectionHeaderAccent};
     bottom: 0;
     box-shadow: 0 0 0 1px ${(props) => alpha(props.theme.pageHeaderText?.main || props.theme.palette.text.primary, 0.2)};
     content: "";
@@ -4483,10 +4478,7 @@ tspan {
 .mythic-dashboard-widget-dialog-header {
     align-items: center;
     background-color: ${(props) => props.theme.surfaces?.raised || props.theme.palette.background.paper};
-    background-image: ${(props) => {
-        const headerTextColor = props.theme.palette.text.primary;
-        return `linear-gradient(90deg, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.12 : 0.07)} 0%, ${alpha(headerTextColor, props.theme.palette.mode === "dark" ? 0.045 : 0.035)} 100%)`;
-    }};
+    background-image: ${getSectionHeaderGradient};
     border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
     border-radius: ${(props) => props.theme.shape.borderRadius}px;
     display: flex;
@@ -4537,7 +4529,7 @@ tspan {
     outline: none;
 }
 .mythic-dashboard-widget-option-selected {
-    background-image: ${(props) => `linear-gradient(135deg, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.18 : 0.1)} 0%, ${alpha(props.theme.palette.background.paper, 0)} 60%)`};
+    background-image: ${getSubtleAccentGradient};
     border-color: ${(props) => alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.68 : 0.48)};
 }
 .mythic-dashboard-widget-option-top {
@@ -5704,10 +5696,7 @@ tspan {
     overflow: hidden;
 }
 .mythic-eventing-step-config-section-header {
-    background-image: ${(props) => {
-        const headerTextColor = props.theme.pageHeaderText?.main || props.theme.palette.text.primary;
-        return `linear-gradient(90deg, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.12 : 0.07)} 0%, ${alpha(headerTextColor, props.theme.palette.mode === "dark" ? 0.045 : 0.035)} 100%)`;
-    }};
+    background-image: ${getSectionHeaderGradient};
     border-bottom: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
     padding: 0.62rem 0.7rem 0.55rem;
 }
@@ -6150,7 +6139,7 @@ tspan {
 }
 .mythic-eventing-workflow-overview {
     background-color: ${(props) => props.theme.surfaces?.raised || props.theme.palette.background.paper};
-    background-image: ${(props) => `linear-gradient(90deg, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.12 : 0.06)} 0%, ${alpha(props.theme.palette.background.paper, 0)} 48%)`};
+    background-image: ${getSubtleAccentHorizontalGradient};
     border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
     border-radius: ${(props) => props.theme.shape.borderRadius}px;
     box-shadow: ${(props) => props.theme.palette.mode === "dark" ? "inset 0 1px 0 rgba(255,255,255,0.055)" : "inset 0 1px 0 rgba(255,255,255,0.78)"};

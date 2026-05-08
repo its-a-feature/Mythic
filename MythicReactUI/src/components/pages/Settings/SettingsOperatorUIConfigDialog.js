@@ -29,6 +29,7 @@ import {copyStringToClipboard} from "../../utilities/Clipboard";
 import {useLazyQuery } from '@apollo/client';
 import PhoneCallbackIcon from '@mui/icons-material/PhoneCallback';
 import ColorLensIcon from '@mui/icons-material/ColorLens';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import {MythicColorSwatchInput} from "../../MythicComponents/MythicColorInput";
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -270,9 +271,34 @@ const COLOR_EDITOR_SECTIONS = [
         colors: [
             {name: "background", display: "App Background", description: "Main page background behind views and dialogs.", preview: "surface"},
             {name: "paper", display: "Panel Background", description: "Menus, dialogs, and content surfaces.", preview: "surface"},
-            {name: "pageHeader", display: "Page Headers", description: "Header bars at the top of major pages.", preview: "surface"},
-            {name: "text", display: "Text", description: "Primary readable text throughout the UI.", preview: "surface"},
+            {name: "surfaceRaised", display: "Raised Surface", description: "Elevated cards, menus, and popover-like surfaces.", preview: "surface"},
+            {name: "surfaceMuted", display: "Muted Surface", description: "Quiet section backgrounds and low-emphasis containers.", preview: "surface"},
+            {name: "text", display: "Primary Text", description: "Primary readable text throughout the UI.", preview: "typography"},
+            {name: "textSecondary", display: "Secondary Text", description: "Muted helper text, labels, metadata, and quiet icon states.", preview: "typography"},
+            {name: "textDisabled", display: "Disabled Text", description: "Disabled controls, empty counts, and intentionally de-emphasized values.", preview: "typography"},
             {name: "borderColor", display: "Borders", description: "Outlines around panels, tables, and controls.", preview: "surface"},
+        ],
+    },
+    {
+        title: "Headers and Gradients",
+        description: "Page headers, section headers, and the subtle accent gradients used on modern cards.",
+        colors: [
+            {name: "pageHeader", display: "Page Header Surface", description: "Base surface for page and section headers.", preview: "headerGradient"},
+            {name: "pageHeaderText", display: "Page Header Text", description: "Text and action icon color inside page and section headers.", preview: "headerGradient"},
+            {name: "sectionHeaderAccent", display: "Section Accent", description: "The colored strip and border accent on section headers.", preview: "headerGradient"},
+            {name: "sectionHeaderGradientStart", display: "Header Gradient Start", description: "The left side of section header gradients.", preview: "headerGradient"},
+            {name: "sectionHeaderGradientMiddle", display: "Header Gradient Middle", description: "The middle stop of section header gradients.", preview: "headerGradient"},
+            {name: "sectionHeaderGradientEnd", display: "Header Gradient End", description: "The right side of section header gradients.", preview: "headerGradient"},
+            {name: "subtleAccentGradientStart", display: "Subtle Gradient Start", description: "The visible edge of soft dashboard, overview, and option-card gradients.", preview: "subtleGradient"},
+            {name: "subtleAccentGradientEnd", display: "Subtle Gradient End", description: "The fade-out side of soft dashboard, overview, and option-card gradients.", preview: "subtleGradient"},
+        ],
+    },
+    {
+        title: "Graphs and Floating Controls",
+        description: "Graph grouping surfaces and legacy floating action controls.",
+        colors: [
+            {name: "graphGroupColor", display: "Graph Group", description: "Grouped node backgrounds in graph-style views.", preview: "graph"},
+            {name: "speedDialAction", display: "Floating Action", description: "Floating action buttons where SpeedDial controls are still used.", preview: "floatingAction"},
         ],
     },
     {
@@ -308,6 +334,22 @@ const COLOR_EDITOR_SECTIONS = [
         ],
     },
     {
+        title: "Data Visualization",
+        description: "Additional chart colors used when dashboard visualizations need more series than the status palette provides.",
+        colors: [
+            {name: "chartSeries1", display: "Chart Series 1", description: "Dashboard chart fallback color 1.", preview: "chart"},
+            {name: "chartSeries2", display: "Chart Series 2", description: "Dashboard chart fallback color 2.", preview: "chart"},
+            {name: "chartSeries3", display: "Chart Series 3", description: "Dashboard chart fallback color 3.", preview: "chart"},
+            {name: "chartSeries4", display: "Chart Series 4", description: "Dashboard chart fallback color 4.", preview: "chart"},
+            {name: "chartSeries5", display: "Chart Series 5", description: "Dashboard chart fallback color 5.", preview: "chart"},
+            {name: "chartSeries6", display: "Chart Series 6", description: "Dashboard chart fallback color 6.", preview: "chart"},
+            {name: "chartSeries7", display: "Chart Series 7", description: "Dashboard chart fallback color 7.", preview: "chart"},
+            {name: "chartSeries8", display: "Chart Series 8", description: "Dashboard chart fallback color 8.", preview: "chart"},
+            {name: "chartSeries9", display: "Chart Series 9", description: "Dashboard chart fallback color 9.", preview: "chart"},
+            {name: "chartSeries10", display: "Chart Series 10", description: "Dashboard chart fallback color 10.", preview: "chart"},
+        ],
+    },
+    {
         title: "Tasking",
         description: "Task prompt, context badges, and command output.",
         colors: [
@@ -322,8 +364,9 @@ const COLOR_EDITOR_SECTIONS = [
     },
     {
         title: "File Browsing",
-        description: "File browser empty-folder treatment.",
+        description: "File browser folder and empty-folder treatment.",
         colors: [
+            {name: "folderColor", display: "Folder", description: "Normal folder icon color in file browser trees.", preview: "file"},
             {name: "emptyFolderColor", display: "Empty Folder", description: "Empty folder icon and text in file-based browsers.", preview: "file"},
         ],
     },
@@ -356,6 +399,39 @@ const getPaletteValue = (palette, name, mode) => {
     return mode === "dark" ? "#1f2937" : "#f8fafc";
 }
 
+const normalizeBackgroundImageValue = (value) => {
+    if(typeof value !== "string" || value.length === 0){
+        return null;
+    }
+    if(value.startsWith("data:image/")){
+        return `url("${value}")`;
+    }
+    if(value.startsWith("url(\"data:image/") && !value.endsWith("\")")){
+        return `${value}")`;
+    }
+    if(value.startsWith("url(data:image/") && !value.endsWith(")")){
+        return `${value})`;
+    }
+    return value;
+}
+
+const buildInitialPalette = (initialPalette) => {
+    return Object.entries(operatorSettingDefaults.palette).reduce((newPalette, [name, defaultValue]) => {
+        if(name === "backgroundImage"){
+            newPalette[name] = {
+                dark: normalizeBackgroundImageValue(initialPalette?.[name]?.dark || defaultValue.dark),
+                light: normalizeBackgroundImageValue(initialPalette?.[name]?.light || defaultValue.light),
+            };
+            return newPalette;
+        }
+        newPalette[name] = {
+            dark: isValidColor(initialPalette?.[name]?.dark) ? initialPalette[name].dark : defaultValue.dark,
+            light: isValidColor(initialPalette?.[name]?.light) ? initialPalette[name].light : defaultValue.light,
+        };
+        return newPalette;
+    }, {});
+}
+
 const getReadableTextColor = (backgroundColor) => {
     if(!isValidColor(backgroundColor)){
         return "#ffffff";
@@ -367,18 +443,45 @@ const getReadableTextColor = (backgroundColor) => {
     return brightness >= 140 ? "#111827" : "#ffffff";
 }
 
-const ModeColorControl = ({mode, name, color, onChange}) => (
-    <Box sx={{minWidth: 0}}>
-        <Typography variant="caption" sx={{display: "block", color: "text.secondary", mb: 0.5}}>
-            {mode === "dark" ? "Dark" : "Light"}
-        </Typography>
-        <MythicColorSwatchInput
-            color={color}
-            label={`${name} ${mode} color`}
-            onChange={(value) => onChange(name, mode, value)}
-        />
-    </Box>
-);
+const ModeColorControl = ({mode, name, display, color, defaultColor, onChange}) => {
+    const modeLabel = mode === "dark" ? "Dark" : "Light";
+    const resetDisabled = defaultColor === undefined || color === defaultColor;
+    return (
+        <Box sx={{minWidth: 0}}>
+            <Box sx={{alignItems: "center", display: "flex", gap: 0.75, justifyContent: "space-between", mb: 0.5}}>
+                <Typography variant="caption" sx={{display: "block", color: "text.secondary"}}>
+                    {modeLabel}
+                </Typography>
+                <MythicStyledTooltip title={`Reset ${display} ${modeLabel.toLowerCase()} color to default`}>
+                    <span>
+                        <IconButton
+                            aria-label={`Reset ${display} ${modeLabel.toLowerCase()} color to default`}
+                            disabled={resetDisabled}
+                            onClick={() => onChange(name, mode, defaultColor)}
+                            size="small"
+                            sx={{
+                                color: resetDisabled ? "text.disabled" : "text.secondary",
+                                height: 24,
+                                width: 24,
+                                "&:hover": {
+                                    color: "warning.main",
+                                    backgroundColor: "action.hover",
+                                },
+                            }}
+                        >
+                            <RestartAltIcon sx={{fontSize: "1rem"}} />
+                        </IconButton>
+                    </span>
+                </MythicStyledTooltip>
+            </Box>
+            <MythicColorSwatchInput
+                color={color}
+                label={`${name} ${mode} color`}
+                onChange={(value) => onChange(name, mode, value)}
+            />
+        </Box>
+    );
+}
 
 const PreviewLabel = ({children, color}) => (
     <Typography
@@ -399,8 +502,23 @@ const PreviewLabel = ({children, color}) => (
 const ColorUsagePreview = ({option, palette, mode}) => {
     const background = getPaletteValue(palette, "background", mode);
     const paper = getPaletteValue(palette, "paper", mode);
+    const surfaceRaised = getPaletteValue(palette, "surfaceRaised", mode);
+    const surfaceMuted = getPaletteValue(palette, "surfaceMuted", mode);
     const text = getPaletteValue(palette, "text", mode);
+    const textSecondary = getPaletteValue(palette, "textSecondary", mode);
+    const textDisabled = getPaletteValue(palette, "textDisabled", mode);
     const border = getPaletteValue(palette, "borderColor", mode);
+    const pageHeader = getPaletteValue(palette, "pageHeader", mode);
+    const pageHeaderText = getPaletteValue(palette, "pageHeaderText", mode);
+    const sectionHeaderAccent = getPaletteValue(palette, "sectionHeaderAccent", mode);
+    const sectionHeaderGradientStart = getPaletteValue(palette, "sectionHeaderGradientStart", mode);
+    const sectionHeaderGradientMiddle = getPaletteValue(palette, "sectionHeaderGradientMiddle", mode);
+    const sectionHeaderGradientEnd = getPaletteValue(palette, "sectionHeaderGradientEnd", mode);
+    const subtleAccentGradientStart = getPaletteValue(palette, "subtleAccentGradientStart", mode);
+    const subtleAccentGradientEnd = getPaletteValue(palette, "subtleAccentGradientEnd", mode);
+    const graphGroup = getPaletteValue(palette, "graphGroupColor", mode);
+    const speedDialAction = getPaletteValue(palette, "speedDialAction", mode);
+    const chartSeriesColors = Array.from({length: 10}, (_, index) => getPaletteValue(palette, `chartSeries${index + 1}`, mode));
     const navTop = getPaletteValue(palette, "navBarColor", mode);
     const navBottom = getPaletteValue(palette, "navBarBottomColor", mode);
     const navIcon = getPaletteValue(palette, "navBarIcons", mode);
@@ -416,6 +534,8 @@ const ColorUsagePreview = ({option, palette, mode}) => {
     const context = getPaletteValue(palette, "taskContextColor", mode);
     const impersonation = getPaletteValue(palette, "taskContextImpersonationColor", mode);
     const extra = getPaletteValue(palette, "taskContextExtraColor", mode);
+    const folder = getPaletteValue(palette, "folderColor", mode);
+    const emptyFolder = getPaletteValue(palette, "emptyFolderColor", mode);
     const previewColor = getPaletteValue(palette, option.name, mode);
     const shellSx = {
         border: `1px solid ${addAlpha(border, "99")}`,
@@ -424,6 +544,8 @@ const ColorUsagePreview = ({option, palette, mode}) => {
         minHeight: 74,
         backgroundColor: background,
     };
+    const sectionHeaderGradient = `linear-gradient(90deg, ${sectionHeaderGradientStart} 0%, ${sectionHeaderGradientMiddle} 48%, ${sectionHeaderGradientEnd} 100%)`;
+    const subtleAccentGradient = `linear-gradient(135deg, ${subtleAccentGradientStart} 0%, ${subtleAccentGradientEnd} 62%)`;
     switch(option.preview){
         case "navigation":
             return (
@@ -470,6 +592,75 @@ const ColorUsagePreview = ({option, palette, mode}) => {
                     <PreviewLabel color={text}>{mode} accent</PreviewLabel>
                 </Box>
             );
+        case "typography":
+            return (
+                <Box sx={{...shellSx, p: 1, backgroundColor: paper}}>
+                    <Typography variant="caption" sx={{color: text, display: "block", fontWeight: option.name === "text" ? 800 : 600, lineHeight: 1.25}}>
+                        Primary task title
+                    </Typography>
+                    <Typography variant="caption" sx={{color: textSecondary, display: "block", fontWeight: option.name === "textSecondary" ? 800 : 500, lineHeight: 1.25}}>
+                        Secondary metadata and helper text
+                    </Typography>
+                    <Typography variant="caption" sx={{color: textDisabled, display: "block", fontWeight: option.name === "textDisabled" ? 800 : 500, lineHeight: 1.25}}>
+                        Disabled or unavailable action
+                    </Typography>
+                    <Box sx={{height: 5, mt: 0.75, borderRadius: "4px", backgroundColor: previewColor}} />
+                </Box>
+            );
+        case "headerGradient":
+            return (
+                <Box sx={{...shellSx, p: 0.75, backgroundColor: background}}>
+                    <Box sx={{height: 22, borderRadius: "4px", backgroundColor: pageHeader, color: pageHeaderText, px: 0.75, display: "flex", alignItems: "center", border: `1px solid ${addAlpha(pageHeaderText, "33")}`}}>
+                        <PreviewLabel color={pageHeaderText}>Page header</PreviewLabel>
+                    </Box>
+                    <Box sx={{height: 30, mt: 0.65, borderRadius: "4px", backgroundColor: pageHeader, backgroundImage: sectionHeaderGradient, border: `1px solid ${addAlpha(sectionHeaderAccent, "99")}`, color: pageHeaderText, display: "flex", alignItems: "center", overflow: "hidden"}}>
+                        <Box sx={{alignSelf: "stretch", width: 5, backgroundColor: sectionHeaderAccent, mr: 0.75}} />
+                        <PreviewLabel color={pageHeaderText}>Section header</PreviewLabel>
+                    </Box>
+                </Box>
+            );
+        case "subtleGradient":
+            return (
+                <Box sx={{...shellSx, p: 0.75, backgroundColor: surfaceMuted}}>
+                    <Box sx={{height: 48, borderRadius: "5px", backgroundColor: surfaceRaised, backgroundImage: subtleAccentGradient, border: `1px solid ${addAlpha(border, "99")}`, p: 0.75}}>
+                        <PreviewLabel color={text}>Dashboard card</PreviewLabel>
+                        <Box sx={{height: 6, mt: 1, width: "68%", borderRadius: "3px", backgroundColor: previewColor}} />
+                    </Box>
+                </Box>
+            );
+        case "graph":
+            return (
+                <Box sx={{...shellSx, p: 0.75, backgroundColor: paper}}>
+                    <Box sx={{height: 48, borderRadius: "5px", backgroundColor: addAlpha(graphGroup, "80"), border: `1px solid ${border}`, display: "grid", placeItems: "center"}}>
+                        <Box sx={{height: 18, width: 58, borderRadius: "4px", backgroundColor: surfaceRaised, border: `1px solid ${addAlpha(border, "99")}`}} />
+                    </Box>
+                    <PreviewLabel color={textSecondary}>Grouped graph node</PreviewLabel>
+                </Box>
+            );
+        case "floatingAction":
+            return (
+                <Box sx={{...shellSx, p: 0.75, backgroundColor: surfaceMuted, display: "flex", alignItems: "center", justifyContent: "center"}}>
+                    <Box sx={{height: 34, width: 34, borderRadius: "50%", backgroundColor: speedDialAction, border: `1px solid ${addAlpha(border, "99")}`, boxShadow: `0 4px 10px ${addAlpha(text, "33")}`}} />
+                </Box>
+            );
+        case "chart":
+            return (
+                <Box sx={{...shellSx, p: 0.75, backgroundColor: paper}}>
+                    <Box sx={{alignItems: "end", display: "grid", gap: 0.35, gridTemplateColumns: "repeat(10, 1fr)", height: 48}}>
+                        {chartSeriesColors.map((color, index) => (
+                            <Box
+                                key={`${mode}-chart-${index}`}
+                                sx={{
+                                    backgroundColor: color,
+                                    borderRadius: "3px 3px 0 0",
+                                    height: `${18 + ((index % 5) * 6)}px`,
+                                    opacity: option.name === `chartSeries${index + 1}` ? 1 : 0.5,
+                                }}
+                            />
+                        ))}
+                    </Box>
+                </Box>
+            );
         case "task":
             return (
                 <Box sx={{...shellSx, p: 1, backgroundColor: paper}}>
@@ -498,9 +689,22 @@ const ColorUsagePreview = ({option, palette, mode}) => {
         case "file":
             return (
                 <Box sx={{...shellSx, p: 1, backgroundColor: paper}}>
-                    <Box sx={{height: 24, borderRadius: "4px", backgroundColor: addAlpha(previewColor, "33"), border: `1px solid ${addAlpha(previewColor, "99")}`}} />
-                    <Typography variant="caption" sx={{color: previewColor, display: "block", mt: 0.75, fontWeight: 700}}>
-                        Empty folder
+                    <Box sx={{display: "grid", gap: 0.5}}>
+                        <Box sx={{alignItems: "center", display: "flex", gap: 0.5}}>
+                            <Box sx={{height: 16, width: 20, borderRadius: "3px", backgroundColor: folder}} />
+                            <Typography variant="caption" sx={{color: text, fontWeight: option.name === "folderColor" ? 800 : 600}}>
+                                Folder with files
+                            </Typography>
+                        </Box>
+                        <Box sx={{alignItems: "center", display: "flex", gap: 0.5}}>
+                            <Box sx={{height: 16, width: 20, borderRadius: "3px", backgroundColor: addAlpha(emptyFolder, "66"), border: `1px solid ${emptyFolder}`}} />
+                            <Typography variant="caption" sx={{color: option.name === "emptyFolderColor" ? emptyFolder : textSecondary, fontWeight: option.name === "emptyFolderColor" ? 800 : 600}}>
+                                Empty folder
+                            </Typography>
+                        </Box>
+                    </Box>
+                    <Typography variant="caption" sx={{color: textSecondary, display: "block", mt: 0.75}}>
+                        File browser tree
                     </Typography>
                 </Box>
             );
@@ -508,10 +712,16 @@ const ColorUsagePreview = ({option, palette, mode}) => {
         default:
             return (
                 <Box sx={{...shellSx, p: 0.75}}>
-                    <Box sx={{height: 16, borderRadius: "4px 4px 0 0", backgroundColor: getPaletteValue(palette, "pageHeader", mode)}} />
+                    <Box sx={{height: 20, borderRadius: "4px 4px 0 0", backgroundColor: pageHeader, color: pageHeaderText, px: 0.75, display: "flex", alignItems: "center"}}>
+                        <PreviewLabel color={pageHeaderText}>Page header</PreviewLabel>
+                    </Box>
                     <Box sx={{p: 0.75, backgroundColor: paper, border: `1px solid ${addAlpha(border, "99")}`, borderTop: 0, borderRadius: "0 0 4px 4px"}}>
-                        <PreviewLabel color={text}>{mode} surface</PreviewLabel>
-                        <Box sx={{height: 7, mt: 0.75, borderRadius: "4px", backgroundColor: previewColor}} />
+                        <PreviewLabel color={option.name === "textSecondary" ? textSecondary : text}>{mode} surface</PreviewLabel>
+                        <Box sx={{display: "grid", gap: 0.4, gridTemplateColumns: "1fr 1fr", mt: 0.75}}>
+                            <Box sx={{height: 9, borderRadius: "4px", backgroundColor: surfaceRaised, border: `1px solid ${addAlpha(border, "66")}`}} />
+                            <Box sx={{height: 9, borderRadius: "4px", backgroundColor: surfaceMuted, border: `1px solid ${addAlpha(border, "66")}`}} />
+                        </Box>
+                        <Box sx={{height: 6, mt: 0.55, borderRadius: "4px", backgroundColor: previewColor}} />
                     </Box>
                 </Box>
             );
@@ -543,13 +753,17 @@ const ColorTokenEditor = ({option, palette, onChange}) => (
             <ModeColorControl
                 mode="dark"
                 name={option.name}
+                display={option.display}
                 color={palette?.[option.name]?.dark}
+                defaultColor={operatorSettingDefaults.palette?.[option.name]?.dark}
                 onChange={onChange}
             />
             <ModeColorControl
                 mode="light"
                 name={option.name}
+                display={option.display}
                 color={palette?.[option.name]?.light}
+                defaultColor={operatorSettingDefaults.palette?.[option.name]?.light}
                 onChange={onChange}
             />
         </Box>
@@ -735,120 +949,7 @@ export function SettingsOperatorUIConfigDialog(props) {
     const [showOPSECBypassUsername, setShowOPSECBypassUsername] = React.useState(initialShowOPSECBypassUsername);
 
     const initialPalette = GetMythicSetting({setting_name: 'palette', default_value: operatorSettingDefaults.palette});
-    const [palette, setPalette] = React.useState({
-        primary: {
-            dark: isValidColor(initialPalette?.primary?.dark) ? initialPalette?.primary?.dark : operatorSettingDefaults.palette.primary.dark,
-            light: isValidColor(initialPalette?.primary?.light) ? initialPalette?.primary?.light : operatorSettingDefaults.palette.primary.light,
-        },
-        error: {
-            dark: isValidColor(initialPalette?.error?.dark) ? initialPalette?.error?.dark : operatorSettingDefaults.palette.error.dark,
-            light: isValidColor(initialPalette?.error?.light) ? initialPalette?.error?.light : operatorSettingDefaults.palette.error.light,
-        },
-        success: {
-            dark: isValidColor(initialPalette?.success?.dark) ? initialPalette?.success?.dark : operatorSettingDefaults.palette.success.dark,
-            light: isValidColor(initialPalette?.success?.light) ? initialPalette?.success?.light : operatorSettingDefaults.palette.success.light,
-        },
-        info: {
-            dark: isValidColor(initialPalette?.info?.dark) ? initialPalette?.info?.dark : operatorSettingDefaults.palette.info.dark,
-            light: isValidColor(initialPalette?.info?.light) ? initialPalette?.info?.light : operatorSettingDefaults.palette.info.light,
-        },
-        warning: {
-            dark: isValidColor(initialPalette?.warning?.dark) ? initialPalette?.warning?.dark : operatorSettingDefaults.palette.warning.dark,
-            light: isValidColor(initialPalette?.warning?.light) ? initialPalette?.warning?.light : operatorSettingDefaults.palette.warning.light,
-        },
-        secondary: {
-            dark: isValidColor(initialPalette?.secondary?.dark) ? initialPalette?.secondary?.dark : operatorSettingDefaults.palette.secondary.dark,
-            light: isValidColor(initialPalette?.secondary?.light) ? initialPalette?.secondary?.light : operatorSettingDefaults.palette.secondary.light,
-        },
-        background: {
-            dark: isValidColor(initialPalette?.background?.dark) ? initialPalette?.background?.dark : operatorSettingDefaults.palette.background.dark,
-            light: isValidColor(initialPalette?.background?.light) ? initialPalette?.background?.light : operatorSettingDefaults.palette.background.light,
-        },
-        tableHeader: {
-            dark: isValidColor(initialPalette?.tableHeader?.dark) ? initialPalette?.tableHeader?.dark : operatorSettingDefaults.palette.tableHeader.dark,
-            light: isValidColor(initialPalette?.tableHeader?.light) ? initialPalette?.tableHeader?.light : operatorSettingDefaults.palette.tableHeader.light,
-        },
-        tableHover: {
-            dark: isValidColor(initialPalette?.tableHover?.dark) ? initialPalette?.tableHover?.dark : operatorSettingDefaults.palette.tableHover.dark,
-            light: isValidColor(initialPalette?.tableHover?.light) ? initialPalette?.tableHover?.light : operatorSettingDefaults.palette.tableHover.light,
-        },
-        pageHeader: {
-            dark: isValidColor(initialPalette?.pageHeader?.dark) ? initialPalette?.pageHeader?.dark : operatorSettingDefaults.palette.pageHeader.dark,
-            light: isValidColor(initialPalette?.pageHeader?.light) ? initialPalette?.pageHeader?.light : operatorSettingDefaults.palette.pageHeader.light,
-        },
-        text: {
-            dark: isValidColor(initialPalette?.text?.dark) ? initialPalette?.text?.dark : operatorSettingDefaults.palette.text.dark,
-            light: isValidColor(initialPalette?.text?.light) ? initialPalette?.text?.light : operatorSettingDefaults.palette.text.light,
-        },
-        paper: {
-            dark: isValidColor(initialPalette?.paper?.dark) ? initialPalette?.paper?.dark : operatorSettingDefaults.palette.paper.dark,
-            light: isValidColor(initialPalette?.paper?.light) ? initialPalette?.paper?.light : operatorSettingDefaults.palette.paper.light,
-        },
-        selectedCallbackColor: {
-            dark: isValidColor(initialPalette?.selectedCallbackColor?.dark) ? initialPalette?.selectedCallbackColor?.dark : operatorSettingDefaults.palette.selectedCallbackColor.dark,
-            light: isValidColor(initialPalette?.selectedCallbackColor?.light) ? initialPalette?.selectedCallbackColor?.light : operatorSettingDefaults.palette.selectedCallbackColor.light,
-        },
-        selectedCallbackHierarchyColor: {
-            dark: isValidColor(initialPalette?.selectedCallbackHierarchyColor?.dark) ? initialPalette?.selectedCallbackHierarchyColor?.dark : operatorSettingDefaults.palette.selectedCallbackHierarchyColor.dark,
-            light: isValidColor(initialPalette?.selectedCallbackHierarchyColor?.light) ? initialPalette?.selectedCallbackHierarchyColor?.light : operatorSettingDefaults.palette.selectedCallbackHierarchyColor.light,
-        },
-        backgroundImage: {
-            dark: initialPalette?.backgroundImage?.dark || operatorSettingDefaults.palette.backgroundImage.dark,
-            light: initialPalette?.backgroundImage?.light || operatorSettingDefaults.palette.backgroundImage.light,
-        },
-        navBarIcons: {
-            dark: isValidColor(initialPalette?.navBarIcons?.dark) ? initialPalette?.navBarIcons?.dark : operatorSettingDefaults.palette.navBarIcons.dark,
-            light: isValidColor(initialPalette?.navBarIcons?.light) ? initialPalette?.navBarIcons?.light : operatorSettingDefaults.palette.navBarIcons.light,
-        },
-        navBarText: {
-            dark: isValidColor(initialPalette?.navBarText?.dark) ? initialPalette?.navBarText?.dark : operatorSettingDefaults.palette.navBarText.dark,
-            light: isValidColor(initialPalette?.navBarText?.light) ? initialPalette?.navBarText?.light : operatorSettingDefaults.palette.navBarText.light,
-        },
-        navBarColor: {
-            dark: isValidColor(initialPalette?.navBarColor?.dark) ? initialPalette?.navBarColor?.dark : operatorSettingDefaults.palette.navBarColor.dark,
-            light: isValidColor(initialPalette?.navBarColor?.light) ? initialPalette?.navBarColor?.light : operatorSettingDefaults.palette.navBarColor.light,
-        },
-        navBarBottomColor: {
-            dark: isValidColor(initialPalette?.navBarBottomColor?.dark) ? initialPalette?.navBarBottomColor?.dark : operatorSettingDefaults.palette.navBarBottomColor.dark,
-            light: isValidColor(initialPalette?.navBarBottomColor?.light) ? initialPalette?.navBarBottomColor?.light : operatorSettingDefaults.palette.navBarBottomColor.light,
-        },
-        taskPromptTextColor: {
-            dark: isValidColor(initialPalette?.taskPromptTextColor?.dark) ? initialPalette?.taskPromptTextColor?.dark : operatorSettingDefaults.palette.taskPromptTextColor.dark,
-            light: isValidColor(initialPalette?.taskPromptTextColor?.light) ? initialPalette?.taskPromptTextColor?.light : operatorSettingDefaults.palette.taskPromptTextColor.light,
-        },
-        taskPromptCommandTextColor: {
-            dark: isValidColor(initialPalette?.taskPromptCommandTextColor?.dark) ? initialPalette?.taskPromptCommandTextColor?.dark : operatorSettingDefaults.palette.taskPromptCommandTextColor.dark,
-            light: isValidColor(initialPalette?.taskPromptCommandTextColor?.light) ? initialPalette?.taskPromptCommandTextColor?.light : operatorSettingDefaults.palette.taskPromptCommandTextColor.light,
-        },
-        taskContextColor: {
-            dark: isValidColor(initialPalette?.taskContextColor?.dark) ? initialPalette?.taskContextColor?.dark : operatorSettingDefaults.palette.taskContextColor.dark,
-            light: isValidColor(initialPalette?.taskContextColor?.light) ? initialPalette?.taskContextColor?.light : operatorSettingDefaults.palette.taskContextColor.light,
-        },
-        taskContextImpersonationColor: {
-            dark: isValidColor(initialPalette?.taskContextImpersonationColor?.dark) ? initialPalette?.taskContextImpersonationColor?.dark : operatorSettingDefaults.palette.taskContextImpersonationColor.dark,
-            light: isValidColor(initialPalette?.taskContextImpersonationColor?.light) ? initialPalette?.taskContextImpersonationColor?.light : operatorSettingDefaults.palette.taskContextImpersonationColor.light,
-        },
-        taskContextExtraColor: {
-            dark: isValidColor(initialPalette?.taskContextExtraColor?.dark) ? initialPalette?.taskContextExtraColor?.dark : operatorSettingDefaults.palette.taskContextExtraColor.dark,
-            light: isValidColor(initialPalette?.taskContextExtraColor?.light) ? initialPalette?.taskContextExtraColor?.light : operatorSettingDefaults.palette.taskContextExtraColor.light,
-        },
-        emptyFolderColor: {
-            dark: isValidColor(initialPalette?.emptyFolderColor?.dark) ? initialPalette?.emptyFolderColor?.dark : operatorSettingDefaults.palette.emptyFolderColor.dark,
-            light: isValidColor(initialPalette?.emptyFolderColor?.light) ? initialPalette?.emptyFolderColor?.light : operatorSettingDefaults.palette.emptyFolderColor.light,
-        },
-        outputBackgroundColor: {
-            dark: isValidColor(initialPalette?.outputBackgroundColor?.dark) ? initialPalette?.outputBackgroundColor?.dark : operatorSettingDefaults.palette.outputBackgroundColor.dark,
-            light: isValidColor(initialPalette?.outputBackgroundColor?.light) ? initialPalette?.outputBackgroundColor?.light : operatorSettingDefaults.palette.outputBackgroundColor.light,
-        },
-        outputTextColor: {
-            dark: isValidColor(initialPalette?.outputTextColor?.dark) ? initialPalette?.outputTextColor?.dark : operatorSettingDefaults.palette.outputTextColor.dark,
-            light: isValidColor(initialPalette?.outputTextColor?.light) ? initialPalette?.outputTextColor?.light : operatorSettingDefaults.palette.outputTextColor.light,
-        },
-        borderColor: {
-            dark: isValidColor(initialPalette?.borderColor?.dark) ? initialPalette?.borderColor?.dark : operatorSettingDefaults.palette.borderColor.dark,
-            light: isValidColor(initialPalette?.borderColor?.light) ? initialPalette?.borderColor?.light : operatorSettingDefaults.palette.borderColor.light,
-        },
-    });
+    const [palette, setPalette] = React.useState(() => buildInitialPalette(initialPalette));
     const [resumeNotifications, setResumeNotifications] = React.useState(false);
     const [, updateSettings, clearSettings] = useSetMythicSetting();
     const onChangeFontFamily = (name, value, error) => {
@@ -972,24 +1073,28 @@ export function SettingsOperatorUIConfigDialog(props) {
         reader.readAsBinaryString(evt.target.files[0]);
     }
     const onFileBackgroundImageChangeLight = async (evt) => {
+        const file = evt.target.files?.[0];
+        if(!file){
+            return;
+        }
         const reader = new FileReader();
-        const filenameExtension = evt.target.files[0].name.split(".")[1];
         reader.onload = (e) => {
-            const contents = e.target.result;
-            let backgroundImage = `url("data:image/${filenameExtension};base64,${btoa(contents)}`;
+            let backgroundImage = normalizeBackgroundImageValue(e.target.result);
             setPalette({...palette, backgroundImage: {...palette.backgroundImage, light: backgroundImage}});
         }
-        reader.readAsBinaryString(evt.target.files[0]);
+        reader.readAsDataURL(file);
     }
     const onFileBackgroundImageChangeDark = async (evt) => {
+        const file = evt.target.files?.[0];
+        if(!file){
+            return;
+        }
         const reader = new FileReader();
-        const filenameExtension = evt.target.files[0].name.split(".")[1];
         reader.onload = (e) => {
-            const contents = e.target.result;
-            let backgroundImage = `url("data:image/${filenameExtension};base64,${btoa(contents)}`;
+            let backgroundImage = normalizeBackgroundImageValue(e.target.result);
             setPalette({...palette, backgroundImage: {...palette.backgroundImage, dark: backgroundImage}});
         }
-        reader.readAsBinaryString(evt.target.files[0]);
+        reader.readAsDataURL(file);
     }
 
     const getCurrentPreferences = () => {

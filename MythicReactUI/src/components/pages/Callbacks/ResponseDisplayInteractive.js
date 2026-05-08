@@ -142,13 +142,16 @@ const handleTerminalCodes = (response) => {
     return output;
 }
 export const GetOutputFormatAll = ({data, useASNIColor, messagesEndRef, showTaskStatus, wrapText, autoScroll=false}) => {
+    const theme = useTheme();
+    const errorOutputBackground = theme.palette.error.main + (theme.palette.mode === "dark" ? "33" : "22");
+    const outputTextColor = theme.outputTextColor;
     const [dataElement, setDataElement] = React.useState(null);
     React.useEffect( () => {
         const elements = data.map( d => {
             if(d.response !== undefined) {
                 // we're looking at response output
                 if(d.is_error){
-                    return (<pre id={"response" + d.timestamp + d.id} style={{display: "inline",backgroundColor: "#311717", color: "white", margin: "0 0 0 0",
+                    return (<pre id={"response" + d.timestamp + d.id} style={{display: "inline", backgroundColor: errorOutputBackground, color: outputTextColor, margin: "0 0 0 0",
                         wordBreak: wrapText ? "break-all" : "",
                         whiteSpace: wrapText ? "pre-wrap" : ""}} key={d.timestamp + d.id}>
                     {d.response}
@@ -186,7 +189,7 @@ export const GetOutputFormatAll = ({data, useASNIColor, messagesEndRef, showTask
             }
         })
         setDataElement(elements);
-    }, [data, useASNIColor, showTaskStatus, wrapText]);
+    }, [data, useASNIColor, showTaskStatus, wrapText, errorOutputBackground, outputTextColor]);
     React.useLayoutEffect( () => {
         if(autoScroll){
             messagesEndRef?.current?.scrollIntoView({ behavior: "auto", block: "nearest" });
@@ -1080,9 +1083,9 @@ export const ResponseDisplayInteractive = (props) =>{
           <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute",}} invisible={false}>
               <div style={{
                   borderRadius: "4px",
-                  border: "1px solid black",
+                  border: `1px solid ${theme.palette.divider}`,
                   padding: "5px",
-                  backgroundColor: "rgba(37,37,37,0.92)", color: "white",
+                  backgroundColor: theme.palette.background.contrast, color: theme.palette.text.contrast,
                   alignItems: "center",
                   display: "flex", flexDirection: "column"}}>
                   <CircularProgress color="inherit" />

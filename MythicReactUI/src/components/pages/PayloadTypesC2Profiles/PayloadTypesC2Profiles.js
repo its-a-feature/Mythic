@@ -19,6 +19,7 @@ import {CustomBrowserRow} from "./CustomBrowserCard";
 import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
 import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/MythicPageHeader";
 import {MythicToolbarToggle} from "../../MythicComponents/MythicTableToolbar";
+import {useTheme} from "@mui/material/styles";
 
 const SUB_Payload_Types = gql`
  subscription getPayloadTypesSubscription {
@@ -415,6 +416,7 @@ const ContainersTabBrowsersLabel = (props) => {
 
 
 const ContainersTabPayloadTypesPanel = (props) => {
+    const theme = useTheme();
     const getEmptyServiceListMessage = () => {
         let message = "";
         switch(props.type){
@@ -453,9 +455,9 @@ A few examples are github.com/MythicAgents/bloodhound and github.com/MythicAgent
                     left: "35%",
                     top: "40%",
                     borderRadius: "4px",
-                    border: "1px solid black",
+                    border: `1px solid ${theme.palette.divider}`,
                     padding: "5px",
-                    backgroundColor: "rgba(37,37,37,0.92)", color: "white",
+                    backgroundColor: theme.palette.background.contrast, color: theme.palette.text.contrast,
                     whiteSpace: "pre-wrap"
                 }}>
                     {message}
@@ -492,6 +494,7 @@ A few examples are github.com/MythicAgents/bloodhound and github.com/MythicAgent
     )
 }
 const ContainersTabConsumingServicesPanel = (props) => {
+    const theme = useTheme();
     const getEmptyServiceListMessage = () => {
         let message = "";
         switch(props.type){
@@ -522,9 +525,9 @@ You can extend this auth capability to support your own LDAP, SSO, or otherwise 
                     left: "35%",
                     top: "40%",
                     borderRadius: "4px",
-                    border: "1px solid black",
+                    border: `1px solid ${theme.palette.divider}`,
                     padding: "5px",
-                    backgroundColor: "rgba(37,37,37,0.92)", color: "white",
+                    backgroundColor: theme.palette.background.contrast, color: theme.palette.text.contrast,
                     whiteSpace: "pre-wrap"
                 }}>
                     {message}
@@ -558,6 +561,7 @@ You can extend this auth capability to support your own LDAP, SSO, or otherwise 
     )
 }
 const ContainersTabCustomBrowsersPanel = (props) => {
+    const theme = useTheme();
     const getEmptyServiceListMessage = () => {
         let message = "";
         switch(props.type){
@@ -572,9 +576,9 @@ const ContainersTabCustomBrowsersPanel = (props) => {
                     left: "35%",
                     top: "40%",
                     borderRadius: "4px",
-                    border: "1px solid black",
+                    border: `1px solid ${theme.palette.divider}`,
                     padding: "5px",
-                    backgroundColor: "rgba(37,37,37,0.92)", color: "white",
+                    backgroundColor: theme.palette.background.contrast, color: theme.palette.text.contrast,
                     whiteSpace: "pre-wrap"
                 }}>
                     {message}

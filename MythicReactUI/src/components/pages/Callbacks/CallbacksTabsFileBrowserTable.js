@@ -95,6 +95,7 @@ const columnDefaults = [
     { name: 'Comment', type: 'string', key: 'comment', width: 200, visible: false },
 ];
 export const CallbacksTabsFileBrowserTable = (props) => {
+    const theme = useTheme();
     const [updateSetting] = useSetMythicSetting();
     const [loading, setLoading] = React.useState(true);
     const [allData, setAllData] = React.useState([]);
@@ -682,9 +683,9 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                         left: "35%",
                         top: "40%",
                         borderRadius: "4px",
-                        border: "1px solid black",
+                        border: `1px solid ${theme.palette.divider}`,
                         padding: "5px",
-                        backgroundColor: "rgba(37,37,37,0.92)", color: "white",
+                        backgroundColor: theme.palette.background.contrast, color: theme.palette.text.contrast,
                     }}>
                         {"Only PARTIAL data has been collected for this path.  "}<br/>
                         {"Task this callback to list the contents"}
@@ -703,9 +704,9 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                         left: "35%",
                         top: "40%",
                         borderRadius: "4px",
-                        border: "1px solid black",
+                        border: `1px solid ${theme.palette.divider}`,
                         padding: "5px",
-                        backgroundColor: "rgba(37,37,37,0.92)", color: "white",
+                        backgroundColor: theme.palette.background.contrast, color: theme.palette.text.contrast,
                     }}>
                         {"Some data exists for this path, but isn't loaded into the UI.  "}
                         <br/>
@@ -720,9 +721,9 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                         left: "35%",
                         top: "40%",
                         borderRadius: "4px",
-                        border: "1px solid black",
+                        border: `1px solid ${theme.palette.divider}`,
                         padding: "5px",
-                        backgroundColor: "rgba(37,37,37,0.92)", color: "white",
+                        backgroundColor: theme.palette.background.contrast, color: theme.palette.text.contrast,
                     }}>
                         {"No data has been collected for this path.  "}
                         <div style={{display: "flex", alignItems: "center"}}>
