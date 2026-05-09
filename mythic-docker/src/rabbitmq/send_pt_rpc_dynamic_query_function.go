@@ -74,6 +74,7 @@ func (r *rabbitMQConnection) SendPtRPCDynamicQueryFunction(dynamicQuery PTRPCDyn
 		GetPtRPCDynamicQueryFunctionRoutingKey(dynamicQuery.CommandPayloadType),
 		configBytes,
 		exclusiveQueue,
+		RPC_RETRY_POLICY_CUSTOM_TIMEOUT,
 	)
 	if err != nil {
 		logging.LogError(err, "Failed to send RPC message")

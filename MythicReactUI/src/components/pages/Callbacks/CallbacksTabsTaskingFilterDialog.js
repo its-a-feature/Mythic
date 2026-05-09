@@ -1,63 +1,40 @@
 import React, {useEffect} from 'react';
-import { styled } from '@mui/material/styles';
+import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import DialogActions from '@mui/material/DialogActions';
+import Checkbox from '@mui/material/Checkbox';
+import Chip from '@mui/material/Chip';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import MythicTextField from '../../MythicComponents/MythicTextField';
-import Switch from '@mui/material/Switch';
-import Select from '@mui/material/Select';
-import Chip from '@mui/material/Chip';
-import Input from '@mui/material/Input';
-import InputLabel from '@mui/material/InputLabel';
-import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import ListItemText from '@mui/material/ListItemText';
-import Checkbox from '@mui/material/Checkbox';
+import MenuItem from '@mui/material/MenuItem';
+import OutlinedInput from '@mui/material/OutlinedInput';
+import Select from '@mui/material/Select';
+import Switch from '@mui/material/Switch';
+import Typography from '@mui/material/Typography';
+import ClearIcon from '@mui/icons-material/Clear';
+import FilterAltIcon from '@mui/icons-material/FilterAlt';
+import MythicTextField from '../../MythicComponents/MythicTextField';
 import {useQuery, gql } from '@apollo/client';
 import { meState } from '../../../cache';
 import {useReactiveVar} from '@apollo/client';
+import {
+  MythicDialogBody,
+  MythicDialogButton,
+  MythicDialogFooter,
+  MythicDialogGrid,
+  MythicDialogSection,
+  MythicFormField,
+  MythicFormSwitchRow
+} from '../../MythicComponents/MythicDialogLayout';
 
-const PREFIX = 'CallbacksTabsTaskingFilterDialog';
-
-const classes = {
-  formControl: `${PREFIX}-formControl`,
-  chips: `${PREFIX}-chips`,
-  chip: `${PREFIX}-chip`,
-  noLabel: `${PREFIX}-noLabel`
-};
-
-const Root = styled('div')((
-  {
-    theme
-  }
-) => ({
-  [`& .${classes.formControl}`]: {
-    margin: theme.spacing(1),
-    width: "100%",
-  },
-
-  [`& .${classes.chips}`]: {
-    display: 'flex',
-    flexWrap: 'wrap',
-  },
-
-  [`& .${classes.chip}`]: {
-    margin: 2,
-  },
-
-  [`& .${classes.noLabel}`]: {
-    marginTop: theme.spacing(2),
-  }
-}));
-
-const ITEM_HEIGHT = 48;
+const ITEM_HEIGHT = 42;
 const ITEM_PADDING_TOP = 8;
 const MenuProps = {
   PaperProps: {
     style: {
-      maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
-      width: 250,
+      maxHeight: ITEM_HEIGHT * 6 + ITEM_PADDING_TOP,
+      width: 320,
     },
   },
   variant: "menu",
@@ -72,6 +49,60 @@ query operatorQuery($operation_id: Int!) {
     }
   }
 }`;
+
+const selectedLabel = (values, singular, plural = singular) => {
+  if(values.length === 0){
+    return "";
+  }
+  return `${values.length} ${values.length === 1 ? singular : plural}`;
+}
+
+const FilterSummaryChip = ({icon, label, muted=false}) => (
+  <Chip
+    className={`mythic-tasking-filter-summary-chip${muted ? " mythic-tasking-filter-summary-chip-muted" : ""}`}
+    icon={icon}
+    label={label}
+    size="small"
+  />
+)
+
+const MultiSelectField = ({label, value, options, onChange, emptyLabel}) => {
+  const renderValue = (selected) => {
+    if(selected.length === 0){
+      return <span className="mythic-tasking-filter-select-empty">{emptyLabel}</span>
+    }
+    return (
+      <Box className="mythic-tasking-filter-select-chips">
+        {selected.map((selectedValue) => (
+          <Chip key={selectedValue} label={selectedValue} size="small" className="mythic-tasking-filter-selected-chip" />
+        ))}
+      </Box>
+    );
+  }
+
+  return (
+    <FormControl fullWidth={true} size="small" className="mythic-tasking-filter-select">
+      <Select
+        multiple
+        displayEmpty
+        value={value}
+        onChange={onChange}
+        input={<OutlinedInput />}
+        renderValue={renderValue}
+        MenuProps={MenuProps}
+        aria-label={label}
+      >
+        {options.map((name) => (
+          <MenuItem key={name} value={name}>
+            <Checkbox color="primary" checked={value.indexOf(name) > -1} />
+            <ListItemText primary={name} />
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+  )
+}
+
 export function CallbacksTabsTaskingFilterDialog(props) {
   const me = useReactiveVar(meState);
   const [onlyOperators, setOnlyOperators] = React.useState([]);
@@ -111,7 +142,7 @@ export function CallbacksTabsTaskingFilterDialog(props) {
       const commandOptionNames = props.filterCommandOptions.map(c => c.cmd);
       setCommandOptions(commandOptionNames);
     }
-  }, [props.filterOptions]);
+  }, [props.filterOptions, props.filterCommandOptions]);
   const onSubmit = () => {
     props.onSubmit({
       "operatorsList": onlyOperators,
@@ -133,17 +164,20 @@ export function CallbacksTabsTaskingFilterDialog(props) {
     setHideErrors(event.target.checked);
   }
   const handleOperatorChange = (event) => {
-    setOnlyOperators(event.target.value);
+    const value = typeof event.target.value === "string" ? event.target.value.split(",") : event.target.value;
+    setOnlyOperators(value);
   }
   const handleOnlyCommandsChange = (event) => {
-    setOnlyCommands(event.target.value);
-    if(event.target.value.length > 0){
+    const value = typeof event.target.value === "string" ? event.target.value.split(",") : event.target.value;
+    setOnlyCommands(value);
+    if(value.length > 0){
       setEverythingBut([]);
     }
   }
   const handleEverythingButChange = (event) => {
-    setEverythingBut(event.target.value);
-    if(event.target.value.length > 0){
+    const value = typeof event.target.value === "string" ? event.target.value.split(",") : event.target.value;
+    setEverythingBut(value);
+    if(value.length > 0){
       setOnlyCommands([]);
     }
   }
@@ -153,110 +187,178 @@ export function CallbacksTabsTaskingFilterDialog(props) {
   const clearAllEverythingBut = () => {
     setEverythingBut([]);
   }
+  const clearAllFilters = () => {
+    setOnlyOperators([]);
+    setOnlyHasComments(false);
+    setOnlyCommands([]);
+    setEverythingBut([]);
+    setOnlyParameters("");
+    setHideErrors(false);
+  }
+  const activeFilters = [
+    selectedLabel(onlyOperators, "operator"),
+    onlyHasComments ? "Has comments" : "",
+    hideErrors ? "Errors hidden" : "",
+    selectedLabel(onlyCommands, "included command", "included commands"),
+    selectedLabel(everythingBut, "excluded command", "excluded commands"),
+    onlyParameters !== "" ? "Parameter regex" : "",
+  ].filter(Boolean);
+
   return (
-    <Root>
-        <DialogTitle id="form-dialog-title">Filter Which Tasks Are Visible in this Callback</DialogTitle>
-        <DialogContent dividers={true} style={{overflow: "hidden"}}>
-            <React.Fragment>
-                <FormControl className={classes.formControl}>
-                <InputLabel id="operator-chip-label">Only Show Tasks by the Following Operators</InputLabel>
-                <Select
-                  labelId="operator-chip-label"
-                  multiple
-                  id="operator-chip"
+    <Box className="mythic-tasking-filter-dialog">
+      <DialogTitle id="mythic-draggable-title" className="mythic-tasking-filter-dialog-title">
+        <Box className="mythic-tasking-filter-title-row">
+          <Box className="mythic-tasking-filter-title-icon">
+            <FilterAltIcon fontSize="small" />
+          </Box>
+          <Box sx={{minWidth: 0}}>
+            <Typography component="div" className="mythic-tasking-filter-title-main">
+              Task visibility filters
+            </Typography>
+            <Typography component="div" className="mythic-tasking-filter-title-subtitle">
+              Control which tasks are shown for this callback.
+            </Typography>
+          </Box>
+        </Box>
+      </DialogTitle>
+      <DialogContent dividers={true} className="mythic-tasking-filter-dialog-content">
+        <MythicDialogBody compact={true}>
+          <Box className="mythic-tasking-filter-summary">
+            {activeFilters.length > 0 ? (
+              activeFilters.map((filterLabel) => (
+                <FilterSummaryChip key={filterLabel} icon={<FilterAltIcon />} label={filterLabel} />
+              ))
+            ) : (
+              <FilterSummaryChip muted={true} icon={<FilterAltIcon />} label="No active filters" />
+            )}
+          </Box>
+          <MythicDialogSection
+            title="Operator and task state"
+            description="Narrow the task list by operator, comments, or error state."
+          >
+            <MythicDialogGrid minWidth="18rem">
+              <MythicFormField
+                label="Operators"
+                description="Only show tasks created by selected operators."
+              >
+                <MultiSelectField
+                  label="Operators"
                   value={onlyOperators}
+                  options={operatorUsernames}
                   onChange={handleOperatorChange}
-                  input={<Input />}
-                  renderValue={(selected) => (
-                    <div className={classes.chips}>
-                      {selected.map((value) => (
-                        <Chip key={value} label={value} className={classes.chip} />
-                      ))}
-                    </div>
-                  )}
-                  MenuProps={MenuProps}
-                >
-                  {operatorUsernames.map((name) => (
-                    <MenuItem key={name} value={name}>
-                      <Checkbox color="primary" checked={onlyOperators.indexOf(name) > -1} />
-                      <ListItemText primary={name} />
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-                Only Show Tasks with Comments: <Switch checked={onlyHasComments} onChange={handleCommentsChange} color="primary" name="Only Comments" inputProps={{'aria-label': 'primary checkbox'}}/>
-                <br/>
-              Hide Error Tasks:<Switch checked={hideErrors} onChange={handleHideErrorsChange} color="primary" name="Hide Errors" inputProps={{'aria-label': 'primary checkbox'}}/>
-              <FormControl className={classes.formControl}>
-                  <InputLabel id="include-chip-label">Only Show These Commands</InputLabel>
-                  <Select
-                    labelId="include-chip-label"
-                    multiple
-                    id="include-chip"
-                    value={onlyCommands}
-                    onChange={handleOnlyCommandsChange}
-                    input={<Input />}
-                    renderValue={(selected) => (
-                      <div className={classes.chips}>
-                        {selected.map((value) => (
-                          <Chip key={value} label={value} className={classes.chip} />
-                        ))}
-                      </div>
-                    )}
-                    MenuProps={MenuProps}
+                  emptyLabel="Any operator"
+                />
+              </MythicFormField>
+              <Box className="mythic-tasking-filter-switch-stack">
+                <MythicFormSwitchRow
+                  label="Only tasks with comments"
+                  description="Require at least one comment."
+                  control={
+                    <Switch
+                      checked={onlyHasComments}
+                      onChange={handleCommentsChange}
+                      color="primary"
+                      name="Only Comments"
+                      inputProps={{'aria-label': 'Only tasks with comments'}}
+                    />
+                  }
+                />
+                <MythicFormSwitchRow
+                  label="Hide error tasks"
+                  description="Remove tasks that are currently marked as errors."
+                  control={
+                    <Switch
+                      checked={hideErrors}
+                      onChange={handleHideErrorsChange}
+                      color="primary"
+                      name="Hide Errors"
+                      inputProps={{'aria-label': 'Hide error tasks'}}
+                    />
+                  }
+                />
+              </Box>
+            </MythicDialogGrid>
+          </MythicDialogSection>
+          <MythicDialogSection
+            title="Command scope"
+            description="Choose commands to include, or choose commands to hide."
+          >
+            <Box className="mythic-tasking-filter-command-grid">
+              <MythicFormField
+                label="Only show commands"
+                description="When set, only matching command names remain visible."
+              >
+                <MultiSelectField
+                  label="Only show commands"
+                  value={onlyCommands}
+                  options={commandOptions}
+                  onChange={handleOnlyCommandsChange}
+                  emptyLabel="No include filter"
+                />
+                {onlyCommands.length > 0 &&
+                  <Button
+                    className="mythic-tasking-filter-clear-button"
+                    onClick={clearAllOnlyCommands}
+                    size="small"
+                    startIcon={<ClearIcon fontSize="small" />}
+                    variant="outlined"
                   >
-                    {commandOptions.map((name) => (
-                      <MenuItem key={name} value={name}>
-                        <Checkbox color="primary" checked={onlyCommands.indexOf(name) > -1} />
-                        <ListItemText primary={name} />
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              {onlyCommands.length > 0 &&
-                  <Button onClick={clearAllOnlyCommands} variant={"contained"}>Clear</Button>
-              }
-                <FormControl className={classes.formControl}>
-                  <InputLabel id="exclude-chip-label">Do Not Show These Commands</InputLabel>
-                  <Select
-                    labelId="exclude-chip-label"
-                    multiple
-                    id="exclude-chip"
-                    value={everythingBut}
-                    onChange={handleEverythingButChange}
-                    input={<Input />}
-                    renderValue={(selected) => (
-                      <div className={classes.chips}>
-                        {selected.map((value) => (
-                          <Chip key={value} label={value} className={classes.chip} />
-                        ))}
-                      </div>
-                    )}
-                    MenuProps={MenuProps}
+                    Clear include
+                  </Button>
+                }
+              </MythicFormField>
+              <Box className="mythic-tasking-filter-choice-divider">or</Box>
+              <MythicFormField
+                label="Hide commands"
+                description="When set, selected command names are removed from view."
+              >
+                <MultiSelectField
+                  label="Hide commands"
+                  value={everythingBut}
+                  options={commandOptions}
+                  onChange={handleEverythingButChange}
+                  emptyLabel="No exclude filter"
+                />
+                {everythingBut.length > 0 &&
+                  <Button
+                    className="mythic-tasking-filter-clear-button"
+                    onClick={clearAllEverythingBut}
+                    size="small"
+                    startIcon={<ClearIcon fontSize="small" />}
+                    variant="outlined"
                   >
-                    {commandOptions.map((name) => (
-                      <MenuItem key={name} value={name}>
-                        <Checkbox color="primary" checked={everythingBut.indexOf(name) > -1} />
-                        <ListItemText primary={name} />
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              {everythingBut.length > 0 &&
-                  <Button onClick={clearAllEverythingBut} variant={"contained"}>Clear</Button>
-              }
-                <MythicTextField value={onlyParameters} onChange={onChange} name="Only Show Tasks with the Following Parameter Regex"/>
-            </React.Fragment>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={props.onClose} variant="contained" >
-            Close
-          </Button>
-          <Button onClick={onSubmit} color="success" variant="contained" >
-            Filter
-          </Button>
-        </DialogActions>
-  </Root>
+                    Clear exclude
+                  </Button>
+                }
+              </MythicFormField>
+            </Box>
+          </MythicDialogSection>
+          <MythicDialogSection
+            title="Parameter matching"
+            description="Apply a regular expression to task parameters."
+          >
+            <MythicTextField
+              value={onlyParameters}
+              onChange={onChange}
+              name="Parameter regex"
+              placeholder="Regex to match task parameters"
+              marginBottom="0px"
+              marginTop="0px"
+            />
+          </MythicDialogSection>
+        </MythicDialogBody>
+      </DialogContent>
+      <MythicDialogFooter className="mythic-tasking-filter-dialog-actions">
+        <MythicDialogButton onClick={clearAllFilters}>
+          Clear all
+        </MythicDialogButton>
+        <MythicDialogButton onClick={props.onClose}>
+          Close
+        </MythicDialogButton>
+        <MythicDialogButton onClick={onSubmit} intent="primary">
+          Apply filters
+        </MythicDialogButton>
+      </MythicDialogFooter>
+    </Box>
   );
 }
-

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -40,6 +41,7 @@ type Config struct {
 	RabbitmqUser     string
 	RabbitmqPassword string
 	RabbitmqVHost    string
+	CustomRPCTimeout time.Duration
 
 	// postgres configuration
 	PostgresHost     string
@@ -84,6 +86,7 @@ func Initialize() {
 	mythicEnv.SetDefault("rabbitmq_user", "mythic_user")
 	mythicEnv.SetDefault("rabbitmq_password", "")
 	mythicEnv.SetDefault("rabbitmq_vhost", "mythic_vhost")
+	mythicEnv.SetDefault("custom_rpc_timeout", 0)
 	// jwt configuration
 	mythicEnv.SetDefault("jwt_secret", "")
 	// default operation configuration
@@ -189,6 +192,7 @@ func setConfigFromEnv(mythicEnv *viper.Viper) {
 	if MythicConfig.RabbitmqVHost == "" {
 		MythicConfig.RabbitmqVHost = "mythic_vhost"
 	}
+	MythicConfig.CustomRPCTimeout = time.Duration(mythicEnv.GetUint("custom_rpc_timeout")) * time.Second
 	// jwt configuration
 	MythicConfig.JWTSecret = []byte(mythicEnv.GetString("jwt_secret"))
 }

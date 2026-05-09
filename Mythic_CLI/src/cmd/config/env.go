@@ -82,7 +82,7 @@ func GetIntendedMythicServiceNames() ([]string, error) {
 					if mythicEnv.GetBool("postgres_debug") {
 						containerList = append(containerList, service)
 					}
-			
+
 			*/
 		}
 	}
@@ -320,6 +320,9 @@ Setting this to "true" means that the local Mythic/rabbitmq-docker/Dockerfile is
 
 	mythicEnv.SetDefault("rabbitmq_vhost", "mythic_vhost")
 	mythicEnvInfo["rabbitmq_vhost"] = `The VHost attribute on RabbitMQ allows you to logically separate queues into separate "hosts" while keeping the same names. This helps with collisions if you have multiple instances of something running concurrently.`
+
+	mythicEnv.SetDefault("custom_rpc_timeout", 0)
+	mythicEnvInfo["custom_rpc_timeout"] = `This is an optional timeout in seconds for Mythic RPC calls that are expected to be slow but still valid. If set to 0, Mythic uses the default RPC timeout.`
 
 	// jwt configuration ---------------------------------------------
 	mythicEnv.SetDefault("jwt_secret", utils.GenerateRandomPassword(30))

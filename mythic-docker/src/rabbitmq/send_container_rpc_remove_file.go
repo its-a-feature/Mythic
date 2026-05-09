@@ -27,6 +27,7 @@ func (r *rabbitMQConnection) SendContainerRPCRemoveFile(getFile ContainerRemoveF
 		GetC2RPCRemoveFileRoutingKey(getFile.Name),
 		opsecBytes,
 		exclusiveQueue,
+		RPC_RETRY_POLICY_CUSTOM_TIMEOUT,
 	); err != nil {
 		logging.LogError(err, "Failed to send RPC message")
 		return nil, err

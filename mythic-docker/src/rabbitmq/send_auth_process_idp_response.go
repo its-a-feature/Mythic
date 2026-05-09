@@ -35,6 +35,7 @@ func (r *rabbitMQConnection) SendAuthProcessIDPResponse(input ProcessIDPResponse
 		GetAuthContainerProcessIDPResponseRoutingKey(input.ContainerName),
 		inputBytes,
 		exclusiveQueue,
+		RPC_RETRY_POLICY_NO_RETRY_ON_TIMEOUT,
 	)
 	if err != nil {
 		logging.LogError(err, "Failed to send RPC message")

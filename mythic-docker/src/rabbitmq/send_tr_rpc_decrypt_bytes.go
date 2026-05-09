@@ -33,6 +33,7 @@ func (r *rabbitMQConnection) SendTrRPCDecryptBytes(input TrDecryptBytesMessage) 
 		GetTrRPCDecryptBytesRoutingKey(input.TranslationContainerName),
 		opsecBytes,
 		!exclusiveQueue,
+		RPC_RETRY_POLICY_RETRY_ON_TIMEOUT,
 	); err != nil {
 		logging.LogError(err, "Failed to send RPC message")
 		return nil, err

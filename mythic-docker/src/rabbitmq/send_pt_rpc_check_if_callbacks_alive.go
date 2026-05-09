@@ -126,6 +126,7 @@ func (r *rabbitMQConnection) SendPTRPCCheckIfCallbacksAlive(sendMsg PTCheckIfCal
 		GetPtCheckIfCallbacksAliveRoutingKey(sendMsg.ContainerName),
 		opsecBytes,
 		exclusiveQueue,
+		RPC_RETRY_POLICY_RETRY_ON_TIMEOUT,
 	)
 	if err != nil {
 		return nil, err

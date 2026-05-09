@@ -35,6 +35,7 @@ func (r *rabbitMQConnection) SendC2RPCOpsecCheck(opsecCheck C2OPSECMessage) (*C2
 		GetC2RPCOpsecChecksRoutingKey(opsecCheck.Name),
 		opsecBytes,
 		exclusiveQueue,
+		RPC_RETRY_POLICY_CUSTOM_TIMEOUT,
 	)
 	if err != nil {
 		logging.LogError(err, "Failed to send RPC message")

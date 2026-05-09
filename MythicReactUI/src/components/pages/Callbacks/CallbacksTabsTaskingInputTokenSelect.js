@@ -42,15 +42,16 @@ export function CallbacksTabsTaskingInputTokenSelect(props) {
       }
     }
   return (
-      <FormControl style={{width: props.width ? props.width : "20%"}}>
+      <FormControl className={props.className || ""} size={props.modern ? "small" : undefined} style={{width: props.width ? props.width : "20%"}}>
         <Select
           labelId="demo-dialog-select-label"
           id="demo-dialog-select"
           value={selected}
           onChange={handleChange}
-          variant="filled"
+          variant={props.modern ? "outlined" : "filled"}
+          size={props.modern ? "small" : undefined}
           renderValue={renderValue}
-          input={<Input style={{width: "100%"}}/>}
+          input={props.modern ? undefined : <Input style={{width: "100%"}}/>}
         >
           <MenuItem value={"Default Token"} key={0}>Default Token</MenuItem>
           {options.map( (opt) => (
@@ -60,4 +61,3 @@ export function CallbacksTabsTaskingInputTokenSelect(props) {
       </FormControl>
   );
 }
-

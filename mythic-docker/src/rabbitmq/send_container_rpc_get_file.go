@@ -28,6 +28,7 @@ func (r *rabbitMQConnection) SendContainerRPCGetFile(getFile ContainerGetFileMes
 		GetC2RPCGetFileRoutingKey(getFile.Name),
 		opsecBytes,
 		exclusiveQueue,
+		RPC_RETRY_POLICY_CUSTOM_TIMEOUT,
 	); err != nil {
 		logging.LogError(err, "Failed to send RPC message")
 		return nil, err

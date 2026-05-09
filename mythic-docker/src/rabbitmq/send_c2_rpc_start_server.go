@@ -92,6 +92,7 @@ func (r *rabbitMQConnection) SendC2RPCStartServer(startServer C2StartServerMessa
 		GetC2RPCStartServerRoutingKey(startServer.Name),
 		opsecBytes,
 		exclusiveQueue,
+		RPC_RETRY_POLICY_NO_RETRY_ON_TIMEOUT,
 	)
 	if err != nil {
 		logging.LogError(err, "Failed to send RPC message")

@@ -32,6 +32,7 @@ func (r *rabbitMQConnection) SendC2RPCGetDebugOutput(getDebugOutput C2GetDebugOu
 		GetC2RPCGetServerDebugOutputRoutingKey(getDebugOutput.Name),
 		opsecBytes,
 		exclusiveQueue,
+		RPC_RETRY_POLICY_CUSTOM_TIMEOUT,
 	); err != nil {
 		logging.LogError(err, "Failed to send RPC message")
 		return &c2GetDebutOutputResponse, err
