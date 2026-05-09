@@ -877,6 +877,16 @@ tspan {
     border-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.54 : 0.36)};
     color: ${(props) => props.theme.palette.warning.main};
 }
+.mythic-callback-cellIconButtonHoverInfo.MuiIconButton-root:hover {
+    background-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.2 : 0.12)};
+    border-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.54 : 0.36)};
+    color: ${(props) => props.theme.palette.info.main};
+}
+.mythic-callback-cellIconButtonHoverWarning.MuiIconButton-root:hover {
+    background-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.2 : 0.12)};
+    border-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.54 : 0.36)};
+    color: ${(props) => props.theme.palette.warning.main};
+}
 .mythic-callback-cellIconButtonError.MuiIconButton-root {
     background-color: ${(props) => alpha(props.theme.palette.error.main, props.theme.palette.mode === "dark" ? 0.12 : 0.07)};
     border-color: ${(props) => alpha(props.theme.palette.error.main, props.theme.palette.mode === "dark" ? 0.32 : 0.2)};
@@ -917,55 +927,50 @@ tspan {
 }
 .mythic-callback-statusBadge {
     align-items: center;
+    appearance: none;
     background-color: ${(props) => props.theme.palette.mode === "dark" ? "rgba(255,255,255,0.045)" : "rgba(0,0,0,0.025)"};
     border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
     border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    box-sizing: border-box;
     color: ${(props) => props.theme.palette.text.secondary};
     display: inline-flex;
     flex: 0 0 auto;
     font-size: 0.82rem;
+    font-family: inherit;
     height: 20px;
     justify-content: center;
     line-height: 1;
     margin-left: 0.08rem;
+    padding: 0;
     transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
     width: 22px;
 }
-.mythic-callback-statusBadgeAlert {
-    background-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.14 : 0.08)};
-    border-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.36 : 0.24)};
-    color: ${(props) => props.theme.palette.warning.main};
+.mythic-callback-statusBadgeButton {
+    cursor: pointer;
 }
-.mythic-callback-statusBadgeProxy {
-    background-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.12 : 0.07)};
-    border-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.32 : 0.2)};
-    color: ${(props) => props.theme.palette.info.main};
-}
-.mythic-callback-statusBadgeLock {
-    background-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.12 : 0.07)};
-    border-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.32 : 0.2)};
-    color: ${(props) => props.theme.palette.warning.main};
-}
-.mythic-callback-statusBadgeDead {
-    background-color: ${(props) => alpha(props.theme.palette.error.main, props.theme.palette.mode === "dark" ? 0.12 : 0.07)};
-    border-color: ${(props) => alpha(props.theme.palette.error.main, props.theme.palette.mode === "dark" ? 0.32 : 0.2)};
-    color: ${(props) => props.theme.palette.error.main};
+.mythic-callback-statusBadgeButton:focus-visible {
+    outline: 2px solid ${(props) => alpha(props.theme.palette.primary.main, 0.55)};
+    outline-offset: 2px;
 }
 .mythic-callback-statusBadgeAlert:hover {
     background-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.22 : 0.13)};
     border-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.58 : 0.42)};
+    color: ${(props) => props.theme.palette.warning.main};
 }
 .mythic-callback-statusBadgeProxy:hover {
     background-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.2 : 0.12)};
     border-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.54 : 0.36)};
+    color: ${(props) => props.theme.palette.info.main};
 }
 .mythic-callback-statusBadgeLock:hover {
-    background-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.2 : 0.12)};
-    border-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.54 : 0.36)};
+    background-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.22 : 0.13)};
+    border-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.58 : 0.42)};
+    color: ${(props) => props.theme.palette.warning.main};
 }
 .mythic-callback-statusBadgeDead:hover {
-    background-color: ${(props) => alpha(props.theme.palette.error.main, props.theme.palette.mode === "dark" ? 0.2 : 0.12)};
-    border-color: ${(props) => alpha(props.theme.palette.error.main, props.theme.palette.mode === "dark" ? 0.54 : 0.36)};
+    background-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.22 : 0.13)};
+    border-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.58 : 0.42)};
+    color: ${(props) => props.theme.palette.warning.main};
 }
 .mythic-callback-statusBadge svg {
     display: block;

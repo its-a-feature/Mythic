@@ -111,9 +111,6 @@ function CallbackSearchTableRow(props){
                             label={props.active ? "Active" : "Inactive"}
                             status={props.active ? "active" : "inactive"}
                         />
-                        {props.dead &&
-                            <MythicStatusChip label="Likely dead" status="warning" />
-                        }
                         {props.locked &&
                             <MythicStatusChip label="Locked" status="locked" />
                         }

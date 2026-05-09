@@ -16,7 +16,7 @@ import {
 import {useMutation } from '@apollo/client';
 import SnoozeIcon from '@mui/icons-material/Snooze';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import {faQuestion, faSkullCrossbones, faRobot} from '@fortawesome/free-solid-svg-icons';
+import {faQuestion, faRobot} from '@fortawesome/free-solid-svg-icons';
 import {faLinux, faApple, faWindows, faChrome, faAndroid} from '@fortawesome/free-brands-svg-icons';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import { MythicSelectFromRawListDialog } from '../../MythicComponents/MythicSelectFromListDialog';
@@ -29,10 +29,11 @@ import {GetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import TerminalIcon from '@mui/icons-material/Terminal';
 import VerticalSplitIcon from '@mui/icons-material/VerticalSplit';
 import NotificationsActiveTwoToneIcon from '@mui/icons-material/NotificationsActiveTwoTone';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import {faSocks} from '@fortawesome/free-solid-svg-icons';
 import {TagsDisplay, ViewEditTags} from "../../MythicComponents/MythicTag";
 
-export const CallbacksTableIDCell = React.memo(({rowData, callbackDropdown}) =>{
+export const CallbacksTableIDCell = React.memo(({rowData, callbackDropdown, onOpenTriggerDialog, onOpenUnlockDialog}) =>{
     const dropdownAnchorRef = React.useRef(null);
     const onOpenTab = useContext(OnOpenTabContext);
     const interactType = GetMythicSetting({setting_name: "interactType", default_value: "interact"})
@@ -99,6 +100,14 @@ export const CallbacksTableIDCell = React.memo(({rowData, callbackDropdown}) =>{
         event.stopPropagation();
         callbackDropdown({rowDataStatic, event});
     };
+    const handleOpenTriggerDialog = (event) => {
+        event.stopPropagation();
+        onOpenTriggerDialog?.(rowDataStatic);
+    };
+    const handleOpenUnlockDialog = (event) => {
+        event.stopPropagation();
+        onOpenUnlockDialog?.(rowDataStatic);
+    };
     const localOnOpenTab = () => {
         onOpenTab({tabType: interactType, tabID: rowDataStatic.id + interactType, callbackID: rowDataStatic.id,  displayID: rowDataStatic.display_id});
     }
@@ -132,16 +141,22 @@ export const CallbacksTableIDCell = React.memo(({rowData, callbackDropdown}) =>{
             </IconButton>
             {rowDataStatic.locked &&
                 <MythicStyledTooltip title={`Locked by ${lockOwner}`}>
-                    <span className="mythic-callback-statusBadge mythic-callback-statusBadgeLock">
+                    <button type="button"
+                            className="mythic-callback-statusBadge mythic-callback-statusBadgeButton mythic-callback-statusBadgeLock"
+                            aria-label={`Unlock callback ${rowDataStatic.display_id}`}
+                            onClick={handleOpenUnlockDialog}>
                         <LockIcon fontSize="inherit" />
-                    </span>
+                    </button>
                 </MythicStyledTooltip>
             }
             {rowDataStatic.trigger_on_checkin_after_time > 0 &&
                 <MythicStyledTooltip title={`Alert on callback after no checkin for ${rowDataStatic.trigger_on_checkin_after_time} minutes`}>
-                    <span className="mythic-callback-statusBadge mythic-callback-statusBadgeAlert">
+                    <button type="button"
+                            className="mythic-callback-statusBadge mythic-callback-statusBadgeButton mythic-callback-statusBadgeAlert"
+                            aria-label={`Adjust alert trigger for callback ${rowDataStatic.display_id}`}
+                            onClick={handleOpenTriggerDialog}>
                         <NotificationsActiveTwoToneIcon fontSize="inherit" />
-                    </span>
+                    </button>
                 </MythicStyledTooltip>
             }
             {rowDataStatic.callbackports.length > 0 &&
@@ -179,7 +194,7 @@ export const CallbacksTableLastCheckinCell = React.memo( ({rowData, cellData, me
                 {rowData.dead &&
                     <MythicStyledTooltip title={"Based on callback's last checkin and sleep info, it's likely dead"}>
                         <span className="mythic-callback-statusBadge mythic-callback-statusBadgeDead">
-                            <FontAwesomeIcon icon={faSkullCrossbones} />
+                            <WarningAmberIcon fontSize="inherit" />
                         </span>
                     </MythicStyledTooltip>
                 }
@@ -193,7 +208,7 @@ export const CallbacksTableLastCheckinCell = React.memo( ({rowData, cellData, me
             {rowData.dead &&
                 <MythicStyledTooltip title={"Based on callback's last checkin and sleep info, it's likely dead"}>
                     <span className="mythic-callback-statusBadge mythic-callback-statusBadgeDead">
-                        <FontAwesomeIcon icon={faSkullCrossbones} />
+                        <WarningAmberIcon fontSize="inherit" />
                     </span>
                 </MythicStyledTooltip>
             }
@@ -493,7 +508,7 @@ export const CallbacksTableSleepCell = React.memo( ({rowData, cellData, updateSl
         <div className="mythic-callback-cellInline mythic-callback-cellInlineCenter">
             <MythicStyledTooltip title={cellData === "" ? "No sleep information set" : "View or edit sleep information"}>
                 <IconButton
-                    className={`mythic-callback-iconButton mythic-callback-cellIconButton ${cellData === "" ? "mythic-callback-cellIconButtonWarning" : "mythic-callback-cellIconButtonInfo"}`}
+                    className={`mythic-callback-iconButton mythic-callback-cellIconButton ${cellData === "" ? "mythic-callback-cellIconButtonHoverWarning" : "mythic-callback-cellIconButtonHoverInfo"}`}
                     onClick={onOpenSleepDialog}
                 >
                     <SnoozeIcon fontSize="small" />

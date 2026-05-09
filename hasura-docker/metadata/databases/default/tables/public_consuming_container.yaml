@@ -70,7 +70,6 @@ select_permissions:
         - updated_at
       filter: {}
     comment: ""
-
 update_permissions:
   - role: mythic_admin
     permission:

@@ -111,6 +111,14 @@ type Mutation {
 }
 
 type Mutation {
+  createC2Instance(
+    c2_instance: String!
+    instance_name: String!
+    c2profile_id: Int!
+  ): createc2instanceOutput
+}
+
+type Mutation {
   createCallback(
     newCallback: newCallbackConfig
     payloadUuid: String!
@@ -204,14 +212,6 @@ type Mutation {
     is_interactive_task: Boolean
     interactive_task_type: Int
   ): createTaskOutput
-}
-
-type Mutation {
-  createC2Instance(
-    c2_instance: String!
-    instance_name: String!
-    c2profile_id: Int!
-  ): createc2instanceOutput
 }
 
 type Mutation {
@@ -416,6 +416,14 @@ type Query {
 }
 
 type Mutation {
+  importC2Instance(
+    c2_instance: jsonb!
+    instance_name: String!
+    c2profile_name: String!
+  ): createc2instanceOutput
+}
+
+type Mutation {
   importCallbackConfig(
     config: jsonb!
   ): importCallbackConfigOutput
@@ -425,14 +433,6 @@ type Mutation {
   importTagtypes(
     tagtypes: String!
   ): importTagtypesOutput
-}
-
-type Mutation {
-  importC2Instance(
-    c2_instance: jsonb!
-    instance_name: String!
-    c2profile_name: String!
-  ): createc2instanceOutput
 }
 
 type Query {
@@ -1324,3 +1324,4 @@ type custombrowserExportFunctionOutput {
   status: String!
   error: String
 }
+
