@@ -34,6 +34,8 @@ type Config struct {
 	MythicServerAllowInviteLinks            bool
 	ServerVersion                           string
 	MythicServerAllowWebhooksOnNewCallbacks bool
+	AgentMessagePostResponseWorkers         int
+	AgentMessagePostResponseQueueSize       int
 
 	// rabbitmq configuration
 	RabbitmqHost     string
@@ -74,6 +76,8 @@ func Initialize() {
 	mythicEnv.SetDefault("debug_level", "warning")
 	mythicEnv.SetDefault("mythic_server_allow_invite_links", false)
 	mythicEnv.SetDefault("mythic_server_allow_webhooks_on_new_callbacks", true)
+	mythicEnv.SetDefault("agent_message_post_response_workers", 8)
+	mythicEnv.SetDefault("agent_message_post_response_queue_size", 4096)
 	// postgres configuration
 	mythicEnv.SetDefault("postgres_host", "mythic_postgres")
 	mythicEnv.SetDefault("postgres_port", 5432)
@@ -167,6 +171,8 @@ func setConfigFromEnv(mythicEnv *viper.Viper) {
 	MythicConfig.DefaultOperationChannel = mythicEnv.GetString("default_operation_webhook_channel")
 	MythicConfig.GlobalServerName = mythicEnv.GetString("global_server_name")
 	MythicConfig.MythicServerAllowInviteLinks = mythicEnv.GetBool("mythic_server_allow_invite_links")
+	MythicConfig.AgentMessagePostResponseWorkers = mythicEnv.GetInt("agent_message_post_response_workers")
+	MythicConfig.AgentMessagePostResponseQueueSize = mythicEnv.GetInt("agent_message_post_response_queue_size")
 	allowedIPBlocks := []*net.IPNet{}
 	for _, ipBlock := range strings.Split(mythicEnv.GetString("allowed_ip_blocks"), ",") {
 		if _, subnet, err := net.ParseCIDR(ipBlock); err != nil {
