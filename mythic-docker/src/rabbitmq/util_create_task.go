@@ -68,7 +68,12 @@ type submittedTask struct {
 	OperationID         int
 }
 type submittedTasksForAgents struct {
-	Tasks *[]submittedTask
+	Tasks                         *[]submittedTask
+	tasksByCallbackID             map[int][]int
+	interactiveTasksByCallbackID  map[int][]int
+	callbacksWithTasks            []int
+	callbacksWithInteractiveTasks []int
+	taskByID                      map[int]submittedTask
 	sync.RWMutex
 }
 
@@ -77,7 +82,10 @@ var submittedTasksAwaitingFetching submittedTasksForAgents
 func (s *submittedTasksForAgents) Initialize() {
 	currentTasks := []databaseStructs.Task{}
 	taskArray := make([]submittedTask, 0)
+	s.Lock()
 	s.Tasks = &taskArray
+	s.resetTaskIndexesLocked()
+	s.Unlock()
 	if err := database.DB.Select(&currentTasks, `SELECT
 	id, callback_id, operation_id, is_interactive_task, interactive_task_type, parent_task_id
 	FROM task
@@ -86,18 +94,125 @@ func (s *submittedTasksForAgents) Initialize() {
 	} else {
 		s.Lock()
 		for _, t := range currentTasks {
-			*s.Tasks = append(*s.Tasks, submittedTask{
-				TaskID:              t.ID,
-				CallbackID:          t.CallbackID,
-				OperationID:         t.OperationID,
-				IsInteractiveTask:   t.IsInteractiveTask,
-				InteractiveTaskType: int(t.InteractiveTaskType.Int64),
-				ParentTaskID:        int(t.ParentTaskID.Int64),
-			})
+			s.addTaskLocked(newSubmittedTask(t))
 		}
 		s.Unlock()
 	}
 }
+
+func newSubmittedTask(task databaseStructs.Task) submittedTask {
+	return submittedTask{
+		TaskID:              task.ID,
+		CallbackID:          task.CallbackID,
+		OperationID:         task.OperationID,
+		IsInteractiveTask:   task.IsInteractiveTask,
+		InteractiveTaskType: int(task.InteractiveTaskType.Int64),
+		ParentTaskID:        int(task.ParentTaskID.Int64),
+	}
+}
+
+func (s *submittedTasksForAgents) resetTaskIndexesLocked() {
+	s.tasksByCallbackID = make(map[int][]int)
+	s.interactiveTasksByCallbackID = make(map[int][]int)
+	s.callbacksWithTasks = make([]int, 0)
+	s.callbacksWithInteractiveTasks = make([]int, 0)
+	s.taskByID = make(map[int]submittedTask)
+}
+
+func (s *submittedTasksForAgents) ensureTaskStoreLocked() {
+	if s.Tasks == nil {
+		taskArray := make([]submittedTask, 0)
+		s.Tasks = &taskArray
+	}
+	if s.taskByID == nil || s.tasksByCallbackID == nil || s.interactiveTasksByCallbackID == nil {
+		tasks := *s.Tasks
+		s.resetTaskIndexesLocked()
+		for _, task := range tasks {
+			s.addTaskToIndexesLocked(task)
+		}
+	}
+}
+
+func (s *submittedTasksForAgents) addTaskLocked(task submittedTask) bool {
+	s.ensureTaskStoreLocked()
+	if _, exists := s.taskByID[task.TaskID]; exists {
+		return false
+	}
+	*s.Tasks = append(*s.Tasks, task)
+	s.addTaskToIndexesLocked(task)
+	return true
+}
+
+func (s *submittedTasksForAgents) addTaskToIndexesLocked(task submittedTask) {
+	s.taskByID[task.TaskID] = task
+	if task.IsInteractiveTask {
+		if len(s.interactiveTasksByCallbackID[task.CallbackID]) == 0 {
+			s.callbacksWithInteractiveTasks = append(s.callbacksWithInteractiveTasks, task.CallbackID)
+		}
+		s.interactiveTasksByCallbackID[task.CallbackID] = append(s.interactiveTasksByCallbackID[task.CallbackID], task.TaskID)
+	} else {
+		if len(s.tasksByCallbackID[task.CallbackID]) == 0 {
+			s.callbacksWithTasks = append(s.callbacksWithTasks, task.CallbackID)
+		}
+		s.tasksByCallbackID[task.CallbackID] = append(s.tasksByCallbackID[task.CallbackID], task.TaskID)
+	}
+}
+
+func (s *submittedTasksForAgents) removeTaskFromIndexesLocked(task submittedTask) {
+	delete(s.taskByID, task.TaskID)
+	if task.IsInteractiveTask {
+		s.interactiveTasksByCallbackID[task.CallbackID] = removeTaskID(s.interactiveTasksByCallbackID[task.CallbackID], task.TaskID)
+		if len(s.interactiveTasksByCallbackID[task.CallbackID]) == 0 {
+			delete(s.interactiveTasksByCallbackID, task.CallbackID)
+			s.callbacksWithInteractiveTasks = removeCallbackID(s.callbacksWithInteractiveTasks, task.CallbackID)
+		}
+		return
+	}
+	s.tasksByCallbackID[task.CallbackID] = removeTaskID(s.tasksByCallbackID[task.CallbackID], task.TaskID)
+	if len(s.tasksByCallbackID[task.CallbackID]) == 0 {
+		delete(s.tasksByCallbackID, task.CallbackID)
+		s.callbacksWithTasks = removeCallbackID(s.callbacksWithTasks, task.CallbackID)
+	}
+}
+
+func removeTaskID(taskIDs []int, taskID int) []int {
+	for i, currentTaskID := range taskIDs {
+		if currentTaskID == taskID {
+			return append(taskIDs[:i], taskIDs[i+1:]...)
+		}
+	}
+	return taskIDs
+}
+
+func removeCallbackID(callbackIDs []int, callbackID int) []int {
+	for i, currentCallbackID := range callbackIDs {
+		if currentCallbackID == callbackID {
+			return append(callbackIDs[:i], callbackIDs[i+1:]...)
+		}
+	}
+	return callbackIDs
+}
+
+func cloneTaskIDs(taskIDs []int) []int {
+	return append([]int(nil), taskIDs...)
+}
+
+func (s *submittedTasksForAgents) removeTaskFromStoreLocked(taskID int) (submittedTask, bool) {
+	s.ensureTaskStoreLocked()
+	task, ok := s.taskByID[taskID]
+	if !ok {
+		return submittedTask{}, false
+	}
+	s.removeTaskFromIndexesLocked(task)
+	for i := 0; i < len(*s.Tasks); i++ {
+		if (*s.Tasks)[i].TaskID == taskID {
+			*s.Tasks = append((*s.Tasks)[:i], (*s.Tasks)[i+1:]...)
+			break
+		}
+	}
+	return task, true
+}
+
 func (s *submittedTasksForAgents) addTask(task databaseStructs.Task) {
 	// before we add this for agents to pick up, see if this task can go to a pushC2 connected callback
 	if grpc.PushC2Server.CheckClientConnected(task.CallbackID) > PushC2Connections.Connected {
@@ -169,14 +284,7 @@ func (s *submittedTasksForAgents) addTask(task databaseStructs.Task) {
 	s.Lock()
 	defer s.Unlock()
 	logging.LogInfo("adding task to SubmittedTasks")
-	*s.Tasks = append(*s.Tasks, submittedTask{
-		TaskID:              task.ID,
-		CallbackID:          task.CallbackID,
-		OperationID:         task.OperationID,
-		IsInteractiveTask:   task.IsInteractiveTask,
-		InteractiveTaskType: int(task.InteractiveTaskType.Int64),
-		ParentTaskID:        int(task.ParentTaskID.Int64),
-	})
+	s.addTaskLocked(newSubmittedTask(task))
 }
 func (s *submittedTasksForAgents) addTaskById(taskId int) {
 	task := databaseStructs.Task{ID: taskId}
@@ -190,66 +298,67 @@ func (s *submittedTasksForAgents) addTaskById(taskId int) {
 }
 func (s *submittedTasksForAgents) removeTask(taskId int) {
 	s.Lock()
-	defer s.Unlock()
-	for i := 0; i < len(*s.Tasks); i++ {
-		if (*s.Tasks)[i].TaskID == taskId {
-			EventingChannel <- EventNotification{
-				Trigger:     eventing.TriggerTaskStart,
-				OperationID: (*s.Tasks)[i].OperationID,
-				TaskID:      (*s.Tasks)[i].TaskID,
-			}
-			if (*s.Tasks)[i].IsInteractiveTask {
-				_, err := database.DB.Exec(`UPDATE task SET
+	task, found := s.removeTaskFromStoreLocked(taskId)
+	s.Unlock()
+	if !found {
+		return
+	}
+	EventingChannel <- EventNotification{
+		Trigger:     eventing.TriggerTaskStart,
+		OperationID: task.OperationID,
+		TaskID:      task.TaskID,
+	}
+	if task.IsInteractiveTask {
+		_, err := database.DB.Exec(`UPDATE task SET
                 status_timestamp_processing=$1, status_timestamp_processed=$1, completed=true 
                 WHERE id=$2`, time.Now().UTC(), taskId)
-				if err != nil {
-					logging.LogError(err, "failed to update timestamp for interactive task")
-				}
-			} else {
-				_, err := database.DB.Exec(`UPDATE task SET
+		if err != nil {
+			logging.LogError(err, "failed to update timestamp for interactive task")
+		}
+	} else {
+		_, err := database.DB.Exec(`UPDATE task SET
                 status_timestamp_processing=$1 
                 WHERE id=$2`, time.Now().UTC(), taskId)
-				if err != nil {
-					logging.LogError(err, "failed to update timestamp for interactive task")
-				}
-			}
-
-			*s.Tasks = append((*s.Tasks)[:i], (*s.Tasks)[i+1:]...)
-			return
+		if err != nil {
+			logging.LogError(err, "failed to update timestamp for interactive task")
 		}
 	}
 }
 func (s *submittedTasksForAgents) getTasksForCallbackId(callbackId int) []int {
-	tasks := []int{}
 	s.RLock()
 	defer s.RUnlock()
-	for i := 0; i < len(*s.Tasks); i++ {
-		if (*s.Tasks)[i].CallbackID == callbackId && !(*s.Tasks)[i].IsInteractiveTask {
-			tasks = append(tasks, (*s.Tasks)[i].TaskID)
+	return cloneTaskIDs(s.tasksByCallbackID[callbackId])
+}
+func (s *submittedTasksForAgents) getTasksForCallbackIds(callbackIds []int) map[int][]int {
+	tasksByCallbackID := make(map[int][]int)
+	if len(callbackIds) == 0 {
+		return tasksByCallbackID
+	}
+	callbackIDMap := make(map[int]bool, len(callbackIds))
+	for _, callbackId := range callbackIds {
+		callbackIDMap[callbackId] = true
+	}
+	s.RLock()
+	defer s.RUnlock()
+	for callbackID := range callbackIDMap {
+		if taskIDs := s.tasksByCallbackID[callbackID]; len(taskIDs) > 0 {
+			tasksByCallbackID[callbackID] = cloneTaskIDs(taskIDs)
 		}
 	}
-	return tasks
+	return tasksByCallbackID
 }
 func (s *submittedTasksForAgents) getInteractiveTasksForCallbackId(callbackId int) []int {
-	tasks := []int{}
 	s.RLock()
 	defer s.RUnlock()
-	for i := 0; i < len(*s.Tasks); i++ {
-		if (*s.Tasks)[i].CallbackID == callbackId && (*s.Tasks)[i].IsInteractiveTask {
-			tasks = append(tasks, (*s.Tasks)[i].TaskID)
-		}
-	}
-	return tasks
+	return cloneTaskIDs(s.interactiveTasksByCallbackID[callbackId])
 }
 func (s *submittedTasksForAgents) getOtherCallbackIds(callbackId int) []int {
 	callbacks := []int{}
 	s.RLock()
 	defer s.RUnlock()
-	for i := 0; i < len(*s.Tasks); i++ {
-		if (*s.Tasks)[i].CallbackID != callbackId && !(*s.Tasks)[i].IsInteractiveTask {
-			if !utils.SliceContains(callbacks, (*s.Tasks)[i].CallbackID) {
-				callbacks = append(callbacks, (*s.Tasks)[i].CallbackID)
-			}
+	for _, currentCallbackID := range s.callbacksWithTasks {
+		if currentCallbackID != callbackId {
+			callbacks = append(callbacks, currentCallbackID)
 		}
 	}
 	return callbacks
@@ -258,14 +367,43 @@ func (s *submittedTasksForAgents) getInteractiveTasksOtherCallbackIds(callbackId
 	callbacks := []int{}
 	s.RLock()
 	defer s.RUnlock()
-	for i := 0; i < len(*s.Tasks); i++ {
-		if (*s.Tasks)[i].CallbackID != callbackId && (*s.Tasks)[i].IsInteractiveTask {
-			if !utils.SliceContains(callbacks, (*s.Tasks)[i].CallbackID) {
-				callbacks = append(callbacks, (*s.Tasks)[i].CallbackID)
-			}
+	for _, currentCallbackID := range s.callbacksWithInteractiveTasks {
+		if currentCallbackID != callbackId {
+			callbacks = append(callbacks, currentCallbackID)
 		}
 	}
 	return callbacks
+}
+func (s *submittedTasksForAgents) removeTasksAfterProcessingUpdate(taskIds []int) {
+	if len(taskIds) == 0 {
+		return
+	}
+	taskIDMap := make(map[int]bool, len(taskIds))
+	for _, taskId := range taskIds {
+		taskIDMap[taskId] = true
+	}
+	taskStartEvents := make([]EventNotification, 0, len(taskIds))
+	s.Lock()
+	s.ensureTaskStoreLocked()
+	pendingTasks := (*s.Tasks)[:0]
+	for i := 0; i < len(*s.Tasks); i++ {
+		task := (*s.Tasks)[i]
+		if taskIDMap[task.TaskID] {
+			taskStartEvents = append(taskStartEvents, EventNotification{
+				Trigger:     eventing.TriggerTaskStart,
+				OperationID: task.OperationID,
+				TaskID:      task.TaskID,
+			})
+			s.removeTaskFromIndexesLocked(task)
+			continue
+		}
+		pendingTasks = append(pendingTasks, task)
+	}
+	*s.Tasks = pendingTasks
+	s.Unlock()
+	for _, taskStartEvent := range taskStartEvents {
+		EventingChannel <- taskStartEvent
+	}
 }
 
 func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {

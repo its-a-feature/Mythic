@@ -47,6 +47,8 @@ type AgentMessageRawInput struct {
 }
 
 type cachedUUIDInfo struct {
+	stateMutex                   sync.RWMutex
+	cryptoMutex                  sync.Mutex
 	UUID                         string
 	UUIDType                     string // payload, callback, staging
 	C2ProfileName                string
@@ -140,31 +142,39 @@ func (cache *cachedUUIDInfo) IterateAndAct(agentMessage *[]byte, action string) 
 		case "aes256_hmac":
 			if action == "decrypt" {
 				keyToUse := keyOpt.DecKey
+				cache.cryptoMutex.Lock()
 				if cache.SuccessfulDecKeyOpt != nil {
 					keyToUse = cache.SuccessfulDecKeyOpt
 				}
+				cache.cryptoMutex.Unlock()
 				if modified, err = mythicCrypto.DecryptAES256HMAC(*keyToUse, agentMessage); err == nil {
 					// we successfully decrypted, so return
 					// track the key actually used so that when we encrypt for the return message we can use the right one
 					//logging.LogDebug("setting uuidInfo successfulDecKeyOpt")
+					cache.cryptoMutex.Lock()
 					cache.SuccessfulDecKeyOpt = keyToUse
 					cache.SuccessfulEncKeyOpt = keyToUse
+					cache.cryptoMutex.Unlock()
 					//logging.LogDebug("just updated uuindInfo", "updated cache", cache)
 					return modified, err
 				}
 			} else if action == "encrypt" {
 				//logging.LogDebug("encrypting", "current cache", cache)
 				keyToUse := keyOpt.EncKey
+				cache.cryptoMutex.Lock()
 				if cache.SuccessfulEncKeyOpt != nil {
 					keyToUse = cache.SuccessfulEncKeyOpt
 				}
+				cache.cryptoMutex.Unlock()
 				//logging.LogDebug("Encrypting message", "key", hex.EncodeToString(*keyToUse))
 
 				modified, err = mythicCrypto.EncryptAES256HMAC(*keyToUse, agentMessage)
 				if err == nil {
 					// we successfully encrypted, so return
+					cache.cryptoMutex.Lock()
 					cache.SuccessfulDecKeyOpt = keyToUse
 					cache.SuccessfulEncKeyOpt = keyToUse
+					cache.cryptoMutex.Unlock()
 					//logging.LogDebug("Encrypted message", "output", hex.EncodeToString(modified))
 					return modified, err
 				}
@@ -186,7 +196,7 @@ func (cache *cachedUUIDInfo) IterateAndAct(agentMessage *[]byte, action string) 
 	return modified, err
 }
 
-var cachedUUIDInfoMapMutex = &sync.Mutex{}
+var cachedUUIDInfoMapMutex = &sync.RWMutex{}
 
 func InvalidateAllCachedUUIDInfo() {
 	cachedUUIDInfoMapMutex.Lock()
@@ -206,22 +216,63 @@ func InvalidateCachedUUIDInfo(uuid string) {
 
 var cachedUUIDInfoMap = make(map[string]*cachedUUIDInfo)
 
+func getCachedUUIDInfo(c2profile string, messageUUID string) *cachedUUIDInfo {
+	cachedUUIDInfoMapMutex.RLock()
+	defer cachedUUIDInfoMapMutex.RUnlock()
+	if uuidInfo, ok := cachedUUIDInfoMap[messageUUID+c2profile]; ok {
+		return uuidInfo
+	}
+	if uuidInfo, ok := cachedUUIDInfoMap[messageUUID]; ok {
+		return uuidInfo
+	}
+	return nil
+}
+
+func cacheUUIDInfo(c2profile string, messageUUID string, newCache *cachedUUIDInfo) (*cachedUUIDInfo, bool) {
+	cachedUUIDInfoMapMutex.Lock()
+	defer cachedUUIDInfoMapMutex.Unlock()
+	if uuidInfo, ok := cachedUUIDInfoMap[messageUUID+c2profile]; ok {
+		return uuidInfo, true
+	}
+	if uuidInfo, ok := cachedUUIDInfoMap[messageUUID]; ok {
+		return uuidInfo, true
+	}
+	cachedUUIDInfoMap[messageUUID+c2profile] = newCache
+	return newCache, false
+}
+
+func updateCachedCallbackCheckin(uuidInfo *cachedUUIDInfo, updateCheckinTime bool) {
+	if updateCheckinTime && uuidInfo.UUIDType == UUIDTYPECALLBACK {
+		UpdateCallbackEdgesAndCheckinTime(uuidInfo)
+	}
+}
+
+func (cache *cachedUUIDInfo) callbackAllowedFromPayload() bool {
+	cache.stateMutex.RLock()
+	defer cache.stateMutex.RUnlock()
+	return cache.CallbackAllowedFromPayload
+}
+
 func MarkCallbackInfoInactive(callbackID int) {
 	cachedUUIDInfoMapMutex.Lock()
 	defer cachedUUIDInfoMapMutex.Unlock()
-	for k, _ := range cachedUUIDInfoMap {
-		if cachedUUIDInfoMap[k].CallbackID == callbackID {
-			cachedUUIDInfoMap[k].Active = false
-			cachedUUIDInfoMap[k].EdgeId = 0
+	for _, uuidInfo := range cachedUUIDInfoMap {
+		if uuidInfo.CallbackID == callbackID {
+			uuidInfo.stateMutex.Lock()
+			uuidInfo.Active = false
+			uuidInfo.EdgeId = 0
+			uuidInfo.stateMutex.Unlock()
 		}
 	}
 }
 func UpdateCallbackInfoTriggerOnCheckin(callbackID int, triggerOnCheckinAfterTime int) {
 	cachedUUIDInfoMapMutex.Lock()
 	defer cachedUUIDInfoMapMutex.Unlock()
-	for k, _ := range cachedUUIDInfoMap {
-		if cachedUUIDInfoMap[k].CallbackID == callbackID {
-			cachedUUIDInfoMap[k].TriggerOnCheckinAfterTime = triggerOnCheckinAfterTime
+	for _, uuidInfo := range cachedUUIDInfoMap {
+		if uuidInfo.CallbackID == callbackID {
+			uuidInfo.stateMutex.Lock()
+			uuidInfo.TriggerOnCheckinAfterTime = triggerOnCheckinAfterTime
+			uuidInfo.stateMutex.Unlock()
 			return
 		}
 	}
@@ -229,9 +280,11 @@ func UpdateCallbackInfoTriggerOnCheckin(callbackID int, triggerOnCheckinAfterTim
 func UpdatePayloadInfoCallbackAllowed(payloadID int, callbackAllowed bool) {
 	cachedUUIDInfoMapMutex.Lock()
 	defer cachedUUIDInfoMapMutex.Unlock()
-	for k, _ := range cachedUUIDInfoMap {
-		if cachedUUIDInfoMap[k].PayloadID == payloadID && cachedUUIDInfoMap[k].UUIDType == UUIDTYPEPAYLOAD {
-			cachedUUIDInfoMap[k].CallbackAllowedFromPayload = callbackAllowed
+	for _, uuidInfo := range cachedUUIDInfoMap {
+		if uuidInfo.PayloadID == payloadID && uuidInfo.UUIDType == UUIDTYPEPAYLOAD {
+			uuidInfo.stateMutex.Lock()
+			uuidInfo.CallbackAllowedFromPayload = callbackAllowed
+			uuidInfo.stateMutex.Unlock()
 			return
 		}
 	}
@@ -348,23 +401,6 @@ func processAgentMessageContent(agentMessageInput *AgentMessageRawInput, uuidInf
 			if err != nil {
 				go SendAllOperationsMessage(err.Error(), uuidInfo.OperationID, "agent_message_bad_get_tasking", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 			}
-		}
-	case "upload":
-		{
-			go SendAllOperationsMessage(fmt.Sprintf("Agent %s is using deprecated method of file transfer with the 'upload' action.", uuidInfo.PayloadTypeName),
-				uuidInfo.OperationID, "debug", database.MESSAGE_LEVEL_AGENT_MESSGAGE, false)
-			logging.LogError(nil, "deprecated form of upload detected, please update agent code to use new method")
-			response, err = handleAgentMessagePostResponse(&map[string]interface{}{
-				"action": "post_response",
-				"responses": []map[string]interface{}{
-					{
-						"task_id": decryptedMessage["task_id"],
-						"upload":  decryptedMessage,
-					},
-				},
-			}, uuidInfo)
-			uploadResponse := response["responses"].([]map[string]interface{})
-			response = uploadResponse[0]
 		}
 	case "post_response":
 		{
@@ -533,20 +569,10 @@ func processAgentMessageContent(agentMessageInput *AgentMessageRawInput, uuidInf
 		response["delegates"] = delegateResponses
 	}
 	// get first order proxy data not for delegate callbacks
-	if proxyData, err := proxyPorts.GetDataForCallbackIdPortType(uuidInfo.CallbackID, CALLBACK_PORT_TYPE_SOCKS); err != nil {
+	if proxyData, err := proxyPorts.GetDataForCallbackIdAllTypes(uuidInfo.CallbackID); err != nil {
 		logging.LogError(err, "Failed to get proxy data")
-	} else if proxyData != nil {
-		response[CALLBACK_PORT_TYPE_SOCKS] = proxyData
-	}
-	if proxyData, err := proxyPorts.GetDataForCallbackIdPortType(uuidInfo.CallbackID, CALLBACK_PORT_TYPE_RPORTFWD); err != nil {
-		logging.LogError(err, "Failed to get proxy data")
-	} else if proxyData != nil {
-		response[CALLBACK_PORT_TYPE_RPORTFWD] = proxyData
-	}
-	if proxyData, err := proxyPorts.GetDataForCallbackIdPortType(uuidInfo.CallbackID, CALLBACK_PORT_TYPE_INTERACTIVE); err != nil {
-		logging.LogError(err, "Failed to get interactive data")
-	} else if proxyData != nil {
-		response[CALLBACK_PORT_TYPE_INTERACTIVE] = proxyData
+	} else {
+		proxyData.AddToResponse(response)
 	}
 	response["action"] = decryptedMessage["action"]
 	// reflect back any non-standard key at the top level
@@ -679,7 +705,7 @@ func recursiveProcessAgentMessage(agentMessageInput *AgentMessageRawInput) recur
 		instanceResponse.Err = errors.New(errorMessage)
 		return instanceResponse
 	}
-	if !uuidInfo.CallbackAllowedFromPayload {
+	if !uuidInfo.callbackAllowedFromPayload() {
 		payload := databaseStructs.Payload{}
 		err = database.DB.Get(&payload, `SELECT
 			payload.description, 
@@ -735,26 +761,9 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 	//logging.LogDebug("Getting encryption data", "cachemap", cachedUUIDInfoMap)
 	newCache := cachedUUIDInfo{}
 
-	cachedUUIDInfoMapMutex.Lock()
-	defer cachedUUIDInfoMapMutex.Unlock()
-	if _, ok := cachedUUIDInfoMap[messageUUID+c2profile]; ok {
-		// we found an instance of the cache info with c2 profile encryption data
-		if cachedUUIDInfoMap[messageUUID+c2profile].UUIDType == UUIDTYPECALLBACK {
-			if updateCheckinTime {
-				UpdateCallbackEdgesAndCheckinTime(cachedUUIDInfoMap[messageUUID+c2profile])
-			}
-
-		}
-		return cachedUUIDInfoMap[messageUUID+c2profile], nil
-	} else if _, ok = cachedUUIDInfoMap[messageUUID]; ok {
-		// we found an instance of the cache info with payload encryption data
-		if cachedUUIDInfoMap[messageUUID].UUIDType == UUIDTYPECALLBACK {
-			if updateCheckinTime {
-				UpdateCallbackEdgesAndCheckinTime(cachedUUIDInfoMap[messageUUID])
-			}
-
-		}
-		return cachedUUIDInfoMap[messageUUID], nil
+	if uuidInfo := getCachedUUIDInfo(c2profile, messageUUID); uuidInfo != nil {
+		updateCachedCallbackCheckin(uuidInfo, updateCheckinTime)
+		return uuidInfo, nil
 	}
 
 	// get the associated c2 profile
@@ -944,9 +953,13 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 			return &newCache, nil
 		}
 	}
-	cachedUUIDInfoMap[messageUUID+c2profile] = &newCache
-	logging.LogDebug("New cache value for agent connection", "newcache", newCache)
-	return &newCache, nil
+	uuidInfo, alreadyCached := cacheUUIDInfo(c2profile, messageUUID, &newCache)
+	if alreadyCached {
+		updateCachedCallbackCheckin(uuidInfo, updateCheckinTime)
+	} else {
+		logging.LogDebug("New cache value for agent connection", "newcache", uuidInfo)
+	}
+	return uuidInfo, nil
 }
 
 func DecryptMessage(uuidInfo *cachedUUIDInfo, agentMessage *[]byte) (map[string]interface{}, error) {
@@ -1272,6 +1285,9 @@ func updateCheckinTimeEverySecond() {
 	}
 }
 func UpdateCallbackEdgesAndCheckinTime(uuidInfo *cachedUUIDInfo) {
+	uuidInfo.stateMutex.Lock()
+	defer uuidInfo.stateMutex.Unlock()
+
 	callback := databaseStructs.Callback{
 		AgentCallbackID: uuidInfo.UUID,
 		ID:              uuidInfo.CallbackID,
@@ -1280,7 +1296,12 @@ func UpdateCallbackEdgesAndCheckinTime(uuidInfo *cachedUUIDInfo) {
 	}
 	// only bother updating the last checkin time if it's been more than one second
 	if callback.LastCheckin.Sub(uuidInfo.LastCheckinTime).Seconds() > 1 {
-		updateCheckinTimeChannel <- uuidInfo
+		previousCheckin := uuidInfo.LastCheckinTime
+		select {
+		case updateCheckinTimeChannel <- uuidInfo:
+		default:
+			logging.LogDebug("Skipping callback checkin update enqueue because channel is full", "callback_id", uuidInfo.CallbackID)
+		}
 		//callbackGraph.AddByAgentIds(callback.AgentCallbackID, callback.AgentCallbackID, uuidInfo.C2ProfileName)
 		if uuidInfo.EdgeId == 0 {
 			err := database.DB.Get(&uuidInfo.EdgeId, `SELECT id FROM callbackgraphedge
@@ -1288,9 +1309,10 @@ func UpdateCallbackEdgesAndCheckinTime(uuidInfo *cachedUUIDInfo) {
 				uuidInfo.CallbackID, uuidInfo.CallbackID, uuidInfo.C2ProfileID, uuidInfo.OperationID)
 			if errors.Is(err, sql.ErrNoRows) {
 				if !uuidInfo.IsP2P {
-					_, err = database.DB.Exec(`INSERT INTO callbackgraphedge
+					err = database.DB.Get(&uuidInfo.EdgeId, `INSERT INTO callbackgraphedge
 						(source_id, destination_id, c2_profile_id, operation_id)
-						VALUES ($1, $1, $2, $3)`,
+						VALUES ($1, $1, $2, $3)
+						RETURNING id`,
 						uuidInfo.CallbackID, uuidInfo.C2ProfileID, uuidInfo.OperationID)
 					if err != nil {
 						logging.LogError(err, "Failed to add callback graph edge id for callback checking in",
@@ -1322,7 +1344,7 @@ func UpdateCallbackEdgesAndCheckinTime(uuidInfo *cachedUUIDInfo) {
 			}
 		}
 		if uuidInfo.TriggerOnCheckinAfterTime > 0 {
-			checkinDifference := int(callback.LastCheckin.Sub(uuidInfo.LastCheckinTime).Minutes())
+			checkinDifference := int(callback.LastCheckin.Sub(previousCheckin).Minutes())
 			if checkinDifference >= uuidInfo.TriggerOnCheckinAfterTime {
 				// we want to trigger a workflow that the callback is checking in again after sleeping for > some time
 				go func(triggerData databaseStructs.Callback, oldCheckin time.Time, difference int) {
@@ -1335,7 +1357,7 @@ func UpdateCallbackEdgesAndCheckinTime(uuidInfo *cachedUUIDInfo) {
 							"checkin_difference": difference,
 						},
 					}
-				}(callback, uuidInfo.LastCheckinTime, checkinDifference)
+				}(callback, previousCheckin, checkinDifference)
 			}
 		}
 		uuidInfo.LastCheckinTime = callback.LastCheckin

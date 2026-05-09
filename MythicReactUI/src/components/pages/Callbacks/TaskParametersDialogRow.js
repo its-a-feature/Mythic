@@ -1,19 +1,12 @@
 import React, {useEffect} from 'react';
-import Table from '@mui/material/Table';
-import TableContainer from '@mui/material/TableContainer';
-import TableBody from '@mui/material/TableBody';
-import TableRow from '@mui/material/TableRow';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
-import InputLabel from '@mui/material/InputLabel';
 import Switch from '@mui/material/Switch';
 import Input from '@mui/material/Input';
-import {Button, IconButton, MenuItem} from '@mui/material';
+import {Box, Button, Chip, IconButton, MenuItem} from '@mui/material';
 import MythicTextField from '../../MythicComponents/MythicTextField';
-import TableHead from '@mui/material/TableHead';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import DeleteIcon from '@mui/icons-material/Delete';
-import {useTheme} from '@mui/material/styles';
 import CancelIcon from '@mui/icons-material/Cancel';
 import {Typography} from '@mui/material';
 import {useMutation, gql, useLazyQuery } from '@apollo/client';
@@ -23,7 +16,6 @@ import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import { Backdrop } from '@mui/material';
 import {CircularProgress} from '@mui/material';
-import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {MythicFileContext} from "../../MythicComponents/MythicFileContext";
 import RefreshIcon from '@mui/icons-material/Refresh';
 import {updateCredentialDeleted} from "../Search/CredentialTable";
@@ -96,9 +88,40 @@ const arraysAreDifferent = (a, b) => {
     }
     return false;
 }
+const ParameterFieldRow = ({label, actions, children, className=""}) => (
+    <Box className={`mythic-task-parameter-field-row ${className}`.trim()}>
+        <Box className="mythic-task-parameter-field-label">
+            {label}
+        </Box>
+        <Box className="mythic-task-parameter-field-control">
+            {children}
+        </Box>
+        {actions &&
+            <Box className="mythic-task-parameter-field-actions">
+                {actions}
+            </Box>
+        }
+    </Box>
+);
+const ParameterLoadingOverlay = ({open}) => (
+    <Backdrop open={open} className="mythic-task-parameter-control-backdrop" invisible={false}>
+        <CircularProgress color="inherit" size={24} />
+    </Backdrop>
+);
+const ParameterRefreshButton = ({onClick}) => (
+    <MythicStyledTooltip title={"Refresh dynamic options"} tooltipStyle={{display: "inline-flex"}}>
+        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info mythic-task-parameter-refresh" size="small" onClick={onClick}>
+            <RefreshIcon fontSize="small" />
+        </IconButton>
+    </MythicStyledTooltip>
+);
+const ParameterEmptyInline = ({children}) => (
+    <Box className="mythic-task-parameter-empty-inline">
+        {children}
+    </Box>
+);
 export function TaskParametersDialogRow(props){
     const [value, setValue] = React.useState('');
-    const theme = useTheme();
     const currentParameterGroup = React.useRef(props.parameterGroupName);
     const [ChoiceOptions, setChoiceOptions] = React.useState([]);
     const [boolValue, setBoolValue] = React.useState(false);
@@ -711,18 +734,66 @@ export function TaskParametersDialogRow(props){
         createCredential({variables: {type, account, realm, comment, credential}})
     }
     const onDeleteCredential = () => {
+        if(ChoiceOptions[value]?.id === undefined){
+            snackActions.warning("No credential selected");
+            return;
+        }
         deleteCredential({variables: {deleted: true, credential_id: ChoiceOptions[value].id}})
+    }
+    const getChoiceOptionValue = (opt) => usingDynamicParamComplexChoices.current ? opt.value : opt;
+    const getChoiceOptionLabel = (opt) => usingDynamicParamComplexChoices.current ? opt.display_value : opt;
+    const getChoiceSelectionLabel = (selection) => {
+        if(selection === undefined || selection === null || selection === ""){
+            return "Select option";
+        }
+        if(usingDynamicParamComplexChoices.current){
+            const matchedOption = ChoiceOptions.find((opt) => opt.value === selection);
+            return matchedOption ? (matchedOption.display_value || matchedOption.value) : selection;
+        }
+        return selection;
+    }
+    const renderChoiceSelectValue = (selected) => {
+        const selectedValues = Array.isArray(selected) ? selected : [selected];
+        const filteredValues = selectedValues.filter((v) => v !== undefined && v !== null && v !== "");
+        if(filteredValues.length === 0){
+            return <span className="mythic-task-parameter-select-placeholder">Select option</span>
+        }
+        if(Array.isArray(selected)){
+            return (
+                <Box className="mythic-task-parameter-selected-values">
+                    {filteredValues.map((v, i) => (
+                        <Chip key={props.name + "selected" + i} className="mythic-task-parameter-selected-chip" size="small" label={String(getChoiceSelectionLabel(v))} />
+                    ))}
+                </Box>
+            )
+        }
+        return <span className="mythic-task-parameter-select-value">{String(getChoiceSelectionLabel(selected))}</span>
+    }
+    const getCredentialLabel = (credential) => {
+        if(!credential){
+            return "Select credential";
+        }
+        const credentialText = credential.credential_text || "";
+        const credentialRealm = credential.realm || "";
+        return (credential.account || "") + (credentialRealm === "" ? "" : "@" + credentialRealm) + " - " +
+            (credentialText.length > 40 ? credentialText.substring(0, 40) + "..." : credentialText);
+    }
+    const renderCredentialSelectValue = (selected) => {
+        const credential = ChoiceOptions[selected];
+        return <span className="mythic-task-parameter-select-value">{getCredentialLabel(credential)}</span>
     }
     const getParameterObject = () => {
         switch(props.type){
             case "ChooseOneCustom":
                 return (
-                    <div style={{position: "relative"}}>
-                        <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
-                            <CircularProgress color="inherit" />
-                        </Backdrop>
-                        <div style={{width: "100%", display: "flex", alignItems: "center"}}>
-                            <FormControl style={{width: "50%"}}>
+                    <Box className="mythic-task-parameter-control-shell">
+                        <ParameterLoadingOverlay open={backdropOpen} />
+                        <Box className="mythic-task-choice-custom">
+                            <Box className="mythic-task-choice-custom-select">
+                                {ChoiceOptions.length === 0 ? (
+                                    <ParameterEmptyInline>No options available</ParameterEmptyInline>
+                                ) : (
+                                <FormControl className="mythic-task-parameter-select-control">
                                 <Select
                                     autoFocus={props.autoFocus}
                                     multiple={false}
@@ -730,180 +801,156 @@ export function TaskParametersDialogRow(props){
                                     disabled={chooseOneCustomValue !== ""}
                                     onChange={onChangeValue}
                                     input={<Input />}
+                                    displayEmpty
+                                    renderValue={renderChoiceSelectValue}
                                 >
                                     {
                                         ChoiceOptions.map((opt, i) => (
-                                            <MenuItem key={props.name + i} value={opt}>
-                                                <Typography style={{wordBreak: "break-all", whiteSpace: "pre-wrap"}}>
-                                                {opt}
+                                            <MenuItem key={props.name + i} value={getChoiceOptionValue(opt)}>
+                                                <Typography className="mythic-task-parameter-menu-text">
+                                                {getChoiceOptionLabel(opt)}
                                                 </Typography>
                                             </MenuItem>
                                         ))
                                     }
                                 </Select>
-                            </FormControl>
-                            OR
-                            <MythicTextField required={props.required} placeholder={"Custom Value"} value={chooseOneCustomValue} multiline={true} maxRows={5}
-                                             validate={testParameterValues} errorText={"Must match: " + props.verifier_regex}
-                                             onChange={onChangeTextChooseOneCustom} display="inline-block" onEnter={props.onSubmit} autoFocus={props.autoFocus}
-                                             name={props.name} marginTop={"5px"}
-                            />
+                                </FormControl>
+                                )}
+                            </Box>
+                            <Box className="mythic-task-choice-custom-divider">
+                                <span>or</span>
+                            </Box>
+                            <Box className="mythic-task-choice-custom-input">
+                                <MythicTextField requiredValue={props.required} placeholder={"Custom value"} value={chooseOneCustomValue} multiline={true} maxRows={5}
+                                                 validate={testParameterValues} errorText={"Must match: " + props.verifier_regex}
+                                                 onChange={onChangeTextChooseOneCustom} display="inline-block" onEnter={props.onSubmit} autoFocus={props.autoFocus}
+                                                 name={props.name} showLabel={false} marginTop={"0px"} marginBottom={"0px"}
+                                />
+                            </Box>
                             {props.dynamic_query_function !== "" &&
-                                <MythicStyledTooltip title={"ReIssue Dynamic Query Function"} tooltipStyle={{display: "inline-block"}}>
-                                    <IconButton onClick={reIssueDynamicQueryFunction}>
-                                        <RefreshIcon />
-                                    </IconButton>
-                                </MythicStyledTooltip>
+                                <ParameterRefreshButton onClick={reIssueDynamicQueryFunction} />
                             }
-                        </div>
-
-                    </div>
+                        </Box>
+                    </Box>
                 )
             case "ChooseOne":
             case "ChooseMultiple":
                 return (
-                    <div style={{position: "relative", display: "flex", alignItems: "center", overflow: "hidden"}}>
-                        <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
-                            <CircularProgress color="inherit" />
-                        </Backdrop>
-                        <FormControl style={{width: "100%"}}>
-                            {ChoiceOptions.length === 0 &&
-                                <InputLabel>{"No Options Available"}</InputLabel>
+                    <Box className="mythic-task-parameter-control-shell">
+                        <ParameterLoadingOverlay open={backdropOpen} />
+                        <Box className="mythic-task-parameter-select-row">
+                            {ChoiceOptions.length === 0 ? (
+                                <ParameterEmptyInline>No options available</ParameterEmptyInline>
+                            ) : (
+                                <FormControl className="mythic-task-parameter-select-control">
+                                    <Select
+                                    autoFocus={props.autoFocus}
+                                    multiple={props.type === "ChooseMultiple"}
+                                    value={props.type === "ChooseMultiple" ? chooseMultipleValue : value}
+                                    onChange={props.type === "ChooseMultiple" ? onChangeChooseMultiple : onChangeValue}
+                                    input={<Input />}
+                                    displayEmpty
+                                    renderValue={renderChoiceSelectValue}
+                                    >
+                                    {
+                                        ChoiceOptions.map((opt, i) => (
+                                            <MenuItem key={props.name + i} value={getChoiceOptionValue(opt)}>
+                                                <Typography className="mythic-task-parameter-menu-text">
+                                                {getChoiceOptionLabel(opt)}
+                                                </Typography>
+                                            </MenuItem>
+                                        ))
+                                    }
+                                    </Select>
+                                </FormControl>
+                            )}
+                            {props.dynamic_query_function !== "" &&
+                                <ParameterRefreshButton onClick={reIssueDynamicQueryFunction} />
                             }
-                            <Select
-                            disabled={ChoiceOptions.length === 0}
-                            autoFocus={props.autoFocus}
-                            multiple={props.type === "ChooseMultiple"}
-                            value={props.type === "ChooseMultiple" ? chooseMultipleValue : value}
-                            onChange={props.type === "ChooseMultiple" ? onChangeChooseMultiple : onChangeValue}
-                            input={<Input />}
-                            >
-                            {
-                                ChoiceOptions.map((opt, i) => (
-                                    <MenuItem key={props.name + i} value={usingDynamicParamComplexChoices.current ? opt.value : opt}>
-                                        <Typography style={{wordBreak: "break-all", whiteSpace: "pre-wrap", display: "inline-block"}}>
-                                        {usingDynamicParamComplexChoices.current ? opt.display_value : opt}
-                                        </Typography>
-                                    </MenuItem>
-                                ))
-                            }
-                            </Select>
-                        </FormControl>
-                        {props.dynamic_query_function !== "" &&
-                            <MythicStyledTooltip title={"ReIssue Dynamic Query Function"} tooltipStyle={{display: "inline-block"}}>
-                                <IconButton onClick={reIssueDynamicQueryFunction}>
-                                    <RefreshIcon />
-                                </IconButton>
-                            </MythicStyledTooltip>
-                        }
-                    </div>
+                        </Box>
+                    </Box>
                     
                 )
             case "Array":
                 return (
-                    <TableContainer className="mythicElement">
-                        <Table size="small" style={{tableLayout: "fixed", maxWidth: "100%", "overflow": "auto"}}>
-                            <TableBody>
-                                <TableRow>
-                                    <MythicStyledTableCell>Treat new lines as new entries</MythicStyledTableCell>
-                                    <MythicStyledTableCell>
-                                        <Switch checked={treatNewlinesAsNewEntries} onChange={toggleTreatNewlinesAsNewEntries} color={"info"} />
-                                    </MythicStyledTableCell>
-                                </TableRow>
-                            </TableBody>
-                        </Table>
-                        <Table size="small" style={{tableLayout: "fixed", maxWidth: "100%", "overflow": "auto"}}>
-                            <TableBody>
-                                {arrayValue.map( (a, i) => (
-                                    <TableRow key={'array' + props.name + i} >
-                                        <MythicStyledTableCell style={{width: "2rem"}}>
-                                            <MythicStyledTooltip title={"Remove array element"}>
-                                                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={(e) => {removeArrayValue(i)}}>
-                                                    <DeleteIcon fontSize="small" />
-                                                </IconButton>
-                                            </MythicStyledTooltip>
-                                        </MythicStyledTableCell>
-                                        <MythicStyledTableCell>
-                                            <MythicTextField required={props.required} fullWidth={true} placeholder={""} value={a} multiline={true} autoFocus={props.autoFocus || i > 0}
-                                                onChange={(n,v,e) => onChangeArrayText(v, e, i)} display="inline-block" maxRows={5}
-                                                validate={testParameterValues} errorText={"Must match: " + props.verifier_regex}
-                                                             marginBottom={"0px"}
-                                            />
-                                        </MythicStyledTableCell>
-                                    </TableRow>
-                                ))}
-                                <TableRow >
-                                    <MythicStyledTableCell style={{width: "5rem", paddingLeft:"0"}}>
-                                        <MythicStyledTooltip title={"Add new array element"} >
-                                            <IconButton onClick={addNewArrayValue} size="large"> <AddCircleIcon color="success"  /> </IconButton>
-                                        </MythicStyledTooltip>
-                                    </MythicStyledTableCell>
-                                    <MythicStyledTableCell></MythicStyledTableCell>
-                                </TableRow>
-                            </TableBody>
-                        </Table>
-                    </TableContainer>
+                    <Box className="mythic-task-array-editor">
+                        <Box className="mythic-task-parameter-switch-row">
+                            <Typography component="div" className="mythic-task-parameter-field-label">
+                                Treat new lines as new entries
+                            </Typography>
+                            <Switch checked={treatNewlinesAsNewEntries} onChange={toggleTreatNewlinesAsNewEntries} color={"info"} />
+                        </Box>
+                        <Box className="mythic-task-array-list">
+                            {arrayValue.map( (a, i) => (
+                                <Box className="mythic-task-array-entry" key={'array' + props.name + i}>
+                                    <MythicStyledTooltip title={"Remove array element"}>
+                                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger mythic-task-array-delete" size="small" onClick={(e) => {removeArrayValue(i)}}>
+                                            <DeleteIcon fontSize="small" />
+                                        </IconButton>
+                                    </MythicStyledTooltip>
+                                    <Box className="mythic-task-array-entry-control">
+                                        <MythicTextField requiredValue={props.required} fullWidth={true} placeholder={""} value={a} multiline={true} autoFocus={props.autoFocus || i > 0}
+                                            onChange={(n,v,e) => onChangeArrayText(v, e, i)} display="inline-block" maxRows={5}
+                                            validate={testParameterValues} errorText={"Must match: " + props.verifier_regex}
+                                                         marginBottom={"0px"}
+                                        />
+                                    </Box>
+                                </Box>
+                            ))}
+                            <Button className="mythic-task-parameter-add-button" onClick={addNewArrayValue} size="small" startIcon={<AddCircleIcon fontSize="small" />} variant="outlined">
+                                Add entry
+                            </Button>
+                        </Box>
+                    </Box>
                 )
             case "TypedArray":
                 return (
-                    <TableContainer className="mythicElement">
-                        <Table size="small" style={{tableLayout: "fixed", maxWidth: "100%", "overflow": "auto"}}>
-                            <TableBody>
-                                <TableRow>
-                                    <MythicStyledTableCell>Treat new lines as new entries</MythicStyledTableCell>
-                                    <MythicStyledTableCell>
-                                        <Switch checked={treatNewlinesAsNewEntries} onChange={toggleTreatNewlinesAsNewEntries} color={"info"} />
-                                    </MythicStyledTableCell>
-                                </TableRow>
-                            </TableBody>
-                        </Table>
-                        <Table size="small" style={{tableLayout: "fixed", maxWidth: "100%", "overflow": "auto"}}>
-                            <TableBody>
-                                {typedArrayValue.map( (a, i) => (
-                                    <TableRow key={'typedarray' + props.name + i} >
-                                        <MythicStyledTableCell style={{width: "2rem", paddingLeft:"0"}}>
-                                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={(e) => {removeTypedArrayValue(i)}}><DeleteIcon fontSize="small" /> </IconButton>
-                                        </MythicStyledTableCell>
-                                        <MythicStyledTableCell>
-                                            <div style={{display: "inline-flex", alignItems: "center", width: "100%"}}>
-                                                <FormControl style={{width: "30%"}}>
-                                                    <Select
-                                                        native
-                                                        autoFocus={props.autoFocus}
-                                                        value={a[0]}
-                                                        onChange={(e) => onChangeTypedArrayChoice(e, i)}
-                                                        input={<Input />}
-                                                    >
-                                                        {
-                                                            ChoiceOptions.map((opt, i) => (
-                                                                <option key={props.name + i} value={opt}>{opt}</option>
-                                                            ))
-                                                        }
-                                                    </Select>
-                                                </FormControl>
-                                                <MythicTextField required={props.required} fullWidth={true} placeholder={""} value={a[1]} multiline={true} autoFocus={props.autoFocus || i > 0}
-                                                                 onChange={(n,v,e) => onChangeTypedArrayText(v, e, i)} display="inline-block" maxRows={5}
-                                                                 validate={testParameterValues} errorText={"Must match: " + props.verifier_regex}
-                                                                 marginBottom={"0px"}
-                                                />
-                                            </div>
-
-                                        </MythicStyledTableCell>
-                                    </TableRow>
-                                ))}
-                                <TableRow >
-                                    <MythicStyledTableCell style={{width: "5rem", paddingLeft:"0"}}>
-                                        <IconButton onClick={addNewTypedArrayValue} size="large"> <AddCircleIcon color="success"  /> </IconButton>
-                                    </MythicStyledTableCell>
-                                    <MythicStyledTableCell></MythicStyledTableCell>
-                                </TableRow>
-                            </TableBody>
-                        </Table>
-                    </TableContainer>
+                    <Box className="mythic-task-array-editor">
+                        <Box className="mythic-task-parameter-switch-row">
+                            <Typography component="div" className="mythic-task-parameter-field-label">
+                                Treat new lines as new entries
+                            </Typography>
+                            <Switch checked={treatNewlinesAsNewEntries} onChange={toggleTreatNewlinesAsNewEntries} color={"info"} />
+                        </Box>
+                        <Box className="mythic-task-array-list">
+                            {typedArrayValue.map( (a, i) => (
+                                <Box className="mythic-task-typed-array-entry" key={'typedarray' + props.name + i}>
+                                    <MythicStyledTooltip title={"Remove typed array element"}>
+                                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger mythic-task-array-delete" size="small" onClick={(e) => {removeTypedArrayValue(i)}}><DeleteIcon fontSize="small" /> </IconButton>
+                                    </MythicStyledTooltip>
+                                    <FormControl className="mythic-task-typed-array-choice">
+                                        <Select
+                                            native
+                                            autoFocus={props.autoFocus}
+                                            value={a[0]}
+                                            onChange={(e) => onChangeTypedArrayChoice(e, i)}
+                                            input={<Input />}
+                                        >
+                                            {
+                                                ChoiceOptions.map((opt, i) => (
+                                                    <option key={props.name + i} value={opt}>{opt}</option>
+                                                ))
+                                            }
+                                        </Select>
+                                    </FormControl>
+                                    <Box className="mythic-task-array-entry-control">
+                                        <MythicTextField requiredValue={props.required} fullWidth={true} placeholder={""} value={a[1]} multiline={true} autoFocus={props.autoFocus || i > 0}
+                                                         onChange={(n,v,e) => onChangeTypedArrayText(v, e, i)} display="inline-block" maxRows={5}
+                                                         validate={testParameterValues} errorText={"Must match: " + props.verifier_regex}
+                                                         marginBottom={"0px"}
+                                        />
+                                    </Box>
+                                </Box>
+                            ))}
+                            <Button className="mythic-task-parameter-add-button" onClick={addNewTypedArrayValue} size="small" startIcon={<AddCircleIcon fontSize="small" />} variant="outlined">
+                                Add entry
+                            </Button>
+                        </Box>
+                    </Box>
                 )
             case "String":
                 return (
-                    <MythicTextField required={props.required} placeholder={props.default_value} value={value} multiline={true} maxRows={5}
+                    <MythicTextField requiredValue={props.required} placeholder={props.default_value} value={value} multiline={true} maxRows={5}
                         onChange={onChangeText} display="inline-block" onEnter={props.onSubmit} autoFocus={props.autoFocus}
                         validate={testParameterValues} errorText={"Must match: " + props.verifier_regex}
                                      marginBottom={"0px"}
@@ -911,7 +958,7 @@ export function TaskParametersDialogRow(props){
                 )
             case "Number":
                 return (
-                    <MythicTextField required={props.required} placeholder={props.default_value} value={value} multiline={false} type="number"
+                    <MythicTextField requiredValue={props.required} placeholder={props.default_value} value={value} multiline={false} type="number"
                         onChange={onChangeNumber} display="inline-block" onEnter={props.onSubmit} autoFocus={props.autoFocus}
                         validate={testParameterValues} errorText={"Must match: " + props.verifier_regex}
                                      marginBottom={"0px"}
@@ -919,7 +966,10 @@ export function TaskParametersDialogRow(props){
                 )
             case "Boolean":
                 return (
-                    <Switch checked={boolValue} onChange={onSwitchChange} color={"info"} />
+                    <Box className="mythic-task-parameter-boolean-row">
+                        <Switch checked={boolValue} onChange={onSwitchChange} color={"info"} />
+                        <Chip size="small" className={`mythic-task-parameter-boolean-chip${boolValue ? " mythic-task-parameter-boolean-chip-enabled" : ""}`} label={boolValue ? "True" : "False"} />
+                    </Box>
                 )
             case "File":
                 return (
@@ -936,246 +986,270 @@ export function TaskParametersDialogRow(props){
                 )
             case "LinkInfo":
                 return (
-                    <FormControl style={{width: "100%"}}>
-                        <Select
-                          value={value}
-                          autoFocus={props.autoFocus}
-                          onChange={(evt) => {onChangeLinkInfo(evt.target.value)}}
-                          input={<Input />}
-                        >
-                        {
-                            props.choices.map((opt, i) => (
-                                <MenuItem key={props.name + i} value={i}>
-                                    <Typography style={{wordBreak: "break-all", whiteSpace: "pre-wrap"}}>
-                                    {opt.display}
-                                    </Typography>
-                                </MenuItem>
-                            ))
-                        }
-                        </Select>
-                    </FormControl>
+                    props.choices.length === 0 ? (
+                        <ParameterEmptyInline>No link options available</ParameterEmptyInline>
+                    ) : (
+                        <FormControl className="mythic-task-parameter-select-control">
+                            <Select
+                              value={value}
+                              autoFocus={props.autoFocus}
+                              onChange={(evt) => {onChangeLinkInfo(evt.target.value)}}
+                              input={<Input />}
+                              renderValue={(selected) => (
+                                  <span className="mythic-task-parameter-select-value">{props.choices[selected]?.display || "Select link"}</span>
+                              )}
+                            >
+                            {
+                                props.choices.map((opt, i) => (
+                                    <MenuItem key={props.name + i} value={i}>
+                                        <Typography className="mythic-task-parameter-menu-text">
+                                        {opt.display}
+                                        </Typography>
+                                    </MenuItem>
+                                ))
+                            }
+                            </Select>
+                        </FormControl>
+                    )
                 )
             case "PayloadList":
                 return (
-                    <FormControl style={{width: "100%"}}>
-                        <Select
-                          value={value}
-                          autoFocus={props.autoFocus}
-                          onChange={onChangeValue}
-                          input={<Input  />}
-                        >
-                        {
-                            props.choices.map((opt, i) => (
-                                <MenuItem key={props.name + i} value={opt.uuid}>
-                                    <Typography style={{wordBreak: "break-all", whiteSpace: "pre-wrap"}}>
-                                    {opt.display}
-                                    </Typography>
-                                </MenuItem>
-                            ))
-                        }
-                        </Select>
-                    </FormControl>
+                    props.choices.length === 0 ? (
+                        <ParameterEmptyInline>No payloads available</ParameterEmptyInline>
+                    ) : (
+                        <FormControl className="mythic-task-parameter-select-control">
+                            <Select
+                              value={value}
+                              autoFocus={props.autoFocus}
+                              onChange={onChangeValue}
+                              input={<Input  />}
+                              renderValue={(selected) => (
+                                  <span className="mythic-task-parameter-select-value">{props.choices.find((opt) => opt.uuid === selected)?.display || "Select payload"}</span>
+                              )}
+                            >
+                            {
+                                props.choices.map((opt, i) => (
+                                    <MenuItem key={props.name + i} value={opt.uuid}>
+                                        <Typography className="mythic-task-parameter-menu-text">
+                                        {opt.display}
+                                        </Typography>
+                                    </MenuItem>
+                                ))
+                            }
+                            </Select>
+                        </FormControl>
+                    )
                 )
-            case "AgentConnect":
+            case "AgentConnect": {
+                const selectedC2Profile = agentConnectC2ProfileOptions.length > 0 && agentConnectC2Profile !== "" ?
+                    agentConnectC2ProfileOptions[agentConnectC2Profile] : undefined;
                 return (
-                    <>
-                        <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "auto"}}>
-                            <TableBody>
-                                {openAdditionalPayloadOnHostMenu ? (
-                                <React.Fragment>
-                                    <TableRow>
-                                        <MythicStyledTableCell style={{width: "15em"}}>Hostname</MythicStyledTableCell>
-                                        <MythicStyledTableCell>
-                                            <MythicTextField required={true} placeholder={"hostname"} value={agentConnectNewHost} multiline={false} autoFocus={props.autoFocus}
-                                                onChange={onChangeAgentConnectNewHost} display="inline-block"/>
-                                        </MythicStyledTableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <MythicStyledTableCell>Payload on that host</MythicStyledTableCell>
-                                        <MythicStyledTableCell>
-                                            <FormControl style={{width: "100%"}}>
-                                                <Select
-                                                  value={props.payload_choices.length > 0 ? agentConnectNewPayload : ''}
-                                                  onChange={onChangeAgentConnectNewPayload}
-                                                  input={<Input />}
-                                                >
-                                                {props.payload_choices ? (
-                                                    props.payload_choices.map((opt, i) => (
-                                                        <MenuItem key={props.name + "newpayload" + i} value={i}>
-                                                            <Typography style={{wordBreak: "break-all", whiteSpace: "pre-wrap"}}>
-                                                            {opt.display}
-                                                            </Typography>
-                                                        </MenuItem>
-                                                    ))
-                                                ) : ( <MenuItem key={props.name + "nooptionnewpayload"} value="-1">No Payloads</MenuItem> )}
-                                                </Select>
-                                            </FormControl>
-                                        </MythicStyledTableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <MythicStyledTableCell>
-                                            <Button component="span"  style={{color: theme.palette.success.main, padding: 0}} onClick={onAgentConnectAddNewPayloadOnHost}><AddCircleIcon />Confirm</Button>
-                                        </MythicStyledTableCell>
-                                        <MythicStyledTableCell>
-                                            <Button component="span" style={{color: theme.palette.warning.main, padding: 0}} onClick={() =>{
-                                                setOpenAdditionalPayloadOnHostmenu(false);
-                                                props.setSubmenuOpenPreventTasking(false);
-                                                locallySubmenuOpenPreventTaskingRef.current = false;
-                                            }}><CancelIcon />Cancel</Button>
-                                        </MythicStyledTableCell>
-                                    </TableRow>
-                                </React.Fragment>
-                                ) : (<React.Fragment>
-                                    <TableRow>
-                                        <MythicStyledTableCell style={{width: "14em"}}>
-                                            Host 
-                                        </MythicStyledTableCell>
-                                        <MythicStyledTableCell>
-                                            <FormControl style={{width: "100%"}}>
-                                                <Select
-                                                value={agentConnectHostOptions.length > 0 ? agentConnectHost : ''}
-                                                onChange={onChangeAgentConnectHost}
-                                                input={<Input />}
-                                                >
-                                                {
-                                                    agentConnectHostOptions.map((opt, i) => (
-                                                        <MenuItem key={props.name + "connecthost" + i} value={i}>{opt.host}</MenuItem>
-                                                    ))
-                                                }
-                                                </Select>
-                                            </FormControl>
-                                        </MythicStyledTableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <MythicStyledTableCell>Payload / Callback</MythicStyledTableCell>
-                                        <MythicStyledTableCell>
-                                            <FormControl style={{width: "100%"}}>
-                                                <Select
-                                                value={agentConnectPayloadOptions.length > 0 ? agentConnectPayload : ''}
-                                                onChange={onChangeAgentConnectPayload}
-                                                input={<Input />}
-                                                >
-                                                {
-                                                    agentConnectPayloadOptions.map((opt, i) => (
-                                                        <MenuItem key={props.name + "connectagent" + i} value={i}>
-                                                            <Typography style={{wordBreak: "break-all", whiteSpace: "pre-wrap"}}>
-                                                            {opt.display}
-                                                            </Typography>
-                                                        </MenuItem>
-                                                    ))
-                                                }
-                                                </Select>
-                                            </FormControl>
-                                            
-                                        </MythicStyledTableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <MythicStyledTableCell>
-                                            <MythicStyledTooltip title={"Associate new payload with a specific host for linking"}>
-                                                <Button component="span" style={{color: theme.palette.success.main, padding: 0}} onClick={() =>{
-                                                    setOpenAdditionalPayloadOnHostmenu(true);
-                                                    props.setSubmenuOpenPreventTasking(true);
-                                                    locallySubmenuOpenPreventTaskingRef.current = true;
-                                                }}><AddCircleIcon />Register New</Button>
-                                            </MythicStyledTooltip>
-
-                                        </MythicStyledTableCell>
-                                        <MythicStyledTableCell>
-                                            <MythicStyledTooltip title={"Mark associated payload as no longer on host and not available for linking"}>
-                                                <Button className="mythic-table-row-action mythic-table-row-action-hover-danger" component="span" size="small"
-                                                        startIcon={<DeleteIcon fontSize="small" />} onClick={onAgentConnectRemovePayloadOnHost}>Remove Listed</Button>
-                                            </MythicStyledTooltip>
-                                        </MythicStyledTableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <MythicStyledTableCell>C2 Profile</MythicStyledTableCell>
-                                        <MythicStyledTableCell>
-                                            <FormControl style={{width: "100%"}}>
-                                                    <Select
-                                                    value={agentConnectC2ProfileOptions.length > 0 ? agentConnectC2Profile : ''}
-                                                    onChange={onChangeAgentConnectC2Profile}
-                                                    input={<Input />}
-                                                    >
-                                                    {
-                                                        agentConnectC2ProfileOptions.map((opt, i) => (
-                                                            <MenuItem key={props.name + "connectprofile" + i} value={i}>{opt.name}</MenuItem>
-                                                        ))
-                                                    }
-                                                    </Select>
-                                                </FormControl>
-                                        </MythicStyledTableCell>
-                                    </TableRow>
-                                </React.Fragment>) }
-                            </TableBody>
-                        </Table>
-                        {agentConnectC2ProfileOptions.length > 0 && !openAdditionalPayloadOnHostMenu ? (
-                            <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
-                                <TableHead>
-                                        <TableRow>
-                                            <MythicStyledTableCell style={{width: "30%"}}>Parameter</MythicStyledTableCell>
-                                            <MythicStyledTableCell>Value</MythicStyledTableCell>
-                                        </TableRow>
-                                    </TableHead>
-                                <TableBody>
-                                    {agentConnectC2ProfileOptions[agentConnectC2Profile]["parameters"].map( (opt, i) => (
-                                        <TableRow key={"agentconnectparameters" + props.name + i}>
-                                            <MythicStyledTableCell>{opt.name}</MythicStyledTableCell>
-                                            <MythicStyledTableCell><pre>{JSON.stringify(opt.value, null, 2)}</pre></MythicStyledTableCell>
-                                        </TableRow>
+                    <Box className="mythic-task-agent-connect-editor">
+                        {openAdditionalPayloadOnHostMenu ? (
+                            <Box className="mythic-task-agent-connect-panel">
+                                <ParameterFieldRow label="Hostname">
+                                    <MythicTextField requiredValue={true} placeholder={"hostname"} value={agentConnectNewHost} multiline={false} autoFocus={props.autoFocus}
+                                        onChange={onChangeAgentConnectNewHost} display="inline-block" marginBottom={"0px"}/>
+                                </ParameterFieldRow>
+                                <ParameterFieldRow label="Payload on that host">
+                                    {props.payload_choices && props.payload_choices.length > 0 ? (
+                                        <FormControl className="mythic-task-parameter-select-control">
+                                            <Select
+                                              value={agentConnectNewPayload}
+                                              onChange={onChangeAgentConnectNewPayload}
+                                              input={<Input />}
+                                              renderValue={(selected) => (
+                                                  <span className="mythic-task-parameter-select-value">{props.payload_choices[selected]?.display || "Select payload"}</span>
+                                              )}
+                                            >
+                                            {props.payload_choices.map((opt, i) => (
+                                                <MenuItem key={props.name + "newpayload" + i} value={i}>
+                                                    <Typography className="mythic-task-parameter-menu-text">
+                                                    {opt.display}
+                                                    </Typography>
+                                                </MenuItem>
+                                            ))}
+                                            </Select>
+                                        </FormControl>
+                                    ) : (
+                                        <ParameterEmptyInline>No payloads available</ParameterEmptyInline>
+                                    )}
+                                </ParameterFieldRow>
+                                <Box className="mythic-task-agent-connect-actions">
+                                    <Button className="mythic-table-row-action mythic-table-row-action-hover-success" component="span" size="small" disabled={!props.payload_choices || props.payload_choices.length === 0}
+                                            startIcon={<AddCircleIcon fontSize="small" />} onClick={onAgentConnectAddNewPayloadOnHost}>Confirm</Button>
+                                    <Button className="mythic-table-row-action mythic-table-row-action-hover-warning" component="span" size="small"
+                                            startIcon={<CancelIcon fontSize="small" />} onClick={() =>{
+                                        setOpenAdditionalPayloadOnHostmenu(false);
+                                        props.setSubmenuOpenPreventTasking(false);
+                                        locallySubmenuOpenPreventTaskingRef.current = false;
+                                    }}>Cancel</Button>
+                                </Box>
+                            </Box>
+                        ) : (
+                            <Box className="mythic-task-agent-connect-panel">
+                                <ParameterFieldRow label="Host">
+                                    {agentConnectHostOptions.length === 0 ? (
+                                        <ParameterEmptyInline>No hosts available</ParameterEmptyInline>
+                                    ) : (
+                                        <FormControl className="mythic-task-parameter-select-control">
+                                            <Select
+                                            value={agentConnectHost}
+                                            onChange={onChangeAgentConnectHost}
+                                            input={<Input />}
+                                            renderValue={(selected) => (
+                                                <span className="mythic-task-parameter-select-value">{agentConnectHostOptions[selected]?.host || "Select host"}</span>
+                                            )}
+                                            >
+                                            {
+                                                agentConnectHostOptions.map((opt, i) => (
+                                                    <MenuItem key={props.name + "connecthost" + i} value={i}>
+                                                        <Typography className="mythic-task-parameter-menu-text">{opt.host}</Typography>
+                                                    </MenuItem>
+                                                ))
+                                            }
+                                            </Select>
+                                        </FormControl>
+                                    )}
+                                </ParameterFieldRow>
+                                <ParameterFieldRow label="Payload / Callback">
+                                    {agentConnectPayloadOptions.length === 0 ? (
+                                        <ParameterEmptyInline>No payloads available</ParameterEmptyInline>
+                                    ) : (
+                                        <FormControl className="mythic-task-parameter-select-control">
+                                            <Select
+                                            value={agentConnectPayload}
+                                            onChange={onChangeAgentConnectPayload}
+                                            input={<Input />}
+                                            renderValue={(selected) => (
+                                                <span className="mythic-task-parameter-select-value">{agentConnectPayloadOptions[selected]?.display || "Select payload"}</span>
+                                            )}
+                                            >
+                                            {
+                                                agentConnectPayloadOptions.map((opt, i) => (
+                                                    <MenuItem key={props.name + "connectagent" + i} value={i}>
+                                                        <Typography className="mythic-task-parameter-menu-text">
+                                                        {opt.display}
+                                                        </Typography>
+                                                    </MenuItem>
+                                                ))
+                                            }
+                                            </Select>
+                                        </FormControl>
+                                    )}
+                                </ParameterFieldRow>
+                                <Box className="mythic-task-agent-connect-actions">
+                                    <MythicStyledTooltip title={"Associate new payload with a specific host for linking"}>
+                                        <Button className="mythic-table-row-action mythic-table-row-action-hover-success" component="span" size="small"
+                                                startIcon={<AddCircleIcon fontSize="small" />} onClick={() =>{
+                                            setOpenAdditionalPayloadOnHostmenu(true);
+                                            props.setSubmenuOpenPreventTasking(true);
+                                            locallySubmenuOpenPreventTaskingRef.current = true;
+                                        }}>Register New</Button>
+                                    </MythicStyledTooltip>
+                                    <MythicStyledTooltip title={"Mark associated payload as no longer on host and not available for linking"}>
+                                        <Button className="mythic-table-row-action mythic-table-row-action-hover-danger" component="span" size="small"
+                                                startIcon={<DeleteIcon fontSize="small" />} onClick={onAgentConnectRemovePayloadOnHost}>Remove Listed</Button>
+                                    </MythicStyledTooltip>
+                                </Box>
+                                <ParameterFieldRow label="C2 Profile">
+                                    {agentConnectC2ProfileOptions.length === 0 ? (
+                                        <ParameterEmptyInline>No C2 profiles available</ParameterEmptyInline>
+                                    ) : (
+                                        <FormControl className="mythic-task-parameter-select-control">
+                                            <Select
+                                            value={agentConnectC2Profile}
+                                            onChange={onChangeAgentConnectC2Profile}
+                                            input={<Input />}
+                                            renderValue={(selected) => (
+                                                <span className="mythic-task-parameter-select-value">{agentConnectC2ProfileOptions[selected]?.name || "Select C2 profile"}</span>
+                                            )}
+                                            >
+                                            {
+                                                agentConnectC2ProfileOptions.map((opt, i) => (
+                                                    <MenuItem key={props.name + "connectprofile" + i} value={i}>
+                                                        <Typography className="mythic-task-parameter-menu-text">{opt.name}</Typography>
+                                                    </MenuItem>
+                                                ))
+                                            }
+                                            </Select>
+                                        </FormControl>
+                                    )}
+                                </ParameterFieldRow>
+                            </Box>
+                        )}
+                        {selectedC2Profile && !openAdditionalPayloadOnHostMenu ? (
+                            <Box className="mythic-task-agent-connect-parameters">
+                                <Typography component="div" className="mythic-task-agent-connect-parameters-title">
+                                    C2 profile parameters
+                                </Typography>
+                                <Box className="mythic-task-agent-connect-parameter-list">
+                                    {(selectedC2Profile.parameters || []).map( (opt, i) => (
+                                        <Box className="mythic-task-agent-connect-parameter" key={"agentconnectparameters" + props.name + i}>
+                                            <Typography component="div" className="mythic-task-agent-connect-parameter-name">
+                                                {opt.name}
+                                            </Typography>
+                                            <Box component="pre" className="mythic-task-agent-connect-parameter-value">
+                                                {JSON.stringify(opt.value, null, 2)}
+                                            </Box>
+                                        </Box>
                                     ) ) }
-                                </TableBody>
-                            </Table>
+                                </Box>
+                            </Box>
                         ): null}
-                    </>
+                    </Box>
                 )
+            }
             case "CredentialJson":
                 return (
-                    <React.Fragment>
+                    <Box className="mythic-task-credential-editor">
                         {createCredentialDialogOpen &&
                             <MythicDialog fullWidth={true} maxWidth="md" open={createCredentialDialogOpen}
                                           onClose={()=>{setCreateCredentialDialogOpen(false);}}
                                           innerDialog={<CredentialTableNewCredentialDialog onSubmit={onCreateCredential} onClose={()=>{setCreateCredentialDialogOpen(false);}} />}
                             />
                         }
-                        <FormControl style={{width: "100%"}}>
-                            <Select
-                                value={value}
-                                autoFocus={props.autoFocus}
-                                onChange={onChangeCredentialJSONValue}
-                                input={<Input />}
-                            >
-                            {
-                                ChoiceOptions.map((opt, i) => (
-                                    <MenuItem key={props.name + i} value={i}>
-                                        <Typography style={{wordBreak: "break-all", whiteSpace: "pre-wrap"}}>
-                                            {opt.account + (opt.realm === "" ? "" : "@" + opt.realm) + " - " +
-                                                (opt.credential_text.length > 40 ? opt.credential_text.substring(0, 40) + "..." : opt.credential_text)}
-                                            {opt.comment.length > 0 ?
-                                                (
-                                                    <>
-                                                        <b>{"\nComment: "}</b>  {opt.comment}
-                                                    </>
-                                                )
-                                                : ""}
-                                        </Typography>
-
-                                    </MenuItem>
-                                ))
-                            }
-                            </Select>
-                        </FormControl>
-                        <Button color={"success"} component="span" style={{marginRight: "20px"}} onClick={() =>{
-                            setCreateCredentialDialogOpen(true)
-                        }}><AddCircleIcon style={{
-                            color: theme.palette.success.main,
-                            background: "white",
-                            borderRadius: "10px",
-                            marginRight: "5px"
-                        }}/> Credential</Button>
-                        <Button className="mythic-table-row-action mythic-table-row-action-hover-danger" component="span" size="small" startIcon={<DeleteIcon fontSize="small" />} onClick={() =>{
-                            onDeleteCredential();
-                        }}>Credential</Button>
-                    </React.Fragment>
+                        {ChoiceOptions.length === 0 ? (
+                            <ParameterEmptyInline>No credentials available</ParameterEmptyInline>
+                        ) : (
+                            <FormControl className="mythic-task-parameter-select-control">
+                                <Select
+                                    value={value}
+                                    autoFocus={props.autoFocus}
+                                    onChange={onChangeCredentialJSONValue}
+                                    input={<Input />}
+                                    renderValue={renderCredentialSelectValue}
+                                >
+                                {
+                                    ChoiceOptions.map((opt, i) => (
+                                        <MenuItem key={props.name + i} value={i}>
+                                            <Box className="mythic-task-credential-menu-item">
+                                                <Typography component="div" className="mythic-task-parameter-menu-text">
+                                                    {getCredentialLabel(opt)}
+                                                </Typography>
+                                                {(opt.comment || "").length > 0 ?
+                                                    (
+                                                        <Typography component="div" className="mythic-task-credential-menu-comment">
+                                                            {opt.comment}
+                                                        </Typography>
+                                                    )
+                                                    : null}
+                                            </Box>
+                                        </MenuItem>
+                                    ))
+                                }
+                                </Select>
+                            </FormControl>
+                        )}
+                        <Box className="mythic-task-credential-actions">
+                            <Button className="mythic-table-row-action mythic-table-row-action-hover-success" variant="outlined" component="span" size="small" startIcon={<AddCircleIcon fontSize="small" />} onClick={() =>{
+                                setCreateCredentialDialogOpen(true)
+                            }}>New Credential</Button>
+                            <Button className="mythic-table-row-action mythic-table-row-action-hover-danger" variant="outlined" component="span" size="small" disabled={ChoiceOptions.length === 0 || ChoiceOptions[value]?.id === undefined} startIcon={<DeleteIcon fontSize="small" />} onClick={() =>{
+                                onDeleteCredential();
+                            }}>Remove Credential</Button>
+                        </Box>
+                    </Box>
                     
                 )
            default:
@@ -1183,28 +1257,32 @@ export function TaskParametersDialogRow(props){
         }
     }
     return (
-            <TableRow key={"buildparam" + props.id}>
-                <MythicStyledTableCell >
-                    <Typography style={{fontWeight: "600", wordBreak: "break-all"}} >
-                        {props.display_name}
+        <Box className={`mythic-task-parameter-card${props.required ? " mythic-task-parameter-card-required" : ""}`} key={"buildparam" + props.id}>
+            <Box className="mythic-task-parameter-copy">
+                <Box className="mythic-task-parameter-heading">
+                    <Typography component="div" className="mythic-task-parameter-title">
+                        {props.display_name || props.name}
                     </Typography>
-                    <Typography variant={"body2"} style={{
-                        fontSize: theme.typography.pxToRem(14),
-                        wordBreak: "break-all"
-                    }}>
-                        {props.description}
-                    </Typography>
-                    {props.required && <Typography component="div" color={"warning"}>Required</Typography>}
-                 </MythicStyledTableCell>
-                <MythicStyledTableCell>
-                    {getParameterObject()}
-                </MythicStyledTableCell>
-            </TableRow>
-        )
+                    <Box className="mythic-task-parameter-chip-row">
+                        <Chip size="small" className={`mythic-task-parameter-chip${props.required ? " mythic-task-parameter-chip-required" : ""}`} label={props.required ? "Required" : "Optional"} />
+                        <Chip size="small" className="mythic-task-parameter-chip" label={props.type} />
+                    </Box>
+                </Box>
+                <Typography component="div" className={`mythic-task-parameter-description${props.description ? "" : " mythic-task-parameter-description-muted"}`}>
+                    {props.description || "No description provided"}
+                </Typography>
+                <Typography component="div" className="mythic-task-parameter-name">
+                    {props.name}
+                </Typography>
+            </Box>
+            <Box className="mythic-task-parameter-control">
+                {getParameterObject()}
+            </Box>
+        </Box>
+    )
 }
 
 export const DragAndDropFileUpload = ({value, values, multiple, onChange}) => {
-    const theme = useTheme();
     const inputRef = React.useRef(null);
     const [files, setFiles] = React.useState(values ? values : []);
     const [file, setFile] = React.useState(value ? value : {name: ""});
@@ -1253,25 +1331,18 @@ export const DragAndDropFileUpload = ({value, values, multiple, onChange}) => {
     }
     return (
         <div
+            className={`mythic-task-file-dropzone${isDragging ? " mythic-task-file-dropzone-dragging" : ""}`}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragEnter={handleDragEnter}
             onDragLeave={handleDragLeave}
             onClick={onClick}
-            style={{
-                border: isDragging ? `4px dashed ${theme.palette.success.main}` : `4px dashed ${theme.palette.primary.main}`,
-                padding: "20px",
-                textAlign: "center",
-                borderRadius: "10px",
-                cursor: "pointer"
-                //backgroundColor: isDragging ? "#f0f8ff" : "#fff",
-            }}
         >
             <input ref={inputRef} onChange={multiple ? onFileMultChange : onFileChange} type="file" hidden multiple={multiple} />
-            <div style={{display: "flex", flexDirection: "column", alignItems: "center"}}>
+            <div className="mythic-task-file-dropzone-content">
                 {!multiple && file.name !== "" &&
                     <>
-                        <CloudUploadTwoToneIcon fontSize={"large"} color={"success"} />
+                        <CloudUploadTwoToneIcon className="mythic-task-file-dropzone-icon" fontSize={"large"} />
                         <Typography>
                             Selected:
                         </Typography>
@@ -1287,7 +1358,7 @@ export const DragAndDropFileUpload = ({value, values, multiple, onChange}) => {
                 }
                 {multiple && files.length > 0 &&
                     <>
-                        <CloudUploadTwoToneIcon fontSize={"large"} color={"success"} />
+                        <CloudUploadTwoToneIcon className="mythic-task-file-dropzone-icon" fontSize={"large"} />
                         <Typography>
                             Selected:
                         </Typography>
@@ -1302,7 +1373,7 @@ export const DragAndDropFileUpload = ({value, values, multiple, onChange}) => {
                 }
                 {file.name === "" && files.length === 0 &&
                     <>
-                        <CloudUploadTwoToneIcon fontSize={"large"} color={"success"} />
+                        <CloudUploadTwoToneIcon className="mythic-task-file-dropzone-icon" fontSize={"large"} />
                         <Typography>
                             Drag and drop files here
                         </Typography>
