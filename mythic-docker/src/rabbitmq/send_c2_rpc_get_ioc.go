@@ -32,6 +32,7 @@ func (r *rabbitMQConnection) SendC2RPCGetIOC(getIOC C2GetIOCMessage) (*C2GetIOCM
 		GetC2RPCGetIOCRoutingKey(getIOC.Name),
 		configBytes,
 		exclusiveQueue,
+		RPC_RETRY_POLICY_CUSTOM_TIMEOUT,
 	); err != nil {
 		logging.LogError(err, "Failed to send RPC message")
 		return nil, err

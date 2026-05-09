@@ -330,6 +330,383 @@ tspan {
     background-color: ${(props) => alpha(props.theme.palette.error.main, props.theme.palette.mode === "dark" ? 0.2 : 0.12)};
     color: ${(props) => props.theme.palette.error.main};
 }
+.mythic-tasking-composer {
+    background-color: ${(props) => alpha(props.theme.palette.background.paper, props.theme.palette.mode === "dark" ? 0.96 : 0.98)};
+    border-top: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    box-shadow: ${(props) => props.theme.palette.mode === "dark" ? "0 -10px 28px rgba(0, 0, 0, 0.24)" : "0 -10px 28px rgba(15, 23, 42, 0.06)"};
+    flex: 0 0 auto;
+    min-width: 0;
+    padding: 0.55rem 0.65rem 0.6rem;
+    position: relative;
+    width: 100%;
+}
+.mythic-tasking-context-row {
+    align-items: center;
+    display: flex;
+    gap: 0.28rem;
+    margin-bottom: 0.45rem;
+    min-height: 24px;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 0.05rem;
+}
+.mythic-tasking-context-chip {
+    align-items: center;
+    border: 1px solid ${(props) => alpha(props.theme.palette.common.black, props.theme.palette.mode === "dark" ? 0.22 : 0.1)};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-size: 0.72rem;
+    font-weight: 750;
+    gap: 0.28rem;
+    line-height: 1;
+    max-width: min(28rem, 72vw);
+    min-height: 22px;
+    overflow: hidden;
+    padding: 0.22rem 0.45rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-tasking-context-chip-emphasized {
+    box-shadow: inset 0 0 0 1px ${(props) => alpha(props.theme.palette.common.white, props.theme.palette.mode === "dark" ? 0.12 : 0.18)};
+}
+.mythic-tasking-context-chip-label {
+    flex: 0 0 auto;
+    font-size: 0.64rem;
+    font-weight: 850;
+    letter-spacing: 0;
+    opacity: 0.78;
+}
+.mythic-tasking-context-chip-value {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.mythic-tasking-command-row {
+    align-items: flex-end;
+    display: flex;
+    gap: 0.45rem;
+    min-width: 0;
+    width: 100%;
+}
+.mythic-tasking-token-select {
+    flex: 0 0 13rem;
+    max-width: 40%;
+    min-width: 9.5rem;
+}
+.mythic-tasking-token-select .MuiOutlinedInput-root {
+    background-color: ${(props) => props.theme.palette.background.paper};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    min-height: 37px;
+}
+.mythic-tasking-token-select .MuiSelect-select {
+    font-size: 0.78rem;
+    font-weight: 650;
+    min-height: 0 !important;
+    overflow: hidden;
+    padding-bottom: 0.52rem;
+    padding-top: 0.52rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-tasking-command-input {
+    flex: 1 1 auto;
+    min-width: 10rem;
+}
+.mythic-tasking-command-input .MuiOutlinedInput-root {
+    align-items: flex-end;
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.035) : alpha(props.theme.palette.common.black, 0.018)};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    padding: 0.1rem 0.24rem 0.1rem 0;
+}
+.mythic-tasking-command-input .MuiOutlinedInput-root:hover {
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.05) : alpha(props.theme.palette.common.black, 0.026)};
+}
+.mythic-tasking-command-input .MuiInputBase-input {
+    font-family: ${(props) => props.theme.typography.fontFamily};
+    font-size: 0.86rem;
+    line-height: 1.45;
+    padding-bottom: 0.48rem;
+    padding-top: 0.48rem;
+}
+.mythic-tasking-command-prefix {
+    align-items: center;
+    color: ${(props) => props.theme.palette.text.secondary};
+    display: inline-flex;
+    flex: 0 0 auto;
+    height: 30px;
+    justify-content: center;
+    margin-left: 0.35rem;
+    margin-right: 0.35rem;
+    margin-top: 0.12rem;
+    opacity: 0.86;
+}
+.mythic-tasking-action-row {
+    align-items: center;
+    align-self: flex-end;
+    display: inline-flex;
+    flex: 0 0 auto;
+    gap: 0.18rem;
+    margin-bottom: 0.12rem;
+    padding-left: 0.28rem;
+}
+.mythic-tasking-action-button.MuiIconButton-root {
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? "rgba(255,255,255,0.045)" : "rgba(0,0,0,0.025)"};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    color: ${(props) => props.theme.palette.text.secondary};
+    height: 28px;
+    padding: 0;
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+    width: 28px;
+}
+.mythic-tasking-action-button-neutral.MuiIconButton-root:hover {
+    background-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.18 : 0.1)};
+    border-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.48 : 0.32)};
+    color: ${(props) => props.theme.palette.info.main};
+}
+.mythic-tasking-action-button-warning.MuiIconButton-root:hover {
+    background-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.2 : 0.12)};
+    border-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.52 : 0.36)};
+    color: ${(props) => props.theme.palette.warning.main};
+}
+.mythic-tasking-action-button-success.MuiIconButton-root:hover {
+    background-color: ${(props) => alpha(props.theme.palette.success.main, props.theme.palette.mode === "dark" ? 0.18 : 0.1)};
+    border-color: ${(props) => alpha(props.theme.palette.success.main, props.theme.palette.mode === "dark" ? 0.48 : 0.32)};
+    color: ${(props) => props.theme.palette.success.main};
+}
+.mythic-tasking-payload-chip {
+    align-items: center;
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? "rgba(255,255,255,0.045)" : "rgba(0,0,0,0.025)"};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    display: inline-flex;
+    flex: 0 0 auto;
+    height: 28px;
+    justify-content: center;
+    width: 28px;
+}
+.mythic-tasking-reverse-search {
+    align-items: center;
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.045) : alpha(props.theme.palette.common.black, 0.024)};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    display: flex;
+    gap: 0.45rem;
+    margin-bottom: 0.45rem;
+    min-width: 0;
+    padding: 0.28rem;
+}
+.mythic-tasking-reverse-search-label {
+    color: ${(props) => props.theme.palette.text.secondary};
+    flex: 0 0 auto;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding-left: 0.3rem;
+}
+.mythic-tasking-reverse-search-input .MuiOutlinedInput-root {
+    background-color: ${(props) => props.theme.palette.background.paper};
+}
+.mythic-tasking-filter-dialog {
+    background-color: ${(props) => props.theme.surfaces?.raised || props.theme.palette.background.paper};
+    color: ${(props) => props.theme.palette.text.primary};
+}
+.mythic-tasking-filter-dialog-title.MuiDialogTitle-root {
+    background-image: ${getSectionHeaderGradient} !important;
+    border-bottom: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor} !important;
+    color: ${(props) => props.theme.pageHeaderText?.main || props.theme.palette.text.primary};
+    cursor: move;
+    padding: 1rem 1.15rem !important;
+    position: relative;
+}
+.mythic-tasking-filter-dialog-title.MuiDialogTitle-root::before {
+    background-color: ${getSectionHeaderAccent};
+    bottom: 0;
+    box-shadow: 0 0 0 1px ${(props) => alpha(props.theme.pageHeaderText?.main || props.theme.palette.text.primary, 0.2)};
+    content: "";
+    left: 0;
+    position: absolute;
+    top: 0;
+    width: 6px;
+}
+.mythic-tasking-filter-title-row {
+    align-items: center;
+    display: flex;
+    gap: 0.8rem;
+    min-width: 0;
+    min-height: 42px;
+    padding-left: 0.55rem;
+}
+.mythic-tasking-filter-title-icon {
+    align-items: center;
+    background-color: ${(props) => alpha(props.theme.pageHeaderText?.main || props.theme.palette.text.primary, 0.12)};
+    border: 1px solid ${(props) => alpha(props.theme.pageHeaderText?.main || props.theme.palette.text.primary, 0.24)};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    display: inline-flex;
+    flex: 0 0 auto;
+    height: 32px;
+    justify-content: center;
+    width: 32px;
+}
+.mythic-tasking-filter-title-main {
+    color: ${(props) => props.theme.pageHeaderText?.main || props.theme.palette.text.primary};
+    font-size: 1rem;
+    font-weight: 850;
+    line-height: 1.15;
+}
+.mythic-tasking-filter-title-subtitle {
+    color: ${(props) => alpha(props.theme.pageHeaderText?.main || props.theme.palette.text.primary, 0.78)};
+    font-size: 0.76rem;
+    font-weight: 600;
+    line-height: 1.25;
+    margin-top: 0.15rem;
+}
+.mythic-tasking-filter-dialog-actions.MuiDialogActions-root {
+    background-color: ${(props) => props.theme.surfaces?.muted || props.theme.palette.background.paper} !important;
+    border-top: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor} !important;
+    gap: 0.65rem !important;
+    padding: 0.85rem 1rem !important;
+}
+.mythic-tasking-filter-dialog-actions.MuiDialogActions-root .MuiButton-root {
+    min-height: 36px;
+    min-width: 8.25rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+.mythic-tasking-filter-dialog-actions.MuiDialogActions-root .MuiButton-root:first-of-type {
+    margin-right: auto;
+}
+.mythic-tasking-filter-dialog-content.MuiDialogContent-root {
+    background-color: ${(props) => props.theme.surfaces?.raised || props.theme.palette.background.paper};
+    max-height: min(72vh, 48rem);
+    min-width: min(46rem, calc(100vw - 3rem));
+    overflow: auto;
+    padding: 1rem !important;
+}
+.mythic-tasking-filter-summary {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    min-height: 28px;
+}
+.mythic-tasking-filter-summary-chip.MuiChip-root {
+    background-color: ${(props) => alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.18 : 0.1)};
+    border: 1px solid ${(props) => alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.42 : 0.28)};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    color: ${(props) => props.theme.palette.primary.main};
+    font-size: 0.72rem;
+    font-weight: 750;
+}
+.mythic-tasking-filter-summary-chip .MuiChip-icon {
+    color: inherit;
+    font-size: 1rem;
+}
+.mythic-tasking-filter-summary-chip-muted.MuiChip-root {
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? "rgba(255,255,255,0.045)" : "rgba(0,0,0,0.025)"};
+    border-color: ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    color: ${(props) => props.theme.palette.text.secondary};
+}
+.mythic-tasking-filter-switch-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    min-width: 0;
+}
+.mythic-tasking-filter-select .MuiOutlinedInput-root {
+    background-color: ${(props) => props.theme.palette.background.paper};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    min-height: 38px;
+}
+.mythic-tasking-filter-select .MuiSelect-select {
+    align-items: center;
+    display: flex;
+    min-height: 0 !important;
+    padding-bottom: 0.42rem;
+    padding-top: 0.42rem;
+}
+.mythic-tasking-filter-select-empty {
+    color: ${(props) => props.theme.palette.text.secondary};
+    font-size: 0.78rem;
+    font-weight: 650;
+}
+.mythic-tasking-filter-select-chips {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    min-width: 0;
+}
+.mythic-tasking-filter-selected-chip.MuiChip-root {
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.045)"};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    color: ${(props) => props.theme.palette.text.primary};
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+.mythic-tasking-filter-command-grid {
+    align-items: start;
+    display: grid;
+    gap: 0.6rem;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    min-width: 0;
+    width: 100%;
+}
+.mythic-tasking-filter-choice-divider {
+    align-self: center;
+    color: ${(props) => props.theme.palette.text.secondary};
+    font-size: 0.72rem;
+    font-weight: 750;
+    padding-top: 1.55rem;
+    text-align: center;
+}
+.mythic-tasking-filter-clear-button.MuiButton-root {
+    align-self: flex-start;
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.025)"} !important;
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor} !important;
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    box-shadow: none;
+    color: ${(props) => props.theme.palette.text.secondary} !important;
+    font-size: 0.72rem;
+    font-weight: 750;
+    margin-top: 0.4rem;
+    min-height: 28px;
+    text-transform: none;
+}
+.mythic-tasking-filter-clear-button.MuiButton-root:hover {
+    background-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.18 : 0.1)} !important;
+    border-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.48 : 0.32)} !important;
+    color: ${(props) => props.theme.palette.warning.main} !important;
+}
+@media screen and (max-width: 760px) {
+    .mythic-tasking-filter-dialog-content.MuiDialogContent-root {
+        min-width: 0;
+    }
+    .mythic-tasking-filter-command-grid {
+        grid-template-columns: 1fr;
+    }
+    .mythic-tasking-filter-choice-divider {
+        padding-top: 0;
+    }
+    .mythic-tasking-filter-dialog-actions.MuiDialogActions-root .MuiButton-root,
+    .mythic-tasking-filter-dialog-actions.MuiDialogActions-root .MuiButton-root:first-of-type {
+        flex: 1 1 100%;
+        margin-right: 0;
+    }
+}
+@media screen and (max-width: 760px) {
+    .mythic-tasking-command-row {
+        align-items: stretch;
+        flex-direction: column;
+    }
+    .mythic-tasking-token-select {
+        flex: 0 0 auto;
+        max-width: 100%;
+        width: 100% !important;
+    }
+}
 .mythic-file-browser-iconButtonCompound.MuiIconButton-root {
     gap: 0;
     padding: 0 0.15rem;

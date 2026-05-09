@@ -3,6 +3,7 @@ import SendIcon from '@mui/icons-material/Send';
 import React from 'react';
 import {TextField} from '@mui/material';
 import TuneIcon from '@mui/icons-material/Tune';
+import TerminalIcon from '@mui/icons-material/Terminal';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {CallbacksTabsTaskingFilterDialog} from './CallbacksTabsTaskingFilterDialog';
 import {CallbacksTabsTaskingInputTokenSelect} from './CallbacksTabsTaskingInputTokenSelect';
@@ -20,6 +21,7 @@ import {GetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import {getSkewedNow} from "../../utilities/Time";
 import { useTheme } from '@mui/material/styles';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
+import {getReadableTextColor, isValidHexColor} from "../../MythicComponents/MythicColorInput";
 
 const GetLoadedCommandsSubscription = gql`
 subscription GetLoadedCommandsSubscription($callback_id: Int!){
@@ -168,6 +170,27 @@ const IsRepeatableCLIParameterType = (parameter_type) => {
         default:
             return false;
     }
+}
+const TaskingContextChip = ({title, label, value, color, callbackColor, emphasized=false}) => {
+    const safeColor = isValidHexColor(color) ? color : "#000000";
+    const borderColor = isValidHexColor(callbackColor) ? callbackColor : undefined;
+    const tooltipTitle = `${title}: ${value}`;
+    return (
+        <MythicStyledTooltip title={tooltipTitle}>
+            <span className={`mythic-tasking-context-chip${emphasized ? " mythic-tasking-context-chip-emphasized" : ""}`}
+                  style={{
+                      backgroundColor: safeColor,
+                      borderColor: borderColor,
+                      color: getReadableTextColor(safeColor),
+                  }}
+                  title={tooltipTitle}>
+                {label !== "" &&
+                    <span className="mythic-tasking-context-chip-label">{label}</span>
+                }
+                <span className="mythic-tasking-context-chip-value">{value}</span>
+            </span>
+        </MythicStyledTooltip>
+    )
 }
 
 export function CallbacksTabsTaskingInputPreMemo(props){
@@ -1607,177 +1630,186 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             inputRef.current.focus();
         }
     }, [props.focus])
+    const showTaskingContext = !hideTaskingContext.current;
+    const taskingContextChips = [
+        {
+            key: "impersonation_context",
+            title: "Impersonation Context",
+            label: "User",
+            value: callbackContext?.impersonation_context,
+            color: theme.taskContextImpersonationColor,
+            emphasized: true,
+        },
+        {
+            key: "user",
+            title: "User Context" + (callbackContext.integrity_level > 2 ? " (high integrity)" : ""),
+            label: "User",
+            value: callbackContext?.user ? `${callbackContext.user}${callbackContext.integrity_level > 2 ? "*" : ""}` : "",
+            color: theme.taskContextColor,
+            emphasized: callbackContext.integrity_level > 2,
+        },
+        {
+            key: "cwd",
+            title: "Current Working Directory",
+            label: "Dir",
+            value: callbackContext?.cwd,
+            color: theme.taskContextColor,
+        },
+        {
+            key: "host",
+            title: "Hostname",
+            label: "Host",
+            value: callbackContext?.host,
+            color: theme.taskContextColor,
+        },
+        {
+            key: "ip",
+            title: "First IP Address",
+            label: "IP",
+            value: callbackContext?.ip,
+            color: theme.taskContextColor,
+        },
+        {
+            key: "pid",
+            title: "Process ID",
+            label: "PID",
+            value: callbackContext?.pid,
+            color: theme.taskContextColor,
+        },
+        {
+            key: "architecture",
+            title: "Process Architecture",
+            label: "Arch",
+            value: callbackContext?.architecture,
+            color: theme.taskContextColor,
+        },
+        {
+            key: "process_short_name",
+            title: "Process Name",
+            label: "Process",
+            value: callbackContext?.process_short_name,
+            color: theme.taskContextColor,
+        },
+        {
+            key: "extra_info",
+            title: "Extra Callback Context",
+            label: "",
+            value: callbackContext?.extra_info,
+            color: theme.taskContextExtraColor,
+            emphasized: true,
+        },
+    ].filter((chip) => showTaskingContext && taskingContextFields.current.includes(chip.key) && chip.value !== undefined && chip.value !== "");
     return (
-        <div style={{position: "relative"}}>
+        <div className="mythic-tasking-composer">
             {backdropOpen && <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
                 <CircularProgress color="inherit" size={30}/>
             </Backdrop>
             }
             {reverseSearching &&
+                <div className="mythic-tasking-reverse-search">
+                    <Typography component="span" className="mythic-tasking-reverse-search-label">
+                        reverse-i-search
+                    </Typography>
+                    <TextField
+                        placeholder={"Search previous commands"}
+                        onKeyDown={onReverseSearchKeyDown}
+                        onChange={handleReverseSearchInputChange}
+                        size="small"
+                        color={"secondary"}
+                        autoFocus={true}
+                        variant="outlined"
+                        value={reverseSearchString}
+                        fullWidth={true}
+                        className="mythic-tasking-reverse-search-input"
+                        InputProps={{
+                            type: 'search',
+                        }}
+                    />
+                </div>
+            }
+            {taskingContextChips.length > 0 &&
+                <div className="mythic-tasking-context-row">
+                    {taskingContextChips.map((chip) => (
+                        <TaskingContextChip
+                            key={chip.key}
+                            title={chip.title}
+                            label={chip.label}
+                            value={chip.value}
+                            color={chip.color}
+                            callbackColor={callbackContext.color}
+                            emphasized={chip.emphasized}
+                        />
+                    ))}
+                </div>
+            }
+            <div className="mythic-tasking-command-row">
+                {tokenOptions.current.length > 0 ? (
+                    <CallbacksTabsTaskingInputTokenSelect
+                        options={tokenOptions.current}
+                        changeSelectedToken={props.changeSelectedToken}
+                        width={"13rem"}
+                        modern={true}
+                        className="mythic-tasking-token-select"
+                    />
+                ) : null}
                 <TextField
-                    placeholder={"Search previous commands"}
-                    onKeyDown={onReverseSearchKeyDown}
-                    onChange={handleReverseSearchInputChange}
+                    placeholder={"Task an agent..."}
+                    onKeyDown={onKeyDown}
+                    onChange={handleInputChange}
                     size="small"
                     color={"secondary"}
-                    autoFocus={true}
                     variant="outlined"
-                    value={reverseSearchString}
+                    multiline={true}
+                    maxRows={15}
+                    disabled={reverseSearching}
+                    value={message}
+                    autoFocus={true}
                     fullWidth={true}
+                    inputRef={inputRef}
+                    className="mythic-tasking-command-input"
                     InputProps={{
                         type: 'search',
-                        startAdornment: <React.Fragment><Typography
-                            style={{width: "10%"}}>reverse-i-search:</Typography></React.Fragment>
+                        spellCheck: false,
+                        autoFocus: true,
+                        startAdornment:
+                            <span className="mythic-tasking-command-prefix">
+                                <TerminalIcon fontSize="small" />
+                            </span>,
+                        endAdornment:
+                            <div className="mythic-tasking-action-row">
+                                {commandPayloadType !== "" &&
+                                    <MythicStyledTooltip title={commandPayloadType}>
+                                        <span className="mythic-tasking-payload-chip">
+                                            <MythicAgentSVGIcon payload_type={commandPayloadType}
+                                                                style={{width: "20px", height: "20px"}}/>
+                                        </span>
+                                    </MythicStyledTooltip>
+                                }
+                                {props.filterTasks &&
+                                    <MythicStyledTooltip title={activeFiltering ? "Adjust active task filters" : "Filter task history"}>
+                                        <IconButton
+                                            className={`mythic-tasking-action-button ${activeFiltering ? "mythic-tasking-action-button-warning" : "mythic-tasking-action-button-neutral"}`}
+                                            onClick={onClickFilter}
+                                            disableRipple={true}
+                                            disableFocusRipple={true}
+                                            size="small"
+                                            aria-label="Filter task history"><TuneIcon fontSize="small"/></IconButton>
+                                    </MythicStyledTooltip>
+                                }
+                                <MythicStyledTooltip title={"Submit task"}>
+                                    <IconButton
+                                        className="mythic-tasking-action-button mythic-tasking-action-button-success"
+                                        disableRipple={true}
+                                        disableFocusRipple={true}
+                                        onClick={onSubmitCommandLine}
+                                        size="small"
+                                        aria-label="Submit task"><SendIcon fontSize="small"/>
+                                    </IconButton>
+                                </MythicStyledTooltip>
+                            </div>
                     }}
                 />
-            }
-            {callbackContext?.impersonation_context !== "" && !hideTaskingContext.current && taskingContextFields.current.includes("impersonation_context") &&
-                <MythicStyledTooltip title={"Impersonation Context"}>
-                    <span className={"rounded-tab"} style={{
-                        backgroundColor: theme.taskContextImpersonationColor,
-                        borderColor: callbackContext.color === "" ? "" : callbackContext.color
-                    }}>
-                        <b>{"User: "}</b>{callbackContext.impersonation_context}
-                    </span>
-                </MythicStyledTooltip>
-
-            }
-            {callbackContext?.user !== "" && !hideTaskingContext.current && taskingContextFields.current.includes("user") &&
-                <MythicStyledTooltip title={"User Context" + (callbackContext.integrity_level > 2 ? " (high integrity)" : "")}>
-                    <span className={"rounded-tab"} style={{
-                        backgroundColor: theme.taskContextColor,
-                        borderColor: callbackContext.color === "" ? "" : callbackContext.color
-                    }}>
-                        <b>{"User: "}</b>{callbackContext.user}{callbackContext.integrity_level > 2 ? "*" : ""}
-                    </span>
-                </MythicStyledTooltip>
-            }
-            {callbackContext?.cwd !== "" && !hideTaskingContext.current && taskingContextFields.current.includes("cwd") &&
-                <MythicStyledTooltip title={"Current Working Directory"}>
-                    <span className={"rounded-tab"} style={{
-                        backgroundColor: theme.taskContextColor,
-                        borderColor: callbackContext.color === "" ? "" : callbackContext.color
-                    }}>
-                        <b>{"Dir: "}</b>{callbackContext.cwd}
-                    </span>
-                </MythicStyledTooltip>
-            }
-            {callbackContext?.host !== "" && !hideTaskingContext.current && taskingContextFields.current.includes("host") &&
-                <MythicStyledTooltip title={"Hostname"}>
-                    <span className={"rounded-tab"} style={{
-                        backgroundColor: theme.taskContextColor,
-                        borderColor: callbackContext.color === "" ? "" : callbackContext.color
-                    }}>
-                        <b>{"Host: "}</b>{callbackContext.host}
-                    </span>
-                </MythicStyledTooltip>
-            }
-            {callbackContext?.ip !== "" && !hideTaskingContext.current && taskingContextFields.current.includes("ip") &&
-                <MythicStyledTooltip title={"First IP Address"}>
-                    <span className={"rounded-tab"} style={{
-                        backgroundColor: theme.taskContextColor,
-                        borderColor: callbackContext.color === "" ? "" : callbackContext.color
-                    }}>
-                        <b>{"IP: "}</b>{callbackContext.ip}
-                    </span>
-                </MythicStyledTooltip>
-            }
-            {callbackContext?.pid !== "" && !hideTaskingContext.current && taskingContextFields.current.includes("pid") &&
-                <MythicStyledTooltip title={"Process ID"}>
-                    <span className={"rounded-tab"} style={{
-                        backgroundColor: theme.taskContextColor,
-                        borderColor: callbackContext.color === "" ? "" : callbackContext.color
-                    }}>
-                        <b>{"PID: "}</b>{callbackContext.pid}
-                    </span>
-                </MythicStyledTooltip>
-            }
-            {callbackContext?.architecture !== "" && !hideTaskingContext.current && taskingContextFields.current.includes("architecture") &&
-                <MythicStyledTooltip title={"Process Architecture"}>
-                    <span className={"rounded-tab"} style={{
-                        backgroundColor: theme.taskContextColor,
-                        borderColor: callbackContext.color === "" ? "" : callbackContext.color
-                    }}>
-                        <b>{"Arch: "}</b>{callbackContext.architecture}
-                    </span>
-                </MythicStyledTooltip>
-            }
-            {callbackContext?.process_short_name !== "" && !hideTaskingContext.current && taskingContextFields.current.includes("process_short_name") &&
-                <MythicStyledTooltip title={"Process Name"}>
-                    <span className={"rounded-tab"} style={{
-                        backgroundColor: theme.taskContextColor,
-                        borderColor: callbackContext.color === "" ? "" : callbackContext.color
-                    }}>
-                        <b>{"Process: "}</b>{callbackContext.process_short_name}
-                    </span>
-                </MythicStyledTooltip>
-            }
-            {callbackContext?.extra_info !== "" && !hideTaskingContext.current && taskingContextFields.current.includes("extra_info") &&
-                <MythicStyledTooltip title={"Extra Callback Context"}>
-                    <span className={"rounded-tab"} style={{
-                        backgroundColor: theme.taskContextExtraColor,
-                        borderColor: callbackContext.color === "" ? "" : callbackContext.color
-                    }}>
-                        {callbackContext.extra_info}
-                    </span>
-                </MythicStyledTooltip>
-            }
-            <TextField
-                placeholder={"Task an agent..."}
-                onKeyDown={onKeyDown}
-                onChange={handleInputChange}
-                size="small"
-                color={"secondary"}
-                variant="outlined"
-                multiline={true}
-                maxRows={15}
-                disabled={reverseSearching}
-                value={message}
-                autoFocus={true}
-                fullWidth={true}
-                inputRef={inputRef}
-                style={{marginBottom: "0px", marginTop: "0px", paddingTop: "0px"}}
-                InputProps={{
-                    type: 'search',
-                    spellCheck: false,
-                    autoFocus: true,
-                    style: {paddingTop: "0px", paddingBottom: "0px", paddingRight: "5px"},
-                    endAdornment:
-                        <React.Fragment>
-                            <IconButton
-                                color="info"
-                                variant="contained"
-                                disableRipple={true}
-                                disableFocusRipple={true}
-                                onClick={onSubmitCommandLine}
-                                size="large"><SendIcon/>
-                            </IconButton>
-                            {props.filterTasks &&
-                                <IconButton
-                                    color={activeFiltering ? "warning" : "secondary"}
-                                    variant="contained"
-                                    onClick={onClickFilter}
-                                    style={{paddingLeft: 0}}
-                                    disableRipple={true}
-                                    disableFocusRipple={true}
-                                    size="large"><TuneIcon/></IconButton>
-                            }
-                            {commandPayloadType !== "" &&
-                                <MythicAgentSVGIcon payload_type={commandPayloadType}
-                                                    style={{width: "35px", height: "35px"}}/>
-                            }
-                        </React.Fragment>
-                    ,
-                    startAdornment: <React.Fragment>
-                        {tokenOptions.current.length > 0 ? (
-                            <CallbacksTabsTaskingInputTokenSelect options={tokenOptions.current}
-                                                                  changeSelectedToken={props.changeSelectedToken}/>
-                        ) : null}
-
-                    </React.Fragment>
-
-                }}
-            />
+            </div>
             {openFilterOptionsDialog &&
                 <MythicDialog fullWidth={true} maxWidth="md" open={openFilterOptionsDialog}
                               onClose={() => {

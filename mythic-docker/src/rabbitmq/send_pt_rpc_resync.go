@@ -30,6 +30,7 @@ func (r *rabbitMQConnection) SendPTRPCReSync(resync PTRPCReSyncMessage) (*PTRPCR
 		GetPTRPCReSyncRoutingKey(resync.Name),
 		configBytes,
 		exclusiveQueue,
+		RPC_RETRY_POLICY_CUSTOM_TIMEOUT,
 	)
 	if err != nil {
 		logging.LogError(err, "Failed to send RPC message")

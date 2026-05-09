@@ -30,6 +30,7 @@ func (r *rabbitMQConnection) SendAuthGetNonIDPRedirect(input GetNonIDPRedirectMe
 		GetAuthContainerGetNonIDPRedirectRoutingKey(input.ContainerName),
 		inputBytes,
 		exclusiveQueue,
+		RPC_RETRY_POLICY_RETRY_ON_TIMEOUT,
 	)
 	if err != nil {
 		logging.LogError(err, "Failed to send RPC message")
