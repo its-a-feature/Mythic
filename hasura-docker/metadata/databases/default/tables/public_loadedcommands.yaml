@@ -20,11 +20,11 @@ insert_permissions:
       check:
         _and:
           - callback:
-                operation_id:
-                    _eq: X-Hasura-current-operation-id
+              operation_id:
+                _eq: X-Hasura-current-operation-id
           - callback:
-                operation_id:
-                    _lte: X-Hasura-Scope-callback-write-operation
+              operation_id:
+                _lte: X-Hasura-Scope-callback-write-operation
       set:
         operator_id: x-hasura-user-id
       columns:
@@ -36,11 +36,11 @@ insert_permissions:
       check:
         _and:
           - callback:
-                operation_id:
-                    _eq: X-Hasura-current-operation-id
+              operation_id:
+                _eq: X-Hasura-current-operation-id
           - callback:
               operation_id:
-                  _lte: X-Hasura-Scope-callback-write-operation
+                _lte: X-Hasura-Scope-callback-write-operation
       set:
         operator_id: x-hasura-user-id
       columns:

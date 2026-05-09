@@ -22,10 +22,10 @@ select_permissions:
         _and:
           - eventgroup:
               operation_id:
-                  _eq: x-hasura-current-operation-id
+                _eq: x-hasura-current-operation-id
           - eventgroup:
               operation_id:
-                  _lte: x-hasura-scope-eventing-read-operation
+                _lte: x-hasura-scope-eventing-read-operation
     comment: ""
   - role: operation_admin
     permission:
@@ -40,10 +40,10 @@ select_permissions:
         _and:
           - eventgroup:
               operation_id:
-                  _eq: x-hasura-current-operation-id
+                _eq: x-hasura-current-operation-id
           - eventgroup:
               operation_id:
-                  _lte: x-hasura-scope-eventing-read-operation
+                _lte: x-hasura-scope-eventing-read-operation
     comment: ""
   - role: operator
     permission:
@@ -58,10 +58,10 @@ select_permissions:
         _and:
           - eventgroup:
               operation_id:
-                  _eq: x-hasura-current-operation-id
+                _eq: x-hasura-current-operation-id
           - eventgroup:
               operation_id:
-                  _lte: x-hasura-scope-eventing-read-operation
+                _lte: x-hasura-scope-eventing-read-operation
     comment: ""
   - role: spectator
     permission:
@@ -76,8 +76,8 @@ select_permissions:
         _and:
           - eventgroup:
               operation_id:
-                  _eq: x-hasura-current-operation-id
+                _eq: x-hasura-current-operation-id
           - eventgroup:
               operation_id:
-                  _lte: x-hasura-scope-eventing-read-operation
+                _lte: x-hasura-scope-eventing-read-operation
     comment: ""

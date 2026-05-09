@@ -4,7 +4,6 @@
 - "!include public_attackcommand.yaml"
 - "!include public_attacktask.yaml"
 - "!include public_browserscript.yaml"
-- "!include public_browserscriptoperation.yaml"
 - "!include public_buildparameter.yaml"
 - "!include public_buildparameterinstance.yaml"
 - "!include public_c2profile.yaml"

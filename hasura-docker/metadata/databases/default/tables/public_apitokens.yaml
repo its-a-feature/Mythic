@@ -183,10 +183,10 @@ select_permissions:
       filter:
         _and:
           - _or:
-            - created_by:
-                _eq: X-Hasura-User-Id
-            - operator_id:
-                _eq: X-Hasura-User-Id
+              - created_by:
+                  _eq: X-Hasura-User-Id
+              - operator_id:
+                  _eq: X-Hasura-User-Id
           - operator_id:
               _lte: X-Hasura-Scope-apitoken-read-operator
   - role: operator
@@ -251,13 +251,13 @@ update_permissions:
       filter:
         _and:
           - _or:
-            - created_by:
-                _eq: X-Hasura-User-Id
-            - operator_id:
-                _eq: X-Hasura-User-Id
-            - operator:
-                account_type:
-                  _eq: bot
+              - created_by:
+                  _eq: X-Hasura-User-Id
+              - operator_id:
+                  _eq: X-Hasura-User-Id
+              - operator:
+                  account_type:
+                    _eq: bot
           - operator_id:
               _lte: X-Hasura-Scope-apitoken-write-operator
       check: null

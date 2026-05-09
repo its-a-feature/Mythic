@@ -11,14 +11,6 @@ object_relationships:
   - name: payloadtype
     using:
       foreign_key_constraint_on: payload_type_id
-array_relationships:
-  - name: browserscriptoperations
-    using:
-      foreign_key_constraint_on:
-        column: browserscript_id
-        table:
-          name: browserscriptoperation
-          schema: public
 insert_permissions:
   - role: mythic_admin
     permission:
@@ -81,9 +73,9 @@ select_permissions:
       filter:
         _and:
           - operator_id:
-                _eq: X-Hasura-User-Id
+              _eq: X-Hasura-User-Id
           - operator_id:
-                _lte: X-Hasura-Scope-operator-read-operator
+              _lte: X-Hasura-Scope-operator-read-operator
   - role: operation_admin
     permission:
       columns:

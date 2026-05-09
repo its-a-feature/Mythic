@@ -318,7 +318,6 @@ update_permissions:
           - operation_id:
               _lte: X-Hasura-Scope-tag-write-operation
 delete_permissions:
-
   - role: mythic_admin
     permission:
       filter:

@@ -62,6 +62,7 @@ import {
     gridValuePassesFilter,
     isGridColumnFilterActive
 } from "../../MythicComponents/MythicResizableGrid/GridColumnFilterDialog";
+import {MythicConfirmDialog} from "../../MythicComponents/MythicConfirmDialog";
 
 export const getCustomBrowsersQuery = gql(`
 query getCustomBrowsersQuery{
@@ -261,6 +262,7 @@ function CallbacksTablePreMemo(props){
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
     const [openHideMultipleDialog, setOpenHideMultipleDialog] = React.useState(false);
     const [openTriggerDialog, setOpenTriggerDialog] = React.useState({open: false, trigger_on_checkin_after_time: 0, display_id: 0});
+    const [openUnlockDialog, setOpenUnlockDialog] = React.useState({open: false, display_id: 0, lockOwner: ""});
     const [openTaskMultipleDialog, setOpenTaskMultipleDialog] = React.useState({open: false, data: {}});
     const [filterOptions, setFilterOptions] = React.useState({});
     const [selectedColumn, setSelectedColumn] = React.useState({});
@@ -388,6 +390,28 @@ function CallbacksTablePreMemo(props){
         updateTrigger({variables: {callback_display_id: openTriggerDialog.display_id, trigger_on_checkin_after_time: newTriggerValue}})
         setOpenTriggerDialog({...openTriggerDialog, open: false});
     }
+    const onOpenTriggerDialog = React.useCallback((callback) => {
+        setOpenTriggerDialog({
+            open: true,
+            trigger_on_checkin_after_time: callback.trigger_on_checkin_after_time,
+            display_id: callback.display_id,
+        });
+    }, []);
+    const onOpenUnlockDialog = React.useCallback((callback) => {
+        setOpenUnlockDialog({
+            open: true,
+            display_id: callback.display_id,
+            lockOwner: callback.locked_operator?.username || "unknown operator",
+        });
+    }, []);
+    const onCloseUnlockDialog = React.useCallback(() => {
+        setOpenUnlockDialog({open: false, display_id: 0, lockOwner: ""});
+    }, []);
+    const onSubmitUnlockDialog = React.useCallback(() => {
+        if(openUnlockDialog.display_id > 0){
+            unlockCallback({variables: {callback_display_id: openUnlockDialog.display_id}});
+        }
+    }, [openUnlockDialog.display_id, unlockCallback]);
     async function getCustomBrowsersForContextMenu(){
         return await getCustomBrowsers({}).then(result => {return result.data?.custombrowser});
     }
@@ -521,13 +545,13 @@ function CallbacksTablePreMemo(props){
                 }, type: "item"
             },
             {
-                name: rowDataStatic.locked ? 'Unlock (Locked by ' + rowDataStatic.locked_operator.username + ')' : 'Lock Callback',
+                name: rowDataStatic.locked ? 'Unlock (Locked by ' + (rowDataStatic.locked_operator?.username || "unknown operator") + ')' : 'Lock Callback',
                 icon: callbackMenuIcon(rowDataStatic.locked ? <LockIcon fontSize="small"/> : <LockOpenIcon fontSize="small" />, rowDataStatic.locked ? "warning" : "neutral"),
                 className: "mythic-callback-action-menu-item",
                 click: ({event}) => {
                     event.stopPropagation();
                     if(rowDataStatic.locked){
-                        unlockCallback({variables: {callback_display_id: rowDataStatic.display_id}})
+                        onOpenUnlockDialog(rowDataStatic);
                     }else{
                         lockCallback({variables: {callback_display_id: rowDataStatic.display_id}})
                     }
@@ -540,7 +564,7 @@ function CallbacksTablePreMemo(props){
                 className: "mythic-callback-action-menu-item",
                 click: ({event}) => {
                     event.stopPropagation();
-                    setOpenTriggerDialog({open: true, trigger_on_checkin_after_time: rowDataStatic.trigger_on_checkin_after_time, display_id: rowDataStatic.display_id})
+                    onOpenTriggerDialog(rowDataStatic);
                 }
             },
             {
@@ -894,6 +918,8 @@ function CallbacksTablePreMemo(props){
                                 }}
                                 key={`callback${row.id}_${c.name}`}
                                 callbackDropdown={callbackDropdown}
+                                onOpenTriggerDialog={onOpenTriggerDialog}
+                                onOpenUnlockDialog={onOpenUnlockDialog}
                             />;
                         case "Groups":
                             return <CallbacksTableStringCell
@@ -1008,7 +1034,7 @@ function CallbacksTablePreMemo(props){
                 })];
             }
         }, [])
-    }, [callbacks, callbackLocalUpdates, sortData, filterOptions, columnVisibility, clickedCallbackID]);
+    }, [callbacks, callbackLocalUpdates, sortData, filterOptions, columnVisibility, clickedCallbackID, onOpenTriggerDialog, onOpenUnlockDialog]);
     const onSubmitFilterOptions = (value) => {
         const nextFilterOptions = getUpdatedGridFilterOptions(filterOptions, selectedColumn.key, value);
         setFilterOptions(nextFilterOptions);
@@ -1215,6 +1241,17 @@ function CallbacksTablePreMemo(props){
                             trigger_on_checkin_after_time={openTriggerDialog.trigger_on_checkin_after_time}
                             onClose={() => {setOpenTriggerDialog({...openTriggerDialog, open: false});}} />
                     }
+                />
+            }
+            {openUnlockDialog.open &&
+                <MythicConfirmDialog
+                    open={openUnlockDialog.open}
+                    title={"Unlock Callback?"}
+                    dialogText={`Unlock callback ${openUnlockDialog.display_id} currently locked by ${openUnlockDialog.lockOwner}?`}
+                    acceptText={"Unlock"}
+                    acceptColor={"warning"}
+                    onClose={onCloseUnlockDialog}
+                    onSubmit={onSubmitUnlockDialog}
                 />
             }
             {openReorderDialog &&
