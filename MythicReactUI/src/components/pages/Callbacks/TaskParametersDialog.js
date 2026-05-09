@@ -1,27 +1,23 @@
 import React, {useEffect, useState} from 'react';
-import Button from '@mui/material/Button';
-import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import Typography from '@mui/material/Typography';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
+import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
 import {TaskParametersDialogRow} from './TaskParametersDialogRow';
 import {gql, useLazyQuery, useMutation, useQuery} from '@apollo/client';
 import FormControl from '@mui/material/FormControl';
 import TextField from '@mui/material/TextField';
 import MenuItem from '@mui/material/MenuItem';
-import Input from '@mui/material/Input';
 import {UploadTaskFile} from '../../MythicComponents/MythicFileUpload';
 import {Backdrop, CircularProgress} from '@mui/material';
-import Divider from '@mui/material/Divider';
 import {b64DecodeUnicode} from './ResponseDisplay';
 import {snackActions} from "../../utilities/Snackbar";
-import {MythicDraggableDialogTitle} from "../../MythicComponents/MythicDraggableDialogTitle";
+import TerminalIcon from '@mui/icons-material/Terminal';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import SegmentIcon from '@mui/icons-material/Segment';
+import FactCheckIcon from '@mui/icons-material/FactCheck';
+import {MythicDialogButton, MythicDialogFooter} from "../../MythicComponents/MythicDialogLayout";
 
 //if we need to get all the loaded commands for the callback and filter, use this
 const GetLoadedCommandsQuery = gql`
@@ -1030,27 +1026,69 @@ export function TaskParametersDialog(props) {
         }
         return collapsedParameters;
     }
+  const requiredCount = parameters.filter((param) => param.required).length;
+  const commandName = commandInfo.cmd || props.command?.cmd || "Command";
   return (
     <React.Fragment>
-        <MythicDraggableDialogTitle>{commandInfo.cmd}'s Parameters</MythicDraggableDialogTitle>
-        <DialogContent dividers={true}>
-            <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}}>
+        <DialogTitle id="mythic-draggable-title" className="mythic-task-parameters-title">
+            <Box className="mythic-task-parameters-title-row">
+                <Box className="mythic-task-parameters-title-icon">
+                    <TerminalIcon fontSize="small" />
+                </Box>
+                <Box className="mythic-task-parameters-title-copy">
+                    <Typography component="div" className="mythic-task-parameters-title-main">
+                        {commandName}
+                    </Typography>
+                    <Typography component="div" className="mythic-task-parameters-title-subtitle">
+                        Command parameters
+                    </Typography>
+                </Box>
+                <Box className="mythic-task-parameters-title-meta">
+                    {commandInfo?.payloadtype?.name &&
+                        <Chip size="small" className="mythic-task-parameters-title-chip" icon={<SegmentIcon />} label={commandInfo.payloadtype.name} />
+                    }
+                    <Chip size="small" className="mythic-task-parameters-title-chip" icon={<FactCheckIcon />} label={`${parameters.length} parameter${parameters.length === 1 ? "" : "s"}`} />
+                    {requiredCount > 0 &&
+                        <Chip size="small" className="mythic-task-parameters-title-chip mythic-task-parameters-title-chip-warning" label={`${requiredCount} required`} />
+                    }
+                    <Chip
+                        size="small"
+                        className={`mythic-task-parameters-title-chip${commandInfo.needs_admin ? " mythic-task-parameters-title-chip-warning" : ""}`}
+                        icon={<AdminPanelSettingsIcon />}
+                        label={commandInfo.needs_admin ? "Admin required" : "No admin"}
+                    />
+                </Box>
+            </Box>
+        </DialogTitle>
+        <DialogContent dividers={true} className="mythic-task-parameters-content">
+            <Backdrop open={backdropOpen} className="mythic-task-parameters-backdrop">
                 <CircularProgress color="inherit" />
             </Backdrop>
-            <Typography component="div" >
-                <b>Description</b> <pre style={{margin:0, wordBreak: "break-word", overflow: "word-wrap", whiteSpace: "pre-wrap"}}>{commandInfo.description}</pre><br/>
-                <Divider />
-                <b>Requires Admin?</b><pre style={{margin:0}}>{commandInfo.needs_admin ? "True": "False"}</pre><br/>
-                <Divider />
-                {parameterGroups.length > 1 &&
-                    <FormControl style={{width: "100%", marginTop: "7px"}} >
+            <Box className="mythic-task-parameters-overview">
+                <Typography component="div" className="mythic-task-parameters-section-label">
+                    Description
+                </Typography>
+                <Typography component="pre" className="mythic-task-parameters-description">
+                    {commandInfo.description || "No description provided."}
+                </Typography>
+            </Box>
+            {parameterGroups.length > 1 &&
+                <Box className="mythic-task-parameters-group-card">
+                    <Box className="mythic-task-parameters-group-copy">
+                        <Typography component="div" className="mythic-task-parameters-section-label">
+                            Parameter group
+                        </Typography>
+                        <Typography component="div" className="mythic-task-parameters-section-description">
+                            {parameterGroups.length} available groups
+                        </Typography>
+                    </Box>
+                    <FormControl className="mythic-task-parameters-group-select">
                         <TextField
                             select
+                            size="small"
                             label="Parameter Group"
                             value={selectedParameterGroup}
                             onChange={onChangeParameterGroup}
-                            
-                            input={<Input />}
                         >
                         {
                             parameterGroups.map((opt, i) => (
@@ -1059,42 +1097,31 @@ export function TaskParametersDialog(props) {
                         }
                         </TextField>
                     </FormControl>
-                    
-                }
-            </Typography>
-            <TableContainer className="mythicElement">
-                <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell style={{width: "30%"}}>Parameter</TableCell>
-                            <TableCell>Value</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {parameters.map( (op) => (
-                            <TaskParametersDialogRow onSubmit={onSubmit} key={"taskparameterrow" + op.id}
-                                onChange={onChange} commandInfo={commandInfo} {...op}
-                                parameterGroupName={selectedParameterGroup}
-                                callback_id={props.callback_id}
-                                onAgentConnectAddNewPayloadOnHost={onAgentConnectAddNewPayloadOnHost}
-                                onAgentConnectRemovePayloadOnHost={onAgentConnectRemovePayloadOnHost}
-                                addedCredential={addedCredential} removedCredential={removedCredential}
-                                setSubmenuOpenPreventTasking={setSubmenuOpenPreventTasking}
-                                                     getOtherParameters={getOtherParameters}
-                                />
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
+                </Box>
+            }
+            <Box className="mythic-task-parameters-list">
+                {parameters.map( (op) => (
+                    <TaskParametersDialogRow onSubmit={onSubmit} key={"taskparameterrow" + op.id}
+                        onChange={onChange} commandInfo={commandInfo} {...op}
+                        parameterGroupName={selectedParameterGroup}
+                        callback_id={props.callback_id}
+                        onAgentConnectAddNewPayloadOnHost={onAgentConnectAddNewPayloadOnHost}
+                        onAgentConnectRemovePayloadOnHost={onAgentConnectRemovePayloadOnHost}
+                        addedCredential={addedCredential} removedCredential={removedCredential}
+                        setSubmenuOpenPreventTasking={setSubmenuOpenPreventTasking}
+                                             getOtherParameters={getOtherParameters}
+                    />
+                ))}
+            </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={props.onClose} variant="contained" color="primary">
+        <MythicDialogFooter className="mythic-task-parameters-actions">
+          <MythicDialogButton onClick={props.onClose}>
             Close
-          </Button>
-          <Button onClick={onSubmit} disabled={submenuOpenPreventTask} variant="contained" color="warning">
+          </MythicDialogButton>
+          <MythicDialogButton onClick={onSubmit} disabled={submenuOpenPreventTask} intent="primary">
             {props.captureOnly ? "Use Parameters" : "Task"}
-          </Button>
-        </DialogActions>
+          </MythicDialogButton>
+        </MythicDialogFooter>
   </React.Fragment>
   );
 }
