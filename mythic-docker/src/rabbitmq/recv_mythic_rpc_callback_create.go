@@ -152,12 +152,6 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 		return response
 	}
 	defer transaction.Rollback()
-	_, err = transaction.Exec(`LOCK TABLE callback`)
-	if err != nil {
-		logging.LogError(err, "Failed to lock callback table")
-		response.Error = err.Error()
-		return response
-	}
 	if input.EventStepInstanceID != nil {
 		callback.EventStepInstanceID.Valid = true
 		callback.EventStepInstanceID.Int64 = int64(*input.EventStepInstanceID)

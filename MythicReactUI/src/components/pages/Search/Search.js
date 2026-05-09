@@ -20,7 +20,7 @@ import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/Myt
 export function Search(props){
 
   const navigate = useNavigate();
-  const tabTypes = ["callbacks", "tasks", "payloads", "files", "credentials", "keylogs", "artifacts", "tokens", "socks", "processes", "tags", "browsers"];
+  const tabTypes = ["callbacks", "tasks", "payloads", "files", "credentials", "keylogs", "artifacts", "tokens", "proxies", "processes", "tags", "browsers"];
   const tabLabels = {
     artifacts: "Artifacts",
     browsers: "Browser scripts",
@@ -30,7 +30,7 @@ export function Search(props){
     keylogs: "Keylogs",
     payloads: "Payloads",
     processes: "Processes",
-    socks: "SOCKS",
+    proxies: "proxies",
     tags: "Tags",
     tasks: "Tasks",
     tokens: "Tokens",
@@ -70,8 +70,8 @@ export function Search(props){
         return <SearchTabTokensPanel key={"tokenspanel"} index={value} me={props.me} value={value}  changeSearchParam={changeSearchParam} />
       case "artifacts":
         return <SearchTabArtifactsPanel key={"artifactspanel"} index={value} me={props.me} value={value}  changeSearchParam={changeSearchParam} />
-      case "socks":
-        return <SearchTabSocksPanel key={"sockspanel"} index={value} me={props.me} value={value} changeSearchParam={changeSearchParam} />
+      case "proxies":
+        return <SearchTabSocksPanel key={"proxiespanel"} index={value} me={props.me} value={value} changeSearchParam={changeSearchParam} />
       case "processes":
         return <SearchTabProcessPanel key={"processpanel"} index={value} me={props.me} value={value} changeSearchParam={changeSearchParam} />
       case "tags":
@@ -133,7 +133,7 @@ export function Search(props){
                       return <SearchTabCallbacksLabel key={"callbackstab"} me={props.me}/>;
                     case "artifacts":
                       return <SearchTabArtifactsLabel key={"artifactstab"} me={props.me}/>;
-                    case "socks":
+                    case "proxies":
                       return <SearchTabSocksLabel key={"sockstab"} me={props.me}/>;
                     case "processes":
                       return <SearchTabProcessesLabel key={"processtab"} me={props.me}/>;

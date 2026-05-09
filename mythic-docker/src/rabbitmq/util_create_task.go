@@ -555,11 +555,6 @@ func addTaskToDatabase(task *databaseStructs.Task) error {
 		return err
 	}
 	defer transaction.Rollback()
-	_, err = transaction.Exec(`LOCK TABLE task`)
-	if err != nil {
-		logging.LogError(err, "Failed to lock callback table")
-		return err
-	}
 	statement, err := transaction.PrepareNamed(`INSERT INTO task 
 	(agent_task_id,command_name,callback_id,operator_id,command_id,token_id,params,
 		original_params,display_params,status,tasking_location,parameter_group_name,
@@ -571,26 +566,29 @@ func addTaskToDatabase(task *databaseStructs.Task) error {
 			:parent_task_id, :subtask_callback_function, :group_callback_function, :subtask_group_name, :operation_id,
 		        :is_interactive_task, :interactive_task_type, :eventstepinstance_id, :status_timestamp_submitted,
 		        :command_payload_type, :mythic_parsed_params)
-			RETURNING id`)
+			RETURNING id, display_id`)
 	if err != nil {
 		logging.LogError(err, "Failed to make a prepared statement for new task creation")
 		return err
 	}
-	err = statement.Get(&task.ID, task)
+	defer statement.Close()
+	taskIDs := struct {
+		ID        int `db:"id"`
+		DisplayID int `db:"display_id"`
+	}{}
+	err = statement.Get(&taskIDs, task)
 	if err != nil {
 		logging.LogError(err, "Failed to create new task in database")
 		return err
 	}
+	task.ID = taskIDs.ID
+	task.DisplayID = taskIDs.DisplayID
 	err = transaction.Commit()
 	if err != nil {
-		logging.LogError(err, "Failed to commit transaction of creating new callback")
+		logging.LogError(err, "Failed to commit transaction of creating new task")
 		return err
 	}
 	go emitTaskLog(task.ID)
-	err = database.DB.Get(&task.DisplayID, `SELECT display_id FROM task WHERE id=$1`, task.ID)
-	if err != nil {
-		logging.LogError(err, "Failed to get task display ID from task table")
-	}
 	return nil
 }
 
