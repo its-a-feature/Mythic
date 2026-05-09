@@ -34,6 +34,31 @@ import (
 
 const POSTGRES_MAX_INT = 2147483647
 const POSTGRES_MAX_BIGINT = 9223372036854775807
+const defaultAgentMessagePostResponseWorkers = 8
+const defaultAgentMessagePostResponseQueueSize = 4096
+
+const insertAgentMessagePostResponseUserOutputQuery = `INSERT INTO response
+	("timestamp", task_id, response, sequence_number, operation_id)
+	VALUES ($1, $2, $3, $4, $5)
+	ON CONFLICT (task_id, sequence_number) WHERE sequence_number IS NOT NULL DO NOTHING
+	RETURNING id`
+
+const selectAgentMessagePostResponseTasksQuery = `SELECT
+	task.agent_task_id, task.id, task.status, task.completed, task.status_timestamp_processed, task.operator_id, task.operation_id,
+	task.stdout, task.stderr, task.display_id,
+	task.eventstepinstance_id, task.apitokens_id,
+	callback.host "callback.host",
+	callback.user "callback.user",
+	callback.id "callback.id",
+	callback.display_id "callback.display_id",
+	callback.agent_callback_id "callback.agent_callback_id",
+	callback.mythictree_groups "callback.mythictree_groups",
+	payload.payload_type_id "callback.payload.payload_type_id",
+	payload.os "callback.payload.os"
+	FROM task
+	JOIN callback ON task.callback_id = callback.id
+	JOIN payload ON callback.registered_payload_id = payload.id
+	WHERE task.agent_task_id IN (?)`
 
 type agentMessagePostResponseMessage struct {
 	Responses []agentMessagePostResponse `json:"responses" mapstructure:"responses" xml:"responses"`
@@ -275,10 +300,46 @@ type agentAgentMessagePostResponseChannelMessage struct {
 	Task        databaseStructs.Task
 }
 
-var asyncAgentMessagePostResponseChannel = make(chan agentAgentMessagePostResponseChannelMessage, 100)
+var asyncAgentMessagePostResponseWorkerChannels []chan agentAgentMessagePostResponseChannelMessage
+var asyncAgentMessagePostResponseWorkersOnce sync.Once
 
 var responseInterceptMapOperationIDToEventGroupID = make(map[int]int)
 var responseInterceptMapLock = sync.RWMutex{}
+
+func getAgentMessagePostResponseWorkerCount() int {
+	if utils.MythicConfig.AgentMessagePostResponseWorkers > 0 {
+		return utils.MythicConfig.AgentMessagePostResponseWorkers
+	}
+	return defaultAgentMessagePostResponseWorkers
+}
+
+func getAgentMessagePostResponseQueueSize() int {
+	if utils.MythicConfig.AgentMessagePostResponseQueueSize > 0 {
+		return utils.MythicConfig.AgentMessagePostResponseQueueSize
+	}
+	return defaultAgentMessagePostResponseQueueSize
+}
+
+func initializeAsyncAgentMessagePostResponseWorkers() {
+	UpdateCachedResponseIntercept()
+	workerCount := getAgentMessagePostResponseWorkerCount()
+	queueSize := getAgentMessagePostResponseQueueSize()
+	asyncAgentMessagePostResponseWorkerChannels = make([]chan agentAgentMessagePostResponseChannelMessage, workerCount)
+	for i := 0; i < workerCount; i++ {
+		asyncAgentMessagePostResponseWorkerChannels[i] = make(chan agentAgentMessagePostResponseChannelMessage, queueSize)
+		go listenForAsyncAgentMessagePostResponseWorker(i, asyncAgentMessagePostResponseWorkerChannels[i])
+	}
+}
+
+func enqueueAsyncAgentMessagePostResponse(msg agentAgentMessagePostResponseChannelMessage) {
+	asyncAgentMessagePostResponseWorkersOnce.Do(initializeAsyncAgentMessagePostResponseWorkers)
+	workerCount := len(asyncAgentMessagePostResponseWorkerChannels)
+	workerID := msg.Task.ID % workerCount
+	if workerID < 0 {
+		workerID = 0
+	}
+	asyncAgentMessagePostResponseWorkerChannels[workerID] <- msg
+}
 
 func UpdateCachedResponseIntercept() {
 	eventGroups := []databaseStructs.EventGroup{}
@@ -298,52 +359,98 @@ func UpdateCachedResponseIntercept() {
 		responseInterceptMapOperationIDToEventGroupID = make(map[int]int)
 		return
 	}
+	newResponseInterceptMap := make(map[int]int, len(eventGroups))
 	for _, eventGroup := range eventGroups {
-		responseInterceptMapOperationIDToEventGroupID[eventGroup.OperationID] = eventGroup.ID
+		newResponseInterceptMap[eventGroup.OperationID] = eventGroup.ID
 	}
+	responseInterceptMapOperationIDToEventGroupID = newResponseInterceptMap
 }
+
+func getCachedResponseInterceptEventGroupID(operationID int) (int, bool) {
+	responseInterceptMapLock.RLock()
+	eventGroupID, ok := responseInterceptMapOperationIDToEventGroupID[operationID]
+	responseInterceptMapLock.RUnlock()
+	return eventGroupID, ok
+}
+
 func listenForAsyncAgentMessagePostResponseContent() {
-	UpdateCachedResponseIntercept()
-	for {
-		msg := <-asyncAgentMessagePostResponseChannel
-		// force chunking user_output can be useful, but might also affect command's browserscripts
-		//chunkSize := 1024 * 1024
-		//chunks := int(len(msg.Response)/chunkSize) + 1 // 1MB chunks
-		//for j := 0; j < chunks; j++ {
-		//	currentChunkStart := j * chunkSize
-		//	currentChunkEnd := currentChunkStart + chunkSize
-		//	if currentChunkEnd > len(msg.Response) {
-		//		currentChunkEnd = len(msg.Response)
-		//	}
-		//	chunkBuf := msg.Response[currentChunkStart:currentChunkEnd]
-		responseInterceptMapLock.RLock()
-		if eventGroupID, ok := responseInterceptMapOperationIDToEventGroupID[msg.Task.OperationID]; ok {
-			output := ""
-			responseID := handleAgentMessagePostResponseUserOutput(msg.Task, agentMessagePostResponse{
-				TaskID:     msg.Task.AgentTaskID,
-				UserOutput: &output,
-			}, false)
-			if responseID > 0 {
-				// we have an interception possibility, so send that off for processing
-				EventingChannel <- EventNotification{
-					Trigger:               eventing.TriggerResponseIntercept,
-					OperationID:           msg.Task.OperationID,
-					EventGroupID:          eventGroupID,
-					ResponseID:            responseID,
-					TaskID:                msg.Task.ID,
-					ResponseInterceptData: msg.Response,
-				}
-			}
-		} else {
-			handleAgentMessagePostResponseUserOutput(msg.Task, agentMessagePostResponse{
-				TaskID:     msg.Task.AgentTaskID,
-				UserOutput: &msg.Response,
-			}, true)
-		}
-		responseInterceptMapLock.RUnlock()
-		//}
+	asyncAgentMessagePostResponseWorkersOnce.Do(initializeAsyncAgentMessagePostResponseWorkers)
+}
+
+func listenForAsyncAgentMessagePostResponseWorker(workerID int, input <-chan agentAgentMessagePostResponseChannelMessage) {
+	insertStatement, err := database.DB.Preparex(insertAgentMessagePostResponseUserOutputQuery)
+	if err != nil {
+		logging.LogError(err, "Failed to prepare user_output insert statement for post_response worker", "worker_id", workerID)
+	}
+	if insertStatement != nil {
+		defer insertStatement.Close()
+	}
+	for msg := range input {
+		processAsyncAgentMessagePostResponseContent(msg, insertStatement)
 	}
 }
+
+func processAsyncAgentMessagePostResponseContent(msg agentAgentMessagePostResponseChannelMessage, insertStatement *sqlx.Stmt) {
+	// force chunking user_output can be useful, but might also affect command's browserscripts
+	//chunkSize := 1024 * 1024
+	//chunks := int(len(msg.Response)/chunkSize) + 1 // 1MB chunks
+	//for j := 0; j < chunks; j++ {
+	//	currentChunkStart := j * chunkSize
+	//	currentChunkEnd := currentChunkStart + chunkSize
+	//	if currentChunkEnd > len(msg.Response) {
+	//		currentChunkEnd = len(msg.Response)
+	//	}
+	//	chunkBuf := msg.Response[currentChunkStart:currentChunkEnd]
+	if eventGroupID, ok := getCachedResponseInterceptEventGroupID(msg.Task.OperationID); ok {
+		output := ""
+		responseID := insertAgentMessagePostResponseUserOutput(msg.Task, output, msg.SequenceNum, false, insertStatement)
+		if responseID > 0 {
+			// we have an interception possibility, so send that off for processing
+			EventingChannel <- EventNotification{
+				Trigger:               eventing.TriggerResponseIntercept,
+				OperationID:           msg.Task.OperationID,
+				EventGroupID:          eventGroupID,
+				ResponseID:            responseID,
+				TaskID:                msg.Task.ID,
+				ResponseInterceptData: msg.Response,
+			}
+		}
+	} else {
+		insertAgentMessagePostResponseUserOutput(msg.Task, msg.Response, msg.SequenceNum, true, insertStatement)
+	}
+	//}
+}
+
+func getAgentMessagePostResponseTasks(responses []agentMessagePostResponse) (map[string]databaseStructs.Task, error) {
+	taskIDs := make([]string, 0, len(responses))
+	seenTaskIDs := make(map[string]bool, len(responses))
+	for _, response := range responses {
+		if response.TaskID == "" || seenTaskIDs[response.TaskID] {
+			continue
+		}
+		seenTaskIDs[response.TaskID] = true
+		taskIDs = append(taskIDs, response.TaskID)
+	}
+	tasksByAgentTaskID := make(map[string]databaseStructs.Task, len(taskIDs))
+	if len(taskIDs) == 0 {
+		return tasksByAgentTaskID, nil
+	}
+
+	query, args, err := sqlx.In(selectAgentMessagePostResponseTasksQuery, taskIDs)
+	if err != nil {
+		return tasksByAgentTaskID, err
+	}
+	query = database.DB.Rebind(query)
+	tasks := []databaseStructs.Task{}
+	if err = database.DB.Select(&tasks, query, args...); err != nil {
+		return tasksByAgentTaskID, err
+	}
+	for _, task := range tasks {
+		tasksByAgentTaskID[task.AgentTaskID] = task
+	}
+	return tasksByAgentTaskID, nil
+}
+
 func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *cachedUUIDInfo) (map[string]interface{}, error) {
 	// got message:
 	/*
@@ -374,6 +481,11 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 		return map[string]interface{}{}, err
 	}
 	responses := []map[string]interface{}{}
+	cachedTaskData, err = getAgentMessagePostResponseTasks(agentMessage.Responses)
+	if err != nil {
+		logging.LogError(err, "Failed to batch load tasks for post_response")
+	}
+	tasksToUpdate := make(map[string]databaseStructs.Task, len(cachedTaskData))
 	// iterate over the agent messages
 	for i, _ := range agentMessage.Responses {
 		mythicResponse := map[string]interface{}{
@@ -382,33 +494,16 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 		}
 		//logging.LogDebug("Got response data from agent", "response data", agentResponse, "extra keys", agentResponse.Other)
 		// every response should be tied to some task
-		currentTask := databaseStructs.Task{AgentTaskID: agentMessage.Responses[i].TaskID}
-		if _, ok := cachedTaskData[currentTask.AgentTaskID]; ok {
-			currentTask = cachedTaskData[currentTask.AgentTaskID]
-		} else {
-			err = database.DB.Get(&currentTask, `SELECT
-			task.id, task.status, task.completed, task.status_timestamp_processed, task.operator_id, task.operation_id,
-			task.stdout, task.stderr, task.display_id,
-			task.eventstepinstance_id, task.apitokens_id,
-			callback.host "callback.host",
-			callback.user "callback.user",
-			callback.id "callback.id",
-			callback.display_id "callback.display_id",
-			callback.agent_callback_id "callback.agent_callback_id",
-			callback.mythictree_groups "callback.mythictree_groups",
-			payload.payload_type_id "callback.payload.payload_type_id",
-			payload.os "callback.payload.os"
-			FROM task
-			JOIN callback ON task.callback_id = callback.id
-			JOIN payload ON callback.registered_payload_id = payload.id
-			WHERE task.agent_task_id=$1`, currentTask.AgentTaskID)
-			if err != nil {
-				logging.LogError(err, "Failed to find task", "task id", currentTask.AgentTaskID)
-				mythicResponse["status"] = "error"
-				mythicResponse["error"] = "Failed to find task"
-				responses = append(responses, mythicResponse)
-				continue
-			}
+		currentTask, ok := tasksToUpdate[agentMessage.Responses[i].TaskID]
+		if !ok {
+			currentTask, ok = cachedTaskData[agentMessage.Responses[i].TaskID]
+		}
+		if !ok {
+			logging.LogError(nil, "Failed to find task", "task id", agentMessage.Responses[i].TaskID)
+			mythicResponse["status"] = "error"
+			mythicResponse["error"] = "Failed to find task"
+			responses = append(responses, mythicResponse)
+			continue
 		}
 
 		// always process here
@@ -481,10 +576,11 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 		if agentMessage.Responses[i].UserOutput != nil && *agentMessage.Responses[i].UserOutput != "" {
 			// do it in the background - the agent doesn't need the result of this directly
 			//handleAgentMessagePostResponseUserOutput(currentTask, agentResponse, true)
-			asyncAgentMessagePostResponseChannel <- agentAgentMessagePostResponseChannelMessage{
-				Task:     currentTask,
-				Response: *agentMessage.Responses[i].UserOutput,
-			}
+			enqueueAsyncAgentMessagePostResponse(agentAgentMessagePostResponseChannelMessage{
+				Task:        currentTask,
+				Response:    *agentMessage.Responses[i].UserOutput,
+				SequenceNum: agentMessage.Responses[i].SequenceNumber,
+			})
 		}
 		if agentMessage.Responses[i].Stdout != nil {
 			currentTask.Stdout += *agentMessage.Responses[i].Stdout
@@ -553,14 +649,14 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 		// this section always happens
 		reflectBackOtherKeys(&mythicResponse, &agentMessage.Responses[i].Other)
 		responses = append(responses, mythicResponse)
-		cachedTaskData[currentTask.AgentTaskID] = currentTask
+		tasksToUpdate[currentTask.AgentTaskID] = currentTask
 	}
 	response := map[string]interface{}{}
 	response["responses"] = responses
 	reflectBackOtherKeys(&response, &agentMessage.Other)
 	// remove responses so that we don't accidentally process it twice
 	delete(*incoming, "responses")
-	for _, currentTask := range cachedTaskData {
+	for _, currentTask := range tasksToUpdate {
 		// always updating at least the timestamp for the last thing that happened
 		_, err = database.DB.NamedExec(`UPDATE task SET
 				status=:status, completed=:completed, status_timestamp_processed=:status_timestamp_processed, "timestamp"=:timestamp,
@@ -647,44 +743,46 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 
 }
 func handleAgentMessagePostResponseUserOutput(task databaseStructs.Task, agentResponse agentMessagePostResponse, emitNotification bool) int {
+	if agentResponse.UserOutput == nil {
+		return 0
+	}
+	return insertAgentMessagePostResponseUserOutput(task, *agentResponse.UserOutput, agentResponse.SequenceNumber, emitNotification, nil)
+}
+
+func insertAgentMessagePostResponseUserOutput(task databaseStructs.Task, userOutput string, sequenceNumber *int64, emitNotification bool, insertStatement *sqlx.Stmt) int {
 	responseOutput := databaseStructs.Response{
 		Timestamp:   time.Now().UTC(),
 		TaskID:      task.ID,
-		Response:    []byte(*agentResponse.UserOutput),
+		Response:    []byte(userOutput),
 		OperationID: task.OperationID,
 	}
-	if len(*agentResponse.UserOutput) == 0 && emitNotification {
+	if len(userOutput) == 0 && emitNotification {
 		//logging.LogError(nil, "Tried to add response of 0 bytes, returning")
 		return 0
 	}
-	if agentResponse.SequenceNumber != nil {
-		// if we're tracking sequence numbers, then there shouldn't be a matching sequence number for this task to prevent replays
+	if sequenceNumber != nil {
 		responseOutput.SequenceNumber.Valid = true
-		responseOutput.SequenceNumber.Int64 = *agentResponse.SequenceNumber
-		if _, err := database.DB.NamedQuery(`SELECT id 
-		FROM response
-		WHERE sequence_number=:sequence_number AND task_id=:task_id`, responseOutput); errors.Is(err, sql.ErrNoRows) {
-			// we don't have this sequence number for this task yet, so we're safe to insert it
-			logging.LogInfo("Sequence number is not NULL!")
-		} else if err != nil {
-			logging.LogError(err, "Failed to fetch responses when looking for an existing sequence number")
-			return 0
-		} else {
-			// this sequence number and task do exist, so don't insert it
-			logging.LogError(nil, "Got a duplicate sequence number for a response", "task_id", responseOutput.TaskID, "sequence number", *agentResponse.SequenceNumber)
+		responseOutput.SequenceNumber.Int64 = *sequenceNumber
+	}
+
+	args := []interface{}{
+		responseOutput.Timestamp,
+		responseOutput.TaskID,
+		responseOutput.Response,
+		responseOutput.SequenceNumber,
+		responseOutput.OperationID,
+	}
+	var err error
+	if insertStatement != nil {
+		err = insertStatement.QueryRowx(args...).Scan(&responseOutput.ID)
+	} else {
+		err = database.DB.QueryRowx(insertAgentMessagePostResponseUserOutputQuery, args...).Scan(&responseOutput.ID)
+	}
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) && responseOutput.SequenceNumber.Valid {
+			logging.LogError(nil, "Got a duplicate sequence number for a response", "task_id", responseOutput.TaskID, "sequence number", responseOutput.SequenceNumber.Int64)
 			return 0
 		}
-	}
-	statement, err := database.DB.PrepareNamed(`INSERT INTO response
-		("timestamp", task_id, response, sequence_number, operation_id)
-		VALUES (:timestamp, :task_id, :response, :sequence_number, :operation_id)
-		RETURNING id`)
-	if err != nil {
-		logging.LogError(err, "Failed to prepare new named statement for user_output", "task_id", responseOutput.TaskID)
-		return 0
-	}
-	err = statement.Get(&responseOutput.ID, responseOutput)
-	if err != nil {
 		logging.LogError(err, "Failed to insert new user_output", "task_id", responseOutput.TaskID)
 		return 0
 	}
@@ -1835,11 +1933,11 @@ func HandleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 				logging.LogError(err, "failed to marshal filebrowser data to JSON")
 				return
 			}
-			asyncAgentMessagePostResponseChannel <- agentAgentMessagePostResponseChannelMessage{
+			enqueueAsyncAgentMessagePostResponse(agentAgentMessagePostResponseChannelMessage{
 				Task:        task,
 				Response:    string(outputBytes),
 				SequenceNum: nil,
-			}
+			})
 		}(fileBrowser)
 	}
 	pathData, err := utils.SplitFilePathGetHost(fileBrowser.ParentPath, fileBrowser.Name, []string{})
@@ -2761,11 +2859,11 @@ func handleAgentMessagePostResponseCustomBrowser(task databaseStructs.Task, agen
 				logging.LogError(err, "failed to marshal filebrowser data to JSON")
 				return
 			}
-			asyncAgentMessagePostResponseChannel <- agentAgentMessagePostResponseChannelMessage{
+			enqueueAsyncAgentMessagePostResponse(agentAgentMessagePostResponseChannelMessage{
 				Task:        task,
 				Response:    string(outputBytes),
 				SequenceNum: nil,
-			}
+			})
 		}(agentCustomBrowser)
 	}
 	if agentCustomBrowser.Entries == nil || len(*agentCustomBrowser.Entries) == 0 {

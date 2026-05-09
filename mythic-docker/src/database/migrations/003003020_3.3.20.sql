@@ -58,6 +58,25 @@ create unique index if not exists callback_operation_display_id_unique
 on "public"."callback" using btree (operation_id, display_id);
 
 -- +migrate StatementBegin
+do $$
+begin
+    if exists (
+        select 1
+        from "public"."response"
+        where sequence_number is not null
+        group by task_id, sequence_number
+        having count(*) > 1
+    ) then
+        raise exception 'Cannot add response(task_id, sequence_number) uniqueness because duplicate response sequence numbers already exist';
+    end if;
+end $$;
+-- +migrate StatementEnd
+
+create unique index if not exists response_task_sequence_number_unique
+on "public"."response" using btree (task_id, sequence_number)
+where sequence_number is not null;
+
+-- +migrate StatementBegin
 create or replace function public.new_task_display_id() returns trigger
     language plpgsql
     as $$
@@ -181,4 +200,5 @@ $$;
 
 drop index if exists "public"."callback_operation_display_id_unique";
 drop index if exists "public"."task_operation_display_id_unique";
+drop index if exists "public"."response_task_sequence_number_unique";
 drop table if exists "public"."operation_display_counters";
