@@ -32,6 +32,7 @@ func (r *rabbitMQConnection) SendC2RPCGetRedirectorRules(redirectorRules C2GetRe
 		GetC2RPCRedirectorRulesRoutingKey(redirectorRules.Name),
 		opsecBytes,
 		exclusiveQueue,
+		RPC_RETRY_POLICY_CUSTOM_TIMEOUT,
 	); err != nil {
 		logging.LogError(err, "Failed to send RPC message")
 		return nil, err

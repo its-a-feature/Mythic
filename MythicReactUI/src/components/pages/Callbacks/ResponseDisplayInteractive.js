@@ -869,11 +869,23 @@ export const ResponseDisplayInteractive = (props) =>{
         setSearch(newSearch || "");
     }, []);
     React.useEffect( () => {
-        taskResponseCountRef.current = props.task.response_count || 0;
+        const nextResponseCount = props.task.response_count || 0;
+        const previousKnownResponseCount = Math.max(totalCountRef.current, taskResponseCountRef.current);
+        taskResponseCountRef.current = Math.max(taskResponseCountRef.current, nextResponseCount);
         if(search === ""){
-            setTrackedTotalCount(props.task.response_count || 0);
+            setTrackedTotalCount(nextResponseCount);
         }
-    }, [props.task.response_count, search, setTrackedTotalCount]);
+        if(search !== "" || nextResponseCount <= previousKnownResponseCount){
+            return;
+        }
+        const pageStartIndex = (currentPageRef.current - 1) * pageSize.current;
+        const pageEndIndex = currentPageRef.current * pageSize.current;
+        const currentPageCouldContainNewResponses = previousKnownResponseCount < pageEndIndex &&
+            nextResponseCount > pageStartIndex;
+        if(props.selectAllOutput || rawResponsesRef.current.length === 0 || currentPageCouldContainNewResponses){
+            fetchResponsePage(currentPageRef.current, false);
+        }
+    }, [fetchResponsePage, props.selectAllOutput, props.task.response_count, search, setTrackedTotalCount]);
     const toggleANSIColor = () => {
         setUseANSIColor(!useASNIColor);
     }

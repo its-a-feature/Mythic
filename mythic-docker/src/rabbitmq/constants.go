@@ -2,6 +2,8 @@ package rabbitmq
 
 import "time"
 
+type RPCRetryPolicy int
+
 const (
 	MYTHIC_EXCHANGE                        = "mythic_exchange"
 	MYTHIC_TOPIC_EXCHANGE                  = "mythic_topic_exchange"
@@ -11,6 +13,15 @@ const (
 	TIME_FORMAT_STRING_YYYY_MM_DD_HH_MM_SS = "2006-01-02 15:04:05 Z07"
 	RPC_TIMEOUT                            = 10 * time.Second
 	TASK_STATUS_CONTAINER_DOWN             = "Error: Container Down"
+)
+
+const (
+	// Retry response timeouts with a new RPC request, preserving Mythic's historical 3-attempt behavior.
+	RPC_RETRY_POLICY_RETRY_ON_TIMEOUT RPCRetryPolicy = iota
+	// Retry publish failures only; once a request is delivered, do not send duplicate work after response timeout.
+	RPC_RETRY_POLICY_NO_RETRY_ON_TIMEOUT
+	// Use CUSTOM_RPC_TIMEOUT for slow valid calls and do not send duplicate work after response timeout.
+	RPC_RETRY_POLICY_CUSTOM_TIMEOUT
 )
 
 // Direct fanout rabbitmq routes where Mythic is consuming messages, but others can also listen in and consume

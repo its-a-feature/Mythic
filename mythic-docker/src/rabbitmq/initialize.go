@@ -44,6 +44,16 @@ type rabbitMQConnection struct {
 	addListenerMutex sync.RWMutex
 	channelMutexMap  map[string]*channelMutex
 	channelMutex     sync.RWMutex
+	publisherMutex   sync.Mutex
+	publisherChannel *amqp.Channel
+	publisherConfirm chan amqp.Confirmation
+	publisherReturn  chan amqp.Return
+	rpcClientMutex   sync.Mutex
+	rpcChannel       *amqp.Channel
+	rpcConfirm       chan amqp.Confirmation
+	rpcReturn        chan amqp.Return
+	rpcPending       map[string]chan rpcResponse
+	rpcExchanges     map[string]bool
 	RPCQueues        []RPCQueueStruct
 	DirectQueues     []DirectQueueStruct
 }

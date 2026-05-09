@@ -28,6 +28,7 @@ set
         excluded.last_callback_display_id
     );
 
+-- +migrate StatementBegin
 do $$
 begin
     if exists (
@@ -48,6 +49,7 @@ begin
         raise exception 'Cannot add callback(operation_id, display_id) uniqueness because duplicate callback display IDs already exist';
     end if;
 end $$;
+-- +migrate StatementEnd
 
 create unique index if not exists task_operation_display_id_unique
 on "public"."task" using btree (operation_id, display_id);
@@ -55,6 +57,7 @@ on "public"."task" using btree (operation_id, display_id);
 create unique index if not exists callback_operation_display_id_unique
 on "public"."callback" using btree (operation_id, display_id);
 
+-- +migrate StatementBegin
 create or replace function public.new_task_display_id() returns trigger
     language plpgsql
     as $$
@@ -71,7 +74,9 @@ begin
     return new;
 end;
 $$;
+-- +migrate StatementEnd
 
+-- +migrate StatementBegin
 create or replace function public.new_callback_display_id() returns trigger
     language plpgsql
     as $$
@@ -88,6 +93,7 @@ begin
     return new;
 end;
 $$;
+-- +migrate StatementEnd
 
 update "public"."task"
 set response_count = response_counts.total
@@ -102,6 +108,7 @@ from (
 where task.id = response_counts.id
 and task.response_count is distinct from response_counts.total;
 
+-- +migrate StatementBegin
 create or replace function public.update_task_response_count() returns trigger
     language plpgsql
     as $$
@@ -113,10 +120,12 @@ begin
     return new;
 end;
 $$;
+-- +migrate StatementEnd
 
 -- +migrate Down
 -- SQL in section 'Down' is executed when this migration is rolled back
 
+-- +migrate StatementBegin
 create or replace function public.update_task_response_count() returns trigger
     language plpgsql
     as $$
@@ -132,7 +141,9 @@ begin
     return new;
 end;
 $$;
+-- +migrate StatementEnd
 
+-- +migrate StatementBegin
 create or replace function public.new_callback_display_id() returns trigger
     language plpgsql
     as $$
@@ -148,7 +159,9 @@ begin
     return new;
 end;
 $$;
+-- +migrate StatementEnd
 
+-- +migrate StatementBegin
 create or replace function public.new_task_display_id() returns trigger
     language plpgsql
     as $$
@@ -164,6 +177,7 @@ begin
     return new;
 end;
 $$;
+-- +migrate StatementEnd
 
 drop index if exists "public"."callback_operation_display_id_unique";
 drop index if exists "public"."task_operation_display_id_unique";

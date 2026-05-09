@@ -29,6 +29,7 @@ func (r *rabbitMQConnection) SendPtRPCCommandHelp(msg CommandHelpMessage) (*Comm
 		GetPtCommandHelpRoutingKey(msg.PayloadType),
 		configBytes,
 		exclusiveQueue,
+		RPC_RETRY_POLICY_RETRY_ON_TIMEOUT,
 	)
 	if err != nil {
 		logging.LogError(err, "Failed to send RPC message")

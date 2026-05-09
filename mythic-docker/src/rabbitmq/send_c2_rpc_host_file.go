@@ -35,6 +35,7 @@ func (r *rabbitMQConnection) SendC2RPCHostFile(hostFile C2HostFileMessage) (*C2H
 		GetC2RPCHostFileRoutingKey(hostFile.Name),
 		opsecBytes,
 		exclusiveQueue,
+		RPC_RETRY_POLICY_CUSTOM_TIMEOUT,
 	)
 	if err != nil {
 		logging.LogError(err, "Failed to send RPC message")

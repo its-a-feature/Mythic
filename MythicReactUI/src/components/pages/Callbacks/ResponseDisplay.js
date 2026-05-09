@@ -180,9 +180,16 @@ const NonInteractiveResponseDisplay = (props) => {
     fetchPolicy: "no-cache",
     onCompleted: (data) => {
       const responseArray = data.response.map(decodeResponse);
-      rawResponsesRef.current = responseArray;
-      setRawResponses(responseArray);
-      setTrackedTotalCount(getAggregateCount(data));
+      const shouldPreserveStreamedResponses = search === "" && currentPageRef.current === 1;
+      const nextResponses = shouldPreserveStreamedResponses ? mergeResponsesById({
+        existingResponses: rawResponsesRef.current,
+        incomingResponses: responseArray,
+        limit: pageSize,
+      }) : responseArray;
+      rawResponsesRef.current = nextResponses;
+      setRawResponses(nextResponses);
+      const aggregateCount = Math.max(getAggregateCount(data), shouldPreserveStreamedResponses ? nextResponses.length : 0);
+      setTrackedTotalCount(aggregateCount);
       highestKnownResponseID.current = Math.max(highestKnownResponseID.current, getLatestResponseID(data));
       pageDataLoaded.current = true;
       setOpenBackdrop(false);
@@ -195,15 +202,20 @@ const NonInteractiveResponseDisplay = (props) => {
     fetchPolicy: "no-cache",
     onCompleted: (data) => {
       const responseArray = data.response.map(decodeResponse);
-      rawResponsesRef.current = responseArray;
-      setRawResponses(responseArray);
-      const aggregateCount = getAggregateCount(data);
+      const nextResponses = search === "" ? mergeResponsesById({
+        existingResponses: rawResponsesRef.current,
+        incomingResponses: responseArray,
+        limit: MAX_SELECT_ALL_RESPONSES,
+      }) : responseArray;
+      rawResponsesRef.current = nextResponses;
+      setRawResponses(nextResponses);
+      const aggregateCount = Math.max(getAggregateCount(data), search === "" ? nextResponses.length : 0);
       setTrackedTotalCount(aggregateCount);
       highestKnownResponseID.current = Math.max(highestKnownResponseID.current, getLatestResponseID(data));
       pageDataLoaded.current = true;
       currentPageRef.current = 1;
       setCurrentPage(1);
-      warnSelectAllCapped(responseArray.length, aggregateCount);
+      warnSelectAllCapped(nextResponses.length, aggregateCount);
       setOpenBackdrop(false);
     },
     onError: (data) => {
@@ -262,17 +274,32 @@ const NonInteractiveResponseDisplay = (props) => {
     return () => clearTimeout(timeoutID);
   }, [openBackdrop]);
   React.useEffect( () => {
-    taskResponseCountRef.current = props.task.response_count || 0;
+    const nextResponseCount = props.task.response_count || 0;
+    const previousTaskResponseCount = taskResponseCountRef.current;
+    const previousKnownResponseCount = Math.max(totalCountRef.current, previousTaskResponseCount);
+    taskResponseCountRef.current = nextResponseCount;
     if(search !== ""){
       return;
     }
-    if(props.task.response_count > totalCountRef.current){
-      setTrackedTotalCount(props.task.response_count);
+    if(nextResponseCount > totalCountRef.current){
+      setTrackedTotalCount(nextResponseCount);
     }
-  }, [props.task.response_count, search, setTrackedTotalCount]);
+    if(nextResponseCount <= previousKnownResponseCount){
+      return;
+    }
+    const pageStartIndex = (currentPageRef.current - 1) * pageSize;
+    const pageEndIndex = currentPageRef.current * pageSize;
+    const currentPageCouldContainNewResponses = previousKnownResponseCount < pageEndIndex &&
+        nextResponseCount > pageStartIndex;
+    if(props.selectAllOutput){
+      fetchSelectAllResponses();
+    }else if(rawResponsesRef.current.length === 0 || currentPageCouldContainNewResponses){
+      fetchResponsePage(currentPageRef.current, false);
+    }
+  }, [fetchResponsePage, fetchSelectAllResponses, pageSize, props.selectAllOutput, props.task.response_count, search, setTrackedTotalCount]);
   const subscriptionDataCallback = React.useCallback( ({data}) => {
     const streamedResponses = data?.data?.response_stream || [];
-    if(streamedResponses.length === 0 || !pageDataLoaded.current){
+    if(streamedResponses.length === 0){
       return;
     }
     const previousHighestID = highestKnownResponseID.current;
