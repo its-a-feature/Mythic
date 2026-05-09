@@ -22,6 +22,7 @@ import {getSkewedNow} from "../../utilities/Time";
 import { useTheme } from '@mui/material/styles';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {getReadableTextColor, isValidHexColor} from "../../MythicComponents/MythicColorInput";
+import {copyStringToClipboard} from "../../utilities/Clipboard";
 
 const GetLoadedCommandsSubscription = gql`
 subscription GetLoadedCommandsSubscription($callback_id: Int!){
@@ -174,22 +175,39 @@ const IsRepeatableCLIParameterType = (parameter_type) => {
 const TaskingContextChip = ({title, label, value, color, callbackColor, emphasized=false}) => {
     const safeColor = isValidHexColor(color) ? color : "#000000";
     const borderColor = isValidHexColor(callbackColor) ? callbackColor : undefined;
-    const tooltipTitle = `${title}: ${value}`;
+    const copyValue = String(value);
+    const copyLabel = `Copy ${title}`;
+    const onCopyValue = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if(copyStringToClipboard(copyValue)){
+            snackActions.success("Copied tasking context");
+        }else{
+            snackActions.error("Failed to copy tasking context");
+        }
+    }
+    const onCopyKeyDown = (event) => {
+        if(event.key === "Enter" || event.key === " "){
+            onCopyValue(event);
+        }
+    }
     return (
-        <MythicStyledTooltip title={tooltipTitle}>
-            <span className={`mythic-tasking-context-chip${emphasized ? " mythic-tasking-context-chip-emphasized" : ""}`}
-                  style={{
-                      backgroundColor: safeColor,
-                      borderColor: borderColor,
-                      color: getReadableTextColor(safeColor),
-                  }}
-                  title={tooltipTitle}>
-                {label !== "" &&
-                    <span className="mythic-tasking-context-chip-label">{label}</span>
-                }
-                <span className="mythic-tasking-context-chip-value">{value}</span>
-            </span>
-        </MythicStyledTooltip>
+        <span className={`mythic-tasking-context-chip${emphasized ? " mythic-tasking-context-chip-emphasized" : ""}`}
+              aria-label={copyLabel}
+              onClick={onCopyValue}
+              onKeyDown={onCopyKeyDown}
+              role="button"
+              style={{
+                  backgroundColor: safeColor,
+                  borderColor: borderColor,
+                  color: getReadableTextColor(safeColor),
+              }}
+              tabIndex={0}>
+            {label !== "" &&
+                <span className="mythic-tasking-context-chip-label">{label}</span>
+            }
+            <span className="mythic-tasking-context-chip-value">{copyValue}</span>
+        </span>
     )
 }
 

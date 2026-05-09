@@ -7,7 +7,6 @@ import (
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
-	"github.com/its-a-feature/Mythic/utils"
 	"github.com/jmoiron/sqlx"
 	"slices"
 	"sync"
@@ -19,6 +18,7 @@ import (
 type cbGraph struct {
 	// map callback_id -> array of adjacent callback_ids
 	adjMatrix map[int][]cbGraphAdjMatrixEntry
+	version   uint64
 	lock      sync.RWMutex
 }
 type cbGraphAdjMatrixEntry struct {
@@ -48,50 +48,52 @@ var uuidToIdAndOpId map[string]idAndOpId
 
 type bfsCache struct {
 	// source -> destination -> path
-	cache map[int]map[int][][]cbGraphAdjMatrixEntry
+	cache map[int]map[int]bfsCacheEntry
 	lock  sync.RWMutex
+}
+
+type bfsCacheEntry struct {
+	graphVersion uint64
+	path         []cbGraphAdjMatrixEntry
 }
 
 var BFSCache bfsCache
 
-func (c *bfsCache) GetPath(sourceId int, destinationId int) []cbGraphAdjMatrixEntry {
+func (c *bfsCache) GetPath(sourceId int, destinationId int, graphVersion uint64) ([]cbGraphAdjMatrixEntry, bool) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	if _, sourceExists := c.cache[sourceId]; sourceExists {
-		if _, destinationExists := c.cache[sourceId][destinationId]; destinationExists {
-			if len(c.cache[sourceId][destinationId]) > 0 {
-				//logging.LogInfo("Got path from cache", "source", sourceId, "destination", destinationId, "path", c.cache[sourceId][destinationId][0])
-				return c.cache[sourceId][destinationId][0]
+		if cachedPath, destinationExists := c.cache[sourceId][destinationId]; destinationExists {
+			if cachedPath.graphVersion == graphVersion {
+				return cachedPath.path, true
 			}
-			return nil
-		} else {
-			return nil
 		}
-	} else {
-		return nil
 	}
+	return nil, false
 }
-func (c *bfsCache) Remove(sourceId int) {
+func (c *bfsCache) Reset() {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	if _, sourceExists := c.cache[sourceId]; sourceExists {
-		delete(c.cache, sourceId)
-	}
-	return
+	c.cache = make(map[int]map[int]bfsCacheEntry)
 }
-func (c *bfsCache) Add(sourceId int, destinationId int, bfsPath []cbGraphAdjMatrixEntry) {
+func (c *bfsCache) Add(sourceId int, destinationId int, graphVersion uint64, bfsPath []cbGraphAdjMatrixEntry) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
+	if c.cache == nil {
+		c.cache = make(map[int]map[int]bfsCacheEntry)
+	}
 	if _, sourceExists := c.cache[sourceId]; !sourceExists {
-		c.cache[sourceId] = make(map[int][][]cbGraphAdjMatrixEntry)
+		c.cache[sourceId] = make(map[int]bfsCacheEntry)
 	}
-	if _, destinationExists := c.cache[sourceId][destinationId]; !destinationExists {
-		c.cache[sourceId][destinationId] = [][]cbGraphAdjMatrixEntry{
-			bfsPath,
-		}
-	} else {
-		c.cache[sourceId][destinationId] = append(c.cache[sourceId][destinationId], bfsPath)
+	c.cache[sourceId][destinationId] = bfsCacheEntry{
+		graphVersion: graphVersion,
+		path:         append([]cbGraphAdjMatrixEntry(nil), bfsPath...),
 	}
+}
+
+func (g *cbGraph) bumpVersionLocked() {
+	g.version += 1
+	BFSCache.Reset()
 }
 
 func (g *cbGraph) getAllChildIDs(callbackId int) []int {
@@ -211,7 +213,7 @@ func (g *cbGraph) Initialize() {
 			g.Add(edge.Destination, edge.Source, edge.C2Profile.Name, true)
 		}
 	}
-	BFSCache.cache = make(map[int]map[int][][]cbGraphAdjMatrixEntry)
+	BFSCache.Reset()
 }
 func (g *cbGraph) Add(source databaseStructs.Callback, destination databaseStructs.Callback, c2profileName string, initializing bool) {
 	c2 := getC2ProfileForName(c2profileName)
@@ -219,6 +221,9 @@ func (g *cbGraph) Add(source databaseStructs.Callback, destination databaseStruc
 		return
 	}
 	g.lock.Lock()
+	if g.adjMatrix == nil {
+		g.adjMatrix = make(map[int][]cbGraphAdjMatrixEntry)
+	}
 	if _, ok := g.adjMatrix[source.ID]; !ok {
 		// add it
 		//logging.LogInfo("adding new adjMatrix connection", "source", source.ID, "destination", destination.ID, "c2 profile", c2profileName)
@@ -229,6 +234,7 @@ func (g *cbGraph) Add(source databaseStructs.Callback, destination databaseStruc
 			SourceAgentId:      source.AgentCallbackID,
 			C2ProfileName:      c2profileName,
 		})
+		g.bumpVersionLocked()
 		g.lock.Unlock()
 		return
 	}
@@ -259,6 +265,7 @@ func (g *cbGraph) Add(source databaseStructs.Callback, destination databaseStruc
 		SourceAgentId:      source.AgentCallbackID,
 		C2ProfileName:      c2profileName,
 	})
+	g.bumpVersionLocked()
 
 	g.lock.Unlock()
 	logging.LogInfo("adding new adjMatrix connection", "source", source.ID, "destination", destination.ID, "c2 profile", c2profileName, "adj", g.adjMatrix[source.ID])
@@ -362,11 +369,13 @@ func (g *cbGraph) Remove(sourceId int, destinationId int, c2profileName string) 
 			//g.adjMatrix[sourceId][len(g.adjMatrix[sourceId])-1] = cbGraphAdjMatrixEntry{}
 			//g.adjMatrix[sourceId] = g.adjMatrix[sourceId][:len(g.adjMatrix[sourceId])-1]
 			logging.LogDebug("removed adj matrix entry", "sourceID", sourceId, "destinationID", destinationId, "new adj", g.adjMatrix[sourceId])
-			BFSCache.Remove(sourceId)
+			g.bumpVersionLocked()
 		}
 	}
 }
 func (g *cbGraph) CanHaveDelegates(sourceId int) bool {
+	g.lock.RLock()
+	defer g.lock.RUnlock()
 	immediateChildren, exists := g.adjMatrix[sourceId]
 	if !exists {
 		return false
@@ -375,21 +384,21 @@ func (g *cbGraph) CanHaveDelegates(sourceId int) bool {
 }
 func (g *cbGraph) GetBFSPath(sourceId int, destinationId int) []cbGraphAdjMatrixEntry {
 	// breadth-first search from g.adjMatrix[sourceId] ->
-	var visitedIDs []int
 	var finalPath []cbGraphAdjMatrixEntry
 	if sourceId == destinationId {
 		return nil
 	}
-	if existingBFSpath := BFSCache.GetPath(sourceId, destinationId); existingBFSpath != nil {
+	g.lock.RLock()
+	defer g.lock.RUnlock()
+	graphVersion := g.version
+	if existingBFSpath, cached := BFSCache.GetPath(sourceId, destinationId, graphVersion); cached {
 		//logging.LogDebug("returning a cachedBFS path", "sourceID", sourceId, "destinationID", destinationId)
 		return existingBFSpath
 	}
 	// start with a fake-ish entry that we won't include in the final path
 	options := []cbGraphBFSEntry{{ID: sourceId, ParentBFS: nil}}
-	g.lock.RLock()
-	defer g.lock.RUnlock()
+	queuedIDs := map[int]bool{sourceId: true}
 	for index := 0; index < len(options); index++ {
-		visitedIDs = append(visitedIDs, options[index].ID)
 		if options[index].ID == destinationId {
 			// we found our entry, now follow the path back up for the shortest path
 			parent := options[index].ParentBFS
@@ -399,7 +408,7 @@ func (g *cbGraph) GetBFSPath(sourceId int, destinationId int) []cbGraphAdjMatrix
 				finalPath = append(finalPath, parent.MatrixEntry)
 				parent = parent.ParentBFS
 			}
-			BFSCache.Add(sourceId, destinationId, finalPath)
+			BFSCache.Add(sourceId, destinationId, graphVersion, finalPath)
 			return finalPath
 		}
 		// look through cbGraph.adjMatrix[options[index].ID] to see if we have our destination
@@ -409,18 +418,20 @@ func (g *cbGraph) GetBFSPath(sourceId int, destinationId int) []cbGraphAdjMatrix
 			continue
 		} else {
 			for _, nextChild := range nextChildren {
-				if !utils.SliceContains(visitedIDs, nextChild.DestinationId) {
-					options = append(options, cbGraphBFSEntry{
-						ID:          nextChild.DestinationId,
-						ParentBFS:   &options[index],
-						MatrixEntry: nextChild,
-					})
+				if queuedIDs[nextChild.DestinationId] {
+					continue
 				}
+				queuedIDs[nextChild.DestinationId] = true
+				options = append(options, cbGraphBFSEntry{
+					ID:          nextChild.DestinationId,
+					ParentBFS:   &options[index],
+					MatrixEntry: nextChild,
+				})
 			}
 		}
 	}
 	// add a known "empty" so we don't keep looking
-	BFSCache.Add(sourceId, destinationId, []cbGraphAdjMatrixEntry{})
+	BFSCache.Add(sourceId, destinationId, graphVersion, []cbGraphAdjMatrixEntry{})
 	return []cbGraphAdjMatrixEntry{}
 }
 func (g *cbGraph) Print() {
