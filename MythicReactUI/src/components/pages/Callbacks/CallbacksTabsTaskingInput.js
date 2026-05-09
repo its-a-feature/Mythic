@@ -1,4 +1,4 @@
-import { IconButton, Typography } from '@mui/material';
+import { Chip, IconButton, Typography } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import React from 'react';
 import {TextField} from '@mui/material';
@@ -32,6 +32,7 @@ subscription GetLoadedCommandsSubscription($callback_id: Int!){
             cmd
             id
             attributes
+            description
             payloadtype {
                 name
                 id
@@ -40,6 +41,7 @@ subscription GetLoadedCommandsSubscription($callback_id: Int!){
                 id
                 parameter_type: type 
                 choices
+                description
                 dynamic_query_function
                 required
                 name
@@ -209,6 +211,183 @@ const TaskingContextChip = ({title, label, value, color, callbackColor, emphasiz
             <span className="mythic-tasking-context-chip-value">{copyValue}</span>
         </span>
     )
+}
+const getTaskingParameterLabel = (parameter) => {
+    if(parameter.cli_name){
+        return `-${parameter.cli_name}`;
+    }
+    return parameter.name || parameter.display_name;
+}
+const getTaskingParameterTooltip = (parameter) => {
+    const label = getTaskingParameterLabel(parameter);
+    const displayName = parameter.display_name && parameter.display_name !== label ? `\nDisplay: ${parameter.display_name}` : "";
+    const internalName = parameter.name && parameter.name !== label ? `\nName: ${parameter.name}` : "";
+    const requiredText = parameter.required ? "\nRequired" : "\nOptional";
+    const description = parameter.description ? `\n${parameter.description}` : "";
+    return `${label} · ${parameter.parameter_type}${requiredText}${displayName}${internalName}${description}`;
+}
+const TaskingParameterPreviewChip = ({parameter, required=false, active=false}) => (
+    <MythicStyledTooltip title={getTaskingParameterTooltip(parameter)}>
+        <Chip
+            className={`mythic-tasking-parameter-preview-chip${required ? " mythic-tasking-parameter-preview-chip-required" : ""}${active ? " mythic-tasking-parameter-preview-chip-active" : ""}`}
+            label={
+                <span className="mythic-tasking-parameter-preview-chip-label">
+                    {active &&
+                        <span className="mythic-tasking-parameter-preview-chip-status">Current</span>
+                    }
+                    <span className="mythic-tasking-parameter-preview-chip-name">{getTaskingParameterLabel(parameter)}</span>
+                    <span className="mythic-tasking-parameter-preview-chip-type">{parameter.parameter_type}</span>
+                </span>
+            }
+            size="small"
+        />
+    </MythicStyledTooltip>
+)
+const parseCommandLineForParameterPreview = (commandLine, command) => {
+    if(commandLine.length > 0 && commandLine[0] === "{"){
+        try{
+            const parsedJson = JSON.parse(commandLine);
+            if(['string', 'number', 'boolean', null].includes(typeof parsedJson)){
+                return {"_": []};
+            }
+            return {...parsedJson, "_": []};
+        }catch(error){
+            return {"_": []};
+        }
+    }
+    try{
+        const argv = [];
+        let sQuoted = false;
+        let dQuoted = false;
+        let backslash = false;
+        let buffer = '';
+        commandLine.split('').forEach((value) => {
+            if((sQuoted || dQuoted) && value === "\\"){
+                if(!backslash){
+                    backslash = true;
+                    return;
+                }
+                backslash = false;
+                buffer += "\\";
+                return;
+            }
+            if(!sQuoted && !dQuoted){
+                if(value === `'`){
+                    if(backslash){
+                        backslash = false;
+                        buffer += "'";
+                        return;
+                    }
+                    sQuoted = true;
+                    buffer += value;
+                    return;
+                }
+                if(value === '"'){
+                    if(backslash){
+                        backslash = false;
+                        buffer += '"';
+                        return;
+                    }
+                    dQuoted = true;
+                    buffer += value;
+                    return;
+                }
+                if(value === " "){
+                    if(backslash){
+                        backslash = false;
+                        buffer += "\\";
+                    }
+                    if(buffer.length > 0){
+                        argv.push(buffer[buffer.length-1] === buffer[0] && [`'`, `"`].includes(buffer[0]) ? buffer.slice(1, -1) : buffer);
+                        buffer = '';
+                    }
+                    return;
+                }
+            }else if((sQuoted && value === `'`) || (dQuoted && value === '"')){
+                if(backslash){
+                    backslash = false;
+                    buffer += value;
+                }else{
+                    if(sQuoted){
+                        sQuoted = false;
+                    }
+                    if(dQuoted){
+                        dQuoted = false;
+                    }
+                    buffer += value;
+                }
+                return;
+            }
+            if(backslash){
+                buffer += `\\${value}`;
+                backslash = false;
+            }else{
+                buffer += value;
+            }
+        });
+        if(backslash){
+            buffer += "\\";
+        }
+        if(buffer.length > 0){
+            argv.push(buffer[buffer.length-1] === buffer[0] && [`'`, `"`].includes(buffer[0]) ? buffer.slice(1, -1) : buffer);
+        }
+        if(dQuoted || sQuoted){
+            return {"_": []};
+        }
+        const validCliNames = command.commandparameters.reduce((previous, parameter) => {
+            if(parameter.cli_name){
+                return {...previous, [`-${parameter.cli_name}`]: parameter.cli_name};
+            }
+            return previous;
+        }, {});
+        return argv.reduce((previous, value) => {
+            if(validCliNames[value]){
+                return {...previous, [validCliNames[value]]: true};
+            }
+            return previous;
+        }, {"_": []});
+    }catch(error){
+        return {"_": []};
+    }
+}
+const determineCommandGroupNamesForParameterPreview = (command, parsed) => {
+    if(command.commandparameters.length === 0 || !parsed){
+        return [];
+    }
+    let commandGroupOptions = command.commandparameters.reduce((previous, parameter) => {
+        const groupName = parameter.parameter_group_name || "Default";
+        if(previous.includes(groupName)){
+            return previous;
+        }
+        return [...previous, groupName];
+    }, []);
+    for(const key of Object.keys(parsed)){
+        if(key === "_"){
+            continue;
+        }
+        let parameterGroups = [];
+        let foundParameterGroup = false;
+        for(let i = 0; i < command.commandparameters.length; i++){
+            if(command.commandparameters[i].cli_name === key || command.commandparameters[i].display_name === key || command.commandparameters[i].name === key){
+                foundParameterGroup = true;
+                parameterGroups.push(command.commandparameters[i].parameter_group_name || "Default");
+            }
+        }
+        const intersection = commandGroupOptions.reduce((previous, groupName) => {
+            if(parameterGroups.includes(groupName)){
+                return [...previous, groupName];
+            }
+            return previous;
+        }, []);
+        if(intersection.length === 0){
+            if(foundParameterGroup){
+                return undefined;
+            }
+        }else{
+            commandGroupOptions = [...intersection];
+        }
+    }
+    return commandGroupOptions;
 }
 
 export function CallbacksTabsTaskingInputPreMemo(props){
@@ -1648,6 +1827,105 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             inputRef.current.focus();
         }
     }, [props.focus])
+    const getCommandParameterPreview = () => {
+        if(reverseSearching){
+            return {state: "empty", message: "Reverse search active"};
+        }
+        const trimmedMessage = message.trim();
+        if(trimmedMessage === ""){
+            return {state: "empty", message: "Type a loaded command to preview CLI parameters"};
+        }
+        const commandName = trimmedMessage.split(/\s+/)[0];
+        const matchingCommands = loadedOptions.current.filter((command) => {
+            const supportedOS = command.attributes?.supported_os || [];
+            return command.cmd === commandName && (supportedOS.length === 0 || supportedOS.includes(props.callback_os));
+        });
+        if(matchingCommands.length === 0){
+            return {state: "empty", message: "No loaded command selected"};
+        }
+        let command = undefined;
+        if(commandPayloadType !== ""){
+            command = matchingCommands.find((option) => option.payloadtype?.name === commandPayloadType);
+        }
+        if(!command){
+            command = matchingCommands.find((option) => option.payloadtype?.name === props.payloadtype_name);
+        }
+        if(!command){
+            command = matchingCommands[0];
+        }
+        const parameters = command.commandparameters || [];
+        if(parameters.length === 0){
+            return {state: "empty", command, message: "No CLI parameters for this command"};
+        }
+        const commandParametersText = trimmedMessage.split(/\s+/).slice(1).join(" ");
+        const parsed = parseCommandLineForParameterPreview(commandParametersText, command);
+        const commandGroupNames = determineCommandGroupNamesForParameterPreview(command, parsed);
+        if(commandGroupNames === undefined){
+            return {state: "empty", command, message: "Parameters conflict across groups"};
+        }
+        const previewGroupNames = commandGroupNames.length > 0 ? commandGroupNames : parameters.reduce((previous, parameter) => {
+            const groupName = parameter.parameter_group_name || "Default";
+            if(previous.includes(groupName)){
+                return previous;
+            }
+            return [...previous, groupName];
+        }, []);
+        let activeParameter = undefined;
+        try{
+            const [lastSuppliedParameter] = getLastSuppliedArgument(command, trimmedMessage, parsed);
+            if(lastSuppliedParameter?.cli_name && IsCLIPossibleParameterType(lastSuppliedParameter.parameter_type)){
+                const activeParameterOptions = parameters.filter((parameter) =>
+                    parameter.cli_name === lastSuppliedParameter.cli_name &&
+                    previewGroupNames.includes(parameter.parameter_group_name || "Default") &&
+                    IsCLIPossibleParameterType(parameter.parameter_type)
+                );
+                activeParameter = activeParameterOptions.find((parameter) => parameter.required) || activeParameterOptions[0] || lastSuppliedParameter;
+            }
+        }catch(error){
+            activeParameter = undefined;
+        }
+        const availableParameters = parameters.reduce((previous, parameter) => {
+            const groupName = parameter.parameter_group_name || "Default";
+            if(!previewGroupNames.includes(groupName)){
+                return previous;
+            }
+            if(!IsCLIPossibleParameterType(parameter.parameter_type)){
+                return previous;
+            }
+            if(!parameter.cli_name){
+                return previous;
+            }
+            if(activeParameter?.cli_name === parameter.cli_name){
+                return previous;
+            }
+            if(parsed[parameter.cli_name] !== undefined && !IsRepeatableCLIParameterType(parameter.parameter_type)){
+                return previous;
+            }
+            const previousIndex = previous.findIndex((existingParameter) => existingParameter.cli_name === parameter.cli_name);
+            if(previousIndex >= 0){
+                if(parameter.required && !previous[previousIndex].required){
+                    const updatedParameters = [...previous];
+                    updatedParameters[previousIndex] = parameter;
+                    return updatedParameters;
+                }
+                return previous;
+            }
+            return [...previous, parameter];
+        }, []);
+        if(availableParameters.length === 0 && !activeParameter){
+            return {state: "empty", command, message: "All CLI parameters for the current group are supplied"};
+        }
+        const requiredParameters = availableParameters.filter((parameter) => parameter.required);
+        const optionalParameters = availableParameters.filter((parameter) => !parameter.required);
+        return {
+            activeParameter,
+            command,
+            optionalParameters,
+            requiredParameters,
+            state: "parameters",
+        };
+    }
+    const commandParameterPreview = getCommandParameterPreview();
     const showTaskingContext = !hideTaskingContext.current;
     const taskingContextChips = [
         {
@@ -1827,6 +2105,40 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                             </div>
                     }}
                 />
+            </div>
+            <div className={`mythic-tasking-parameter-preview${commandParameterPreview.state === "parameters" ? "" : " mythic-tasking-parameter-preview-empty-state"}`}>
+                <div className="mythic-tasking-parameter-preview-heading">
+                    <TerminalIcon fontSize="small" />
+                    <span>CLI parameters</span>
+                </div>
+                {commandParameterPreview.state === "parameters" ? (
+                    <div className="mythic-tasking-parameter-preview-chip-row">
+                    {commandParameterPreview.activeParameter &&
+                        <TaskingParameterPreviewChip key={"active" + commandParameterPreview.activeParameter.id} parameter={commandParameterPreview.activeParameter} active={true} />
+                    }
+                    {commandParameterPreview.requiredParameters.slice(0, commandParameterPreview.activeParameter ? 5 : 6).map((parameter) => (
+                        <TaskingParameterPreviewChip key={"required" + parameter.id} parameter={parameter} required={true} />
+                    ))}
+                    {commandParameterPreview.requiredParameters.length > (commandParameterPreview.activeParameter ? 5 : 6) &&
+                        <span className="mythic-tasking-parameter-preview-more">
+                            +{commandParameterPreview.requiredParameters.length - (commandParameterPreview.activeParameter ? 5 : 6)} required
+                        </span>
+                    }
+                    {commandParameterPreview.optionalParameters.slice(0, commandParameterPreview.requiredParameters.length > 0 ? 4 : (commandParameterPreview.activeParameter ? 5 : 6)).map((parameter) => (
+                        <TaskingParameterPreviewChip key={"optional" + parameter.id} parameter={parameter} />
+                    ))}
+                    {commandParameterPreview.optionalParameters.length > (commandParameterPreview.requiredParameters.length > 0 ? 4 : (commandParameterPreview.activeParameter ? 5 : 6)) &&
+                        <span className="mythic-tasking-parameter-preview-more">
+                            +{commandParameterPreview.optionalParameters.length - (commandParameterPreview.requiredParameters.length > 0 ? 4 : (commandParameterPreview.activeParameter ? 5 : 6))} optional
+                        </span>
+                    }
+                    </div>
+                ) : (
+                    <div className="mythic-tasking-parameter-preview-empty">
+                        <TerminalIcon fontSize="small" />
+                        <span>{commandParameterPreview.message}</span>
+                    </div>
+                )}
             </div>
             {openFilterOptionsDialog &&
                 <MythicDialog fullWidth={true} maxWidth="md" open={openFilterOptionsDialog}

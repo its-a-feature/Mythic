@@ -502,6 +502,132 @@ tspan {
     justify-content: center;
     width: 28px;
 }
+.mythic-tasking-parameter-preview {
+    align-items: center;
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.035) : alpha(props.theme.palette.common.black, 0.018)};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    display: grid;
+    gap: 0.55rem;
+    grid-template-columns: minmax(7.5rem, auto) minmax(0, 1fr);
+    margin-top: 0.45rem;
+    min-height: 42px;
+    min-width: 0;
+    padding: 0.45rem 0.55rem;
+}
+.mythic-tasking-parameter-preview-empty-state {
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.025) : alpha(props.theme.palette.common.black, 0.014)};
+}
+.mythic-tasking-parameter-preview-heading {
+    align-items: center;
+    display: flex;
+    gap: 0.35rem;
+    min-width: 0;
+    color: ${(props) => props.theme.palette.text.secondary};
+    font-size: 0.72rem;
+    font-weight: 850;
+    line-height: 1.2;
+}
+.mythic-tasking-parameter-preview-heading svg {
+    color: ${(props) => props.theme.palette.text.disabled};
+    font-size: 1rem;
+}
+.mythic-tasking-parameter-preview-more {
+    align-items: center;
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? "rgba(255,255,255,0.045)" : "rgba(0,0,0,0.025)"};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    color: ${(props) => props.theme.palette.text.secondary};
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-size: 0.68rem;
+    font-weight: 750;
+    min-height: 22px;
+    padding: 0.12rem 0.4rem;
+}
+.mythic-tasking-parameter-preview-chip-row {
+    align-items: center;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0.28rem;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 0.02rem;
+}
+.mythic-tasking-parameter-preview-empty {
+    align-items: center;
+    color: ${(props) => props.theme.palette.text.disabled};
+    display: flex;
+    font-size: 0.74rem;
+    font-weight: 650;
+    gap: 0.35rem;
+    min-width: 0;
+}
+.mythic-tasking-parameter-preview-empty svg {
+    color: ${(props) => props.theme.palette.text.disabled};
+    font-size: 1rem;
+}
+.mythic-tasking-parameter-preview-empty span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-tasking-parameter-preview-chip.MuiChip-root {
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? "rgba(255,255,255,0.045)" : "rgba(0,0,0,0.025)"};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    color: ${(props) => props.theme.palette.text.secondary};
+    flex: 0 0 auto;
+    font-size: 0.68rem;
+    font-weight: 750;
+    height: 22px;
+    max-width: min(16rem, 100%);
+}
+.mythic-tasking-parameter-preview-chip-required.MuiChip-root {
+    background-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.14 : 0.08)};
+    border-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.36 : 0.24)};
+    color: ${(props) => props.theme.palette.warning.main};
+}
+.mythic-tasking-parameter-preview-chip-active.MuiChip-root {
+    background-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.14 : 0.08)};
+    border-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.42 : 0.28)};
+    color: ${(props) => props.theme.palette.info.main};
+}
+.mythic-tasking-parameter-preview-chip .MuiChip-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.mythic-tasking-parameter-preview-chip-label {
+    align-items: center;
+    display: inline-flex;
+    gap: 0.25rem;
+    min-width: 0;
+}
+.mythic-tasking-parameter-preview-chip-status {
+    background-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.16 : 0.1)};
+    border-radius: 999px;
+    color: inherit;
+    flex: 0 0 auto;
+    font-size: 0.58rem;
+    font-weight: 850;
+    line-height: 1;
+    padding: 0.14rem 0.28rem;
+}
+.mythic-tasking-parameter-preview-chip-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.mythic-tasking-parameter-preview-chip-type {
+    color: inherit;
+    flex: 0 0 auto;
+    font-size: 0.62rem;
+    font-weight: 650;
+    opacity: 0.66;
+}
 .mythic-tasking-reverse-search {
     align-items: center;
     background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.045) : alpha(props.theme.palette.common.black, 0.024)};
@@ -720,6 +846,9 @@ tspan {
         flex: 0 0 auto;
         max-width: 100%;
         width: 100% !important;
+    }
+    .mythic-tasking-parameter-preview {
+        grid-template-columns: 1fr;
     }
 }
 .mythic-task-parameters-title.MuiDialogTitle-root {

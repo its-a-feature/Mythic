@@ -403,7 +403,7 @@ const SearchTokens = () => {
 const SearchProxies = () => {
     const theme = useTheme();
   return (
-      <StyledListItem className={classes.listSubHeader} component={Link} to='/new/search?tab=socks'>
+      <StyledListItem className={classes.listSubHeader} component={Link} to='/new/search?tab=proxies'>
         <StyledListItemIcon>
             <MythicStyledTooltip title={"Search Proxies"} tooltipStyle={{display: "inline-flex"}}>
                 <FontAwesomeIcon style={{color: theme.navBarTextIconColor}} size={"lg"} icon={faSocks} />
