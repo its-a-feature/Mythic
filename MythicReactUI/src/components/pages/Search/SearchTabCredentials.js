@@ -217,10 +217,10 @@ const SearchTabCredentialsSearchPanel = (props) => {
     }, [props.value, props.index])
     return (
         <MythicTableToolbar variant="search">
-            <MythicTableToolbarGroup grow>
+            <MythicTableToolbarGroup grow label="Search">
                 <MythicSearchField value={search} onChange={handleSearchValueChange} onEnter={submitSearch} onSearch={submitSearch} />
             </MythicTableToolbarGroup>
-            <MythicTableToolbarGroup>
+            <MythicTableToolbarGroup label="In">
                 <MythicToolbarSelect
                     value={searchField}
                     onChange={handleSearchFieldChange}
@@ -232,7 +232,7 @@ const SearchTabCredentialsSearchPanel = (props) => {
                     }
                 </MythicToolbarSelect>
             </MythicTableToolbarGroup>
-            <MythicTableToolbarGroup>
+            <MythicTableToolbarGroup label="Actions">
                 {createCredentialDialogOpen &&
                     <MythicDialog fullWidth={true} maxWidth="md" open={createCredentialDialogOpen} 
                         onClose={()=>{setCreateCredentialDialogOpen(false);}} 

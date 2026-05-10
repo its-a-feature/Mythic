@@ -131,11 +131,11 @@ const SearchTabTokensSearchPanel = (props) => {
         }
     }, [props.value, props.index])
     return (
-        <MythicTableToolbar>
-            <MythicTableToolbarGroup grow>
+        <MythicTableToolbar variant="search">
+            <MythicTableToolbarGroup grow label="Search">
                 <MythicSearchField value={search} onChange={handleSearchValueChange} onEnter={submitSearch} onSearch={submitSearch} />
             </MythicTableToolbarGroup>
-            <MythicTableToolbarGroup>
+            <MythicTableToolbarGroup label="In">
                 <MythicToolbarSelect
                     value={searchField}
                     onChange={handleSearchFieldChange}

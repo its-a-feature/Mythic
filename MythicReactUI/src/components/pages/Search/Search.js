@@ -97,7 +97,7 @@ export function Search(props){
           <AppBar
             position="static"
             color="default"
-            className={"no-box-shadow"}
+            className={"no-box-shadow mythic-search-tabs-bar"}
             sx={(theme) => ({
               backgroundColor: theme.surfaces?.muted || theme.palette.background.paper,
               border: `1px solid ${theme.table?.borderSoft || theme.borderColor}`,
@@ -106,6 +106,7 @@ export function Search(props){
             })}
           >
             <Tabs
+              className="mythic-search-tabs"
               value={value}
               onChange={handleChange}
               indicatorColor="primary"

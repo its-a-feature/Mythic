@@ -553,14 +553,14 @@ const SearchTabFilesSearchPanel = (props) => {
     }, [props.value, props.index]);
     return (
         <MythicTableToolbar variant="search">
-            <MythicTableToolbarGroup style={{minWidth: "13rem"}}>
+            <MythicTableToolbarGroup label="Host" style={{minWidth: "13rem"}}>
                 <MythicSearchField placeholder="Host Name Search..." name="Host" value={searchHost}
                                    onChange={handleSearchHostValueChange} onEnter={submitSearch}/>
             </MythicTableToolbarGroup>
-            <MythicTableToolbarGroup grow>
+            <MythicTableToolbarGroup grow label="Search">
                 <MythicSearchField value={search} onChange={handleSearchValueChange} onEnter={submitSearch} onSearch={submitSearch} />
             </MythicTableToolbarGroup>
-            <MythicTableToolbarGroup>
+            <MythicTableToolbarGroup label="In">
                 <MythicToolbarSelect
                     value={searchField}
                     onChange={handleSearchFieldChange}
@@ -572,7 +572,7 @@ const SearchTabFilesSearchPanel = (props) => {
                     }
                 </MythicToolbarSelect>
             </MythicTableToolbarGroup>
-            <MythicTableToolbarGroup>
+            <MythicTableToolbarGroup label="Location">
                 <MythicToolbarSelect
                     value={searchLocation}
                     onChange={handleSearchLocationChange}
@@ -584,7 +584,7 @@ const SearchTabFilesSearchPanel = (props) => {
                     }
                 </MythicToolbarSelect>
             </MythicTableToolbarGroup>
-            <MythicTableToolbarGroup>
+            <MythicTableToolbarGroup label="Actions">
                 <MythicToolbarButton className="mythic-toolbar-button-hover-success" variant="outlined" component="label" startIcon={<BackupIcon />}>
                     Files
                     <input onChange={onFileChange} type="file" multiple hidden/>

@@ -76,6 +76,11 @@ create unique index if not exists response_task_sequence_number_unique
 on "public"."response" using btree (task_id, sequence_number)
 where sequence_number is not null;
 
+alter table "public"."task"
+    add column if not exists subtask_callback_function_started boolean not null default false,
+    add column if not exists group_callback_function_started boolean not null default false,
+    add column if not exists completed_callback_function_started boolean not null default false;
+
 -- +migrate StatementBegin
 create or replace function public.new_task_display_id() returns trigger
     language plpgsql
@@ -201,4 +206,8 @@ $$;
 drop index if exists "public"."callback_operation_display_id_unique";
 drop index if exists "public"."task_operation_display_id_unique";
 drop index if exists "public"."response_task_sequence_number_unique";
+alter table "public"."task"
+    drop column if exists completed_callback_function_started,
+    drop column if exists group_callback_function_started,
+    drop column if exists subtask_callback_function_started;
 drop table if exists "public"."operation_display_counters";

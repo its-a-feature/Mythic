@@ -153,15 +153,15 @@ const SearchTabProcessesSearchPanel = (props) => {
         }
     }, [props.value, props.index]);
     return (
-        <MythicTableToolbar>
-            <MythicTableToolbarGroup style={{minWidth: "13rem"}}>
+        <MythicTableToolbar variant="search">
+            <MythicTableToolbarGroup label="Host" style={{minWidth: "13rem"}}>
                 <MythicSearchField placeholder="Host Name Search..." name="Host" value={searchHost}
                                    onChange={handleSearchHostValueChange} onEnter={submitSearch}/>
             </MythicTableToolbarGroup>
-            <MythicTableToolbarGroup grow>
+            <MythicTableToolbarGroup grow label="Search">
                 <MythicSearchField value={search} onChange={handleSearchValueChange} onEnter={submitSearch} onSearch={submitSearch} />
             </MythicTableToolbarGroup>
-            <MythicTableToolbarGroup>
+            <MythicTableToolbarGroup label="In">
                 <MythicToolbarSelect
                     value={searchField}
                     onChange={handleSearchFieldChange}

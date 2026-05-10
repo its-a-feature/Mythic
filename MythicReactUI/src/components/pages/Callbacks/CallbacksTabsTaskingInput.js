@@ -226,9 +226,11 @@ const getTaskingParameterTooltip = (parameter) => {
     const description = parameter.description ? `\n${parameter.description}` : "";
     return `${label} · ${parameter.parameter_type}${requiredText}${displayName}${internalName}${description}`;
 }
-const TaskingParameterPreviewChip = ({parameter, required=false, active=false}) => (
+const TaskingParameterPreviewChip = ({parameter, required=false, active=false, onClick}) => (
     <MythicStyledTooltip title={getTaskingParameterTooltip(parameter)}>
         <Chip
+            aria-label={onClick ? `Insert ${getTaskingParameterLabel(parameter)}` : getTaskingParameterLabel(parameter)}
+            clickable={Boolean(onClick)}
             className={`mythic-tasking-parameter-preview-chip${required ? " mythic-tasking-parameter-preview-chip-required" : ""}${active ? " mythic-tasking-parameter-preview-chip-active" : ""}`}
             label={
                 <span className="mythic-tasking-parameter-preview-chip-label">
@@ -239,6 +241,14 @@ const TaskingParameterPreviewChip = ({parameter, required=false, active=false}) 
                     <span className="mythic-tasking-parameter-preview-chip-type">{parameter.parameter_type}</span>
                 </span>
             }
+            onClick={onClick ? (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onClick(parameter);
+            } : undefined}
+            onMouseDown={onClick ? (event) => {
+                event.preventDefault();
+            } : undefined}
             size="small"
         />
     </MythicStyledTooltip>
@@ -394,6 +404,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
     const toastId = "tasking-toast-message";
     const theme = useTheme();
     const inputRef = React.useRef(null);
+    const pendingCursorPosition = React.useRef(null);
     const snackMessageStyles = {position:"bottom-left", autoClose: 1000, toastId: toastId, style: {marginBottom: "30px"}};
     const snackReverseSearchMessageStyles = {position:"bottom-left", autoClose: 1000,  toastId: toastId, style: {marginBottom: "70px"}};
     const [commandPayloadType, setCommandPayloadType] = React.useState("");
@@ -640,6 +651,50 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         if(event.target.value.length <= 1){
             setUnmodifiedHistoryValue("parsed_cli");
         }
+    }
+    React.useEffect( () => {
+        if(pendingCursorPosition.current === null){
+            return;
+        }
+        const cursorPosition = pendingCursorPosition.current;
+        pendingCursorPosition.current = null;
+        window.requestAnimationFrame(() => {
+            if(inputRef.current){
+                inputRef.current.focus();
+                if(inputRef.current.setSelectionRange){
+                    const adjustedCursorPosition = Math.min(cursorPosition, inputRef.current.value.length);
+                    inputRef.current.setSelectionRange(adjustedCursorPosition, adjustedCursorPosition);
+                }
+            }
+        });
+    }, [message])
+    const insertParameterIntoCommandLine = (parameter) => {
+        if(!parameter?.cli_name){
+            return;
+        }
+        const input = inputRef.current;
+        let selectionStart = typeof input?.selectionStart === "number" ? input.selectionStart : message.length;
+        let selectionEnd = typeof input?.selectionEnd === "number" ? input.selectionEnd : selectionStart;
+        if(selectionStart === selectionEnd){
+            const beforeCursor = message.slice(0, selectionStart);
+            const partialParameterMatch = beforeCursor.match(/(^|\s)(-\S*)$/);
+            if(partialParameterMatch){
+                selectionStart -= partialParameterMatch[2].length;
+            }
+        }
+        const before = message.slice(0, selectionStart);
+        let after = message.slice(selectionEnd);
+        const parameterText = `-${parameter.cli_name}`;
+        const insertText = `${before.length > 0 && !/\s$/.test(before) ? " " : ""}${parameterText} `;
+        if(after.length > 0 && !/^\s/.test(after)){
+            after = ` ${after}`;
+        }
+        tabOptions.current = [];
+        tabOptionsType.current = "param_name";
+        tabOptionsIndex.current = 0;
+        setUnmodifiedHistoryValue("parsed_cli");
+        pendingCursorPosition.current = before.length + insertText.length;
+        setMessage(`${before}${insertText}${after}`);
     }
     const onKeyDown = (event) => {
         if(event.key === "Enter" && (event.ctrlKey || event.metaKey)){
@@ -2117,7 +2172,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                         <TaskingParameterPreviewChip key={"active" + commandParameterPreview.activeParameter.id} parameter={commandParameterPreview.activeParameter} active={true} />
                     }
                     {commandParameterPreview.requiredParameters.slice(0, commandParameterPreview.activeParameter ? 5 : 6).map((parameter) => (
-                        <TaskingParameterPreviewChip key={"required" + parameter.id} parameter={parameter} required={true} />
+                        <TaskingParameterPreviewChip key={"required" + parameter.id} parameter={parameter} required={true} onClick={insertParameterIntoCommandLine} />
                     ))}
                     {commandParameterPreview.requiredParameters.length > (commandParameterPreview.activeParameter ? 5 : 6) &&
                         <span className="mythic-tasking-parameter-preview-more">
@@ -2125,7 +2180,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                         </span>
                     }
                     {commandParameterPreview.optionalParameters.slice(0, commandParameterPreview.requiredParameters.length > 0 ? 4 : (commandParameterPreview.activeParameter ? 5 : 6)).map((parameter) => (
-                        <TaskingParameterPreviewChip key={"optional" + parameter.id} parameter={parameter} />
+                        <TaskingParameterPreviewChip key={"optional" + parameter.id} parameter={parameter} onClick={insertParameterIntoCommandLine} />
                     ))}
                     {commandParameterPreview.optionalParameters.length > (commandParameterPreview.requiredParameters.length > 0 ? 4 : (commandParameterPreview.activeParameter ? 5 : 6)) &&
                         <span className="mythic-tasking-parameter-preview-more">

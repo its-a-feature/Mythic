@@ -172,10 +172,9 @@ export function MythicSearchTabLabel(props) {
     return (
         <Tab
             label={
-                <span>
-                    {label}
-                    <br />
+                <span className="mythic-search-tab-label">
                     {iconComponent}
+                    <span>{label}</span>
                 </span>
             }
             {...a11yProps(index)}
