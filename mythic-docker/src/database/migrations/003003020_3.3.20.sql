@@ -76,6 +76,18 @@ create unique index if not exists response_task_sequence_number_unique
 on "public"."response" using btree (task_id, sequence_number)
 where sequence_number is not null;
 
+create index if not exists mythictree_operation_tree_host_parent_callback_idx
+on "public"."mythictree" using btree (operation_id, tree_type, host, parent_path, callback_id);
+
+create index if not exists mythictree_operation_tree_host_full_callback_idx
+on "public"."mythictree" using btree (operation_id, tree_type, host, full_path, callback_id);
+
+create index if not exists mythictree_operation_tree_timestamp_idx
+on "public"."mythictree" using btree (operation_id, tree_type, "timestamp");
+
+create index if not exists mythictree_tree_deleted_timestamp_idx
+on "public"."mythictree" using btree (tree_type, deleted, "timestamp");
+
 alter table "public"."task"
     add column if not exists subtask_callback_function_started boolean not null default false,
     add column if not exists group_callback_function_started boolean not null default false,
@@ -206,6 +218,10 @@ $$;
 drop index if exists "public"."callback_operation_display_id_unique";
 drop index if exists "public"."task_operation_display_id_unique";
 drop index if exists "public"."response_task_sequence_number_unique";
+drop index if exists "public"."mythictree_tree_deleted_timestamp_idx";
+drop index if exists "public"."mythictree_operation_tree_timestamp_idx";
+drop index if exists "public"."mythictree_operation_tree_host_full_callback_idx";
+drop index if exists "public"."mythictree_operation_tree_host_parent_callback_idx";
 alter table "public"."task"
     drop column if exists completed_callback_function_started,
     drop column if exists group_callback_function_started,
