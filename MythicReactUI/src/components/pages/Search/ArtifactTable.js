@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import {Typography, Link, IconButton} from '@mui/material';
+import {Link, IconButton} from '@mui/material';
 import { gql, useMutation} from '@apollo/client';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -11,6 +11,14 @@ import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import CleanHandsTwoToneIcon from '@mui/icons-material/CleanHandsTwoTone';
 import AddAlertTwoToneIcon from '@mui/icons-material/AddAlertTwoTone';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
+import {MythicStateChip} from "../../MythicComponents/MythicStateChip";
+
+const singleLineCellStyle = {
+    minWidth: 0,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+};
 
 const updateNeedsCleanupMutation = gql`
 mutation updateNeedsCleanupStatus($taskartifact_id: Int!, $needs_cleanup: Boolean!){
@@ -70,15 +78,14 @@ export function ArtifactTable(props){
     }
     return (
         <TableContainer className="mythicElement"  style={{height: "100%", overflowY: "auto"}}>
-            <Table stickyHeader size="small" style={{}}>
+            <Table stickyHeader size="small" style={{tableLayout: "fixed"}}>
                 <TableHead>
                     <TableRow>
-                        <TableCell style={{width: "4rem"}}>Cleanup</TableCell>
-                        <TableCell >Type</TableCell>
-                        <TableCell >Command</TableCell>
-                        <TableCell style={{width: "12rem"}}>Task</TableCell>
-                        <TableCell >Operator</TableCell>
-                        <TableCell >Host</TableCell>
+                        <TableCell style={{width: "7rem"}}>Cleanup</TableCell>
+                        <TableCell style={{width: "9rem"}}>Type</TableCell>
+                        <TableCell style={{width: "9rem"}}>Command</TableCell>
+                        <TableCell style={{width: "11rem"}}>Task</TableCell>
+                        <TableCell style={{width: "12rem"}}>Host</TableCell>
                         <TableCell >Artifact</TableCell>
                     </TableRow>
                 </TableHead>
@@ -99,6 +106,9 @@ export function ArtifactTable(props){
 }
 
 function ArtifactTableRow(props){
+    const cleanupState = !props.needs_cleanup ? "neutral" : props.resolved ? "active" : "warning";
+    const cleanupLabel = !props.needs_cleanup ? "None" : props.resolved ? "Done" : "Needed";
+    const cleanupTooltip = !props.needs_cleanup ? "No cleanup needed" : props.resolved ? "Cleanup resolved" : "Artifact needs cleanup";
     const MarkNeedsCleanup = () => {
         props.MarkNeedsCleanup({id: props.id, needs_cleanup: true});
     }
@@ -112,62 +122,75 @@ function ArtifactTableRow(props){
         <React.Fragment>
             <TableRow hover>
                 <MythicStyledTableCell>
-                    {props.needs_cleanup && !props.resolved &&
-                        <MythicStyledTooltip title={"Artifact needs to be cleaned up"}>
-                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-warning" onClick={MarkResolved} size="small">
-                                <CleanHandsTwoToneIcon fontSize="small" />
-                            </IconButton>
+                    <div className="mythic-search-result-action-row">
+                        {props.needs_cleanup && !props.resolved &&
+                            <MythicStyledTooltip title={"Mark artifact as cleaned up"}>
+                                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-success" onClick={MarkResolved} size="small">
+                                    <CleanHandsTwoToneIcon fontSize="small" />
+                                </IconButton>
+                            </MythicStyledTooltip>
+                        }
+                        {props.needs_cleanup && props.resolved &&
+                            <MythicStyledTooltip title={"Mark artifact as unresolved"}>
+                                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-warning" onClick={MarkUnresolved} size="small">
+                                    <CleanHandsTwoToneIcon fontSize="small" />
+                                </IconButton>
+                            </MythicStyledTooltip>
+                        }
+                        {!props.needs_cleanup &&
+                            <MythicStyledTooltip title={"Mark artifact as needs cleanup"} >
+                                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-warning" onClick={MarkNeedsCleanup} size="small">
+                                    <AddAlertTwoToneIcon fontSize="small" />
+                                </IconButton>
+                            </MythicStyledTooltip>
+                        }
+                        <MythicStyledTooltip title={cleanupTooltip}>
+                            <span>
+                                <MythicStateChip compact label={cleanupLabel} state={cleanupState} />
+                            </span>
                         </MythicStyledTooltip>
-                    }
-                    {props.needs_cleanup && props.resolved &&
-                        <MythicStyledTooltip title={"Successfully cleaned up artifact"}>
-                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-success" onClick={MarkUnresolved} size="small">
-                                <CleanHandsTwoToneIcon fontSize="small" />
-                            </IconButton>
-                        </MythicStyledTooltip>
-                    }
-                    {!props.needs_cleanup &&
-                        <MythicStyledTooltip title={"Mark artifact as needs cleanup"} >
-                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-success" onClick={MarkNeedsCleanup} size="small">
-                                <AddAlertTwoToneIcon fontSize="small" />
-                            </IconButton>
-                        </MythicStyledTooltip>
-                    }
+                    </div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <Typography variant="body2" >{props.base_artifact}</Typography>
+                    <div className="mythic-search-result-value" style={singleLineCellStyle} title={props.base_artifact}>
+                        {props.base_artifact}
+                    </div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell >
-                    <Typography variant="body2" >{props?.task?.command?.cmd}</Typography>
+                    <div className="mythic-search-result-value" style={singleLineCellStyle} title={props?.task?.command?.cmd}>
+                        {props?.task?.command?.cmd}
+                    </div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell style={{wordBreak: "break-all"}}>
                     {props.task &&
-                    <>
-                        <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
-                              href={"/new/callbacks/" + props.task.callback.display_id}>
-                            C-{props.task.callback.display_id}
-                        </Link>{" / "}
-                        <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
-                              href={"/new/task/" + props.task.display_id}>
-                            T-{props.task.display_id}
-                        </Link>
+                    <div className="mythic-search-result-stack">
+                        <div className="mythic-search-result-link-row">
+                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
+                                  href={"/new/callbacks/" + props.task.callback.display_id}>
+                                C-{props.task.callback.display_id}
+                            </Link>
+                            <span className="mythic-search-result-secondary">/</span>
+                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
+                                  href={"/new/task/" + props.task.display_id}>
+                                T-{props.task.display_id}
+                            </Link>
+                        </div>
                         {props.task?.callback?.mythictree_groups.length > 0 ? (
-                            <Typography variant="body2" style={{whiteSpace: "pre"}}>
-                                <b>Groups: </b>{"\n" + props?.task?.callback.mythictree_groups.join("\n")}
-                            </Typography>
+                            <div className="mythic-search-result-secondary">
+                                Groups: {props?.task?.callback.mythictree_groups.join(", ")}
+                            </div>
                         ) : null}
-                    </>
+                    </div>
                     }
 
                 </MythicStyledTableCell>
-                <MythicStyledTableCell>
-                <Typography variant="body2" style={{ display: "inline-block"}}>{props?.task?.operator?.username || null}</Typography>
-                </MythicStyledTableCell>
                 <MythicStyledTableCell >
-                    <Typography variant="body2" style={{ display: "inline-block"}}>{props.host}</Typography>
+                    <div className="mythic-search-result-value" style={singleLineCellStyle} title={props.host}>
+                        {props.host}
+                    </div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                <Typography variant="body2" style={{wordBreak: "break-all", display: "inline-block"}}>{props.artifact_text}</Typography>
+                    <div className="mythic-search-result-code">{props.artifact_text}</div>
                 </MythicStyledTableCell>
               
             </TableRow>

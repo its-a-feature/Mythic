@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import {IconButton, Typography, Link} from '@mui/material';
+import {IconButton, Link} from '@mui/material';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -15,6 +15,23 @@ import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {TagsDisplay, ViewEditTags} from '../../MythicComponents/MythicTag';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 
+const singleLineCellStyle = {
+    minWidth: 0,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+};
+
+const formatMetadataValue = (value) => {
+    if(value === null || value === undefined){
+        return "";
+    }
+    if(typeof value === "object"){
+        return JSON.stringify(value);
+    }
+    return String(value);
+};
+
 const updateFileComment = gql`
 mutation updateCommentMutation($mythictree_id: Int!, $comment: String!){
     update_mythictree_by_pk(pk_columns: {id: $mythictree_id}, _set: {comment: $comment}) {
@@ -24,7 +41,7 @@ mutation updateCommentMutation($mythictree_id: Int!, $comment: String!){
 }
 `;
 
-export function CustomBrowserTable({rows, columns, me}){
+export function CustomBrowserTable({rows, columns=[], me}){
     const [entries, setEntries] = React.useState([]);
     useEffect( () => {
         setEntries([...rows]);
@@ -39,17 +56,19 @@ export function CustomBrowserTable({rows, columns, me}){
         });
         setEntries(updates);
     }
+    const metadataColumnWidth = columns.length > 0 ? "12rem" : undefined;
+    const tableMinWidth = `${48 + (columns.length * 12)}rem`;
     return (
-        <TableContainer className="mythicElement" style={{height: "100%", overflowY: "auto"}} >
-            <Table stickyHeader size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
+        <TableContainer className="mythicElement" style={{height: "100%", overflow: "auto"}} >
+            <Table stickyHeader size="small" style={{tableLayout: "fixed", minWidth: tableMinWidth}}>
                 <TableHead>
                     <TableRow>
-                        <TableCell >Name</TableCell>
+                        <TableCell style={{width: "24rem"}}>Entry</TableCell>
                         {columns.map((column, index) => (
-                            <TableCell key={index}>{column.name}</TableCell>
+                            <TableCell key={index} style={{width: metadataColumnWidth}}>{column.name}</TableCell>
                         ))}
-                        <TableCell >Comment</TableCell>
-                        <TableCell >Tags</TableCell>
+                        <TableCell style={{width: "16rem"}}>Comment</TableCell>
+                        <TableCell style={{width: "8rem"}}>Tags</TableCell>
 
                     </TableRow>
                 </TableHead>
@@ -95,54 +114,95 @@ function CustomBrowserTableRow(props){
                 />
                 }
                 <MythicStyledTableCell>
-                    <MythicStyledTooltip title="View metadata">
-                        <IconButton
-                            className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
-                            size="small"
-                            onClick={() => setViewPermissionsDialogOpen(true)}
-                        >
-                            <PlaylistAddCheckIcon fontSize="small" />
-                        </IconButton>
-                    </MythicStyledTooltip>
-                    <Typography variant="body2" style={{wordBreak: "break-all"}}><b>Host: </b> {props.host}</Typography>
-                    {props.callback?.mythictree_groups.length > 0 ? (
-                        <Typography variant="body2" style={{whiteSpace: "pre"}}>
-                            <b>Groups: </b>{props?.callback.mythictree_groups.join(", ")}<br/>
-                            <b>Callback: </b>{
-                                <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
+                    <div className="mythic-search-result-stack mythic-search-result-stack-spacious">
+                        <div className="mythic-search-result-action-row">
+                            <MythicStyledTooltip title="View metadata">
+                                <IconButton
+                                    className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                                    size="small"
+                                    onClick={() => setViewPermissionsDialogOpen(true)}
+                                >
+                                    <PlaylistAddCheckIcon fontSize="small" />
+                                </IconButton>
+                            </MythicStyledTooltip>
+                            <span
+                                className="mythic-search-result-primary"
+                                style={{...singleLineCellStyle, textDecoration: props.deleted ? "line-through" : ""}}
+                                title={props.name_text || props.full_path_text}
+                            >
+                                {props.name_text || props.full_path_text}
+                            </span>
+                        </div>
+                        <div className="mythic-search-result-inline">
+                            <span className="mythic-search-result-label">Host</span>
+                            <span className="mythic-search-result-value" style={singleLineCellStyle} title={props.host}>{props.host}</span>
+                        </div>
+                        {props.full_path_text && props.full_path_text !== props.name_text ? (
+                            <div className="mythic-search-result-code mythic-search-result-code-compact" title={props.full_path_text}>
+                                {props.full_path_text}
+                            </div>
+                        ) : null}
+                        {props.callback ? (
+                            <div className="mythic-search-result-link-row">
+                                <span className="mythic-search-result-label">Callback</span>
+                                <Link color="textPrimary" underline="always" target="_blank"
                                       href={"/new/callbacks/" + props.callback.display_id}>
                                     C-{props.callback.display_id}
                                 </Link>
-                            }{", "}
-                            <b>Task: </b>{
-                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
-                                  href={"/new/task/" + props.task.display_id}>
-                                T-{props.task.display_id}
-                            </Link>
-                        }
-                        </Typography>
-                    ) : null}
-                    <Typography variant="body2" style={{wordBreak: "break-all", textDecoration: props.deleted ? "strike-through" : ""}}>{props.full_path_text}</Typography>
+                                {props.task ? (
+                                    <React.Fragment>
+                                        <span className="mythic-search-result-secondary">/</span>
+                                        <span className="mythic-search-result-label">Task</span>
+                                        <Link color="textPrimary" underline="always" target="_blank"
+                                              href={"/new/task/" + props.task.display_id}>
+                                            T-{props.task.display_id}
+                                        </Link>
+                                    </React.Fragment>
+                                ) : null}
+                            </div>
+                        ) : null}
+                        {props.callback?.mythictree_groups?.length > 0 ? (
+                            <div className="mythic-search-result-secondary">
+                                Groups: {props.callback.mythictree_groups.join(", ")}
+                            </div>
+                        ) : null}
+                    </div>
 
                 </MythicStyledTableCell>
                 {props.columns.map((column, index) => (
                     <MythicStyledTableCell key={index}>
-                        <Typography variant="body2" style={{wordBreak: "break-all", display: "inline-block"}}>{props.metadata[column.key]}</Typography>
+                        <div
+                            className="mythic-search-result-value"
+                            style={singleLineCellStyle}
+                            title={formatMetadataValue(props.metadata?.[column.key])}
+                        >
+                            {formatMetadataValue(props.metadata?.[column.key]) || <span className="mythic-search-result-secondary">None</span>}
+                        </div>
                     </MythicStyledTableCell>
                 ))}
                 <MythicStyledTableCell>
-                    <IconButton
-                        className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
-                        onClick={() => setEditCommentDialogOpen(true)}
-                        size="small"
-                    >
-                        <EditIcon fontSize="small" />
-                    </IconButton>
-                    <Typography variant="body2" style={{wordBreak: "break-all", display: "inline-block"}}>{props.comment}</Typography>
-                    </MythicStyledTableCell>
+                    <div className="mythic-search-result-action-row">
+                        <MythicStyledTooltip title="Edit comment">
+                            <IconButton
+                                className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                                onClick={() => setEditCommentDialogOpen(true)}
+                                size="small"
+                            >
+                                <EditIcon fontSize="small" />
+                            </IconButton>
+                        </MythicStyledTooltip>
+                        <span className="mythic-search-result-secondary" style={singleLineCellStyle} title={props.comment}>
+                            {props.comment || "No comment"}
+                        </span>
+                    </div>
+                </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <ViewEditTags target_object={"mythictree_id"} target_object_id={props.id} me={me} />
-                    <TagsDisplay tags={props.tags} />
+                    <div className="mythic-custom-browser-tags-cell">
+                        <ViewEditTags target_object={"mythictree_id"} target_object_id={props.id} me={me} />
+                        <div className="mythic-custom-browser-tags-list">
+                            <TagsDisplay tags={props.tags} />
+                        </div>
+                    </div>
                 </MythicStyledTableCell>
 
             </TableRow>
