@@ -150,6 +150,7 @@ const SearchTabCustomBrowserSearchPanel = (props) => {
                 props.onCommentSearch({search:adjustedSearch, searchHost:adjustedSearchHost, offset: 0})
                 break;
             case "Tag":
+            case "Tags":
                 props.onTagSearch({search:adjustedSearch, searchHost:adjustedSearchHost, offset: 0});
                 break;
             case "Metadata":
@@ -178,10 +179,11 @@ const SearchTabCustomBrowserSearchPanel = (props) => {
                 setSearch(queryParams.get("search"));
                 adjustedSearch = queryParams.get("search");
             }
-            if(queryParams.has("searchField") && searchFieldOptions.includes(queryParams.get("searchField"))){
-                setSearchField(queryParams.get("searchField"));
-                props.onChangeSearchField(queryParams.get("searchField"));
-                adjustedSearchField = queryParams.get("searchField");
+            if(queryParams.has("searchField") && (searchFieldOptions.includes(queryParams.get("searchField")) || queryParams.get("searchField") === "Tag")){
+                const nextSearchField = queryParams.get("searchField") === "Tag" ? "Tags" : queryParams.get("searchField");
+                setSearchField(nextSearchField);
+                props.onChangeSearchField(nextSearchField);
+                adjustedSearchField = nextSearchField;
             }else{
                 setSearchField("Name");
                 props.onChangeSearchField("Name");
@@ -252,7 +254,11 @@ export const SearchTabCustomBrowserPanel = (props) =>{
                 onCommentSearch({search, searchHost, offset: 0});
                 break;
             case "Tag":
+            case "Tags":
                 onTagSearch({search, searchHost, offset: 0});
+                break;
+            case "Metadata":
+                onOtherSearch({search, searchHost, offset: 0});
                 break;
             default:
                 break;
@@ -260,7 +266,7 @@ export const SearchTabCustomBrowserPanel = (props) =>{
     }
     const handleSearchResults = (data) => {
         snackActions.dismiss();
-        if(searchField === "Tag"){
+        if(searchField === "Tag" || searchField === "Tags"){
             setTotalCount(data.tag_aggregate.aggregate.count);
             setProcessData(data?.tag?.map(t => t.mythictree) || []);
         } else {
@@ -361,6 +367,7 @@ export const SearchTabCustomBrowserPanel = (props) =>{
                 onCommentSearch({search, searchHost:searchHost, offset: (value - 1) * fetchLimit});
                 break;
             case "Tag":
+            case "Tags":
                 onTagSearch({search, searchHost:searchHost, offset: (value - 1) * fetchLimit});
                 break;
             case "Metadata":
@@ -385,7 +392,7 @@ export const SearchTabCustomBrowserPanel = (props) =>{
                                            changeSearchParam={props.changeSearchParam}/>
             <div style={{overflowY: "auto", flexGrow: 1}}>
                 {processData.length > 0 ? (
-                    <CustomBrowserTable rows={processData} columns={selectedBrowser.columns} />) : (
+                    <CustomBrowserTable rows={processData} columns={selectedBrowser.columns} me={props.me} />) : (
                     <MythicSearchEmptyState
                         compact
                         description="Adjust the custom browser query or selected browser field and search again."
