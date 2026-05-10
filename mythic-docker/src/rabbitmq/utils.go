@@ -767,6 +767,62 @@ func GetCallbackCommandInformation(callback databaseStructs.Callback) []string {
 
 var completionMutex sync.Mutex
 
+func claimTaskCompletionFunctionStart(taskID int, startedColumn string, completedColumn string, functionColumn string, runningStatus PT_TASK_FUNCTION_STATUS) bool {
+	query := fmt.Sprintf(`UPDATE task
+		SET %s=true, status=$2
+		WHERE id=$1
+		AND completed=true
+		AND %s != ''
+		AND %s=false
+		AND %s=false`, startedColumn, functionColumn, startedColumn, completedColumn)
+	result, err := database.DB.Exec(query, taskID, runningStatus)
+	if err != nil {
+		logging.LogError(err, "Failed to claim task completion function start", "task_id", taskID, "started_column", startedColumn)
+		return false
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		logging.LogError(err, "Failed to check task completion function claim result", "task_id", taskID, "started_column", startedColumn)
+		return false
+	}
+	return rowsAffected == 1
+}
+
+func claimGroupCompletionFunctionStart(parentTaskID int64, groupName string, groupCallbackFunction string) bool {
+	result, err := database.DB.Exec(`UPDATE task
+		SET group_callback_function_started=true, status=$4
+		WHERE parent_task_id=$1
+		AND subtask_group_name=$2
+		AND group_callback_function=$3
+		AND group_callback_function != ''
+		AND completed=true
+		AND group_callback_function_started=false
+		AND group_callback_function_completed=false
+		AND NOT EXISTS (
+			SELECT 1
+			FROM task existing_group_task
+			WHERE existing_group_task.parent_task_id=$1
+			AND existing_group_task.subtask_group_name=$2
+			AND existing_group_task.group_callback_function=$3
+			AND (
+				existing_group_task.completed=false
+				OR existing_group_task.group_callback_function_started=true
+				OR existing_group_task.group_callback_function_completed=true
+			)
+		)`,
+		parentTaskID, groupName, groupCallbackFunction, PT_TASK_FUNCTION_STATUS_GROUP_COMPLETED_FUNCTION)
+	if err != nil {
+		logging.LogError(err, "Failed to claim group completion function start", "parent_task_id", parentTaskID, "group_name", groupName)
+		return false
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		logging.LogError(err, "Failed to check group completion function claim result", "parent_task_id", parentTaskID, "group_name", groupName)
+		return false
+	}
+	return rowsAffected > 0
+}
+
 // Helper functions for getting information for sending Task data to a container
 func CheckAndProcessTaskCompletionHandlers(taskId int) {
 	// check if this task has a completion function
@@ -783,8 +839,11 @@ func CheckAndProcessTaskCompletionHandlers(taskId int) {
 	err := database.DB.Get(&task, `SELECT
 		task.parent_task_id, task.operator_id, task.completed,
 		task.subtask_callback_function, task.subtask_callback_function_completed,
+		task.subtask_callback_function_started,
 		task.group_callback_function, task.group_callback_function_completed, task.completed_callback_function,
-		task.completed_callback_function_completed, task.subtask_group_name, task.id, task.status, task.eventstepinstance_id
+		task.group_callback_function_started,
+		task.completed_callback_function_completed, task.completed_callback_function_started,
+		task.subtask_group_name, task.id, task.status, task.eventstepinstance_id
 		FROM task
 		WHERE task.id=$1`, taskId)
 	if err != nil {
@@ -799,18 +858,23 @@ func CheckAndProcessTaskCompletionHandlers(taskId int) {
 	}
 	if task.ParentTaskID.Valid {
 		err = database.DB.Get(&parentTask, `SELECT 
-    		task.id, task.status, task.completed, task.eventstepinstance_id, task.completed_callback_function_completed,
-    		task.subtask_callback_function,
-    		c.script_only "command.script_only"
-    		from task
-    		LEFT OUTER JOIN command c on task.command_id = c.id
-    		WHERE task.id=$1`, task.ParentTaskID.Int64)
+		task.id, task.status, task.completed, task.eventstepinstance_id, task.completed_callback_function, task.completed_callback_function_completed,
+		task.completed_callback_function_started,
+		task.subtask_callback_function,
+		c.script_only "command.script_only"
+		from task
+		LEFT OUTER JOIN command c on task.command_id = c.id
+		WHERE task.id=$1`, task.ParentTaskID.Int64)
 		if err != nil {
 			logging.LogError(err, "Failed to get parent task information")
 		}
 	}
 	// now we have info for both the current task that finished something and the parent task (if there is one)
 	if task.CompletedCallbackFunction != "" && !task.CompletedCallbackFunctionCompleted {
+		if !claimTaskCompletionFunctionStart(task.ID, "completed_callback_function_started", "completed_callback_function_completed",
+			"completed_callback_function", PT_TASK_FUNCTION_STATUS_COMPLETION_FUNCTION) {
+			return
+		}
 		// this task has a completion function set, and it hasn't been executed, so run it
 		// ex in create_tasking: completionFunctionName := "shellCompleted"
 		//	response.CompletionFunctionName = &completionFunctionName
@@ -820,9 +884,7 @@ func CheckAndProcessTaskCompletionHandlers(taskId int) {
 			CompletionFunctionName: task.CompletedCallbackFunction,
 		}
 		task.Status = PT_TASK_FUNCTION_STATUS_COMPLETION_FUNCTION
-		if _, err := database.DB.NamedExec(`UPDATE task SET status=:status WHERE id=:id`, task); err != nil {
-			logging.LogError(err, "Failed to update status to completion task running")
-		} else if err = RabbitMQConnection.SendPtTaskCompletionFunction(taskMessage); err != nil {
+		if err = RabbitMQConnection.SendPtTaskCompletionFunction(taskMessage); err != nil {
 			logging.LogError(err, "Failed to send task completion function message to container")
 			task.Status = PT_TASK_FUNCTION_STATUS_COMPLETION_FUNCTION_ERROR
 			if _, err = database.DB.NamedExec(`UPDATE task SET status=:status WHERE id=:id`, task); err != nil {
@@ -830,6 +892,14 @@ func CheckAndProcessTaskCompletionHandlers(taskId int) {
 			}
 		}
 	} else if task.SubtaskCallbackFunction != "" && !task.SubtaskCallbackFunctionCompleted {
+		if !task.ParentTaskID.Valid {
+			logging.LogError(nil, "Task has subtask callback function but no parent task", "task_id", task.ID)
+			return
+		}
+		if !claimTaskCompletionFunctionStart(task.ID, "subtask_callback_function_started", "subtask_callback_function_completed",
+			"subtask_callback_function", PT_TASK_FUNCTION_STATUS_SUBTASK_COMPLETED_FUNCTION) {
+			return
+		}
 		// this task has a subtask callback function, and that subtask function hasn't completed successfully
 		// ex in create_tasking:
 		//	completionFunctionName := "pwdCompleted"
@@ -854,6 +924,10 @@ func CheckAndProcessTaskCompletionHandlers(taskId int) {
 			}
 		}
 	} else if task.SubtaskGroupName != "" && task.GroupCallbackFunction != "" && !task.GroupCallbackFunctionCompleted {
+		if !task.ParentTaskID.Valid {
+			logging.LogError(nil, "Task has group callback function but no parent task", "task_id", task.ID)
+			return
+		}
 		// we have a subtask group name, we have a group callback function defined, and that group callback function is done
 		// need to check if we're the last one in the group to finish - if so, we need to call the function, if not do nothing
 		// this function is executed for the PARENT_TASK
@@ -872,6 +946,9 @@ func CheckAndProcessTaskCompletionHandlers(taskId int) {
 			task.ParentTaskID.Int64, task.SubtaskGroupName); err != nil {
 			logging.LogError(err, "Failed to fetch other group tasks")
 		} else if len(groupTasks) == 0 {
+			if !claimGroupCompletionFunctionStart(task.ParentTaskID.Int64, task.SubtaskGroupName, task.GroupCallbackFunction) {
+				return
+			}
 			logging.LogInfo("subtask completed, parent task completion function going to run", "taskId", task.ParentTaskID.Int64, "subtaskid", task.ID)
 			err = RabbitMQConnection.SendPtTaskCompletionFunction(taskMessage)
 			if err != nil {
@@ -901,6 +978,10 @@ func CheckAndProcessTaskCompletionHandlers(taskId int) {
 						logging.LogError(err, "Failed to update parent task information to submitted")
 					}
 					if parentTask.CompletedCallbackFunction != "" && !parentTask.CompletedCallbackFunctionCompleted {
+						if !claimTaskCompletionFunctionStart(parentTask.ID, "completed_callback_function_started", "completed_callback_function_completed",
+							"completed_callback_function", PT_TASK_FUNCTION_STATUS_COMPLETION_FUNCTION) {
+							return
+						}
 						// this task has a completion function set, and it hasn't been executed, so run it
 						// ex in create_tasking: completionFunctionName := "shellCompleted"
 						//	response.CompletionFunctionName = &completionFunctionName
@@ -912,8 +993,8 @@ func CheckAndProcessTaskCompletionHandlers(taskId int) {
 						err = RabbitMQConnection.SendPtTaskCompletionFunction(taskMessage)
 						if err != nil {
 							logging.LogError(err, "Failed to send task completion function message to container")
-							task.Status = PT_TASK_FUNCTION_STATUS_COMPLETION_FUNCTION_ERROR
-							if _, err = database.DB.NamedExec(`UPDATE task SET status=:status WHERE id=:id`, task); err != nil {
+							parentTask.Status = PT_TASK_FUNCTION_STATUS_COMPLETION_FUNCTION_ERROR
+							if _, err = database.DB.NamedExec(`UPDATE task SET status=:status WHERE id=:id`, parentTask); err != nil {
 								logging.LogError(err, "Failed to update task status for completion function error")
 							}
 						}

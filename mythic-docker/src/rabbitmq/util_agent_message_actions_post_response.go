@@ -294,14 +294,14 @@ type writeDownloadChunkToDisk struct {
 
 var writeDownloadChunkToDiskChan = make(chan writeDownloadChunkToDisk)
 
-type agentAgentMessagePostResponseChannelMessage struct {
+type agentMessagePostResponseUserOutputChannelMessage struct {
 	Response    string
 	SequenceNum *int64
 	Task        databaseStructs.Task
 }
 
-var asyncAgentMessagePostResponseWorkerChannels []chan agentAgentMessagePostResponseChannelMessage
-var asyncAgentMessagePostResponseWorkersOnce sync.Once
+var asyncAgentMessagePostResponseUserOutputWorkerChannels []chan agentMessagePostResponseUserOutputChannelMessage
+var asyncAgentMessagePostResponseUserOutputWorkersOnce sync.Once
 
 var responseInterceptMapOperationIDToEventGroupID = make(map[int]int)
 var responseInterceptMapLock = sync.RWMutex{}
@@ -320,25 +320,25 @@ func getAgentMessagePostResponseQueueSize() int {
 	return defaultAgentMessagePostResponseQueueSize
 }
 
-func initializeAsyncAgentMessagePostResponseWorkers() {
+func initializeAsyncAgentMessagePostResponseUserOutputWorkers() {
 	UpdateCachedResponseIntercept()
 	workerCount := getAgentMessagePostResponseWorkerCount()
 	queueSize := getAgentMessagePostResponseQueueSize()
-	asyncAgentMessagePostResponseWorkerChannels = make([]chan agentAgentMessagePostResponseChannelMessage, workerCount)
+	asyncAgentMessagePostResponseUserOutputWorkerChannels = make([]chan agentMessagePostResponseUserOutputChannelMessage, workerCount)
 	for i := 0; i < workerCount; i++ {
-		asyncAgentMessagePostResponseWorkerChannels[i] = make(chan agentAgentMessagePostResponseChannelMessage, queueSize)
-		go listenForAsyncAgentMessagePostResponseWorker(i, asyncAgentMessagePostResponseWorkerChannels[i])
+		asyncAgentMessagePostResponseUserOutputWorkerChannels[i] = make(chan agentMessagePostResponseUserOutputChannelMessage, queueSize)
+		go listenForAsyncAgentMessagePostResponseUserOutputWorker(i, asyncAgentMessagePostResponseUserOutputWorkerChannels[i])
 	}
 }
 
-func enqueueAsyncAgentMessagePostResponse(msg agentAgentMessagePostResponseChannelMessage) {
-	asyncAgentMessagePostResponseWorkersOnce.Do(initializeAsyncAgentMessagePostResponseWorkers)
-	workerCount := len(asyncAgentMessagePostResponseWorkerChannels)
+func enqueueAsyncAgentMessagePostResponse(msg agentMessagePostResponseUserOutputChannelMessage) {
+	asyncAgentMessagePostResponseUserOutputWorkersOnce.Do(initializeAsyncAgentMessagePostResponseUserOutputWorkers)
+	workerCount := len(asyncAgentMessagePostResponseUserOutputWorkerChannels)
 	workerID := msg.Task.ID % workerCount
 	if workerID < 0 {
 		workerID = 0
 	}
-	asyncAgentMessagePostResponseWorkerChannels[workerID] <- msg
+	asyncAgentMessagePostResponseUserOutputWorkerChannels[workerID] <- msg
 }
 
 func UpdateCachedResponseIntercept() {
@@ -374,10 +374,10 @@ func getCachedResponseInterceptEventGroupID(operationID int) (int, bool) {
 }
 
 func listenForAsyncAgentMessagePostResponseContent() {
-	asyncAgentMessagePostResponseWorkersOnce.Do(initializeAsyncAgentMessagePostResponseWorkers)
+	asyncAgentMessagePostResponseUserOutputWorkersOnce.Do(initializeAsyncAgentMessagePostResponseUserOutputWorkers)
 }
 
-func listenForAsyncAgentMessagePostResponseWorker(workerID int, input <-chan agentAgentMessagePostResponseChannelMessage) {
+func listenForAsyncAgentMessagePostResponseUserOutputWorker(workerID int, input <-chan agentMessagePostResponseUserOutputChannelMessage) {
 	insertStatement, err := database.DB.Preparex(insertAgentMessagePostResponseUserOutputQuery)
 	if err != nil {
 		logging.LogError(err, "Failed to prepare user_output insert statement for post_response worker", "worker_id", workerID)
@@ -386,11 +386,11 @@ func listenForAsyncAgentMessagePostResponseWorker(workerID int, input <-chan age
 		defer insertStatement.Close()
 	}
 	for msg := range input {
-		processAsyncAgentMessagePostResponseContent(msg, insertStatement)
+		processAsyncAgentMessagePostResponseUserOutput(msg, insertStatement)
 	}
 }
 
-func processAsyncAgentMessagePostResponseContent(msg agentAgentMessagePostResponseChannelMessage, insertStatement *sqlx.Stmt) {
+func processAsyncAgentMessagePostResponseUserOutput(msg agentMessagePostResponseUserOutputChannelMessage, insertStatement *sqlx.Stmt) {
 	// force chunking user_output can be useful, but might also affect command's browserscripts
 	//chunkSize := 1024 * 1024
 	//chunks := int(len(msg.Response)/chunkSize) + 1 // 1MB chunks
@@ -449,6 +449,44 @@ func getAgentMessagePostResponseTasks(responses []agentMessagePostResponse) (map
 		tasksByAgentTaskID[task.AgentTaskID] = task
 	}
 	return tasksByAgentTaskID, nil
+}
+
+func updateAgentMessagePostResponseTask(task databaseStructs.Task) (bool, error) {
+	tx, err := database.DB.Beginx()
+	if err != nil {
+		return false, err
+	}
+	defer tx.Rollback()
+
+	wasCompleted := false
+	if err = tx.Get(&wasCompleted, `SELECT completed FROM task WHERE id=$1 FOR UPDATE`, task.ID); err != nil {
+		return false, err
+	}
+
+	updatedCompleted := false
+	err = tx.Get(&updatedCompleted, `UPDATE task SET
+		status=CASE WHEN completed THEN status ELSE $2 END,
+		completed=(completed OR $3),
+		status_timestamp_processed=coalesce(status_timestamp_processed, $4),
+		"timestamp"=$5,
+		stdout=$6,
+		stderr=$7
+		WHERE id=$1
+		RETURNING completed`,
+		task.ID,
+		task.Status,
+		task.Completed,
+		task.StatusTimestampProcessed,
+		task.Timestamp,
+		task.Stdout,
+		task.Stderr)
+	if err != nil {
+		return false, err
+	}
+	if err = tx.Commit(); err != nil {
+		return false, err
+	}
+	return !wasCompleted && updatedCompleted, nil
 }
 
 func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *cachedUUIDInfo) (map[string]interface{}, error) {
@@ -576,7 +614,7 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 		if agentMessage.Responses[i].UserOutput != nil && *agentMessage.Responses[i].UserOutput != "" {
 			// do it in the background - the agent doesn't need the result of this directly
 			//handleAgentMessagePostResponseUserOutput(currentTask, agentResponse, true)
-			enqueueAsyncAgentMessagePostResponse(agentAgentMessagePostResponseChannelMessage{
+			enqueueAsyncAgentMessagePostResponse(agentMessagePostResponseUserOutputChannelMessage{
 				Task:        currentTask,
 				Response:    *agentMessage.Responses[i].UserOutput,
 				SequenceNum: agentMessage.Responses[i].SequenceNumber,
@@ -658,15 +696,11 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 	delete(*incoming, "responses")
 	for _, currentTask := range tasksToUpdate {
 		// always updating at least the timestamp for the last thing that happened
-		_, err = database.DB.NamedExec(`UPDATE task SET
-				status=:status, completed=:completed, status_timestamp_processed=:status_timestamp_processed, "timestamp"=:timestamp,
-				stdout=:stdout, stderr=:stderr
-				WHERE id=:id`, currentTask)
+		transitionedToCompleted, err := updateAgentMessagePostResponseTask(currentTask)
 		if err != nil {
 			logging.LogError(err, "Failed to update task from agent response")
 		}
-		if currentTask.Completed {
-			// use updatedToCompleted to try to make sure we only do this once per task
+		if transitionedToCompleted {
 			go CheckAndProcessTaskCompletionHandlers(currentTask.ID)
 			FileBrowserChannel <- FileBrowserChannelMessage{
 				Task:               &currentTask,
@@ -1933,7 +1967,7 @@ func HandleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 				logging.LogError(err, "failed to marshal filebrowser data to JSON")
 				return
 			}
-			enqueueAsyncAgentMessagePostResponse(agentAgentMessagePostResponseChannelMessage{
+			enqueueAsyncAgentMessagePostResponse(agentMessagePostResponseUserOutputChannelMessage{
 				Task:        task,
 				Response:    string(outputBytes),
 				SequenceNum: nil,
@@ -2859,7 +2893,7 @@ func handleAgentMessagePostResponseCustomBrowser(task databaseStructs.Task, agen
 				logging.LogError(err, "failed to marshal filebrowser data to JSON")
 				return
 			}
-			enqueueAsyncAgentMessagePostResponse(agentAgentMessagePostResponseChannelMessage{
+			enqueueAsyncAgentMessagePostResponse(agentMessagePostResponseUserOutputChannelMessage{
 				Task:        task,
 				Response:    string(outputBytes),
 				SequenceNum: nil,

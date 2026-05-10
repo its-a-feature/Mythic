@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"slices"
+	"sync"
 	"testing"
 )
 
@@ -90,5 +91,92 @@ func TestCallbackPortsInUseCombinedDataFetchUsesIndexedPorts(t *testing.T) {
 	}
 	if len(proxyData.Socks) != 0 || len(proxyData.Rpfwd) != 0 || len(proxyData.Interactive) != 0 {
 		t.Fatalf("expected proxy data to be drained, got %#v", proxyData)
+	}
+}
+
+func TestCallbackPortUsageByteCountersAccumulateWithoutChannels(t *testing.T) {
+	port := newTestCallbackPort(10, CALLBACK_PORT_TYPE_SOCKS, 7001, 1)
+	port.initializeByteCounters(10, 20)
+
+	port.addBytesSentToAgent(5)
+	port.addBytesReceivedFromAgent(7)
+
+	if got := port.bytesSentToAgent.Load(); got != 15 {
+		t.Fatalf("expected bytes sent to agent to be 15, got %d", got)
+	}
+	if got := port.bytesReceivedFromAgent.Load(); got != 27 {
+		t.Fatalf("expected bytes received from agent to be 27, got %d", got)
+	}
+	if got := port.lastFlushedBytesSentToAgent.Load(); got != 10 {
+		t.Fatalf("expected last flushed bytes sent to agent to remain 10, got %d", got)
+	}
+	if got := port.lastFlushedBytesReceivedFromAgent.Load(); got != 20 {
+		t.Fatalf("expected last flushed bytes received from agent to remain 20, got %d", got)
+	}
+}
+
+func TestCallbackPortUsageByteCountersApplyPersistedBaseline(t *testing.T) {
+	port := newTestCallbackPort(10, CALLBACK_PORT_TYPE_SOCKS, 7001, 1)
+	port.initializeByteCounters(0, 0)
+	port.addBytesSentToAgent(3)
+	port.addBytesReceivedFromAgent(4)
+
+	port.applyPersistedByteCounters(100, 200)
+
+	if got := port.bytesSentToAgent.Load(); got != 103 {
+		t.Fatalf("expected bytes sent to agent to include persisted baseline and pending delta, got %d", got)
+	}
+	if got := port.bytesReceivedFromAgent.Load(); got != 204 {
+		t.Fatalf("expected bytes received from agent to include persisted baseline and pending delta, got %d", got)
+	}
+	if got := port.lastFlushedBytesSentToAgent.Load(); got != 100 {
+		t.Fatalf("expected last flushed bytes sent to agent to track persisted baseline, got %d", got)
+	}
+	if got := port.lastFlushedBytesReceivedFromAgent.Load(); got != 200 {
+		t.Fatalf("expected last flushed bytes received from agent to track persisted baseline, got %d", got)
+	}
+}
+
+func TestCallbackPortUsageByteCountersClampAtPostgresBigint(t *testing.T) {
+	port := newTestCallbackPort(10, CALLBACK_PORT_TYPE_SOCKS, 7001, 1)
+	port.initializeByteCounters(POSTGRES_MAX_BIGINT-2, POSTGRES_MAX_BIGINT-3)
+
+	port.addBytesSentToAgent(10)
+	port.addBytesReceivedFromAgent(10)
+
+	if got := port.bytesSentToAgent.Load(); got != POSTGRES_MAX_BIGINT-1 {
+		t.Fatalf("expected bytes sent to agent to clamp to %d, got %d", POSTGRES_MAX_BIGINT-1, got)
+	}
+	if got := port.bytesReceivedFromAgent.Load(); got != POSTGRES_MAX_BIGINT-1 {
+		t.Fatalf("expected bytes received from agent to clamp to %d, got %d", POSTGRES_MAX_BIGINT-1, got)
+	}
+}
+
+func TestCallbackPortUsageByteCountersHandleConcurrentAdds(t *testing.T) {
+	port := newTestCallbackPort(10, CALLBACK_PORT_TYPE_SOCKS, 7001, 1)
+	port.initializeByteCounters(5, 7)
+
+	const goroutineCount = 32
+	const incrementsPerGoroutine = 1000
+	var wg sync.WaitGroup
+	wg.Add(goroutineCount)
+	for i := 0; i < goroutineCount; i++ {
+		go func() {
+			defer wg.Done()
+			for j := 0; j < incrementsPerGoroutine; j++ {
+				port.addBytesSentToAgent(1)
+				port.addBytesReceivedFromAgent(2)
+			}
+		}()
+	}
+	wg.Wait()
+
+	expectedSent := int64(5 + goroutineCount*incrementsPerGoroutine)
+	expectedReceived := int64(7 + goroutineCount*incrementsPerGoroutine*2)
+	if got := port.bytesSentToAgent.Load(); got != expectedSent {
+		t.Fatalf("expected bytes sent to agent to be %d, got %d", expectedSent, got)
+	}
+	if got := port.bytesReceivedFromAgent.Load(); got != expectedReceived {
+		t.Fatalf("expected bytes received from agent to be %d, got %d", expectedReceived, got)
 	}
 }

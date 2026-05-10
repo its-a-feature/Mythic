@@ -232,10 +232,10 @@ const SearchTabPayloadsSearchPanel = (props) => {
     }, []);
     return (
         <MythicTableToolbar variant="search">
-            <MythicTableToolbarGroup grow>
+            <MythicTableToolbarGroup grow label="Search">
                 <MythicSearchField value={search} onChange={handleSearchValueChange} onEnter={submitSearch} onSearch={submitSearch} />
             </MythicTableToolbarGroup>
-            <MythicTableToolbarGroup>
+            <MythicTableToolbarGroup label="In">
                 <MythicToolbarSelect
                     value={searchField}
                     onChange={handleSearchFieldChange}
@@ -247,7 +247,7 @@ const SearchTabPayloadsSearchPanel = (props) => {
                     }
                 </MythicToolbarSelect>
             </MythicTableToolbarGroup>
-            <MythicTableToolbarGroup>
+            <MythicTableToolbarGroup label="C2 profile">
                 <MythicToolbarSelect
                     value={searchC2}
                     onChange={handleC2FieldChange}
@@ -260,7 +260,7 @@ const SearchTabPayloadsSearchPanel = (props) => {
                 </MythicToolbarSelect>
 
             </MythicTableToolbarGroup>
-            <MythicTableToolbarGroup>
+            <MythicTableToolbarGroup label="Payload type">
                 <MythicToolbarSelect
                     value={searchPayloadType}
                     onChange={handlePayloadTypeFieldChange}
@@ -272,7 +272,7 @@ const SearchTabPayloadsSearchPanel = (props) => {
                     }
                 </MythicToolbarSelect>
             </MythicTableToolbarGroup>
-            <MythicTableToolbarGroup>
+            <MythicTableToolbarGroup label="Filters">
                 <MythicToolbarToggle
                     checked={showDeleted}
                     onClick={handleToggleShowDeleted}

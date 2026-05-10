@@ -7,7 +7,7 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faSocks} from '@fortawesome/free-solid-svg-icons';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import {MythicTableToolbar, MythicTableToolbarGroup, MythicToolbarToggle} from "../../MythicComponents/MythicTableToolbar";
+import {MythicSearchField, MythicTableToolbar, MythicTableToolbarGroup, MythicToolbarToggle} from "../../MythicComponents/MythicTableToolbar";
 import {MythicSearchEmptyState} from "../../MythicComponents/MythicStateDisplay";
 
 const callbackPortsSub = gql`
@@ -55,6 +55,29 @@ export function SearchTabSocksLabel(props){
 export const SearchTabSocksPanel = (props) =>{
     const [callbackData, setCallbackData] = React.useState([]);
     const [showDeleted, setShowDeleted] = React.useState(false);
+    const [search, setSearch] = React.useState("");
+    const handleSearchValueChange = (name, value, error) => {
+        setSearch(value);
+    }
+    const submitSearch = () => {
+        props.changeSearchParam("search", search);
+    }
+    const handleToggleShowDeleted = () => {
+        const nextShowDeleted = !showDeleted;
+        setShowDeleted(nextShowDeleted);
+        props.changeSearchParam("showStopped", nextShowDeleted ? "true" : "false");
+    }
+    React.useEffect(() => {
+        if(props.value === props.index){
+            const queryParams = new URLSearchParams(window.location.search);
+            if(queryParams.has("search")){
+                setSearch(queryParams.get("search"));
+            }
+            if(queryParams.has("showStopped")){
+                setShowDeleted(queryParams.get("showStopped") === "true");
+            }
+        }
+    }, [props.value, props.index]);
     useSubscription(callbackPortsSub, {
         fetchPolicy: "no-cache",
         onData: ({data}) => {
@@ -79,14 +102,48 @@ export const SearchTabSocksPanel = (props) =>{
             console.log(data);
         }
     });
+    const filteredCallbacks = React.useMemo(() => {
+        const normalizedSearch = search.trim().toLowerCase();
+        if(normalizedSearch === ""){
+            return callbackData;
+        }
+        return callbackData.filter((proxy) => {
+            const searchableText = [
+                proxy.callback?.user,
+                proxy.callback?.host,
+                proxy.callback?.description,
+                proxy.callback?.domain,
+                proxy.callback?.display_id ? `C-${proxy.callback.display_id}` : "",
+                proxy.task?.display_id ? `T-${proxy.task.display_id}` : "",
+                proxy.local_port,
+                proxy.remote_ip,
+                proxy.remote_port,
+                proxy.port_type,
+                proxy.username,
+            ].join(" ").toLowerCase();
+            return searchableText.includes(normalizedSearch);
+        });
+    }, [callbackData, search]);
+    const visibleCallbacks = React.useMemo(() => {
+        return filteredCallbacks.filter((proxy) => showDeleted || !proxy.deleted);
+    }, [filteredCallbacks, showDeleted]);
 
     return (
         <MythicTabPanel {...props} >
-            <MythicTableToolbar>
-                <MythicTableToolbarGroup grow>
+            <MythicTableToolbar variant="search">
+                <MythicTableToolbarGroup grow label="Search">
+                    <MythicSearchField
+                        value={search}
+                        onChange={handleSearchValueChange}
+                        onEnter={submitSearch}
+                        onSearch={submitSearch}
+                        placeholder="Search proxies..."
+                    />
+                </MythicTableToolbarGroup>
+                <MythicTableToolbarGroup label="Filters">
                     <MythicToolbarToggle
                         checked={showDeleted}
-                        onClick={() => setShowDeleted(!showDeleted)}
+                        onClick={handleToggleShowDeleted}
                         label="Stopped"
                         activeIcon={<VisibilityIcon fontSize="small" />}
                         inactiveIcon={<VisibilityOffIcon fontSize="small" />}
@@ -94,11 +151,13 @@ export const SearchTabSocksPanel = (props) =>{
                 </MythicTableToolbarGroup>
             </MythicTableToolbar>
             <div style={{overflowY: "auto", height: "100%", display: "flex", flexDirection: "column"}}>
-                {callbackData.length > 0 ? (
-                    <ProxySearchTable callbacks={callbackData} showDeleted={showDeleted} />) : (
+                {visibleCallbacks.length > 0 ? (
+                    <ProxySearchTable callbacks={filteredCallbacks} showDeleted={showDeleted} />) : (
                     <MythicSearchEmptyState
                         compact
-                        description="No callback port forwards match the current stopped filter."
+                        description={search.trim() === "" ?
+                            "No callback port forwards match the current stopped filter." :
+                            "No callback port forwards match the current search and stopped filter."}
                         minHeight={180}
                     />
                 )}
