@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import {Link, IconButton, Typography} from '@mui/material';
+import {Link, IconButton} from '@mui/material';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -21,6 +21,31 @@ import {HostFileDialog} from "../Payloads/HostFileDialog";
 import PublicIcon from '@mui/icons-material/Public';
 import {DetailedPayloadTable} from "../Payloads/DetailedPayloadTable";
 import InfoIconOutline from '@mui/icons-material/InfoOutlined';
+import {getReadableTextColor, isValidHexColor} from "../../MythicComponents/MythicColorInput";
+
+const singleLineCellStyle = {
+    minWidth: 0,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+};
+
+const formatTagData = (data) => {
+    if(data === null || data === undefined){
+        return "";
+    }
+    if(typeof data === "string"){
+        return data;
+    }
+    return JSON.stringify(data, null, 2);
+};
+
+const safeDecode = (value) => {
+    if(!value){
+        return "";
+    }
+    return b64DecodeUnicode(value);
+};
 
 export function TagTable(props){
     const [tags, setTags] = React.useState([]);
@@ -33,12 +58,12 @@ export function TagTable(props){
     }
     return (
         <TableContainer className="mythicElement" style={{height: "100%", overflowY: "auto"}} >
-            <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
+            <Table stickyHeader size="small" style={{tableLayout: "fixed"}}>
                 <TableHead>
                     <TableRow>
                         <TableCell style={{width: "4rem"}}>Delete</TableCell>
-                        <TableCell style={{width: "20%"}}>TagType</TableCell>
-                        <TableCell style={{width: "8rem"}}>Source</TableCell>
+                        <TableCell style={{width: "14rem"}}>Tag Type</TableCell>
+                        <TableCell style={{width: "10rem"}}>Source</TableCell>
                         <TableCell>Tagged Element Information</TableCell>
                     </TableRow>
                 </TableHead>
@@ -56,14 +81,15 @@ export function TagTable(props){
         </TableContainer>
     )
 }
+
 function TagTableRow(props){
     const [openDeleteDialog, setOpenDeleteDialog] = React.useState(false);
     const [deleteTag] = useMutation(deleteTagMutation, {
-        onCompleted: (data) => {
+        onCompleted: () => {
             snackActions.success("Successfully deleted tag");
             props.onDelete(props.id);
         },
-        onError: (data) => {
+        onError: () => {
             snackActions.error("Failed to delete tag");
         }
     })
@@ -84,21 +110,71 @@ function TagTableRow(props){
                         </IconButton>
                     </MythicStyledTooltip>
                 </MythicStyledTableCell>
-                <MythicStyledTableCell >
-                    <div style={{float: "left"}}><TagsDisplay expand={true} tags={[props]} /></div>
+                <MythicStyledTableCell>
+                    <div className="mythic-tag-search-tag-cell"><TagsDisplay expand={true} tags={[props]} /></div>
                 </MythicStyledTableCell>
-                <MythicStyledTableCell>{props.source}</MythicStyledTableCell>
-                <MythicStyledTableCell style={{wordBreak: "break-all"}}><TagTableRowElement {...props} /></MythicStyledTableCell>
+                <MythicStyledTableCell>
+                    <div className="mythic-search-result-value" style={singleLineCellStyle} title={props.source}>
+                        {props.source}
+                    </div>
+                </MythicStyledTableCell>
+                <MythicStyledTableCell><TagTableRowElement {...props} /></MythicStyledTableCell>
             </TableRow>
             {openDeleteDialog &&
                 <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}}
                                      onSubmit={onAcceptDelete} open={openDeleteDialog}
                                      acceptText={ "Remove" }/>
             }
-
         </React.Fragment>
     )
 }
+
+const TagElementPanel = ({type, summary, actions, children}) => (
+    <div className="mythic-tag-search-element-card">
+        <div className="mythic-tag-search-element-header">
+            <div className="mythic-search-result-action-row">
+                <span className="mythic-tag-search-element-type">{type}</span>
+                {summary}
+            </div>
+            {actions ? <div className="mythic-search-result-action-row">{actions}</div> : null}
+        </div>
+        <div className="mythic-tag-search-details-grid">
+            {children}
+        </div>
+    </div>
+);
+
+const TagDetailItem = ({label, children, wide=false, code=false, title}) => (
+    <div className={wide ? "mythic-tag-search-detail mythic-tag-search-detail-wide" : "mythic-tag-search-detail"}>
+        <div className="mythic-search-result-label">{label}</div>
+        {code ? (
+            <pre className="mythic-search-result-code mythic-tag-search-code">{children}</pre>
+        ) : (
+            <div className="mythic-search-result-value" title={title}>
+                {children || <span className="mythic-search-result-secondary">None</span>}
+            </div>
+        )}
+    </div>
+);
+
+const CallbackSummary = ({callback, includeDescription=false}) => {
+    if(!callback){
+        return null;
+    }
+    const safeColor = isValidHexColor(callback.color) ? callback.color : "";
+    const callbackStyle = safeColor ? {
+        backgroundColor: safeColor,
+        borderColor: safeColor,
+        color: getReadableTextColor(safeColor),
+    } : {};
+    return (
+        <span className="mythic-tag-search-callback-summary" style={callbackStyle}>
+            {callback.user}{callback.integrity_level > 2 ? "*" : ""}@{callback.host}
+            {includeDescription && callback.description ? ` - ${callback.description}` : ""}
+        </span>
+    );
+};
+
 function TagTableRowElement(props){
     const [viewPermissionsDialogOpen, setViewPermissionsDialogOpen] = React.useState(false);
     const [openDetailedView, setOpenDetailedView] = React.useState(false);
@@ -106,136 +182,69 @@ function TagTableRowElement(props){
     const getElement = () => {
         if(props.task) {
             return (
-                <TableContainer className="mythicElement" >
-                    <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
-                        <TableBody>
-                            <TableRow hover>
-                                <TableCell style={{width: "20%"}}>Element Type</TableCell>
-                                <TableCell><b>Task</b></TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell >Task / Callback</TableCell>
-                                <TableCell>
-                                    <Link href={"/new/task/" + props.task.display_id} color="textPrimary" target={"_blank"}>
-                                        T-{props.task.display_id}
-                                    </Link>
-                                    {"  /  "}
-                                    <Link href={"/new/callbacks/" + props.task.callback.display_id} color="textPrimary" target={"_blank"}>
-                                        C-{props.task.callback.display_id}
-                                    </Link>
-                                    <div style={{border: props.task.callback.color === "" ? "" : `1px solid ${props.task.callback.color}`}}>
-                                        {props.task.callback.user}{props.task.callback.integrity_level > 2 ? "*" : ""}@{props.task.callback.host}
-                                        {" - "}{props.task.callback.description}
-                                    </div>
-
-                                </TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell>Command</TableCell>
-                                <TableCell>
-                                    {props.task.command_name} {props.task.display_params}
-                                </TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell>Comment</TableCell>
-                                <TableCell>{props.task.comment}</TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell>Data</TableCell>
-                                <TableCell>{JSON.stringify(props.data, null, 2)}</TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                </TableContainer>
+                <TagElementPanel
+                    type="Task"
+                    summary={
+                        <div className="mythic-search-result-link-row">
+                            <Link href={"/new/task/" + props.task.display_id} color="textPrimary" target={"_blank"}>
+                                T-{props.task.display_id}
+                            </Link>
+                            <span className="mythic-search-result-secondary">/</span>
+                            <Link href={"/new/callbacks/" + props.task.callback.display_id} color="textPrimary" target={"_blank"}>
+                                C-{props.task.callback.display_id}
+                            </Link>
+                        </div>
+                    }
+                >
+                    <TagDetailItem label="Callback" wide>
+                        <CallbackSummary callback={props.task.callback} includeDescription />
+                    </TagDetailItem>
+                    <TagDetailItem label="Command" wide>
+                        <span className="mythic-search-result-code mythic-tag-search-inline-code">
+                            {props.task.command_name} {props.task.display_params}
+                        </span>
+                    </TagDetailItem>
+                    <TagDetailItem label="Comment" wide>{props.task.comment}</TagDetailItem>
+                    <TagDetailItem label="Tag Data" wide code>{formatTagData(props.data)}</TagDetailItem>
+                </TagElementPanel>
             )
         } else if(props.credential) {
             return (
-                <TableContainer className="mythicElement" >
-                    <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
-                        <TableBody>
-                            <TableRow hover>
-                                <TableCell style={{width: "20%"}}>Element Type</TableCell>
-                                <TableCell><b>Credential</b></TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell>Account</TableCell>
-                                <TableCell>{props.credential.account}</TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell>Realm</TableCell>
-                                <TableCell>{props.credential.realm}</TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell>Comment</TableCell>
-                                <TableCell>{props.credential.comment}</TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell>Credential Type</TableCell>
-                                <TableCell>{props.credential.type}</TableCell>
-                            </TableRow>
-                            <TableRow hover style={{whiteSpace: "pre"}}>
-                                <TableCell>Credential</TableCell>
-                                <TableCell>{props.credential.credential_text}</TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell>Data</TableCell>
-                                <TableCell>{JSON.stringify(props.data, null, 2)}</TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                </TableContainer>
+                <TagElementPanel type="Credential">
+                    <TagDetailItem label="Account">{props.credential.account}</TagDetailItem>
+                    <TagDetailItem label="Realm">{props.credential.realm}</TagDetailItem>
+                    <TagDetailItem label="Type">{props.credential.type}</TagDetailItem>
+                    <TagDetailItem label="Comment" wide>{props.credential.comment}</TagDetailItem>
+                    <TagDetailItem label="Credential" wide code>{props.credential.credential_text}</TagDetailItem>
+                    <TagDetailItem label="Tag Data" wide code>{formatTagData(props.data)}</TagDetailItem>
+                </TagElementPanel>
             )
         } else if(props.mythictree) {
+            const treeType = props.mythictree.tree_type === "file" ? "File Browser" : "Process Browser";
             return (
-                <TableContainer className="mythicElement" >
-                    <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
-                        <TableBody>
-                            <TableRow hover>
-                                <TableCell style={{width: "15%"}}>Element Type</TableCell>
-                                <TableCell>{props.mythictree.tree_type === "file" ? <b>File Browser</b> : <b>Process Browser</b>}</TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell >Name</TableCell>
-                                <TableCell>{props.mythictree.name_text}</TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell>
-                                    {props.mythictree.tree_type === "file" ? (
-                                        "Path"
-                                    ) : (
-                                        "PID"
-                                    )}
-                                </TableCell>
-                                <TableCell>{props.mythictree.full_path_text}</TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell>Host</TableCell>
-                                <TableCell>{props.mythictree.host}</TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell>Comment</TableCell>
-                                <TableCell>{props.mythictree.comment}</TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell>Metadata</TableCell>
-                                <TableCell>
-                                    <MythicStyledTooltip title="View metadata">
-                                        <IconButton
-                                            className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
-                                            size="small"
-                                            onClick={() => setViewPermissionsDialogOpen(true)}
-                                        >
-                                            <PlaylistAddCheckIcon fontSize="small" />
-                                        </IconButton>
-                                    </MythicStyledTooltip>
-                                </TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell>Data</TableCell>
-                                <TableCell>{JSON.stringify(props.data, null, 2)}</TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
+                <React.Fragment>
+                    <TagElementPanel
+                        type={treeType}
+                        actions={
+                            <MythicStyledTooltip title="View metadata">
+                                <IconButton
+                                    className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                                    size="small"
+                                    onClick={() => setViewPermissionsDialogOpen(true)}
+                                >
+                                    <PlaylistAddCheckIcon fontSize="small" />
+                                </IconButton>
+                            </MythicStyledTooltip>
+                        }
+                    >
+                        <TagDetailItem label="Name">{props.mythictree.name_text}</TagDetailItem>
+                        <TagDetailItem label={props.mythictree.tree_type === "file" ? "Path" : "PID"}>
+                            {props.mythictree.full_path_text}
+                        </TagDetailItem>
+                        <TagDetailItem label="Host">{props.mythictree.host}</TagDetailItem>
+                        <TagDetailItem label="Comment" wide>{props.mythictree.comment}</TagDetailItem>
+                        <TagDetailItem label="Tag Data" wide code>{formatTagData(props.data)}</TagDetailItem>
+                    </TagElementPanel>
                     {viewPermissionsDialogOpen &&
                         <MythicDialog fullWidth={true} maxWidth="md" open={viewPermissionsDialogOpen}
                                       onClose={()=>{setViewPermissionsDialogOpen(false);}}
@@ -245,160 +254,118 @@ function TagTableRowElement(props){
                                                                                 onClose={()=>{setViewPermissionsDialogOpen(false);}} />}
                         />
                     }
-                </TableContainer>
+                </React.Fragment>
             )
         } else if(props.filemetum) {
+            const fileKind = props.filemetum.is_screenshot ? "Screenshot" : props.filemetum.is_download_from_agent ? "File Download" : "File Upload";
+            const filename = safeDecode(props.filemetum.filename_text);
+            const remotePath = safeDecode(props.filemetum.full_remote_path_text);
             return (
-                <TableContainer className="mythicElement" >
-                    <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
-                        <TableBody>
-                            <TableRow hover>
-                                <TableCell style={{width: "15%"}}>Element Type</TableCell>
-                                <TableCell><b>{props.filemetum.is_screenshot ? "Screenshot" : props.filemetum.is_download_from_agent ? "File Download" : "File Upload"}</b></TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell >Filename</TableCell>
-                                <TableCell>
-                                    <Link style={{wordBreak: "break-all"}}  color="textPrimary" download underline="always" target="_blank" href={"/direct/download/" + props.filemetum.agent_file_id}>{b64DecodeUnicode(props.filemetum.filename_text)}</Link>
-                                </TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell>Hash</TableCell>
-                                <TableCell>
-                                    <Typography variant="body2" style={{wordBreak: "break-all"}}>MD5: {props.filemetum.md5}</Typography>
-                                    <Typography variant="body2" style={{wordBreak: "break-all"}}>SHA1: {props.filemetum.sha1}</Typography>
-                                </TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell>Comment</TableCell>
-                                <TableCell>{props.filemetum.comment}</TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell>Full Remote Path</TableCell>
-                                <TableCell>
-                                    {props.filemetum.host}<br/>
-                                    {b64DecodeUnicode(props.filemetum.full_remote_path_text)}
-                                </TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell>File Hosting</TableCell>
-                                <TableCell>
-                                    <MythicStyledTooltip title={"Host Payload Through C2"} >
-                                        <IconButton
-                                            className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
-                                            size="small"
-                                            onClick={()=>{setOpenHostDialog(true);}}
-                                        >
-                                            <PublicIcon fontSize="small" />
-                                        </IconButton>
-                                    </MythicStyledTooltip>
-                                </TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell>Data</TableCell>
-                                <TableCell>{JSON.stringify(props.data, null, 2)}</TableCell>
-                            </TableRow>
-                        </TableBody>
-
-                        {openHostDialog &&
-                            <MythicDialog fullWidth={true} maxWidth="md" open={openHostDialog}
-                                          onClose={()=>{setOpenHostDialog(false);}}
-                                          innerDialog={<HostFileDialog file_uuid={props.filemetum.agent_file_id}
-                                                                       file_name={props.filemetum.full_remote_path_text === "" ? b64DecodeUnicode(props.filemetum.filename_text) : b64DecodeUnicode(props.filemetum.full_remote_path_text)}
-                                                                       onClose={()=>{setOpenHostDialog(false);}} />}
-                            />
+                <React.Fragment>
+                    <TagElementPanel
+                        type={fileKind}
+                        actions={
+                            <MythicStyledTooltip title={"Host Payload Through C2"} >
+                                <IconButton
+                                    className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                                    size="small"
+                                    onClick={()=>{setOpenHostDialog(true);}}
+                                >
+                                    <PublicIcon fontSize="small" />
+                                </IconButton>
+                            </MythicStyledTooltip>
                         }
-                    </Table>
-                </TableContainer>
+                    >
+                        <TagDetailItem label="Filename" wide>
+                            <Link color="textPrimary" download underline="always" target="_blank" href={"/direct/download/" + props.filemetum.agent_file_id}>
+                                {filename}
+                            </Link>
+                        </TagDetailItem>
+                        <TagDetailItem label="Hash" wide>
+                            <div className="mythic-search-result-stack">
+                                <span>MD5: {props.filemetum.md5}</span>
+                                <span>SHA1: {props.filemetum.sha1}</span>
+                            </div>
+                        </TagDetailItem>
+                        <TagDetailItem label="Comment" wide>{props.filemetum.comment}</TagDetailItem>
+                        <TagDetailItem label="Full Remote Path" wide code>
+                            {`${props.filemetum.host || ""}${remotePath ? "\n" + remotePath : ""}`}
+                        </TagDetailItem>
+                        <TagDetailItem label="Tag Data" wide code>{formatTagData(props.data)}</TagDetailItem>
+                    </TagElementPanel>
+                    {openHostDialog &&
+                        <MythicDialog fullWidth={true} maxWidth="md" open={openHostDialog}
+                                      onClose={()=>{setOpenHostDialog(false);}}
+                                      innerDialog={<HostFileDialog file_uuid={props.filemetum.agent_file_id}
+                                                                   file_name={props.filemetum.full_remote_path_text === "" ? filename : remotePath}
+                                                                   onClose={()=>{setOpenHostDialog(false);}} />}
+                        />
+                    }
+                </React.Fragment>
             )
         }else if(props.keylog_id) {
-            return <Typography ><b>Keylog: </b> {props.keylog_id}</Typography>
+            return (
+                <TagElementPanel type="Keylog">
+                    <TagDetailItem label="Keylog ID">{props.keylog_id}</TagDetailItem>
+                    <TagDetailItem label="Tag Data" wide code>{formatTagData(props.data)}</TagDetailItem>
+                </TagElementPanel>
+            )
         }else if(props.payload){
             return (
-                <TableContainer className="mythicElement" >
-                    <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
-                        <TableBody>
-                            <TableRow hover>
-                                <TableCell style={{width: "20%"}}>Element Type</TableCell>
-                                <TableCell><b>Payload</b></TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell >Filename</TableCell>
-                                <TableCell>
-                                    {b64DecodeUnicode(props.payload.filemetum.filename_text)}
-                                </TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell >UUID</TableCell>
-                                <TableCell>
-                                    {props.payload.uuid}
-                                    <IconButton
-                                        className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
-                                        onClick={()=>setOpenDetailedView(true)}
-                                        size="small"
-                                    >
-                                        <InfoIconOutline fontSize="small" />
-                                    </IconButton>
-                                    {openDetailedView &&
-                                        <MythicDialog fullWidth={true} maxWidth="lg" open={openDetailedView}
-                                                      onClose={()=>{setOpenDetailedView(false);}}
-                                                      innerDialog={<DetailedPayloadTable {...props.payload} payload_id={props.payload.id} onClose={()=>{setOpenDetailedView(false);}} />}
-                                        />}
-                                </TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell>Description</TableCell>
-                                <TableCell>{props.payload.description}</TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell>Data</TableCell>
-                                <TableCell>{JSON.stringify(props.data, null, 2)}</TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                </TableContainer>
+                <TagElementPanel
+                    type="Payload"
+                    summary={props.payload.payloadtype?.name ? <span className="mythic-search-result-secondary">{props.payload.payloadtype.name}</span> : null}
+                    actions={
+                        <MythicStyledTooltip title="View payload details">
+                            <IconButton
+                                className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                                onClick={()=>setOpenDetailedView(true)}
+                                size="small"
+                            >
+                                <InfoIconOutline fontSize="small" />
+                            </IconButton>
+                        </MythicStyledTooltip>
+                    }
+                >
+                    <TagDetailItem label="Filename" wide>{safeDecode(props.payload.filemetum?.filename_text)}</TagDetailItem>
+                    <TagDetailItem label="UUID" wide code>{props.payload.uuid}</TagDetailItem>
+                    <TagDetailItem label="Description" wide>{props.payload.description}</TagDetailItem>
+                    <TagDetailItem label="Tag Data" wide code>{formatTagData(props.data)}</TagDetailItem>
+                    {openDetailedView &&
+                        <MythicDialog fullWidth={true} maxWidth="lg" open={openDetailedView}
+                                      onClose={()=>{setOpenDetailedView(false);}}
+                                      innerDialog={<DetailedPayloadTable {...props.payload} payload_id={props.payload.id} onClose={()=>{setOpenDetailedView(false);}} />}
+                        />}
+                </TagElementPanel>
             )
         }else if(props.taskartifact_id) {
-            return <Typography><b>Artifact: </b> {props.taskartifact_id}</Typography>
+            return (
+                <TagElementPanel type="Artifact">
+                    <TagDetailItem label="Artifact ID">{props.taskartifact_id}</TagDetailItem>
+                    <TagDetailItem label="Tag Data" wide code>{formatTagData(props.data)}</TagDetailItem>
+                </TagElementPanel>
+            )
         }else if(props.callback){
             return (
-                <TableContainer className="mythicElement" >
-                    <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
-                        <TableBody>
-                            <TableRow hover>
-                                <TableCell style={{width: "20%"}}>Element Type</TableCell>
-                                <TableCell><b>Callback</b></TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell >Callback</TableCell>
-                                <TableCell>
-                                    <Link href={"/new/callbacks/" + props.callback.display_id} color="textPrimary" target={"_blank"}>
-                                        C-{props.callback.display_id}
-                                    </Link>
-                                    <div style={{border: props.callback.color === "" ? "" : `1px solid ${props.callback.color}`}}>
-                                        {props.callback.user}{props.callback.integrity_level > 2 ? "*" : ""}@{props.callback.host}
-                                    </div>
-                                </TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell>Description</TableCell>
-                                <TableCell>{props.callback.description}</TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell>IP</TableCell>
-                                <TableCell>{props.callback.ip}</TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell>Data</TableCell>
-                                <TableCell>{JSON.stringify(props.data, null, 2)}</TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                </TableContainer>
+                <TagElementPanel
+                    type="Callback"
+                    summary={
+                        <Link href={"/new/callbacks/" + props.callback.display_id} color="textPrimary" target={"_blank"}>
+                            C-{props.callback.display_id}
+                        </Link>
+                    }
+                >
+                    <TagDetailItem label="Callback" wide>
+                        <CallbackSummary callback={props.callback} />
+                    </TagDetailItem>
+                    <TagDetailItem label="Description" wide>{props.callback.description}</TagDetailItem>
+                    <TagDetailItem label="IP">{props.callback.ip}</TagDetailItem>
+                    <TagDetailItem label="Tag Data" wide code>{formatTagData(props.data)}</TagDetailItem>
+                </TagElementPanel>
             )
-
         } else {
             console.log("unknown id for tag", props)
+            return null;
         }
     }
     return getElement()

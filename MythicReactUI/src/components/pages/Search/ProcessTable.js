@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import {IconButton, Typography, Link} from '@mui/material';
+import {IconButton, Link} from '@mui/material';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -14,6 +14,14 @@ import EditIcon from '@mui/icons-material/Edit';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {TagsDisplay, ViewEditTags} from '../../MythicComponents/MythicTag';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
+import {MythicStateChip} from "../../MythicComponents/MythicStateChip";
+
+const singleLineCellStyle = {
+    minWidth: 0,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+};
 
 const updateFileComment = gql`
 mutation updateCommentMutation($mythictree_id: Int!, $comment: String!){
@@ -97,7 +105,7 @@ function ProcessTableRow(props){
                 <MythicStyledTableCell>
                     <MythicStyledTooltip title="View permissions data">
                         <IconButton
-                            className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
+                            className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
                             size="small"
                             onClick={() => setViewPermissionsDialogOpen(true)}
                         >
@@ -106,44 +114,67 @@ function ProcessTableRow(props){
                     </MythicStyledTooltip>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <Typography variant="body2" style={{wordBreak: "break-all", textDecoration: props.deleted ? "strike-through" : ""}}>{props.full_path_text}</Typography>
+                    <div
+                        className="mythic-search-result-value"
+                        style={{...singleLineCellStyle, textDecoration: props.deleted ? "line-through" : ""}}
+                        title={props.full_path_text}
+                    >
+                        {props.full_path_text}
+                    </div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <Typography variant="body2" style={{wordBreak: "break-all"}}><b>Host: </b> {props.host}</Typography>
-                    {props.callback?.mythictree_groups.length > 0 ? (
-                        <Typography variant="body2" style={{whiteSpace: "pre"}}>
-                            <b>Groups: </b>{props?.callback.mythictree_groups.join(", ")}<br/>
-                            <b>Callback: </b>{
+                    <div className="mythic-search-result-stack">
+                        <div className="mythic-search-result-inline">
+                            <span className="mythic-search-result-label">Host</span>
+                            <span className="mythic-search-result-value">{props.host}</span>
+                        </div>
+                        {props.callback ? (
+                            <div className="mythic-search-result-link-row">
+                                <span className="mythic-search-result-label">Callback</span>
                                 <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
                                       href={"/new/callbacks/" + props.callback.display_id}>
                                     C-{props.callback.display_id}
                                 </Link>
-                            }<br/>
-                            <b>Task: </b>{
-                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
-                                  href={"/new/task/" + props.task.display_id}>
-                                T-{props.task.display_id}
-                            </Link>
-                        }
-                        </Typography>
-                    ) : null}
+                                {props.task ? (
+                                    <>
+                                        <span className="mythic-search-result-secondary">/</span>
+                                        <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
+                                              href={"/new/task/" + props.task.display_id}>
+                                            T-{props.task.display_id}
+                                        </Link>
+                                    </>
+                                ) : null}
+                            </div>
+                        ) : null}
+                        {props.callback?.mythictree_groups.length > 0 ? (
+                            <div className="mythic-search-result-secondary">
+                                Groups: {props?.callback.mythictree_groups.join(", ")}
+                            </div>
+                        ) : null}
+                    </div>
                 </MythicStyledTableCell>
 
                 <MythicStyledTableCell>
-                    <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.name_text}</Typography>
-                    {props.deleted &&
-                        <Typography variant="body2" style={{wordBreak: "break-all"}}>{" (deleted)"}</Typography>
-                    }
+                    <div className="mythic-search-result-stack">
+                        <div className="mythic-search-result-value" style={singleLineCellStyle} title={props.name_text}>
+                            {props.name_text}
+                        </div>
+                        {props.deleted &&
+                            <MythicStateChip compact label="Deleted" state="disabled" />
+                        }
+                    </div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <IconButton
-                        className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
-                        onClick={() => setEditCommentDialogOpen(true)}
-                        size="small"
-                    >
-                        <EditIcon fontSize="small" />
-                    </IconButton>
-                    <Typography variant="body2" style={{wordBreak: "break-all", display: "inline-block"}}>{props.comment}</Typography>
+                    <div className="mythic-search-result-action-row">
+                        <IconButton
+                            className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                            onClick={() => setEditCommentDialogOpen(true)}
+                            size="small"
+                        >
+                            <EditIcon fontSize="small" />
+                        </IconButton>
+                        <span className="mythic-search-result-secondary">{props.comment || "No comment"}</span>
+                    </div>
                     </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <ViewEditTags target_object={"mythictree_id"} target_object_id={props.id} me={me} />

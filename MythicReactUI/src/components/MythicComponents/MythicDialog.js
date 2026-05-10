@@ -267,140 +267,216 @@ export function MythicModifyStringDialog(props) {
   );
 }
 
-export function MythicViewJSONAsTableDialog(props) {
-  const [comment, setComment] = React.useState([]);
-  const [tableType, setTableType] = React.useState("dictionary");
-  const [headers, setHeaders] = React.useState([]);
-    useEffect( () => {
-      let permissions = [];
-      try{
-        let permissionDict;
-        if(props.value.constructor === Object){
-          permissionDict = props.value;
-        }else{
-          permissionDict = JSON.parse(props.value);
-        } 
-        
-        if(!Array.isArray(permissionDict) && typeof permissionDict !== 'string'){
-          for(let key in permissionDict){
-            if(permissionDict[key] && permissionDict[key].constructor === Object){
-              // potentially have a nested dictionary here or array to become a dictionary, mark it
-              permissions.push({"name": key, "value": permissionDict[key], new_table: true, is_dictionary: true, headers: ["Name", "Value"]});
-            } else if(permissionDict[key] && Array.isArray(permissionDict[key])) {
-              if (permissionDict[key].length === 1){
-                if(permissionDict[key][0].constructor === Object){
-                  permissions.push({"name": key, "value": permissionDict[key][0], new_table: true, is_dictionary: true, headers: ["Name", "Value"]});
-                  
-                }else{
-                  permissions.push({"name": key, "value": JSON.stringify(permissionDict[key], null, 2)});
-                }
-                
-              } else if (permissionDict[key].length > 1) {
-                if (permissionDict[key][0].constructor === Object) {
-                  let newHeaders = [];
-                  for(let i = 0; i < permissionDict[key].length; i++){
-                    for(let newKey in permissionDict[key][i]){
-                      if(!newHeaders.includes(newKey)){newHeaders.push(newKey)}
-                    }
-                  }
-                  newHeaders.sort()
-                  permissions.push({"name": key, "value": permissionDict[key], new_table: true, is_array: true, headers: newHeaders});
-                } else {
-                  // it's an array, but not of dictionaries, so just stringify it
-                  permissions.push({"name": key, "value": JSON.stringify(permissionDict[key], null, 2)});
-                }
-              } else {
-                permissions.push({"name": key, "value": JSON.stringify(permissionDict[key], null, 2)});
-              }
-            }else if(permissionDict[key] !== undefined && permissionDict[key] !== null){
-              permissions.push({"name": key, "value": permissionDict[key]});
-            }
-            
-            setHeaders([props.leftColumn, props.rightColumn]);
-          }
-        }else{
-          setTableType("array");
-          if(permissionDict.length > 0){
-            setHeaders(Object.keys(permissionDict[0]));
-            permissions = permissionDict;
-          }else{
-            setHeaders([]);
-          }
-        }
-      }catch(error){
-        console.log(error);
+const isPlainObject = (value) => {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+const parseJSONDialogValue = (value) => {
+  if(value === undefined || value === null){
+    return value;
+  }
+  if(typeof value !== "string"){
+    return value;
+  }
+  try{
+    return JSON.parse(value);
+  }catch(error){
+    return value;
+  }
+}
+
+const getJSONValueType = (value) => {
+  if(value === null){return "null"}
+  if(value === undefined){return "empty"}
+  if(Array.isArray(value)){return "array"}
+  if(isPlainObject(value)){return "object"}
+  return typeof value;
+}
+
+const getJSONValueCount = (value) => {
+  if(Array.isArray(value)){return value.length}
+  if(isPlainObject(value)){return Object.keys(value).length}
+  if(value === undefined || value === null || value === ""){return 0}
+  return 1;
+}
+
+const getArrayObjectHeaders = (rows) => {
+  const headers = [];
+  rows.forEach((row) => {
+    if(!isPlainObject(row)){return}
+    Object.keys(row).forEach((key) => {
+      if(!headers.includes(key)){
+        headers.push(key);
       }
-      setComment(permissions);
-    }, [props.value, props.leftColumn, props.rightColumn]);
+    });
+  });
+  return headers;
+}
+
+const JSONTypeBadge = ({value}) => {
+  const type = getJSONValueType(value);
+  const count = getJSONValueCount(value);
+  const label = type === "array" ? `${count} item${count === 1 ? "" : "s"}` :
+      type === "object" ? `${count} field${count === 1 ? "" : "s"}` :
+      type;
+  return <span className={`mythic-json-type-badge mythic-json-type-${type}`}>{label}</span>
+}
+
+const JSONPrimitiveValue = ({name, value, me}) => {
+  const type = getJSONValueType(value);
+  if(type === "null" || type === "empty" || value === ""){
+    return <span className="mythic-json-value-empty">None</span>
+  }
+  if(type === "boolean"){
+    return <span className={`mythic-json-value-boolean ${value ? "mythic-json-value-true" : "mythic-json-value-false"}`}>{value ? "True" : "False"}</span>
+  }
+  return <span className="mythic-json-value-primitive">{convertValueToContextValue(name, value, me)}</span>
+}
+
+const JSONTableCellValue = ({name, value, me, depth}) => {
+  if(Array.isArray(value) || isPlainObject(value)){
+    return (
+      <JSONTableValue
+        label={name}
+        value={value}
+        me={me}
+        depth={depth + 1}
+      />
+    );
+  }
+  return <JSONPrimitiveValue name={name} value={value} me={me} />;
+}
+
+const JSONTableValue = ({label, value, me, depth=0, leftColumn="Name", rightColumn="Value"}) => {
+  const type = getJSONValueType(value);
+  const showPanelHeader = Boolean(label) && depth === 0;
+  if(type !== "array" && type !== "object"){
+    return <JSONPrimitiveValue name={label || ""} value={value} me={me} />;
+  }
+  if(type === "object"){
+    const entries = Object.entries(value);
+    return (
+      <div className={`mythic-json-panel ${depth === 0 ? "mythic-json-panel-root" : ""}`}>
+        {showPanelHeader &&
+          <div className="mythic-json-panel-header">
+            <span className="mythic-json-panel-title">{label}</span>
+            <JSONTypeBadge value={value} />
+          </div>
+        }
+        {entries.length === 0 ? (
+          <div className="mythic-json-empty-state">No fields to display.</div>
+        ) : (
+          <TableContainer className="mythicElement mythic-json-table-wrap">
+            <Table size="small" stickyHeader={depth === 0} style={{tableLayout: "fixed"}}>
+              <TableHead>
+                <TableRow>
+                  <TableCell style={{width: depth === 0 ? "14rem" : "12rem"}}>{leftColumn}</TableCell>
+                  <TableCell>{rightColumn}</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {entries.map(([key, entryValue]) => (
+                  <TableRow key={`${depth}-${key}`} hover>
+                    <TableCell className="mythic-json-key-cell">
+                      <div className="mythic-json-key-stack">
+                        <span className="mythic-json-key">{key}</span>
+                        <JSONTypeBadge value={entryValue} />
+                      </div>
+                    </TableCell>
+                    <TableCell className="mythic-json-value-cell">
+                      <JSONTableCellValue name={key} value={entryValue} me={me} depth={depth} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+      </div>
+    );
+  }
+  const objectHeaders = getArrayObjectHeaders(value);
+  const isObjectArray = value.length > 0 && objectHeaders.length > 0 && value.every((row) => isPlainObject(row));
+  return (
+    <div className={`mythic-json-panel ${depth === 0 ? "mythic-json-panel-root" : ""}`}>
+      {showPanelHeader &&
+        <div className="mythic-json-panel-header">
+          <span className="mythic-json-panel-title">{label}</span>
+          <JSONTypeBadge value={value} />
+        </div>
+      }
+      {value.length === 0 ? (
+        <div className="mythic-json-empty-state">No items to display.</div>
+      ) : isObjectArray ? (
+        <TableContainer className="mythicElement mythic-json-table-wrap">
+          <Table size="small" stickyHeader={depth === 0} style={{tableLayout: "fixed", minWidth: `${Math.max(38, objectHeaders.length * 12)}rem`}}>
+            <TableHead>
+              <TableRow>
+                <TableCell style={{width: "4rem"}}>#</TableCell>
+                {objectHeaders.map((header) => (
+                  <TableCell key={`array-header-${header}`} style={{width: "12rem"}}>{header}</TableCell>
+                ))}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {value.map((row, rowIndex) => (
+                <TableRow key={`array-row-${rowIndex}`} hover>
+                  <TableCell className="mythic-json-index-cell">{rowIndex + 1}</TableCell>
+                  {objectHeaders.map((header) => (
+                    <TableCell key={`array-row-${rowIndex}-${header}`} className="mythic-json-value-cell">
+                      <JSONTableCellValue name={header} value={row[header]} me={me} depth={depth} />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      ) : (
+        <TableContainer className="mythicElement mythic-json-table-wrap">
+          <Table size="small" stickyHeader={depth === 0} style={{tableLayout: "fixed"}}>
+            <TableHead>
+              <TableRow>
+                <TableCell style={{width: "4rem"}}>#</TableCell>
+                <TableCell>Value</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {value.map((entryValue, rowIndex) => (
+                <TableRow key={`array-value-row-${rowIndex}`} hover>
+                  <TableCell className="mythic-json-index-cell">{rowIndex + 1}</TableCell>
+                  <TableCell className="mythic-json-value-cell">
+                    <JSONTableCellValue name={`${label || "value"} ${rowIndex + 1}`} value={entryValue} me={me} depth={depth} />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+    </div>
+  );
+}
+
+export function MythicViewJSONAsTableDialog(props) {
+  const parsedValue = React.useMemo(() => parseJSONDialogValue(props.value), [props.value]);
+  const rootLabel = props.title || "JSON Data";
   return (
     <React.Fragment>
-        <MythicDraggableDialogTitle style={{wordBreak: "break-all", maxWidth: "100%"}}>{props.title}</MythicDraggableDialogTitle>
-
-          <TableContainer  className="mythicElement" style={{paddingLeft: "10px"}}>
-            <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
-                  <TableHead>
-                      <TableRow>
-                          {headers.map( (header, index) => (
-                            <TableCell key={'header' + index} style={index === 0 ? {width: "15%", wordBreak: "break-all"} : {wordBreak: "break-all"}}>{header}</TableCell>
-                          ))}
-                      </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {tableType === "dictionary" ? (
-                      comment.map( (element, index) => (
-                        <TableRow key={'row' + index} hover>
-                          <TableCell style={{wordBreak: "break-all"}}>{element.name}</TableCell>
-                          {element.new_table ? 
-                            (
-                              <TableContainer  className="mythicElement">
-                                <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
-                                      <TableHead>
-                                          <TableRow>
-                                              {element.headers.map( (header, index) => (
-                                                <TableCell key={'eheader' + header + index} style={index === 0 ? {width: "15%", wordBreak: "break-all"} : {wordBreak: "break-all"}}>{header}</TableCell>
-                                              ))}
-                                          </TableRow>
-                                      </TableHead>
-                                      <TableBody>
-                                        {element.is_dictionary ? (
-                                          Object.keys(element.value).map( (key, dictIndex) => (
-                                            <TableRow key={'element' + dictIndex + "dictheader"}>
-                                              <TableCell  style={{width: "30%", wordBreak: "break-all"}}>{key}</TableCell>
-                                              <TableCell style={{wordBreak: "break-all", whiteSpace: "pre-wrap"}}>{convertValueToContextValue(key, element.value[key], props.me)}</TableCell>
-                                            </TableRow>
-                                          ))
-                                        ): (
-                                          element.value.map( (e, elementIndex) => (
-                                            <TableRow>
-                                              {element.headers.map( (header, headerIndex) => (
-                                                <TableCell key={'element' + elementIndex + "header" + headerIndex} style={headerIndex === 0 ? {width: "15%", wordBreak: "break-all"} : {wordBreak: "break-all",  whiteSpace: "pre-wrap"}}>{convertValueToContextValue(header, e[header], props.me)}</TableCell>
-                                              ))}
-                                            </TableRow>
-                                          ))
-                                        )}
-                                      </TableBody>
-                                  </Table>
-                                </TableContainer>
-                            ) 
-                            : 
-                            (<TableCell style={{wordBreak: "break-all", whiteSpace: "pre-wrap"}}>{convertValueToContextValue(element.name, element.value, props.me) }</TableCell>)
-                          }
-                          
-                        </TableRow>
-                      ))
-                    ) : (
-                      comment.map( (row, index) => (
-                        <TableRow key={'row' + index} hover>
-                            {Object.keys(row).map( (key) => (
-                              <TableCell key={"row" + index + "cell" + key} style={{wordBreak: "break-all"}}>{convertValueToContextValue(key, row[key], props.me)}</TableCell>
-                            ))}
-                        </TableRow>
-                      ))
-                    ) }
-                    
-                  </TableBody>
-              </Table>
-            </TableContainer>
+        <MythicDraggableDialogTitle style={{wordBreak: "break-all", maxWidth: "100%"}}>
+          <div className="mythic-json-title-row">
+            <span>{rootLabel}</span>
+            <JSONTypeBadge value={parsedValue} />
+          </div>
+        </MythicDraggableDialogTitle>
+        <DialogContent dividers={true} className="mythic-dialog-body mythic-json-dialog-body">
+          <JSONTableValue
+            value={parsedValue}
+            me={props.me}
+            leftColumn={props.leftColumn || "Name"}
+            rightColumn={props.rightColumn || "Value"}
+          />
+        </DialogContent>
         <MythicDialogFooter>
           <MythicDialogButton onClick={props.onClose}>
             Close
@@ -458,21 +534,25 @@ export function MythicViewObjectPropertiesAsTableDialog(props) {
   );
 }
 const convertValueToContextValue = (key, value, me) => {
-  if( key.includes("time") ){
+  const keyText = String(key || "").toLowerCase();
+  if(value === undefined || value === null){
+      return "";
+  }
+  if( keyText.includes("time") ){
     try{
         return TableRowDateCell({cellData: value, view_utc_time: me?.user?.view_utc_time})
     }catch(error){
         console.log("failed to parse metadata as date", key, value);
         return value;
     }
-  } else if( key.includes("size") ){
+  } else if( keyText.includes("size") ){
       try{
           return TableRowSizeCell({cellData: value})
       }catch(error){
           console.log("failed to parse metadata as size", key, value);
           return value;
       }
-  } else if (value.constructor === Object) {
+  } else if (isPlainObject(value)) {
     return JSON.stringify(value, null, 2);
   } else if (Array.isArray(value)){
     return JSON.stringify(value, null, 2);

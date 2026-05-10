@@ -11,7 +11,7 @@ import {Link} from '@mui/material';
 import {snackActions} from '../../utilities/Snackbar';
 import { meState } from '../../../cache';
 import {useReactiveVar} from '@apollo/client';
-import {IconButton, Typography} from '@mui/material';
+import {IconButton} from '@mui/material';
 import { toLocalTime } from '../../utilities/Time';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {b64DecodeUnicode} from "../Callbacks/ResponseDisplay";
@@ -166,60 +166,77 @@ function KeylogTableRow(props){
         <React.Fragment>
             <TableRow hover>
                 <MythicStyledTableCell>
-                    <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>C-{props.task.callback.display_id}</Link>
-                    {" / "}
-                    <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>T-{props.task.display_id}</Link>
+                    <div className="mythic-search-result-stack">
+                        <div className="mythic-search-result-link-row">
+                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>C-{props.task.callback.display_id}</Link>
+                            <span className="mythic-search-result-secondary">/</span>
+                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>T-{props.task.display_id}</Link>
+                        </div>
 
-                    {props.task?.callback?.mythictree_groups.length > 0 ? (
-                        <Typography variant="body2" style={{wordBreak: "break-all"}}>
-                            <b>Groups: </b>{props?.task?.callback.mythictree_groups.join(", ")}
-                        </Typography>
-                    ) : null}
+                        {props.task?.callback?.mythictree_groups.length > 0 ? (
+                            <div className="mythic-search-result-secondary">
+                                Groups: {props?.task?.callback.mythictree_groups.join(", ")}
+                            </div>
+                        ) : null}
+                    </div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell style={{wordBreak: "break-all"}}>
-                    <Typography variant="body2" ><b>User: </b>{props.user}</Typography>
-                    <Typography variant="body2" ><b>Host: </b>{props.task.callback.host}</Typography>
-                    <Typography variant="body2" ><b>Window:</b> {props.window} </Typography>
-                    <Typography variant="body2" ><b>Time: </b>{toLocalTime(props.timestamp, me?.user?.view_utc_time || false)}</Typography>
-                    <Typography variant="body2" style={{display: "inline-block"}}><b>View Window Together: </b></Typography>
-                    <MythicStyledTooltip title={"View current page data grouped together for this program"} tooltipStyle={{
-                        display: "inline-block"
-                    }}>
-                        <IconButton
-                            className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
-                            onClick={() => props.onGroupKeylogData(props.window, props.user, props.task.callback.host)}
-                            size="small"
-                        >
-                            <FullscreenIcon fontSize="small" />
-                        </IconButton>
-                    </MythicStyledTooltip>
-
-
-                </MythicStyledTableCell>
-                <MythicStyledTableCell >
-                    <MythicStyledTooltip title={"Copy to clipboard"} style={{display: "inline-block"}}>
-                        <IconButton
-                            className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
-                            onClick={() => onCopyToClipboard(keylogData)}
-                            size="small"
-                        >
-                            <ContentCopyIcon fontSize="small" />
-                        </IconButton>
-                    </MythicStyledTooltip>
-                    <Typography variant="body2" style={{wordBreak: "break-all", whiteSpace: "pre-wrap", display: "inline-block"}}>
-                        {keylogData.slice(0, 500)}
-                        {keylogData.length > 500 ? (
-                            <>
-                                {"..."}<br/>
+                    <div className="mythic-search-result-stack mythic-search-result-stack-spacious">
+                        <div className="mythic-search-result-inline">
+                            <span className="mythic-search-result-label">User</span>
+                            <span className="mythic-search-result-value">{props.user}</span>
+                        </div>
+                        <div className="mythic-search-result-inline">
+                            <span className="mythic-search-result-label">Host</span>
+                            <span className="mythic-search-result-value">{props.task.callback.host}</span>
+                        </div>
+                        <div className="mythic-search-result-inline">
+                            <span className="mythic-search-result-label">Window</span>
+                            <span className="mythic-search-result-value">{props.window}</span>
+                        </div>
+                        <div className="mythic-search-result-inline">
+                            <span className="mythic-search-result-label">Time</span>
+                            <span className="mythic-search-result-value">{toLocalTime(props.timestamp, me?.user?.view_utc_time || false)}</span>
+                        </div>
+                        <div className="mythic-search-result-action-row">
+                            <MythicStyledTooltip title={"View current page data grouped together for this program"}>
                                 <IconButton
-                                    className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
-                                    onClick={() => {setOpenDisplayKeylogData(true);}}
+                                    className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                                    onClick={() => props.onGroupKeylogData(props.window, props.user, props.task.callback.host)}
                                     size="small"
                                 >
-                                    <OpenInNewIcon fontSize="small" />
+                                    <FullscreenIcon fontSize="small" />
                                 </IconButton>
-                            </>
-                        ) : null}
+                            </MythicStyledTooltip>
+                            <span className="mythic-search-result-secondary">View window together</span>
+                        </div>
+                    </div>
+                </MythicStyledTableCell>
+                <MythicStyledTableCell >
+                    <div className="mythic-search-result-stack">
+                        <div className="mythic-search-result-action-row">
+                            <MythicStyledTooltip title={"Copy to clipboard"}>
+                                <IconButton
+                                    className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                                    onClick={() => onCopyToClipboard(keylogData)}
+                                    size="small"
+                                >
+                                    <ContentCopyIcon fontSize="small" />
+                                </IconButton>
+                            </MythicStyledTooltip>
+                            {keylogData.length > 500 ? (
+                                <MythicStyledTooltip title={"Open full keylog data"}>
+                                    <IconButton
+                                        className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                                        onClick={() => {setOpenDisplayKeylogData(true);}}
+                                        size="small"
+                                    >
+                                        <OpenInNewIcon fontSize="small" />
+                                    </IconButton>
+                                </MythicStyledTooltip>
+                            ) : null}
+                        </div>
+                        <pre className="mythic-search-result-code mythic-search-result-code-compact">{keylogData.slice(0, 500)}{keylogData.length > 500 ? "..." : null}</pre>
                         {openDisplayKeylogData &&
                             <MythicDialog maxWidth={"100%"} fullWidth={true} open={openDisplayKeylogData} onClose={() => {setOpenDisplayKeylogData(false);}}
                                   innerDialog={
@@ -227,7 +244,7 @@ function KeylogTableRow(props){
                                                       title={"Full keylog data"} value={keylogData}/>
                                 } />
                         }
-                    </Typography>
+                    </div>
                 </MythicStyledTableCell>
             </TableRow>
         </React.Fragment>
