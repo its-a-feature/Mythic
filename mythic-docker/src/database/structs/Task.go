@@ -47,10 +47,13 @@ type Task struct {
 	ParentTaskID                       structs.NullInt64 `db:"parent_task_id" json:"parent_task_id"`
 	SubtaskCallbackFunction            string            `db:"subtask_callback_function" json:"subtask_callback_function"`
 	SubtaskCallbackFunctionCompleted   bool              `db:"subtask_callback_function_completed" json:"subtask_callback_function_completed"`
+	SubtaskCallbackFunctionStarted     bool              `db:"subtask_callback_function_started" json:"subtask_callback_function_started"`
 	GroupCallbackFunction              string            `db:"group_callback_function" json:"group_callback_function"`
 	GroupCallbackFunctionCompleted     bool              `db:"group_callback_function_completed" json:"group_callback_function_completed"`
+	GroupCallbackFunctionStarted       bool              `db:"group_callback_function_started" json:"group_callback_function_started"`
 	CompletedCallbackFunction          string            `db:"completed_callback_function" json:"completed_callback_function"`
 	CompletedCallbackFunctionCompleted bool              `db:"completed_callback_function_completed" json:"completed_callback_function_completed"`
+	CompletedCallbackFunctionStarted   bool              `db:"completed_callback_function_started" json:"completed_callback_function_started"`
 	SubtaskGroupName                   string            `db:"subtask_group_name" json:"subtask_group_name"`
 	TaskingLocation                    string            `db:"tasking_location" json:"tasking_location"`
 	ParameterGroupName                 string            `db:"parameter_group_name" json:"parameter_group_name"`

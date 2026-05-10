@@ -233,11 +233,11 @@ const SearchTabArtifactsSearchPanel = (props) => {
         }
     }, [props.value, props.index])
     return (
-        <MythicTableToolbar>
-            <MythicTableToolbarGroup grow>
+        <MythicTableToolbar variant="search">
+            <MythicTableToolbarGroup grow label="Search">
                 <MythicSearchField value={search} onChange={handleSearchValueChange} onEnter={submitSearch} onSearch={submitSearch} />
             </MythicTableToolbarGroup>
-            <MythicTableToolbarGroup>
+            <MythicTableToolbarGroup label="In">
                 <MythicToolbarSelect
                     value={searchField}
                     onChange={handleSearchFieldChange}
@@ -248,6 +248,8 @@ const SearchTabArtifactsSearchPanel = (props) => {
                         ))
                     }
                 </MythicToolbarSelect>
+            </MythicTableToolbarGroup>
+            <MythicTableToolbarGroup label="Cleanup">
                 <MythicToolbarSelect
                     value={cleanupField}
                     onChange={handleCleanupChange}
@@ -259,7 +261,7 @@ const SearchTabArtifactsSearchPanel = (props) => {
                     }
                 </MythicToolbarSelect>
             </MythicTableToolbarGroup>
-            <MythicTableToolbarGroup>
+            <MythicTableToolbarGroup label="Actions">
                 {createArtifactDialogOpen &&
                     <MythicDialog fullWidth={true} maxWidth="md" open={createArtifactDialogOpen}
                                   onClose={()=>{setCreateArtifactDialogOpen(false);}}

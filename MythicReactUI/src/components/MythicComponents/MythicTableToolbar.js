@@ -17,9 +17,12 @@ export const MythicTableToolbar = ({children, className = "", style = {}, varian
     );
 };
 
-export const MythicTableToolbarGroup = ({children, grow = false, className = "", style = {}}) => {
+export const MythicTableToolbarGroup = ({children, grow = false, label, className = "", style = {}}) => {
     return (
         <Box className={`mythic-table-toolbar-group ${grow ? "mythic-table-toolbar-group-grow" : ""} ${className}`.trim()} style={style}>
+            {label &&
+                <span className="mythic-table-toolbar-group-label">{label}</span>
+            }
             {children}
         </Box>
     );

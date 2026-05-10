@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/its-a-feature/Mythic/database"
@@ -28,6 +29,7 @@ const (
 	CALLBACK_PORT_TYPE_SOCKS       CallbackPortType = "socks"
 	CALLBACK_PORT_TYPE_RPORTFWD                     = "rpfwd"
 	CALLBACK_PORT_TYPE_INTERACTIVE                  = "interactive"
+	callbackPortByteFlushInterval                   = 20 * time.Second
 )
 
 type proxyToAgentMessage struct {
@@ -53,37 +55,28 @@ type acceptedConnection struct {
 	TaskUUID                     *string
 	AgentClosedConnection        bool
 }
-type bytesSentToAgentMessage struct {
-	CallbackPortID int `json:"id"`
-	ByteCount      int64
-	Initial        bool
-}
-type bytesReceivedFromAgentMessage struct {
-	CallbackPortID int `json:"id"`
-	ByteCount      int64
-	Initial        bool
-}
-
 type callbackPortUsage struct {
-	CallbackPortID             int              `json:"id" db:"id"`
-	CallbackID                 int              `json:"callback_id" db:"callback_id"`
-	CallbackDisplayID          int              `json:"callback_display_id" db:"callback_display_id"`
-	TaskID                     int              `json:"task_id" db:"task_id"`
-	LocalPort                  int              `json:"local_port" db:"local_port"`
-	RemotePort                 int              `json:"remote_port" db:"remote_port"`
-	RemoteIP                   string           `json:"remote_ip" db:"remote_ip"`
-	OperationID                int              `json:"operation_id" db:"operation_id"`
-	Username                   string           `json:"username" db:"username"`
-	Password                   string           `json:"password" db:"password"`
-	PortType                   CallbackPortType `json:"port_type" db:"port_type"`
-	listener                   *net.Listener
-	bytesReceivedFromAgentChan chan bytesReceivedFromAgentMessage
-	bytesSentToAgentChan       chan bytesSentToAgentMessage
-	acceptedConnections        *[]*acceptedConnection
-	messagesToAgent            chan proxyToAgentMessage
-	interactiveMessagesToAgent chan agentMessagePostResponseInteractive
-	newConnectionChannel       chan *acceptedConnection
-	removeConnectionsChannel   chan *acceptedConnection
+	CallbackPortID                    int              `json:"id" db:"id"`
+	CallbackID                        int              `json:"callback_id" db:"callback_id"`
+	CallbackDisplayID                 int              `json:"callback_display_id" db:"callback_display_id"`
+	TaskID                            int              `json:"task_id" db:"task_id"`
+	LocalPort                         int              `json:"local_port" db:"local_port"`
+	RemotePort                        int              `json:"remote_port" db:"remote_port"`
+	RemoteIP                          string           `json:"remote_ip" db:"remote_ip"`
+	OperationID                       int              `json:"operation_id" db:"operation_id"`
+	Username                          string           `json:"username" db:"username"`
+	Password                          string           `json:"password" db:"password"`
+	PortType                          CallbackPortType `json:"port_type" db:"port_type"`
+	listener                          *net.Listener
+	bytesReceivedFromAgent            atomic.Int64
+	bytesSentToAgent                  atomic.Int64
+	lastFlushedBytesReceivedFromAgent atomic.Int64
+	lastFlushedBytesSentToAgent       atomic.Int64
+	acceptedConnections               *[]*acceptedConnection
+	messagesToAgent                   chan proxyToAgentMessage
+	interactiveMessagesToAgent        chan agentMessagePostResponseInteractive
+	newConnectionChannel              chan *acceptedConnection
+	removeConnectionsChannel          chan *acceptedConnection
 	// messagesFromAgent - these get parsed by manageConnections and passed to the right connection's messagesFromAgent
 	messagesFromAgent            chan proxyFromAgentMessage
 	interactiveMessagesFromAgent chan agentMessagePostResponseInteractive
@@ -96,8 +89,6 @@ type callbackPortsInUse struct {
 	portsByCallbackIDAndType     map[int]map[CallbackPortType][]*callbackPortUsage
 	callbacksWithPorts           []int
 	proxyFromAgentMessageChannel chan ProxyFromAgentMessageForMythic
-	bytesReceivedFromAgentChan   chan bytesReceivedFromAgentMessage
-	bytesSentToAgentChan         chan bytesSentToAgentMessage
 	sync.RWMutex
 }
 
@@ -227,8 +218,6 @@ func (c *callbackPortsInUse) Initialize() {
 	c.ports = make([]*callbackPortUsage, 0)
 	c.resetPortIndexesLocked()
 	c.proxyFromAgentMessageChannel = make(chan ProxyFromAgentMessageForMythic, 2000)
-	c.bytesReceivedFromAgentChan = make(chan bytesReceivedFromAgentMessage, 2000)
-	c.bytesSentToAgentChan = make(chan bytesSentToAgentMessage, 2000)
 	c.Unlock()
 	go c.ListenForProxyFromAgentMessage()
 	go c.ListenForNewByteTransferUpdates()
@@ -236,7 +225,7 @@ func (c *callbackPortsInUse) Initialize() {
     	callbackport.id, callbackport.callback_id, callbackport.task_id, 
     	callbackport.local_port, callbackport.remote_port, callbackport.remote_ip,
     	callbackport.port_type, callbackport.operation_id, callbackport.username,
-    	callbackport.password,
+        callbackport.password, callbackport.bytes_sent, callbackport.bytes_received,
     	callback.display_id "callback.display_id"
 		FROM callbackport 
 		JOIN callback ON callbackport.callback_id=callback.id
@@ -244,16 +233,6 @@ func (c *callbackPortsInUse) Initialize() {
 		logging.LogError(err, "Failed to load callback ports from database")
 	} else {
 		for _, proxy := range callbackPorts {
-			c.bytesSentToAgentChan <- bytesSentToAgentMessage{
-				ByteCount:      proxy.BytesSent,
-				CallbackPortID: proxy.ID,
-				Initial:        true,
-			}
-			c.bytesReceivedFromAgentChan <- bytesReceivedFromAgentMessage{
-				ByteCount:      proxy.BytesReceived,
-				CallbackPortID: proxy.ID,
-				Initial:        true,
-			}
 			newPort := callbackPortUsage{
 				CallbackPortID:               proxy.ID,
 				CallbackID:                   proxy.CallbackID,
@@ -266,8 +245,6 @@ func (c *callbackPortsInUse) Initialize() {
 				OperationID:                  proxy.OperationID,
 				Username:                     proxy.Username,
 				Password:                     proxy.Password,
-				bytesSentToAgentChan:         c.bytesSentToAgentChan,
-				bytesReceivedFromAgentChan:   c.bytesReceivedFromAgentChan,
 				messagesToAgent:              make(chan proxyToAgentMessage, 1000),
 				newConnectionChannel:         make(chan *acceptedConnection, 1000),
 				removeConnectionsChannel:     make(chan *acceptedConnection, 1000),
@@ -276,6 +253,7 @@ func (c *callbackPortsInUse) Initialize() {
 				interactiveMessagesFromAgent: make(chan agentMessagePostResponseInteractive, 1000),
 				stopAllConnections:           make(chan bool),
 			}
+			newPort.initializeByteCounters(proxy.BytesSent, proxy.BytesReceived)
 			acceptedConnections := make([]*acceptedConnection, 0)
 			newPort.acceptedConnections = &acceptedConnections
 			if err := newPort.Start(); err != nil {
@@ -374,6 +352,107 @@ func cloneCallbackPortUsages(ports []*callbackPortUsage) []*callbackPortUsage {
 	return append([]*callbackPortUsage(nil), ports...)
 }
 
+func clampCallbackPortByteCount(value int64) int64 {
+	if value < 0 {
+		return 0
+	}
+	if value >= POSTGRES_MAX_BIGINT {
+		return POSTGRES_MAX_BIGINT - 1
+	}
+	return value
+}
+
+func addCallbackPortByteCounts(value int64, delta int64) int64 {
+	value = clampCallbackPortByteCount(value)
+	if delta <= 0 {
+		return value
+	}
+	if delta >= POSTGRES_MAX_BIGINT-value {
+		return POSTGRES_MAX_BIGINT - 1
+	}
+	return value + delta
+}
+
+func addClampedAtomicInt64(counter *atomic.Int64, delta int64) {
+	if delta <= 0 {
+		return
+	}
+	for {
+		current := counter.Load()
+		next := addCallbackPortByteCounts(current, delta)
+		if next == current || counter.CompareAndSwap(current, next) {
+			return
+		}
+	}
+}
+
+func (p *callbackPortUsage) initializeByteCounters(bytesSentToAgent int64, bytesReceivedFromAgent int64) {
+	bytesSentToAgent = clampCallbackPortByteCount(bytesSentToAgent)
+	bytesReceivedFromAgent = clampCallbackPortByteCount(bytesReceivedFromAgent)
+	p.bytesSentToAgent.Store(bytesSentToAgent)
+	p.lastFlushedBytesSentToAgent.Store(bytesSentToAgent)
+	p.bytesReceivedFromAgent.Store(bytesReceivedFromAgent)
+	p.lastFlushedBytesReceivedFromAgent.Store(bytesReceivedFromAgent)
+}
+
+func (p *callbackPortUsage) applyPersistedByteCounters(bytesSentToAgent int64, bytesReceivedFromAgent int64) {
+	applyPersistedByteCounter(&p.bytesSentToAgent, &p.lastFlushedBytesSentToAgent, bytesSentToAgent)
+	applyPersistedByteCounter(&p.bytesReceivedFromAgent, &p.lastFlushedBytesReceivedFromAgent, bytesReceivedFromAgent)
+}
+
+func applyPersistedByteCounter(counter *atomic.Int64, lastFlushed *atomic.Int64, persistedValue int64) {
+	persistedValue = clampCallbackPortByteCount(persistedValue)
+	for {
+		currentDelta := counter.Load()
+		next := addCallbackPortByteCounts(persistedValue, currentDelta)
+		if counter.CompareAndSwap(currentDelta, next) {
+			lastFlushed.Store(persistedValue)
+			return
+		}
+	}
+}
+
+func (p *callbackPortUsage) addBytesSentToAgent(byteCount int64) {
+	addClampedAtomicInt64(&p.bytesSentToAgent, byteCount)
+}
+
+func (p *callbackPortUsage) addBytesReceivedFromAgent(byteCount int64) {
+	addClampedAtomicInt64(&p.bytesReceivedFromAgent, byteCount)
+}
+
+func (p *callbackPortUsage) flushByteCounters() {
+	if p.CallbackPortID <= 0 {
+		return
+	}
+	currentBytesSentToAgent := p.bytesSentToAgent.Load()
+	bytesSentToAgent := clampCallbackPortByteCount(currentBytesSentToAgent)
+	if bytesSentToAgent != currentBytesSentToAgent {
+		p.bytesSentToAgent.CompareAndSwap(currentBytesSentToAgent, bytesSentToAgent)
+	}
+	if bytesSentToAgent != p.lastFlushedBytesSentToAgent.Load() &&
+		updateCallbackPortStats("bytes_sent", bytesSentToAgent, p.CallbackPortID) {
+		p.lastFlushedBytesSentToAgent.Store(bytesSentToAgent)
+	}
+	currentBytesReceivedFromAgent := p.bytesReceivedFromAgent.Load()
+	bytesReceivedFromAgent := clampCallbackPortByteCount(currentBytesReceivedFromAgent)
+	if bytesReceivedFromAgent != currentBytesReceivedFromAgent {
+		p.bytesReceivedFromAgent.CompareAndSwap(currentBytesReceivedFromAgent, bytesReceivedFromAgent)
+	}
+	if bytesReceivedFromAgent != p.lastFlushedBytesReceivedFromAgent.Load() &&
+		updateCallbackPortStats("bytes_received", bytesReceivedFromAgent, p.CallbackPortID) {
+		p.lastFlushedBytesReceivedFromAgent.Store(bytesReceivedFromAgent)
+	}
+}
+
+func (c *callbackPortsInUse) flushChangedByteCounters() {
+	c.RLock()
+	ports := cloneCallbackPortUsages(c.ports)
+	c.RUnlock()
+	for _, port := range ports {
+		port.flushByteCounters()
+	}
+}
+
 func (c *callbackPortsInUse) getPortsForCallbackAndType(callbackID int, portType CallbackPortType) []*callbackPortUsage {
 	c.RLock()
 	defer c.RUnlock()
@@ -431,83 +510,28 @@ func (c *callbackPortsInUse) findPortForRemoval(callbackId int, portType Callbac
 	return nil
 }
 func (c *callbackPortsInUse) ListenForNewByteTransferUpdates() {
-	oldByteValues := make(map[int]map[string]int64)
-	currentByteValues := make(map[int]map[string]int64)
-	updateValuesChan := make(chan bool)
-	go func() {
-		// every 30s send a signal to make sure we update our current byte values if they've changed
-		for {
-			select {
-			case <-time.After(20 * time.Second):
-				updateValuesChan <- true
-			}
-		}
-	}()
+	ticker := time.NewTicker(callbackPortByteFlushInterval)
+	defer ticker.Stop()
 	defer func() {
 		logging.LogError(nil, "no longer listening for new byte transfer updates")
 	}()
-	for {
-		select {
-		case <-updateValuesChan:
-			for callbackPortID, _ := range currentByteValues {
-				if currentByteValues[callbackPortID]["sent"] != oldByteValues[callbackPortID]["sent"] {
-					go updateCallbackPortStats("bytes_sent", currentByteValues[callbackPortID]["sent"], callbackPortID)
-					oldByteValues[callbackPortID]["sent"] = currentByteValues[callbackPortID]["sent"]
-				}
-				if currentByteValues[callbackPortID]["received"] != oldByteValues[callbackPortID]["received"] {
-					go updateCallbackPortStats("bytes_received", currentByteValues[callbackPortID]["received"], callbackPortID)
-					oldByteValues[callbackPortID]["received"] = currentByteValues[callbackPortID]["received"]
-				}
-			}
-
-		case bytesFromAgentMsg := <-c.bytesReceivedFromAgentChan:
-			if _, ok := currentByteValues[bytesFromAgentMsg.CallbackPortID]; !ok {
-				currentByteValues[bytesFromAgentMsg.CallbackPortID] = map[string]int64{
-					"received": 0,
-					"sent":     0,
-				}
-				oldByteValues[bytesFromAgentMsg.CallbackPortID] = map[string]int64{
-					"received": 0,
-					"sent":     0,
-				}
-			}
-			if bytesFromAgentMsg.Initial {
-				oldByteValues[bytesFromAgentMsg.CallbackPortID]["received"] = bytesFromAgentMsg.ByteCount
-				currentByteValues[bytesFromAgentMsg.CallbackPortID]["received"] = bytesFromAgentMsg.ByteCount
-			} else {
-				currentByteValues[bytesFromAgentMsg.CallbackPortID]["received"] += bytesFromAgentMsg.ByteCount
-			}
-		case bytesSentToAgentMsg := <-c.bytesSentToAgentChan:
-			if _, ok := currentByteValues[bytesSentToAgentMsg.CallbackPortID]; !ok {
-				currentByteValues[bytesSentToAgentMsg.CallbackPortID] = map[string]int64{
-					"received": 0,
-					"sent":     0,
-				}
-				oldByteValues[bytesSentToAgentMsg.CallbackPortID] = map[string]int64{
-					"received": 0,
-					"sent":     0,
-				}
-			}
-			if bytesSentToAgentMsg.Initial {
-				oldByteValues[bytesSentToAgentMsg.CallbackPortID]["sent"] = bytesSentToAgentMsg.ByteCount
-				currentByteValues[bytesSentToAgentMsg.CallbackPortID]["sent"] = bytesSentToAgentMsg.ByteCount
-			} else {
-				currentByteValues[bytesSentToAgentMsg.CallbackPortID]["sent"] += bytesSentToAgentMsg.ByteCount
-			}
-		}
+	for range ticker.C {
+		c.flushChangedByteCounters()
 	}
 }
 
-func updateCallbackPortStats(field string, value int64, callbackPortID int) {
-	updatedValue := value
-	if updatedValue > POSTGRES_MAX_BIGINT {
-		updatedValue = POSTGRES_MAX_BIGINT - 1
+func updateCallbackPortStats(field string, value int64, callbackPortID int) bool {
+	if callbackPortID <= 0 {
+		return false
 	}
+	updatedValue := clampCallbackPortByteCount(value)
 	_, err := database.DB.Exec(fmt.Sprintf("UPDATE callbackport SET %s=$1 WHERE id=$2",
-		field), value, callbackPortID)
+		field), updatedValue, callbackPortID)
 	if err != nil {
 		logging.LogError(err, "Failed to update callback port stats")
+		return false
 	}
+	return true
 }
 func (c *callbackPortsInUse) ListenForProxyFromAgentMessage() {
 	for {
@@ -712,18 +736,6 @@ func (c *callbackPortsInUse) GetDataForCallbackId(callbackId int, portType strin
 func (c *callbackPortsInUse) Add(callbackId int, portType CallbackPortType, localPort int, remotePort int,
 	remoteIP string, taskId int, operationId int, bytesSentToAgent int64, bytesReceivedFromAgent int64,
 	callbackPortID int, username string, password string) error {
-	if callbackPortID > 0 {
-		c.bytesSentToAgentChan <- bytesSentToAgentMessage{
-			ByteCount:      bytesSentToAgent,
-			CallbackPortID: callbackPortID,
-			Initial:        true,
-		}
-		c.bytesReceivedFromAgentChan <- bytesReceivedFromAgentMessage{
-			ByteCount:      bytesReceivedFromAgent,
-			CallbackPortID: callbackPortID,
-			Initial:        true,
-		}
-	}
 	newPort := callbackPortUsage{
 		CallbackPortID:               callbackPortID,
 		CallbackID:                   callbackId,
@@ -735,8 +747,6 @@ func (c *callbackPortsInUse) Add(callbackId int, portType CallbackPortType, loca
 		PortType:                     portType,
 		Username:                     username,
 		Password:                     password,
-		bytesSentToAgentChan:         c.bytesSentToAgentChan,
-		bytesReceivedFromAgentChan:   c.bytesReceivedFromAgentChan,
 		messagesToAgent:              make(chan proxyToAgentMessage, 1000),
 		newConnectionChannel:         make(chan *acceptedConnection, 1000),
 		removeConnectionsChannel:     make(chan *acceptedConnection, 1000),
@@ -744,6 +754,11 @@ func (c *callbackPortsInUse) Add(callbackId int, portType CallbackPortType, loca
 		interactiveMessagesToAgent:   make(chan agentMessagePostResponseInteractive, 1000),
 		interactiveMessagesFromAgent: make(chan agentMessagePostResponseInteractive, 1000),
 		stopAllConnections:           make(chan bool),
+	}
+	if callbackPortID > 0 {
+		newPort.initializeByteCounters(bytesSentToAgent, bytesReceivedFromAgent)
+	} else {
+		newPort.initializeByteCounters(0, 0)
 	}
 	acceptedConnections := make([]*acceptedConnection, 0)
 	newPort.acceptedConnections = &acceptedConnections
@@ -759,7 +774,7 @@ func (c *callbackPortsInUse) Add(callbackId int, portType CallbackPortType, loca
 		logging.LogError(err, "Failed to start new proxy port")
 		return err
 	}
-	err = database.DB.Get(&callbackPort, `SELECT id FROM callbackport WHERE
+	err = database.DB.Get(&callbackPort, `SELECT id, bytes_sent, bytes_received FROM callbackport WHERE
                                 operation_id=$1 AND callback_id=$2 AND local_port=$3 AND port_type=$4
                                 AND remote_ip=$5 AND remote_port=$6 AND username=$7 AND password=$8`,
 		operationId, callbackId, localPort, portType, remoteIP, remotePort, username, password)
@@ -775,7 +790,7 @@ func (c *callbackPortsInUse) Add(callbackId int, portType CallbackPortType, loca
 			}
 			return err
 		}
-		err = statement.Get(&newPort.CallbackPortID, newPort)
+		err = statement.Get(&newPort.CallbackPortID, &newPort)
 		if err != nil {
 			logging.LogError(err, "Failed to insert new callback port")
 			if err := newPort.Stop(); err != nil {
@@ -786,6 +801,9 @@ func (c *callbackPortsInUse) Add(callbackId int, portType CallbackPortType, loca
 	} else if err == nil {
 		_, err = database.DB.NamedExec(`UPDATE callbackport SET deleted=false WHERE id=:id`, callbackPort)
 		newPort.CallbackPortID = callbackPort.ID
+		if callbackPortID <= 0 {
+			newPort.applyPersistedByteCounters(callbackPort.BytesSent, callbackPort.BytesReceived)
+		}
 	} else {
 		logging.LogError(err, "Failed to create new callback port mapping")
 		if err := newPort.Stop(); err != nil {
@@ -829,6 +847,7 @@ func (c *callbackPortsInUse) Remove(callbackId int, portType CallbackPortType, l
 		logging.LogError(err, "Failed to stop proxy")
 		return err
 	}
+	port.flushByteCounters()
 	queryString := `UPDATE callbackport SET deleted=true WHERE id=$1`
 	queryArgs := []interface{}{port.CallbackPortID}
 	_, err = database.DB.Exec(queryString, queryArgs...)
@@ -1412,12 +1431,7 @@ func (p *callbackPortUsage) readFromAgentSocksConn(newConnection *acceptedConnec
 				p.removeConnectionsChannel <- newConnection
 				return
 			}
-			// non-blocking send stats update
-			go func(byteCount int64, callbackPortID int) {
-				select {
-				case p.bytesReceivedFromAgentChan <- bytesReceivedFromAgentMessage{ByteCount: byteCount, CallbackPortID: callbackPortID, Initial: false}:
-				}
-			}(int64(len(dataBytes)), p.CallbackPortID)
+			p.addBytesReceivedFromAgent(int64(len(dataBytes)))
 
 			if agentMessage.IsExit {
 				logging.LogDebug("got message from agent isExit", "server_id", newConnection.ServerID)
@@ -1746,12 +1760,7 @@ func (p *callbackPortUsage) handleSocksConnections() {
 											CallbackID:      p.CallbackID,
 											ProxyType:       p.PortType,
 										}
-										// non-blocking send stats update
-										go func(byteCount int64, callbackPortID int) {
-											select {
-											case p.bytesSentToAgentChan <- bytesSentToAgentMessage{ByteCount: byteCount, CallbackPortID: callbackPortID, Initial: false}:
-											}
-										}(int64(newUDPConnectionBufLength), p.CallbackPortID)
+										p.addBytesSentToAgent(int64(newUDPConnectionBufLength))
 										go func(remoteAddr net.Addr) {
 											// work on this section!!
 											// handle the read from agent and write back out to socket here so we can use the same addr
@@ -1774,12 +1783,7 @@ func (p *callbackPortUsage) handleSocksConnections() {
 														p.removeConnectionsChannel <- &newUDPConnection
 														return
 													}
-													// non-blocking send stats update
-													go func(byteCount int64, callbackPortID int) {
-														select {
-														case p.bytesReceivedFromAgentChan <- bytesReceivedFromAgentMessage{ByteCount: byteCount, CallbackPortID: callbackPortID, Initial: false}:
-														}
-													}(int64(len(dataBytes)), p.CallbackPortID)
+													p.addBytesReceivedFromAgent(int64(len(dataBytes)))
 
 													if agentMessage.IsExit {
 														//logging.LogDebug("got message from agent isExit", "server_id", newConnection.ServerID)
@@ -1821,12 +1825,7 @@ func (p *callbackPortUsage) handleSocksConnections() {
 							CallbackID:      p.CallbackID,
 							ProxyType:       p.PortType,
 						}
-						// non-blocking send stats update
-						go func(byteCount int64, callbackPortID int) {
-							select {
-							case p.bytesSentToAgentChan <- bytesSentToAgentMessage{ByteCount: byteCount, CallbackPortID: callbackPortID, Initial: false}:
-							}
-						}(int64(length), p.CallbackPortID)
+						p.addBytesSentToAgent(int64(length))
 					}
 					if err != nil {
 						logging.LogError(err, "closing tcp connection")
@@ -1866,11 +1865,7 @@ func (p *callbackPortUsage) handleRpfwdConnections(newConnection *acceptedConnec
 					p.removeConnectionsChannel <- newConnection
 					return
 				}
-				// non-blocking send stats update
-				select {
-				case p.bytesReceivedFromAgentChan <- bytesReceivedFromAgentMessage{ByteCount: int64(len(dataBytes)), CallbackPortID: p.CallbackPortID}:
-				default:
-				}
+				p.addBytesReceivedFromAgent(int64(len(dataBytes)))
 				if agentMessage.IsExit {
 					//logging.LogDebug("got message isExit", "server_id", newConnection.ServerID)
 					// cleanup the connection data, but don't send an exit back to the agent
@@ -1906,11 +1901,7 @@ func (p *callbackPortUsage) handleRpfwdConnections(newConnection *acceptedConnec
 					ProxyType:       p.PortType,
 					CallbackID:      p.CallbackID,
 				}
-				// non-blocking send stats update
-				select {
-				case p.bytesSentToAgentChan <- bytesSentToAgentMessage{ByteCount: int64(length), CallbackPortID: p.CallbackPortID}:
-				default:
-				}
+				p.addBytesSentToAgent(int64(length))
 				//fmt.Printf("Message sent to p.messagesToAgent channel for chan %d\n", newConnection.ServerID)
 			}
 			if err != nil {
@@ -1978,11 +1969,7 @@ func (p *callbackPortUsage) handleInteractiveConnections() {
 								p.removeConnectionsChannel <- &newConnection
 								return
 							}
-							// non-blocking send stats update
-							select {
-							case p.bytesReceivedFromAgentChan <- bytesReceivedFromAgentMessage{ByteCount: int64(len(dataBytes)), CallbackPortID: p.CallbackPortID}:
-							default:
-							}
+							p.addBytesReceivedFromAgent(int64(len(dataBytes)))
 							if agentMessage.MessageType == InteractiveTask.Exit {
 								//logging.LogDebug("got message isExit", "server_id", newConnection.ServerID)
 								// cleanup the connection data
@@ -2018,11 +2005,7 @@ func (p *callbackPortUsage) handleInteractiveConnections() {
 								CallbackID:                 p.CallbackID,
 								ProxyType:                  p.PortType,
 							}
-							// non-blocking send stats update
-							select {
-							case p.bytesSentToAgentChan <- bytesSentToAgentMessage{ByteCount: int64(length), CallbackPortID: p.CallbackPortID}:
-							default:
-							}
+							p.addBytesSentToAgent(int64(length))
 							//fmt.Printf("Message sent to p.messagesToAgent channel for chan %d\n", newConnection.ServerID)
 						}
 

@@ -257,15 +257,15 @@ const SearchTabTasksSearchPanel = (props) => {
     }, [props.value, props.index]);
     return (
         <MythicTableToolbar variant="search">
-            <MythicTableToolbarGroup style={{minWidth: "12rem"}}>
+            <MythicTableToolbarGroup label="Host" style={{minWidth: "12rem"}}>
                 <MythicSearchField disabled={props.alreadySearching} placeholder="Host..." name="Host" value={host}
                                    onChange={handleHostValueChange} onEnter={submitSearch}/>
             </MythicTableToolbarGroup>
-            <MythicTableToolbarGroup grow>
+            <MythicTableToolbarGroup grow label="Search">
                 <MythicSearchField disabled={props.alreadySearching} value={search}
                                    onChange={handleSearchValueChange} onEnter={submitSearch} onSearch={submitSearch} />
             </MythicTableToolbarGroup>
-            <MythicTableToolbarGroup>
+            <MythicTableToolbarGroup label="In">
                 <MythicToolbarSelect
                     value={searchField}
                     disabled={props.alreadySearching}
@@ -278,12 +278,12 @@ const SearchTabTasksSearchPanel = (props) => {
                     }
                 </MythicToolbarSelect>
             </MythicTableToolbarGroup>
-            <MythicTableToolbarGroup style={{minWidth: "13rem"}}>
+            <MythicTableToolbarGroup label="Status" style={{minWidth: "13rem"}}>
                 <MythicSearchField disabled={props.alreadySearching} placeholder="Filter Task Status..." name="Status"
                                    value={filterTaskStatus} onChange={handleFilterTaskStatusValueChange}
                                    onEnter={submitSearch}/>
             </MythicTableToolbarGroup>
-            <MythicTableToolbarGroup>
+            <MythicTableToolbarGroup label="Operator">
                 <MythicToolbarSelect
                     value={filterOperator}
                     disabled={props.alreadySearching}
