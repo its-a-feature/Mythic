@@ -1,40 +1,24 @@
-import React, {useRef} from 'react';
-import { styled } from '@mui/material/styles';
-import Button from '@mui/material/Button';
-import DialogActions from '@mui/material/DialogActions';
+import React from 'react';
+import Box from '@mui/material/Box';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import InputLabel from '@mui/material/InputLabel';
-import Input from '@mui/material/Input';
+import OutlinedInput from '@mui/material/OutlinedInput';
+import Typography from '@mui/material/Typography';
 import {useQuery, gql } from '@apollo/client';
 import LinearProgress from '@mui/material/LinearProgress';
 import {snackActions} from "../../utilities/Snackbar";
-
-const PREFIX = 'ManuallyAddEdgeDialog';
-
-const classes = {
-  formControl: `${PREFIX}-formControl`,
-  selectEmpty: `${PREFIX}-selectEmpty`
-};
-
-const Root = styled('div')((
-  {
-    theme
-  }
-) => ({
-  [`& .${classes.formControl}`]: {
-    margin: theme.spacing(1),
-    minWidth: 120,
-    width: "97%"
-  },
-
-  [`& .${classes.selectEmpty}`]: {
-    marginTop: theme.spacing(2),
-  }
-}));
+import {
+    MythicDialogBody,
+    MythicDialogButton,
+    MythicDialogFooter,
+    MythicDialogGrid,
+    MythicDialogSection,
+    MythicFormField
+} from "../../MythicComponents/MythicDialogLayout";
 
 const getP2PProfilesAndCallbacks = gql`
 query getP2PProfilesAndCallbacks{
@@ -52,34 +36,66 @@ query getP2PProfilesAndCallbacks{
   }
 }
 `;
+const CallbackSummary = ({callback, label}) => (
+    <Box className="mythic-c2-edge-callback-summary">
+        {label &&
+            <Typography component="div" className="mythic-c2-edge-summary-label">
+                {label}
+            </Typography>
+        }
+        <Box className="mythic-c2-edge-summary-main">
+            <span className="mythic-c2-edge-callback-id">#{callback?.display_id}</span>
+            <span className="mythic-c2-edge-summary-description">
+                {callback?.description || "No description"}
+            </span>
+        </Box>
+    </Box>
+);
+const getDestinationOptions = (profiles, sourceId) => {
+    const destinations = new Map();
+    profiles.forEach((profile) => {
+        profile.callbackc2profiles.forEach((callbackProfile) => {
+            if(callbackProfile.callback.id === sourceId){return}
+            const key = callbackProfile.callback.id;
+            const current = destinations.get(key) || {
+                callback: callbackProfile.callback,
+                profiles: [],
+            };
+            current.profiles.push(profile);
+            destinations.set(key, current);
+        });
+    });
+    return Array.from(destinations.values()).sort((a, b) => b.callback.display_id - a.callback.display_id);
+};
 export function ManuallyAddEdgeDialog(props) {
 
     const [callbackOptions, setCallbackOptions] = React.useState([]);
     const [profileOptions, setProfileOptions] = React.useState([]);
     const [selectedDestination, setSelectedDestination] = React.useState('');
     const [selectedProfile, setSelectedProfile] = React.useState('');
-    const inputRefC2 = useRef(null); 
-    const inputRefDestination = useRef(null); 
     const handleChangeProfile = (event) => {
-      setSelectedProfile(event.target.value);
-      if(event.target.value === ""){
-        setCallbackOptions([]);
-        setSelectedDestination("");
-      }else{
-        const cbopts = event.target.value["callbackc2profiles"].filter( (cb) => cb.callback.id !== props.source.id );
-        setCallbackOptions(cbopts);
-        if(cbopts.length > 0){
-            setSelectedDestination(cbopts[0]);
-        }
-      }
-      
+        setSelectedProfile(event.target.value);
     };
     const handleChangeDestination = (event) => {
-      setSelectedDestination(event.target.value);
+        const destination = event.target.value;
+        setSelectedDestination(destination);
+        if(destination === ""){
+            setSelectedProfile("");
+            return;
+        }
+        const availableProfiles = destination.profiles || [];
+        const profileStillValid = availableProfiles.some((profile) => profile.id === selectedProfile?.id);
+        if(!profileStillValid){
+            setSelectedProfile(availableProfiles[0] || "");
+        }
     };
     const handleSubmit = () => {
         if(selectedDestination === ""){
             snackActions.error("Must select a valid destination");
+            return;
+        }
+        if(selectedProfile === ""){
+            snackActions.error("Must select a valid P2P C2 profile");
             return;
         }
         props.onSubmit(props.source.display_id, selectedProfile, selectedDestination.callback);
@@ -87,77 +103,134 @@ export function ManuallyAddEdgeDialog(props) {
     }
     const { loading, error } = useQuery(getP2PProfilesAndCallbacks, {
         onCompleted: data => {
-            setProfileOptions([...data.c2profile]);
-            if(data.c2profile.length > 0){
-                setSelectedProfile(data.c2profile[0]);
-                const cbopts = data.c2profile[0]["callbackc2profiles"].filter( (cb) => cb.callback.id !== props.source.id );
-                setCallbackOptions(cbopts);
-                if(cbopts.length > 0){
-                    setSelectedDestination(cbopts[0]);
-                }
+            const profiles = [...data.c2profile];
+            const destinations = getDestinationOptions(profiles, props.source.id);
+            setProfileOptions(profiles);
+            setCallbackOptions(destinations);
+            if(destinations.length > 0){
+                setSelectedDestination(destinations[0]);
+                setSelectedProfile(destinations[0].profiles[0] || "");
+            }else{
+                setSelectedDestination("");
+                setSelectedProfile("");
             }
         },
         fetchPolicy: "network-only"
     });
+    const availableProfileOptions = selectedDestination === "" ? profileOptions : selectedDestination.profiles || [];
     if (loading) {
-     return <LinearProgress style={{marginTop: "10px"}} />;
+     return (
+        <>
+            <DialogTitle className="mythic-c2-action-title">Add P2P Edge</DialogTitle>
+            <DialogContent dividers={true}>
+                <LinearProgress />
+            </DialogContent>
+        </>
+     );
     }
     if (error) {
      console.error(error);
-     return <div>Error! {error.message}</div>;
+     return (
+        <>
+            <DialogTitle className="mythic-c2-action-title">Add P2P Edge</DialogTitle>
+            <DialogContent dividers={true}>
+                <MythicDialogBody>
+                    <MythicDialogSection title="Unable to load edge options" description={error.message} />
+                </MythicDialogBody>
+            </DialogContent>
+            <MythicDialogFooter>
+                <MythicDialogButton onClick={props.onClose}>Close</MythicDialogButton>
+            </MythicDialogFooter>
+        </>
+     );
     }
   return (
-    <Root>
-        <DialogTitle >Manually Add Edge From Callback {props.source.display_id}</DialogTitle>
+    <>
+        <DialogTitle className="mythic-c2-action-title">
+            <div className="mythic-dialog-title-row">
+                <div>
+                    <Typography component="div" className="mythic-c2-action-title-text">
+                        Add P2P Edge
+                    </Typography>
+                    <Typography component="div" className="mythic-c2-action-title-subtitle">
+                        Create a manual route from callback {props.source.display_id} through a peer-to-peer C2 profile.
+                    </Typography>
+                </div>
+            </div>
+        </DialogTitle>
         <DialogContent dividers={true}>
-            <React.Fragment>
-                Manually add an edge from Callback {props.source.display_id} to another callback via a P2P C2 Profile.<br/>
-                <FormControl className={classes.formControl}>
-                  <InputLabel ref={inputRefC2}>Profile</InputLabel>
-                  <Select
-                    labelId="demo-dialog-select-label-profile"
-                    id="demo-dialog-select"
-                    value={selectedProfile}
-                    onChange={handleChangeProfile}
-                    style={{minWidth: "30%"}}
-                    input={<Input />}
-                  >
-                    <MenuItem value="">
-                      <em>None</em>
-                    </MenuItem>
-                    {profileOptions.map( (opt) => (
-                        <MenuItem value={opt} key={"profile:" + opt.id}>{opt.name}</MenuItem>
-                    ) )}
-                  </Select>
-                </FormControl><br/>
-                <FormControl className={classes.formControl}>
-                  <InputLabel ref={inputRefDestination}>Destination</InputLabel>
-                  <Select
-                    labelId="demo-dialog-select-label-destination"
-                    id="demo-dialog-select-destination"
-                    value={selectedDestination}
-                    onChange={handleChangeDestination}
-                    input={<Input />}
-                  >
-                    <MenuItem value="">
-                      <em>None</em>
-                    </MenuItem>
-                    {callbackOptions.map( (opt) => (
-                        <MenuItem value={opt} key={"callback:" + opt.callback.id}>{opt.callback.display_id} ({opt.callback.description})</MenuItem>
-                    ) )}
-                  </Select>
-                </FormControl>
-            </React.Fragment>
+            <MythicDialogBody>
+                <MythicDialogSection
+                    title="Route"
+                    description="Choose the destination callback first, then the P2P C2 profile for that route."
+                >
+                    <MythicDialogGrid minWidth="15rem" className="mythic-c2-edge-endpoints-grid">
+                        <MythicFormField label="Source callback" className="mythic-c2-edge-source-field">
+                            <CallbackSummary callback={props.source} />
+                        </MythicFormField>
+                        <MythicFormField
+                            label="Destination callback"
+                            required
+                        >
+                            <FormControl fullWidth size="small">
+                                <InputLabel id="manual-c2-edge-destination-label">Destination</InputLabel>
+                                <Select
+                                    labelId="manual-c2-edge-destination-label"
+                                    id="manual-c2-edge-destination"
+                                    value={selectedDestination}
+                                    onChange={handleChangeDestination}
+                                    input={<OutlinedInput label="Destination" />}
+                                >
+                                    <MenuItem value="">
+                                        <em>None</em>
+                                    </MenuItem>
+                                    {callbackOptions.map( (opt) => (
+                                        <MenuItem value={opt} key={"callback:" + opt.callback.id}>
+                                            #{opt.callback.display_id} {opt.callback.description ? `- ${opt.callback.description}` : ""}
+                                        </MenuItem>
+                                    ) )}
+                                </Select>
+                            </FormControl>
+                        </MythicFormField>
+                    </MythicDialogGrid>
+                    <Box className="mythic-c2-edge-profile-row">
+                        <MythicFormField
+                            label="P2P C2 profile"
+                            description="Only profiles available for the selected destination are shown."
+                            required
+                        >
+                            <FormControl fullWidth size="small">
+                                <InputLabel id="manual-c2-edge-profile-label">Profile</InputLabel>
+                                <Select
+                                    labelId="manual-c2-edge-profile-label"
+                                    id="manual-c2-edge-profile"
+                                    value={selectedProfile}
+                                    onChange={handleChangeProfile}
+                                    input={<OutlinedInput label="Profile" />}
+                                >
+                                    <MenuItem value="">
+                                        <em>None</em>
+                                    </MenuItem>
+                                    {availableProfileOptions.map( (opt) => (
+                                        <MenuItem value={opt} key={"profile:" + opt.id}>
+                                            {opt.name}
+                                        </MenuItem>
+                                    ) )}
+                                </Select>
+                            </FormControl>
+                        </MythicFormField>
+                    </Box>
+                </MythicDialogSection>
+            </MythicDialogBody>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={props.onClose} variant="contained" color="primary">
+        <MythicDialogFooter>
+          <MythicDialogButton onClick={props.onClose}>
             Close
-          </Button>
-          <Button disabled={selectedDestination === ""} onClick={handleSubmit} variant="contained" color="success">
-            Add
-          </Button>
-        </DialogActions>
-  </Root>
+          </MythicDialogButton>
+          <MythicDialogButton disabled={selectedDestination === "" || selectedProfile === ""} onClick={handleSubmit} intent="primary">
+            Add Edge
+          </MythicDialogButton>
+        </MythicDialogFooter>
+    </>
   );
 }
-
