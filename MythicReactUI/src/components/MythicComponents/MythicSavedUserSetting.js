@@ -17,6 +17,23 @@ export const GetComputedFontSize = () => {
     const fontSizeString = window.getComputedStyle(element).fontSize;
     return parseFloat(fontSizeString);
 }
+let latestPreferenceSnapshot = null;
+const getPreferenceSnapshot = () => {
+    return latestPreferenceSnapshot || mePreferences() || {};
+};
+const areSettingValuesEqual = (first, second) => {
+    if(first === second){
+        return true;
+    }
+    if(typeof first !== "object" || typeof second !== "object" || first === null || second === null){
+        return false;
+    }
+    try{
+        return JSON.stringify(first) === JSON.stringify(second);
+    }catch(error){
+        return false;
+    }
+};
 /*
 setting_name options:
     taskingDisplayFields
@@ -40,7 +57,7 @@ export function useGetMythicSetting({setting_name, default_value}){
     return setting;
 }
 export function GetMythicSetting({setting_name, default_value}){
-    const preferences = mePreferences();
+    const preferences = getPreferenceSnapshot();
     return preferences?.[setting_name] === undefined ? default_value : preferences?.[setting_name];
 }
 export function useSetMythicSetting() {
@@ -54,25 +71,33 @@ export function useSetMythicSetting() {
         }
     });
     return [
-        ({setting_name, value}) => {
-            if(mePreferences()?.[setting_name] !== value){
+        ({setting_name, value, broadcast=true}) => {
+            const currentPreferences = getPreferenceSnapshot();
+            if(!areSettingValuesEqual(currentPreferences?.[setting_name], value)){
                 const updatedPreferences = {
-                    ...mePreferences(),
+                    ...currentPreferences,
                     [setting_name]: value,
                 };
-                mePreferences(updatedPreferences);
+                latestPreferenceSnapshot = updatedPreferences;
+                if(broadcast){
+                    mePreferences(updatedPreferences);
+                }
                 updateSetting({variables: {preferences: updatedPreferences}});
             }
         },
-        ({settings}) => {
+        ({settings, broadcast=true}) => {
             const updatedPreferences = {
-                ...mePreferences(),
+                ...getPreferenceSnapshot(),
                 ...settings,
             };
-            mePreferences(updatedPreferences);
+            latestPreferenceSnapshot = updatedPreferences;
+            if(broadcast){
+                mePreferences(updatedPreferences);
+            }
             updateSetting({variables: {preferences: updatedPreferences}});
         },
         () => {
+            latestPreferenceSnapshot = operatorSettingDefaults;
             mePreferences(operatorSettingDefaults);
             updateSetting({variables: {preferences: operatorSettingDefaults}});
         }

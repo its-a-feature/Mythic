@@ -627,16 +627,10 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 			currentTask.Stderr += *agentMessage.Responses[i].Stderr
 		}
 		if agentMessage.Responses[i].FileBrowser != nil {
-			// do it in the background - the agent doesn't need the result of this directly
-			FileBrowserChannel <- FileBrowserChannelMessage{
-				Task:               &currentTask,
-				NewFileBrowserData: agentMessage.Responses[i].FileBrowser,
-				APITokenID:         0,
-			}
-			//go HandleAgentMessagePostResponseFileBrowser(currentTask, agentMessage.Responses[i].FileBrowser, 0)
+			enqueueMythicTreeFileBrowserResponse(currentTask, agentMessage.Responses[i].FileBrowser, 0)
 		}
 		if agentMessage.Responses[i].Processes != nil {
-			go HandleAgentMessagePostResponseProcesses(currentTask, agentMessage.Responses[i].Processes, 0)
+			enqueueMythicTreeProcessResponse(currentTask, agentMessage.Responses[i].Processes, 0)
 		}
 		if agentMessage.Responses[i].RemovedFiles != nil {
 			go handleAgentMessagePostResponseRemovedFiles(currentTask, agentMessage.Responses[i].RemovedFiles)
@@ -682,7 +676,7 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 			go handleAgentMessagePostResponseEvent(currentTask, agentMessage.Responses[i].Events)
 		}
 		if agentMessage.Responses[i].CustomBrowser != nil {
-			go handleAgentMessagePostResponseCustomBrowser(currentTask, agentMessage.Responses[i].CustomBrowser)
+			enqueueMythicTreeCustomBrowserResponse(currentTask, agentMessage.Responses[i].CustomBrowser)
 		}
 		// this section always happens
 		reflectBackOtherKeys(&mythicResponse, &agentMessage.Responses[i].Other)
@@ -702,10 +696,7 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 		}
 		if transitionedToCompleted {
 			go CheckAndProcessTaskCompletionHandlers(currentTask.ID)
-			FileBrowserChannel <- FileBrowserChannelMessage{
-				Task:               &currentTask,
-				NewFileBrowserData: nil,
-			}
+			enqueueMythicTreeFileBrowserFlush(currentTask, 0)
 			go emitTaskLog(currentTask.ID)
 			go func(task databaseStructs.Task) {
 				EventingChannel <- EventNotification{
@@ -1934,23 +1925,10 @@ type FileBrowserChannelMessage struct {
 	APITokenID         int
 }
 
-var fileBrowserUpdateDeletedChannel = make(chan FileBrowserChannelMessage)
-var FileBrowserChannel = make(chan FileBrowserChannelMessage, 1000)
+// fileBrowserUpdateDeletedChannel is buffered so slower update_deleted cleanup
+// does not block the shared MythicTree ingest workers from accepting more work.
+var fileBrowserUpdateDeletedChannel = make(chan FileBrowserChannelMessage, defaultAgentMessagePostResponseQueueSize)
 
-func listenForFileBrowserData() {
-	go listenForFileBrowserUpdateDeleted()
-	for {
-		select {
-		case message := <-FileBrowserChannel:
-			//logging.LogInfo("[*] got message from FileBrowserChannel", "task", message.Task.ID, "completed", message.Task.Completed,
-			//	"nil data", message.NewFileBrowserData == nil)
-			err := HandleAgentMessagePostResponseFileBrowser(*message.Task, message.NewFileBrowserData, message.APITokenID)
-			if err != nil {
-				logging.LogError(err, "Failed to handle file browser post response")
-			}
-		}
-	}
-}
 func HandleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBrowser *agentMessagePostResponseFileBrowser,
 	apitokensId int) error {
 	// given a FileBrowser object, need to insert it into database and potentially insert parents along the way
@@ -2084,10 +2062,8 @@ func listenForFileBrowserUpdateDeleted() {
 			if err != nil {
 				logging.LogError(err, "Failed to group file browser update_deleted entries")
 			} else {
-				for _, group := range groups {
-					if err := reconcileFileBrowserUpdateDeletedGroup(updateMessage.Task, group, updateMessage.APITokenID); err != nil {
-						logging.LogError(err, "Failed to update file browser children")
-					}
+				if err := reconcileFileBrowserUpdateDeletedGroups(updateMessage.Task, groups, updateMessage.APITokenID); err != nil {
+					logging.LogError(err, "Failed to update file browser children")
 				}
 			}
 			delete(fileBrowserUpdateDeletedCache, updateMessage.Task.ID)
@@ -2097,15 +2073,15 @@ func listenForFileBrowserUpdateDeleted() {
 }
 func HandleAgentMessagePostResponseProcesses(task databaseStructs.Task, processes *[]agentMessagePostResponseProcesses,
 	apitokensId int) error {
+	if processes == nil || len(*processes) == 0 {
+		return nil
+	}
 	// process data is also represented in a tree format with a full path of the process_id
 	updateDeleted := false
-	for indx, _ := range *processes {
+	for indx := range *processes {
 		if (*processes)[indx].UpdateDeleted != nil && *(*processes)[indx].UpdateDeleted {
 			updateDeleted = true
 		}
-	}
-	if len(*processes) == 0 {
-		return nil
 	}
 	// Get the host (default to callback.Host if per-process host not specified)
 	host := task.Callback.Host
@@ -2113,6 +2089,10 @@ func HandleAgentMessagePostResponseProcesses(task databaseStructs.Task, processe
 		host = strings.ToUpper(*(*processes)[0].Host)
 	}
 	if updateDeleted {
+		if err := ensureTaskCallbackMythicTreeGroups(&task); err != nil {
+			logging.LogError(err, "Failed to fetch callback mythictree groups for process update_deleted")
+			return err
+		}
 		idsToDelete := []int{}
 		var existingTreeEntries []databaseStructs.MythicTree
 		err := database.DB.Select(&existingTreeEntries, `SELECT 
@@ -2156,29 +2136,9 @@ func HandleAgentMessagePostResponseProcesses(task databaseStructs.Task, processe
 			logging.LogError(err, "Failed to upsert process MythicTree entries")
 			return err
 		}
-		// delete all the ids marked for deletion
-		if len(idsToDelete) > 0 {
-			deleteQuery, args, err := sqlx.Named(`UPDATE mythictree SET
-        			deleted=true, "timestamp"=now(), task_id=:task_id 
-					WHERE id IN (:ids)`, map[string]interface{}{
-				"ids":     idsToDelete,
-				"task_id": task.ID,
-			})
-			if err != nil {
-				logging.LogError(err, "Failed to make named statement when updated deleted process status")
-				return err
-			}
-			deleteQuery, args, err = sqlx.In(deleteQuery, args...)
-			if err != nil {
-				logging.LogError(err, "Failed to do sqlx.In")
-				return err
-			}
-			deleteQuery = database.DB.Rebind(deleteQuery)
-			_, err = database.DB.Exec(deleteQuery, args...)
-			if err != nil {
-				logging.LogError(err, "Failed to exec sqlx.IN modified statement")
-				return err
-			}
+		if err := deleteMythicTreeNodes(task.ID, idsToDelete, nil); err != nil {
+			logging.LogError(err, "Failed to update deleted process status")
+			return err
 		}
 	} else {
 		treeNodesToUpsert := make([]*databaseStructs.MythicTree, 0, len(*processes))
@@ -2590,6 +2550,8 @@ func handleAgentMessagePostResponseCustomBrowser(task databaseStructs.Task, agen
 		logging.LogError(errors.New("unknown custom browser"), "Failed to get custom browser", "browser", agentCustomBrowser.BrowserName)
 		return
 	}
+	customBrowserUpdateDeleted := agentCustomBrowser.UpdateDeleted && customBrowserData.Type == databaseStructs.TREE_TYPE_FILE
+	updateDeletedReconciliation := mythicTreeChildrenReconciliation{}
 	for _, entry := range *agentCustomBrowser.Entries {
 		pathData, err := utils.SplitCustomPath(entry.ParentPath, entry.Name, customBrowserData.Separator)
 		if err != nil {
@@ -2650,103 +2612,46 @@ func handleAgentMessagePostResponseCustomBrowser(task databaseStructs.Task, agen
 		newTree.CallbackID.Valid = true
 		newTree.CallbackID.Int64 = int64(task.Callback.ID)
 		treeNodesToUpsert = append(treeNodesToUpsert, &newTree)
-		if agentCustomBrowser.UpdateDeleted {
-			if customBrowserData.Type == databaseStructs.TREE_TYPE_FILE {
-				// we need to iterate over the children for this entry and potentially remove any that the database know of but that aren't in our `files` list
-				var existingTreeEntries []databaseStructs.MythicTree
-				err = database.DB.Select(&existingTreeEntries, `SELECT
-                id, "name", success, full_path, parent_path, operation_id, host, tree_type, callback_id
-				FROM mythictree WHERE
-				parent_path=$1 AND operation_id=$2 AND host=$3 AND tree_type=$4`,
-					fullPath, task.OperationID, pathData.Host, customBrowserData.Name)
-				if err != nil {
-					logging.LogError(err, "Failed to fetch existing children when trying to update deleted")
-					continue
-				}
-				incomingChildrenByName := make(map[string]agentMessagePostResponseCustomBrowserChildren)
-				if entry.Children != nil {
-					for _, newEntry := range *entry.Children {
-						incomingChildrenByName[newEntry.Name] = newEntry
-					}
-				}
-				namesToDeleteAndUpdate := make(map[string]struct{}, len(existingTreeEntries)+len(incomingChildrenByName))
-				for _, existingEntry := range existingTreeEntries {
-					if newEntry, ok := incomingChildrenByName[string(existingEntry.Name)]; ok {
-						namesToDeleteAndUpdate[newEntry.Name] = struct{}{}
-						newTreeChild := databaseStructs.MythicTree{
-							Host:            pathData.Host,
-							TaskID:          task.ID,
-							OperationID:     task.OperationID,
-							Name:            []byte(newEntry.Name),
-							ParentPath:      existingEntry.ParentPath,
-							FullPath:        existingEntry.FullPath,
-							TreeType:        customBrowserData.Name,
-							CanHaveChildren: newEntry.CanHaveChildren,
-							DisplayPath:     []byte(newEntry.DisplayPath),
-							Deleted:         false,
-							Success:         existingEntry.Success,
-							ID:              existingEntry.ID,
-							Os:              newTree.Os,
-						}
-						newTreeChild.Metadata = GetMythicJSONTextFromStruct(newEntry.Metadata)
-						newTreeChild.CallbackID.Valid = true
-						newTreeChild.CallbackID.Int64 = int64(task.Callback.ID)
-						treeNodesToUpsert = append(treeNodesToUpsert, &newTreeChild)
-					} else {
-						namesToDeleteAndUpdate[string(existingEntry.Name)] = struct{}{}
-						existingEntry.Deleted = true
-						existingEntry.TaskID = task.ID
-						deleteTreeNode(existingEntry, true)
-					}
-				}
-				// now all existing ones have been updated or deleted, so it's time to add new ones
-				for name, newEntry := range incomingChildrenByName {
-					if _, ok := namesToDeleteAndUpdate[name]; !ok {
-						newTreeChild := databaseStructs.MythicTree{
-							Host:            pathData.Host,
-							TaskID:          task.ID,
-							OperationID:     task.OperationID,
-							Name:            []byte(newEntry.Name),
-							DisplayPath:     []byte(newEntry.DisplayPath),
-							ParentPath:      fullPath,
-							TreeType:        customBrowserData.Name,
-							CanHaveChildren: newEntry.CanHaveChildren,
-							Deleted:         false,
-							Os:              newTree.Os,
-						}
-						newTreeChild.FullPath = treeNodeGetFullPath(fullPath, []byte(newEntry.Name), []byte(pathData.PathSeparator), customBrowserData.Name)
-						newTreeChild.Metadata = GetMythicJSONTextFromStruct(newEntry.Metadata)
-						newTreeChild.CallbackID.Valid = true
-						newTreeChild.CallbackID.Int64 = int64(task.Callback.ID)
-						treeNodesToUpsert = append(treeNodesToUpsert, &newTreeChild)
-					}
-				}
+		if customBrowserUpdateDeleted {
+			updateDeletedReconciliation.TreeNodesToUpsert = append(updateDeletedReconciliation.TreeNodesToUpsert, treeNodesToUpsert...)
+			childReconciliation, err := buildMythicTreeChildrenReconciliation(
+				&task,
+				pathData.Host,
+				fullPath,
+				pathData.PathSeparator,
+				customBrowserData.Name,
+				newTree.Os,
+				customBrowserChildrenByName(entry.Children),
+				0,
+				false)
+			if err != nil {
+				logging.LogError(err, "Failed to build custom browser update_deleted changes")
+				continue
 			}
-
-		} else if entry.Children != nil {
+			appendMythicTreeChildrenReconciliation(&updateDeletedReconciliation, childReconciliation)
+			continue
+		}
+		if !agentCustomBrowser.UpdateDeleted && entry.Children != nil {
 			// we're not automatically updating deleted children, so just iterate over the files and insert/update them
 			for _, newEntry := range *entry.Children {
-				newTreeChild := databaseStructs.MythicTree{
-					Host:            pathData.Host,
-					TaskID:          task.ID,
-					OperationID:     task.OperationID,
-					Name:            []byte(newEntry.Name),
-					DisplayPath:     []byte(newEntry.DisplayPath),
-					ParentPath:      fullPath,
-					TreeType:        customBrowserData.Name,
-					CanHaveChildren: newEntry.CanHaveChildren,
-					Deleted:         false,
-					Os:              newTree.Os,
-				}
-				newTreeChild.FullPath = treeNodeGetFullPath(fullPath, []byte(newEntry.Name), []byte(pathData.PathSeparator), customBrowserData.Name)
-				newTreeChild.Metadata = GetMythicJSONTextFromStruct(newEntry.Metadata)
-				newTreeChild.CallbackID.Valid = true
-				newTreeChild.CallbackID.Int64 = int64(task.Callback.ID)
-				treeNodesToUpsert = append(treeNodesToUpsert, &newTreeChild)
+				treeNodesToUpsert = append(treeNodesToUpsert, buildCustomBrowserChildMythicTreeNode(
+					task,
+					pathData.Host,
+					fullPath,
+					pathData.PathSeparator,
+					customBrowserData.Name,
+					newEntry,
+					newTree.Os,
+					0))
 			}
 		}
 		if err := upsertMythicTreeNodes(treeNodesToUpsert); err != nil {
 			logging.LogError(err, "Failed to upsert custom browser MythicTree entries")
+		}
+	}
+	if customBrowserUpdateDeleted {
+		if err := applyMythicTreeChildrenReconciliation(task.ID, updateDeletedReconciliation); err != nil {
+			logging.LogError(err, "Failed to apply custom browser update_deleted changes")
 		}
 	}
 }

@@ -72,6 +72,8 @@ type callbackPortUsage struct {
 	bytesSentToAgent                  atomic.Int64
 	lastFlushedBytesReceivedFromAgent atomic.Int64
 	lastFlushedBytesSentToAgent       atomic.Int64
+	pendingMessagesToAgent            atomic.Int64
+	pendingInteractiveMessagesToAgent atomic.Int64
 	acceptedConnections               *[]*acceptedConnection
 	messagesToAgent                   chan proxyToAgentMessage
 	interactiveMessagesToAgent        chan agentMessagePostResponseInteractive
@@ -352,6 +354,76 @@ func cloneCallbackPortUsages(ports []*callbackPortUsage) []*callbackPortUsage {
 	return append([]*callbackPortUsage(nil), ports...)
 }
 
+// queueProxyDataForAgent records that a SOCKS/RPFWD message is pending before
+// placing it on the buffered channel. GetProxyData uses the counter as a cheap
+// fast path so frequent agent polls do not allocate and drain empty queues.
+func (p *callbackPortUsage) queueProxyDataForAgent(message proxyToAgentMessage) bool {
+	p.pendingMessagesToAgent.Add(1)
+	select {
+	case p.messagesToAgent <- message:
+		return true
+	default:
+		p.pendingMessagesToAgent.Add(-1)
+		return false
+	}
+}
+
+// queueInteractiveDataForAgent mirrors queueProxyDataForAgent for interactive
+// terminal data. Interactive task lookup remains separate because it can create
+// outbound data even when the channel itself is empty.
+func (p *callbackPortUsage) queueInteractiveDataForAgent(message agentMessagePostResponseInteractive) bool {
+	p.pendingInteractiveMessagesToAgent.Add(1)
+	select {
+	case p.interactiveMessagesToAgent <- message:
+		return true
+	default:
+		p.pendingInteractiveMessagesToAgent.Add(-1)
+		return false
+	}
+}
+
+func (p *callbackPortUsage) hasPendingProxyDataForAgent() bool {
+	return p.pendingMessagesToAgent.Load() > 0 || len(p.messagesToAgent) > 0
+}
+
+func (p *callbackPortUsage) hasPendingInteractiveDataForAgent() bool {
+	return p.pendingInteractiveMessagesToAgent.Load() > 0 || len(p.interactiveMessagesToAgent) > 0
+}
+
+func (p *callbackPortUsage) hasPendingDataForAgent() bool {
+	switch p.PortType {
+	case CALLBACK_PORT_TYPE_INTERACTIVE:
+		return p.hasPendingInteractiveDataForAgent()
+	case CALLBACK_PORT_TYPE_SOCKS:
+		fallthrough
+	case CALLBACK_PORT_TYPE_RPORTFWD:
+		return p.hasPendingProxyDataForAgent()
+	default:
+		return false
+	}
+}
+
+func callbackPortUsagesHavePendingData(ports []*callbackPortUsage) bool {
+	for _, port := range ports {
+		if port.hasPendingDataForAgent() {
+			return true
+		}
+	}
+	return false
+}
+
+func decrementPositiveAtomicCounter(counter *atomic.Int64) {
+	for {
+		current := counter.Load()
+		if current <= 0 {
+			return
+		}
+		if counter.CompareAndSwap(current, current-1) {
+			return
+		}
+	}
+}
+
 func clampCallbackPortByteCount(value int64) int64 {
 	if value < 0 {
 		return 0
@@ -484,6 +556,43 @@ func (c *callbackPortsInUse) getPortsForCallbackByType(callbackID int, portTypes
 	}
 	for _, portType := range portTypes {
 		portsByType[portType] = cloneCallbackPortUsages(c.portsByCallbackIDAndType[callbackID][portType])
+	}
+	return portsByType
+}
+
+// getPortsWithPendingDataForCallbackByType returns only ports that have data
+// buffered for the agent. The common no-data poll avoids cloning every active
+// port slice and avoids calling the drain methods that allocate response slices.
+func (c *callbackPortsInUse) getPortsWithPendingDataForCallbackByType(callbackID int, portTypes []CallbackPortType) map[CallbackPortType][]*callbackPortUsage {
+	var portsByType map[CallbackPortType][]*callbackPortUsage
+	appendPendingPort := func(portType CallbackPortType, port *callbackPortUsage) {
+		if portsByType == nil {
+			portsByType = make(map[CallbackPortType][]*callbackPortUsage, len(portTypes))
+		}
+		portsByType[portType] = append(portsByType[portType], port)
+	}
+	c.RLock()
+	defer c.RUnlock()
+	if c.portsByCallbackIDAndType == nil {
+		for _, port := range c.ports {
+			if port.CallbackID != callbackID || !port.hasPendingDataForAgent() {
+				continue
+			}
+			for _, portType := range portTypes {
+				if port.PortType == portType {
+					appendPendingPort(portType, port)
+					break
+				}
+			}
+		}
+		return portsByType
+	}
+	for _, portType := range portTypes {
+		for _, port := range c.portsByCallbackIDAndType[callbackID][portType] {
+			if port.hasPendingDataForAgent() {
+				appendPendingPort(portType, port)
+			}
+		}
 	}
 	return portsByType
 }
@@ -654,7 +763,7 @@ func (c *callbackPortsInUse) GetDataForCallbackIdAllTypes(callbackId int) (callb
 
 func (c *callbackPortsInUse) getDataForCallbackIdPortTypes(callbackId int, portTypes []CallbackPortType) (callbackProxyData, error) {
 	proxyData := callbackProxyData{}
-	portsByType := c.getPortsForCallbackByType(callbackId, portTypes)
+	portsByType := c.getPortsWithPendingDataForCallbackByType(callbackId, portTypes)
 	for _, portType := range portTypes {
 		ports := portsByType[portType]
 		switch portType {
@@ -662,7 +771,7 @@ func (c *callbackPortsInUse) getDataForCallbackIdPortTypes(callbackId int, portT
 			for _, port := range ports {
 				proxyData.Interactive = append(proxyData.Interactive, port.GetData().([]agentMessagePostResponseInteractive)...)
 			}
-			if len(ports) == 0 {
+			if len(ports) == 0 && submittedTasksAwaitingFetching.hasInteractiveTasksForCallbackId(callbackId) {
 				newInteractiveData, err := handleAgentMessageGetInteractiveTasking(callbackId)
 				if err != nil {
 					logging.LogError(err, "Failed to fetch interactive tasks")
@@ -725,6 +834,60 @@ func (c *callbackPortsInUse) GetOtherCallbackIds(callbackId int) []int {
 	}
 	for _, currentCallbackID := range c.callbacksWithPorts {
 		if currentCallbackID != callbackId {
+			callbackIds = append(callbackIds, currentCallbackID)
+		}
+	}
+	return callbackIds
+}
+
+// GetOtherCallbackIdsWithPendingData returns other callbacks that have proxy
+// data worth routing through delegates. This keeps the delegate path from doing
+// BFS work for idle proxy ports while still preserving interactive tasking,
+// which is delivered through this same proxy/delegate response path.
+func (c *callbackPortsInUse) GetOtherCallbackIdsWithPendingData(callbackId int) []int {
+	var candidateCallbackIds []int
+	var pendingCallbackIds map[int]bool
+	markPendingCallbackId := func(currentCallbackID int) {
+		if pendingCallbackIds == nil {
+			pendingCallbackIds = make(map[int]bool)
+		}
+		pendingCallbackIds[currentCallbackID] = true
+	}
+
+	c.RLock()
+	if c.portsByCallbackID == nil {
+		callbackPortsByID := make(map[int][]*callbackPortUsage)
+		for _, port := range c.ports {
+			if port.CallbackID == callbackId {
+				continue
+			}
+			if len(callbackPortsByID[port.CallbackID]) == 0 {
+				candidateCallbackIds = append(candidateCallbackIds, port.CallbackID)
+			}
+			callbackPortsByID[port.CallbackID] = append(callbackPortsByID[port.CallbackID], port)
+		}
+		for _, currentCallbackID := range candidateCallbackIds {
+			if callbackPortUsagesHavePendingData(callbackPortsByID[currentCallbackID]) {
+				markPendingCallbackId(currentCallbackID)
+			}
+		}
+	} else {
+		for _, currentCallbackID := range c.callbacksWithPorts {
+			if currentCallbackID == callbackId {
+				continue
+			}
+			candidateCallbackIds = append(candidateCallbackIds, currentCallbackID)
+			if callbackPortUsagesHavePendingData(c.portsByCallbackID[currentCallbackID]) {
+				markPendingCallbackId(currentCallbackID)
+			}
+		}
+	}
+	c.RUnlock()
+
+	callbackIdsWithInteractiveTasks := submittedTasksAwaitingFetching.getCallbackIdsWithInteractiveTasks(candidateCallbackIds)
+	callbackIds := make([]int, 0, len(pendingCallbackIds)+len(callbackIdsWithInteractiveTasks))
+	for _, currentCallbackID := range candidateCallbackIds {
+		if pendingCallbackIds[currentCallbackID] || callbackIdsWithInteractiveTasks[currentCallbackID] {
 			callbackIds = append(callbackIds, currentCallbackID)
 		}
 	}
@@ -989,10 +1152,14 @@ func (p *callbackPortUsage) GetData() interface{} {
 	return nil
 }
 func (p *callbackPortUsage) GetProxyData() []proxyToAgentMessage {
+	if !p.hasPendingProxyDataForAgent() {
+		return nil
+	}
 	messagesToSendToAgent := make([]proxyToAgentMessage, len(p.messagesToAgent))
 	for i := 0; i < len(messagesToSendToAgent); i++ {
 		select {
 		case messagesToSendToAgent[i] = <-p.messagesToAgent:
+			decrementPositiveAtomicCounter(&p.pendingMessagesToAgent)
 			//logging.LogDebug("Agent picking up msg from Mythic", "serverID", messagesToSendToAgent[i].ServerID, "exit", messagesToSendToAgent[i].IsExit)
 		default:
 			//logging.LogDebug("returning set of messages to agent from Mythic", "msgs", messagesToSendToAgent)
@@ -1003,10 +1170,14 @@ func (p *callbackPortUsage) GetProxyData() []proxyToAgentMessage {
 	return messagesToSendToAgent
 }
 func (p *callbackPortUsage) GetInteractiveData() []agentMessagePostResponseInteractive {
+	if !p.hasPendingInteractiveDataForAgent() && !submittedTasksAwaitingFetching.hasInteractiveTasksForCallbackId(p.CallbackID) {
+		return nil
+	}
 	messagesToSendToAgent := make([]agentMessagePostResponseInteractive, len(p.interactiveMessagesToAgent))
 	for i := 0; i < len(messagesToSendToAgent); i++ {
 		select {
 		case messagesToSendToAgent[i] = <-p.interactiveMessagesToAgent:
+			decrementPositiveAtomicCounter(&p.pendingInteractiveMessagesToAgent)
 			//logging.LogDebug("Got message from Mythic to agent", "TaskID", messagesToSendToAgent[i].TaskUUID)
 		default:
 			//logging.LogDebug("returning set of messages to agent from Mythic", "msgs", messagesToSendToAgent)
@@ -1099,9 +1270,9 @@ func (p *callbackPortUsage) manageConnections() {
 								ServerID: removeCon.ServerID,
 								Port:     p.LocalPort,
 							},
-							MessagesToAgent: p.messagesToAgent,
-							ProxyType:       p.PortType,
-							CallbackID:      p.CallbackID,
+							CallbackPort: p,
+							ProxyType:    p.PortType,
+							CallbackID:   p.CallbackID,
 						}:
 						default:
 						}
@@ -1130,9 +1301,9 @@ func (p *callbackPortUsage) manageConnections() {
 								ServerID: newMsg.ServerID,
 								Port:     p.LocalPort,
 							},
-							MessagesToAgent: p.messagesToAgent,
-							ProxyType:       p.PortType,
-							CallbackID:      p.CallbackID,
+							CallbackPort: p,
+							ProxyType:    p.PortType,
+							CallbackID:   p.CallbackID,
 						}
 
 					*/
@@ -1162,9 +1333,9 @@ func (p *callbackPortUsage) manageConnections() {
 								ServerID: newMsg.ServerID,
 								Port:     p.LocalPort,
 							},
-							MessagesToAgent: p.messagesToAgent,
-							CallbackID:      p.CallbackID,
-							ProxyType:       p.PortType,
+							CallbackPort: p,
+							CallbackID:   p.CallbackID,
+							ProxyType:    p.PortType,
 						}
 						go SendAllOperationsMessage(fmt.Sprintf("Failed to connect to %s:%d for new rpfwd message", p.RemoteIP, p.RemotePort),
 							p.OperationID, "rpfwd", database.MESSAGE_LEVEL_INFO, true)
@@ -1756,9 +1927,9 @@ func (p *callbackPortUsage) handleSocksConnections() {
 												ServerID: newUDPConnection.ServerID,
 												Port:     p.LocalPort,
 											},
-											MessagesToAgent: p.messagesToAgent,
-											CallbackID:      p.CallbackID,
-											ProxyType:       p.PortType,
+											CallbackPort: p,
+											CallbackID:   p.CallbackID,
+											ProxyType:    p.PortType,
 										}
 										p.addBytesSentToAgent(int64(newUDPConnectionBufLength))
 										go func(remoteAddr net.Addr) {
@@ -1800,9 +1971,9 @@ func (p *callbackPortUsage) handleSocksConnections() {
 															ServerID: newUDPConnection.ServerID,
 															Port:     p.LocalPort,
 														},
-														MessagesToAgent: p.messagesToAgent,
-														CallbackID:      p.CallbackID,
-														ProxyType:       p.PortType,
+														CallbackPort: p,
+														CallbackID:   p.CallbackID,
+														ProxyType:    p.PortType,
 													}
 												}
 											}
@@ -1821,9 +1992,9 @@ func (p *callbackPortUsage) handleSocksConnections() {
 								ServerID: newConnection.ServerID,
 								Port:     p.LocalPort,
 							},
-							MessagesToAgent: p.messagesToAgent,
-							CallbackID:      p.CallbackID,
-							ProxyType:       p.PortType,
+							CallbackPort: p,
+							CallbackID:   p.CallbackID,
+							ProxyType:    p.PortType,
 						}
 						p.addBytesSentToAgent(int64(length))
 					}
@@ -1897,9 +2068,9 @@ func (p *callbackPortUsage) handleRpfwdConnections(newConnection *acceptedConnec
 						ServerID: newConnection.ServerID,
 						Port:     p.LocalPort,
 					},
-					MessagesToAgent: p.messagesToAgent,
-					ProxyType:       p.PortType,
-					CallbackID:      p.CallbackID,
+					CallbackPort: p,
+					ProxyType:    p.PortType,
+					CallbackID:   p.CallbackID,
 				}
 				p.addBytesSentToAgent(int64(length))
 				//fmt.Printf("Message sent to p.messagesToAgent channel for chan %d\n", newConnection.ServerID)
@@ -2001,9 +2172,9 @@ func (p *callbackPortUsage) handleInteractiveConnections() {
 									TaskUUID:    taskUUID,
 									MessageType: 0,
 								},
-								InteractiveMessagesToAgent: p.interactiveMessagesToAgent,
-								CallbackID:                 p.CallbackID,
-								ProxyType:                  p.PortType,
+								CallbackPort: p,
+								CallbackID:   p.CallbackID,
+								ProxyType:    p.PortType,
 							}
 							p.addBytesSentToAgent(int64(length))
 							//fmt.Printf("Message sent to p.messagesToAgent channel for chan %d\n", newConnection.ServerID)

@@ -52,7 +52,7 @@ import {useQuery, gql} from '@apollo/client';
 import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import AssignmentIcon from '@mui/icons-material/Assignment';
-import {GetMythicSetting, useGetMythicSetting, useSetMythicSetting} from "./MythicComponents/MythicSavedUserSetting";
+import {GetMythicSetting, useSetMythicSetting} from "./MythicComponents/MythicSavedUserSetting";
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import ManageSearchIcon from '@mui/icons-material/ManageSearch';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
@@ -591,8 +591,7 @@ const AllSettingOptions = [
     "BrowserScripts"
 ].sort();
 
-const TopAppBarVerticalAdjustShortcutsDialog = ({onClose}) => {
-    const sideShortcuts = useGetMythicSetting({setting_name: "sideShortcuts", default_value: defaultShortcuts})
+const TopAppBarVerticalAdjustShortcutsDialog = ({onClose, onSave, sideShortcuts}) => {
     const [currentShortcuts, setCurrentShortcuts] = React.useState(sideShortcuts);
     const [updateSetting] = useSetMythicSetting();
     const reset = () => {
@@ -620,7 +619,8 @@ const TopAppBarVerticalAdjustShortcutsDialog = ({onClose}) => {
         setCurrentShortcuts(newShortcuts);
     }
     const onUpdate = () => {
-        updateSetting({setting_name: "sideShortcuts", value: currentShortcuts});
+        updateSetting({setting_name: "sideShortcuts", value: currentShortcuts, broadcast: false});
+        onSave(currentShortcuts);
         snackActions.success("Updated shortcuts!");
         onClose();
     }
@@ -720,11 +720,12 @@ export function TopAppBarVertical(props) {
   const me = props.me;
   const navigate = useNavigate();
   const initialNavBarOpen = GetMythicSetting({setting_name: 'navBarOpen', default_value: operatorSettingDefaults.navBarOpen});
+  const initialSideShortcuts = GetMythicSetting({setting_name: "sideShortcuts", default_value: defaultShortcuts});
   const [updateSetting] = useSetMythicSetting();
   const [menuOpen, setMenuOpen] = React.useState(initialNavBarOpen);
+  const [sideShortcuts, setSideShortcuts] = React.useState(initialSideShortcuts);
   const [openExtra, setOpenExtra] = React.useState(false);
   const [openEditDialog, setOpenEditDialog ] = React.useState(false);
-  const sideShortcuts = useGetMythicSetting({setting_name: "sideShortcuts", default_value: defaultShortcuts})
   const [serverVersion, setServerVersion] = React.useState("...");
   const [serverName, setServerName] = React.useState("...");
   useQuery(GET_SETTINGS, {fetchPolicy: "no-cache",
@@ -736,12 +737,13 @@ export function TopAppBarVertical(props) {
   const toggleDrawerOpen = (e) => {
       e.preventDefault();
       e.stopPropagation();
-      setMenuOpen(!menuOpen);
-      updateSetting({setting_name: "navBarOpen", value: !menuOpen})
+      const nextMenuOpen = !menuOpen;
+      setMenuOpen(nextMenuOpen);
+      updateSetting({setting_name: "navBarOpen", value: nextMenuOpen, broadcast: false});
   };
   const handleDrawerClose = () => {
       setMenuOpen(false);
-      updateSetting({setting_name: "navBarOpen", value: false})
+      updateSetting({setting_name: "navBarOpen", value: false, broadcast: false})
   }
   const handleToggleExtra = () => {
         setOpenExtra(!openExtra);
@@ -875,6 +877,8 @@ export function TopAppBarVertical(props) {
                 <MythicDialog open={openEditDialog} fullWidth={true} maxWidth={"sm"}
                               onClose={()=>{setOpenEditDialog(false);}}
                               innerDialog={<TopAppBarVerticalAdjustShortcutsDialog
+                                  sideShortcuts={sideShortcuts}
+                                  onSave={setSideShortcuts}
                                   onClose={()=>{setOpenEditDialog(false);}}  />}
                 />
             }

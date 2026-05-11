@@ -352,6 +352,29 @@ func (s *submittedTasksForAgents) getInteractiveTasksForCallbackId(callbackId in
 	defer s.RUnlock()
 	return cloneTaskIDs(s.interactiveTasksByCallbackID[callbackId])
 }
+func (s *submittedTasksForAgents) hasInteractiveTasksForCallbackId(callbackId int) bool {
+	s.RLock()
+	defer s.RUnlock()
+	return len(s.interactiveTasksByCallbackID[callbackId]) > 0
+}
+func (s *submittedTasksForAgents) getCallbackIdsWithInteractiveTasks(callbackIds []int) map[int]bool {
+	var callbacksWithInteractiveTasks map[int]bool
+	if len(callbackIds) == 0 {
+		return callbacksWithInteractiveTasks
+	}
+	s.RLock()
+	defer s.RUnlock()
+	for _, callbackId := range callbackIds {
+		if len(s.interactiveTasksByCallbackID[callbackId]) == 0 {
+			continue
+		}
+		if callbacksWithInteractiveTasks == nil {
+			callbacksWithInteractiveTasks = make(map[int]bool)
+		}
+		callbacksWithInteractiveTasks[callbackId] = true
+	}
+	return callbacksWithInteractiveTasks
+}
 func (s *submittedTasksForAgents) getOtherCallbackIds(callbackId int) []int {
 	callbacks := []int{}
 	s.RLock()
