@@ -96,7 +96,7 @@ const columnDefaults = [
 ];
 export const CallbacksTabsFileBrowserTable = (props) => {
     const theme = useTheme();
-    const [updateSetting] = useSetMythicSetting();
+    const [updateSetting, updateSettings] = useSetMythicSetting();
     const [loading, setLoading] = React.useState(true);
     const [allData, setAllData] = React.useState([]);
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
@@ -207,7 +207,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
         const nextFilterOptions = getUpdatedGridFilterOptions(filterOptions, selectedColumn.key, value);
         setFilterOptions(nextFilterOptions);
         try{
-            updateSetting({setting_name: `file_browser_filter_options`, value: nextFilterOptions});
+            updateSetting({setting_name: `file_browser_filter_options`, value: nextFilterOptions, broadcast: false});
         }catch(error){
             console.log("failed to save filter options");
         }
@@ -414,11 +414,15 @@ export const CallbacksTabsFileBrowserTable = (props) => {
             snackActions.error("Can't update to show no fields");
             return;
         }
-        console.log("newOrder", newOrder)
-        updateSetting({setting_name: `file_browser_column_order`, value: newOrder.map(c => c.name)});
         setColumnOrder(newOrder);
         setColumnVisibility({visible: newVisible, hidden: newHidden});
-        updateSetting({setting_name: `file_browser_table_columns`, value: newVisible});
+        updateSettings({
+            settings: {
+                file_browser_column_order: newOrder.map(c => c.name),
+                file_browser_table_columns: newVisible,
+            },
+            broadcast: false,
+        });
         setOpenReorderDialog(false);
     }
     const onResetColumnReorder = () => {

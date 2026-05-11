@@ -38,6 +38,7 @@ const CellPreMemo = ({ style, rowIndex, columnIndex, data  }) => {
         }
     };
     const selectedClass = data.items[rowIndex][columnIndex]?.props?.rowData?.selected ? "selectedCallback" : "";
+    const customRowClass = data.items[rowIndex][columnIndex]?.props?.rowData?.rowClassName || "";
     const rowFirstCellClass = columnIndex === 0 ? classes.rowFirstCell : "";
     const rowLastCellClass = columnIndex === data.items[rowIndex].length - 1 ? classes.rowLastCell : "";
     const rowInteractiveClass = data.onRowClick ? classes.rowInteractive : "";
@@ -107,7 +108,7 @@ const CellPreMemo = ({ style, rowIndex, columnIndex, data  }) => {
     );
     return (
         <div style={{...style, ...cellStyle, ...rowStyle}}
-            className={`${classes.cell} ${rowClassName} ${rowHighlight} ${selectedClass} ${rowFirstCellClass} ${rowLastCellClass} ${rowInteractiveClass}`}
+            className={`${classes.cell} ${rowClassName} ${rowHighlight} ${selectedClass} ${customRowClass} ${rowFirstCellClass} ${rowLastCellClass} ${rowInteractiveClass}`}
             onDoubleClick={handleDoubleClick}
             onClick={handleClick}
             onMouseEnter={onMouseEnter}

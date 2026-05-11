@@ -100,7 +100,7 @@ func Initialize() {
 	InvalidateOperationEventLogCacheMap()
 	go listenForOperationsMessages()
 	go listenForWriteDownloadChunkToLocalDisk()
-	go listenForFileBrowserData()
+	go listenForMythicTreeData()
 	go listenForAsyncAgentMessagePostResponseContent()
 	go updateCheckinTimeEverySecond()
 	for {

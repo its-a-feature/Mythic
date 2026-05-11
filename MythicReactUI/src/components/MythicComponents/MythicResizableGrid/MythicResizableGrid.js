@@ -345,7 +345,7 @@ const ResizableGridWrapper = ({
         });
         const didUpdateWidths = setColumnWidthsAndRef(updatedColumnWidths);
         if(didUpdateWidths && name !== undefined){
-            updateSetting({setting_name: `${name}_column_widths`, value: updatedColumnWidths});
+            updateSetting({setting_name: `${name}_column_widths`, value: updatedColumnWidths, broadcast: false});
         }
 
     }, [scrollbarWidth, columns, AutoSizerProps.width, localColumnsRef.current, setColumnWidthsAndRef]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -416,7 +416,7 @@ const ResizableGridWrapper = ({
             activeResizeRef.current = null;
             const didUpdateWidths = setColumnWidthsAndRef(updatedColumnWidths, currentResize.columnIndex);
             if(didUpdateWidths && name !== undefined){
-                updateSetting({setting_name: `${name}_column_widths`, value: updatedColumnWidths});
+                updateSetting({setting_name: `${name}_column_widths`, value: updatedColumnWidths, broadcast: false});
             }
             setResizingColumnIndex(-1);
             cleanupResizeListeners();
@@ -470,7 +470,7 @@ const ResizableGridWrapper = ({
         const didUpdateWidths = setColumnWidthsAndRef(updatedColumnWidths, columnIndex);
         if(didUpdateWidths){
             if(name !== undefined){
-                updateSetting({setting_name: `${name}_column_widths`, value: updatedColumnWidths});
+                updateSetting({setting_name: `${name}_column_widths`, value: updatedColumnWidths, broadcast: false});
             }
         }
     }, [columns, headerNameKey, items, name, setColumnWidthsAndRef, updateSetting]);
@@ -485,7 +485,7 @@ const ResizableGridWrapper = ({
         });
         const didUpdateWidths = setColumnWidthsAndRef(updatedColumnWidths, 0);
         if(didUpdateWidths && name !== undefined){
-            updateSetting({setting_name: `${name}_column_widths`, value: updatedColumnWidths});
+            updateSetting({setting_name: `${name}_column_widths`, value: updatedColumnWidths, broadcast: false});
         }
     }, [columns, headerNameKey, items, name, setColumnWidthsAndRef, updateSetting]);
     const resetColumnWidths = useCallback( () => {
@@ -496,7 +496,7 @@ const ResizableGridWrapper = ({
         });
         const didUpdateWidths = setColumnWidthsAndRef(updatedColumnWidths, 0);
         if(didUpdateWidths && name !== undefined){
-            updateSetting({setting_name: `${name}_column_widths`, value: updatedColumnWidths});
+            updateSetting({setting_name: `${name}_column_widths`, value: updatedColumnWidths, broadcast: false});
         }
     }, [AutoSizerProps.width, columns, name, scrollbarWidth, setColumnWidthsAndRef, updateSetting]);
     const headerContextMenuOptions = React.useMemo( () => {

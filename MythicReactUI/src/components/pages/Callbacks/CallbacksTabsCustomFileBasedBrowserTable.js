@@ -54,7 +54,7 @@ const updateFileComment = gql`
 
 export const CallbacksTabsCustomFileBasedBrowserTable = (props) => {
     const theme = useTheme();
-    const [updateSetting] = useSetMythicSetting();
+    const [updateSetting, updateSettings] = useSetMythicSetting();
     const [allData, setAllData] = React.useState([]);
     const [openReorderDialog, setOpenReorderDialog] = React.useState(false);
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
@@ -185,7 +185,7 @@ export const CallbacksTabsCustomFileBasedBrowserTable = (props) => {
         const nextFilterOptions = getUpdatedGridFilterOptions(filterOptions, selectedColumn.key, value);
         setFilterOptions(nextFilterOptions);
         try{
-            updateSetting({setting_name: `${props.treeConfig.name}_browser_filter_options`, value: nextFilterOptions});
+            updateSetting({setting_name: `${props.treeConfig.name}_browser_filter_options`, value: nextFilterOptions, broadcast: false});
         }catch(error){
             console.log("failed to save filter options");
         }
@@ -687,10 +687,15 @@ export const CallbacksTabsCustomFileBasedBrowserTable = (props) => {
             snackActions.error("Can't update to show no fields");
             return;
         }
-        updateSetting({setting_name: `${props.treeConfig.name}_browser_column_order`, value: newOrder.map(c => c.name)});
         setColumnOrder(newOrder);
         setColumnVisibility({visible: newVisible, hidden: newHidden});
-        updateSetting({setting_name: `${props.treeConfig.name}_browser_table_columns`, value: newVisible});
+        updateSettings({
+            settings: {
+                [`${props.treeConfig.name}_browser_column_order`]: newOrder.map(c => c.name),
+                [`${props.treeConfig.name}_browser_table_columns`]: newVisible,
+            },
+            broadcast: false,
+        });
         setOpenReorderDialog(false);
     }
     const onResetColumnReorder = () => {

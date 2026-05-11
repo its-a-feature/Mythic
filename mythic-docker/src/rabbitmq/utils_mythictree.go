@@ -1,6 +1,7 @@
 package rabbitmq
 
 import (
+	"bytes"
 	"database/sql"
 	"fmt"
 	"strconv"
@@ -10,6 +11,7 @@ import (
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/utils"
+	"github.com/jmoiron/sqlx"
 )
 
 // MythicTree ingest can happen on busy callback paths for file browser,
@@ -33,6 +35,8 @@ const upsertMythicTreeNodeQuery = `INSERT INTO mythictree
 	    success=(mythictree.success OR :success)
 	    RETURNING id`
 
+const mythicTreeDeleteBatchSize = 500
+
 // mythicTreeNodeKey represents the database uniqueness key used by the
 // MythicTree upsert. The callback validity flag is included so an invalid
 // callback id cannot accidentally collapse with callback_id=0.
@@ -48,7 +52,37 @@ type mythicTreeNodeKey struct {
 type fileBrowserUpdateDeletedGroup struct {
 	PathData       utils.AnalyzedPath
 	FullPath       []byte
-	ChildrenByName map[string]agentMessagePostResponseFileBrowserChildren
+	ChildrenByName map[string]mythicTreeChildNodeData
+}
+
+// mythicTreeChildNodeData is the normalized child payload used by both file
+// browser children and file-like custom browser children before they are mapped
+// to MythicTree database rows.
+type mythicTreeChildNodeData struct {
+	Name            string
+	DisplayPath     []byte
+	CanHaveChildren bool
+	Metadata        databaseStructs.MythicJSONText
+}
+
+// mythicTreeCascadeDeleteTarget describes one missing file-like node whose
+// descendants should be marked deleted along with the node itself.
+type mythicTreeCascadeDeleteTarget struct {
+	Host            string
+	OperationID     int
+	TreeType        string
+	CallbackID      int64
+	CallbackIDValid bool
+	FullPath        []byte
+	PathSeparator   string
+}
+
+// mythicTreeChildrenReconciliation holds the DB writes calculated for an
+// update_deleted parent path without applying them immediately.
+type mythicTreeChildrenReconciliation struct {
+	TreeNodesToUpsert    []*databaseStructs.MythicTree
+	IDsToDelete          []int
+	CascadeDeleteTargets []mythicTreeCascadeDeleteTarget
 }
 
 // upsertMythicTreeNode is the compatibility wrapper for callers that still need
@@ -105,6 +139,175 @@ func upsertMythicTreeNodes(treeNodes []*databaseStructs.MythicTree) error {
 	}
 	committed = true
 	return nil
+}
+
+// deleteMythicTreeNodes marks MythicTree rows deleted in bulk. File-like trees
+// can pass cascade targets so descendants are deleted with chunked SQL updates
+// instead of one deleteTreeNode call per missing child.
+func deleteMythicTreeNodes(taskID int, idsToDelete []int, cascadeTargets []mythicTreeCascadeDeleteTarget) error {
+	idsToDelete = dedupeMythicTreeDeleteIDs(idsToDelete)
+	cascadeTargets = dedupeMythicTreeCascadeDeleteTargets(cascadeTargets)
+	if len(idsToDelete) == 0 && len(cascadeTargets) == 0 {
+		return nil
+	}
+	transaction, err := database.DB.Beginx()
+	if err != nil {
+		return err
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = transaction.Rollback()
+		}
+	}()
+	for start := 0; start < len(cascadeTargets); start += mythicTreeDeleteBatchSize {
+		end := start + mythicTreeDeleteBatchSize
+		if end > len(cascadeTargets) {
+			end = len(cascadeTargets)
+		}
+		if err = deleteMythicTreeDescendantBatch(transaction, taskID, cascadeTargets[start:end]); err != nil {
+			return err
+		}
+	}
+	for start := 0; start < len(idsToDelete); start += mythicTreeDeleteBatchSize {
+		end := start + mythicTreeDeleteBatchSize
+		if end > len(idsToDelete) {
+			end = len(idsToDelete)
+		}
+		if err = deleteMythicTreeIDBatch(transaction, taskID, idsToDelete[start:end]); err != nil {
+			return err
+		}
+	}
+	if err = transaction.Commit(); err != nil {
+		return err
+	}
+	committed = true
+	return nil
+}
+
+// deleteMythicTreeIDBatch marks exact MythicTree IDs deleted inside the caller's
+// transaction.
+func deleteMythicTreeIDBatch(transaction *sqlx.Tx, taskID int, idsToDelete []int) error {
+	if len(idsToDelete) == 0 {
+		return nil
+	}
+	deleteQuery, args, err := sqlx.Named(`UPDATE mythictree SET
+		deleted=true, "timestamp"=now(), task_id=:task_id
+		WHERE id IN (:ids)`, map[string]interface{}{
+		"ids":     idsToDelete,
+		"task_id": taskID,
+	})
+	if err != nil {
+		return err
+	}
+	deleteQuery, args, err = sqlx.In(deleteQuery, args...)
+	if err != nil {
+		return err
+	}
+	deleteQuery = database.DB.Rebind(deleteQuery)
+	_, err = transaction.Exec(deleteQuery, args...)
+	return err
+}
+
+// deleteMythicTreeDescendantBatch marks descendants of missing file-like nodes
+// deleted in one query. It uses exact parent_path plus separator-aware byte
+// prefix matching so /tmp/foo does not delete /tmp/foobar, and paths containing
+// SQL wildcard characters are treated as literal bytes.
+func deleteMythicTreeDescendantBatch(transaction *sqlx.Tx, taskID int, cascadeTargets []mythicTreeCascadeDeleteTarget) error {
+	if len(cascadeTargets) == 0 {
+		return nil
+	}
+	args := map[string]interface{}{
+		"task_id": taskID,
+	}
+	clauses := make([]string, 0, len(cascadeTargets))
+	for index, target := range cascadeTargets {
+		callbackClause := "callback_id IS NULL"
+		if target.CallbackIDValid {
+			callbackKey := fmt.Sprintf("callback_id_%d", index)
+			callbackClause = "callback_id=:" + callbackKey
+			args[callbackKey] = target.CallbackID
+		}
+		args[fmt.Sprintf("host_%d", index)] = target.Host
+		args[fmt.Sprintf("operation_id_%d", index)] = target.OperationID
+		args[fmt.Sprintf("tree_type_%d", index)] = target.TreeType
+		args[fmt.Sprintf("child_parent_path_%d", index)] = cloneByteSliceForDatabase(target.FullPath)
+		args[fmt.Sprintf("descendant_parent_path_%d", index)] = getMythicTreeDescendantParentPathPrefix(target.FullPath, target.PathSeparator)
+		clauses = append(clauses, fmt.Sprintf(
+			`(host=:host_%d AND operation_id=:operation_id_%d AND tree_type=:tree_type_%d AND %s AND (parent_path=:child_parent_path_%d OR substring(parent_path from 1 for length(:descendant_parent_path_%d))=:descendant_parent_path_%d))`,
+			index, index, index, callbackClause, index, index, index))
+	}
+	_, err := transaction.NamedExec(`UPDATE mythictree SET
+		deleted=true, "timestamp"=now(), task_id=:task_id
+		WHERE `+strings.Join(clauses, " OR "), args)
+	return err
+}
+
+// getMythicTreeDescendantParentPathPrefix returns the byte prefix for
+// descendant parent paths below a deleted node.
+func getMythicTreeDescendantParentPathPrefix(fullPath []byte, pathSeparator string) []byte {
+	prefix := cloneByteSliceForDatabase(fullPath)
+	separatorBytes := []byte(pathSeparator)
+	if len(separatorBytes) > 0 && len(prefix) > 0 && !bytes.HasSuffix(prefix, separatorBytes) {
+		prefix = append(prefix, separatorBytes...)
+	}
+	return prefix
+}
+
+// dedupeMythicTreeDeleteIDs avoids redundant exact-row updates when multiple
+// reconciliation groups point at the same row.
+func dedupeMythicTreeDeleteIDs(idsToDelete []int) []int {
+	if len(idsToDelete) == 0 {
+		return idsToDelete
+	}
+	deduped := make([]int, 0, len(idsToDelete))
+	seen := make(map[int]struct{}, len(idsToDelete))
+	for _, id := range idsToDelete {
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		deduped = append(deduped, id)
+	}
+	return deduped
+}
+
+// dedupeMythicTreeCascadeDeleteTargets removes duplicate cascade scopes before
+// building the chunked SQL OR clauses.
+func dedupeMythicTreeCascadeDeleteTargets(targets []mythicTreeCascadeDeleteTarget) []mythicTreeCascadeDeleteTarget {
+	if len(targets) == 0 {
+		return targets
+	}
+	deduped := make([]mythicTreeCascadeDeleteTarget, 0, len(targets))
+	seen := make(map[string]struct{}, len(targets))
+	for _, target := range targets {
+		key := strings.Join([]string{
+			target.Host,
+			strconv.Itoa(target.OperationID),
+			target.TreeType,
+			strconv.FormatBool(target.CallbackIDValid),
+			strconv.FormatInt(target.CallbackID, 10),
+			string(target.FullPath),
+			target.PathSeparator,
+		}, "\x00")
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		target.FullPath = cloneByteSliceForDatabase(target.FullPath)
+		deduped = append(deduped, target)
+	}
+	return deduped
+}
+
+// ensureTaskCallbackMythicTreeGroups lazily fills callback mythictree_groups for
+// direct RPC/webhook paths that only loaded the callback id. Agent message
+// post-response tasks already include the groups in their initial task query.
+func ensureTaskCallbackMythicTreeGroups(task *databaseStructs.Task) error {
+	if task == nil || len(task.Callback.MythicTreeGroups) > 0 || task.Callback.ID <= 0 {
+		return nil
+	}
+	return database.DB.Get(&task.Callback.MythicTreeGroups, `SELECT mythictree_groups FROM callback WHERE id=$1`, task.Callback.ID)
 }
 
 // normalizeMythicTreeNodesForBatch applies required-field defaults while
@@ -279,21 +482,33 @@ func buildMythicTreeParentNodes(pathData utils.AnalyzedPath, displayPathData uti
 // exact MythicTree row shape used by both normal file browser handling and
 // update_deleted reconciliation.
 func buildFileBrowserChildMythicTreeNode(task databaseStructs.Task, host string, parentFullPath []byte, pathSeparator string, child agentMessagePostResponseFileBrowserChildren, os string, apitokensId int) *databaseStructs.MythicTree {
+	return buildMythicTreeChildNode(task, host, parentFullPath, pathSeparator, databaseStructs.TREE_TYPE_FILE, fileBrowserChildNodeData(child), os, apitokensId)
+}
+
+// buildCustomBrowserChildMythicTreeNode maps file-like custom browser children
+// into the same MythicTree child shape used by file browser responses.
+func buildCustomBrowserChildMythicTreeNode(task databaseStructs.Task, host string, parentFullPath []byte, pathSeparator string, treeType string, child agentMessagePostResponseCustomBrowserChildren, os string, apitokensId int) *databaseStructs.MythicTree {
+	return buildMythicTreeChildNode(task, host, parentFullPath, pathSeparator, treeType, customBrowserChildNodeData(child), os, apitokensId)
+}
+
+// buildMythicTreeChildNode owns the common child-row mechanics for file browser
+// and file-like custom browser data: path construction, callback/api-token
+// attribution, and metadata assignment.
+func buildMythicTreeChildNode(task databaseStructs.Task, host string, parentFullPath []byte, pathSeparator string, treeType string, child mythicTreeChildNodeData, os string, apitokensId int) *databaseStructs.MythicTree {
 	newTreeChild := databaseStructs.MythicTree{
 		Host:            host,
 		TaskID:          task.ID,
 		OperationID:     task.OperationID,
 		Name:            []byte(child.Name),
 		ParentPath:      parentFullPath,
-		TreeType:        databaseStructs.TREE_TYPE_FILE,
-		CanHaveChildren: !child.IsFile,
+		TreeType:        treeType,
+		CanHaveChildren: child.CanHaveChildren,
 		Deleted:         false,
 		Os:              os,
-		DisplayPath:     []byte{},
+		DisplayPath:     child.DisplayPath,
 	}
-	newTreeChild.FullPath = treeNodeGetFullPath(parentFullPath, []byte(child.Name), []byte(pathSeparator), databaseStructs.TREE_TYPE_FILE)
-	fileMetaData := addChildFilePermissions(&child)
-	newTreeChild.Metadata = GetMythicJSONTextFromStruct(fileMetaData)
+	newTreeChild.FullPath = treeNodeGetFullPath(parentFullPath, []byte(child.Name), []byte(pathSeparator), treeType)
+	newTreeChild.Metadata = child.Metadata
 	newTreeChild.CallbackID.Valid = true
 	newTreeChild.CallbackID.Int64 = int64(task.Callback.ID)
 	if apitokensId > 0 {
@@ -301,6 +516,41 @@ func buildFileBrowserChildMythicTreeNode(task databaseStructs.Task, host string,
 		newTreeChild.APITokensID.Int64 = int64(apitokensId)
 	}
 	return &newTreeChild
+}
+
+// customBrowserChildNodeData keeps custom-browser display path and metadata
+// mapping separate from the shared child-node construction logic.
+func customBrowserChildNodeData(child agentMessagePostResponseCustomBrowserChildren) mythicTreeChildNodeData {
+	return mythicTreeChildNodeData{
+		Name:            child.Name,
+		DisplayPath:     []byte(child.DisplayPath),
+		CanHaveChildren: child.CanHaveChildren,
+		Metadata:        GetMythicJSONTextFromStruct(child.Metadata),
+	}
+}
+
+// fileBrowserChildNodeData keeps the file-browser-specific metadata conversion
+// separate from the common MythicTree child builder.
+func fileBrowserChildNodeData(child agentMessagePostResponseFileBrowserChildren) mythicTreeChildNodeData {
+	return mythicTreeChildNodeData{
+		Name:            child.Name,
+		CanHaveChildren: !child.IsFile,
+		Metadata:        GetMythicJSONTextFromStruct(addChildFilePermissions(&child)),
+	}
+}
+
+// customBrowserChildrenByName converts a custom browser child slice into the
+// common reconciliation map. The last entry for a duplicate child name wins,
+// matching the existing single-row upsert behavior.
+func customBrowserChildrenByName(children *[]agentMessagePostResponseCustomBrowserChildren) map[string]mythicTreeChildNodeData {
+	if children == nil {
+		return map[string]mythicTreeChildNodeData{}
+	}
+	childrenByName := make(map[string]mythicTreeChildNodeData, len(*children))
+	for _, child := range *children {
+		childrenByName[child.Name] = customBrowserChildNodeData(child)
+	}
+	return childrenByName
 }
 
 // groupFileBrowserUpdateDeletedEntries keeps chunked listings for the same
@@ -328,14 +578,14 @@ func groupFileBrowserUpdateDeletedEntries(task *databaseStructs.Task, fileBrowse
 			groups = append(groups, fileBrowserUpdateDeletedGroup{
 				PathData:       pathData,
 				FullPath:       fullPath,
-				ChildrenByName: make(map[string]agentMessagePostResponseFileBrowserChildren),
+				ChildrenByName: make(map[string]mythicTreeChildNodeData),
 			})
 		}
 		if fileBrowser.Files == nil {
 			continue
 		}
 		for _, newEntry := range *fileBrowser.Files {
-			groups[groupIndex].ChildrenByName[newEntry.Name] = newEntry
+			groups[groupIndex].ChildrenByName[newEntry.Name] = fileBrowserChildNodeData(newEntry)
 		}
 	}
 	return groups, nil
@@ -372,63 +622,150 @@ func getFileBrowserUpdateDeletedPath(task *databaseStructs.Task, fileBrowser *ag
 // mark DB-only children deleted. Each group is independent so a task can report
 // multiple directories without cross-contaminating their child sets.
 func reconcileFileBrowserUpdateDeletedGroup(task *databaseStructs.Task, group fileBrowserUpdateDeletedGroup, apitokensId int) error {
-	var existingTreeEntries []databaseStructs.MythicTree
-	err := database.DB.Select(&existingTreeEntries, `SELECT
-        id, "name", success, full_path, parent_path, operation_id, host, tree_type, callback_id, os, display_path
-		FROM mythictree WHERE
-		parent_path=$1 AND operation_id=$2 AND host=$3 AND tree_type=$4`,
-		group.FullPath, task.OperationID, group.PathData.Host, databaseStructs.TREE_TYPE_FILE)
+	return reconcileFileBrowserUpdateDeletedGroups(task, []fileBrowserUpdateDeletedGroup{group}, apitokensId)
+}
+
+// reconcileFileBrowserUpdateDeletedGroups batches update_deleted writes across
+// all file-browser chunks for a task completion flush.
+func reconcileFileBrowserUpdateDeletedGroups(task *databaseStructs.Task, groups []fileBrowserUpdateDeletedGroup, apitokensId int) error {
+	reconciliation := mythicTreeChildrenReconciliation{}
+	for _, group := range groups {
+		groupReconciliation, err := buildMythicTreeChildrenReconciliation(
+			task,
+			group.PathData.Host,
+			group.FullPath,
+			group.PathData.PathSeparator,
+			databaseStructs.TREE_TYPE_FILE,
+			getOSTypeBasedOnPathSeparator(group.PathData.PathSeparator, databaseStructs.TREE_TYPE_FILE),
+			group.ChildrenByName,
+			apitokensId,
+			true)
+		if err != nil {
+			return err
+		}
+		appendMythicTreeChildrenReconciliation(&reconciliation, groupReconciliation)
+	}
+	return applyMythicTreeChildrenReconciliation(task.ID, reconciliation)
+}
+
+// reconcileMythicTreeChildren is the single-parent convenience wrapper around
+// the batch reconciliation builder and applier.
+func reconcileMythicTreeChildren(task *databaseStructs.Task, host string, parentFullPath []byte, pathSeparator string, treeType string, os string, childrenByName map[string]mythicTreeChildNodeData, apitokensId int, preserveExistingDisplayPathWhenEmpty bool) error {
+	reconciliation, err := buildMythicTreeChildrenReconciliation(task, host, parentFullPath, pathSeparator, treeType, os, childrenByName, apitokensId, preserveExistingDisplayPathWhenEmpty)
 	if err != nil {
 		return err
 	}
-	namesToDeleteAndUpdate := make(map[string]struct{}, len(existingTreeEntries)+len(group.ChildrenByName))
-	treeNodesToUpsert := make([]*databaseStructs.MythicTree, 0, len(group.ChildrenByName))
+	return applyMythicTreeChildrenReconciliation(task.ID, reconciliation)
+}
+
+// buildMythicTreeChildrenReconciliation calculates update_deleted changes for
+// one parent path without applying them. It scopes existing rows the same way
+// process update_deleted does: same operation/host/tree and overlapping
+// callback mythictree_groups. Callers can combine many parent paths and then
+// apply one batch of upserts/deletes.
+func buildMythicTreeChildrenReconciliation(task *databaseStructs.Task, host string, parentFullPath []byte, pathSeparator string, treeType string, os string, childrenByName map[string]mythicTreeChildNodeData, apitokensId int, preserveExistingDisplayPathWhenEmpty bool) (mythicTreeChildrenReconciliation, error) {
+	reconciliation := mythicTreeChildrenReconciliation{
+		TreeNodesToUpsert: make([]*databaseStructs.MythicTree, 0, len(childrenByName)),
+	}
+	if err := ensureTaskCallbackMythicTreeGroups(task); err != nil {
+		return reconciliation, err
+	}
+	var existingTreeEntries []databaseStructs.MythicTree
+	err := database.DB.Select(&existingTreeEntries, `SELECT
+		mythictree.id, mythictree."name", mythictree.success, mythictree.full_path, mythictree.parent_path,
+		mythictree.operation_id, mythictree.host, mythictree.tree_type, mythictree.callback_id,
+		mythictree.os, mythictree.display_path
+		FROM mythictree
+		JOIN callback ON mythictree.callback_id = callback.id
+		WHERE
+		mythictree.parent_path=$1 AND mythictree.operation_id=$2 AND mythictree.host=$3 AND
+		mythictree.tree_type=$4 AND callback.mythictree_groups && $5`,
+		parentFullPath, task.OperationID, host, treeType, task.Callback.MythicTreeGroups)
+	if err != nil {
+		return reconciliation, err
+	}
+	namesToDeleteAndUpdate := make(map[string]struct{}, len(existingTreeEntries)+len(childrenByName))
 	for _, existingEntry := range existingTreeEntries {
-		if newEntry, ok := group.ChildrenByName[string(existingEntry.Name)]; ok {
+		if newEntry, ok := childrenByName[string(existingEntry.Name)]; ok {
 			namesToDeleteAndUpdate[newEntry.Name] = struct{}{}
+			displayPath := newEntry.DisplayPath
+			if preserveExistingDisplayPathWhenEmpty && len(displayPath) == 0 {
+				displayPath = existingEntry.DisplayPath
+			}
 			newTreeChild := databaseStructs.MythicTree{
-				Host:            group.PathData.Host,
+				Host:            host,
 				TaskID:          task.ID,
 				OperationID:     task.OperationID,
 				Name:            []byte(newEntry.Name),
 				ParentPath:      existingEntry.ParentPath,
 				FullPath:        existingEntry.FullPath,
-				TreeType:        databaseStructs.TREE_TYPE_FILE,
-				CanHaveChildren: !newEntry.IsFile,
+				TreeType:        treeType,
+				CanHaveChildren: newEntry.CanHaveChildren,
 				Deleted:         false,
 				Success:         existingEntry.Success,
 				ID:              existingEntry.ID,
 				Os:              existingEntry.Os,
-				DisplayPath:     existingEntry.DisplayPath,
+				DisplayPath:     displayPath,
 				CallbackID:      existingEntry.CallbackID,
 			}
-			fileMetaData := addChildFilePermissions(&newEntry)
-			newTreeChild.Metadata = GetMythicJSONTextFromStruct(fileMetaData)
+			if newTreeChild.Os == "" {
+				newTreeChild.Os = os
+			}
+			newTreeChild.Metadata = newEntry.Metadata
 			if !newTreeChild.CallbackID.Valid {
 				newTreeChild.CallbackID.Valid = true
 				newTreeChild.CallbackID.Int64 = int64(task.Callback.ID)
 			}
-			treeNodesToUpsert = append(treeNodesToUpsert, &newTreeChild)
+			if apitokensId > 0 {
+				newTreeChild.APITokensID.Valid = true
+				newTreeChild.APITokensID.Int64 = int64(apitokensId)
+			}
+			reconciliation.TreeNodesToUpsert = append(reconciliation.TreeNodesToUpsert, &newTreeChild)
 		} else {
 			namesToDeleteAndUpdate[string(existingEntry.Name)] = struct{}{}
-			existingEntry.Deleted = true
-			existingEntry.TaskID = task.ID
-			deleteTreeNode(existingEntry, true)
+			reconciliation.IDsToDelete = append(reconciliation.IDsToDelete, existingEntry.ID)
+			reconciliation.CascadeDeleteTargets = append(reconciliation.CascadeDeleteTargets, mythicTreeCascadeDeleteTarget{
+				Host:            existingEntry.Host,
+				OperationID:     existingEntry.OperationID,
+				TreeType:        existingEntry.TreeType,
+				CallbackID:      existingEntry.CallbackID.Int64,
+				CallbackIDValid: existingEntry.CallbackID.Valid,
+				FullPath:        existingEntry.FullPath,
+				PathSeparator:   pathSeparator,
+			})
 		}
 	}
-	for name, newEntry := range group.ChildrenByName {
+	for name, newEntry := range childrenByName {
 		if _, ok := namesToDeleteAndUpdate[name]; !ok {
-			treeNodesToUpsert = append(treeNodesToUpsert, buildFileBrowserChildMythicTreeNode(
+			reconciliation.TreeNodesToUpsert = append(reconciliation.TreeNodesToUpsert, buildMythicTreeChildNode(
 				*task,
-				group.PathData.Host,
-				group.FullPath,
-				group.PathData.PathSeparator,
+				host,
+				parentFullPath,
+				pathSeparator,
+				treeType,
 				newEntry,
-				getOSTypeBasedOnPathSeparator(group.PathData.PathSeparator, databaseStructs.TREE_TYPE_FILE),
+				os,
 				apitokensId))
 		}
 	}
-	return upsertMythicTreeNodes(treeNodesToUpsert)
+	return reconciliation, nil
+}
+
+// appendMythicTreeChildrenReconciliation merges independently calculated
+// update_deleted changes so callers can issue one write batch.
+func appendMythicTreeChildrenReconciliation(target *mythicTreeChildrenReconciliation, incoming mythicTreeChildrenReconciliation) {
+	target.TreeNodesToUpsert = append(target.TreeNodesToUpsert, incoming.TreeNodesToUpsert...)
+	target.IDsToDelete = append(target.IDsToDelete, incoming.IDsToDelete...)
+	target.CascadeDeleteTargets = append(target.CascadeDeleteTargets, incoming.CascadeDeleteTargets...)
+}
+
+// applyMythicTreeChildrenReconciliation writes all queued update_deleted
+// upserts first, then marks stale exact rows and descendants deleted in bulk.
+func applyMythicTreeChildrenReconciliation(taskID int, reconciliation mythicTreeChildrenReconciliation) error {
+	if err := upsertMythicTreeNodes(reconciliation.TreeNodesToUpsert); err != nil {
+		return err
+	}
+	return deleteMythicTreeNodes(taskID, reconciliation.IDsToDelete, reconciliation.CascadeDeleteTargets)
 }
 
 // buildProcessMythicTreeNode centralizes process-to-MythicTree normalization so

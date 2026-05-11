@@ -270,8 +270,9 @@ func getDelegateProxyMessages(callbackID int, agentUUIDLength int, updateCheckin
 		return nil
 	}
 	delegateMessages := []delegateMessageResponse{}
-	// get a list of all the other callbacks with proxy ports open
-	if callbackIds := proxyPorts.GetOtherCallbackIds(callbackID); len(callbackIds) > 0 {
+	// get callbacks that have proxy data or interactive tasking waiting so we
+	// avoid route lookups for idle proxy ports on every check-in.
+	if callbackIds := proxyPorts.GetOtherCallbackIdsWithPendingData(callbackID); len(callbackIds) > 0 {
 		// check if there's a route between our callback and the callback with a task
 		for _, targetCallbackId := range callbackIds {
 			if routablePath := callbackGraph.GetBFSPath(callbackID, targetCallbackId); routablePath != nil && len(routablePath) > 0 {

@@ -24,7 +24,7 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
 import PlaylistRemoveIcon from '@mui/icons-material/PlaylistRemove';
-import {useGetMythicSetting, useSetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
+import {GetMythicSetting, useSetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import {RenderSingleTask} from "../SingleTaskView/SingleTaskView";
 import {loadedCommandsQuery} from "./CallbacksTabsProcessBrowser";
 import {getSkewedNow} from "../../utilities/Time";
@@ -772,9 +772,9 @@ const FileBrowserTableTop = ({
     tabInfo,
     treeConfig
 }) => {
-    const autoTaskLsOnEmptyDirectories = useGetMythicSetting({
+    const [autoTaskLsOnEmptyDirectories, setAutoTaskLsOnEmptyDirectories] = React.useState(() => GetMythicSetting({
         setting_name: "autoTaskLsOnEmptyDirectories", default_value: false
-    });
+    }));
     const [updateMythicSetting] = useSetMythicSetting();
     const [openEditHostDialog, setOpenEditHostDialog] = React.useState(false);
     const [fullPath, setFullPath] = React.useState('');
@@ -948,8 +948,15 @@ const FileBrowserTableTop = ({
         }});
     };
     const onToggleAutoTaskLsOnEmptyDirectories = () => {
-        updateMythicSetting({setting_name: "autoTaskLsOnEmptyDirectories", value: !autoTaskLsOnEmptyDirectories});
-        if(autoTaskLsOnEmptyDirectories){
+        const nextAutoTaskLsOnEmptyDirectories = !autoTaskLsOnEmptyDirectories;
+        setAutoTaskLsOnEmptyDirectories(nextAutoTaskLsOnEmptyDirectories);
+        autoTaskLsOnEmptyDirectoriesRef.current = nextAutoTaskLsOnEmptyDirectories;
+        updateMythicSetting({
+            setting_name: "autoTaskLsOnEmptyDirectories",
+            value: nextAutoTaskLsOnEmptyDirectories,
+            broadcast: false,
+        });
+        if(!nextAutoTaskLsOnEmptyDirectories){
             snackActions.info("No longer auto issuing listings for empty paths");
         } else {
             snackActions.success("Now starting to auto issue listings for empty paths");

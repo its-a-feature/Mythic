@@ -137,6 +137,85 @@ func TestBuildFileBrowserChildMythicTreeNodeDoesNotAliasSiblingFullPaths(t *test
 	}
 }
 
+func TestBuildCustomBrowserChildMythicTreeNodePreservesDisplayPath(t *testing.T) {
+	task := databaseStructs.Task{
+		ID:          5,
+		OperationID: 6,
+	}
+	task.Callback.ID = 7
+
+	child := agentMessagePostResponseCustomBrowserChildren{
+		Name:            "123",
+		DisplayPath:     "sshd",
+		CanHaveChildren: true,
+		Metadata:        map[string]interface{}{"name": "sshd"},
+	}
+	node := buildCustomBrowserChildMythicTreeNode(task, "HOST", []byte("/processes"), "/", databaseStructs.TREE_TYPE_FILE, child, "linux", 0)
+
+	if string(node.FullPath) != "/processes/123" {
+		t.Fatalf("expected custom child full path to include its name, got %q", string(node.FullPath))
+	}
+	if string(node.DisplayPath) != "sshd" {
+		t.Fatalf("expected custom child display path to be preserved, got %q", string(node.DisplayPath))
+	}
+	if !node.CanHaveChildren {
+		t.Fatalf("expected custom child can_have_children to be preserved")
+	}
+	if node.Metadata.StructValue()["name"] != "sshd" {
+		t.Fatalf("expected custom child metadata to be preserved, got %#v", node.Metadata.StructValue())
+	}
+}
+
+func TestCustomBrowserChildrenByNameUsesLastDuplicate(t *testing.T) {
+	children := []agentMessagePostResponseCustomBrowserChildren{
+		{Name: "alpha", DisplayPath: "old"},
+		{Name: "alpha", DisplayPath: "new"},
+		{Name: "bravo", DisplayPath: "bravo"},
+	}
+
+	childrenByName := customBrowserChildrenByName(&children)
+
+	if len(childrenByName) != 2 {
+		t.Fatalf("expected duplicate custom child names to collapse to two entries, got %d", len(childrenByName))
+	}
+	if string(childrenByName["alpha"].DisplayPath) != "new" {
+		t.Fatalf("expected duplicate custom child to keep last display path, got %q", string(childrenByName["alpha"].DisplayPath))
+	}
+}
+
+func TestMythicTreeDescendantParentPathPrefixIsSeparatorAware(t *testing.T) {
+	if prefix := getMythicTreeDescendantParentPathPrefix([]byte("/tmp/foo"), "/"); string(prefix) != "/tmp/foo/" {
+		t.Fatalf("expected slash descendant prefix to include separator, got %q", string(prefix))
+	}
+	if prefix := getMythicTreeDescendantParentPathPrefix([]byte("/tmp/foo/"), "/"); string(prefix) != "/tmp/foo/" {
+		t.Fatalf("expected existing trailing separator to be preserved, got %q", string(prefix))
+	}
+	if prefix := getMythicTreeDescendantParentPathPrefix([]byte(`C:\Windows`), `\`); string(prefix) != `C:\Windows\` {
+		t.Fatalf("expected windows descendant prefix to include separator, got %q", string(prefix))
+	}
+	if prefix := getMythicTreeDescendantParentPathPrefix([]byte(`/tmp/100%_literal`), `/`); string(prefix) != `/tmp/100%_literal/` {
+		t.Fatalf("expected SQL wildcard bytes to remain literal, got %q", string(prefix))
+	}
+}
+
+func TestDedupeMythicTreeCascadeDeleteTargets(t *testing.T) {
+	targets := []mythicTreeCascadeDeleteTarget{
+		{Host: "HOST", OperationID: 1, TreeType: databaseStructs.TREE_TYPE_FILE, CallbackID: 2, CallbackIDValid: true, FullPath: []byte("/tmp/alpha"), PathSeparator: "/"},
+		{Host: "HOST", OperationID: 1, TreeType: databaseStructs.TREE_TYPE_FILE, CallbackID: 2, CallbackIDValid: true, FullPath: []byte("/tmp/alpha"), PathSeparator: "/"},
+		{Host: "HOST", OperationID: 1, TreeType: databaseStructs.TREE_TYPE_FILE, CallbackID: 3, CallbackIDValid: true, FullPath: []byte("/tmp/alpha"), PathSeparator: "/"},
+	}
+
+	deduped := dedupeMythicTreeCascadeDeleteTargets(targets)
+
+	if len(deduped) != 2 {
+		t.Fatalf("expected duplicate cascade targets to collapse to two entries, got %d", len(deduped))
+	}
+	targets[0].FullPath[0] = 'X'
+	if string(deduped[0].FullPath) != "/tmp/alpha" {
+		t.Fatalf("expected deduped cascade target to own its full path bytes, got %q", string(deduped[0].FullPath))
+	}
+}
+
 func TestGroupFileBrowserUpdateDeletedEntriesMergesChunksForSameDirectory(t *testing.T) {
 	task := databaseStructs.Task{}
 	task.Callback.Host = "HOST"
