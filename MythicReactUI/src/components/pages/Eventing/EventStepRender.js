@@ -831,7 +831,7 @@ function EventStepRender({selectedEventGroup, useSuppliedData}) {
         })();
     }, [graphData]);
     return (
-        <div className="mythic-eventing-flow-canvas" ref={viewportRef}>
+        <div className="mythic-eventing-flow-canvas mythic-graph-canvas" ref={viewportRef}>
             <ReactFlow
                 fitView
                 onlyRenderVisibleElements={false}
@@ -850,13 +850,13 @@ function EventStepRender({selectedEventGroup, useSuppliedData}) {
                 {selectedEventGroup.id > 0 &&
                     <div className="mythic-eventing-flow-badge">Event group {selectedEventGroup.id}</div>
                 }
-                <Controls showInteractive={false} className="mythic-eventing-flow-controls">
+                <Controls showInteractive={false} className="mythic-eventing-flow-controls mythic-graph-controls">
                 </Controls>
             </ReactFlow>
             {openContextMenu &&
-                <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu">
+                <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu mythic-graph-context-menu">
                     {contextMenu.map( (m) => (
-                        <Button key={m.title} className="context-menu-button mythic-table-row-action mythic-table-row-action-hover-info" variant="outlined" onClick={() => {
+                        <Button key={m.title} className="context-menu-button mythic-graph-context-menu-button mythic-table-row-action mythic-table-row-action-hover-info" variant="outlined" onClick={() => {
                             m.onClick(contextMenuNode.current);
                             setOpenContextMenu(false);
                         }}>{m.title}</Button>
@@ -1134,7 +1134,7 @@ function EventStepInstanceRender({selectedEventGroupInstance}) {
         })();
     }, [graphData]);
     return (
-        <div className="mythic-eventing-flow-canvas" ref={viewportRef}>
+        <div className="mythic-eventing-flow-canvas mythic-graph-canvas" ref={viewportRef}>
             <ReactFlow
                 fitView
                 onlyRenderVisibleElements={false}
@@ -1151,13 +1151,13 @@ function EventStepInstanceRender({selectedEventGroupInstance}) {
                 onNodeContextMenu={onNodeContextMenu}
             >
                 <div className="mythic-eventing-flow-badge">Instance {selectedEventGroupInstance}</div>
-                <Controls showInteractive={false} className="mythic-eventing-flow-controls">
+                <Controls showInteractive={false} className="mythic-eventing-flow-controls mythic-graph-controls">
                 </Controls>
             </ReactFlow>
             {openContextMenu &&
-                <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu">
+                <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu mythic-graph-context-menu">
                     {contextMenu.map( (m) => (
-                        <Button key={m.title} className="context-menu-button mythic-table-row-action mythic-table-row-action-hover-info" variant="outlined" onClick={() => {
+                        <Button key={m.title} className="context-menu-button mythic-graph-context-menu-button mythic-table-row-action mythic-table-row-action-hover-info" variant="outlined" onClick={() => {
                             m.onClick(contextMenuNode.current);
                             setOpenContextMenu(false);
                         }}>{m.title}</Button>

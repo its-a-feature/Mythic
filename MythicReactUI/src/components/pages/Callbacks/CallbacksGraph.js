@@ -1,10 +1,7 @@
 import React, {useEffect, useState, useMemo, useContext} from 'react';
 import {DrawC2PathElementsFlowWithProvider} from './C2PathDialog';
 import {Button} from '@mui/material';
-import ButtonGroup from '@mui/material/ButtonGroup';
-import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import MenuItem from '@mui/material/MenuItem';
-import ClickAwayListener from '@mui/material/ClickAwayListener';
 import {useMutation } from '@apollo/client';
 import {hideCallbackMutation, removeEdgeMutation, addEdgeMutation} from './CallbackMutations';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
@@ -19,8 +16,7 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
-import {CallbackGraphEdgesContext, CallbacksContext, OnOpenTabContext} from './CallbacksTop';
-import {Dropdown, DropdownMenuItem} from "../../MythicComponents/MythicNestedMenus";
+import {CallbackGraphEdgesContext, CallbacksContext} from './CallbacksTop';
 import {GetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import {operatorSettingDefaults} from "../../../cache";
 
@@ -60,8 +56,6 @@ query loadedLinkCommandsQuery ($callback_id: Int!){
 
 const GraphViewOptions = ({viewConfig, setViewConfig}) => {
     const theme = useTheme();
-    const dropdownAnchorRef = React.useRef(null);
-    const [dropdownOpen, setDropdownOpen] = React.useState(false);
     const [showConfiguration, setShowConfiguration] = React.useState(false);
     const labelComponentOptions = ["display_id", "user", "host", "ip", "domain", "os", "process_name"];
     const [selectedComponentOptions, setSelectedComponentOptions] = React.useState(["display_id", "user"]);
@@ -85,120 +79,104 @@ const GraphViewOptions = ({viewConfig, setViewConfig}) => {
     useEffect( () => {
         setViewConfig({...viewConfig, group_by: selectedGroupBy});
     }, [selectedGroupBy])
-    const handleDropdownToggle = (evt) => {
-        evt.stopPropagation();
-        setDropdownOpen((prevOpen) => !prevOpen);
-    };
-    const handleMenuItemClick = (event, click) => {
-        click();
-        setDropdownOpen(false);
-    };
-    const options = [
-        {name: showConfiguration ? "Hide Grouping Options": "Show Grouping Options", click: () => {
-                setShowConfiguration(!showConfiguration);
-            }},
-        {name: viewConfig["include_disconnected"] ? 'Show Only Active Edges' : "Show All Edges", click: () => {
-                const view = {...viewConfig, include_disconnected: !viewConfig["include_disconnected"]};
-                setViewConfig(view);
-            }},
-        {name: viewConfig["show_all_nodes"] ? 'Hide inactive callbacks' : 'Show All Callbacks', click: () => {
-                const view = {...viewConfig, show_all_nodes: !viewConfig["show_all_nodes"]};
-                setViewConfig(view);
-            }},
-        {name: viewConfig["rankDir"] === "LR" ? 'Change Layout to Top-Bottom' : "Change Layout to Left-Right", click: () => {
-                if(viewConfig["rankDir"] === "LR"){
-                    const view = {...viewConfig, rankDir: "TB"};
-                    setViewConfig(view);
-                }else{
-                    const view = {...viewConfig, rankDir: "LR"};
-                    setViewConfig(view);
-                }
-            }},
-        {name: viewConfig["packet_flow_view"] ? "View Connection Directions" : "View Egress Routes" , click: () => {
-                const view = {...viewConfig, packet_flow_view: !viewConfig["packet_flow_view"]};
-                setViewConfig(view);
-            }},
-        ];
-    const handleClose = (event) => {
-        if (dropdownAnchorRef.current && dropdownAnchorRef.current.contains(event.target)) {
-            return;
-        }
-        setDropdownOpen(false);
-    };
+    const toggleViewConfig = (field) => {
+        setViewConfig({...viewConfig, [field]: !viewConfig[field]});
+    }
+    const toggleRankDirection = () => {
+        setViewConfig({...viewConfig, rankDir: viewConfig["rankDir"] === "LR" ? "TB" : "LR"});
+    }
     return (
-        <div >
-            <ButtonGroup variant="contained" ref={dropdownAnchorRef} aria-label="split button" style={{marginTop: "0px", marginLeft: "25px"}} color="primary">
-                <Button size="small" color="primary" aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
-                        aria-expanded={dropdownOpen ? 'true' : undefined}
-                        aria-haspopup="menu"
-                        onClick={handleDropdownToggle}>
-                    Configure Graph View <ArrowDropDownIcon />
-                </Button>
-            </ButtonGroup>
+        <div className="mythic-callback-graph-options">
+            <Button
+                size="small"
+                className="mythic-callback-graph-options-toggle"
+                onClick={() => setShowConfiguration(!showConfiguration)}
+            >
+                {showConfiguration ? "Hide Graph Options" : "Graph Options"}
+            </Button>
             {showConfiguration &&
-                <FormControl sx={{ width: 200,  backgroundColor: theme.palette.background.paper}} >
-                    <InputLabel id="demo-chip-label">Group Callbacks By</InputLabel>
-                    <Select
-                        labelId="demo-chip-label"
-                        id="demo-chip"
-                        value={selectedGroupBy}
-                        onChange={handleGroupByChange}
-                        input={<OutlinedInput id="select-chip" label="Group Callbacks By" />}
-                    >
-                        {groupByOptions.map((name) => (
-                            <MenuItem
-                                key={name}
-                                value={name}
+                <div className="mythic-callback-graph-options-panel">
+                    <div className="mythic-callback-graph-options-actions">
+                        <Button
+                            size="small"
+                            className={`mythic-callback-graph-option-button ${!viewConfig["include_disconnected"] ? "mythic-callback-graph-option-button-active" : ""}`}
+                            onClick={() => toggleViewConfig("include_disconnected")}
+                        >
+                            {viewConfig["include_disconnected"] ? "All Edges" : "Active Edges"}
+                        </Button>
+                        <Button
+                            size="small"
+                            className={`mythic-callback-graph-option-button ${viewConfig["show_all_nodes"] ? "mythic-callback-graph-option-button-warning" : ""}`}
+                            onClick={() => toggleViewConfig("show_all_nodes")}
+                        >
+                            {viewConfig["show_all_nodes"] ? "All Callbacks" : "Connected Callbacks"}
+                        </Button>
+                        <Button
+                            size="small"
+                            className="mythic-callback-graph-option-button"
+                            onClick={toggleRankDirection}
+                        >
+                            {viewConfig["rankDir"] === "LR" ? "Left to Right" : "Top to Bottom"}
+                        </Button>
+                        <Button
+                            size="small"
+                            className="mythic-callback-graph-option-button"
+                            onClick={() => toggleViewConfig("packet_flow_view")}
+                        >
+                            {viewConfig["packet_flow_view"] ? "Egress Routes" : "Connection Directions"}
+                        </Button>
+                    </div>
+                    <div className="mythic-callback-graph-options-fields">
+                        <FormControl size="small" className="mythic-callback-graph-options-field">
+                            <InputLabel id="callback-graph-group-label">Group By</InputLabel>
+                            <Select
+                                labelId="callback-graph-group-label"
+                                id="callback-graph-group"
+                                value={selectedGroupBy}
+                                onChange={handleGroupByChange}
+                                input={<OutlinedInput id="select-callback-graph-group" label="Group By" />}
                             >
-                                {name}
-                            </MenuItem>
-                        ))}
-                    </Select>
-                </FormControl>
-            }
-            {showConfiguration &&
-                <FormControl sx={{minWidth: 300, backgroundColor: theme.palette.background.paper}}>
-                    <InputLabel id="demo-multiple-chip-label">Display Properties per Callback</InputLabel>
-                    <Select
-                        labelId="demo-multiple-chip-label"
-                        id="demo-multiple-chip"
-                        multiple
-                        value={selectedComponentOptions}
-                        onChange={handleChange}
-                        input={<OutlinedInput id="select-multiple-chip" label="Display Properties per Callback" />}
-                        MenuProps={MenuProps}
-                    >
-                        {labelComponentOptions.map((name) => (
-                            <MenuItem
-                                key={name}
-                                value={name}
-                                style={getStyles(name, selectedComponentOptions, theme)}
+                                {groupByOptions.map((name) => (
+                                    <MenuItem
+                                        key={name}
+                                        value={name}
+                                    >
+                                        {name}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                        <FormControl size="small" className="mythic-callback-graph-options-field mythic-callback-graph-options-field-wide">
+                            <InputLabel id="callback-graph-label-components-label">Callback Labels</InputLabel>
+                            <Select
+                                labelId="callback-graph-label-components-label"
+                                id="callback-graph-label-components"
+                                multiple
+                                value={selectedComponentOptions}
+                                onChange={handleChange}
+                                input={<OutlinedInput id="select-callback-graph-label-components" label="Callback Labels" />}
+                                MenuProps={MenuProps}
+                                renderValue={(selected) => selected.join(", ")}
                             >
-                                {name}
-                            </MenuItem>
-                        ))}
-                    </Select>
-                </FormControl>
-            }
-
-            <ClickAwayListener onClickAway={handleClose}>
-                <Dropdown
-                    isOpen={dropdownAnchorRef.current}
-                    onOpen={setDropdownOpen}
-                    externallyOpen={dropdownOpen}
-                    menu={
-                        options.map((option, index) => (
-                                <DropdownMenuItem
-                                    key={option.name}
-                                    disabled={option.disabled}
-                                    onClick={(event) => handleMenuItemClick(event, option.click)}
-                                >
-                                    {option.name}
-                                </DropdownMenuItem>
-                            ))
+                                {labelComponentOptions.map((name) => (
+                                    <MenuItem
+                                        key={name}
+                                        value={name}
+                                        style={getStyles(name, selectedComponentOptions, theme)}
+                                    >
+                                        {name}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    </div>
+                    {viewConfig["show_all_nodes"] &&
+                        <div className="mythic-callback-graph-options-warning">
+                            Showing all callbacks can be slow in large operations.
+                        </div>
                     }
-                />
-            </ClickAwayListener>
+                </div>
+            }
         </div>
     )
 }
@@ -257,7 +235,7 @@ export function CallbacksGraph({onOpenTab}){
         rankDir: "TB",
         label_components: ["display_id", "user"],
         packet_flow_view: true,
-        include_disconnected: true,
+        include_disconnected: false,
         show_all_nodes: false,
         group_by: "None"
     });
@@ -314,19 +292,20 @@ export function CallbacksGraph({onOpenTab}){
     }
     const contextMenu = useMemo(() => {return [
 	        {
-		        title: 'Hide Callback',
-		        onClick: function(node) {
-		            hideCallback({variables: {callback_display_id: node.display_id}});
-		        }
-	        },
-	        {
-		        title: 'Interact',
+		        title: 'Open Tasking',
                 onClick: function(node){
 		            onOpenTab({tabType: "interact", tabID: node.callback_id + "interact", callbackID: node.callback_id});
 	            }
             },
             {
-	            title: "Manually Remove Edge",
+                title: "Add P2P Edge",
+                onClick: function(node){
+                    setAddEdgeSource(node);
+                    setManuallyAddEdgeDialogOpen(true);
+                }
+	        },
+            {
+	            title: "Remove Active Edge",
                 onClick: function(node){
 	                const opts = callbackgraphedges.reduce( (prev, e) => {
                         if(e.source.id === node.id || e.destination.id === node.id){
@@ -348,15 +327,8 @@ export function CallbacksGraph({onOpenTab}){
 	                setManuallyRemoveEdgeDialogOpen(true);
                 }
             },
-            {
-                title: "Manually Add Edge",
-                onClick: function(node){
-                    setAddEdgeSource(node);
-                    setManuallyAddEdgeDialogOpen(true);
-                }
-	        },
 	        {
-	            title: "Task Callback for Edge",
+	            title: "Task Link Command",
                 onClick: function(node){
 	                setLinkCommands([]);
                     setSelectedLinkCommand(null);
@@ -365,7 +337,13 @@ export function CallbacksGraph({onOpenTab}){
 	                setSelectedCallback(node);
                 }
             },
-        ]}, [getLinkCommands, hideCallback, viewConfig, onOpenTab]);
+	        {
+		        title: 'Hide Callback',
+		        onClick: function(node) {
+		            hideCallback({variables: {callback_display_id: node.display_id}});
+		        }
+	        },
+        ]}, [getLinkCommands, hideCallback, callbackgraphedges, onOpenTab]);
     React.useEffect( () => {
         try {
             const storageItemOptions = GetMythicSetting({setting_name: "callbacks_table_filter_options", default_value: operatorSettingDefaults.callbacks_table_filters});
