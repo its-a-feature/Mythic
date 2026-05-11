@@ -1983,7 +1983,7 @@ const CustomDashboard = ({me, setLoading, loading, editing}) => {
         setDashboards(dashboards.toSpliced(i, 1));
     }
     React.useEffect( () => {
-        updateSetting({setting_name: "customDashboardElements", value: dashboards});
+        updateSetting({setting_name: "customDashboardElements", value: dashboards, broadcast: false});
     }, [dashboards]);
     const getDashboardElement = React.useCallback( (e, i, j) => {
         switch(e){
@@ -2122,7 +2122,7 @@ export function CallbacksCard({me}) {
             return;
         }
         setDashboard(value);
-        updateSetting({setting_name: "dashboard", value: value});
+        updateSetting({setting_name: "dashboard", value: value, broadcast: false});
         setLoading(true);
     }
     return (

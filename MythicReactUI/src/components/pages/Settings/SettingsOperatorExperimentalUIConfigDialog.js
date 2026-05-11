@@ -26,9 +26,9 @@ export function SettingsOperatorExperimentalUIConfigDialog(props) {
 
     const onAccept = () => {
         if(newResponseStreamLimit < 0){
-            updateSetting({setting_name: "experiment-responseStreamLimit", value: 0});
+            updateSetting({setting_name: "experiment-responseStreamLimit", value: 0, broadcast: false});
         }else{
-            updateSetting({setting_name: "experiment-responseStreamLimit", value: newResponseStreamLimit});
+            updateSetting({setting_name: "experiment-responseStreamLimit", value: newResponseStreamLimit, broadcast: false});
         }
         snackActions.success("Updated settings!");
         props.onClose();

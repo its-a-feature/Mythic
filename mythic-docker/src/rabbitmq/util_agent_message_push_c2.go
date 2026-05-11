@@ -118,12 +118,11 @@ func isCallbackStreaming(callbackID int) bool {
 }
 
 type interceptProxyToAgentMessage struct {
-	MessagesToAgent            chan proxyToAgentMessage
-	InteractiveMessagesToAgent chan agentMessagePostResponseInteractive
-	Message                    proxyToAgentMessage
-	InteractiveMessage         agentMessagePostResponseInteractive
-	ProxyType                  string
-	CallbackID                 int
+	CallbackPort       *callbackPortUsage
+	Message            proxyToAgentMessage
+	InteractiveMessage agentMessagePostResponseInteractive
+	ProxyType          string
+	CallbackID         int
 }
 
 var interceptProxyToAgentMessageChan = make(chan interceptProxyToAgentMessage, 2000)
@@ -185,20 +184,21 @@ func interceptProxyDataToAgentForPushC2() {
 		if !attemptedToSend {
 			//logging.LogInfo("Couldn't send to push c2, saving to msg")
 			// we don't have a PushC2 client available, so save it like normal
+			if msg.CallbackPort == nil {
+				logging.LogError(nil, "dropping proxy message because callback port is missing", "type", msg.ProxyType)
+				continue
+			}
 			switch msg.ProxyType {
 			case CALLBACK_PORT_TYPE_INTERACTIVE:
-				select {
-				case msg.InteractiveMessagesToAgent <- msg.InteractiveMessage:
-				default:
+				if !msg.CallbackPort.queueInteractiveDataForAgent(msg.InteractiveMessage) {
+					logging.LogError(nil, "dropping interactive message because channel is full", "type", msg.ProxyType, "len(msg.interactiveMessagesToAgent)", len(msg.CallbackPort.interactiveMessagesToAgent))
 				}
 				//.LogInfo("saved to msg")
 			case CALLBACK_PORT_TYPE_SOCKS:
 				fallthrough
 			case CALLBACK_PORT_TYPE_RPORTFWD:
-				select {
-				case msg.MessagesToAgent <- msg.Message:
-				default:
-					logging.LogError(nil, "dropping message because channel is full", "type", msg.ProxyType, "len(msg.MessagesToAgent)", len(msg.MessagesToAgent))
+				if !msg.CallbackPort.queueProxyDataForAgent(msg.Message) {
+					logging.LogError(nil, "dropping message because channel is full", "type", msg.ProxyType, "len(msg.messagesToAgent)", len(msg.CallbackPort.messagesToAgent))
 				}
 			}
 		}

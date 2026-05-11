@@ -385,7 +385,7 @@ function CallbacksTablePreMemo(props){
     const eventingDataRef = React.useRef({});
     const [openEventingDialog, setOpenEventingDialog] = React.useState(false);
     const [openEventingMultipleDialog, setOpenEventingMultipleDialog] = React.useState(false);
-    const [updateSetting] = useSetMythicSetting();
+    const [updateSetting, updateSettings] = useSetMythicSetting();
     const onUpdateTrigger = (newTriggerValue) => {
         updateTrigger({variables: {callback_display_id: openTriggerDialog.display_id, trigger_on_checkin_after_time: newTriggerValue}})
         setOpenTriggerDialog({...openTriggerDialog, open: false});
@@ -1039,7 +1039,7 @@ function CallbacksTablePreMemo(props){
         const nextFilterOptions = getUpdatedGridFilterOptions(filterOptions, selectedColumn.key, value);
         setFilterOptions(nextFilterOptions);
       try{
-          updateSetting({setting_name: "callbacks_table_filter_options", value: nextFilterOptions});
+          updateSetting({setting_name: "callbacks_table_filter_options", value: nextFilterOptions, broadcast: false});
       }catch(error){
           console.log("failed to save filter options");
       }
@@ -1083,10 +1083,15 @@ function CallbacksTablePreMemo(props){
                 newHidden.push(newOrder[i].name);
             }
         }
-        updateSetting({setting_name: "callbacks_table_column_order", value: newOrder.map(c => c.name)});
         setColumnOrder(newOrder);
         setColumnVisibility({visible: newVisible, hidden: newHidden});
-        updateSetting({setting_name: "callbacks_table_columns", value: newVisible});
+        updateSettings({
+            settings: {
+                callbacks_table_column_order: newOrder.map(c => c.name),
+                callbacks_table_columns: newVisible,
+            },
+            broadcast: false,
+        });
         setOpenReorderDialog(false);
     }
     const onResetColumnReorder = () => {

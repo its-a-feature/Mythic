@@ -633,8 +633,11 @@ export function App(props) {
     const preferences = useReactiveVar(mePreferences);
     const [loadingPreference, setLoadingPreferences] = React.useState(true);
     const [themeMode, themeToggler] = useDarkMode();
+    const themePalette = preferences?.palette;
+    const themeFontFamily = preferences?.fontFamily;
     const theme = React.useMemo(
         () => {
+            const preferences = {palette: themePalette, fontFamily: themeFontFamily};
             try{
                 return createTheme({
                     transitions: {
@@ -864,7 +867,7 @@ export function App(props) {
                     ...getModernThemeAdditions(themeMode, operatorSettingDefaults),
                 })
             }
-        },[themeMode, preferences]
+        },[themeMode, themePalette, themeFontFamily]
     );
     const mountedRef = React.useRef(true);
     const [openRefreshDialog, setOpenRefreshDialog] = React.useState(false);

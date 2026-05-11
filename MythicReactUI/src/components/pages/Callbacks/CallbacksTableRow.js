@@ -304,8 +304,6 @@ export const CallbacksTableC2Cell = React.memo(({rowData}) => {
     const [localRowData, setLocalRowData] = React.useState(rowData);
     const initialCallbackGraphEdges = useContext(CallbackGraphEdgesContext);
     const onOpenTab = useContext(OnOpenTabContext);
-    const [egressActive, setEgressActive] = React.useState(true);
-    const [hasEgressRoute, setHasEgressRoute] = React.useState(true);
     const [openC2Dialog, setOpenC2Dialog] = React.useState(false);
     const [callbackgraphedges, setCallbackgraphedges] = React.useState([]);
     const [callbackgraphedgesAll, setCallbackgraphedgesAll] = React.useState([]);
@@ -313,19 +311,6 @@ export const CallbacksTableC2Cell = React.memo(({rowData}) => {
         event.stopPropagation();
         setOpenC2Dialog(true);
     }
-    useEffect( () => {
-        const routes = callbackgraphedgesAll.filter( (edge) => {
-            if(!edge.c2profile.is_p2p && edge.source.id === localRowData.id && edge.destination.id === localRowData.id){
-                return true;
-            }
-            return false;
-        }).length;
-        if(routes > 0 && !hasEgressRoute){
-            setHasEgressRoute(true);
-        }else if(routes === 0 && hasEgressRoute){
-            setHasEgressRoute(false);
-        }
-    }, [callbackgraphedgesAll, localRowData]);
     useEffect( () => {
         const getEdges = (activeOnly) => {
             //update our aggregate of callbackgraphedges for both src and dst that involve us
@@ -379,21 +364,6 @@ export const CallbacksTableC2Cell = React.memo(({rowData}) => {
 
     }, [initialCallbackGraphEdges, localRowData]);
     useEffect( () => {
-        //determine if there are any active routes left at all
-        //console.log(localRowData.display_id, callbackgraphedges)
-        const activeRoutes = callbackgraphedges.filter( (edge) => {
-            if(!edge.c2profile.is_p2p  && edge.end_timestamp === null){
-                return true;
-            }
-            return false
-        });
-        if(activeRoutes.length === 0){
-            setEgressActive(false);
-        }else{
-            setEgressActive(true);
-        }
-    }, [callbackgraphedges]);
-    useEffect( () => {
         if(rowData.id !== localRowData.id){
             setLocalRowData(rowData);
         }
@@ -401,15 +371,26 @@ export const CallbacksTableC2Cell = React.memo(({rowData}) => {
     if(rowData?.payload?.payloadtype?.agent_type !== "agent"){
         return null
     }
-    const c2ButtonClass = `mythic-callback-iconButton mythic-callback-cellIconButton ${egressActive && hasEgressRoute ? "mythic-callback-cellIconButtonSuccess" : "mythic-callback-cellIconButtonError"}`;
-    const c2Tooltip = hasEgressRoute ?
-        (egressActive ? "View C2 path information" : "No active egress route. View C2 path information") :
-        "No egress route detected. View C2 path information";
+    const directEgressRoutes = callbackgraphedgesAll.filter((edge) =>
+        !edge.c2profile?.is_p2p &&
+        edge.source.id === localRowData.id &&
+        edge.destination.id === localRowData.id
+    );
+    const hasDirectEgressRoute = directEgressRoutes.length > 0;
+    const directEgressActive = directEgressRoutes.some((edge) => edge.end_timestamp === null);
+    const p2pRouteActive = callbackgraphedges.some((edge) =>
+        !edge.c2profile?.is_p2p && edge.end_timestamp === null
+    );
+    const c2RouteActive = hasDirectEgressRoute ? directEgressActive : p2pRouteActive;
+    const c2ButtonClass = `mythic-callback-iconButton mythic-callback-cellIconButton ${c2RouteActive ? "mythic-callback-cellIconButtonSuccess" : "mythic-callback-cellIconButtonError"}`;
+    const c2Tooltip = hasDirectEgressRoute ?
+        (directEgressActive ? "Direct C2 route active. View C2 path information" : "Direct C2 route inactive. View C2 path information") :
+        (p2pRouteActive ? "Active P2P route to Mythic. View C2 path information" : "No active route to Mythic. View C2 path information");
     return (
         <div className="mythic-callback-cellInline mythic-callback-cellInlineCenter">
             <MythicStyledTooltip title={c2Tooltip}>
                 <IconButton className={c2ButtonClass} onClick={onOpenC2Dialog}>
-                    {hasEgressRoute ?
+                    {hasDirectEgressRoute ?
                         <WifiIcon fontSize="small" /> :
                         <InsertLinkTwoToneIcon fontSize="small" />
                     }

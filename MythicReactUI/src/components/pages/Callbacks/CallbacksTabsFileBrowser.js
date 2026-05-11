@@ -26,7 +26,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import {b64DecodeUnicode} from "./ResponseDisplay";
 import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
 import PlaylistRemoveIcon from '@mui/icons-material/PlaylistRemove';
-import {useGetMythicSetting, useSetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
+import {GetMythicSetting, useSetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import {RenderSingleTask} from "../SingleTaskView/SingleTaskView";
 import {loadedCommandsQuery} from "./CallbacksTabsProcessBrowser";
 import {getSkewedNow} from "../../utilities/Time";
@@ -772,9 +772,9 @@ const FileBrowserTableTop = ({
     tabInfo,
     baseUIFeature
 }) => {
-    const autoTaskLsOnEmptyDirectories = useGetMythicSetting({
+    const [autoTaskLsOnEmptyDirectories, setAutoTaskLsOnEmptyDirectories] = React.useState(() => GetMythicSetting({
         setting_name: "autoTaskLsOnEmptyDirectories", default_value: false
-    });
+    }));
     const [updateMythicSetting] = useSetMythicSetting();
     const [fullPath, setFullPath] = React.useState('');
     const selectedToken = React.useRef("Default Token");
@@ -831,16 +831,15 @@ const FileBrowserTableTop = ({
             return;
         }
         if(selectedFolderData.id !== ""){
-            if(history[0]?.full_path_text !== selectedFolderData.full_path_text){
-                // always add newest things to the bottom of the stack
-                setHistory([selectedFolderData, ...history]);
-                if(history.length > 20){
-                    // pop off from the top (the oldest) if we get more than 50
-                    setHistory([selectedFolderData, ...history.splice(history.length-1, 1)])
+            setHistory((currentHistory) => {
+                if(currentHistory[0]?.full_path_text === selectedFolderData.full_path_text){
+                    return currentHistory;
                 }
-            }
+                return [selectedFolderData, ...currentHistory].slice(0, 20);
+            });
+            setHistoryIndex(0);
         }
-    }, [selectedFolderData, history])
+    }, [selectedFolderData])
     const moveIndexToPreviousListing = () => {
         // we're getting closer to the end of the historyRef.current, the oldest listing
         if(historyIndex >= history.length -1){
@@ -886,7 +885,14 @@ const FileBrowserTableTop = ({
         }
     };
     const onToggleAutoTaskLsOnEmptyDirectories = () => {
-        updateMythicSetting({setting_name: "autoTaskLsOnEmptyDirectories", value: !autoTaskLsOnEmptyDirectories});
+        const nextAutoTaskSetting = !autoTaskLsOnEmptyDirectories;
+        setAutoTaskLsOnEmptyDirectories(nextAutoTaskSetting);
+        autoTaskLsOnEmptyDirectoriesRef.current = nextAutoTaskSetting;
+        updateMythicSetting({
+            setting_name: "autoTaskLsOnEmptyDirectories",
+            value: nextAutoTaskSetting,
+            broadcast: false,
+        });
         if(autoTaskLsOnEmptyDirectories){
             snackActions.info("No longer auto issuing listings for empty paths");
         } else {

@@ -33,6 +33,37 @@ func removeTestCallbackPort(registry *callbackPortsInUse, port *callbackPortUsag
 	registry.removePortLocked(port)
 }
 
+func replaceSubmittedTasksForProxyTest(t *testing.T, tasks []submittedTask) {
+	t.Helper()
+
+	submittedTasksAwaitingFetching.Lock()
+	oldTasks := submittedTasksAwaitingFetching.Tasks
+	oldTasksByCallbackID := submittedTasksAwaitingFetching.tasksByCallbackID
+	oldInteractiveTasksByCallbackID := submittedTasksAwaitingFetching.interactiveTasksByCallbackID
+	oldCallbacksWithTasks := submittedTasksAwaitingFetching.callbacksWithTasks
+	oldCallbacksWithInteractiveTasks := submittedTasksAwaitingFetching.callbacksWithInteractiveTasks
+	oldTaskByID := submittedTasksAwaitingFetching.taskByID
+
+	taskArray := make([]submittedTask, 0, len(tasks))
+	submittedTasksAwaitingFetching.Tasks = &taskArray
+	submittedTasksAwaitingFetching.resetTaskIndexesLocked()
+	for _, task := range tasks {
+		submittedTasksAwaitingFetching.addTaskLocked(task)
+	}
+	submittedTasksAwaitingFetching.Unlock()
+
+	t.Cleanup(func() {
+		submittedTasksAwaitingFetching.Lock()
+		submittedTasksAwaitingFetching.Tasks = oldTasks
+		submittedTasksAwaitingFetching.tasksByCallbackID = oldTasksByCallbackID
+		submittedTasksAwaitingFetching.interactiveTasksByCallbackID = oldInteractiveTasksByCallbackID
+		submittedTasksAwaitingFetching.callbacksWithTasks = oldCallbacksWithTasks
+		submittedTasksAwaitingFetching.callbacksWithInteractiveTasks = oldCallbacksWithInteractiveTasks
+		submittedTasksAwaitingFetching.taskByID = oldTaskByID
+		submittedTasksAwaitingFetching.Unlock()
+	})
+}
+
 func TestCallbackPortsInUseIndexesCallbacksAndPortTypes(t *testing.T) {
 	registry := callbackPortsInUse{}
 	socksPort := newTestCallbackPort(10, CALLBACK_PORT_TYPE_SOCKS, 7001, 1)
@@ -67,9 +98,15 @@ func TestCallbackPortsInUseCombinedDataFetchUsesIndexedPorts(t *testing.T) {
 	addTestCallbackPort(&registry, rpfwdPort)
 	addTestCallbackPort(&registry, interactivePort)
 
-	socksPort.messagesToAgent <- proxyToAgentMessage{ServerID: 1, Message: []byte("socks")}
-	rpfwdPort.messagesToAgent <- proxyToAgentMessage{ServerID: 2, Message: []byte("rpfwd")}
-	interactivePort.interactiveMessagesToAgent <- agentMessagePostResponseInteractive{TaskUUID: "interactive"}
+	if !socksPort.queueProxyDataForAgent(proxyToAgentMessage{ServerID: 1, Message: []byte("socks")}) {
+		t.Fatal("failed to queue socks message")
+	}
+	if !rpfwdPort.queueProxyDataForAgent(proxyToAgentMessage{ServerID: 2, Message: []byte("rpfwd")}) {
+		t.Fatal("failed to queue rpfwd message")
+	}
+	if !interactivePort.queueInteractiveDataForAgent(agentMessagePostResponseInteractive{TaskUUID: "interactive"}) {
+		t.Fatal("failed to queue interactive message")
+	}
 
 	proxyData, err := registry.GetDataForCallbackIdAllTypes(10)
 	if err != nil {
@@ -91,6 +128,101 @@ func TestCallbackPortsInUseCombinedDataFetchUsesIndexedPorts(t *testing.T) {
 	}
 	if len(proxyData.Socks) != 0 || len(proxyData.Rpfwd) != 0 || len(proxyData.Interactive) != 0 {
 		t.Fatalf("expected proxy data to be drained, got %#v", proxyData)
+	}
+}
+
+func TestCallbackPortsInUsePendingDelegateCallbacksSkipIdlePorts(t *testing.T) {
+	replaceSubmittedTasksForProxyTest(t, nil)
+	registry := callbackPortsInUse{}
+	currentPort := newTestCallbackPort(10, CALLBACK_PORT_TYPE_SOCKS, 7001, 1)
+	idlePort := newTestCallbackPort(20, CALLBACK_PORT_TYPE_SOCKS, 7002, 2)
+	pendingPort := newTestCallbackPort(30, CALLBACK_PORT_TYPE_RPORTFWD, 7003, 3)
+	addTestCallbackPort(&registry, currentPort)
+	addTestCallbackPort(&registry, idlePort)
+	addTestCallbackPort(&registry, pendingPort)
+
+	if callbackIDs := registry.GetOtherCallbackIdsWithPendingData(10); len(callbackIDs) != 0 {
+		t.Fatalf("expected no delegate proxy callbacks before data is queued, got %#v", callbackIDs)
+	}
+	if !pendingPort.queueProxyDataForAgent(proxyToAgentMessage{ServerID: 1, Message: []byte("rpfwd")}) {
+		t.Fatal("failed to queue rpfwd message")
+	}
+
+	if callbackIDs := registry.GetOtherCallbackIdsWithPendingData(10); !slices.Equal(callbackIDs, []int{30}) {
+		t.Fatalf("expected only callback 30 to have pending delegate proxy data, got %#v", callbackIDs)
+	}
+
+	_ = pendingPort.GetProxyData()
+	if callbackIDs := registry.GetOtherCallbackIdsWithPendingData(10); len(callbackIDs) != 0 {
+		t.Fatalf("expected no delegate proxy callbacks after data is drained, got %#v", callbackIDs)
+	}
+}
+
+func TestCallbackPortsInUsePendingDelegateCallbacksIncludeInteractiveTasks(t *testing.T) {
+	replaceSubmittedTasksForProxyTest(t, []submittedTask{
+		{TaskID: 100, CallbackID: 30, IsInteractiveTask: true},
+		{TaskID: 101, CallbackID: 40, IsInteractiveTask: true},
+	})
+	registry := callbackPortsInUse{}
+	currentPort := newTestCallbackPort(10, CALLBACK_PORT_TYPE_SOCKS, 7001, 1)
+	idlePort := newTestCallbackPort(20, CALLBACK_PORT_TYPE_SOCKS, 7002, 2)
+	interactiveTaskPort := newTestCallbackPort(30, CALLBACK_PORT_TYPE_SOCKS, 7003, 3)
+	addTestCallbackPort(&registry, currentPort)
+	addTestCallbackPort(&registry, idlePort)
+	addTestCallbackPort(&registry, interactiveTaskPort)
+
+	if callbackIDs := registry.GetOtherCallbackIdsWithPendingData(10); !slices.Equal(callbackIDs, []int{30}) {
+		t.Fatalf("expected only callback 30 to be eligible from interactive tasking, got %#v", callbackIDs)
+	}
+}
+
+func TestCallbackPortUsagePendingDataTracksQueuedMessages(t *testing.T) {
+	port := newTestCallbackPort(10, CALLBACK_PORT_TYPE_SOCKS, 7001, 1)
+
+	if port.hasPendingProxyDataForAgent() {
+		t.Fatal("expected no pending data before queueing")
+	}
+	if !port.queueProxyDataForAgent(proxyToAgentMessage{ServerID: 1, Message: []byte("socks")}) {
+		t.Fatal("failed to queue proxy message")
+	}
+	if got := port.pendingMessagesToAgent.Load(); got != 1 {
+		t.Fatalf("expected one pending proxy message, got %d", got)
+	}
+
+	messages := port.GetProxyData()
+	if len(messages) != 1 || string(messages[0].Message) != "socks" {
+		t.Fatalf("expected queued proxy message to drain, got %#v", messages)
+	}
+	if got := port.pendingMessagesToAgent.Load(); got != 0 {
+		t.Fatalf("expected pending proxy count to drain to zero, got %d", got)
+	}
+	if port.hasPendingProxyDataForAgent() {
+		t.Fatal("expected no pending proxy data after drain")
+	}
+}
+
+func TestCallbackPortUsagePendingDataTracksInteractiveMessages(t *testing.T) {
+	port := newTestCallbackPort(10, CALLBACK_PORT_TYPE_INTERACTIVE, 7001, 1)
+
+	if port.hasPendingInteractiveDataForAgent() {
+		t.Fatal("expected no pending interactive data before queueing")
+	}
+	if !port.queueInteractiveDataForAgent(agentMessagePostResponseInteractive{TaskUUID: "interactive"}) {
+		t.Fatal("failed to queue interactive message")
+	}
+	if got := port.pendingInteractiveMessagesToAgent.Load(); got != 1 {
+		t.Fatalf("expected one pending interactive message, got %d", got)
+	}
+
+	messages := port.GetInteractiveData()
+	if len(messages) != 1 || messages[0].TaskUUID != "interactive" {
+		t.Fatalf("expected queued interactive message to drain, got %#v", messages)
+	}
+	if got := port.pendingInteractiveMessagesToAgent.Load(); got != 0 {
+		t.Fatalf("expected pending interactive count to drain to zero, got %d", got)
+	}
+	if port.hasPendingInteractiveDataForAgent() {
+		t.Fatal("expected no pending interactive data after drain")
 	}
 }
 

@@ -1,9 +1,8 @@
 import {MythicTabPanel, MythicTabLabel} from '../../MythicComponents/MythicTabPanel';
-import React, {useEffect, useRef} from 'react';
-import {gql, useQuery, useSubscription, useLazyQuery } from '@apollo/client';
+import React, {useEffect} from 'react';
+import {gql, useQuery, useSubscription } from '@apollo/client';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {useTheme} from '@mui/material/styles';
-import Grid from '@mui/material/Grid';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import IconButton from '@mui/material/IconButton';
 import {CallbacksTabsProcessBrowserTable} from './CallbacksTabsProcessBrowserTable';
@@ -13,14 +12,18 @@ import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip'
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
-import InputLabel from '@mui/material/InputLabel';
-import Input from '@mui/material/Input';
+import TextField from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
 import {ViewCallbackMythicTreeGroupsDialog} from "./ViewCallbackMythicTreeGroupsDialog";
 import WidgetsIcon from '@mui/icons-material/Widgets';
 import {snackActions} from "../../utilities/Snackbar";
 import { Backdrop, Typography } from '@mui/material';
 import {CircularProgress} from '@mui/material';
 import ExpandIcon from '@mui/icons-material/Expand';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import SearchIcon from '@mui/icons-material/Search';
+import ClearIcon from '@mui/icons-material/Clear';
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 
 const treeFragment = gql`
@@ -145,7 +148,7 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me, set
     const theme = useTheme();
     const fromNow = React.useRef((new Date()));
     const [backdropOpen, setBackdropOpen] = React.useState(false);
-    const [expandOrCollapseAll, setExpandOrCollapseAll] = React.useState(false);
+    const [expandOrCollapseAll, setExpandOrCollapseAll] = React.useState(true);
     const treeRootDataRef = React.useRef({}); // hold all the actual data
     const [treeAdjMtx, setTreeAdjMtx] = React.useState({}); // hold the simple adjacency matrix for parent/child relationships
     const [openTaskingButton, setOpenTaskingButton] = React.useState(false);
@@ -154,6 +157,7 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me, set
     const [showDeletedFiles, setShowDeletedFiles] = React.useState(false);
     const [selectedHost, setSelectedHost] = React.useState("");
     const [selectedGroup, setSelectedGroup] = React.useState("");
+    const [quickFilter, setQuickFilter] = React.useState("");
     const loadedCommandsRef = React.useRef({});
     const loadingCommandsRef = React.useRef(false);
     const getNewMatrix = () => {
@@ -350,9 +354,9 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me, set
             callback_display_id: tabInfo["displayID"]});
         setOpenTaskingButton(true);
     }
-    const onTaskRowAction = ({process_id, architecture, uifeature, openDialog, getConfirmation, callback_id, callback_display_id}) => {
+    const onTaskRowAction = ({process_id, architecture, uifeature, openDialog, getConfirmation, callback_id, callback_display_id, display_id}) => {
         taskingData.current = {"parameters": {host: selectedHost, process_id, architecture},
-            "ui_feature": uifeature, openDialog, getConfirmation, callback_id, callback_display_id};
+            "ui_feature": uifeature, openDialog, getConfirmation, callback_id, callback_display_id: callback_display_id || display_id};
         setOpenTaskingButton(true);
     }
     const toggleShowDeletedFiles = (showStatus) => {
@@ -434,6 +438,8 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me, set
                         hostOptions={treeRootDataRef.current[selectedGroup] || {}}
                         expandOrCollapseAll={expandOrCollapseAll}
                         setExpandOrCollapseAll={setExpandOrCollapseAll}
+                        quickFilter={quickFilter}
+                        setQuickFilter={setQuickFilter}
                     />
                     <CallbacksTabsProcessBrowserTable 
                         showDeletedFiles={showDeletedFiles}
@@ -443,6 +449,7 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me, set
                         treeAdjMatrix={treeAdjMtx}
                         host={selectedHost}
                         group={selectedGroup}
+                        quickFilter={quickFilter}
                         expandOrCollapseAll={expandOrCollapseAll}
                         onTaskRowAction={onTaskRowAction}
                         getLoadedCommandForUIFeature={getLoadedCommandForUIFeature}
@@ -473,13 +480,12 @@ const ProcessBrowserTableTop = ({
     hostOptions,
     groupOptions,
     expandOrCollapseAll,
-    setExpandOrCollapseAll
+    setExpandOrCollapseAll,
+    quickFilter,
+    setQuickFilter
 }) => {
-    const theme = useTheme();
     const [showDeletedFiles, setLocalShowDeletedFiles] = React.useState(false);
     const [openViewGroupsDialog, setOpenViewGroupDialog] = React.useState(false);
-    const inputRef = useRef(null);
-    const inputGroupRef = useRef(null);
     const onLocalListFilesButton = () => {
         onListFilesButton()
     }
@@ -496,58 +502,104 @@ const ProcessBrowserTableTop = ({
     const onLocalExpandOrCollapseAllButton = () => {
         setExpandOrCollapseAll(!expandOrCollapseAll);
     }
+    const onClearQuickFilter = () => {
+        setQuickFilter("");
+    }
     return (
-        <Grid container spacing={0} style={{paddingTop: "10px"}}>
-            <Grid size={12}>
-                <FormControl style={{width: "30%"}}>
-                    <InputLabel ref={inputGroupRef}>Available Groups</InputLabel>
-                    <Select
-                        labelId="demo-dialog-select-label"
-                        id="demo-dialog-select"
-                        value={group}
-                        onChange={handleGroupChange}
-                        input={<Input style={{width: "100%"}}/>}
-                        endAdornment={
-                            <React.Fragment>
-                                <MythicStyledTooltip title="View Callbacks associated with this group">
-                                    <IconButton style={{padding: "3px", paddingRight: "25px"}} onClick={() => {setOpenViewGroupDialog(true);}} size="large"><WidgetsIcon style={{color: theme.palette.info.main}}/></IconButton>
-                                </MythicStyledTooltip>
-                            </React.Fragment>
-                        }
-                    >
-                        {Object.keys(groupOptions).sort().map( (opt) => (
-                            <MenuItem value={opt} key={opt}>{opt}</MenuItem>
-                        ) )}
-                    </Select>
-                </FormControl>
-                <FormControl style={{width: "70%"}}>
-                  <InputLabel ref={inputRef}>Available Hosts</InputLabel>
-                  <Select
-                    labelId="demo-dialog-select-label"
-                    id="demo-dialog-select"
-                    value={host}
-                    onChange={handleChange}
-                    input={<Input style={{width: "100%"}}/>}
-                    endAdornment={
-                <React.Fragment>
-                    <MythicStyledTooltip title="Task Callback to List Processes">
-                        <IconButton style={{padding: "3px"}} onClick={onLocalListFilesButton} size="large"><RefreshIcon style={{color: theme.palette.info.main}}/></IconButton>
-                    </MythicStyledTooltip>
-                    <MythicStyledTooltip title={expandOrCollapseAll ? "Collapse all processes" : "Expand all processes"} >
-                        <IconButton style={{padding: "3px"}}
-                                    onClick={onLocalExpandOrCollapseAllButton} size={"large"}>
-                            <ExpandIcon color={expandOrCollapseAll ? "info" : "success"} />
+        <div className="mythic-file-browser-tableTop mythic-process-browser-tableTop">
+            <div className="mythic-process-browser-toolbar">
+                <div className="mythic-process-browser-control mythic-process-browser-controlGroup">
+                    <span className="mythic-process-browser-controlLabel">Group</span>
+                    <FormControl size="small" className="mythic-process-browser-selectControl">
+                        <Select
+                            value={group}
+                            onChange={handleGroupChange}
+                            displayEmpty
+                            className="mythic-process-browser-select"
+                        >
+                            {Object.keys(groupOptions).sort().map( (opt) => (
+                                <MenuItem value={opt} key={opt}>{opt}</MenuItem>
+                            ) )}
+                        </Select>
+                    </FormControl>
+                    <MythicStyledTooltip title="View callbacks associated with this group">
+                        <IconButton
+                            className="mythic-file-browser-iconButton mythic-file-browser-hoverInfo"
+                            onClick={() => {setOpenViewGroupDialog(true);}}
+                            size="small">
+                            <WidgetsIcon fontSize="small" />
                         </IconButton>
                     </MythicStyledTooltip>
-                    <div style={{paddingRight: "20px"}} />
-                </React.Fragment>
-                    }
-                  >
-                    {Object.keys(hostOptions).sort().map( (opt) => (
-                        <MenuItem value={opt} key={opt}>{opt}</MenuItem>
-                    ) )}
-                  </Select>
-                </FormControl>
+                </div>
+                <div className="mythic-process-browser-control mythic-process-browser-controlHost">
+                    <span className="mythic-process-browser-controlLabel">Host</span>
+                    <FormControl size="small" className="mythic-process-browser-selectControl">
+                        <Select
+                            value={host}
+                            onChange={handleChange}
+                            displayEmpty
+                            className="mythic-process-browser-select"
+                        >
+                            {Object.keys(hostOptions).sort().map( (opt) => (
+                                <MenuItem value={opt} key={opt}>{opt}</MenuItem>
+                            ) )}
+                        </Select>
+                    </FormControl>
+                </div>
+                <TextField
+                    className="mythic-process-browser-searchInput"
+                    size="small"
+                    value={quickFilter}
+                    onChange={(event) => setQuickFilter(event.target.value)}
+                    placeholder="Filter name, PID, user, arch, session, command..."
+                    InputProps={{
+                        startAdornment: (
+                            <InputAdornment position="start">
+                                <SearchIcon fontSize="small" />
+                            </InputAdornment>
+                        ),
+                        endAdornment: quickFilter ? (
+                            <InputAdornment position="end">
+                                <IconButton
+                                    className="mythic-file-browser-iconButton mythic-file-browser-hoverError"
+                                    onClick={onClearQuickFilter}
+                                    size="small">
+                                    <ClearIcon fontSize="small" />
+                                </IconButton>
+                            </InputAdornment>
+                        ) : null
+                    }}
+                />
+                <div className="mythic-file-browser-toolbarGroup mythic-process-browser-actions">
+                    <MythicStyledTooltip title="Task current callback to list processes">
+                        <IconButton
+                            className="mythic-file-browser-iconButton mythic-file-browser-hoverInfo"
+                            onClick={onLocalListFilesButton}
+                            size="small">
+                            <RefreshIcon fontSize="small" />
+                        </IconButton>
+                    </MythicStyledTooltip>
+                    <MythicStyledTooltip title={expandOrCollapseAll ? "Collapse all processes" : "Expand all processes"} >
+                        <IconButton
+                            className={`mythic-file-browser-iconButton mythic-file-browser-hoverInfo ${expandOrCollapseAll ? "mythic-file-browser-activeSuccess" : ""}`}
+                            onClick={onLocalExpandOrCollapseAllButton}
+                            size="small">
+                            <ExpandIcon fontSize="small" />
+                        </IconButton>
+                    </MythicStyledTooltip>
+                    <MythicStyledTooltip title={showDeletedFiles ? 'Hide deleted processes' : 'Show deleted processes'}>
+                        <IconButton
+                            className={`mythic-file-browser-iconButton mythic-file-browser-hoverWarning ${showDeletedFiles ? "mythic-file-browser-activeWarning" : ""}`}
+                            onClick={onLocalToggleShowDeletedFiles}
+                            size="small">
+                            {showDeletedFiles ? (
+                                <VisibilityIcon fontSize="small" />
+                            ) : (
+                                <VisibilityOffIcon fontSize="small" />
+                            )}
+                        </IconButton>
+                    </MythicStyledTooltip>
+                </div>
                 {openViewGroupsDialog &&
                     <MythicDialog
                         fullWidth={true}
@@ -560,7 +612,7 @@ const ProcessBrowserTableTop = ({
                         }
                     />
                 }
-            </Grid>
-        </Grid>
+            </div>
+        </div>
     );
 }
