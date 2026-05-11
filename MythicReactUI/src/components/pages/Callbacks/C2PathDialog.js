@@ -21,10 +21,11 @@ import { toPng, toSvg } from 'html-to-image';
 import InsertPhotoIcon from '@mui/icons-material/InsertPhoto';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import SwapCallsIcon from '@mui/icons-material/SwapCalls';
+import WifiIcon from '@mui/icons-material/Wifi';
+import InsertLinkTwoToneIcon from '@mui/icons-material/InsertLinkTwoTone';
 import {snackActions} from "../../utilities/Snackbar";
 import {TaskLabelFlat, getLabelText} from './TaskDisplay';
 import {MythicDialog, MythicViewJSONAsTableDialog} from "../../MythicComponents/MythicDialog";
-import {MythicSelectFromListDialog} from "../../MythicComponents/MythicSelectFromListDialog";
 import {ManuallyAddEdgeDialog} from "./ManuallyAddEdgeDialog";
 import {TaskParametersDialog} from "./TaskParametersDialog";
 import {addEdgeMutation, createTaskingMutation, hideCallbackMutation, removeEdgeMutation} from "./CallbackMutations";
@@ -50,6 +51,249 @@ const MenuProps = {
       width: 250,
     },
   },
+};
+
+const getEdgeEndpointIds = (edge) => [
+    String(edge?.source?.id || ""),
+    String(edge?.destination?.id || ""),
+];
+const getReachableCallbackIds = (edges, callbackId) => {
+    const startId = String(callbackId || "");
+    if(startId.length === 0){return new Set()}
+    const reachable = new Set([startId]);
+    let foundMore = true;
+    while(foundMore){
+        foundMore = false;
+        for(let i = 0; i < edges.length; i++){
+            const edge = edges[i];
+            const [sourceId, destinationId] = getEdgeEndpointIds(edge);
+            if(reachable.has(sourceId) && !reachable.has(destinationId)){
+                reachable.add(destinationId);
+                foundMore = true;
+            }
+            if(reachable.has(destinationId) && !reachable.has(sourceId)){
+                reachable.add(sourceId);
+                foundMore = true;
+            }
+        }
+    }
+    return reachable;
+};
+const getC2RouteSummary = (callback, callbackgraphedges) => {
+    const edges = callbackgraphedges || [];
+    const callbackId = String(callback?.id || "");
+    const activeEdges = edges.filter((edge) => edge.end_timestamp === null);
+    const endedEdges = edges.filter((edge) => edge.end_timestamp !== null);
+    const activeReachableIds = getReachableCallbackIds(activeEdges, callbackId);
+    const historicalReachableIds = getReachableCallbackIds(edges, callbackId);
+    const directEgressRoutes = edges.filter((edge) => {
+        const [sourceId, destinationId] = getEdgeEndpointIds(edge);
+        return !edge.c2profile?.is_p2p && sourceId === callbackId && destinationId === callbackId;
+    });
+    const activeDirectRoutes = directEgressRoutes.filter((edge) => edge.end_timestamp === null);
+    const activeRoutedEgressRoutes = activeEdges.filter((edge) => {
+        if(edge.c2profile?.is_p2p){return false}
+        const [sourceId, destinationId] = getEdgeEndpointIds(edge);
+        return activeReachableIds.has(sourceId) || activeReachableIds.has(destinationId);
+    });
+    const historicalEgressRoutes = edges.filter((edge) => {
+        if(edge.c2profile?.is_p2p){return false}
+        const [sourceId, destinationId] = getEdgeEndpointIds(edge);
+        return historicalReachableIds.has(sourceId) || historicalReachableIds.has(destinationId);
+    });
+    const baseCounts = {
+        activeEdgeCount: activeEdges.length,
+        endedEdgeCount: endedEdges.length,
+        totalEdgeCount: edges.length,
+        egressEdgeCount: edges.filter((edge) => !edge.c2profile?.is_p2p).length,
+        p2pEdgeCount: edges.filter((edge) => edge.c2profile?.is_p2p).length,
+    };
+    if(activeDirectRoutes.length > 0){
+        return {
+            ...baseCounts,
+            tone: "success",
+            icon: "direct",
+            label: "Direct route active",
+            description: "This callback has an active direct route to Mythic.",
+        };
+    }
+    if(directEgressRoutes.length > 0){
+        return {
+            ...baseCounts,
+            tone: "error",
+            icon: "direct",
+            label: "Direct route ended",
+            description: "This callback has direct route history, but the direct route is no longer active.",
+        };
+    }
+    if(activeRoutedEgressRoutes.length > 0){
+        return {
+            ...baseCounts,
+            tone: "success",
+            icon: "p2p",
+            label: "P2P route active",
+            description: "This callback can reach Mythic through active peer-to-peer links.",
+        };
+    }
+    if(historicalEgressRoutes.length > 0){
+        return {
+            ...baseCounts,
+            tone: "warning",
+            icon: "p2p",
+            label: "Route history only",
+            description: "The graph includes historical C2 links, but no active route from this callback reaches Mythic.",
+        };
+    }
+    return {
+        ...baseCounts,
+        tone: edges.length > 0 ? "warning" : "neutral",
+        icon: "p2p",
+        label: edges.length > 0 ? "No egress route" : "No route data",
+        description: edges.length > 0 ?
+            "Links exist for this callback group, but none currently reach an egress route to Mythic." :
+            "No C2 route data has been recorded for this callback yet.",
+    };
+};
+const getCallbackDisplay = (callback) => callback?.display_id ? `#${callback.display_id}` : "Mythic";
+const getEdgeRouteParts = (edge) => {
+    const isDirect = edge?.source?.id === edge?.destination?.id && !edge?.c2profile?.is_p2p;
+    return {
+        source: getCallbackDisplay(edge?.source),
+        profile: edge?.c2profile?.name || "Unknown profile",
+        destination: isDirect ? "Mythic" : getCallbackDisplay(edge?.destination),
+        active: edge?.end_timestamp === null,
+        isP2P: edge?.c2profile?.is_p2p || false,
+    };
+};
+const C2ActionRoute = ({edge}) => {
+    const route = getEdgeRouteParts(edge);
+    return (
+        <div className="mythic-c2-action-route">
+            <span>{route.source}</span>
+            <span className="mythic-c2-action-route-profile">{route.profile}</span>
+            <span>{route.destination}</span>
+        </div>
+    );
+};
+const C2ManualRemoveEdgeDialog = ({options = [], onSubmit, onClose}) => {
+    const [selectedEdge, setSelectedEdge] = React.useState(options?.[0] || "");
+    const submit = () => {
+        if(selectedEdge === ""){return}
+        onSubmit(selectedEdge);
+        onClose();
+    };
+    return (
+        <>
+            <DialogTitle className="mythic-c2-action-title">
+                <Typography component="div" className="mythic-c2-action-title-text">
+                    Remove Active Edge
+                </Typography>
+                <Typography component="div" className="mythic-c2-action-title-subtitle">
+                    Select the active C2 route edge to close from this graph.
+                </Typography>
+            </DialogTitle>
+            <DialogContent dividers={true}>
+                <div className="mythic-c2-action-body">
+                    {options.length === 0 ?
+                        <div className="mythic-c2-action-empty">
+                            No active edges are available to remove for this callback.
+                        </div> :
+                        <div className="mythic-c2-action-list">
+                            {options.map((edge) => {
+                                const route = getEdgeRouteParts(edge);
+                                const selected = selectedEdge?.id === edge.id;
+                                return (
+                                    <button
+                                        type="button"
+                                        key={edge.id}
+                                        className={`mythic-c2-action-card ${selected ? "mythic-c2-action-card-selected" : ""}`}
+                                        onClick={() => setSelectedEdge(edge)}
+                                    >
+                                        <div className="mythic-c2-action-card-main">
+                                            <C2ActionRoute edge={edge} />
+                                            <Typography component="div" className="mythic-c2-action-card-description">
+                                                {route.isP2P ? "Peer-to-peer link" : "Direct egress link"} from {route.source} through {route.profile}.
+                                            </Typography>
+                                        </div>
+                                        <span className={`mythic-c2-action-state ${route.active ? "mythic-c2-action-state-active" : "mythic-c2-action-state-ended"}`}>
+                                            {route.active ? "Active" : "Ended"}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    }
+                </div>
+            </DialogContent>
+            <MythicDialogFooter>
+                <MythicDialogButton onClick={onClose}>Close</MythicDialogButton>
+                <MythicDialogButton disabled={selectedEdge === ""} onClick={submit} intent="destructive">
+                    Remove Edge
+                </MythicDialogButton>
+            </MythicDialogFooter>
+        </>
+    );
+};
+const C2SelectLinkCommandDialog = ({options = [], callback, onSubmit, onClose}) => {
+    const [selectedCommand, setSelectedCommand] = React.useState(options?.[0] || "");
+    const submit = () => {
+        if(selectedCommand === ""){return}
+        onSubmit(selectedCommand);
+        onClose();
+    };
+    return (
+        <>
+            <DialogTitle className="mythic-c2-action-title">
+                <Typography component="div" className="mythic-c2-action-title-text">
+                    Select Link Command
+                </Typography>
+                <Typography component="div" className="mythic-c2-action-title-subtitle">
+                    Choose the graph-link command to task callback {getCallbackDisplay(callback)}.
+                </Typography>
+            </DialogTitle>
+            <DialogContent dividers={true}>
+                <div className="mythic-c2-action-body">
+                    {options.length === 0 ?
+                        <div className="mythic-c2-action-empty">
+                            No loaded commands support graph link tasking for this callback.
+                        </div> :
+                        <div className="mythic-c2-action-list">
+                            {options.map((option) => {
+                                const command = option.command;
+                                const selected = selectedCommand?.command?.id === command.id;
+                                return (
+                                    <button
+                                        type="button"
+                                        key={command.id}
+                                        className={`mythic-c2-action-card ${selected ? "mythic-c2-action-card-selected" : ""}`}
+                                        onClick={() => setSelectedCommand(option)}
+                                    >
+                                        <div className="mythic-c2-action-card-main">
+                                            <div className="mythic-c2-action-command-row">
+                                                <span className="mythic-c2-action-command-name">{command.cmd}</span>
+                                                {command.needs_admin &&
+                                                    <span className="mythic-c2-action-state mythic-c2-action-state-warning">Admin</span>
+                                                }
+                                            </div>
+                                            <Typography component="div" className="mythic-c2-action-card-description">
+                                                {command.help_cmd || command.description || "No command help available."}
+                                            </Typography>
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    }
+                </div>
+            </DialogContent>
+            <MythicDialogFooter>
+                <MythicDialogButton onClick={onClose}>Close</MythicDialogButton>
+                <MythicDialogButton disabled={selectedCommand === ""} onClick={submit} intent="primary">
+                    Configure Task
+                </MythicDialogButton>
+            </MythicDialogFooter>
+        </>
+    );
 };
 
 function getStyles(name, selectedOptions, theme) {
@@ -191,13 +435,7 @@ export function C2PathDialog({callback, callbackgraphedges, onClose, onOpenTab})
     }
     const contextMenu = useMemo(() => {return [
         {
-            title: 'Hide Callback',
-            onClick: function(node) {
-                hideCallback({variables: {callback_display_id: node.display_id}});
-            }
-        },
-        {
-            title: 'Interact',
+            title: 'Open Tasking',
             onClick: function(node){
                 //console.log(node);
                 if(onOpenTab){
@@ -209,7 +447,14 @@ export function C2PathDialog({callback, callbackgraphedges, onClose, onOpenTab})
             }
         },
         {
-            title: "Manually Remove Edge",
+            title: "Add P2P Edge",
+            onClick: function(node){
+                setAddEdgeSource(node);
+                setManuallyAddEdgeDialogOpen(true);
+            }
+        },
+        {
+            title: "Remove Active Edge",
             onClick: function(node){
                 const opts = callbackgraphedges.reduce( (prev, e) => {
                     if(e.source.id === node.id || e.destination.id === node.id){
@@ -232,14 +477,7 @@ export function C2PathDialog({callback, callbackgraphedges, onClose, onOpenTab})
             }
         },
         {
-            title: "Manually Add Edge",
-            onClick: function(node){
-                setAddEdgeSource(node);
-                setManuallyAddEdgeDialogOpen(true);
-            }
-        },
-        {
-            title: "Task Callback for Edge",
+            title: "Task Link Command",
             onClick: function(node){
                 setLinkCommands([]);
                 setSelectedLinkCommand(null);
@@ -248,12 +486,28 @@ export function C2PathDialog({callback, callbackgraphedges, onClose, onOpenTab})
                 setSelectedCallback(node);
             }
         },
-    ]}, [getLinkCommands, hideCallback, viewConfig, onOpenTab]);
+        {
+            title: 'Hide Callback',
+            onClick: function(node) {
+                hideCallback({variables: {callback_display_id: node.display_id}});
+            }
+        },
+    ]}, [getLinkCommands, hideCallback, callbackgraphedges, onOpenTab]);
 
-    const activeEdgeCount = callbackgraphedges?.filter(edge => edge.end_timestamp === null).length || 0;
-    const totalEdgeCount = callbackgraphedges?.length || 0;
-    const egressEdgeCount = callbackgraphedges?.filter(edge => !edge.c2profile?.is_p2p).length || 0;
-    const p2pEdgeCount = callbackgraphedges?.filter(edge => edge.c2profile?.is_p2p).length || 0;
+    const routeSummary = useMemo(
+        () => getC2RouteSummary(callback, callbackgraphedges),
+        [callback, callbackgraphedges]
+    );
+    const RouteSummaryIcon = routeSummary.icon === "direct" ? WifiIcon : InsertLinkTwoToneIcon;
+    const callbackGraphNodeSignature = getCallbackGraphNodeSignature(callback);
+    const callbackGraphNodeRef = React.useRef(null);
+    const callbackGraphNodeSignatureRef = React.useRef("");
+    const providedCallbackNodesRef = React.useRef([]);
+    if(callbackGraphNodeSignatureRef.current !== callbackGraphNodeSignature){
+        callbackGraphNodeSignatureRef.current = callbackGraphNodeSignature;
+        callbackGraphNodeRef.current = getCallbackGraphNodeData(callback);
+        providedCallbackNodesRef.current = callbackGraphNodeRef.current ? [callbackGraphNodeRef.current] : [];
+    }
 
     return (
     <>
@@ -268,14 +522,51 @@ export function C2PathDialog({callback, callbackgraphedges, onClose, onOpenTab})
                     </Typography>
                 </div>
                 <div className="mythic-c2-path-summary">
-                    <span className="mythic-c2-path-summary-chip">{activeEdgeCount} active</span>
-                    <span className="mythic-c2-path-summary-chip">{totalEdgeCount} total</span>
-                    <span className="mythic-c2-path-summary-chip">{egressEdgeCount} egress</span>
-                    <span className="mythic-c2-path-summary-chip">{p2pEdgeCount} p2p</span>
+                    <span className={`mythic-c2-path-summary-chip mythic-c2-path-summary-chip-${routeSummary.tone}`}>
+                        <RouteSummaryIcon fontSize="inherit" />
+                        {routeSummary.label}
+                    </span>
+                    <span className="mythic-c2-path-summary-chip">{routeSummary.activeEdgeCount} active</span>
+                    <span className="mythic-c2-path-summary-chip">{routeSummary.endedEdgeCount} ended</span>
+                    <span className="mythic-c2-path-summary-chip">{routeSummary.egressEdgeCount} egress</span>
+                    <span className="mythic-c2-path-summary-chip">{routeSummary.p2pEdgeCount} p2p</span>
                 </div>
             </div>
         </DialogTitle>
         <DialogContent dividers={true} className="mythic-c2-path-content">
+            <div className={`mythic-c2-path-route-panel mythic-c2-path-route-panel-${routeSummary.tone}`}>
+                <div className="mythic-c2-path-route-state">
+                    <span className="mythic-c2-path-route-icon">
+                        <RouteSummaryIcon fontSize="small" />
+                    </span>
+                    <div className="mythic-c2-path-route-copy">
+                        <Typography component="div" className="mythic-c2-path-route-label">
+                            {routeSummary.label}
+                        </Typography>
+                        <Typography component="div" className="mythic-c2-path-route-description">
+                            {routeSummary.description}
+                        </Typography>
+                    </div>
+                </div>
+                <div className="mythic-c2-path-legend">
+                    <span className="mythic-c2-path-legend-item">
+                        <WifiIcon fontSize="inherit" />
+                        Direct to Mythic
+                    </span>
+                    <span className="mythic-c2-path-legend-item">
+                        <InsertLinkTwoToneIcon fontSize="inherit" />
+                        P2P route
+                    </span>
+                    <span className="mythic-c2-path-legend-item">
+                        <span className="mythic-c2-path-edge-swatch mythic-c2-path-edge-swatch-active" />
+                        Active link
+                    </span>
+                    <span className="mythic-c2-path-legend-item">
+                        <span className="mythic-c2-path-edge-swatch mythic-c2-path-edge-swatch-ended" />
+                        Ended link
+                    </span>
+                </div>
+            </div>
             <div className="mythic-c2-path-toolbar">
                 <div className="mythic-c2-path-toolbar-copy">
                     <Typography component="div" className="mythic-c2-path-toolbar-title">
@@ -333,8 +624,11 @@ export function C2PathDialog({callback, callbackgraphedges, onClose, onOpenTab})
             {manuallyRemoveEdgeDialogOpen &&
                 <MythicDialog fullWidth={true} maxWidth="sm" open={manuallyRemoveEdgeDialogOpen}
                               onClose={()=>{setManuallyRemoveEdgeDialogOpen(false);}}
-                              innerDialog={<MythicSelectFromListDialog onClose={()=>{setManuallyRemoveEdgeDialogOpen(false);}} identifier="id" display="display"
-                                                                       onSubmit={onSubmitManuallyRemoveEdge} options={edgeOptions} title={"Manually Remove Edge"} action={"remove"} />}
+                              innerDialog={<C2ManualRemoveEdgeDialog
+                                  onClose={()=>{setManuallyRemoveEdgeDialogOpen(false);}}
+                                  onSubmit={onSubmitManuallyRemoveEdge}
+                                  options={edgeOptions}
+                              />}
                 />
             }
             {manuallyAddEdgeDialogOpen &&
@@ -353,18 +647,22 @@ export function C2PathDialog({callback, callbackgraphedges, onClose, onOpenTab})
             {openSelectLinkCommandDialog &&
                 <MythicDialog fullWidth={true} maxWidth="sm" open={openSelectLinkCommandDialog}
                               onClose={()=>{setOpenSelectLinkCommandDialog(false);}}
-                              innerDialog={<MythicSelectFromListDialog onClose={()=>{setOpenSelectLinkCommandDialog(false);}}
-                                                                       onSubmit={onSubmitSelectedLinkCommand} options={linkCommands} title={"Select Link Command"}
-                                                                       action={"select"} display={"display"} identifier={"display"}/>}
+                              innerDialog={<C2SelectLinkCommandDialog
+                                  onClose={()=>{setOpenSelectLinkCommandDialog(false);}}
+                                  onSubmit={onSubmitSelectedLinkCommand}
+                                  options={linkCommands}
+                                  callback={selectedCallback}
+                              />}
                 />
             }
-            <div className="mythic-c2-path-canvas">
+            <div className="mythic-c2-path-canvas mythic-graph-canvas">
                 <DrawC2PathElementsFlowWithProvider
-                    providedNodes={[callback]}
+                    providedNodes={providedCallbackNodesRef.current}
                     edges={callbackgraphedges}
                     view_config={viewConfig}
                     theme={theme}
                     contextMenu={contextMenu}
+                    focusedCallbackId={callback.id}
                 />
             </div>
         </DialogContent>
@@ -422,8 +720,13 @@ function AgentNode({data}) {
         filter: "grayscale(1)",
         opacity: 0.5
     } : {};
+    const nodeClasses = [
+        "mythic-c2-agent-node",
+        data?.isMythic ? "mythic-c2-agent-node-mythic" : "",
+        data?.isFocused ? "mythic-c2-agent-node-focused" : "",
+    ].filter(Boolean).join(" ");
     return (
-        <div style={{padding: 0, margin: 0, ...additionalStyles}}>
+        <div className={nodeClasses} style={{padding: 0, margin: 0, ...additionalStyles}}>
             {
                 [...Array(data.sourceCount)].map((e, i) => (
                     <Handle type={"source"} id={`${i+1}`} key={`${i+1}`} style={data.sourceCount > 1 ? getOffset(i) : {}} isConnectable={false} position={sourcePosition} />
@@ -432,7 +735,7 @@ function AgentNode({data}) {
             }
             <ImageWithAuth alt={data.img} style={{margin: "auto"}} src={data.img}  className={"circleImageNode"} />
             <Handle type={"target"} position={targetPosition} isConnectable={false}/>
-            <Typography style={{textAlign: "center", margin: 0, padding: 0}} >{data.label}</Typography>
+            <Typography className="mythic-c2-agent-node-label" >{data.label}</Typography>
         </div>
     )
 }
@@ -746,6 +1049,96 @@ const getGroupBy = (node, view_config) => {
         return node[view_config.group_by];
     }
 }
+const getCallbackGraphEndpoint = (node, view_config) => {
+    if(!node){return {parentId: ""}}
+    return {
+        id: node.id,
+        display_id: node.display_id,
+        parentId: getGroupBy(node, view_config),
+    }
+}
+const getCallbackGraphNodeData = (node) => {
+    if(!node){return null}
+    return {
+        active: node.active,
+        id: node.id,
+        display_id: node.display_id,
+        user: node.user,
+        host: node.host,
+        ip: node.ip,
+        domain: node.domain,
+        os: node.os,
+        process_name: node.process_name,
+        integrity_level: node.integrity_level,
+        payload: {
+            payloadtype: {
+                name: node.payload?.payloadtype?.name || "",
+                id: node.payload?.payloadtype?.id || 0,
+            },
+        },
+    }
+}
+const getCallbackGraphNodeSignature = (node) => {
+    if(!node){return ""}
+    return [
+        node.id,
+        node.active,
+        node.display_id,
+        node.user,
+        node.host,
+        node.ip,
+        node.domain,
+        node.os,
+        node.process_name,
+        node.integrity_level,
+        node.payload?.payloadtype?.name,
+        node.payload?.payloadtype?.id,
+    ].map((value) => String(value ?? "")).join("::");
+}
+const getCallbackGraphEdgeSignature = (edge) => {
+    if(!edge){return ""}
+    return [
+        edge.id,
+        edge.end_timestamp,
+        edge.c2profile?.id,
+        edge.c2profile?.name,
+        edge.c2profile?.is_p2p,
+        edge.c2profile?.has_logo,
+        getCallbackGraphNodeSignature(edge.source),
+        getCallbackGraphNodeSignature(edge.destination),
+    ].map((value) => String(value ?? "")).join("::");
+}
+const getGraphInputSignature = ({edges, providedNodes, view_config, filterOptions, focusedCallbackId, theme}) => {
+    const edgeSignature = (edges || [])
+        .map(getCallbackGraphEdgeSignature)
+        .sort()
+        .join("||");
+    const nodeSignature = (providedNodes || [])
+        .map(getCallbackGraphNodeSignature)
+        .sort()
+        .join("||");
+    const filterSignature = Object.entries(filterOptions || {})
+        .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+        .map(([key, value]) => `${key}:${String(value ?? "")}`)
+        .join("||");
+    const viewSignature = [
+        view_config?.rankDir,
+        view_config?.packet_flow_view,
+        view_config?.include_disconnected,
+        view_config?.show_all_nodes,
+        view_config?.group_by,
+        (view_config?.label_components || []).join(","),
+    ].map((value) => String(value ?? "")).join("::");
+    const themeSignature = [
+        theme.palette.mode,
+        theme.palette.success.main,
+        theme.palette.error.main,
+        theme.palette.secondary.main,
+        theme.palette.background.contrast,
+        theme.tableHover,
+    ].map((value) => String(value ?? "")).join("::");
+    return [edgeSignature, nodeSignature, filterSignature, viewSignature, focusedCallbackId, themeSignature].join("##");
+}
 const shouldUseGroups = (view_config) => {
     if(view_config["packet_flow_view"] && view_config.group_by !== "None"){
         return true;
@@ -759,12 +1152,11 @@ export const DrawC2PathElementsFlowWithProvider = (props) => {
         </ReactFlowProvider>
     )
 }
-export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, providedNodes, filterOptions}) =>{
+export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, providedNodes, filterOptions, focusedCallbackId}) =>{
     const theme = useTheme();
     const [graphData, setGraphData] = React.useState({nodes: [], edges: [], groups: []});
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const selectedNodes = React.useRef([]);
-    const extraNodes = React.useRef(providedNodes);
     const [edgeFlow, setEdgeFlow, onEdgesChange] = useEdgesState([]);
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
     const [contextMenuCoord, setContextMenuCord] = React.useState({});
@@ -772,6 +1164,43 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
     const contextMenuNode = React.useRef(null);
     const {fitView} = useReactFlow()
     const updateNodeInternals = useUpdateNodeInternals();
+    const graphInputSignature = React.useMemo(() => getGraphInputSignature({
+        edges,
+        providedNodes,
+        view_config,
+        filterOptions,
+        focusedCallbackId,
+        theme,
+    }), [
+        edges,
+        providedNodes,
+        view_config,
+        filterOptions,
+        focusedCallbackId,
+        theme,
+    ]);
+    const latestGraphInputs = React.useRef({});
+    latestGraphInputs.current = {
+        edges,
+        providedNodes,
+        view_config,
+        filterOptions,
+        focusedCallbackId,
+        theme,
+    };
+    const getLocalContextMenuCoordinates = useCallback((event) => {
+        const bounds = viewportRef.current?.getBoundingClientRect();
+        if(!bounds){
+            return {
+                top: event.clientY,
+                left: event.clientX,
+            };
+        }
+        return {
+            top: event.clientY - bounds.top,
+            left: event.clientX - bounds.left,
+        };
+    }, []);
     const onDownloadImageClickSvg = () => {
         // we calculate a transform for the nodes so that all nodes are visible
         // we then overwrite the transform of the `.react-flow__viewport` element
@@ -817,12 +1246,9 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
         }
         event.preventDefault();
         contextMenuNode.current = {...node.data, id: node.data.callback_id};
-        setContextMenuCord({
-            top:  event.clientY,
-            left:  event.clientX,
-        });
+        setContextMenuCord(getLocalContextMenuCoordinates(event));
         setOpenContextMenu(true);
-    }, [contextMenu])
+    }, [contextMenu, getLocalContextMenuCoordinates])
     const onPaneClick = useCallback( () => {
         setOpenContextMenu(false);
         selectedNodes.current = [];
@@ -889,6 +1315,14 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
         setNodes(updatedNodes);
     }, [graphData, nodes, selectedNodes.current])
     React.useEffect( () => {
+        const {
+            edges = [],
+            providedNodes = [],
+            view_config,
+            filterOptions,
+            focusedCallbackId,
+            theme,
+        } = latestGraphInputs.current;
         let tempNodes = [{
             id: "Mythic",
             position: { x: 0, y: 0 },
@@ -927,7 +1361,7 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
                         data: {
                             has_logo: edge.c2profile.has_logo,
                             is_p2p: edge.c2profile.is_p2p,
-                            source: {...edge.source, parentId: getGroupBy(edge.source, view_config)},
+                            source: getCallbackGraphEndpoint(edge.source, view_config),
                             target: {parentId: "Mythic"},
                             end_timestamp: edge.end_timestamp,
                         }
@@ -967,6 +1401,7 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
                             label: getLabel(node, view_config["label_components"]),
                             img: "/static/" + node.payload.payloadtype.name + "_" + theme.palette.mode + ".svg",
                             isMythic: false,
+                            isFocused: String(node.id) === String(focusedCallbackId),
                             callback_id: node.id,
                             display_id: node.display_id,
                         }
@@ -1020,7 +1455,7 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
             let found = false;
             let edgeID = `e${edge.source.id}-${edge.destination.id}-${edge.c2profile.name}`;
             if(egress_flow){
-                if(edge.source.to_mythic){
+                if(edge.source_to_mythic){
                     edgeID = `e${edge.destination.id}-${edge.source.id}-${edge.c2profile.name}`;
                     for(let i = 0; i < tempEdges.length; i++){
                         if(tempEdges[i].id === edgeID ){
@@ -1045,8 +1480,8 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
                                     end_timestamp: edge.end_timestamp,
                                     has_logo: edge.c2profile.has_logo,
                                     is_p2p: edge.c2profile.is_p2p,
-                                    source: {...edge.destination, parentId: getGroupBy(edge.destination, view_config)},
-                                    target: {...edge.source, parentId: getGroupBy(edge.source, view_config)},
+                                    source: getCallbackGraphEndpoint(edge.destination, view_config),
+                                    target: getCallbackGraphEndpoint(edge.source, view_config),
                                 }
                             },
                         )
@@ -1082,8 +1517,8 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
                                     end_timestamp: edge.end_timestamp,
                                     has_logo: edge.c2profile.has_logo,
                                     is_p2p: edge.c2profile.is_p2p,
-                                    source: {...edge.source, parentId: getGroupBy(edge.source, view_config)},
-                                    target: {...edge.target, parentId: getGroupBy(edge.target, view_config)},
+                                    source: getCallbackGraphEndpoint(edge.source, view_config),
+                                    target: getCallbackGraphEndpoint(edge.destination, view_config),
                                 }
                             },
                         )
@@ -1121,8 +1556,8 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
                                 end_timestamp: edge.end_timestamp,
                                 has_logo: edge.c2profile.has_logo,
                                 is_p2p: edge.c2profile.is_p2p,
-                                source: {...edge.source, parentId: getGroupBy(edge.source, view_config)},
-                                target: {...edge.target, parentId: getGroupBy(edge.destination, view_config)},
+                                source: getCallbackGraphEndpoint(edge.source, view_config),
+                                target: getCallbackGraphEndpoint(edge.destination, view_config),
                             }
                         },
                     )
@@ -1130,10 +1565,12 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
             }
         }
         const hasEdge = (sourceId, destinationId, c2ProfileName) => {
+            const sourceKey = String(sourceId);
+            const destinationKey = String(destinationId);
             for(let i = 0; i < tempEdges.length; i++){
-                if(tempEdges[i].source === sourceId &&
-                    tempEdges[i].destination === destinationId &&
-                    tempEdges[i].data.label === c2ProfileName){
+                if(tempEdges[i].source === sourceKey &&
+                    tempEdges[i].target === destinationKey &&
+                    tempEdges[i].label === c2ProfileName){
                     return true;
                 }
             }
@@ -1150,10 +1587,12 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
             return false;
         }
         const getEdge = (sourceId, destinationId, c2ProfileName) => {
+            const sourceKey = String(sourceId);
+            const destinationKey = String(destinationId);
             for(let i = 0; i < tempEdges.length; i++){
-                if(tempEdges[i].source === sourceId &&
-                    tempEdges[i].destination === destinationId &&
-                    tempEdges[i].data.label === c2ProfileName){
+                if(tempEdges[i].source === sourceKey &&
+                    tempEdges[i].target === destinationKey &&
+                    tempEdges[i].label === c2ProfileName){
                     return tempEdges[i];
                 }
             }
@@ -1179,74 +1618,77 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
             // loop through until all edges have one side marked as "toward_mythic"
             let tempNewEdges = edges.reduce((prev, cur) => {
                 if(filterRow(cur.source) || filterRow(cur.destination)){
-                    return [...prev];
+                    return prev;
                 }
-                return [...prev, cur];
+                prev.push({
+                    edge: cur,
+                    sourceToMythic: false,
+                    destinationToMythic: false,
+                });
+                return prev;
             }, []);
             let edgesToUpdate = tempNewEdges.length;
             if (edgesToUpdate === 0) {return []}
-            let edgesUpdated = 0;
             let toMythicIds = new Set();
-            let loop_count = 0;
-            while(edgesUpdated < edgesToUpdate){
-                //console.log(edges, tempEdges, edgesToUpdate, edgesUpdated)
-
-                tempNewEdges = tempNewEdges.map( e => {
-                    //console.log(e)
-                    if(!e.source.to_mythic && !e.destination.to_mythic){
-                        if(e.source.id === e.destination.id){
-                            e.source.to_mythic = true;
-                            e.destination.to_mythic = true;
-                            toMythicIds.add(e.source.id);
-
-                            edgesUpdated += 1;
-                        } else if(toMythicIds.has(e.source.id)){
-                            e.source.to_mythic = true;
-                            e.destination.to_mythic = false;
-                            edgesUpdated += 1;
-                        } else if(toMythicIds.has(e.destination.id)){
-                            e.destination.to_mythic = true;
-                            e.source.to_mythic = false;
-                            edgesUpdated += 1;
+            for(let loop_count = 0; loop_count <= 2 * edgesToUpdate; loop_count++){
+                let changed = false;
+                let complete = true;
+                for(let i = 0; i < tempNewEdges.length; i++){
+                    const current = tempNewEdges[i];
+                    const edge = current.edge;
+                    if(!current.sourceToMythic && !current.destinationToMythic){
+                        complete = false;
+                        if(edge.source.id === edge.destination.id){
+                            current.sourceToMythic = true;
+                            current.destinationToMythic = true;
+                            toMythicIds.add(edge.source.id);
+                            changed = true;
+                        } else if(toMythicIds.has(edge.source.id)){
+                            current.sourceToMythic = true;
+                            current.destinationToMythic = false;
+                            changed = true;
+                        } else if(toMythicIds.has(edge.destination.id)){
+                            current.destinationToMythic = true;
+                            current.sourceToMythic = false;
+                            changed = true;
                         } else {
                             // check if either source/destination has any edges that identify
-                            tempNewEdges.forEach( e2 => {
-                                if(e2.source.id === e.source.id){
+                            for(let j = 0; j < tempNewEdges.length; j++){
+                                const candidate = tempNewEdges[j];
+                                const candidateEdge = candidate.edge;
+                                if(candidateEdge.source.id === edge.source.id){
                                     // only look at edges that contain our source
-                                    if(e2.destination.to_mythic){
-                                        e.source.to_mythic = true;
-                                        edgesUpdated += 1;
+                                    if(candidate.destinationToMythic){
+                                        current.sourceToMythic = true;
+                                        changed = true;
+                                        break;
                                     }
-                                } else if(e2.destination.id === e.source.id){
-                                    if(e2.source.to_mythic){
-                                        e.source.to_mythic = true;
-                                        edgesUpdated += 1;
+                                } else if(candidateEdge.destination.id === edge.source.id){
+                                    if(candidate.sourceToMythic){
+                                        current.sourceToMythic = true;
+                                        changed = true;
+                                        break;
                                     }
                                 }
-                            })
+                            }
                         }
-                    } else {
-                        edgesUpdated += 1;
                     }
-                    //edgesUpdated += 1;
-                    return e;
-                })
-                loop_count += 1;
-                if (loop_count > 2 * edgesToUpdate){
-                    //console.log("aborting early", tempEdges, edgesUpdated)
-                    edgesUpdated = edgesToUpdate;
-
                 }
+                if(complete || !changed){break}
             }
-            return tempNewEdges
+            return tempNewEdges.map(({edge, sourceToMythic, destinationToMythic}) => ({
+                ...edge,
+                source_to_mythic: sourceToMythic,
+                destination_to_mythic: destinationToMythic,
+            }))
         }
-        if(extraNodes.current){
-            for(let i = 0; i < extraNodes.current.length; i++){
-                if(view_config["include_disconnected"]) {
-                    if(filterRow(extraNodes.current[i])){
+        if(providedNodes){
+            for(let i = 0; i < providedNodes.length; i++){
+                if(view_config["show_all_nodes"]) {
+                    if(filterRow(providedNodes[i])){
                         continue
                     }
-                    add_node(extraNodes.current[i], view_config);
+                    add_node(providedNodes[i], view_config);
                 }
             }
         }
@@ -1297,6 +1739,8 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
                 }
             }
         });
+        const visibleNodeCount = tempNodes.filter((node) => !node.hidden).length;
+        const shouldAnimateEdges = visibleNodeCount <= 20;
         for(let i = 0; i < tempEdges.length; i++){
             if(tempEdges[i].data.end_timestamp === null){
                 tempEdges[i].markerEnd = {
@@ -1304,7 +1748,8 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
                 }
                 tempEdges[i].style = {
                     stroke: theme.palette.success.main,
-                    strokeWidth: 2,
+                    strokeWidth: 2.5,
+                    opacity: 0.95,
                 }
             } else {
                 tempEdges[i].markerEnd = {
@@ -1313,6 +1758,7 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
                 tempEdges[i].style = {
                     stroke: theme.palette.error.main,
                     strokeWidth: 2,
+                    opacity: 0.72,
                 }
             }
             tempEdges[i].markerEnd.type = "arrowclosed"
@@ -1325,7 +1771,7 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
             }
             tempEdges[i].labelShowBg = true
             tempEdges[i].zIndex = 20;
-            tempEdges[i].animated = tempEdges[i].data.end_timestamp === null;
+            tempEdges[i].animated = shouldAnimateEdges && tempEdges[i].data.end_timestamp === null;
         }
         if(shouldUseGroups(view_config)){
             // only add in edges from parents to parents/mythic if we're doing egress flow
@@ -1415,8 +1861,9 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
             nodes: tempNodes,
             edges: tempEdges
         })
-    }, [edges, view_config, theme, filterOptions]);
+    }, [graphInputSignature]);
     React.useEffect( () => {
+        let cancelled = false;
         (async () => {
             if(graphData.nodes.length > 0){
                 const {newNodes, newEdges} = await createLayout({
@@ -1425,9 +1872,11 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
                     initialEdges: graphData.edges,
                     alignment: view_config["rankDir"]
                 });
+                if(cancelled){return}
                 setNodes(newNodes);
                 setEdgeFlow(newEdges);
                 window.requestAnimationFrame(() => {
+                    if(cancelled){return}
                     for(let i = 0; i < newNodes.length; i++){
                         updateNodeInternals(newNodes[i].id);
                     }
@@ -1435,12 +1884,17 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
                 });
             }
         })();
-    }, [graphData, view_config]);
+        return () => {
+            cancelled = true;
+        }
+    }, [graphData, view_config, setNodes, setEdgeFlow, updateNodeInternals, fitView]);
+    const onlyRenderVisibleGraphElements = nodes.length > 20;
+    const showMiniMap = nodes.length <= 250;
     return (
-        <div style={{height: "100%", width: "100%"}} ref={viewportRef}>
+        <div className="mythic-graph-canvas mythic-c2-flow-canvas" style={{height: "100%", width: "100%", position: "relative"}} ref={viewportRef}>
                 <ReactFlow
                     fitView
-                    onlyRenderVisibleElements={false}
+                    onlyRenderVisibleElements={onlyRenderVisibleGraphElements}
                     panOnScrollSpeed={30}
                     maxZoom={100}
                     minZoom={0}
@@ -1455,7 +1909,7 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
                     onNodeClick={onNodeSelected}
                 >
                     <Panel position={"top-left"} >{panel}</Panel>
-                    <Controls showInteractive={false} >
+                    <Controls showInteractive={false} className="mythic-graph-controls">
                         <ControlButton onClick={onDownloadImageClickPng} title={"Download PNG"}>
                             <CameraAltIcon />
                         </ControlButton>
@@ -1463,12 +1917,14 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
                             <InsertPhotoIcon />
                         </ControlButton>
                     </Controls>
-                    <MiniMap pannable={true} zoomable={true}  />
+                    {showMiniMap &&
+                        <MiniMap pannable={true} zoomable={true}  />
+                    }
                 </ReactFlow>
             {openContextMenu &&
-            <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu">
+            <div style={{...contextMenuCoord, position: "absolute"}} className="context-menu mythic-graph-context-menu">
                 {contextMenu.map( (m) => (
-                    <Button key={m.title} color={"info"} className="context-menu-button" onClick={() => {
+                    <Button key={m.title} color={"info"} className="context-menu-button mythic-graph-context-menu-button" onClick={() => {
                         m.onClick(contextMenuNode.current);
                         setOpenContextMenu(false);
                     }}>{m.title}</Button>
@@ -2133,7 +2589,7 @@ export const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme,
 
     }
     return (
-        <div style={{height: "100%", width: "100%", overflow: "hidden"}} ref={viewportRef}>
+        <div className="mythic-graph-canvas mythic-browser-script-graph-canvas" style={{height: "100%", width: "100%", overflow: "hidden"}} ref={viewportRef}>
             <ReactFlow
                 fitView
                 onlyRenderVisibleElements={false}
@@ -2153,7 +2609,7 @@ export const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme,
                 onEdgeClick={onEdgeSelected}
             >
                 <Panel position={"top-left"} >{panel}</Panel>
-                <Controls showInteractive={false} style={{marginLeft: "40px"}} >
+                <Controls showInteractive={false} className="mythic-graph-controls mythic-browser-script-graph-controls" >
                     <ControlButton onClick={toggleViewConfig} title={"Toggle View"}>
                         <SwapCallsIcon />
                     </ControlButton>
@@ -2167,9 +2623,9 @@ export const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme,
                 <MiniMap pannable={true} zoomable={true} />
             </ReactFlow>
             {openContextMenu &&
-                <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu">
+                <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu mythic-graph-context-menu">
                     {localContextMenu.map( (m) => (
-                        <Button key={m?.key ? m.key : m.title} color={"info"} className="context-menu-button" onClick={() => {
+                        <Button key={m?.key ? m.key : m.title} color={"info"} className="context-menu-button mythic-graph-context-menu-button" onClick={() => {
                             m.onClick(contextMenuNode.current);
                             setOpenContextMenu(false);
                         }}>{m.title}</Button>

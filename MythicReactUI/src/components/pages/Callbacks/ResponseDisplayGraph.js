@@ -78,12 +78,15 @@ export const ResponseDisplayGraph = ({graph, task, expand}) =>{
     if(!showGraph){
         return (
             <>
-                <div style={{display: "flex", width: "100%", height: "100%", justifyContent: "center", flexDirection: "column", alignItems: "center"}}>
-                    <Typography variant={"h4"} >
-                        {`Graph Hidden by Default Due to Size: Nodes (${graph.nodes.length}), Edges (${graph.edges.length}) `}
+                <div className="mythic-graph-empty-state">
+                    <Typography component="div" className="mythic-graph-empty-title">
+                        Large graph hidden
                     </Typography>
-                    <Button variant={"contained"} color={"error"} onClick={() => {setShowGraph(!showGraph)}}>
-                        {"Show Graph"}
+                    <Typography component="div" className="mythic-graph-empty-description">
+                        {`This response contains ${graph.nodes.length} nodes and ${graph.edges.length} edges.`}
+                    </Typography>
+                    <Button className="mythic-graph-empty-action" variant={"contained"} onClick={() => {setShowGraph(!showGraph)}}>
+                        Show Graph
                     </Button>
                 </div>
             </>
@@ -92,9 +95,12 @@ export const ResponseDisplayGraph = ({graph, task, expand}) =>{
     if(graph.nodes.length === 0){
         return (
             <>
-                <div style={{display: "flex", width: "100%", height: "100%", justifyContent: "center", flexDirection: "column", alignItems: "center"}}>
-                    <Typography variant={"h4"} >
-                        {`Empty Graph`}
+                <div className="mythic-graph-empty-state">
+                    <Typography component="div" className="mythic-graph-empty-title">
+                        Empty graph
+                    </Typography>
+                    <Typography component="div" className="mythic-graph-empty-description">
+                        There are no nodes to render for this response.
                     </Typography>
                 </div>
             </>

@@ -142,7 +142,6 @@ callback(where: {active: {_eq: true}}) {
       active
       id
       display_id
-      operation_id
       user
       host
       ip
@@ -150,26 +149,10 @@ callback(where: {active: {_eq: true}}) {
       os
       process_name
       integrity_level
-      extra_info
-      tags {
-        tagtype {
-            name
-            color
-            id
-          }
-        id
-      }
       payload {
         payloadtype {
           name
           id
-        }
-      }
-      callbackc2profiles {
-        c2profile {
-          name
-          has_logo
-          is_p2p
         }
       }
     }
@@ -177,7 +160,6 @@ callback(where: {active: {_eq: true}}) {
       active
       id
       display_id
-      operation_id
       user
       host
       ip
@@ -185,26 +167,10 @@ callback(where: {active: {_eq: true}}) {
       os
       process_name
       integrity_level
-      extra_info
-      tags {
-        tagtype {
-            name
-            color
-            id
-          }
-        id
-      }
       payload {
         payloadtype {
           name
           id
-        }
-      }
-      callbackc2profiles {
-        c2profile {
-          name
-          has_logo
-          is_p2p
         }
       }
     }
@@ -225,9 +191,7 @@ callbackgraphedge_stream(batch_size: 100, cursor: {initial_value: {updated_at: $
     destination {
       active
       id
-      color
       display_id
-      operation_id
       user
       host
       ip
@@ -235,35 +199,17 @@ callbackgraphedge_stream(batch_size: 100, cursor: {initial_value: {updated_at: $
       os
       process_name
       integrity_level
-      extra_info
-      tags {
-        tagtype {
-            name
-            color
-            id
-          }
-        id
-      }
       payload {
         payloadtype {
           name
           id
-        }
-      }
-      callbackc2profiles {
-        c2profile {
-          name
-          has_logo
-          is_p2p
         }
       }
     }
     source {
       active
       id
-      color
       display_id
-      operation_id
       user
       host
       ip
@@ -271,26 +217,10 @@ callbackgraphedge_stream(batch_size: 100, cursor: {initial_value: {updated_at: $
       os
       process_name
       integrity_level
-      extra_info
-      tags {
-        tagtype {
-            name
-            color
-            id
-          }
-        id
-      }
       payload {
         payloadtype {
           name
           id
-        }
-      }
-      callbackc2profiles {
-        c2profile {
-          name
-          has_logo
-          is_p2p
         }
       }
     }
