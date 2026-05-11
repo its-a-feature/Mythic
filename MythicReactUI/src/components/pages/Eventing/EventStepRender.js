@@ -1,4 +1,5 @@
 import React, {useCallback} from 'react';
+import {createPortal} from 'react-dom';
 import {gql, useQuery, useSubscription, useMutation, useLazyQuery} from '@apollo/client';
 import Typography from '@mui/material/Typography';
 import DialogActions from '@mui/material/DialogActions';
@@ -679,6 +680,12 @@ function EventStepRender({selectedEventGroup, useSuppliedData}) {
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
     const [contextMenuCoord, setContextMenuCord] = React.useState({});
     const contextMenuNode = React.useRef(null);
+    const getViewportContextMenuCoordinates = useCallback((event) => {
+        return {
+            top: event.clientY,
+            left: event.clientX,
+        };
+    }, []);
     const onNodeContextMenu = useCallback( (event, node) => {
         if(!contextMenu){return}
         if(node.type === "groupEventNode"){
@@ -686,12 +693,9 @@ function EventStepRender({selectedEventGroup, useSuppliedData}) {
         }
         event.preventDefault();
         contextMenuNode.current = {...node.data};
-        setContextMenuCord({
-            top:  event.clientY,
-            left:  event.clientX,
-        });
+        setContextMenuCord(getViewportContextMenuCoordinates(event));
         setOpenContextMenu(true);
-    }, [contextMenu])
+    }, [contextMenu, getViewportContextMenuCoordinates])
     const onPaneClick = useCallback( () => {
         setOpenContextMenu(false);
 
@@ -831,7 +835,7 @@ function EventStepRender({selectedEventGroup, useSuppliedData}) {
         })();
     }, [graphData]);
     return (
-        <div className="mythic-eventing-flow-canvas mythic-graph-canvas" ref={viewportRef}>
+        <div className="mythic-eventing-flow-canvas mythic-graph-canvas" ref={viewportRef} style={{position: "relative"}}>
             <ReactFlow
                 fitView
                 onlyRenderVisibleElements={false}
@@ -853,7 +857,7 @@ function EventStepRender({selectedEventGroup, useSuppliedData}) {
                 <Controls showInteractive={false} className="mythic-eventing-flow-controls mythic-graph-controls">
                 </Controls>
             </ReactFlow>
-            {openContextMenu &&
+            {openContextMenu && typeof document !== "undefined" && createPortal(
                 <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu mythic-graph-context-menu">
                     {contextMenu.map( (m) => (
                         <Button key={m.title} className="context-menu-button mythic-graph-context-menu-button mythic-table-row-action mythic-table-row-action-hover-info" variant="outlined" onClick={() => {
@@ -861,8 +865,9 @@ function EventStepRender({selectedEventGroup, useSuppliedData}) {
                             setOpenContextMenu(false);
                         }}>{m.title}</Button>
                     ))}
-                </div>
-            }
+                </div>,
+                document.body
+            )}
             {openEventStepDetails &&
                 <MythicDialog fullWidth={true} maxWidth="xl" open={openEventStepDetails}
                               onClose={() => {
@@ -978,6 +983,12 @@ function EventStepInstanceRender({selectedEventGroupInstance}) {
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
     const [contextMenuCoord, setContextMenuCord] = React.useState({});
     const contextMenuNode = React.useRef(null);
+    const getViewportContextMenuCoordinates = useCallback((event) => {
+        return {
+            top: event.clientY,
+            left: event.clientX,
+        };
+    }, []);
     const onNodeContextMenu = useCallback( (event, node) => {
         if(!contextMenu){return}
         if(node.type === "groupEventNode"){
@@ -985,12 +996,9 @@ function EventStepInstanceRender({selectedEventGroupInstance}) {
         }
         event.preventDefault();
         contextMenuNode.current = {...node.data};
-        setContextMenuCord({
-            top:  event.clientY,
-            left:  event.clientX,
-        });
+        setContextMenuCord(getViewportContextMenuCoordinates(event));
         setOpenContextMenu(true);
-    }, [contextMenu])
+    }, [contextMenu, getViewportContextMenuCoordinates])
     const onPaneClick = useCallback( () => {
         setOpenContextMenu(false);
 
@@ -1134,7 +1142,7 @@ function EventStepInstanceRender({selectedEventGroupInstance}) {
         })();
     }, [graphData]);
     return (
-        <div className="mythic-eventing-flow-canvas mythic-graph-canvas" ref={viewportRef}>
+        <div className="mythic-eventing-flow-canvas mythic-graph-canvas" ref={viewportRef} style={{position: "relative"}}>
             <ReactFlow
                 fitView
                 onlyRenderVisibleElements={false}
@@ -1154,7 +1162,7 @@ function EventStepInstanceRender({selectedEventGroupInstance}) {
                 <Controls showInteractive={false} className="mythic-eventing-flow-controls mythic-graph-controls">
                 </Controls>
             </ReactFlow>
-            {openContextMenu &&
+            {openContextMenu && typeof document !== "undefined" && createPortal(
                 <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu mythic-graph-context-menu">
                     {contextMenu.map( (m) => (
                         <Button key={m.title} className="context-menu-button mythic-graph-context-menu-button mythic-table-row-action mythic-table-row-action-hover-info" variant="outlined" onClick={() => {
@@ -1162,8 +1170,9 @@ function EventStepInstanceRender({selectedEventGroupInstance}) {
                             setOpenContextMenu(false);
                         }}>{m.title}</Button>
                     ))}
-                </div>
-            }
+                </div>,
+                document.body
+            )}
             {openEventStepInstanceDetails &&
                 <MythicDialog fullWidth={true} maxWidth="xl" open={openEventStepInstanceDetails}
                               onClose={() => {
