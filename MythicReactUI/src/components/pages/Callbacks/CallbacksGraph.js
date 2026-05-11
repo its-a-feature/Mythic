@@ -58,8 +58,8 @@ const GraphViewOptions = ({viewConfig, setViewConfig}) => {
     const theme = useTheme();
     const [showConfiguration, setShowConfiguration] = React.useState(false);
     const labelComponentOptions = ["display_id", "user", "host", "ip", "domain", "os", "process_name"];
-    const [selectedComponentOptions, setSelectedComponentOptions] = React.useState(["display_id", "user"]);
-    const [selectedGroupBy, setSelectedGroupBy] = React.useState("None");
+    const [selectedComponentOptions, setSelectedComponentOptions] = React.useState(viewConfig?.label_components || ["display_id", "user"]);
+    const [selectedGroupBy, setSelectedGroupBy] = React.useState(viewConfig?.group_by || "None");
     const groupByOptions = ["host", "user", "ip", "domain", "os", "process_name", "None"];
     const handleChange = (event) => {
         const {
@@ -237,7 +237,7 @@ export function CallbacksGraph({onOpenTab}){
         packet_flow_view: true,
         include_disconnected: false,
         show_all_nodes: false,
-        group_by: "None"
+        group_by: "host"
     });
     const [hideCallback] = useMutation(hideCallbackMutation, {
         update: (cache, {data}) => {
