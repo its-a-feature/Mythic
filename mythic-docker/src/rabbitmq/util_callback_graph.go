@@ -59,6 +59,18 @@ type bfsCacheEntry struct {
 
 var BFSCache bfsCache
 
+type callbackCheckinTargetCache struct {
+	cache map[int]callbackCheckinTargetCacheEntry
+	lock  sync.RWMutex
+}
+
+type callbackCheckinTargetCacheEntry struct {
+	graphVersion uint64
+	callbackIDs  []int
+}
+
+var callbackCheckinTargets callbackCheckinTargetCache
+
 func (c *bfsCache) GetPath(sourceId int, destinationId int, graphVersion uint64) ([]cbGraphAdjMatrixEntry, bool) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
@@ -91,18 +103,51 @@ func (c *bfsCache) Add(sourceId int, destinationId int, graphVersion uint64, bfs
 	}
 }
 
+func (c *callbackCheckinTargetCache) Get(callbackID int, graphVersion uint64) ([]int, bool) {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	if cachedIDs, ok := c.cache[callbackID]; ok && cachedIDs.graphVersion == graphVersion {
+		return cloneTaskIDs(cachedIDs.callbackIDs), true
+	}
+	return nil, false
+}
+
+func (c *callbackCheckinTargetCache) Reset() {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	c.cache = make(map[int]callbackCheckinTargetCacheEntry)
+}
+
+func (c *callbackCheckinTargetCache) Add(callbackID int, graphVersion uint64, callbackIDs []int) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	if c.cache == nil {
+		c.cache = make(map[int]callbackCheckinTargetCacheEntry)
+	}
+	c.cache[callbackID] = callbackCheckinTargetCacheEntry{
+		graphVersion: graphVersion,
+		callbackIDs:  cloneTaskIDs(callbackIDs),
+	}
+}
+
 func (g *cbGraph) bumpVersionLocked() {
 	g.version += 1
 	BFSCache.Reset()
+	callbackCheckinTargets.Reset()
 }
 
 func (g *cbGraph) getAllChildIDs(callbackId int) []int {
 	g.lock.RLock()
-	defer g.lock.RUnlock()
-	visitedIDs := map[int]bool{}
+	graphVersion := g.version
+	if cachedCallbackIDs, ok := callbackCheckinTargets.Get(callbackId, graphVersion); ok {
+		g.lock.RUnlock()
+		return cachedCallbackIDs
+	}
+	visitedIDs := map[int]bool{callbackId: true}
 	needToVisitIDs := []int{callbackId}
 	callbackIDsToUpdate := []int{callbackId}
-	callbacksWithEgress := []int{}
+	callbackIDsToUpdateMap := map[int]bool{callbackId: true}
+	callbacksWithEgress := map[int]bool{}
 	for len(needToVisitIDs) > 0 {
 		// get the next id we're going to check
 		currentId := needToVisitIDs[0]
@@ -117,7 +162,7 @@ func (g *cbGraph) getAllChildIDs(callbackId int) []int {
 		for i, _ := range immediateChildren {
 			if immediateChildren[i].SourceId == immediateChildren[i].DestinationId && immediateChildren[i].SourceId != callbackId {
 				//logging.LogInfo("found egress connection", "id", immediateChildren[i])
-				callbacksWithEgress = append(callbacksWithEgress, immediateChildren[i].SourceId)
+				callbacksWithEgress[immediateChildren[i].SourceId] = true
 			}
 			// check if we've already visited this id, if so, move on
 			if _, visited := visitedIDs[immediateChildren[i].SourceId]; !visited {
@@ -126,7 +171,10 @@ func (g *cbGraph) getAllChildIDs(callbackId int) []int {
 				if !isCallbackStreaming(immediateChildren[i].SourceId) {
 					// add this id as an id for the next iteration to check its children
 					needToVisitIDs = append(needToVisitIDs, immediateChildren[i].SourceId)
-					callbackIDsToUpdate = append(callbackIDsToUpdate, immediateChildren[i].SourceId)
+					if !callbackIDsToUpdateMap[immediateChildren[i].SourceId] {
+						callbackIDsToUpdate = append(callbackIDsToUpdate, immediateChildren[i].SourceId)
+						callbackIDsToUpdateMap[immediateChildren[i].SourceId] = true
+					}
 				}
 
 			}
@@ -136,7 +184,10 @@ func (g *cbGraph) getAllChildIDs(callbackId int) []int {
 				if !isCallbackStreaming(immediateChildren[i].DestinationId) {
 					// add this id as an id for the next iteration to check its children
 					needToVisitIDs = append(needToVisitIDs, immediateChildren[i].DestinationId)
-					callbackIDsToUpdate = append(callbackIDsToUpdate, immediateChildren[i].DestinationId)
+					if !callbackIDsToUpdateMap[immediateChildren[i].DestinationId] {
+						callbackIDsToUpdate = append(callbackIDsToUpdate, immediateChildren[i].DestinationId)
+						callbackIDsToUpdateMap[immediateChildren[i].DestinationId] = true
+					}
 				}
 			}
 		}
@@ -145,13 +196,15 @@ func (g *cbGraph) getAllChildIDs(callbackId int) []int {
 	finalCallbackIDsToUpdate := []int{}
 	for _, callbackIdToUpdate := range callbackIDsToUpdate {
 		//logging.LogInfo("checking if should update", "callbackIdToUpdate", callbackIdToUpdate)
-		if slices.Contains(callbacksWithEgress, callbackIdToUpdate) || slices.Contains(finalCallbackIDsToUpdate, callbackIdToUpdate) {
+		if callbacksWithEgress[callbackIdToUpdate] {
 			//logging.LogInfo("checking if should update", "its egress", true, "callbackIdToUpdate", callbackIdToUpdate)
 			continue
 		}
 		//logging.LogInfo("checking if should update", "its egress", false, "callbackIdToUpdate", callbackIdToUpdate)
 		finalCallbackIDsToUpdate = append(finalCallbackIDsToUpdate, callbackIdToUpdate)
 	}
+	g.lock.RUnlock()
+	callbackCheckinTargets.Add(callbackId, graphVersion, finalCallbackIDsToUpdate)
 	return finalCallbackIDsToUpdate
 }
 func updateTimes(updatedTime time.Time, callbackIDs []int) {
@@ -181,9 +234,11 @@ func listenForPushConnectDisconnectMessages() {
 	for {
 		select {
 		case connectCallbackId := <-pushC2StreamingConnectNotification:
+			callbackCheckinTargets.Reset()
 			callbackIDs := callbackGraph.getAllChildIDs(connectCallbackId)
 			updateTimes(time.UnixMicro(0), callbackIDs)
 		case disconnectCallbackId := <-pushC2StreamingDisconnectNotification:
+			callbackCheckinTargets.Reset()
 			callbackIDs := callbackGraph.getAllChildIDs(disconnectCallbackId)
 			updateTimes(time.Now().UTC(), callbackIDs)
 		}
@@ -214,6 +269,7 @@ func (g *cbGraph) Initialize() {
 		}
 	}
 	BFSCache.Reset()
+	callbackCheckinTargets.Reset()
 }
 func (g *cbGraph) Add(source databaseStructs.Callback, destination databaseStructs.Callback, c2profileName string, initializing bool) {
 	c2 := getC2ProfileForName(c2profileName)
@@ -241,20 +297,9 @@ func (g *cbGraph) Add(source databaseStructs.Callback, destination databaseStruc
 	for _, dest := range g.adjMatrix[source.ID] {
 		if dest.DestinationId == destination.ID && dest.C2ProfileName == c2profileName {
 			g.lock.Unlock()
-			//logging.LogDebug("Found existing connection, not adding new one to memory", "source", source.ID, "destination", destination.ID, "c2 profile", c2profileName)
-			if initializing || c2.IsP2p {
-				// don't update callback times when initializing, this is when the Mythic server starts up
-				return
-			}
-			updateTime := time.Now().UTC()
-			if isCallbackStreaming(source.ID) {
-				updateTime = time.UnixMicro(0)
-			}
-			callbackIDs := g.getAllChildIDs(source.ID)
-			if len(callbackIDs) > 0 {
-				//logging.LogInfo("about to call updateTimes in Add", "callbackIDs", callbackIDs, "c2", c2profileName, "source", source.ID, "destination", destination.ID)
-				updateTimes(updateTime, callbackIDs)
-			}
+			// Existing edges are now handled as a pure no-op. Check-in timestamp
+			// propagation is batched through updateCheckinTimeEverySecond instead
+			// of using Add as a side effect.
 			return
 		}
 	}

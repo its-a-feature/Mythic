@@ -26,10 +26,12 @@ import (
 type CallbackPortType = string
 
 const (
-	CALLBACK_PORT_TYPE_SOCKS       CallbackPortType = "socks"
-	CALLBACK_PORT_TYPE_RPORTFWD                     = "rpfwd"
-	CALLBACK_PORT_TYPE_INTERACTIVE                  = "interactive"
-	callbackPortByteFlushInterval                   = 20 * time.Second
+	CALLBACK_PORT_TYPE_SOCKS        CallbackPortType = "socks"
+	CALLBACK_PORT_TYPE_RPORTFWD                      = "rpfwd"
+	CALLBACK_PORT_TYPE_INTERACTIVE                   = "interactive"
+	callbackPortByteFlushInterval                    = 20 * time.Second
+	proxyFromAgentMessageShardCount                  = 16
+	proxyFromAgentMessageShardSize                   = 1000
 )
 
 type proxyToAgentMessage struct {
@@ -86,11 +88,12 @@ type callbackPortUsage struct {
 }
 
 type callbackPortsInUse struct {
-	ports                        []*callbackPortUsage
-	portsByCallbackID            map[int][]*callbackPortUsage
-	portsByCallbackIDAndType     map[int]map[CallbackPortType][]*callbackPortUsage
-	callbacksWithPorts           []int
-	proxyFromAgentMessageChannel chan ProxyFromAgentMessageForMythic
+	ports                             []*callbackPortUsage
+	portsByCallbackID                 map[int][]*callbackPortUsage
+	portsByCallbackIDAndType          map[int]map[CallbackPortType][]*callbackPortUsage
+	portsByCallbackIDTypeAndLocalPort map[int]map[CallbackPortType]map[int]*callbackPortUsage
+	callbacksWithPorts                []int
+	proxyFromAgentMessageChannels     []chan ProxyFromAgentMessageForMythic
 	sync.RWMutex
 }
 
@@ -219,9 +222,10 @@ func (c *callbackPortsInUse) Initialize() {
 	c.Lock()
 	c.ports = make([]*callbackPortUsage, 0)
 	c.resetPortIndexesLocked()
-	c.proxyFromAgentMessageChannel = make(chan ProxyFromAgentMessageForMythic, 2000)
+	c.proxyFromAgentMessageChannels = makeProxyFromAgentMessageChannels()
+	proxyFromAgentMessageChannels := c.proxyFromAgentMessageChannels
 	c.Unlock()
-	go c.ListenForProxyFromAgentMessage()
+	c.startProxyFromAgentMessageListeners(proxyFromAgentMessageChannels)
 	go c.ListenForNewByteTransferUpdates()
 	if err := database.DB.Select(&callbackPorts, `SELECT 
     	callbackport.id, callbackport.callback_id, callbackport.task_id, 
@@ -272,16 +276,41 @@ func (c *callbackPortsInUse) Initialize() {
 func (c *callbackPortsInUse) resetPortIndexesLocked() {
 	c.portsByCallbackID = make(map[int][]*callbackPortUsage)
 	c.portsByCallbackIDAndType = make(map[int]map[CallbackPortType][]*callbackPortUsage)
+	c.portsByCallbackIDTypeAndLocalPort = make(map[int]map[CallbackPortType]map[int]*callbackPortUsage)
 	c.callbacksWithPorts = make([]int, 0)
 }
 
 func (c *callbackPortsInUse) ensurePortIndexesLocked() {
-	if c.portsByCallbackID == nil || c.portsByCallbackIDAndType == nil {
+	if c.portsByCallbackID == nil || c.portsByCallbackIDAndType == nil || c.portsByCallbackIDTypeAndLocalPort == nil {
 		ports := c.ports
 		c.resetPortIndexesLocked()
 		for _, port := range ports {
 			c.addPortToIndexesLocked(port)
 		}
+	}
+}
+
+func makeProxyFromAgentMessageChannels() []chan ProxyFromAgentMessageForMythic {
+	channels := make([]chan ProxyFromAgentMessageForMythic, proxyFromAgentMessageShardCount)
+	for i := range channels {
+		channels[i] = make(chan ProxyFromAgentMessageForMythic, proxyFromAgentMessageShardSize)
+	}
+	return channels
+}
+
+func proxyFromAgentMessageShard(callbackID int, shardCount int) int {
+	if shardCount <= 0 {
+		return 0
+	}
+	if callbackID < 0 {
+		callbackID = -callbackID
+	}
+	return callbackID % shardCount
+}
+
+func (c *callbackPortsInUse) startProxyFromAgentMessageListeners(channels []chan ProxyFromAgentMessageForMythic) {
+	for _, channel := range channels {
+		go c.ListenForProxyFromAgentMessage(channel)
 	}
 }
 
@@ -300,6 +329,15 @@ func (c *callbackPortsInUse) addPortToIndexesLocked(port *callbackPortUsage) {
 		c.portsByCallbackIDAndType[port.CallbackID] = make(map[CallbackPortType][]*callbackPortUsage)
 	}
 	c.portsByCallbackIDAndType[port.CallbackID][port.PortType] = append(c.portsByCallbackIDAndType[port.CallbackID][port.PortType], port)
+	if _, ok := c.portsByCallbackIDTypeAndLocalPort[port.CallbackID]; !ok {
+		c.portsByCallbackIDTypeAndLocalPort[port.CallbackID] = make(map[CallbackPortType]map[int]*callbackPortUsage)
+	}
+	if _, ok := c.portsByCallbackIDTypeAndLocalPort[port.CallbackID][port.PortType]; !ok {
+		c.portsByCallbackIDTypeAndLocalPort[port.CallbackID][port.PortType] = make(map[int]*callbackPortUsage)
+	}
+	if _, ok := c.portsByCallbackIDTypeAndLocalPort[port.CallbackID][port.PortType][port.LocalPort]; !ok {
+		c.portsByCallbackIDTypeAndLocalPort[port.CallbackID][port.PortType][port.LocalPort] = port
+	}
 }
 
 func (c *callbackPortsInUse) removePortLocked(port *callbackPortUsage) bool {
@@ -323,12 +361,33 @@ func (c *callbackPortsInUse) removePortFromIndexesLocked(port *callbackPortUsage
 	if len(c.portsByCallbackID[port.CallbackID]) == 0 {
 		delete(c.portsByCallbackID, port.CallbackID)
 		delete(c.portsByCallbackIDAndType, port.CallbackID)
+		delete(c.portsByCallbackIDTypeAndLocalPort, port.CallbackID)
 		c.callbacksWithPorts = removeProxyCallbackID(c.callbacksWithPorts, port.CallbackID)
 		return
 	}
 	c.portsByCallbackIDAndType[port.CallbackID][port.PortType] = removeCallbackPortUsage(c.portsByCallbackIDAndType[port.CallbackID][port.PortType], port)
 	if len(c.portsByCallbackIDAndType[port.CallbackID][port.PortType]) == 0 {
 		delete(c.portsByCallbackIDAndType[port.CallbackID], port.PortType)
+		delete(c.portsByCallbackIDTypeAndLocalPort[port.CallbackID], port.PortType)
+		if len(c.portsByCallbackIDTypeAndLocalPort[port.CallbackID]) == 0 {
+			delete(c.portsByCallbackIDTypeAndLocalPort, port.CallbackID)
+		}
+		return
+	}
+	c.replaceLocalPortIndexAfterRemovalLocked(port)
+}
+
+func (c *callbackPortsInUse) replaceLocalPortIndexAfterRemovalLocked(port *callbackPortUsage) {
+	localPortIndex := c.portsByCallbackIDTypeAndLocalPort[port.CallbackID][port.PortType]
+	if localPortIndex[port.LocalPort] != port {
+		return
+	}
+	delete(localPortIndex, port.LocalPort)
+	for _, replacementPort := range c.portsByCallbackIDAndType[port.CallbackID][port.PortType] {
+		if replacementPort.LocalPort == port.LocalPort {
+			localPortIndex[port.LocalPort] = replacementPort
+			return
+		}
 	}
 }
 
@@ -544,6 +603,38 @@ func (c *callbackPortsInUse) getPortsForCallbackAndTypeFromSliceLocked(callbackI
 	return ports
 }
 
+func (c *callbackPortsInUse) getPortForCallbackTypeAndLocalPort(callbackID int, portType CallbackPortType, localPort int) *callbackPortUsage {
+	c.RLock()
+	defer c.RUnlock()
+	if localPort > 0 && c.portsByCallbackIDTypeAndLocalPort != nil {
+		return c.portsByCallbackIDTypeAndLocalPort[callbackID][portType][localPort]
+	}
+	if c.portsByCallbackIDAndType != nil {
+		ports := c.portsByCallbackIDAndType[callbackID][portType]
+		if localPort <= 0 {
+			if len(ports) == 0 {
+				return nil
+			}
+			return ports[0]
+		}
+		for _, port := range ports {
+			if port.LocalPort == localPort {
+				return port
+			}
+		}
+		return nil
+	}
+	for _, port := range c.ports {
+		if port.CallbackID != callbackID || port.PortType != portType {
+			continue
+		}
+		if localPort <= 0 || port.LocalPort == localPort {
+			return port
+		}
+	}
+	return nil
+}
+
 func (c *callbackPortsInUse) getPortsForCallbackByType(callbackID int, portTypes []CallbackPortType) map[CallbackPortType][]*callbackPortUsage {
 	portsByType := make(map[CallbackPortType][]*callbackPortUsage, len(portTypes))
 	c.RLock()
@@ -642,44 +733,33 @@ func updateCallbackPortStats(field string, value int64, callbackPortID int) bool
 	}
 	return true
 }
-func (c *callbackPortsInUse) ListenForProxyFromAgentMessage() {
-	for {
-		agentMessage := <-c.proxyFromAgentMessageChannel
-		switch agentMessage.PortType {
-		case CALLBACK_PORT_TYPE_RPORTFWD:
-			fallthrough
-		case CALLBACK_PORT_TYPE_SOCKS:
-			ports := c.getPortsForCallbackAndType(agentMessage.CallbackID, agentMessage.PortType)
-			// loop through each message and find the corresponding callback + local port combo
-			for j := 0; j < len(agentMessage.Messages); j++ {
-				for _, port := range ports {
-					if agentMessage.Messages[j].Port > 0 {
-						// port is specified, try to find the right one
-						if port.LocalPort == agentMessage.Messages[j].Port {
-							port.messagesFromAgent <- agentMessage.Messages[j]
-							break
-						}
-					} else {
-						// didn't specify a specific port, to just send it to the first matching type
-						port.messagesFromAgent <- agentMessage.Messages[j]
-						break
-					}
-				}
-				//logging.LogInfo("got message from agent", "chan", messages[j].ServerID, "p.messagesFromAgentQueue", len(c.ports[i].messagesFromAgent))
-				//c.ports[i].messagesFromAgent <- agentMessage.Messages[j]
-			}
-		case CALLBACK_PORT_TYPE_INTERACTIVE:
-			ports := c.getPortsForCallbackAndType(agentMessage.CallbackID, agentMessage.PortType)
-			if len(ports) > 0 {
-				for j := 0; j < len(agentMessage.InteractiveMessages); j++ {
-					//logging.LogInfo("got message from agent", "chan", messages[j].ServerID, "p.messagesFromAgentQueue", len(c.ports[i].messagesFromAgent))
-					ports[0].interactiveMessagesFromAgent <- agentMessage.InteractiveMessages[j]
-				}
-				handleAgentMessagePostResponseInteractiveOutput(&agentMessage.InteractiveMessages)
-			} else {
-				go handleAgentMessagePostResponseInteractiveOutput(&agentMessage.InteractiveMessages)
-			}
+func (c *callbackPortsInUse) ListenForProxyFromAgentMessage(channel <-chan ProxyFromAgentMessageForMythic) {
+	for agentMessage := range channel {
+		c.routeProxyFromAgentMessage(agentMessage)
+	}
+}
 
+func (c *callbackPortsInUse) routeProxyFromAgentMessage(agentMessage ProxyFromAgentMessageForMythic) {
+	switch agentMessage.PortType {
+	case CALLBACK_PORT_TYPE_RPORTFWD:
+		fallthrough
+	case CALLBACK_PORT_TYPE_SOCKS:
+		for j := 0; j < len(agentMessage.Messages); j++ {
+			port := c.getPortForCallbackTypeAndLocalPort(agentMessage.CallbackID, agentMessage.PortType, agentMessage.Messages[j].Port)
+			if port == nil {
+				continue
+			}
+			port.messagesFromAgent <- agentMessage.Messages[j]
+		}
+	case CALLBACK_PORT_TYPE_INTERACTIVE:
+		port := c.getPortForCallbackTypeAndLocalPort(agentMessage.CallbackID, agentMessage.PortType, 0)
+		if port != nil {
+			for j := 0; j < len(agentMessage.InteractiveMessages); j++ {
+				port.interactiveMessagesFromAgent <- agentMessage.InteractiveMessages[j]
+			}
+			handleAgentMessagePostResponseInteractiveOutput(&agentMessage.InteractiveMessages)
+		} else {
+			go handleAgentMessagePostResponseInteractiveOutput(&agentMessage.InteractiveMessages)
 		}
 	}
 }
@@ -804,19 +884,34 @@ func (d callbackProxyData) AddToResponse(response map[string]interface{}) {
 	}
 }
 
+func (c *callbackPortsInUse) sendProxyFromAgentMessage(message ProxyFromAgentMessageForMythic) {
+	c.RLock()
+	channels := c.proxyFromAgentMessageChannels
+	if len(channels) > 0 {
+		channel := channels[proxyFromAgentMessageShard(message.CallbackID, len(channels))]
+		c.RUnlock()
+		channel <- message
+		return
+	}
+	c.RUnlock()
+	// Tests and partially initialized registries may not have listener channels.
+	// Route synchronously in that case instead of blocking on a nil channel.
+	c.routeProxyFromAgentMessage(message)
+}
+
 func (c *callbackPortsInUse) SendDataToCallbackIdPortType(callbackId int, portType CallbackPortType, messages []proxyFromAgentMessage) {
-	c.proxyFromAgentMessageChannel <- ProxyFromAgentMessageForMythic{
+	c.sendProxyFromAgentMessage(ProxyFromAgentMessageForMythic{
 		CallbackID: callbackId,
 		PortType:   portType,
 		Messages:   messages,
-	}
+	})
 }
 func (c *callbackPortsInUse) SendInteractiveDataToCallbackIdPortType(callbackId int, portType CallbackPortType, messages []agentMessagePostResponseInteractive) {
-	c.proxyFromAgentMessageChannel <- ProxyFromAgentMessageForMythic{
+	c.sendProxyFromAgentMessage(ProxyFromAgentMessageForMythic{
 		CallbackID:          callbackId,
 		PortType:            portType,
 		InteractiveMessages: messages,
-	}
+	})
 }
 func (c *callbackPortsInUse) GetOtherCallbackIds(callbackId int) []int {
 	callbackIds := []int{}
