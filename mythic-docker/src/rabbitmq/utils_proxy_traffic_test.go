@@ -176,6 +176,122 @@ func TestCallbackPortsInUsePendingDelegateCallbacksIncludeInteractiveTasks(t *te
 	}
 }
 
+func TestCallbackPortsInUseRoutesAgentProxyMessageByLocalPort(t *testing.T) {
+	registry := callbackPortsInUse{}
+	firstPort := newTestCallbackPort(10, CALLBACK_PORT_TYPE_SOCKS, 7001, 1)
+	secondPort := newTestCallbackPort(10, CALLBACK_PORT_TYPE_SOCKS, 7002, 2)
+	addTestCallbackPort(&registry, firstPort)
+	addTestCallbackPort(&registry, secondPort)
+
+	registry.routeProxyFromAgentMessage(ProxyFromAgentMessageForMythic{
+		CallbackID: 10,
+		PortType:   CALLBACK_PORT_TYPE_SOCKS,
+		Messages: []proxyFromAgentMessage{
+			{ServerID: 1, Message: "second", Port: 7002},
+		},
+	})
+
+	select {
+	case message := <-secondPort.messagesFromAgent:
+		if message.Message != "second" {
+			t.Fatalf("expected message to route to second port, got %#v", message)
+		}
+	default:
+		t.Fatal("expected message to route directly to local port 7002")
+	}
+	select {
+	case message := <-firstPort.messagesFromAgent:
+		t.Fatalf("expected first port to remain empty, got %#v", message)
+	default:
+	}
+}
+
+func TestCallbackPortsInUseRoutesAgentProxyMessageWithoutPortToFirstTypeMatch(t *testing.T) {
+	registry := callbackPortsInUse{}
+	firstPort := newTestCallbackPort(10, CALLBACK_PORT_TYPE_RPORTFWD, 7001, 1)
+	secondPort := newTestCallbackPort(10, CALLBACK_PORT_TYPE_RPORTFWD, 7002, 2)
+	addTestCallbackPort(&registry, firstPort)
+	addTestCallbackPort(&registry, secondPort)
+
+	registry.routeProxyFromAgentMessage(ProxyFromAgentMessageForMythic{
+		CallbackID: 10,
+		PortType:   CALLBACK_PORT_TYPE_RPORTFWD,
+		Messages: []proxyFromAgentMessage{
+			{ServerID: 1, Message: "first"},
+		},
+	})
+
+	select {
+	case message := <-firstPort.messagesFromAgent:
+		if message.Message != "first" {
+			t.Fatalf("expected message to route to first matching port, got %#v", message)
+		}
+	default:
+		t.Fatal("expected message without local port to route to first matching type")
+	}
+	select {
+	case message := <-secondPort.messagesFromAgent:
+		t.Fatalf("expected second port to remain empty, got %#v", message)
+	default:
+	}
+}
+
+func TestCallbackPortsInUseRemovesLocalPortRouteIndex(t *testing.T) {
+	registry := callbackPortsInUse{}
+	port := newTestCallbackPort(10, CALLBACK_PORT_TYPE_SOCKS, 7001, 1)
+	addTestCallbackPort(&registry, port)
+	removeTestCallbackPort(&registry, port)
+
+	registry.routeProxyFromAgentMessage(ProxyFromAgentMessageForMythic{
+		CallbackID: 10,
+		PortType:   CALLBACK_PORT_TYPE_SOCKS,
+		Messages: []proxyFromAgentMessage{
+			{ServerID: 1, Message: "removed", Port: 7001},
+		},
+	})
+
+	select {
+	case message := <-port.messagesFromAgent:
+		t.Fatalf("expected removed port to remain empty, got %#v", message)
+	default:
+	}
+}
+
+func TestCallbackPortsInUseReplacesDuplicateLocalPortRouteIndex(t *testing.T) {
+	registry := callbackPortsInUse{}
+	firstPort := newTestCallbackPort(10, CALLBACK_PORT_TYPE_SOCKS, 7001, 1)
+	secondPort := newTestCallbackPort(10, CALLBACK_PORT_TYPE_SOCKS, 7001, 2)
+	addTestCallbackPort(&registry, firstPort)
+	addTestCallbackPort(&registry, secondPort)
+	removeTestCallbackPort(&registry, firstPort)
+
+	registry.routeProxyFromAgentMessage(ProxyFromAgentMessageForMythic{
+		CallbackID: 10,
+		PortType:   CALLBACK_PORT_TYPE_SOCKS,
+		Messages: []proxyFromAgentMessage{
+			{ServerID: 1, Message: "replacement", Port: 7001},
+		},
+	})
+
+	select {
+	case message := <-secondPort.messagesFromAgent:
+		if message.Message != "replacement" {
+			t.Fatalf("expected duplicate local port replacement to receive message, got %#v", message)
+		}
+	default:
+		t.Fatal("expected duplicate local port replacement to receive message")
+	}
+}
+
+func TestProxyFromAgentMessageShardPreservesCallbackOrdering(t *testing.T) {
+	if firstShard := proxyFromAgentMessageShard(10, proxyFromAgentMessageShardCount); firstShard != proxyFromAgentMessageShard(10, proxyFromAgentMessageShardCount) {
+		t.Fatalf("expected same callback to map to the same shard, got %d", firstShard)
+	}
+	if shard := proxyFromAgentMessageShard(10, 0); shard != 0 {
+		t.Fatalf("expected zero shard count to return shard 0, got %d", shard)
+	}
+}
+
 func TestCallbackPortUsagePendingDataTracksQueuedMessages(t *testing.T) {
 	port := newTestCallbackPort(10, CALLBACK_PORT_TYPE_SOCKS, 7001, 1)
 
