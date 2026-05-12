@@ -134,7 +134,7 @@ func consumingServicesSync(in ConsumingContainerSyncMessage) error {
 	}
 	go SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s",
 		consumingContainer.Name, in.ContainerVersion), 0, "debug", database.MESSAGE_LEVEL_DEBUG, false)
-	go ResolveAllOperationsMessage(getDownContainerMessage(consumingContainer.Name), 0)
+	go ResolveAllOperationsMessageBySource(getDownContainerSource(consumingContainer.Name), 0)
 	checkContainerStatusAddConsumingContainerChannel <- consumingContainer
 	// update eventgroup consumingcontainer mappings
 	eventing.UpdateEventGroupConsumingContainersMappingByConsumingContainer(consumingContainer)

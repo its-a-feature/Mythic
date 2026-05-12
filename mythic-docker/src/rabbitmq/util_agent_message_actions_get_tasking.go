@@ -6,10 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"sort"
 	"time"
 
 	"github.com/its-a-feature/Mythic/database"
-	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/jmoiron/sqlx"
 )
@@ -196,6 +196,18 @@ func shouldAgentMessageGetDelegateTasks(incoming map[string]interface{}) bool {
 	return parsedGetDelegateTasks
 }
 
+func selectAgentMessageTaskIDsForIssue(taskIDs []int, taskingSize int) []int {
+	if len(taskIDs) == 0 || taskingSize == 0 {
+		return nil
+	}
+	taskIDsToIssue := cloneTaskIDs(taskIDs)
+	sort.Ints(taskIDsToIssue)
+	if taskingSize < 0 || taskingSize >= len(taskIDsToIssue) {
+		return taskIDsToIssue
+	}
+	return taskIDsToIssue[:taskingSize]
+}
+
 func handleAgentMessageGetTasking(incoming *map[string]interface{}, callbackID int) (map[string]interface{}, error) {
 	// got message:
 	/*
@@ -211,63 +223,33 @@ func handleAgentMessageGetTasking(incoming *map[string]interface{}, callbackID i
 		1. check for direct tasks
 		2. check for delegate tasks
 	*/
-	currentTasks := []databaseStructs.Task{}
-	if taskIDs := submittedTasksAwaitingFetching.getTasksForCallbackId(callbackID); len(taskIDs) > 0 {
-		query, args, err := sqlx.Named(`SELECT 
-    		agent_task_id, "timestamp", command_name, params, id, token_id
-			FROM task WHERE id IN (:ids) ORDER BY id ASC`, map[string]interface{}{
-			"ids": taskIDs,
-		})
-		if err != nil {
-			logging.LogError(err, "Failed to make named statement when searching for tasks")
-			return nil, errors.New("failed to make statement to search for tasks")
-		}
-		query, args, err = sqlx.In(query, args...)
-		if err != nil {
-			logging.LogError(err, "Failed to do sqlx.In")
-			return nil, errors.New("failed to make query to search for tasks")
-		}
-		query = database.DB.Rebind(query)
-		err = database.DB.Select(&currentTasks, query, args...)
-		if err != nil {
-			logging.LogError(err, "Failed to exec sqlx.IN modified statement")
-			return nil, errors.New("failed to search for tasks")
-		}
-	}
-
 	agentMessage, err := decodeAgentMessageGetTasking(*incoming)
 	if err != nil {
 		logging.LogError(err, "Failed to decode agent message into struct")
 		return nil, errors.New(fmt.Sprintf("Failed to decode agent message into agentMessageGetTasking struct: %s", err.Error()))
 	}
 	tasksToIssue := []agentMessageGetTaskingTask{}
-	currentTaskCount := 0
+	issuedTaskIDs := []int{}
+	currentTasks := []agentMessageTaskRow{}
+	if taskIDs := selectAgentMessageTaskIDsForIssue(submittedTasksAwaitingFetching.getTasksForCallbackId(callbackID), agentMessage.TaskingSize); len(taskIDs) > 0 {
+		currentTasks, err = getAgentMessageTaskRows(taskIDs)
+		if err != nil {
+			logging.LogError(err, "Failed to fetch direct tasking")
+			return nil, errors.New("failed to search for tasks")
+		}
+	}
 	for _, task := range currentTasks {
-		if currentTaskCount < agentMessage.TaskingSize || agentMessage.TaskingSize < 0 {
-			newTask := agentMessageGetTaskingTask{
-				Command:    task.CommandName,
-				Parameters: task.Params,
-				ID:         task.AgentTaskID,
-				Timestamp:  task.Timestamp.Unix(),
+		tasksToIssue = append(tasksToIssue, buildAgentMessageTask(task))
+		issuedTaskIDs = append(issuedTaskIDs, task.ID)
+	}
+	if len(issuedTaskIDs) > 0 {
+		if err := markAgentMessageTasksProcessing(issuedTaskIDs, time.Now().UTC()); err != nil {
+			logging.LogError(err, "Failed to update direct task status to processing")
+		} else {
+			submittedTasksAwaitingFetching.removeTasksAfterProcessingUpdate(issuedTaskIDs)
+			for _, taskID := range issuedTaskIDs {
+				go addMitreAttackTaskMapping(taskID)
 			}
-			if task.TokenID.Valid {
-				var tokenID int
-				if err := database.DB.Get(&tokenID, `SELECT token_id FROM token WHERE id=$1`, task.TokenID.Int64); err != nil {
-					logging.LogError(err, "failed to get token information")
-				} else {
-					newTask.Token = &tokenID
-				}
-			}
-			tasksToIssue = append(tasksToIssue, newTask)
-			if _, err := database.DB.Exec(`UPDATE task SET
-					status=$2, status_timestamp_processing=$3
-					WHERE id=$1`, task.ID, PT_TASK_FUNCTION_STATUS_PROCESSING, time.Now().UTC()); err != nil {
-				logging.LogError(err, "Failed to update task status to processing")
-			} else {
-				submittedTasksAwaitingFetching.removeTask(task.ID)
-				go addMitreAttackTaskMapping(task.ID)
-			}
-			currentTaskCount += 1
 		}
 	}
 	response := map[string]interface{}{}

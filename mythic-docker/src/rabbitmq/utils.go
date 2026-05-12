@@ -1369,6 +1369,21 @@ func addUnresolvedError(operationID int, source string, level string, messageID 
 func removeUnresolvedError(operationID int) {
 	delete(unresolvedErrors, operationID)
 }
+func removeUnresolvedErrorSource(operationID int, source string) {
+	if _, ok := unresolvedErrors[operationID]; !ok {
+		return
+	}
+	delete(unresolvedErrors[operationID], source)
+	if len(unresolvedErrors[operationID]) == 0 {
+		delete(unresolvedErrors, operationID)
+	}
+}
+func normalizeOperationMessageWarningLevel(level database.MESSAGE_TYPE, warning bool) (database.MESSAGE_TYPE, bool) {
+	if level == "warning" {
+		return database.MESSAGE_LEVEL_INFO, true
+	}
+	return level, warning
+}
 
 type operationMessage struct {
 	action       string
@@ -1411,40 +1426,41 @@ func listenForOperationsMessages() {
 				if sourceString == "" {
 					sourceString = uuid.NewString()
 				}
+				storedMessageLevel, warning := normalizeOperationMessageWarningLevel(msg.messageLevel, msg.warning)
 				// hitting concurrency issues where like-messages aren't getting collapsed like they should
 				var err error
 				for _, operation := range operations {
 					if msg.operationID == 0 || operation.ID == msg.operationID {
 						// this is the operation we're interested in
-						if msg.messageLevel == "warning" || msg.warning {
+						if warning {
 							existingMessage := databaseStructs.Operationeventlog{}
-							existingMessage.ID = checkUnresolvedError(operation.ID, msg.source, msg.messageLevel)
+							existingMessage.ID = checkUnresolvedError(operation.ID, sourceString, storedMessageLevel)
 							if existingMessage.ID == 0 {
 								err = database.DB.Get(&existingMessage, `
 									SELECT id, count, "message", source, "level" FROM operationeventlog WHERE
 									warning=true and resolved=false and deleted=false and source=$1 and operation_id=$2 and "level"=$3
-									`, sourceString, operation.ID, msg.messageLevel)
+									`, sourceString, operation.ID, storedMessageLevel)
 								if !errors.Is(err, sql.ErrNoRows) && err != nil {
 									logging.LogError(err, "Failed to query existing event log message")
 									continue
 								}
 								if errors.Is(err, sql.ErrNoRows) {
 									var utf8Message = strings.ToValidUTF8(string(bytes.ReplaceAll([]byte(msg.message), []byte{0}, []byte{})), "*")
-									if msg.messageLevel == "warning" {
-										msg.messageLevel = database.MESSAGE_LEVEL_INFO
-									}
 									newMessage := databaseStructs.Operationeventlog{
 										Source:      sourceString,
-										Level:       msg.messageLevel,
-										Warning:     msg.warning,
+										Level:       storedMessageLevel,
+										Warning:     warning,
 										Message:     utf8Message,
 										OperationID: operation.ID,
 										Count:       1,
 									}
-									_, err = database.DB.NamedExec(`INSERT INTO operationeventlog 
+									err = database.DB.QueryRowx(`INSERT INTO operationeventlog 
 										(source, "level", "message", operation_id, count, warning) 
 										VALUES 
-										(:source, :level, :message, :operation_id, :count, :warning)`, newMessage)
+										($1, $2, $3, $4, $5, $6)
+										RETURNING id`,
+										newMessage.Source, newMessage.Level, newMessage.Message, newMessage.OperationID, newMessage.Count, newMessage.Warning,
+									).Scan(&newMessage.ID)
 									if err != nil {
 										logging.LogError(err, "Failed to create new operationeventlog message")
 										continue
@@ -1470,10 +1486,10 @@ func listenForOperationsMessages() {
 											"alert": newMessage.Message,
 										},
 									}
-									addUnresolvedError(operation.ID, msg.source, msg.messageLevel, existingMessage.ID)
+									addUnresolvedError(operation.ID, sourceString, storedMessageLevel, newMessage.ID)
 									continue
 								}
-								addUnresolvedError(operation.ID, msg.source, msg.messageLevel, existingMessage.ID)
+								addUnresolvedError(operation.ID, sourceString, storedMessageLevel, existingMessage.ID)
 							}
 							if time.Now().Sub(lastUpdateTime).Seconds() > 1 {
 								lastUpdateTime = time.Now()
@@ -1508,8 +1524,8 @@ func listenForOperationsMessages() {
 						var utf8Message = strings.ToValidUTF8(string(bytes.ReplaceAll([]byte(msg.message), []byte{0}, []byte{})), "*")
 						newMessage := databaseStructs.Operationeventlog{
 							Source:      sourceString,
-							Level:       msg.messageLevel,
-							Warning:     msg.warning,
+							Level:       storedMessageLevel,
+							Warning:     warning,
 							Message:     utf8Message,
 							OperationID: operation.ID,
 							Count:       1,
@@ -1541,6 +1557,55 @@ func listenForOperationsMessages() {
 						removeUnresolvedError(operation.ID)
 					}
 				}
+			case "remove_source":
+				if msg.source == "" {
+					continue
+				}
+				if msg.operationID == 0 {
+					rows, err := database.DB.Queryx(`UPDATE operationeventlog SET resolved=true
+						WHERE warning=true AND resolved=false AND deleted=false AND source=$1
+						RETURNING operation_id`, msg.source)
+					if err != nil {
+						logging.LogError(err, "Failed to resolve messages by source")
+						continue
+					}
+					for rows.Next() {
+						operationID := 0
+						if err := rows.Scan(&operationID); err != nil {
+							logging.LogError(err, "Failed to read resolved operation id")
+							continue
+						}
+						removeUnresolvedErrorSource(operationID, msg.source)
+					}
+					if err := rows.Err(); err != nil {
+						logging.LogError(err, "Failed to iterate resolved operation ids")
+					}
+					if err := rows.Close(); err != nil {
+						logging.LogError(err, "Failed to close resolve messages by source rows")
+					}
+					continue
+				}
+				rows, err := database.DB.Queryx(`UPDATE operationeventlog SET resolved=true
+					WHERE warning=true AND resolved=false AND deleted=false AND source=$1 AND operation_id=$2
+					RETURNING operation_id`, msg.source, msg.operationID)
+				if err != nil {
+					logging.LogError(err, "Failed to resolve operation message by source")
+					continue
+				}
+				for rows.Next() {
+					operationID := 0
+					if err := rows.Scan(&operationID); err != nil {
+						logging.LogError(err, "Failed to read resolved operation id")
+						continue
+					}
+					removeUnresolvedErrorSource(operationID, msg.source)
+				}
+				if err := rows.Err(); err != nil {
+					logging.LogError(err, "Failed to iterate resolved operation ids")
+				}
+				if err := rows.Close(); err != nil {
+					logging.LogError(err, "Failed to close resolve operation message by source rows")
+				}
 			}
 		case <-timer.C:
 			if len(unresolvedErrors) > 0 {
@@ -1568,6 +1633,15 @@ func ResolveAllOperationsMessage(message string, operationID int) {
 		action:      "remove",
 		operationID: operationID,
 		message:     message,
+	}:
+	}
+}
+func ResolveAllOperationsMessageBySource(source string, operationID int) {
+	select {
+	case operationMessageChannel <- operationMessage{
+		action:      "remove_source",
+		operationID: operationID,
+		source:      source,
 	}:
 	}
 }
