@@ -1,6 +1,5 @@
 import React from 'react';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
-import Typography from '@mui/material/Typography';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import { faLanguage } from '@fortawesome/free-solid-svg-icons';
 import IconButton from '@mui/material/IconButton';
@@ -16,6 +15,10 @@ import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import {C2ProfileListFilesDialog} from "./C2ProfileListFilesDialog";
 import {InstalledServiceContainerStatus} from "./InstalledServiceStatus";
+import {
+    InstalledServiceIdentity,
+    InstalledServiceMetadataSummary
+} from "./InstalledServiceTableComponents";
 
 const toggleDeleteStatus = gql`
 mutation toggleC2ProfileDeleteStatus($translationcontainer_id: Int!, $deleted: Boolean!){
@@ -46,8 +49,9 @@ export function TranslationContainerRow({service, showDeleted}) {
     if(service.deleted && !showDeleted){
         return null;
     }
+    const supportedAgents = (service.payloadtypes || []).filter(pt => !pt.deleted).map((pt) => pt.name);
   return (
-
+    <>
         <TableRow hover>
             <MythicTableCell>
                 {service.deleted ? (
@@ -66,24 +70,22 @@ export function TranslationContainerRow({service, showDeleted}) {
                 <FontAwesomeIcon icon={faLanguage} style={{width: "80px", height: "80px"}} />
             </MythicTableCell>
             <MythicTableCell>
-                <div className="mythic-installed-service-identity">
-                    <span className="mythic-installed-service-name">{service.name}</span>
-                    <InstalledServiceContainerStatus isOnline={service.container_running} />
-                </div>
+                <InstalledServiceIdentity
+                    name={service.name}
+                    typeLabel="Translation"
+                    deleted={service.deleted}
+                    status={<InstalledServiceContainerStatus isOnline={service.container_running} />}
+                />
             </MythicTableCell>
             <MythicTableCell>
-                Translation
-            </MythicTableCell>
-            <MythicTableCell>
-                <Typography variant="body1" component="p">
-                    <b>Author:</b> {service.author}
-                </Typography>
-                <Typography variant="body1" component="p">
-                    <b>Supported Agents:</b> {service.payloadtypes.filter(pt => !pt.deleted).map( (pt) => pt.name).join(", ")}
-                </Typography>
-                <Typography variant="body2" component="p" style={{whiteSpace: "pre-wrap"}}>
-                    <b>Description: </b>{service.description}
-                </Typography>
+                <InstalledServiceMetadataSummary
+                    items={[
+                        {label: "Author", value: service.author},
+                        {label: "Version", value: service.semver, chip: true},
+                        {label: "Supported Agents", value: supportedAgents},
+                    ]}
+                    description={service.description}
+                />
             </MythicTableCell>
             <MythicTableCell>
                 <div className="mythic-table-row-actions">
@@ -107,13 +109,14 @@ export function TranslationContainerRow({service, showDeleted}) {
                 </MythicStyledTooltip>
                 </div>
             </MythicTableCell>
+        </TableRow>
             {openListFilesDialog &&
                 <MythicDialog fullWidth={true} maxWidth="md" open={openListFilesDialog}
                               onClose={()=>{setOpenListFilesDialog(false);}}
                               innerDialog={<C2ProfileListFilesDialog container_name={service.name} {...service} onClose={()=>{setOpenListFilesDialog(false);}} />}
                 />
             }
-        </TableRow>
+        </>
 
   );
 }
