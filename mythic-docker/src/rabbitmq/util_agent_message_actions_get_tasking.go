@@ -2,15 +2,16 @@ package rabbitmq
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/jmoiron/sqlx"
-	"github.com/mitchellh/mapstructure"
 )
 
 type agentMessageGetTasking struct {
@@ -101,6 +102,100 @@ func buildAgentMessageTask(task agentMessageTaskRow) agentMessageGetTaskingTask 
 	return newTask
 }
 
+// decodeAgentMessageGetTasking extracts only the Mythic-owned get_tasking fields
+// while keeping agent-defined tracking keys available for the response.
+func decodeAgentMessageGetTasking(incoming map[string]interface{}) (agentMessageGetTasking, error) {
+	agentMessage := agentMessageGetTasking{
+		GetDelegateTasks: true,
+		Other:            collectOtherKeys(incoming, "tasking_size", "get_delegate_tasks"),
+	}
+	if taskingSize, ok := incoming["tasking_size"]; ok {
+		parsedTaskingSize, err := parseAgentMessageInt(taskingSize, "tasking_size")
+		if err != nil {
+			return agentMessage, err
+		}
+		agentMessage.TaskingSize = parsedTaskingSize
+	}
+	if getDelegateTasks, ok := incoming["get_delegate_tasks"]; ok {
+		parsedGetDelegateTasks, ok := getDelegateTasks.(bool)
+		if !ok {
+			return agentMessage, fmt.Errorf("get_delegate_tasks must be a bool, got %T", getDelegateTasks)
+		}
+		agentMessage.GetDelegateTasks = parsedGetDelegateTasks
+	}
+	return agentMessage, nil
+}
+
+func parseAgentMessageInt(value interface{}, field string) (int, error) {
+	switch typedValue := value.(type) {
+	case int:
+		return typedValue, nil
+	case int8:
+		return int(typedValue), nil
+	case int16:
+		return int(typedValue), nil
+	case int32:
+		return int(typedValue), nil
+	case int64:
+		if typedValue > int64(math.MaxInt) || typedValue < int64(math.MinInt) {
+			return 0, fmt.Errorf("%s is outside int range", field)
+		}
+		return int(typedValue), nil
+	case uint:
+		if uint64(typedValue) > uint64(math.MaxInt) {
+			return 0, fmt.Errorf("%s is outside int range", field)
+		}
+		return int(typedValue), nil
+	case uint8:
+		return int(typedValue), nil
+	case uint16:
+		return int(typedValue), nil
+	case uint32:
+		if uint64(typedValue) > uint64(math.MaxInt) {
+			return 0, fmt.Errorf("%s is outside int range", field)
+		}
+		return int(typedValue), nil
+	case uint64:
+		if typedValue > uint64(math.MaxInt) {
+			return 0, fmt.Errorf("%s is outside int range", field)
+		}
+		return int(typedValue), nil
+	case float64:
+		if math.Trunc(typedValue) != typedValue {
+			return 0, fmt.Errorf("%s must be an integer, got %v", field, typedValue)
+		}
+		if typedValue > float64(math.MaxInt) || typedValue < float64(math.MinInt) {
+			return 0, fmt.Errorf("%s is outside int range", field)
+		}
+		return int(typedValue), nil
+	case float32:
+		return parseAgentMessageInt(float64(typedValue), field)
+	case json.Number:
+		parsedValue, err := typedValue.Int64()
+		if err != nil {
+			return 0, fmt.Errorf("%s must be an integer: %w", field, err)
+		}
+		return parseAgentMessageInt(parsedValue, field)
+	default:
+		return 0, fmt.Errorf("%s must be an integer, got %T", field, value)
+	}
+}
+
+// shouldAgentMessageGetDelegateTasks keeps delegate tasking default-on while
+// avoiding a panic if an agent sends a malformed get_delegate_tasks value.
+func shouldAgentMessageGetDelegateTasks(incoming map[string]interface{}) bool {
+	getDelegateTasks, ok := incoming["get_delegate_tasks"]
+	if !ok {
+		return true
+	}
+	parsedGetDelegateTasks, ok := getDelegateTasks.(bool)
+	if !ok {
+		logging.LogError(nil, "Invalid get_delegate_tasks value in agent get_tasking message", "value", getDelegateTasks)
+		return true
+	}
+	return parsedGetDelegateTasks
+}
+
 func handleAgentMessageGetTasking(incoming *map[string]interface{}, callbackID int) (map[string]interface{}, error) {
 	// got message:
 	/*
@@ -116,7 +211,6 @@ func handleAgentMessageGetTasking(incoming *map[string]interface{}, callbackID i
 		1. check for direct tasks
 		2. check for delegate tasks
 	*/
-	agentMessage := agentMessageGetTasking{}
 	currentTasks := []databaseStructs.Task{}
 	if taskIDs := submittedTasksAwaitingFetching.getTasksForCallbackId(callbackID); len(taskIDs) > 0 {
 		query, args, err := sqlx.Named(`SELECT 
@@ -141,7 +235,7 @@ func handleAgentMessageGetTasking(incoming *map[string]interface{}, callbackID i
 		}
 	}
 
-	err := mapstructure.Decode(incoming, &agentMessage)
+	agentMessage, err := decodeAgentMessageGetTasking(*incoming)
 	if err != nil {
 		logging.LogError(err, "Failed to decode agent message into struct")
 		return nil, errors.New(fmt.Sprintf("Failed to decode agent message into agentMessageGetTasking struct: %s", err.Error()))
