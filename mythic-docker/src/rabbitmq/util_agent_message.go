@@ -389,7 +389,7 @@ func processAgentMessageContent(agentMessageInput *AgentMessageRawInput, uuidInf
 		{
 			response, err = handleAgentMessageGetTasking(&decryptedMessage, uuidInfo.CallbackID)
 			instanceResponse.OuterUuid = uuidInfo.UUID // this is what our message UUID was coming into this parsing
-			if getDelegateTasks, ok := decryptedMessage["get_delegate_tasks"]; !ok || getDelegateTasks.(bool) {
+			if shouldAgentMessageGetDelegateTasks(decryptedMessage) {
 				// this means we should try to get some delegated tasks if they exist for our callback
 				delegateResponses = append(delegateResponses, getDelegateTaskMessages(uuidInfo.CallbackID, instanceResponse.AgentUUIDSize, agentMessageInput.UpdateCheckinTime)...)
 			} else {
@@ -1242,6 +1242,23 @@ func reflectBackOtherKeys(response *map[string]interface{}, other *map[string]in
 			(*response)[key] = val
 		}
 	}
+}
+
+// collectOtherKeys mirrors mapstructure's ",remain" behavior for handlers that
+// decode only the fields they actually consume.
+func collectOtherKeys(message map[string]interface{}, consumedKeys ...string) map[string]interface{} {
+	consumed := make(map[string]struct{}, len(consumedKeys))
+	for _, key := range consumedKeys {
+		consumed[key] = struct{}{}
+	}
+	other := make(map[string]interface{}, len(message))
+	for key, val := range message {
+		if _, ok := consumed[key]; ok {
+			continue
+		}
+		other[key] = val
+	}
+	return other
 }
 
 func GetUUIDBytes(outerUUID string, agentUUIDLength int) ([]byte, error) {

@@ -60,9 +60,17 @@ const selectAgentMessagePostResponseTasksQuery = `SELECT
 	JOIN payload ON callback.registered_payload_id = payload.id
 	WHERE task.agent_task_id IN (?)`
 
-type agentMessagePostResponseMessage struct {
-	Responses []agentMessagePostResponse `json:"responses" mapstructure:"responses" xml:"responses"`
-	Other     map[string]interface{}     `json:"-" mapstructure:",remain"` // capture any 'other' keys that were passed in so we can reply back with them
+type decodedAgentMessagePostResponse struct {
+	Index       int
+	Response    agentMessagePostResponse
+	DecodeError error
+	TaskID      string
+	Other       map[string]interface{}
+}
+
+type decodedAgentMessagePostResponseMessage struct {
+	Responses []decodedAgentMessagePostResponse
+	Other     map[string]interface{}
 }
 
 type agentMessagePostResponse struct {
@@ -91,6 +99,33 @@ type agentMessagePostResponse struct {
 	Events          *[]agentMessagePostResponseTriggerEvent   `json:"events,omitempty" mapstructure:"events,omitempty" xml:"events,omitempty"`
 	CustomBrowser   *agentMessagePostResponseCustomBrowser    `json:"custom_browser,omitempty" mapstructure:"custom_browser,omitempty" xml:"custom_browser,omitempty"`
 	Other           map[string]interface{}                    `json:"-" mapstructure:",remain"` // capture any 'other' keys that were passed in so we can reply back with them
+}
+
+var agentMessagePostResponseConsumedKeys = map[string]struct{}{
+	"alerts":           {},
+	"artifacts":        {},
+	"callback":         {},
+	"callback_tokens":  {},
+	"commands":         {},
+	"completed":        {},
+	"credentials":      {},
+	"custom_browser":   {},
+	"download":         {},
+	"edges":            {},
+	"events":           {},
+	"file_browser":     {},
+	"keylogs":          {},
+	"process_response": {},
+	"processes":        {},
+	"removed_files":    {},
+	"sequence_num":     {},
+	"status":           {},
+	"stderr":           {},
+	"stdout":           {},
+	"task_id":          {},
+	"tokens":           {},
+	"upload":           {},
+	"user_output":      {},
 }
 
 var ValidCredentialTypesList = []string{"plaintext", "certificate", "hash", "key", "ticket", "cookie", "hex"}
@@ -451,6 +486,137 @@ func getAgentMessagePostResponseTasks(responses []agentMessagePostResponse) (map
 	return tasksByAgentTaskID, nil
 }
 
+// decodeAgentMessagePostResponseMessage decodes each response entry separately
+// so one malformed response cannot discard valid sibling responses.
+func decodeAgentMessagePostResponseMessage(incoming map[string]interface{}) (decodedAgentMessagePostResponseMessage, error) {
+	agentMessage := decodedAgentMessagePostResponseMessage{
+		Other: collectOtherKeys(incoming, "responses"),
+	}
+	rawResponses, ok := incoming["responses"]
+	if !ok {
+		return agentMessage, nil
+	}
+
+	switch responses := rawResponses.(type) {
+	case nil:
+		return agentMessage, nil
+	case []interface{}:
+		agentMessage.Responses = make([]decodedAgentMessagePostResponse, 0, len(responses))
+		for i, rawResponse := range responses {
+			agentMessage.Responses = append(agentMessage.Responses, decodeAgentMessagePostResponse(i, rawResponse))
+		}
+	case []map[string]interface{}:
+		agentMessage.Responses = make([]decodedAgentMessagePostResponse, 0, len(responses))
+		for i, rawResponse := range responses {
+			agentMessage.Responses = append(agentMessage.Responses, decodeAgentMessagePostResponse(i, rawResponse))
+		}
+	case []agentMessagePostResponse:
+		agentMessage.Responses = make([]decodedAgentMessagePostResponse, 0, len(responses))
+		for i, response := range responses {
+			agentMessage.Responses = append(agentMessage.Responses, decodedAgentMessagePostResponse{
+				Index:    i,
+				Response: response,
+			})
+		}
+	default:
+		return agentMessage, fmt.Errorf("responses must be an array, got %T", rawResponses)
+	}
+
+	return agentMessage, nil
+}
+
+// decodeAgentMessagePostResponse keeps any agent-owned response tracking keys
+// even when the Mythic-owned fields fail to decode.
+func decodeAgentMessagePostResponse(index int, rawResponse interface{}) decodedAgentMessagePostResponse {
+	decodedResponse := decodedAgentMessagePostResponse{
+		Index:  index,
+		TaskID: extractAgentMessagePostResponseTaskID(rawResponse),
+		Other:  collectAgentMessagePostResponseOtherKeys(rawResponse),
+	}
+	if err := mapstructure.Decode(rawResponse, &decodedResponse.Response); err != nil {
+		decodedResponse.DecodeError = err
+	}
+	return decodedResponse
+}
+
+func extractAgentMessagePostResponseTaskID(rawResponse interface{}) string {
+	rawResponseMap, ok := rawResponse.(map[string]interface{})
+	if !ok {
+		return ""
+	}
+	taskID, ok := rawResponseMap["task_id"].(string)
+	if !ok {
+		return ""
+	}
+	return taskID
+}
+
+func collectAgentMessagePostResponseOtherKeys(rawResponse interface{}) map[string]interface{} {
+	rawResponseMap, ok := rawResponse.(map[string]interface{})
+	if !ok {
+		return map[string]interface{}{}
+	}
+	other := make(map[string]interface{}, len(rawResponseMap))
+	for key, val := range rawResponseMap {
+		if _, ok := agentMessagePostResponseConsumedKeys[key]; ok {
+			continue
+		}
+		other[key] = val
+	}
+	return other
+}
+
+func collectValidAgentMessagePostResponses(responses []decodedAgentMessagePostResponse) []agentMessagePostResponse {
+	validResponses := make([]agentMessagePostResponse, 0, len(responses))
+	for _, response := range responses {
+		if response.DecodeError == nil {
+			validResponses = append(validResponses, response.Response)
+		}
+	}
+	return validResponses
+}
+
+func buildAgentMessagePostResponseDecodeError(response decodedAgentMessagePostResponse) map[string]interface{} {
+	mythicResponse := map[string]interface{}{
+		"status": "error",
+		"error":  fmt.Sprintf("Failed to decode response[%d]: %s", response.Index, response.DecodeError.Error()),
+	}
+	if response.TaskID != "" {
+		mythicResponse["task_id"] = response.TaskID
+	}
+	reflectBackOtherKeys(&mythicResponse, &response.Other)
+	return mythicResponse
+}
+
+func reportAgentMessagePostResponseDecodeErrors(operationID int, responses []decodedAgentMessagePostResponse) {
+	errorMessages := make([]string, 0)
+	errorCount := 0
+	for _, response := range responses {
+		if response.DecodeError == nil {
+			continue
+		}
+		errorCount++
+		logging.LogError(response.DecodeError, "Failed to decode individual agent response", "response_index", response.Index)
+		if len(errorMessages) < 10 {
+			errorMessages = append(errorMessages, fmt.Sprintf("response[%d]: %s", response.Index, response.DecodeError.Error()))
+		}
+	}
+	if errorCount == 0 {
+		return
+	}
+	if errorCount > len(errorMessages) {
+		errorMessages = append(errorMessages, "additional response decode errors omitted")
+	}
+	go SendAllOperationsMessage(fmt.Sprintf("Failed to decode %d response entr%s from an agent message; valid sibling responses were still processed:\n%s",
+		errorCount, func() string {
+			if errorCount == 1 {
+				return "y"
+			}
+			return "ies"
+		}(), strings.Join(errorMessages, "\n")),
+		operationID, "agent_message_bad_post_response", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
+}
+
 func updateAgentMessagePostResponseTask(task databaseStructs.Task) (bool, error) {
 	tx, err := database.DB.Beginx()
 	if err != nil {
@@ -499,8 +665,7 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 		  ]
 		}
 	*/
-	agentMessage := agentMessagePostResponseMessage{}
-	err := mapstructure.Decode(incoming, &agentMessage)
+	agentMessage, err := decodeAgentMessagePostResponseMessage(*incoming)
 	cachedTaskData := make(map[string]databaseStructs.Task)
 	cachedFileData := make(map[string]databaseStructs.Filemeta)
 	if err != nil {
@@ -519,25 +684,32 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 		return map[string]interface{}{}, err
 	}
 	responses := []map[string]interface{}{}
-	cachedTaskData, err = getAgentMessagePostResponseTasks(agentMessage.Responses)
+	reportAgentMessagePostResponseDecodeErrors(uUIDInfo.OperationID, agentMessage.Responses)
+	validAgentResponses := collectValidAgentMessagePostResponses(agentMessage.Responses)
+	cachedTaskData, err = getAgentMessagePostResponseTasks(validAgentResponses)
 	if err != nil {
 		logging.LogError(err, "Failed to batch load tasks for post_response")
 	}
 	tasksToUpdate := make(map[string]databaseStructs.Task, len(cachedTaskData))
 	// iterate over the agent messages
-	for i, _ := range agentMessage.Responses {
+	for _, decodedAgentResponse := range agentMessage.Responses {
+		if decodedAgentResponse.DecodeError != nil {
+			responses = append(responses, buildAgentMessagePostResponseDecodeError(decodedAgentResponse))
+			continue
+		}
+		agentResponse := decodedAgentResponse.Response
 		mythicResponse := map[string]interface{}{
-			"task_id": agentMessage.Responses[i].TaskID,
+			"task_id": agentResponse.TaskID,
 			"status":  "success",
 		}
 		//logging.LogDebug("Got response data from agent", "response data", agentResponse, "extra keys", agentResponse.Other)
 		// every response should be tied to some task
-		currentTask, ok := tasksToUpdate[agentMessage.Responses[i].TaskID]
+		currentTask, ok := tasksToUpdate[agentResponse.TaskID]
 		if !ok {
-			currentTask, ok = cachedTaskData[agentMessage.Responses[i].TaskID]
+			currentTask, ok = cachedTaskData[agentResponse.TaskID]
 		}
 		if !ok {
-			logging.LogError(nil, "Failed to find task", "task id", agentMessage.Responses[i].TaskID)
+			logging.LogError(nil, "Failed to find task", "task id", agentResponse.TaskID)
 			mythicResponse["status"] = "error"
 			mythicResponse["error"] = "Failed to find task"
 			responses = append(responses, mythicResponse)
@@ -545,26 +717,26 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 		}
 
 		// always process here
-		if agentMessage.Responses[i].Download != nil {
+		if agentResponse.Download != nil {
 			fileMeta := databaseStructs.Filemeta{}
-			if agentMessage.Responses[i].Download.FileID != nil && *agentMessage.Responses[i].Download.FileID != "" {
-				if _, ok := cachedFileData[*agentMessage.Responses[i].Download.FileID]; ok {
-					fileMeta = cachedFileData[*agentMessage.Responses[i].Download.FileID]
+			if agentResponse.Download.FileID != nil && *agentResponse.Download.FileID != "" {
+				if _, ok := cachedFileData[*agentResponse.Download.FileID]; ok {
+					fileMeta = cachedFileData[*agentResponse.Download.FileID]
 				} else {
-					fileMeta = databaseStructs.Filemeta{AgentFileID: *agentMessage.Responses[i].Download.FileID}
+					fileMeta = databaseStructs.Filemeta{AgentFileID: *agentResponse.Download.FileID}
 					err = database.DB.Get(&fileMeta, `SELECT 
 					id, "path", total_chunks, chunks_received, host, is_screenshot, full_remote_path, complete, md5, sha1, filename, chunk_size, operation_id, mythictree_id, received_chunk_ids
 					FROM filemeta
-					WHERE agent_file_id=$1`, *agentMessage.Responses[i].Download.FileID)
+					WHERE agent_file_id=$1`, *agentResponse.Download.FileID)
 					if err != nil {
-						logging.LogError(err, "Failed to find fileID in agent download request", "fileid", *agentMessage.Responses[i].Download.FileID)
+						logging.LogError(err, "Failed to find fileID in agent download request", "fileid", *agentResponse.Download.FileID)
 						continue
 					}
 					fileMeta.Task = &databaseStructs.Task{}
 					fileMeta.Task.OperatorID = currentTask.OperatorID
 				}
 			}
-			newFileID, err := handleAgentMessagePostResponseDownload(&currentTask, &agentMessage.Responses[i], &fileMeta)
+			newFileID, err := handleAgentMessagePostResponseDownload(&currentTask, &agentResponse, &fileMeta)
 			if err != nil {
 				mythicResponse["status"] = "error"
 				mythicResponse["error"] = err.Error()
@@ -572,14 +744,14 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 				mythicResponse["file_id"] = newFileID
 				cachedFileData[newFileID] = fileMeta
 			}
-			if agentMessage.Responses[i].Download.ChunkNum != nil {
-				mythicResponse["chunk_num"] = *agentMessage.Responses[i].Download.ChunkNum
+			if agentResponse.Download.ChunkNum != nil {
+				mythicResponse["chunk_num"] = *agentResponse.Download.ChunkNum
 			}
 		}
 
 		// always process here
-		if agentMessage.Responses[i].Upload != nil {
-			if uploadResponse, err := handleAgentMessagePostResponseUpload(currentTask, agentMessage.Responses[i]); err != nil {
+		if agentResponse.Upload != nil {
+			if uploadResponse, err := handleAgentMessagePostResponseUpload(currentTask, agentResponse); err != nil {
 				mythicResponse["status"] = "error"
 				mythicResponse["error"] = err.Error()
 				logging.LogError(err, "Failed to handle agent upload")
@@ -597,89 +769,89 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 			currentTask.StatusTimestampProcessed.Valid = true
 		}
 		// this section can happen async, but in order
-		if agentMessage.Responses[i].Completed != nil {
-			if *agentMessage.Responses[i].Completed {
-				currentTask.Completed = *agentMessage.Responses[i].Completed
+		if agentResponse.Completed != nil {
+			if *agentResponse.Completed {
+				currentTask.Completed = *agentResponse.Completed
 			}
 		}
-		if agentMessage.Responses[i].Status != nil && *agentMessage.Responses[i].Status != "" {
+		if agentResponse.Status != nil && *agentResponse.Status != "" {
 			if currentTask.Status != PT_TASK_FUNCTION_STATUS_COMPLETED {
-				currentTask.Status = *agentMessage.Responses[i].Status
+				currentTask.Status = *agentResponse.Status
 			}
-		} else if agentMessage.Responses[i].Completed != nil && *agentMessage.Responses[i].Completed {
+		} else if agentResponse.Completed != nil && *agentResponse.Completed {
 			currentTask.Status = PT_TASK_FUNCTION_STATUS_COMPLETED
 		} else if currentTask.Status == PT_TASK_FUNCTION_STATUS_PROCESSING {
 			currentTask.Status = PT_TASK_FUNCTION_STATUS_PROCESSED
 		}
-		if agentMessage.Responses[i].UserOutput != nil && *agentMessage.Responses[i].UserOutput != "" {
+		if agentResponse.UserOutput != nil && *agentResponse.UserOutput != "" {
 			// do it in the background - the agent doesn't need the result of this directly
 			//handleAgentMessagePostResponseUserOutput(currentTask, agentResponse, true)
 			enqueueAsyncAgentMessagePostResponse(agentMessagePostResponseUserOutputChannelMessage{
 				Task:        currentTask,
-				Response:    *agentMessage.Responses[i].UserOutput,
-				SequenceNum: agentMessage.Responses[i].SequenceNumber,
+				Response:    *agentResponse.UserOutput,
+				SequenceNum: agentResponse.SequenceNumber,
 			})
 		}
-		if agentMessage.Responses[i].Stdout != nil {
-			currentTask.Stdout += *agentMessage.Responses[i].Stdout
+		if agentResponse.Stdout != nil {
+			currentTask.Stdout += *agentResponse.Stdout
 		}
-		if agentMessage.Responses[i].Stderr != nil {
-			currentTask.Stderr += *agentMessage.Responses[i].Stderr
+		if agentResponse.Stderr != nil {
+			currentTask.Stderr += *agentResponse.Stderr
 		}
-		if agentMessage.Responses[i].FileBrowser != nil {
-			enqueueMythicTreeFileBrowserResponse(currentTask, agentMessage.Responses[i].FileBrowser, 0)
+		if agentResponse.FileBrowser != nil {
+			enqueueMythicTreeFileBrowserResponse(currentTask, agentResponse.FileBrowser, 0)
 		}
-		if agentMessage.Responses[i].Processes != nil {
-			enqueueMythicTreeProcessResponse(currentTask, agentMessage.Responses[i].Processes, 0)
+		if agentResponse.Processes != nil {
+			enqueueMythicTreeProcessResponse(currentTask, agentResponse.Processes, 0)
 		}
-		if agentMessage.Responses[i].RemovedFiles != nil {
-			go handleAgentMessagePostResponseRemovedFiles(currentTask, agentMessage.Responses[i].RemovedFiles)
+		if agentResponse.RemovedFiles != nil {
+			go handleAgentMessagePostResponseRemovedFiles(currentTask, agentResponse.RemovedFiles)
 		}
-		if agentMessage.Responses[i].Credentials != nil {
-			go handleAgentMessagePostResponseCredentials(currentTask, agentMessage.Responses[i].Credentials)
+		if agentResponse.Credentials != nil {
+			go handleAgentMessagePostResponseCredentials(currentTask, agentResponse.Credentials)
 		}
-		if agentMessage.Responses[i].Keylogs != nil {
-			go handleAgentMessagePostResponseKeylogs(currentTask, agentMessage.Responses[i].Keylogs)
+		if agentResponse.Keylogs != nil {
+			go handleAgentMessagePostResponseKeylogs(currentTask, agentResponse.Keylogs)
 		}
-		if agentMessage.Responses[i].Tokens != nil && agentMessage.Responses[i].CallbackTokens != nil {
+		if agentResponse.Tokens != nil && agentResponse.CallbackTokens != nil {
 			// need to make sure we process tokens _then_ process callback tokens
-			go handleAgentMessagePostResponseCallbackTokensAndTokens(currentTask, agentMessage.Responses[i].Tokens, agentMessage.Responses[i].CallbackTokens)
+			go handleAgentMessagePostResponseCallbackTokensAndTokens(currentTask, agentResponse.Tokens, agentResponse.CallbackTokens)
 		} else {
-			if agentMessage.Responses[i].Tokens != nil {
-				go handleAgentMessagePostResponseTokens(currentTask, agentMessage.Responses[i].Tokens)
+			if agentResponse.Tokens != nil {
+				go handleAgentMessagePostResponseTokens(currentTask, agentResponse.Tokens)
 			}
-			if agentMessage.Responses[i].CallbackTokens != nil {
-				go handleAgentMessagePostResponseCallbackTokens(currentTask, agentMessage.Responses[i].CallbackTokens)
+			if agentResponse.CallbackTokens != nil {
+				go handleAgentMessagePostResponseCallbackTokens(currentTask, agentResponse.CallbackTokens)
 			}
 		}
-		if agentMessage.Responses[i].ProcessResponse != nil {
-			go handleAgentMessagePostResponseProcessResponse(currentTask, agentMessage.Responses[i].ProcessResponse)
+		if agentResponse.ProcessResponse != nil {
+			go handleAgentMessagePostResponseProcessResponse(currentTask, agentResponse.ProcessResponse)
 		}
-		if agentMessage.Responses[i].Commands != nil {
-			go handleAgentMessagePostResponseCommands(currentTask, agentMessage.Responses[i].Commands)
+		if agentResponse.Commands != nil {
+			go handleAgentMessagePostResponseCommands(currentTask, agentResponse.Commands)
 		}
-		if agentMessage.Responses[i].Edges != nil {
-			go handleAgentMessagePostResponseEdges(uUIDInfo, agentMessage.Responses[i].Edges)
+		if agentResponse.Edges != nil {
+			go handleAgentMessagePostResponseEdges(uUIDInfo, agentResponse.Edges)
 		}
-		if agentMessage.Responses[i].Alerts != nil {
-			go handleAgentMessagePostResponseAlerts(currentTask.OperationID, uUIDInfo.CallbackID, uUIDInfo.CallbackDisplayID, agentMessage.Responses[i].Alerts)
+		if agentResponse.Alerts != nil {
+			go handleAgentMessagePostResponseAlerts(currentTask.OperationID, uUIDInfo.CallbackID, uUIDInfo.CallbackDisplayID, agentResponse.Alerts)
 		}
-		if agentMessage.Responses[i].Artifacts != nil {
+		if agentResponse.Artifacts != nil {
 			// report back artifact information so that the agent can update the specific artifacts if needed
-			artifactResponses := handleAgentMessagePostResponseArtifacts(currentTask, agentMessage.Responses[i].Artifacts)
+			artifactResponses := handleAgentMessagePostResponseArtifacts(currentTask, agentResponse.Artifacts)
 			mythicResponse["artifacts"] = artifactResponses
 		}
-		if agentMessage.Responses[i].Callback != nil {
-			go handleAgentMessagePostResponseCallback(currentTask, agentMessage.Responses[i].Callback)
+		if agentResponse.Callback != nil {
+			go handleAgentMessagePostResponseCallback(currentTask, agentResponse.Callback)
 		}
-		if agentMessage.Responses[i].Events != nil && len(*agentMessage.Responses[i].Events) > 0 {
-			go handleAgentMessagePostResponseEvent(currentTask, agentMessage.Responses[i].Events)
+		if agentResponse.Events != nil && len(*agentResponse.Events) > 0 {
+			go handleAgentMessagePostResponseEvent(currentTask, agentResponse.Events)
 		}
-		if agentMessage.Responses[i].CustomBrowser != nil {
-			enqueueMythicTreeCustomBrowserResponse(currentTask, agentMessage.Responses[i].CustomBrowser)
+		if agentResponse.CustomBrowser != nil {
+			enqueueMythicTreeCustomBrowserResponse(currentTask, agentResponse.CustomBrowser)
 		}
 		// this section always happens
-		reflectBackOtherKeys(&mythicResponse, &agentMessage.Responses[i].Other)
+		reflectBackOtherKeys(&mythicResponse, &agentResponse.Other)
 		responses = append(responses, mythicResponse)
 		tasksToUpdate[currentTask.AgentTaskID] = currentTask
 	}
