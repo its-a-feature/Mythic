@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"fmt"
+	"slices"
 	"testing"
 
 	"github.com/mitchellh/mapstructure"
@@ -110,6 +111,26 @@ func TestHandleAgentMessageGetTaskingReflectsOnlyUnusedKeys(t *testing.T) {
 	}
 	if incoming["get_delegate_tasks"] != false {
 		t.Fatalf("expected get_delegate_tasks to remain for outer delegate processing, got %#v", incoming)
+	}
+}
+
+func TestSelectAgentMessageTaskIDsForIssueMatchesDirectTaskingOrder(t *testing.T) {
+	taskIDs := []int{5, 2, 9, 1}
+
+	if selected := selectAgentMessageTaskIDsForIssue(taskIDs, 0); len(selected) != 0 {
+		t.Fatalf("expected no issued task IDs for tasking_size 0, got %#v", selected)
+	}
+	if selected := selectAgentMessageTaskIDsForIssue(taskIDs, 2); !slices.Equal(selected, []int{1, 2}) {
+		t.Fatalf("expected first two task IDs in ascending DB order, got %#v", selected)
+	}
+	if selected := selectAgentMessageTaskIDsForIssue(taskIDs, -1); !slices.Equal(selected, []int{1, 2, 5, 9}) {
+		t.Fatalf("expected all task IDs in ascending DB order, got %#v", selected)
+	}
+	if selected := selectAgentMessageTaskIDsForIssue(taskIDs, 99); !slices.Equal(selected, []int{1, 2, 5, 9}) {
+		t.Fatalf("expected all task IDs when tasking_size exceeds pending count, got %#v", selected)
+	}
+	if !slices.Equal(taskIDs, []int{5, 2, 9, 1}) {
+		t.Fatalf("expected original task ID slice to remain unchanged, got %#v", taskIDs)
 	}
 }
 
