@@ -10081,6 +10081,313 @@ tspan {
     line-height: 1.25;
     overflow-wrap: anywhere;
 }
+.mythic-installed-service-name-row {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    min-width: 0;
+}
+.mythic-installed-service-metadata-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    min-width: 0;
+}
+.mythic-installed-service-metadata-grid {
+    display: grid;
+    gap: 0.32rem 0.7rem;
+    grid-template-columns: 7rem minmax(0, 1fr);
+    min-width: 0;
+}
+.mythic-installed-service-metadata-item {
+    display: contents;
+}
+.mythic-installed-service-metadata-label,
+.mythic-installed-service-detail-label {
+    color: ${(props) => props.theme.palette.text.secondary};
+    font-size: 0.68rem;
+    font-weight: 750;
+    line-height: 1.2;
+}
+.mythic-installed-service-metadata-label {
+    align-self: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-installed-service-metadata-value,
+.mythic-installed-service-detail-value {
+    color: ${(props) => props.theme.palette.text.primary};
+    font-size: 0.8rem;
+    font-weight: 500;
+    line-height: 1.25;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 100%;
+}
+.mythic-installed-service-metadata-grid .mythic-installed-service-chip-list {
+    flex-wrap: nowrap;
+    overflow: hidden;
+}
+.mythic-installed-service-metadata-custom-value {
+    min-width: 0;
+}
+.mythic-installed-service-metadata-code {
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.055) : alpha(props.theme.palette.common.black, 0.035)};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    color: ${(props) => props.theme.palette.text.primary};
+    display: inline-block;
+    font-family: ${(props) => props.theme.typography.fontFamilyMono || "monospace"};
+    font-size: 0.75rem;
+    line-height: 1.25;
+    max-width: 100%;
+    overflow: hidden;
+    padding: 0.12rem 0.32rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-installed-service-chip-list {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    min-width: 0;
+}
+.mythic-installed-service-chip {
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.055) : alpha(props.theme.palette.common.black, 0.04)};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    color: ${(props) => props.theme.palette.text.primary};
+    display: inline-flex;
+    font-size: 0.72rem;
+    font-weight: 750;
+    line-height: 1.2;
+    max-width: 9rem;
+    min-width: 0;
+    overflow: hidden;
+    padding: 0.16rem 0.42rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-installed-service-chip-more {
+    color: ${(props) => props.theme.palette.text.secondary};
+}
+.mythic-installed-service-action-chip-list {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    min-width: 0;
+}
+.mythic-installed-service-action-chip {
+    align-items: center;
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.055) : alpha(props.theme.palette.common.black, 0.04)};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    color: ${(props) => props.theme.palette.text.primary};
+    cursor: pointer;
+    display: inline-flex;
+    font-size: 0.72rem;
+    font-weight: 700;
+    gap: 0.3rem;
+    line-height: 1.2;
+    max-width: 11rem;
+    min-height: 24px;
+    min-width: 0;
+    overflow: hidden;
+    padding: 0.12rem 0.38rem 0.12rem 0.48rem;
+    transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+.mythic-installed-service-action-chip > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-installed-service-action-chip .MuiSvgIcon-root {
+    color: ${(props) => props.theme.palette.text.secondary};
+    flex: 0 0 auto;
+    font-size: 0.92rem;
+}
+.mythic-installed-service-action-chip:hover {
+    background-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.18 : 0.1)};
+    border-color: ${(props) => alpha(props.theme.palette.info.main, props.theme.palette.mode === "dark" ? 0.54 : 0.36)};
+    color: ${(props) => props.theme.palette.info.main};
+}
+.mythic-installed-service-action-chip:hover .MuiSvgIcon-root {
+    color: ${(props) => props.theme.palette.info.main};
+}
+.mythic-installed-service-action-chip:disabled {
+    color: ${(props) => props.theme.palette.text.disabled};
+    cursor: default;
+    opacity: 0.72;
+}
+.mythic-installed-service-action-chip:disabled:hover {
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.055) : alpha(props.theme.palette.common.black, 0.04)};
+    border-color: ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    color: ${(props) => props.theme.palette.text.disabled};
+}
+.mythic-installed-service-empty-value {
+    color: ${(props) => props.theme.palette.text.secondary};
+    font-size: 0.78rem;
+    font-weight: 650;
+}
+.mythic-installed-service-description {
+    color: ${(props) => props.theme.palette.text.secondary};
+    min-width: 0;
+}
+.mythic-installed-service-description > span {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 750;
+    line-height: 1.2;
+    margin-bottom: 0.18rem;
+}
+.mythic-installed-service-description > p {
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    color: ${(props) => props.theme.palette.text.primary};
+    display: -webkit-box;
+    font-size: 0.8rem;
+    font-weight: 500;
+    line-height: 1.35;
+    margin: 0;
+    overflow: hidden;
+    white-space: normal;
+}
+.mythic-installed-service-browser-metadata {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;
+}
+.mythic-installed-service-browser-author {
+    color: ${(props) => props.theme.palette.text.primary};
+    font-size: 0.82rem;
+    font-weight: 500;
+    line-height: 1.3;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-installed-service-browser-metrics {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.6rem;
+    min-width: 0;
+}
+.mythic-installed-service-browser-metric {
+    align-items: center;
+    display: inline-flex;
+    gap: 0.3rem;
+    min-width: 0;
+}
+.mythic-installed-service-browser-metric > span:first-child {
+    color: ${(props) => props.theme.palette.text.secondary};
+    font-size: 0.68rem;
+    font-weight: 750;
+    line-height: 1.2;
+}
+.mythic-installed-service-browser-metric > strong {
+    color: ${(props) => props.theme.palette.text.primary};
+    font-size: 0.78rem;
+    font-weight: 500;
+    line-height: 1.2;
+}
+.mythic-installed-service-detail-row .mythic-installed-service-detail-cell {
+    border-bottom: 0 !important;
+    padding: 0 !important;
+}
+.mythic-installed-service-detail-panel {
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.035) : alpha(props.theme.palette.common.black, 0.022)};
+    border-top: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+    margin: 0;
+    padding: 0.85rem 1rem 1rem;
+}
+.mythic-installed-service-detail-section {
+    background-color: ${(props) => props.theme.palette.background.paper};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    min-width: 0;
+    overflow: hidden;
+}
+.mythic-installed-service-detail-section-header {
+    align-items: center;
+    background-color: ${(props) => props.theme.pageHeader?.main || props.theme.palette.background.contrast};
+    border-bottom: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    color: ${(props) => props.theme.pageHeaderText?.main || props.theme.palette.text.primary};
+    display: flex;
+    font-size: 0.76rem;
+    font-weight: 850;
+    justify-content: space-between;
+    letter-spacing: 0;
+    min-height: 2rem;
+    padding: 0.35rem 0.6rem;
+}
+.mythic-installed-service-detail-section-body {
+    padding: 0.65rem;
+}
+.mythic-installed-service-detail-list {
+    display: grid;
+    gap: 0.5rem 0.85rem;
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+}
+.mythic-installed-service-detail-list-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.22rem;
+    min-width: 0;
+}
+.mythic-installed-service-definition-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+.mythic-installed-service-definition-row {
+    align-items: center;
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.common.white, 0.035) : alpha(props.theme.palette.common.black, 0.022)};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    display: flex;
+    gap: 0.75rem;
+    justify-content: space-between;
+    min-width: 0;
+    padding: 0.5rem 0.6rem;
+}
+.mythic-installed-service-definition-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+.mythic-installed-service-definition-title {
+    color: ${(props) => props.theme.palette.text.primary};
+    font-size: 0.82rem;
+    font-weight: 800;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+.mythic-installed-service-definition-subtitle,
+.mythic-installed-service-definition-description {
+    color: ${(props) => props.theme.palette.text.secondary};
+    font-size: 0.75rem;
+    font-weight: 650;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+.mythic-installed-service-definition-action {
+    align-items: center;
+    display: flex;
+    flex: 0 0 auto;
+}
 .mythic-service-status-summary {
     align-items: flex-start;
     display: flex;

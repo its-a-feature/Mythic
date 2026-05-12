@@ -474,10 +474,9 @@ A few examples are github.com/MythicAgents/bloodhound and github.com/MythicAgent
                             <TableRow>
                                 <MythicTableCell style={{width: "4rem"}}>Delete</MythicTableCell>
                                 <MythicTableCell style={{width: "90px"}}></MythicTableCell>
-                                <MythicTableCell>Service</MythicTableCell>
-                                <MythicTableCell style={{width: "4rem"}}>Type</MythicTableCell>
+                                <MythicTableCell style={{width: "22%"}}>Service</MythicTableCell>
                                 <MythicTableCell>Metadata</MythicTableCell>
-                                <MythicTableCell style={{width: "12rem"}}>Actions</MythicTableCell>
+                                <MythicTableCell style={{width: "13rem"}}>Actions</MythicTableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -542,8 +541,8 @@ You can extend this auth capability to support your own LDAP, SSO, or otherwise 
                         <TableHead>
                             <TableRow>
                                 <MythicTableCell style={{width: "3rem"}}></MythicTableCell>
-                                <MythicTableCell style={{width: "30%"}}>Name</MythicTableCell>
-                                <MythicTableCell style={{width: "5rem"}}>Manage</MythicTableCell>
+                                <MythicTableCell style={{width: "24%"}}>Service</MythicTableCell>
+                                <MythicTableCell>Metadata</MythicTableCell>
                                 <MythicTableCell>Actions</MythicTableCell>
                             </TableRow>
                         </TableHead>
@@ -594,11 +593,9 @@ const ContainersTabCustomBrowsersPanel = (props) => {
                             <TableRow>
                                 <MythicTableCell style={{width: "4rem"}}>Delete</MythicTableCell>
                                 <MythicTableCell style={{width: "90px"}}></MythicTableCell>
-                                <MythicTableCell>Service</MythicTableCell>
-                                <MythicTableCell style={{width: "4rem"}}>Type</MythicTableCell>
+                                <MythicTableCell style={{width: "22%"}}>Service</MythicTableCell>
                                 <MythicTableCell>Metadata</MythicTableCell>
-                                <MythicTableCell>Manage</MythicTableCell>
-                                <MythicTableCell></MythicTableCell>
+                                <MythicTableCell style={{width: "8rem"}}>Actions</MythicTableCell>
 
                             </TableRow>
                         </TableHead>

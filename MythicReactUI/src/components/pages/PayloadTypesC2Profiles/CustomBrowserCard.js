@@ -1,6 +1,5 @@
 import React from 'react';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
-import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import {useMutation, gql} from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
@@ -14,11 +13,15 @@ import MythicTableCell from "../../MythicComponents/MythicTableCell";
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import {C2ProfileListFilesDialog} from "./C2ProfileListFilesDialog";
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
 import {InstalledServiceContainerStatus} from "./InstalledServiceStatus";
+import {
+    InstalledServiceDefinitionList,
+    InstalledServiceDetailRow,
+    InstalledServiceDetailSection,
+    InstalledServiceDetailToggle,
+    InstalledServiceIdentity,
+    InstalledServiceListValue
+} from "./InstalledServiceTableComponents";
 
 const toggleDeleteStatus = gql`
 mutation toggleCustomBrowserDeleteStatus($custombrowser_id: Int!, $deleted: Boolean!){
@@ -31,6 +34,7 @@ mutation toggleCustomBrowserDeleteStatus($custombrowser_id: Int!, $deleted: Bool
 export function CustomBrowserRow({service, showDeleted}) {
   const [openListFilesDialog, setOpenListFilesDialog] = React.useState(false);
   const [openDelete, setOpenDeleteDialog] = React.useState(false);
+  const [openDetails, setOpenDetails] = React.useState(false);
   const [updateDeleted] = useMutation(toggleDeleteStatus, {
       onCompleted: data => {
       },
@@ -50,8 +54,8 @@ export function CustomBrowserRow({service, showDeleted}) {
         return null;
     }
   return (
-
-        <TableRow >
+        <>
+        <TableRow hover>
             <MythicTableCell>
                 {service.deleted ? (
                     <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-success" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><RestoreFromTrashOutlinedIcon fontSize="small" /></IconButton>
@@ -69,108 +73,104 @@ export function CustomBrowserRow({service, showDeleted}) {
                 <FontAwesomeIcon icon={faFolderOpen} style={{width: "60px", height: "60px"}} />
             </MythicTableCell>
             <MythicTableCell>
-                <div className="mythic-installed-service-identity">
-                    <span className="mythic-installed-service-name">{service.name}</span>
-                    <InstalledServiceContainerStatus isOnline={service.container_running} />
+                <InstalledServiceIdentity
+                    name={service.name}
+                    typeLabel={service.type}
+                    deleted={service.deleted}
+                    status={<InstalledServiceContainerStatus isOnline={service.container_running} />}
+                />
+            </MythicTableCell>
+            <MythicTableCell>
+                <div className="mythic-installed-service-browser-metadata">
+                    {service.author &&
+                        <div className="mythic-installed-service-browser-author" title={service.author}>
+                            {service.author}
+                        </div>
+                    }
+                    <div className="mythic-installed-service-browser-metrics">
+                        {service.semver &&
+                            <span className="mythic-installed-service-browser-metric">
+                                <span>Version</span>
+                                <InstalledServiceListValue value={[service.semver]} limit={1} />
+                            </span>
+                        }
+                        <span className="mythic-installed-service-browser-metric">
+                            <span>Export</span>
+                            <strong>{service.export_function === "" ? "False" : "True"}</strong>
+                        </span>
+                        <span className="mythic-installed-service-browser-metric">
+                            <span>Row actions</span>
+                            <strong>{(service.row_actions || []).length}</strong>
+                        </span>
+                        <span className="mythic-installed-service-browser-metric">
+                            <span>Columns</span>
+                            <strong>{(service.columns || []).length}</strong>
+                        </span>
+                        <span className="mythic-installed-service-browser-metric">
+                            <span>Inputs</span>
+                            <strong>{(service.extra_table_inputs || []).length}</strong>
+                        </span>
+                    </div>
+                    {service.description &&
+                        <div className="mythic-installed-service-description" title={service.description}>
+                            <span>Description</span>
+                            <p>{service.description}</p>
+                        </div>
+                    }
                 </div>
             </MythicTableCell>
             <MythicTableCell>
-                {service.type}
+                <div className="mythic-table-row-actions">
+                    <MythicStyledTooltip title={service.container_running ? "View Files" : "Unable to view files because container is offline"}>
+                        <IconButton
+                            className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                            disabled={!service.container_running}
+                            onClick={()=>{setOpenListFilesDialog(true);}}
+                            size="small">
+                            <AttachFileIcon fontSize="small" />
+                        </IconButton>
+                    </MythicStyledTooltip>
+                    <InstalledServiceDetailToggle open={openDetails} onClick={() => setOpenDetails((current) => !current)} />
+                </div>
             </MythicTableCell>
-            <MythicTableCell>
-                <Typography variant="body1" component="p">
-                    <b>Author:</b> {service.author}
-                </Typography>
-                <Typography variant="body2" component="p" style={{whiteSpace: "pre-wrap"}}>
-                    <b>Description: </b>{service.description}
-                </Typography>
-                <Typography variant="body2" component="p" style={{whiteSpace: "pre-wrap"}}>
-                    <b>Version: </b>{service.semver}
-                </Typography>
-                <Typography variant="body2" component="p" style={{whiteSpace: "pre-wrap"}}>
-                    <b>Export Capabilities: </b>{service.export_function === "" ? "False" : "True"}
-                </Typography>
-
-            </MythicTableCell>
-            <MythicTableCell>
-                <MythicStyledTooltip title={service.container_running ? "View Files" : "Unable to view files because container is offline"}>
-                    <IconButton
-                        className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
-                        disabled={!service.container_running}
-                        onClick={()=>{setOpenListFilesDialog(true);}}
-                        size="small">
-                        <AttachFileIcon fontSize="small" />
-                    </IconButton>
-                </MythicStyledTooltip>
-            </MythicTableCell>
-            <MythicTableCell style={{padding: 0}}>
-                <TableContainer className="mythicElement">
-                <Table>
-                    <TableHead>
-                        <TableRow hover>
-                            <MythicTableCell>{"Custom Row Action"}</MythicTableCell>
-                            <MythicTableCell>{"Needed UI Feature"}</MythicTableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {service.row_actions.map(c => (
-                            <TableRow key={c.name} hover>
-                                <MythicTableCell>{c.name}</MythicTableCell>
-                                <MythicTableCell>{c.ui_feature}</MythicTableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-                </TableContainer>
-                <TableContainer className="mythicElement">
-                <Table>
-                    <TableHead>
-                        <TableRow hover>
-                            <MythicTableCell>{"Display Table Column"}</MythicTableCell>
-                            <MythicTableCell>{"Metadata Key"}</MythicTableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {service.columns.map(c => (
-                            <TableRow key={c.name} hover>
-                                <MythicTableCell>{c.name}</MythicTableCell>
-                                <MythicTableCell>{c.key}</MythicTableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-                </TableContainer>
-                <TableContainer className="mythicElement">
-                <Table>
-                    <TableHead>
-                        <TableRow hover>
-                            <MythicTableCell>{"Extra Table Task Parameter"}</MythicTableCell>
-                            <MythicTableCell>{"Parameter Name"}</MythicTableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {service.extra_table_inputs.map(c => (
-                            <TableRow key={c.name} hover>
-                                <MythicTableCell>
-                                    <Typography variant="body2" component="p" style={{whiteSpace: "pre-wrap"}}>
-                                        <b>{c.display_name}: </b> {c.description}
-                                    </Typography>
-                                </MythicTableCell>
-                                <MythicTableCell>{c.name}</MythicTableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-                </TableContainer>
-            </MythicTableCell>
-
+        </TableRow>
+        <InstalledServiceDetailRow open={openDetails} colSpan={5}>
+            <InstalledServiceDetailSection title="Custom row actions" count={(service.row_actions || []).length}>
+                <InstalledServiceDefinitionList
+                    items={(service.row_actions || []).map((action) => ({
+                        title: action.name,
+                        subtitle: action.ui_feature,
+                    }))}
+                    emptyText="No custom row actions."
+                />
+            </InstalledServiceDetailSection>
+            <InstalledServiceDetailSection title="Display columns" count={(service.columns || []).length}>
+                <InstalledServiceDefinitionList
+                    items={(service.columns || []).map((column) => ({
+                        title: column.name,
+                        subtitle: column.key,
+                    }))}
+                    emptyText="No display columns."
+                />
+            </InstalledServiceDetailSection>
+            <InstalledServiceDetailSection title="Extra task inputs" count={(service.extra_table_inputs || []).length}>
+                <InstalledServiceDefinitionList
+                    items={(service.extra_table_inputs || []).map((input) => ({
+                        title: input.display_name,
+                        subtitle: input.name,
+                        description: input.description,
+                    }))}
+                    emptyText="No extra task inputs."
+                />
+            </InstalledServiceDetailSection>
+        </InstalledServiceDetailRow>
             {openListFilesDialog &&
                 <MythicDialog fullWidth={true} maxWidth="md" open={openListFilesDialog}
                               onClose={()=>{setOpenListFilesDialog(false);}}
                               innerDialog={<C2ProfileListFilesDialog container_name={service.name} {...service} onClose={()=>{setOpenListFilesDialog(false);}} />}
                 />
             }
-        </TableRow>
+        </>
 
   );
 }
