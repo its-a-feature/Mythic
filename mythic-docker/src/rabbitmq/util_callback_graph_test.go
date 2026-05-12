@@ -13,6 +13,7 @@ func newTestCallbackGraph(t *testing.T) *cbGraph {
 	t.Helper()
 	previousC2ProfileNameToIDMap := c2profileNameToIdMap
 	BFSCache.Reset()
+	callbackCheckinTargets.Reset()
 	c2profileNameToIdMap = map[string]databaseStructs.C2profile{
 		testC2ProfileName: {
 			ID:    1,
@@ -22,6 +23,7 @@ func newTestCallbackGraph(t *testing.T) *cbGraph {
 	}
 	t.Cleanup(func() {
 		BFSCache.Reset()
+		callbackCheckinTargets.Reset()
 		c2profileNameToIdMap = previousC2ProfileNameToIDMap
 	})
 	return &cbGraph{
@@ -145,5 +147,44 @@ func TestCanHaveDelegatesUsesCurrentGraphState(t *testing.T) {
 	graph.Remove(1, 2, testC2ProfileName)
 	if graph.CanHaveDelegates(1) {
 		t.Fatalf("expected callback with removed edge to have no delegates")
+	}
+}
+
+func TestGetAllChildIDsExcludesCallbacksWithTheirOwnEgress(t *testing.T) {
+	graph := newTestCallbackGraph(t)
+	addTestGraphEdge(graph, 1, 1)
+	addTestGraphEdge(graph, 1, 2)
+	addTestGraphEdge(graph, 2, 3)
+	addTestGraphEdge(graph, 2, 2)
+
+	callbackIDs := graph.getAllChildIDs(1)
+	expectedCallbackIDs := []int{1, 3}
+	if len(callbackIDs) != len(expectedCallbackIDs) {
+		t.Fatalf("expected callback IDs %#v, got %#v", expectedCallbackIDs, callbackIDs)
+	}
+	for i, expectedCallbackID := range expectedCallbackIDs {
+		if callbackIDs[i] != expectedCallbackID {
+			t.Fatalf("expected callbackIDs[%d] to be %d, got %d", i, expectedCallbackID, callbackIDs[i])
+		}
+	}
+}
+
+func TestGetAllChildIDsCacheInvalidatesWhenGraphChanges(t *testing.T) {
+	graph := newTestCallbackGraph(t)
+	addTestGraphEdge(graph, 1, 1)
+	addTestGraphEdge(graph, 1, 2)
+
+	callbackIDs := graph.getAllChildIDs(1)
+	if len(callbackIDs) != 2 {
+		t.Fatalf("expected two callback IDs before graph change, got %#v", callbackIDs)
+	}
+	if cachedIDs, cached := callbackCheckinTargets.Get(1, graph.version); !cached || len(cachedIDs) != 2 {
+		t.Fatalf("expected cached callback IDs before graph change, cached=%v ids=%#v", cached, cachedIDs)
+	}
+
+	addTestGraphEdge(graph, 1, 3)
+	callbackIDs = graph.getAllChildIDs(1)
+	if len(callbackIDs) != 3 {
+		t.Fatalf("expected three callback IDs after graph change, got %#v", callbackIDs)
 	}
 }

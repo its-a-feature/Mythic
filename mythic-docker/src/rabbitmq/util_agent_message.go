@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/its-a-feature/Mythic/eventing"
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/google/uuid"
@@ -791,7 +790,7 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 	payload := databaseStructs.Payload{}
 	stager := databaseStructs.Staginginfo{}
 	if err := database.DB.Get(&callback, `SELECT
-		callback.id, callback.enc_key, callback.dec_key, callback.crypto_type, callback.operation_id, callback.last_checkin, callback.display_id, callback.trigger_on_checkin_after_time, 
+		callback.id, callback.enc_key, callback.dec_key, callback.crypto_type, callback.operation_id, callback.last_checkin, callback.display_id, callback.trigger_on_checkin_after_time, callback.active,
 		payload.id "payload.id", 
 		payloadtype.id "payload.payloadtype.id", 
 		payloadtype.name "payload.payloadtype.name", 
@@ -824,6 +823,7 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 		newCache.LastCheckinTime = callback.LastCheckin
 		newCache.OperationID = callback.OperationID
 		newCache.TriggerOnCheckinAfterTime = callback.TriggerOnCheckinAfterTime
+		newCache.Active = callback.Active
 	} else if err = database.DB.Get(&payload, `SELECT
 		payload.id, payload.operation_id,
 		payload.deleted, payload.description, payload.uuid, payload.callback_allowed,
@@ -1241,126 +1241,6 @@ func reflectBackOtherKeys(response *map[string]interface{}, other *map[string]in
 		if _, ok := reservedOtherKeys[key]; !ok {
 			(*response)[key] = val
 		}
-	}
-}
-
-var updateCheckinTimeChannel = make(chan *cachedUUIDInfo, 200)
-
-func updateCheckinTimeEverySecond() {
-	callbackIDMap := make(map[int]*cachedUUIDInfo)
-	shouldUpdateChan := make(chan bool)
-	go func() {
-		for {
-			select {
-			case uuidInfo := <-updateCheckinTimeChannel:
-				callbackIDMap[uuidInfo.CallbackID] = uuidInfo
-			case <-shouldUpdateChan:
-				if len(callbackIDMap) == 0 {
-					continue
-				}
-				callbackIDs := make([]int, len(callbackIDMap))
-				i := 0
-				for _, callbackInfo := range callbackIDMap {
-					callbackIDs[i] = callbackInfo.CallbackID
-					callbackStruct := databaseStructs.Callback{
-						AgentCallbackID: callbackInfo.UUID,
-						ID:              callbackInfo.CallbackID,
-						OperationID:     callbackInfo.OperationID,
-						LastCheckin:     time.Now().UTC(),
-					}
-					callbackGraph.Add(callbackStruct, callbackStruct, callbackInfo.C2ProfileName, false)
-					i++
-				}
-				//logging.LogInfo("updating checkin times", "callbacks", callbackIDs)
-				//updateTimes(time.Now().UTC(), callbackIDs)
-				callbackIDMap = make(map[int]*cachedUUIDInfo)
-			}
-		}
-	}()
-	for {
-		select {
-		case <-time.After(time.Second):
-			shouldUpdateChan <- true
-		}
-	}
-}
-func UpdateCallbackEdgesAndCheckinTime(uuidInfo *cachedUUIDInfo) {
-	uuidInfo.stateMutex.Lock()
-	defer uuidInfo.stateMutex.Unlock()
-
-	callback := databaseStructs.Callback{
-		AgentCallbackID: uuidInfo.UUID,
-		ID:              uuidInfo.CallbackID,
-		OperationID:     uuidInfo.OperationID,
-		LastCheckin:     time.Now().UTC(),
-	}
-	// only bother updating the last checkin time if it's been more than one second
-	if callback.LastCheckin.Sub(uuidInfo.LastCheckinTime).Seconds() > 1 {
-		previousCheckin := uuidInfo.LastCheckinTime
-		select {
-		case updateCheckinTimeChannel <- uuidInfo:
-		default:
-			logging.LogDebug("Skipping callback checkin update enqueue because channel is full", "callback_id", uuidInfo.CallbackID)
-		}
-		//callbackGraph.AddByAgentIds(callback.AgentCallbackID, callback.AgentCallbackID, uuidInfo.C2ProfileName)
-		if uuidInfo.EdgeId == 0 {
-			err := database.DB.Get(&uuidInfo.EdgeId, `SELECT id FROM callbackgraphedge
-						WHERE source_id=$1 AND destination_id=$2 AND c2_profile_id=$3 AND operation_id=$4`,
-				uuidInfo.CallbackID, uuidInfo.CallbackID, uuidInfo.C2ProfileID, uuidInfo.OperationID)
-			if errors.Is(err, sql.ErrNoRows) {
-				if !uuidInfo.IsP2P {
-					err = database.DB.Get(&uuidInfo.EdgeId, `INSERT INTO callbackgraphedge
-						(source_id, destination_id, c2_profile_id, operation_id)
-						VALUES ($1, $1, $2, $3)
-						RETURNING id`,
-						uuidInfo.CallbackID, uuidInfo.C2ProfileID, uuidInfo.OperationID)
-					if err != nil {
-						logging.LogError(err, "Failed to add callback graph edge id for callback checking in",
-							"c2 id", uuidInfo.C2ProfileID, "callback id", uuidInfo.CallbackID)
-					} else {
-						logging.LogInfo("Added new callbackgraph edge when updating edges and checkin times", "c2", uuidInfo.C2ProfileID, "name", uuidInfo.C2ProfileName, "callback", uuidInfo.CallbackID)
-					}
-				}
-			} else if err != nil {
-				logging.LogError(err, "Failed to fetch callback graph edge id for callback checking in",
-					"c2 id", uuidInfo.C2ProfileID, "callback id", uuidInfo.CallbackID)
-			}
-		}
-		if !uuidInfo.Active {
-			uuidInfo.Active = true
-			_, err := database.DB.NamedExec(`UPDATE callback SET
-					active=true
-					WHERE id=:id`, callback)
-			if err != nil {
-				logging.LogError(err, "Failed to update active time", "callback", uuidInfo.UUID)
-			}
-			if uuidInfo.EdgeId > 0 {
-				_, err = database.DB.Exec(`UPDATE callbackgraphedge SET
-					end_timestamp=NULL
-					WHERE id=$1`, uuidInfo.EdgeId)
-				if err != nil {
-					logging.LogError(err, "Failed to callbackgraph edges time", "callback", uuidInfo.UUID)
-				}
-			}
-		}
-		if uuidInfo.TriggerOnCheckinAfterTime > 0 {
-			checkinDifference := int(callback.LastCheckin.Sub(previousCheckin).Minutes())
-			if checkinDifference >= uuidInfo.TriggerOnCheckinAfterTime {
-				// we want to trigger a workflow that the callback is checking in again after sleeping for > some time
-				go func(triggerData databaseStructs.Callback, oldCheckin time.Time, difference int) {
-					EventingChannel <- EventNotification{
-						Trigger:     eventing.TriggerCallbackCheckin,
-						OperationID: triggerData.OperationID,
-						CallbackID:  triggerData.ID,
-						Outputs: map[string]interface{}{
-							"previous_checkin":   oldCheckin,
-							"checkin_difference": difference,
-						},
-					}
-				}(callback, previousCheckin, checkinDifference)
-			}
-		}
-		uuidInfo.LastCheckinTime = callback.LastCheckin
 	}
 }
 
