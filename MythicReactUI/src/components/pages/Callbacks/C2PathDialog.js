@@ -14,7 +14,7 @@ import { Typography } from '@mui/material';
 import { ReactFlow,
     EdgeLabelRenderer,getBezierPath, BaseEdge,
     Handle, Position, useReactFlow, ReactFlowProvider, Panel,
-    MiniMap, Controls, ControlButton, useUpdateNodeInternals,
+    Controls, ControlButton, useUpdateNodeInternals,
     getConnectedEdges, useNodesState, useEdgesState
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -2687,7 +2687,6 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
         }
     }, [graphData, view_config, setNodes, setEdgeFlow, updateNodeInternals, fitView]);
     const onlyRenderVisibleGraphElements = nodes.length > 20;
-    const showMiniMap = nodes.length <= 250;
     return (
         <div className="mythic-graph-canvas mythic-c2-flow-canvas" style={{height: "100%", width: "100%", position: "relative"}} ref={viewportRef}>
                 <ReactFlow
@@ -2715,9 +2714,6 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
                             <InsertPhotoIcon />
                         </ControlButton>
                     </Controls>
-                    {showMiniMap &&
-                        <MiniMap pannable={true} zoomable={true}  />
-                    }
                 </ReactFlow>
             {openContextMenu && typeof document !== "undefined" && createPortal(
                 <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu mythic-graph-context-menu">
@@ -3437,7 +3433,6 @@ export const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme,
                         <RestartAltIcon />
                     </ControlButton>
                 </Controls>
-                <MiniMap pannable={true} zoomable={true} />
             </ReactFlow>
             {openContextMenu && typeof document !== "undefined" && createPortal(
                 <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu mythic-graph-context-menu">

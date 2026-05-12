@@ -88,6 +88,10 @@ on "public"."mythictree" using btree (operation_id, tree_type, "timestamp");
 create index if not exists mythictree_tree_deleted_timestamp_idx
 on "public"."mythictree" using btree (tree_type, deleted, "timestamp");
 
+create index if not exists operationeventlog_unresolved_warning_source_operation_level_idx
+on "public"."operationeventlog" using btree (source, operation_id, "level")
+where warning=true and resolved=false and deleted=false;
+
 alter table "public"."task"
     add column if not exists subtask_callback_function_started boolean not null default false,
     add column if not exists group_callback_function_started boolean not null default false,
@@ -222,6 +226,7 @@ drop index if exists "public"."mythictree_tree_deleted_timestamp_idx";
 drop index if exists "public"."mythictree_operation_tree_timestamp_idx";
 drop index if exists "public"."mythictree_operation_tree_host_full_callback_idx";
 drop index if exists "public"."mythictree_operation_tree_host_parent_callback_idx";
+drop index if exists "public"."operationeventlog_unresolved_warning_source_operation_level_idx";
 alter table "public"."task"
     drop column if exists completed_callback_function_started,
     drop column if exists group_callback_function_started,
