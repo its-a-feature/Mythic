@@ -1,5 +1,4 @@
-import React, { useEffect } from 'react';
-import Typography from '@mui/material/Typography';
+import React from 'react';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {PayloadTypeBuildDialog} from './PayloadTypeBuildDialog';
 import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
@@ -19,6 +18,10 @@ import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import {C2ProfileListFilesDialog} from "./C2ProfileListFilesDialog";
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import {InstalledServiceContainerStatus} from "./InstalledServiceStatus";
+import {
+    InstalledServiceIdentity,
+    InstalledServiceMetadataSummary
+} from "./InstalledServiceTableComponents";
 
 const toggleDeleteStatus = gql`
 mutation togglePayloadTypeDeleteStatus($payloadtype_id: Int!, $deleted: Boolean!){
@@ -29,9 +32,7 @@ mutation togglePayloadTypeDeleteStatus($payloadtype_id: Int!, $deleted: Boolean!
 `;
 
 export function PayloadTypeRow({service, showDeleted}){
-    const [wrappedPayloads, setWrappedPayloads] = React.useState("");
     const [openBuildingDialog, setOpenBuildingDialog] = React.useState(false);
-    const [supportedOS, setSupportedOS] = React.useState("");
     const [openDelete, setOpenDeleteDialog] = React.useState(false);
     const [updateDeleted] = useMutation(toggleDeleteStatus, {
         onCompleted: data => {
@@ -47,22 +48,13 @@ export function PayloadTypeRow({service, showDeleted}){
     });
     const [openCommandsDialog, setOpenCommandsDialog] = React.useState(false);
     const [openListFilesDialog, setOpenListFilesDialog] = React.useState(false);
+    const typeLabel = service.wrapper ? "Wrapper" : service.agent_type === "agent" ? "Agent" : service.agent_type === "service" ? "3rd Party Service" : "Command Augmentation";
+    const wrappedPayloadNames = React.useMemo(() => (service.wrap_these_payload_types || []).map((cur) => cur.wrapped.name), [service.wrap_these_payload_types]);
+    const supportedOS = React.useMemo(() => service.supported_os || [], [service.supported_os]);
     const onAcceptDelete = () => {
         updateDeleted({variables: {payloadtype_id: service.id, deleted: !service.deleted}})
         setOpenDeleteDialog(false);
     }
-    useEffect( () => {
-        if( service.wrap_these_payload_types.length > 0){
-            const wrapped = service.wrap_these_payload_types.map( (cur) => {
-                return cur.wrapped.name;
-            });
-            setWrappedPayloads(wrapped.join(", "));
-        }
-        else{
-            setWrappedPayloads("");
-        }
-        setSupportedOS(service.supported_os.join(", "));
-    }, [service.wrap_these_payload_types, service.supported_os]);
     if(service.deleted && !showDeleted){
         return null;
     }
@@ -84,34 +76,23 @@ export function PayloadTypeRow({service, showDeleted}){
                     <MythicAgentSVGIcon payload_type={service.name} style={{width: "80px", padding: "5px", objectFit: "unset"}} />
                 </MythicTableCell>
                 <MythicTableCell>
-                    <div className="mythic-installed-service-identity">
-                        <span className="mythic-installed-service-name">{service.name}</span>
-                        <InstalledServiceContainerStatus isOnline={service.container_running} />
-                    </div>
+                    <InstalledServiceIdentity
+                        name={service.name}
+                        typeLabel={typeLabel}
+                        deleted={service.deleted}
+                        status={<InstalledServiceContainerStatus isOnline={service.container_running} />}
+                    />
                 </MythicTableCell>
                 <MythicTableCell>
-                    {service.wrapper ? "Wrapper" : service.agent_type === "agent" ? "Agent" : service.agent_type === "service" ? "3rd Party Service" : "Command Augmentation"}
-                </MythicTableCell>
-                <MythicTableCell>
-                    <Typography variant="body1" component="p">
-                        <b>Author:</b> {service.author}
-                    </Typography>
-                    <Typography variant="body1" component="p">
-                        <b>Supported Operating Systems:</b> {supportedOS}
-                    </Typography>
-                    {service.semver !== "" &&
-                        <Typography variant="body1" component="p">
-                            <b>Version:</b> {service.semver}
-                        </Typography>
-                    }
-                    {service.wrap_these_payload_types.length === 0 ? null : (
-                        <Typography variant="body1" component="p">
-                            <b>Wrapped Payload Types:</b> {wrappedPayloads}
-                        </Typography>
-                    )}
-                    <Typography variant="body2" component="p" style={{whiteSpace: "pre-wrap"}}>
-                        <b>Description: </b>{service.note}
-                    </Typography>
+                    <InstalledServiceMetadataSummary
+                        items={[
+                            {label: "Author", value: service.author},
+                            {label: "Version", value: service.semver, chip: true},
+                            {label: "Supported OS", value: supportedOS},
+                            {label: "Wraps", value: wrappedPayloadNames},
+                        ]}
+                        description={service.note}
+                    />
                 </MythicTableCell>
                 <MythicTableCell>
                     <div className="mythic-table-row-actions">

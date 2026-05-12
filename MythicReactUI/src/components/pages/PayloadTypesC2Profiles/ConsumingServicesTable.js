@@ -1,10 +1,5 @@
 import React from 'react';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import Typography from '@mui/material/Typography';
 import PublicIcon from '@mui/icons-material/Public';
 import {IconButton} from '@mui/material';
 import {gql, useMutation} from '@apollo/client';
@@ -21,6 +16,14 @@ import AttachFileIcon from '@mui/icons-material/AttachFile';
 import {ConsumingServicesGetIDPMetadataDialog} from "./ConsumingServicesGetIDPMetadataDialog";
 import {C2ProfileListFilesDialog} from "./C2ProfileListFilesDialog";
 import {InstalledServiceContainerStatus} from "./InstalledServiceStatus";
+import {
+    InstalledServiceDefinitionList,
+    InstalledServiceDetailRow,
+    InstalledServiceDetailSection,
+    InstalledServiceDetailToggle,
+    InstalledServiceIdentity,
+    InstalledServiceMetadataSummary
+} from "./InstalledServiceTableComponents";
 
 const testWebhookMutation = gql`
 mutation testWebhookWorks($service_type: String!){
@@ -85,6 +88,7 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
         testLog({variables: {service_type: service_type}});
     }
     const [openIDPMetadata, setOpenIDPMetadata] = React.useState(false);
+    const [openDetails, setOpenDetails] = React.useState(false);
     const IDPMetadataRef = React.useRef({"container": "", "idp": ""});
     const [openListFilesDialog, setOpenListFilesDialog] = React.useState(false);
     const [openDelete, setOpenDeleteDialog] = React.useState(false);
@@ -165,9 +169,6 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
             </IconButton>
         </MythicStyledTooltip>
     );
-    const renderContainerStatus = (w) => (
-        <InstalledServiceContainerStatus isOnline={w.container_running} />
-    );
     const renderFileButton = (w) => (
         <MythicStyledTooltip title={w.container_running ? "View Files" : "Unable to view files since container is offline"}>
             <IconButton
@@ -180,179 +181,161 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
             </IconButton>
         </MythicStyledTooltip>
     );
+    const renderSubscriptionTestButtons = (w, events, icon, onClick, prefix) => (
+        events.map(s => (
+            <MythicStyledTooltip title={`${prefix} ${s}`} key={`${w.id}-${prefix}-${s}`}>
+                <IconButton
+                    className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                    disabled={!getSubscriptionNames(w).includes(s) || !w.container_running}
+                    onClick={() => onClick(s)}
+                    size="small">
+                    {icon}
+                </IconButton>
+            </MythicStyledTooltip>
+        ))
+    );
+    const getSubscriptionNames = (w) => {
+        if(!Array.isArray(w.subscriptions)){return []}
+        return w.subscriptions.map((subscription) => subscription?.name || subscription).filter(Boolean);
+    };
+    const renderIdentityProviderMetadata = (w) => {
+        const subscriptions = Array.isArray(w.subscriptions) ? w.subscriptions : [];
+        if(subscriptions.length === 0){
+            return <span className="mythic-installed-service-empty-value">Not set</span>;
+        }
+        return (
+            <span className="mythic-installed-service-action-chip-list">
+                {subscriptions.map((subscription) => {
+                    const providerName = subscription?.name || subscription;
+                    return (
+                        <MythicStyledTooltip title={w.container_running ? "Fetch container metadata" : "Container is offline"} key={`${w.name}-${providerName}`}>
+                            <button
+                                className="mythic-installed-service-action-chip"
+                                disabled={!w.container_running}
+                                onClick={() => getIDPMetadata(w.name, providerName)}
+                                type="button"
+                            >
+                                <span>{providerName}</span>
+                                <PermIdentityTwoToneIcon fontSize="small" />
+                            </button>
+                        </MythicStyledTooltip>
+                    );
+                })}
+            </span>
+        );
+    };
+    const renderBaseRow = ({w, typeLabel, metadataItems, actions, hasDetails = false}) => (
+        (showDeleted || !w.deleted) &&
+        <TableRow key={w.id} hover>
+            <MythicTableCell>
+                {renderDeleteButton(w)}
+            </MythicTableCell>
+            <MythicTableCell>
+                <InstalledServiceIdentity
+                    name={w.name}
+                    typeLabel={typeLabel}
+                    deleted={w.deleted}
+                    status={<InstalledServiceContainerStatus isOnline={w.container_running} />}
+                />
+            </MythicTableCell>
+            <MythicTableCell>
+                <InstalledServiceMetadataSummary
+                    items={metadataItems}
+                    description={w.description}
+                />
+            </MythicTableCell>
+            <MythicTableCell>
+                <div className="mythic-table-row-actions mythic-service-actions">
+                    {renderFileButton(w)}
+                    {actions}
+                    {hasDetails &&
+                        <InstalledServiceDetailToggle open={openDetails} onClick={() => setOpenDetails((current) => !current)} />
+                    }
+                </div>
+            </MythicTableCell>
+        </TableRow>
+    );
     const getTableRow = (w) => {
         switch(service.type){
             case "webhook":
-                return (
-                    (showDeleted || !w.deleted) &&
-                    <TableRow key={w.id} hover>
-                        <MythicTableCell>
-                            {renderDeleteButton(w)}
-                        </MythicTableCell>
-                        <MythicTableCell>
-                            <Typography variant={"h5"}>
-                                {w.name}
-                            </Typography>
-                            {renderContainerStatus(w)}
-                            <Typography variant={"body"}>
-                                <b>Type: </b>{w.type}
-                            </Typography>
-                            <Typography variant={"body2"}>
-                                <b>Description: </b>{w.description}
-                            </Typography>
-                        </MythicTableCell>
-                        <MythicTableCell>
-                            {renderFileButton(w)}
-                        </MythicTableCell>
-                        <MythicTableCell>
-                            <div className="mythic-table-row-actions mythic-service-actions">
-                                {webhook_events.map(s => (
-                                    <MythicStyledTooltip title={"test webhook " + s} key={w.id + "webhook_" + s}>
-                                        <IconButton
-                                            className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
-                                            disabled={!w.subscriptions.includes(s) || !w.container_running}
-                                            onClick={() => {
-                                                issueTestWebhook(s)
-                                            }}
-                                            size="small">
-                                            <PublicIcon fontSize="small" />
-                                        </IconButton>
-                                    </MythicStyledTooltip>
-                                ))}
-                            </div>
-                        </MythicTableCell>
-                    </TableRow>
-                )
+                return renderBaseRow({
+                    w,
+                    typeLabel: "Webhook",
+                    metadataItems: [
+                        {label: "Type", value: w.type},
+                        {label: "Version", value: w.semver, chip: true},
+                        {label: "Subscriptions", value: getSubscriptionNames(w)},
+                    ],
+                    actions: renderSubscriptionTestButtons(w, webhook_events, <PublicIcon fontSize="small" />, issueTestWebhook, "test webhook"),
+                });
             case "logging":
-                return (
-                    (showDeleted || !w.deleted) &&
-                    <TableRow key={w.id} hover>
-                        <MythicTableCell>
-                            {renderDeleteButton(w)}
-                        </MythicTableCell>
-                        <MythicTableCell>
-                            <Typography variant={"h5"}>
-                                {w.name}
-                            </Typography>
-                            {renderContainerStatus(w)}
-                            <Typography variant={"body"}>
-                                <b>Type: </b>{w.type}
-                            </Typography>
-                            <Typography variant={"body2"}>
-                                <b>Description: </b>{w.description}
-                            </Typography>
-                        </MythicTableCell>
-                        <MythicTableCell>
-                            {renderFileButton(w)}
-                        </MythicTableCell>
-                        <MythicTableCell>
-                            <div className="mythic-table-row-actions mythic-service-actions">
-                                {logging_events.map(s => (
-                                    <MythicStyledTooltip title={"test logging " + s} key={w.id + "logging_" + s}>
-                                        <IconButton
-                                            className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
-                                            disabled={!w.subscriptions.includes(s) || !w.container_running}
-                                            onClick={() => {
-                                                issueTestLog(s)
-                                            }}
-                                            size="small">
-                                            <SyncAltIcon fontSize="small" />
-                                        </IconButton>
-                                    </MythicStyledTooltip>
-                                ))}
-                            </div>
-                        </MythicTableCell>
-                    </TableRow>
-                )
+                return renderBaseRow({
+                    w,
+                    typeLabel: "Logger",
+                    metadataItems: [
+                        {label: "Type", value: w.type},
+                        {label: "Version", value: w.semver, chip: true},
+                        {label: "Subscriptions", value: getSubscriptionNames(w)},
+                    ],
+                    actions: renderSubscriptionTestButtons(w, logging_events, <SyncAltIcon fontSize="small" />, issueTestLog, "test logging"),
+                });
             case "eventing":
-                return (
-                    (showDeleted || !w.deleted) &&
-                    <TableRow key={w.id} hover>
-                        <MythicTableCell>
-                            {renderDeleteButton(w)}
-                        </MythicTableCell>
-                        <MythicTableCell>
-                            <Typography variant={"h5"}>
-                                {w.name}
-                            </Typography>
-                            {renderContainerStatus(w)}
-                            <Typography variant={"body"}>
-                                <b>Type: </b>{w.type}
-                            </Typography>
-                            <Typography variant={"body2"}>
-                                <b>Description: </b>{w.description}
-                            </Typography>
-                        </MythicTableCell>
-                        <MythicTableCell>
-                            {renderFileButton(w)}
-                        </MythicTableCell>
-                        <MythicTableCell>
-                            <Table>
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell>Function</TableCell>
-                                        <TableCell>Description</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {w.subscriptions.map(s => (
-                                        <TableRow key={s.name} hover>
-                                            <MythicTableCell><b>{s.name}</b></MythicTableCell>
-                                            <MythicTableCell>{s.description}</MythicTableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-
-                        </MythicTableCell>
-                    </TableRow>
-                )
+                return renderBaseRow({
+                    w,
+                    typeLabel: "Eventing",
+                    metadataItems: [
+                        {label: "Type", value: w.type},
+                        {label: "Version", value: w.semver, chip: true},
+                        {label: "Functions", value: getSubscriptionNames(w)},
+                    ],
+                    hasDetails: true,
+                });
             case "auth":
-                return (
-                    (showDeleted || !w.deleted) &&
-                    <TableRow key={w.id} hover>
-                        <MythicTableCell>
-                            {renderDeleteButton(w)}
-                        </MythicTableCell>
-                        <MythicTableCell>
-                            <Typography variant={"h5"}>
-                                {w.name}
-                            </Typography>
-                            {renderContainerStatus(w)}
-                            <Typography variant={"body"}>
-                                <b>Type: </b>{w.type}
-                            </Typography>
-                            <Typography variant={"body2"}>
-                                <b>Description: </b>{w.description}
-                            </Typography>
-                        </MythicTableCell>
-                        <MythicTableCell>
-                            {renderFileButton(w)}
-                        </MythicTableCell>
-                        <MythicTableCell>
-                            {w.subscriptions.map(s => (
-                                <Typography key={s.name + s.type + w.name} style={{display: "block"}}>
-                                    <MythicStyledTooltip title={"Fetch Container Metadata"} >
-                                        <IconButton
-                                            className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
-                                            onClick={() => getIDPMetadata(w.name, s.name)}
-                                            disabled={!w.container_running}
-                                            size="small"
-                                        >
-                                            <PermIdentityTwoToneIcon fontSize="small" />
-                                        </IconButton>
-                                    </MythicStyledTooltip>
-                                    {s.name}
-                                </Typography>
-                            ))}
-                        </MythicTableCell>
-                    </TableRow>
-                )
+                return renderBaseRow({
+                    w,
+                    typeLabel: "Auth",
+                    metadataItems: [
+                        {label: "Type", value: w.type},
+                        {label: "Version", value: w.semver, chip: true},
+                        {label: "Identity Providers", value: getSubscriptionNames(w), render: renderIdentityProviderMetadata(w)},
+                    ],
+                });
+            default:
+                return null;
         }
     }
+    const getDetailContent = (w) => {
+        switch(service.type){
+            case "eventing":
+                return (
+                    <InstalledServiceDetailSection title="Eventing functions" count={(w.subscriptions || []).length}>
+                        <InstalledServiceDefinitionList
+                            items={(w.subscriptions || []).map((subscription) => ({
+                                title: subscription.name,
+                                description: subscription.description,
+                            }))}
+                            emptyText="No eventing functions registered."
+                        />
+                    </InstalledServiceDetailSection>
+                );
+            case "auth":
+                return null;
+            default:
+                return null;
+        }
+    };
+    if(localData.deleted && !showDeleted){
+        return null;
+    }
+    const detailContent = getDetailContent(localData);
     return (
         <>
             {getTableRow(localData)}
+            {detailContent &&
+                <InstalledServiceDetailRow open={openDetails} colSpan={4}>
+                    {detailContent}
+                </InstalledServiceDetailRow>
+            }
             {openDelete &&
                 <MythicConfirmDialog onClose={() => { setOpenDeleteDialog(false); }}
                                      onSubmit={onAcceptDelete}

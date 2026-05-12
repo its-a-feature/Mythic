@@ -1,5 +1,4 @@
 import React from 'react';
-import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import {C2ProfileBuildDialog} from './C2ProfileBuildDialog';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
@@ -34,6 +33,10 @@ import MythicTableCell from "../../MythicComponents/MythicTableCell";
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import {C2ProfileStatusSummary} from "./InstalledServiceStatus";
+import {
+    InstalledServiceIdentity,
+    InstalledServiceMetadataSummary
+} from "./InstalledServiceTableComponents";
 
 
 const toggleDeleteStatus = gql`
@@ -144,6 +147,8 @@ export function C2ProfilesRow({service, showDeleted}) {
         updateDeleted({variables: {c2profile_id: service.id, deleted: !service.deleted}})
         setOpenDeleteDialog(false);
     }
+    const typeLabel = service.is_p2p ? "P2P" : "Egress";
+    const supportedAgents = React.useMemo(() => (service.payloadtypec2profiles || []).filter((pt) => !pt.payloadtype.deleted).map((c) => c.payloadtype.name), [service.payloadtypec2profiles]);
     if(service.deleted && !showDeleted){
         return null;
     }
@@ -175,27 +180,22 @@ export function C2ProfilesRow({service, showDeleted}) {
 
                 </MythicTableCell>
                 <MythicTableCell>
-                    <div className="mythic-installed-service-identity">
-                        <span className="mythic-installed-service-name">{service.name}</span>
-                        <C2ProfileStatusSummary service={service} />
-                    </div>
+                    <InstalledServiceIdentity
+                        name={service.name}
+                        typeLabel={typeLabel}
+                        deleted={service.deleted}
+                        status={<C2ProfileStatusSummary service={service} />}
+                    />
                 </MythicTableCell>
-                <MythicTableCell>{service.is_p2p ? "P2P" : "Egress"}</MythicTableCell>
                 <MythicTableCell>
-                    <Typography variant="body1" component="p">
-                        <b>Author:</b> {service.author}
-                    </Typography>
-                    {service.semver !== "" &&
-                        <Typography variant="body1" component="p">
-                            <b>Version:</b> {service.semver}
-                        </Typography>
-                    }
-                    <Typography variant="body1" component="p">
-                        <b>Supported Agents:</b> {service.payloadtypec2profiles.filter( (pt) => !pt.payloadtype.deleted ).map(c => c.payloadtype.name).join(", ")}
-                    </Typography>
-                    <Typography variant="body2" component="p" style={{whiteSpace: "pre-wrap"}}>
-                        <b>Description: </b>{service.description}
-                    </Typography>
+                    <InstalledServiceMetadataSummary
+                        items={[
+                            {label: "Author", value: service.author},
+                            {label: "Version", value: service.semver, chip: true},
+                            {label: "Supported Agents", value: supportedAgents},
+                        ]}
+                        description={service.description}
+                    />
                 </MythicTableCell>
                 <MythicTableCell>
                     {service.container_running ? (
@@ -312,6 +312,7 @@ export function C2ProfilesRow({service, showDeleted}) {
                         )}
                     </Popper>
                 </MythicTableCell>
+            </TableRow>
                 {openBuildingDialog &&
                     <MythicDialog fullWidth={true} maxWidth="lg" open={openBuildingDialog}
                                   onClose={()=>{setOpenBuildingDialog(false);}}
@@ -364,7 +365,6 @@ export function C2ProfilesRow({service, showDeleted}) {
                                   innerDialog={<C2ProfileListFilesDialog container_name={service.name} {...service} onClose={()=>{setOpenListFilesDialog(false);}} />}
                     />
                 }
-            </TableRow>
         </>
 
     );
