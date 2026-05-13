@@ -115,13 +115,17 @@ func MythicRPCCustomBrowserSearch(input MythicRPCCustomBrowserSearchMessage) Myt
 
 	}
 	if input.SearchCustomBrowser.MetadataKey != nil {
-		searchString += "AND metadata->:metadata_key "
 		paramDict["metadata_key"] = *input.SearchCustomBrowser.MetadataKey
 		if input.SearchCustomBrowser.MetadataValue != nil {
-			searchString += " = :metadata_value "
-			paramDict["metadata_value"] = input.SearchCustomBrowser.MetadataValue
+			metadataValueBytes, err := json.Marshal(input.SearchCustomBrowser.MetadataValue)
+			if err != nil {
+				response.Error = err.Error()
+				return response
+			}
+			searchString += "AND metadata->:metadata_key = CAST(:metadata_value AS jsonb) "
+			paramDict["metadata_value"] = string(metadataValueBytes)
 		} else {
-			searchString += " is not null "
+			searchString += "AND metadata->:metadata_key IS NOT NULL "
 		}
 	}
 	if input.SearchCustomBrowser.CallbackGroup != nil {

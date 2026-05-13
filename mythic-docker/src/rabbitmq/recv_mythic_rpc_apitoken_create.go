@@ -175,19 +175,21 @@ func MythicRPCAPITokenCreate(input MythicRPCAPITokenCreateMessage) MythicRPCAPIT
 	accessToken, storedAPITokenValue, err := mythicjwt.GenerateOpaqueAPIToken()
 	if err != nil {
 		response.Error = err.Error()
+		expireAPIToken(apiToken.ID)
 		return response
 	}
 	apiToken.TokenValue = storedAPITokenValue
 	_, err = database.DB.Exec(`UPDATE apitokens SET token_value=$1 WHERE id=$2`, apiToken.TokenValue, apiToken.ID)
 	if err != nil {
 		response.Error = err.Error()
+		expireAPIToken(apiToken.ID)
 		return response
 	}
 	response.Success = true
 	response.APIToken = accessToken
 	if apiToken.TokenType == mythicjwt.AUTH_METHOD_CALLBACK || apiToken.TokenType == mythicjwt.AUTH_METHOD_PAYLOAD {
 		// deactivate the token after 5 min (should be a short-lived use)
-		go updateAPITokenAfter5Minutes(apiToken.ID, response.APIToken)
+		go expireAPITokenAfterShortLivedTTL(apiToken.ID)
 	}
 	return response
 }

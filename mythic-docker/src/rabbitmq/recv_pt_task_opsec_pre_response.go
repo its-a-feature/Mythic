@@ -38,10 +38,7 @@ func processPtTaskOPSECPreMessages(msg amqp.Delivery) {
 			go SendAllOperationsMessage(err.Error(), 0, "", database.MESSAGE_LEVEL_INFO, true)
 			return
 		}
-		_, err = database.DB.Exec(`UPDATE apitokens SET deleted=true AND active=false WHERE task_id=$1`, task.ID)
-		if err != nil {
-			logging.LogError(err, "Failed to update the apitokens to set to deleted")
-		}
+		expireAPITokensForTask(task.ID)
 		if payloadMsg.Success {
 			shouldMoveToCreateTasking := false
 			if !payloadMsg.OpsecPreBlocked || (payloadMsg.OpsecPreBlocked && payloadMsg.OpsecPreBypassed != nil && *payloadMsg.OpsecPreBypassed) {

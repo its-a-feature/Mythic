@@ -65,7 +65,7 @@ func MythicRPCProcessSearch(input MythicRPCProcessSearchMessage) MythicRPCProces
 			searchString += "AND host ILIKE :host "
 		}
 		if input.SearchProcess.ProcessID != nil {
-			paramDict["process_id"] = *input.SearchProcess.ProcessID
+			paramDict["process_id"] = fmt.Sprintf("%d", *input.SearchProcess.ProcessID)
 			searchString += "AND metadata->>'process_id'=:process_id "
 		}
 		if input.SearchProcess.Architecture != nil {
@@ -73,7 +73,7 @@ func MythicRPCProcessSearch(input MythicRPCProcessSearchMessage) MythicRPCProces
 			searchString += "AND metadata->>'architecture'=:architecture "
 		}
 		if input.SearchProcess.ParentProcessID != nil {
-			paramDict["parent_process_id"] = *input.SearchProcess.ParentProcessID
+			paramDict["parent_process_id"] = fmt.Sprintf("%d", *input.SearchProcess.ParentProcessID)
 			searchString += "AND metadata->>'parent_process_id'=:parent_process_id "
 		}
 		if input.SearchProcess.BinPath != nil {
@@ -86,14 +86,14 @@ func MythicRPCProcessSearch(input MythicRPCProcessSearchMessage) MythicRPCProces
 		}
 		if input.SearchProcess.User != nil {
 			paramDict["user"] = fmt.Sprintf("%%%s%%", *input.SearchProcess.User)
-			searchString += "AND metadata->>\"user\" ILIKE :user "
+			searchString += "AND metadata->>'user' ILIKE :user "
 		}
 		if input.SearchProcess.CommandLine != nil {
 			paramDict["command_line"] = fmt.Sprintf("%%%s%%", *input.SearchProcess.CommandLine)
 			searchString += "AND metadata->>'command_line' ILIKE :command_line "
 		}
 		if input.SearchProcess.IntegrityLevel != nil {
-			paramDict["integrity_level"] = *input.SearchProcess.IntegrityLevel
+			paramDict["integrity_level"] = fmt.Sprintf("%d", *input.SearchProcess.IntegrityLevel)
 			searchString += "AND metadata->>'integrity_level'=:integrity_level "
 		}
 		if input.SearchProcess.Description != nil {
