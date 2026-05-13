@@ -31,6 +31,22 @@ var customBrowsersToCheck = map[string]databaseStructs.CustomBrowser{}
 var containerOnStartLock sync.Mutex
 var containerOnStartInFlight = map[string]bool{}
 
+func claimContainerOnStart(containerName string) bool {
+	containerOnStartLock.Lock()
+	defer containerOnStartLock.Unlock()
+	if containerOnStartInFlight[containerName] {
+		return false
+	}
+	containerOnStartInFlight[containerName] = true
+	return true
+}
+
+func clearContainerOnStart(containerName string) {
+	containerOnStartLock.Lock()
+	delete(containerOnStartInFlight, containerName)
+	containerOnStartLock.Unlock()
+}
+
 func checkContainerStatusAddPT() {
 	for {
 		pt := <-checkContainerStatusAddPtChannel
@@ -126,14 +142,11 @@ type rabbitmqAPIQuery struct {
 }
 
 func CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(containerName string) {
-	containerOnStartLock.Lock()
-	if containerOnStartInFlight[containerName] {
-		containerOnStartLock.Unlock()
+	if !claimContainerOnStart(containerName) {
 		logging.LogInfo("Skipping duplicate container on start run already in progress", "container", containerName)
 		return
 	}
-	containerOnStartInFlight[containerName] = true
-	containerOnStartLock.Unlock()
+	defer clearContainerOnStart(containerName)
 	operations := []databaseStructs.Operation{}
 	err := database.DB.Select(&operations, `SELECT id FROM operation WHERE deleted=false and complete=false`)
 	if err != nil {
@@ -191,6 +204,7 @@ func CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(containerName string) {
 			mythicjwt.SCOPE_PAYLOAD_READ,
 			mythicjwt.SCOPE_FILE_WRITE,
 			mythicjwt.SCOPE_TAG_WRITE,
+			mythicjwt.SCOPE_CALLBACK_WRITE,
 		}
 		statement, err := database.DB.PrepareNamed(`INSERT INTO apitokens
 		(token_value, operator_id, token_type, active, "name", created_by, task_id, callback_id, scopes)
@@ -209,16 +223,18 @@ func CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(containerName string) {
 		plainAPITokenValue, storedAPITokenValue, err := mythicjwt.GenerateOpaqueAPIToken()
 		if err != nil {
 			logging.LogError(err, "failed to generate new API token")
+			expireAPIToken(apiToken.ID)
 			continue
 		}
 		apiToken.TokenValue = storedAPITokenValue
 		_, err = database.DB.Exec(`UPDATE apitokens SET token_value=$1 WHERE id=$2`, apiToken.TokenValue, apiToken.ID)
 		if err != nil {
 			logging.LogError(err, "Failed to update apitoken with value")
+			expireAPIToken(apiToken.ID)
 			continue
 		}
 		onStartMessage.APIToken = plainAPITokenValue
-		go updateAPITokenAfter5Minutes(apiToken.ID, containerName)
+		go expireAPITokenAfterShortLivedTTL(apiToken.ID)
 		err = RabbitMQConnection.SendContainerOnStart(onStartMessage)
 		if err != nil {
 			logging.LogError(err, "Failed to send container on start")
@@ -227,24 +243,15 @@ func CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(containerName string) {
 		time.Sleep(5 * time.Second)
 	}
 }
-func updateAPITokenAfter5Minutes(apitokenID int, containerName string) {
-	<-time.After(5 * time.Minute)
-	_, err := database.DB.Exec(`UPDATE apitokens SET active=false, deleted=true WHERE id=$1`, apitokenID)
-	if err != nil {
-		logging.LogError(err, "failed to mark apitoken as deleted")
-	}
-	containerOnStartLock.Lock()
-	delete(containerOnStartInFlight, containerName)
-	containerOnStartLock.Unlock()
-}
 func checkContainerStatus() {
 	// get all queues from rabbitmq
 	// http://rabbitmq_user:rabbitmq_password@rabbitmq_host:15672/rabbitmq/api/queues/mythic_vhost
 	rabbitmqReqURL := fmt.Sprintf("http://%s:%s@%s:15672/api/queues/%s?use_regex=true&page=1&page_size=500&name=%s",
 		utils.MythicConfig.RabbitmqUser, utils.MythicConfig.RabbitmqPassword, utils.MythicConfig.RabbitmqHost,
 		utils.MythicConfig.RabbitmqVHost,
-		fmt.Sprintf("(.%%2A_%s|.%%2A_%s|.%%2A_%s)",
-			PT_BUILD_ROUTING_KEY, C2_RPC_START_SERVER_ROUTING_KEY, CONSUMING_CONTAINER_RESYNC_ROUTING_KEY))
+		fmt.Sprintf("(.%%2A_%s|.%%2A_%s|.%%2A_%s|.%%2A_%s)",
+			PT_BUILD_ROUTING_KEY, C2_RPC_START_SERVER_ROUTING_KEY, CONSUMING_CONTAINER_RESYNC_ROUTING_KEY,
+			CUSTOMBROWSER_EXPORT_FUNCTION))
 	go checkContainerStatusAddPT()
 	go checkContainerStatusAddC2()
 	go checkContainerStatusAddTR()
@@ -423,20 +430,20 @@ func checkContainerStatus() {
 		for container := range customBrowsersToCheck {
 			// check that a container is online
 			//logging.LogDebug("checking container", "container", container)
-			running := utils.SliceContains(existingQueues, GetCustomBrowserExportFunctionRoutingKey(consumingContainersToCheck[container].Name))
+			running := utils.SliceContains(existingQueues, GetCustomBrowserExportFunctionRoutingKey(customBrowsersToCheck[container].Name))
 			//logging.LogInfo("checking container running", "container", container, "running", running, "current_running", c2profilesToCheck[container].ContainerRunning)
-			if running != consumingContainersToCheck[container].ContainerRunning {
-				if entry, ok := consumingContainersToCheck[container]; ok {
+			if running != customBrowsersToCheck[container].ContainerRunning {
+				if entry, ok := customBrowsersToCheck[container]; ok {
 					entry.ContainerRunning = running
 					_, err = database.DB.NamedExec(`UPDATE custombrowser SET
 							container_running=:container_running, deleted=false
 							WHERE id=:id`, entry,
 					)
 					if err != nil {
-						logging.LogError(err, "Failed to set container running status", "container_running", consumingContainersToCheck[container].ContainerRunning, "container", container)
+						logging.LogError(err, "Failed to set container running status", "container_running", customBrowsersToCheck[container].ContainerRunning, "container", container)
 						continue
 					}
-					consumingContainersToCheck[container] = entry
+					customBrowsersToCheck[container] = entry
 					if !running {
 						SendAllOperationsMessage(
 							getDownContainerMessage(container),

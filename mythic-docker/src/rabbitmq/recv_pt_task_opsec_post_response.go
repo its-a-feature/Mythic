@@ -43,10 +43,7 @@ func processPtTaskOPSECPostMessages(msg amqp.Delivery) {
 		go SendAllOperationsMessage(err.Error(), 0, "", database.MESSAGE_LEVEL_INFO, true)
 		return
 	}
-	_, err = database.DB.Exec(`UPDATE apitokens SET deleted=true AND active=false WHERE task_id=$1`, task.ID)
-	if err != nil {
-		logging.LogError(err, "Failed to update the apitokens to set to deleted")
-	}
+	expireAPITokensForTask(task.ID)
 	if payloadMsg.Success {
 		if !payloadMsg.OpsecPostBlocked || (payloadMsg.OpsecPostBlocked && payloadMsg.OpsecPostBypassed != nil && *payloadMsg.OpsecPostBypassed) {
 			task.Status = PT_TASK_FUNCTION_STATUS_SUBMITTED
