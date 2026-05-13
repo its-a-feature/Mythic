@@ -121,7 +121,7 @@ func MythicRPCCallbackSearch(input MythicRPCCallbackSearchMessage) MythicRPCCall
 	if input.SearchCallbackDisplayID != nil || input.SearchCallbackID != nil || input.SearchCallbackUUID != nil {
 		searchString += ` AND (callback.id=:id OR
 			callback.agent_callback_id=:agent_callback_id OR
-			callback.display_id=:display_id)`
+			callback.display_id=:display_id) `
 	}
 	if input.SearchCallbackUser != nil {
 		targetCallback.User = *input.SearchCallbackUser
@@ -168,11 +168,11 @@ func MythicRPCCallbackSearch(input MythicRPCCallbackSearchMessage) MythicRPCCall
 	}
 	if input.SearchCallbackArchitecture != nil {
 		targetCallback.Architecture = *input.SearchCallbackArchitecture
-		searchString += `AND architecture ILIKE :architecture`
+		searchString += `AND architecture ILIKE :architecture `
 	}
 	if input.SearchCallbackDescription != nil {
 		targetCallback.Description = *input.SearchCallbackDescription
-		searchString += `AND callback.description ILIKE :description`
+		searchString += `AND callback.description ILIKE :description `
 	}
 	searchString += " ORDER BY callback.id DESC"
 	rows, err := database.DB.NamedQuery(searchString, targetCallback)

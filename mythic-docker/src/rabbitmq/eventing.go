@@ -1444,7 +1444,7 @@ func startEventStepInstanceActionInterceptResponse(eventStepInstance databaseStr
 }
 func restartFailedJobs(eventgroupInstanceID int) error {
 	_, err := database.DB.Exec(`UPDATE eventstepinstance 
-		SET status=$1, end_timestamp=$2 WHERE eventgroupinstance_id=$3 AND status=$4 OR status=$5`,
+		SET status=$1, end_timestamp=$2 WHERE eventgroupinstance_id=$3 AND status IN ($4, $5)`,
 		eventing.EventGroupInstanceStatusQueued, nil, eventgroupInstanceID,
 		eventing.EventGroupInstanceStatusError, eventing.EventGroupInstanceStatusCancelled)
 	if err != nil {

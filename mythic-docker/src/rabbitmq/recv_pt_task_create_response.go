@@ -3,9 +3,10 @@ package rabbitmq
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/its-a-feature/Mythic/eventing"
 	"strings"
 	"time"
+
+	"github.com/its-a-feature/Mythic/eventing"
 
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -42,10 +43,6 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 		logging.LogError(err, "Failed to find task from create_tasking")
 		go SendAllOperationsMessage(err.Error(), 0, "", database.MESSAGE_LEVEL_INFO, true)
 		return
-	}
-	_, err = database.DB.Exec(`UPDATE apitokens SET deleted=true AND active=false WHERE task_id=$1`, task.ID)
-	if err != nil {
-		logging.LogError(err, "Failed to update the apitokens to set to deleted")
 	}
 	//logging.LogInfo("got response back from create message", "resp", payloadMsg, "original", string(msg.Body))
 
@@ -107,6 +104,7 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 		} else {
 			task.Status = PT_TASK_FUNCTION_STATUS_COMPLETED
 		}
+		expireAPITokensForTask(task.ID)
 		task.Timestamp = time.Now().UTC()
 		updateColumns = append(updateColumns, "timestamp=:timestamp")
 		task.StatusTimestampSubmitted.Valid = true

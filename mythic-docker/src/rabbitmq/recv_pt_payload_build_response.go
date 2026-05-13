@@ -89,10 +89,7 @@ func processPayloadBuildResponse(msg amqp.Delivery) {
 		logging.LogError(err, "Failed to get payload from the database")
 		return
 	}
-	_, err = database.DB.Exec(`UPDATE apitokens SET deleted=true AND active=false WHERE payload_id=$1`, databasePayload.ID)
-	if err != nil {
-		logging.LogError(err, "Failed to update the apitokens to set to deleted")
-	}
+	expireAPITokensForPayload(databasePayload.ID)
 	databasePayload.BuildMessage += payloadBuildResponse.BuildMessage
 	databasePayload.BuildStderr += payloadBuildResponse.BuildStdErr
 	databasePayload.BuildStdout += payloadBuildResponse.BuildStdOut

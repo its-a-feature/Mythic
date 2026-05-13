@@ -852,10 +852,7 @@ func CheckAndProcessTaskCompletionHandlers(taskId int) {
 	if !task.Completed {
 		return
 	}
-	_, err = database.DB.Exec(`UPDATE apitokens SET deleted=true AND active=false WHERE task_id=$1`, taskId)
-	if err != nil {
-		logging.LogError(err, "Failed to update the apitokens to set to deleted")
-	}
+	expireAPITokensForTask(taskId)
 	if task.ParentTaskID.Valid {
 		err = database.DB.Get(&parentTask, `SELECT 
 		task.id, task.status, task.completed, task.eventstepinstance_id, task.completed_callback_function, task.completed_callback_function_completed,
