@@ -2,6 +2,15 @@
 <html lang="{{ .Page.Language | default "en" }}" class="js csstransforms3d">
   <head>
     <meta charset="utf-8">
+    <script>
+      (function() {
+        var theme = 'dark';
+        try {
+          theme = localStorage.getItem('mythic-docs-theme') || 'dark';
+        } catch (e) {}
+        document.documentElement.setAttribute('data-theme', theme === 'light' ? 'light' : 'dark');
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     {{ hugo.Generator }}
     {{ partial "meta.html" . }}
