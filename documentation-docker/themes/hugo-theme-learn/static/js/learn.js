@@ -26,8 +26,18 @@ function getScrollBarWidth() {
 };
 
 function setMenuHeight() {
-    $('#sidebar .highlightable').height($('#sidebar').innerHeight() - $('#header-wrapper').height() - 40);
-    $('#sidebar .highlightable').perfectScrollbar('update');
+    var sidebar = $('#sidebar');
+    var sidebarContent = $('#sidebar .highlightable');
+
+    if (sidebar.css('display') === 'flex') {
+        sidebarContent.css('height', '');
+    } else {
+        sidebarContent.height(sidebar.innerHeight() - $('#header-wrapper').height() - 40);
+    }
+
+    try {
+        sidebarContent.perfectScrollbar('update');
+    } catch (e) {}
 }
 
 function fallbackMessage(action) {
@@ -132,19 +142,352 @@ $(window).resize(function() {
 
 })(jQuery, 'smartresize');
 
+var mythicDocsSidebarScrollKey = 'mythic-docs-sidebar-scroll-top';
+var mythicDocsThemeKey = 'mythic-docs-theme';
+var mythicDocsSidebarScrollTimer;
+var mythicDocsPjaxRequest;
+
+function mythicDocsGetTheme() {
+    if (!window.localStorage) {
+        return 'dark';
+    }
+
+    try {
+        return localStorage.getItem(mythicDocsThemeKey) === 'light' ? 'light' : 'dark';
+    } catch (e) {
+        return 'dark';
+    }
+}
+
+function mythicDocsSetTheme(theme) {
+    var nextTheme = theme === 'light' ? 'light' : 'dark';
+    var toggle = $('[data-theme-toggle]');
+
+    document.documentElement.setAttribute('data-theme', nextTheme);
+
+    try {
+        localStorage.setItem(mythicDocsThemeKey, nextTheme);
+    } catch (e) {}
+
+    toggle.attr('aria-label', nextTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+    toggle.find('i').toggleClass('fa-moon', nextTheme === 'dark').toggleClass('fa-sun', nextTheme === 'light');
+    toggle.find('span').text(nextTheme === 'dark' ? 'Dark Mode' : 'Light Mode');
+}
+
+function mythicDocsInitThemeToggle() {
+    mythicDocsSetTheme(mythicDocsGetTheme());
+
+    $('#sidebar').on('click', '[data-theme-toggle]', function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        mythicDocsSetTheme(mythicDocsGetTheme() === 'dark' ? 'light' : 'dark');
+    });
+}
+
+function mythicDocsSetSectionState(section, expanded) {
+    section.toggleClass('expanded parent', expanded);
+    section.toggleClass('collapsed', !expanded);
+    section.children('ul').first().toggle(expanded);
+    section.children('.dd-item-header').children('.nav-toggle').attr('aria-expanded', expanded ? 'true' : 'false');
+
+    try {
+        $('#sidebar .highlightable').perfectScrollbar('update');
+    } catch (e) {}
+}
+
+function mythicDocsInitSidebarNav() {
+    $('#sidebar').on('click', '.nav-toggle', function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        var section = $(this).closest('li.has-children');
+        mythicDocsSetSectionState(section, !section.hasClass('expanded'));
+        mythicDocsSaveSidebarScroll();
+        return false;
+    });
+}
+
+function mythicDocsSaveSidebarScroll() {
+    var sidebarScroller = $('#sidebar .highlightable');
+
+    if (!window.sessionStorage || !sidebarScroller.length) {
+        return;
+    }
+
+    try {
+        sessionStorage.setItem(mythicDocsSidebarScrollKey, sidebarScroller.scrollTop());
+    } catch (e) {}
+}
+
+function mythicDocsRestoreSidebarScroll() {
+    var sidebarScroller = $('#sidebar .highlightable');
+
+    if (!window.sessionStorage || !sidebarScroller.length) {
+        return;
+    }
+
+    try {
+        var scrollTop = parseInt(sessionStorage.getItem(mythicDocsSidebarScrollKey), 10);
+        if (!isNaN(scrollTop)) {
+            sidebarScroller.scrollTop(scrollTop);
+            sidebarScroller.perfectScrollbar('update');
+        }
+    } catch (e) {}
+}
+
+function mythicDocsInitSidebarScroll() {
+    var sidebarScroller = $('#sidebar .highlightable');
+
+    sidebarScroller.on('scroll', function() {
+        clearTimeout(mythicDocsSidebarScrollTimer);
+        mythicDocsSidebarScrollTimer = setTimeout(mythicDocsSaveSidebarScroll, 120);
+    });
+
+    $('#sidebar').on('click', 'a', mythicDocsSaveSidebarScroll);
+    $(window).on('beforeunload', mythicDocsSaveSidebarScroll);
+}
+
+function mythicDocsDocsRootPath() {
+    var docsIndex = window.location.pathname.indexOf('/docs/');
+    if (docsIndex === -1) {
+        return '/';
+    }
+
+    return window.location.pathname.slice(0, docsIndex + 6);
+}
+
+function mythicDocsNormalizeSidebarLinks() {
+    $('#sidebar a[href]').each(function() {
+        var href = this.getAttribute('href');
+
+        if (!href || href === '#' || href.indexOf('javascript:') === 0) {
+            return;
+        }
+
+        try {
+            var url = new URL(href, window.location.href);
+            if (url.origin === window.location.origin) {
+                this.setAttribute('href', url.href);
+            }
+        } catch (e) {}
+    });
+}
+
+function mythicDocsCanNavigate(link, event) {
+    if (!link || !link.href || !window.fetch || !window.DOMParser || !window.history || !history.pushState) {
+        return false;
+    }
+
+    if (event && (event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.which > 1)) {
+        return false;
+    }
+
+    if (link.target || link.hasAttribute('download') || link.getAttribute('rel') === 'lightbox' || link.hasAttribute('data-featherlight')) {
+        return false;
+    }
+
+    var rawHref = link.getAttribute('href');
+    if (!rawHref || rawHref === '#' || rawHref.indexOf('#') === 0 || rawHref.indexOf('javascript:') === 0) {
+        return false;
+    }
+
+    try {
+        var url = new URL(link.href, window.location.href);
+        var sameDocument = url.pathname === window.location.pathname && url.search === window.location.search;
+
+        return url.origin === window.location.origin &&
+            url.pathname.indexOf(mythicDocsDocsRootPath()) === 0 &&
+            !(sameDocument && url.hash);
+    } catch (e) {
+        return false;
+    }
+}
+
+function mythicDocsSyncSidebar(nextDocument) {
+    var nextSidebar = nextDocument.querySelector('#sidebar');
+
+    if (!nextSidebar) {
+        return;
+    }
+
+    $('#sidebar [data-nav-id]').removeClass('active');
+
+    $(nextSidebar).find('[data-nav-id]').each(function() {
+        var navId = this.getAttribute('data-nav-id');
+        var nextItem = this;
+        var currentItem = $('#sidebar [data-nav-id]').filter(function() {
+            return this.getAttribute('data-nav-id') === navId;
+        });
+
+        if (!currentItem.length) {
+            return;
+        }
+
+        currentItem.toggleClass('active', nextItem.classList.contains('active'));
+
+        if (nextItem.classList.contains('parent') || nextItem.classList.contains('expanded')) {
+            currentItem.addClass('parent expanded').removeClass('collapsed');
+            currentItem.children('.dd-item-header').children('.nav-toggle').attr('aria-expanded', 'true');
+            currentItem.children('ul').first().css('display', '');
+        }
+    });
+
+    mythicDocsNormalizeSidebarLinks();
+    mythicDocsRestoreSidebarScroll();
+
+    try {
+        $('#sidebar .highlightable').perfectScrollbar('update');
+    } catch (e) {}
+}
+
+function mythicDocsMarkVisitedPage() {
+    if (!window.sessionStorage) {
+        return;
+    }
+
+    var currentUrl = $('body').data('url');
+    if (currentUrl) {
+        sessionStorage.setItem(currentUrl, 1);
+    }
+
+    for (var url in sessionStorage) {
+        if (sessionStorage.getItem(url) == 1) {
+            jQuery('[data-nav-id="' + url + '"]').addClass('visited');
+        }
+    }
+}
+
+function mythicDocsInitDynamicContent() {
+    restoreTabSelections();
+
+    $('#top-bar a:not(:has(img)):not(.btn)').addClass('highlight');
+    $('#body-inner a:not(:has(img)):not(.btn):not(a[rel="footnote"])').addClass('highlight');
+
+    if ($.fn.sticky) {
+        $('#top-bar').sticky({topSpacing:0, zIndex: 1000});
+    }
+
+    if ($.fn.featherlight) {
+        $('a[rel="lightbox"]').featherlight({
+            root: 'section#body'
+        });
+    }
+
+    if (window.mythicDocsEnhanceHugoLearnContent) {
+        window.mythicDocsEnhanceHugoLearnContent();
+    }
+
+    if (window.mermaid && $('.mermaid').length) {
+        try {
+            mermaid.init(undefined, $('.mermaid'));
+        } catch (e) {}
+    }
+}
+
+function mythicDocsScrollToNavigationTarget(targetUrl) {
+    if (targetUrl.hash) {
+        var target = document.getElementById(decodeURIComponent(targetUrl.hash.slice(1)));
+        if (target) {
+            window.scrollTo(window.scrollX, Math.max(0, $(target).offset().top - 50));
+            return;
+        }
+    }
+
+    window.scrollTo(0, 0);
+}
+
+function mythicDocsNavigate(href, replaceState) {
+    var targetUrl = new URL(href, window.location.href);
+
+    if (mythicDocsPjaxRequest && mythicDocsPjaxRequest.abort) {
+        mythicDocsPjaxRequest.abort();
+    }
+
+    mythicDocsSaveSidebarScroll();
+
+    var controller = window.AbortController ? new AbortController() : null;
+    mythicDocsPjaxRequest = controller;
+
+    return fetch(targetUrl.href, {
+        credentials: 'same-origin',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        signal: controller ? controller.signal : undefined
+    }).then(function(response) {
+        if (!response.ok) {
+            throw new Error('Unable to load documentation page');
+        }
+        return response.text();
+    }).then(function(markup) {
+        var nextDocument = new DOMParser().parseFromString(markup, 'text/html');
+        var nextBody = nextDocument.querySelector('#body');
+
+        if (!nextBody) {
+            throw new Error('Documentation page is missing #body');
+        }
+
+        if (replaceState) {
+            history.replaceState({mythicDocsPjax: true}, nextDocument.title, targetUrl.href);
+        } else {
+            history.pushState({mythicDocsPjax: true}, nextDocument.title, targetUrl.href);
+        }
+
+        document.title = nextDocument.title;
+        document.body.setAttribute('data-url', nextDocument.body.getAttribute('data-url') || targetUrl.pathname);
+        $('#body').replaceWith($(nextBody).clone(true, true));
+
+        mythicDocsSyncSidebar(nextDocument);
+        mythicDocsInitDynamicContent();
+        mythicDocsMarkVisitedPage();
+        mythicDocsScrollToNavigationTarget(targetUrl);
+    }).catch(function(error) {
+        if (error && error.name === 'AbortError') {
+            return;
+        }
+
+        window.location.href = targetUrl.href;
+    }).then(function() {
+        mythicDocsPjaxRequest = null;
+    });
+}
+
+function mythicDocsMaybeNavigate(event, link) {
+    if (!mythicDocsCanNavigate(link, event)) {
+        return false;
+    }
+
+    event.preventDefault();
+    mythicDocsNavigate(link.href, false);
+    return true;
+}
+
+function mythicDocsInitPjax() {
+    mythicDocsNormalizeSidebarLinks();
+    history.replaceState({mythicDocsPjax: true}, document.title, window.location.href);
+
+    $(document).on('click', 'a', function(event) {
+        mythicDocsMaybeNavigate(event, this);
+    });
+
+    $(window).on('popstate', function() {
+        mythicDocsNavigate(window.location.href, true);
+    });
+}
+
 
 jQuery(document).ready(function() {
     restoreTabSelections();
 
-    jQuery('#sidebar .category-icon').on('click', function() {
-        $( this ).toggleClass("fa-angle-down fa-angle-right") ;
-        $( this ).parent().parent().children('ul').toggle() ;
-        return false;
-    });
+    mythicDocsInitThemeToggle();
+    mythicDocsInitSidebarNav();
+    mythicDocsInitPjax();
 
     var sidebarStatus = searchStatus = 'open';
     $('#sidebar .highlightable').perfectScrollbar();
     setMenuHeight();
+    mythicDocsInitSidebarScroll();
+    mythicDocsRestoreSidebarScroll();
 
     jQuery('#overlay').on('click', function() {
         jQuery(document.body).toggleClass('sidebar-hidden');
@@ -264,16 +607,6 @@ jQuery(document).ready(function() {
                 $(this).attr('aria-label', null).removeClass('tooltipped tooltipped-s tooltipped-w');
             });
         }
-    });
-
-    // allow keyboard control for prev/next links
-    jQuery(function() {
-        jQuery('.nav-prev').click(function(){
-            location.href = jQuery(this).attr('href');
-        });
-        jQuery('.nav-next').click(function() {
-            location.href = jQuery(this).attr('href');
-        });
     });
 
     jQuery('input, textarea').keydown(function (e) {
@@ -413,6 +746,7 @@ jQuery(window).on('load', function() {
 
 
     $(".highlightable").highlight(sessionStorage.getItem('search-value'), { element: 'mark' });
+    mythicDocsRestoreSidebarScroll();
 });
 
 $(function() {

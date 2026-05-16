@@ -16,6 +16,12 @@
         <li>
             <a class="padding" href='{{ (cond (and (ne .Site.Params.landingPageURL nil) (.Site.IsMultiLingual)) .Site.Params.landingPageURL "/") }}'>{{ safeHTML (cond (ne .Site.Params.landingPageName nil) .Site.Params.landingPageName "<i class='fas fa-home'></i> Home") }}</a>
         </li>
+        <li>
+            <button type="button" class="padding theme-toggle" data-theme-toggle aria-label="Switch to light mode">
+              <i class="fas fa-moon"></i>
+              <span>Dark Mode</span>
+            </button>
+        </li>
       </ul>
     </section>
   {{end}}
@@ -108,18 +114,26 @@
  {{with .sect}}
   {{if and .IsSection (or (not .Params.hidden) $.showhidden)}}
     {{safeHTML .Params.head}}
-    <li data-nav-id="{{.RelPermalink}}" title="{{.Title}}" class="dd-item
-        {{if .IsAncestor $currentNode }}parent{{end}}
-        {{if eq .File.UniqueID $currentFileUniqueID}}active{{end}}
-        {{if .Params.alwaysopen}}parent{{end}}
-        ">
-      <a href="{{.RelPermalink}}">
-          {{safeHTML .Params.Pre}}{{or .Params.menuTitle .LinkTitle .Title}}{{safeHTML .Params.Post}}
-          {{ if $showvisitedlinks}}
-            <i class="fas fa-check read-icon"></i>
-          {{ end }}
-      </a>
       {{ $numberOfPages := (add (len ( where .Pages "Params.hidden" "ne" true )) (len ( where .Sections "Params.hidden" "ne" true ))) }}
+      {{ $isActive := eq .File.UniqueID $currentFileUniqueID }}
+      {{ $isOpen := or (.IsAncestor $currentNode) $isActive .Params.alwaysopen }}
+    <li data-nav-id="{{.RelPermalink}}" title="{{.Title}}" class="dd-item
+        {{if ne $numberOfPages 0}}has-children {{if $isOpen}}parent expanded{{else}}collapsed{{end}}{{else}}leaf{{end}}
+        {{if $isActive}}active{{end}}
+        ">
+      <div class="dd-item-header">
+        {{ if ne $numberOfPages 0 }}
+        <button type="button" class="nav-toggle category-icon" aria-label="Toggle {{or .Params.menuTitle .LinkTitle .Title}} navigation" aria-expanded="{{if $isOpen}}true{{else}}false{{end}}">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+        {{ end }}
+        <a class="nav-link" href="{{.RelPermalink}}">
+            {{safeHTML .Params.Pre}}{{or .Params.menuTitle .LinkTitle .Title}}{{safeHTML .Params.Post}}
+            {{ if $showvisitedlinks}}
+              <i class="fas fa-check read-icon"></i>
+            {{ end }}
+        </a>
+      </div>
       {{ if ne $numberOfPages 0 }}
         <ul>
           {{ $currentNode.Scratch.Set "pages" .Pages }}
@@ -148,8 +162,8 @@
     </li>
   {{else}}
     {{ if not .Params.Hidden }}
-      <li data-nav-id="{{.RelPermalink}}" title="{{.Title}}" class="dd-item {{if eq .File.UniqueID $currentFileUniqueID}}active{{end}}">
-        <a href="{{ .RelPermalink}}">
+      <li data-nav-id="{{.RelPermalink}}" title="{{.Title}}" class="dd-item leaf {{if eq .File.UniqueID $currentFileUniqueID}}active{{end}}">
+        <a class="nav-link" href="{{ .RelPermalink}}">
         {{safeHTML .Params.Pre}}{{or .Params.menuTitle .LinkTitle .Title}}{{safeHTML .Params.Post}}
         {{ if $showvisitedlinks}}<i class="fas fa-check read-icon"></i>{{end}}
         </a>
