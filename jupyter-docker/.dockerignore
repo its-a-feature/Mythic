@@ -1,0 +1,10 @@
+*
+!Dockerfile
+!jupyter/
+!jupyter/**
+
+.DS_Store
+**/.DS_Store
+**/.ipynb_checkpoints/
+**/__pycache__/
+**/*.py[cod]
