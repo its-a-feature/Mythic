@@ -57,7 +57,7 @@ func ContainerDownloadFileWebhook(c *gin.Context) {
 		})
 		return
 	}
-	base64Contents := base64.RawStdEncoding.EncodeToString(c2ProfileResponse.Message)
+	base64Contents := base64.StdEncoding.EncodeToString(c2ProfileResponse.Message)
 	c.JSON(http.StatusOK, GetContainerFileResponse{
 		Status:   "success",
 		Filename: input.Input.Filename,
