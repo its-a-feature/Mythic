@@ -6,6 +6,7 @@ import 'ace-builds/src-noconflict/mode-json';
 import 'ace-builds/src-noconflict/theme-monokai';
 import 'ace-builds/src-noconflict/theme-xcode';
 import {ResponseDisplayPlaintext} from "../Callbacks/ResponseDisplayPlaintext";
+import {b64DecodeUnicode} from "../Callbacks/ResponseDisplay";
 import {textExtensionTypesToSyntax} from "../Callbacks/ResponseDisplayMedia";
 import {MythicDialogButton, MythicDialogFooter} from "../../MythicComponents/MythicDialogLayout";
 import {MythicErrorState, MythicLoadingState} from "../../MythicComponents/MythicStateDisplay";
@@ -34,17 +35,33 @@ const getInitialMode = (filename) => {
     }
     return "html";
 }
+const normalizeBase64 = (data) => {
+    const value = data || "";
+    const paddingLength = (4 - (value.length % 4)) % 4;
+    return `${value}${"=".repeat(paddingLength)}`;
+}
+const encodeBase64Unicode = (data) => {
+    const bytes = new TextEncoder().encode(data);
+    let binary = "";
+    bytes.forEach((byte) => {
+        binary += String.fromCharCode(byte);
+    });
+    return btoa(binary);
+}
 export function C2ProfileConfigDialog(props) {
     const config = React.useRef("");
+    const [configText, setConfigText] = React.useState("");
     const { loading, error } = useQuery(getProfileConfigQuery, {
         variables: {container_name: props.container_name, filename: props.filename},
         onCompleted: data => {
+            let newConfig = "";
             if(data.containerDownloadFile.status === "error"){
-                config.current = "Errored trying to read file from container\n" + data.containerDownloadFile.error;
+                newConfig = "Errored trying to read file from container\n" + data.containerDownloadFile.error;
             }else{
-                //console.log(data);
-                config.current = atob(data.containerDownloadFile.data);
+                newConfig = b64DecodeUnicode(normalizeBase64(data.containerDownloadFile.data));
             }
+            config.current = newConfig;
+            setConfigText(newConfig);
         },
         fetchPolicy: "network-only"
     });
@@ -72,10 +89,10 @@ export function C2ProfileConfigDialog(props) {
      );
     }
     const onConfigSubmit = () => {
-        props.onConfigSubmit(btoa(config.current));
+        props.onConfigSubmit(encodeBase64Unicode(config.current));
         props.onClose();
     }
-    const setConfig = (newData) => {
+    const onEditorChange = (newData) => {
         config.current = newData;
     }
 
@@ -85,9 +102,9 @@ export function C2ProfileConfigDialog(props) {
         <DialogContent dividers={true} style={{padding: 0}}>
         <div style={{height: "calc(80vh)"}}>
             <ResponseDisplayPlaintext
-                onChangeContent={setConfig}
+                onChangeContent={onEditorChange}
                 initial_mode={initialMode.current}
-                plaintext={config.current}
+                plaintext={configText}
                 expand={true} />
         </div>
         </DialogContent>

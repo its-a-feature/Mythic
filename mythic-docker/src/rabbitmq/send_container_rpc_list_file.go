@@ -8,12 +8,14 @@ import (
 
 type ContainerRPCListFileMessage struct {
 	Name string `json:"container_name"`
+	Path string `json:"path,omitempty"`
 }
 
 type ContianerRPCListFileMessageResponse struct {
 	Success bool     `json:"success"`
 	Error   string   `json:"error"`
 	Files   []string `json:"files"`
+	Folders []string `json:"folders"`
 }
 
 func (r *rabbitMQConnection) SendContainerRPCListFile(getFile ContainerRPCListFileMessage) (*ContianerRPCListFileMessageResponse, error) {
