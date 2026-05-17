@@ -1,0 +1,9 @@
+*
+!Dockerfile
+!configuration.sh
+!pg_hba.conf
+!postgres.conf
+
+.DS_Store
+database/
+*.log

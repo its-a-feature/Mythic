@@ -1,0 +1,11 @@
+.DS_Store
+**/.DS_Store
+.hugo_build.lock
+public/
+resources/
+**/.git/
+**/.github/
+**/node_modules/
+**/.ipynb_checkpoints/
+**/__pycache__/
+**/*.py[cod]

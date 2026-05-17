@@ -1,0 +1,10 @@
+*
+!Dockerfile
+!config/
+!config/**
+!error403.html
+!health_check.sh
+
+.DS_Store
+ssl/
+*.log

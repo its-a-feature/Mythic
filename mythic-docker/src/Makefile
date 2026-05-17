@@ -1,4 +1,5 @@
 BINARY_NAME?=mythic_server
+GO_BUILD_FLAGS?=-trimpath -ldflags="-s -w"
 JWT_SECRET?="2Zd2rGaAhTnuGVEsq9LeYVFXns5PN1"
 POSTGRES_HOST?="127.0.0.1"
 POSTGRES_PASSWORD?="0zoHFSTbiT7AzJvnbvQ5Lt65YkIsuT"
@@ -19,7 +20,7 @@ export
 
 build:
 	go mod tidy
-	GOEXPERIMENT=jsonv2 CGO_ENABLED=0 go build -o ${BINARY_NAME} -tags="nomsgpack" .
+	GOEXPERIMENT=jsonv2 CGO_ENABLED=0 go build ${GO_BUILD_FLAGS} -o ${BINARY_NAME} -tags="nomsgpack" .
 copy_to_final:
 	cp ${BINARY_NAME} /
 copy_from_final:

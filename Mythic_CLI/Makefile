@@ -1,4 +1,5 @@
 BINARY_NAME=mythic-cli
+GO_BUILD_FLAGS?=-trimpath -ldflags="-s -w"
 LOCAL_PATH=$(shell pwd)
 BUILDER_IMAGE=ghcr.io/its-a-feature/mythic_cli:v3.4.0.57
 .PHONY: default
@@ -23,7 +24,7 @@ copy_binary_macos:
 	chmod +x ${BINARY_NAME}
 
 build_local:
-	cd src && go build -o ../../mythic-cli .
+	cd src && go build ${GO_BUILD_FLAGS} -o ../../mythic-cli .
 
 build_linux_docker:
 	docker build -t mythic-cli-builder -f Dockerfile .
