@@ -1,0 +1,12 @@
+*
+!Dockerfile
+!src/
+!src/**
+
+.DS_Store
+src/.DS_Store
+src/.env
+src/mythic-cli
+src/mythic-cli_*
+src/.gocache/
+src/tmp/

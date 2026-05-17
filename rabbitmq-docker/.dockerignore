@@ -1,0 +1,7 @@
+*
+!Dockerfile
+!generate_config.sh
+!rabbitmq.conf
+
+.DS_Store
+storage/

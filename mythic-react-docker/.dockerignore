@@ -1,0 +1,10 @@
+*
+!Dockerfile
+!config/
+!config/**
+!mythic/
+!mythic/public/
+!mythic/public/**
+
+.DS_Store
+**/.DS_Store
