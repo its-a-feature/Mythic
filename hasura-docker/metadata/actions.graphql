@@ -73,6 +73,7 @@ type Query {
 type Query {
   containerListFiles(
     container_name: String!
+    path: String
   ): containerListFilesOutput
 }
 
@@ -1219,6 +1220,7 @@ type containerListFilesOutput {
   status: String!
   error: String
   files: [String]
+  folders: [String]
 }
 
 type containerUploadFileOutput {
@@ -1324,4 +1326,3 @@ type custombrowserExportFunctionOutput {
   status: String!
   error: String
 }
-

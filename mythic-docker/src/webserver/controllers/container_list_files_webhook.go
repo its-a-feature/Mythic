@@ -14,12 +14,14 @@ type GetContainerFileListInput struct {
 
 type GetContainerFileList struct {
 	ContainerName string `json:"container_name" binding:"required"`
+	Path          string `json:"path"`
 }
 
 type GetContainerFileListResponse struct {
-	Status string   `json:"status"`
-	Error  string   `json:"error"`
-	Files  []string `json:"files"`
+	Status  string   `json:"status"`
+	Error   string   `json:"error"`
+	Files   []string `json:"files"`
+	Folders []string `json:"folders"`
 }
 
 func ContainerListFilesWebhook(c *gin.Context) {
@@ -34,6 +36,7 @@ func ContainerListFilesWebhook(c *gin.Context) {
 	}
 	c2ProfileResponse, err := rabbitmq.RabbitMQConnection.SendContainerRPCListFile(rabbitmq.ContainerRPCListFileMessage{
 		Name: input.Input.ContainerName,
+		Path: input.Input.Path,
 	})
 	if err != nil {
 		c.JSON(http.StatusOK, GetContainerFileListResponse{
@@ -50,7 +53,11 @@ func ContainerListFilesWebhook(c *gin.Context) {
 		})
 		return
 	}
-	c.JSON(http.StatusOK, GetContainerFileListResponse{Status: "success", Files: c2ProfileResponse.Files})
+	c.JSON(http.StatusOK, GetContainerFileListResponse{
+		Status:  "success",
+		Files:   c2ProfileResponse.Files,
+		Folders: c2ProfileResponse.Folders,
+	})
 	return
 
 }
