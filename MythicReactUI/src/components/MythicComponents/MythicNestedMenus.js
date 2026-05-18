@@ -18,6 +18,8 @@ export const Dropdown = React.forwardRef(
             style,
             transformOrigin,
             anchorOrigin,
+            MenuListProps,
+            PaperProps,
         },
         ref
     ) => {
@@ -70,7 +72,11 @@ export const Dropdown = React.forwardRef(
             <>
                 <Menu
                     elevation={5}
-                    PaperProps={{ sx: { minWidth: minWidth ?? 0 } }}
+                    PaperProps={{
+                        ...PaperProps,
+                        sx: { minWidth: minWidth ?? 0, ...(PaperProps?.sx || {}) }
+                    }}
+                    MenuListProps={MenuListProps}
                     style={{zIndex: 100000, position: "absolute"}}
                     anchorEl={anchorReference === "anchorEl" ? anchorEl : undefined}
                     transition={"true"}
