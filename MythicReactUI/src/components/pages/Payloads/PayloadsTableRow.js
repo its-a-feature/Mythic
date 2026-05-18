@@ -1,5 +1,5 @@
 import React, {useRef} from 'react';
-import {Button} from '@mui/material';
+import {Button, Divider, ListItemIcon, ListItemText} from '@mui/material';
 import TableRow from '@mui/material/TableRow';
 import IconButton from '@mui/material/IconButton';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -39,7 +39,7 @@ import {PayloadGetIOCDialog} from "./PayloadGetIOCDialog";
 import {PayloadGetSampleMessageDialog} from "./PayloadGetSampleMessageDialog";
 import IosShareIcon from '@mui/icons-material/IosShare';
 import {TagsDisplay, ViewEditTags} from "../../MythicComponents/MythicTag";
-import {MythicAgentSVGIcon, MythicAgentSVGIconNoTooltip} from "../../MythicComponents/MythicAgentSVGIcon";
+import {MythicAgentSVGIconNoTooltip} from "../../MythicComponents/MythicAgentSVGIcon";
 import SmartToyTwoToneIcon from '@mui/icons-material/SmartToyTwoTone';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import BlockIcon from '@mui/icons-material/Block';
@@ -48,6 +48,10 @@ import {EditPayloadConfigDialog} from "./EditPayloadConfigDialog";
 import DifferenceIcon from '@mui/icons-material/Difference';
 import {Dropdown, DropdownMenuItem, DropdownNestedMenuItem} from "../../MythicComponents/MythicNestedMenus";
 import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
+
+const payloadMenuItemClass = (tone = "info") => {
+    return `mythic-response-action-menu-item mythic-response-action-hover-${tone}`;
+};
 
 const rebuildPayloadMutation = gql`
 mutation triggerRebuildMutation($uuid: String!) {
@@ -149,8 +153,8 @@ export function PayloadsTableRow(props){
     };
     const options = [
         {
-            name: "Rename File", type: "item",
-            icon: <DriveFileRenameOutlineIcon style={{marginRight: "10px"}}/>,
+            name: "Rename File", type: "item", tone: "info",
+            icon: <DriveFileRenameOutlineIcon fontSize="small" />,
             click: ({event}) => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -158,8 +162,8 @@ export function PayloadsTableRow(props){
             }
          },
          {
-             name: "Edit Description", type: "item",
-             icon: <DescriptionIcon color={"info"} style={{marginRight: "10px"}} />,
+             name: "Edit Description", type: "item", tone: "info",
+             icon: <DescriptionIcon fontSize="small" />,
              click: ({event}) => {
                  event.preventDefault();
                  event.stopPropagation();
@@ -167,8 +171,8 @@ export function PayloadsTableRow(props){
             }
          },
         {
-            name: "View Payload Configuration", type: "item",
-            icon: <InfoIconOutline color={"info"} style={{marginRight: "10px"}} />,
+            name: "View Payload Configuration", type: "item", tone: "info",
+            icon: <InfoIconOutline fontSize="small" />,
             click: ({event}) => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -176,20 +180,22 @@ export function PayloadsTableRow(props){
             }
         },
         {
-            name: "Compare Payload Configuration", type: "item",
-            icon: <DifferenceIcon color={"info"} style={{marginRight: "10px"}} />,
+            name: "Compare Payload Configuration", type: "item", tone: "info",
+            icon: <DifferenceIcon fontSize="small" />,
             click: ({event}) => {
                 event.preventDefault();
                 event.stopPropagation();
                 setOpenComparePayloadsDialog(true);
             }
         },
+        {type: "divider", name: "payload-status-divider"},
          {
              name: props.callback_alert ? "Alerting to New Callbacks" : "Not Alerting to New Callbacks",
              type: "item",
+             tone: props.callback_alert ? "success" : "danger",
              icon: props.callback_alert ?
-                 <VisibilityIcon color={"success"} style={{marginRight: "10px"}}  />:
-                 <VisibilityOffIcon color={"error"} style={{marginRight: "10px"}}  />,
+                 <VisibilityIcon fontSize="small" />:
+                 <VisibilityOffIcon fontSize="small" />,
              click: ({event}) => {
                  event.preventDefault();
                  event.stopPropagation();
@@ -199,19 +205,22 @@ export function PayloadsTableRow(props){
         {
             name: props.callback_allowed ? "Allowing New Callbacks from this Payload" : "Preventing New Callbacks from this Payload",
             type: "item",
+            tone: props.callback_allowed ? "success" : "danger",
             icon: props.callback_allowed ?
-                <VisibilityIcon color={"success"} style={{marginRight: "10px"}}  /> :
-                <VisibilityOffIcon color={"error"} style={{marginRight: "10px"}}  />,
+                <VisibilityIcon fontSize="small" /> :
+                <VisibilityOffIcon fontSize="small" />,
             click: ({event}) => {
                 event.preventDefault();
                 event.stopPropagation();
                 onCallbacksAllowedChanged();
             }
         },
+        {type: "divider", name: "payload-build-divider"},
         {
             name: "View Build Message/Stdout",
             type: "item",
-            icon: <MessageIcon style={{marginRight: "10px"}}  />,
+            tone: "info",
+            icon: <MessageIcon fontSize="small" />,
             click: ({event}) => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -222,7 +231,8 @@ export function PayloadsTableRow(props){
         {
             name: "View Build Errors",
             type: "item",
-            icon: <ErrorIcon color={"error"} style={{marginRight: "10px"}}  />,
+            tone: "danger",
+            icon: <ErrorIcon fontSize="small" />,
             click: ({event}) => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -233,7 +243,8 @@ export function PayloadsTableRow(props){
         {
             name: "Trigger New Build",
             type: "item",
-            icon: <CachedIcon color={"success"} style={{marginRight: "10px"}} />,
+            tone: "success",
+            icon: <CachedIcon fontSize="small" />,
             click: ({event}) => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -243,7 +254,8 @@ export function PayloadsTableRow(props){
         {
             name: "Trigger New Build With Edits",
             type: "item",
-            icon: <CachedIcon color={"success"} style={{marginRight: "10px"}} />,
+            tone: "success",
+            icon: <CachedIcon fontSize="small" />,
             click: ({event}) => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -253,17 +265,20 @@ export function PayloadsTableRow(props){
         {
             name: "Export Payload Config",
             type: "item",
-            icon: <IosShareIcon color={"info"} style={{marginRight: "10px"}} />,
+            tone: "info",
+            icon: <IosShareIcon fontSize="small" />,
             click: ({event}) => {
                 event.preventDefault();
                 event.stopPropagation();
                 exportConfig({variables: {uuid: props.uuid}});
             }
         },
+        {type: "divider", name: "payload-tools-divider"},
         {
             name: "Generate Redirect Rules",
             type: "item",
-            icon: <PhoneMissedIcon style={{marginRight: "10px"}} />,
+            tone: "warning",
+            icon: <PhoneMissedIcon fontSize="small" />,
             click: ({event}) => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -273,7 +288,8 @@ export function PayloadsTableRow(props){
         {
             name: "Check Agent C2 Configuration",
             type: "item",
-            icon: <VerifiedIcon style={{marginRight: "10px"}} />,
+            tone: "info",
+            icon: <VerifiedIcon fontSize="small" />,
             click: ({event}) => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -283,7 +299,8 @@ export function PayloadsTableRow(props){
         {
             name: "Generate IOCs",
             type: "item",
-            icon: <FingerprintIcon style={{marginRight: "10px"}} />,
+            tone: "info",
+            icon: <FingerprintIcon fontSize="small" />,
             click: ({event}) => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -293,7 +310,8 @@ export function PayloadsTableRow(props){
         {
             name: "Generate Sample Message",
             type: "item",
-            icon: <BiotechIcon style={{marginRight: "10px"}} />,
+            tone: "info",
+            icon: <BiotechIcon fontSize="small" />,
             click: ({event}) => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -303,19 +321,22 @@ export function PayloadsTableRow(props){
         {
             name: "Generate Fake Callback",
             type: "item",
-            icon: <AddIcCallIcon color={"success"} style={{marginRight: "10px"}} />,
+            tone: "success",
+            icon: <AddIcCallIcon fontSize="small" />,
             click: ({event}) => {
                 event.preventDefault();
                 event.stopPropagation();
                 setOpenCreateNewCallbackDialog(true);
             }
         },
+        {type: "divider", name: "payload-danger-divider"},
         {
             name: props.deleted ? "Restore Payload" : "Delete the Payload from Disk",
             type: "item",
+            tone: props.deleted ? "success" : "danger",
             danger: !props.deleted,
-            icon: props.deleted ? <RestoreFromTrashIcon color={"success"} style={{marginRight: "10px"}} /> :
-                    <DeleteIcon style={{marginRight: "10px"}}/>,
+            icon: props.deleted ? <RestoreFromTrashIcon fontSize="small" /> :
+                    <DeleteIcon fontSize="small" />,
             click: ({event}) => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -349,11 +370,15 @@ export function PayloadsTableRow(props){
             <TableRow key={"payload" + props.uuid} hover>
                 <MythicStyledTableCell>
                     <Button
-                        className="mythic-table-row-action"
+                        aria-expanded={openUpdate ? "true" : undefined}
+                        aria-haspopup="menu"
+                        className="mythic-table-row-action mythic-table-row-action-hover-info"
+                        endIcon={<ArrowDropDownIcon fontSize="small" />}
                         size="small"
                         onClick={openMenu}
+                        variant="outlined"
                     >
-                        Actions <ArrowDropDownIcon fontSize="small" />
+                        Actions
                     </Button>
                 {openUpdate &&
                     <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
@@ -361,17 +386,24 @@ export function PayloadsTableRow(props){
                             isOpen={dropdownAnchorRef.current}
                             onOpen={setOpenUpdateDialog}
                             externallyOpen={openUpdate}
+                            minWidth="17rem"
+                            anchorOrigin={{vertical: "bottom", horizontal: "left"}}
+                            transformOrigin={{vertical: "top", horizontal: "left"}}
+                            MenuListProps={{className: "mythic-response-action-menu"}}
                             menu={
                                 options.map((option, index) => (
                                     option.type === 'item' ? (
                                         <DropdownMenuItem
                                             key={option.name}
                                             disabled={option.disabled}
-                                            className={option.danger ? "mythic-menu-item-hover-danger" : undefined}
+                                            className={payloadMenuItemClass(option.tone || (option.danger ? "danger" : "info"))}
                                             onClick={(event) => handleMenuItemClick(event, option.click)}
                                         >
-                                            {option.icon}{option.name}
+                                            <ListItemIcon>{option.icon}</ListItemIcon>
+                                            <ListItemText>{option.name}</ListItemText>
                                         </DropdownMenuItem>
+                                    ) : option.type === 'divider' ? (
+                                        <Divider key={option.name || `divider-${index}`} />
                                     ) : option.type === 'menu' ? (
                                         <DropdownNestedMenuItem
                                             label={option.name}
@@ -381,10 +413,11 @@ export function PayloadsTableRow(props){
                                                     <DropdownMenuItem
                                                         key={menuOption.name}
                                                         disabled={menuOption.disabled}
-                                                        className={menuOption.danger ? "mythic-menu-item-hover-danger" : undefined}
+                                                        className={payloadMenuItemClass(menuOption.tone || (menuOption.danger ? "danger" : "info"))}
                                                         onClick={(event) => handleMenuItemClick(event, menuOption.click)}
                                                     >
-                                                        {menuOption.icon}{menuOption.name}
+                                                        <ListItemIcon>{menuOption.icon}</ListItemIcon>
+                                                        <ListItemText>{menuOption.name}</ListItemText>
                                                     </DropdownMenuItem>
                                                 ))
                                             }

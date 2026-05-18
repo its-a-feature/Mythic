@@ -37,6 +37,7 @@ type Filemeta struct {
 	EventGroupID        structs.NullInt64 `db:"eventgroup_id" json:"eventgroup_id" mapstructure:"eventgroup_id"`
 	EventStepInstanceID structs.NullInt64 `db:"eventstepinstance_id" json:"event_step_instance_id" mapstructure:"event_step_instance_id"`
 	APITokensID         structs.NullInt64 `db:"apitokens_id" json:"api_tokens_id" mapstructure:"apitokens_id"`
+	APIToken            Apitokens         `db:"apitoken" json:"apitoken"`
 	CopyOfFileID        structs.NullInt64 `db:"copy_of_file_id" json:"copy_of_file_id" mapstructure:"copy_of_file_id"`
 	ReceivedChunkIDs    MythicJSONText    `db:"received_chunk_ids" json:"received_chunk_ids" mapstructure:"received_chunk_id"`
 }
