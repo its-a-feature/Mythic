@@ -87,12 +87,6 @@ export function Search(props){
           <MythicPageHeader
             title={"Search"}
             subtitle={"Pivot across callbacks, tasks, files, payloads, credentials, and operation artifacts."}
-            meta={
-              <>
-                <MythicPageHeaderChip label={currentTabLabel} />
-                <MythicPageHeaderChip label={`${tabTypes.length} search views`} />
-              </>
-            }
           />
           <AppBar
             position="static"
