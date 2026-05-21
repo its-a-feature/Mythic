@@ -2,6 +2,8 @@ package rabbitmq
 
 import (
 	"encoding/json"
+
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/eventing"
@@ -61,6 +63,7 @@ func init() {
 		Queue:      "mythic_consume_payload_build",
 		RoutingKey: PT_BUILD_RESPONSE_ROUTING_KEY,
 		Handler:    processPayloadBuildResponse,
+		Scopes:     []string{mythicjwt.SCOPE_PAYLOAD_WRITE},
 	})
 
 }
@@ -88,6 +91,13 @@ func processPayloadBuildResponse(msg amqp.Delivery) {
 	if err != nil {
 		logging.LogError(err, "Failed to get payload from the database")
 		return
+	}
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err == nil {
+		if databasePayload.OperationID != authContext.OperationID {
+			logging.LogError(err, "Payload build response message does not match operation ID")
+			return
+		}
 	}
 	expireAPITokensForPayload(databasePayload.ID)
 	databasePayload.BuildMessage += payloadBuildResponse.BuildMessage

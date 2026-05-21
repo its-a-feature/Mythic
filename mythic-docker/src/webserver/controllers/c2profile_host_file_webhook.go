@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -29,7 +30,8 @@ type C2HostFileMessageResponse struct {
 func C2HostFileMessageWebhook(c *gin.Context) {
 	// get variables from the POST request
 	var input C2HostFileMessageInput
-	if err := c.ShouldBindJSON(&input); err != nil {
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
 		logging.LogError(err, "Failed to parse out required parameters")
 		c.JSON(http.StatusOK, C2HostFileMessageResponse{
 			Status: "error",
@@ -45,7 +47,7 @@ func C2HostFileMessageWebhook(c *gin.Context) {
 		})
 		return
 	}
-	ginOperatorOperation, ok := c.Get("operatorOperation")
+	ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct)
 	if !ok {
 		logging.LogError(nil, "Failed to get operatorOperation information")
 		c.JSON(http.StatusOK, ArtifactCreateResponse{
@@ -56,8 +58,9 @@ func C2HostFileMessageWebhook(c *gin.Context) {
 	}
 	operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
 	c2Profile := databaseStructs.C2profile{ID: input.Input.C2ProfileID}
-	if err := database.DB.Get(&c2Profile, `SELECT "name" FROM c2profile WHERE id=$1`,
-		input.Input.C2ProfileID); err != nil {
+	err = database.DB.Get(&c2Profile, `SELECT "name" FROM c2profile WHERE id=$1`,
+		input.Input.C2ProfileID)
+	if err != nil {
 		logging.LogError(err, "Failed to find c2 profile")
 		c.JSON(http.StatusOK, C2HostFileMessageResponse{
 			Status: "error",
@@ -66,8 +69,9 @@ func C2HostFileMessageWebhook(c *gin.Context) {
 		return
 	}
 	hostFile := databaseStructs.Filemeta{}
-	if err := database.DB.Get(&hostFile, `SELECT deleted, id, operation_id, filename FROM filemeta WHERE agent_file_id=$1 AND operation_id=$2`,
-		input.Input.FileUUID, operatorOperation.CurrentOperation.ID); err != nil {
+	err = database.DB.Get(&hostFile, `SELECT deleted, id, operation_id, filename FROM filemeta WHERE agent_file_id=$1 AND operation_id=$2`,
+		input.Input.FileUUID, operatorOperation.CurrentOperation.ID)
+	if err != nil {
 		logging.LogError(err, "Failed to find file")
 		c.JSON(http.StatusOK, C2HostFileMessageResponse{
 			Status: "error",
@@ -93,7 +97,7 @@ func C2HostFileMessageWebhook(c *gin.Context) {
 			"filename":          string(hostFile.Filename),
 			"alert_on_download": input.Input.AlertOnDownload,
 		},
-	}, c, input.Input.Remove)
+	}, c, input.Input.Remove, authentication.RabbitMQAuthContextFromGin(c))
 
 	c.JSON(http.StatusOK, C2HostFileMessageResponse{
 		Status: "success",

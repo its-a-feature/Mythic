@@ -3,15 +3,17 @@ package webcontroller
 import (
 	"archive/zip"
 	"fmt"
-	mythicCrypto "github.com/its-a-feature/Mythic/crypto"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 
+	mythicCrypto "github.com/its-a-feature/Mythic/crypto"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -53,7 +55,7 @@ func DownloadBulkFilesWebhook(c *gin.Context) {
 		})
 		return
 	}
-	ginOperatorOperation, ok := c.Get("operatorOperation")
+	ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct)
 	if !ok {
 		logging.LogError(err, "Failed to get operatorOperation information for ConsumingServicesTestLog")
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": "Failed to get current operation. Is it set?"})
@@ -80,7 +82,7 @@ func DownloadBulkFilesWebhook(c *gin.Context) {
 			})
 			return
 		}
-		go tagFileAs(filemeta.ID, operatorOperation.CurrentOperator.Username, filemeta.OperationID, tagTypeDownload, nil, c, false)
+		go tagFileAs(filemeta.ID, operatorOperation.CurrentOperator.Username, filemeta.OperationID, tagTypeDownload, nil, c, false, authentication.RabbitMQAuthContextFromGin(c))
 		file, err := os.Open(filemeta.Path)
 		if err != nil {
 			logging.LogError(err, "Failed to open file", "path", filemeta.Path)
@@ -130,6 +132,15 @@ func DownloadBulkFilesWebhook(c *gin.Context) {
 		OperationID:    operatorOperation.CurrentOperation.ID,
 		AgentFileID:    bulkDownloadUUID,
 	}
+	authContext := authentication.RabbitMQAuthContextFromGin(c)
+	if authContext.APITokensID > 0 {
+		zipFileMeta.APITokensID.Valid = true
+		zipFileMeta.APITokensID.Int64 = int64(authContext.APITokensID)
+	}
+	if authContext.EventStepInstanceID > 0 {
+		zipFileMeta.EventStepInstanceID.Valid = true
+		zipFileMeta.EventStepInstanceID.Int64 = int64(authContext.EventStepInstanceID)
+	}
 	fileSize, err := os.Stat(builkDownloadPath)
 	if err != nil {
 		logging.LogError(err, "Failed to get file size on disk")
@@ -151,8 +162,8 @@ func DownloadBulkFilesWebhook(c *gin.Context) {
 	zipFileMeta.Filename = []byte("BulkFileDownload.zip")
 	zipFileMeta.OperatorID = operatorOperation.CurrentOperator.ID
 	_, err = database.DB.NamedExec(`INSERT INTO filemeta
-		("path", filename, total_chunks, chunks_received, complete, operation_id, operator_id, agent_file_id, size, md5, sha1, chunk_size)
-		VALUES (:path, :filename, :total_chunks, :chunks_received, :complete, :operation_id, :operator_id, :agent_file_id, :size, :md5, :sha1, :chunk_size)
+		("path", filename, total_chunks, chunks_received, complete, operation_id, operator_id, agent_file_id, size, md5, sha1, chunk_size, apitokens_id, eventstepinstance_id)
+		VALUES (:path, :filename, :total_chunks, :chunks_received, :complete, :operation_id, :operator_id, :agent_file_id, :size, :md5, :sha1, :chunk_size, :apitokens_id, :eventstepinstance_id)
 		`, zipFileMeta)
 	if err != nil {
 		logging.LogError(err, "Failed to save zip entry in database")

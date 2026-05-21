@@ -37,8 +37,8 @@ Use the host file button (blue globe) to then remove this file from being hosted
 )
 
 func insertTag(tag *databaseStructs.Tag) {
-	statement, err := database.DB.PrepareNamed(`INSERT INTO tag (filemeta_id, operation_id, tagtype_id, source, data)
-			VALUES (:filemeta_id, :operation_id, :tagtype_id, :source, :data )
+	statement, err := database.DB.PrepareNamed(`INSERT INTO tag (filemeta_id, operation_id, tagtype_id, source, data, apitokens_id, eventstepinstance_id)
+			VALUES (:filemeta_id, :operation_id, :tagtype_id, :source, :data, :apitokens_id, :eventstepinstance_id)
 			RETURNING id`)
 	if err != nil {
 		logging.LogError(err, "failed to create prepared named statement")
@@ -60,7 +60,7 @@ func insertTag(tag *databaseStructs.Tag) {
 
 var tagFileAsLock sync.Mutex
 
-func tagFileAs(fileMetaID int, operatorName string, operationID int, tagTypeAssignment string, tagData map[string]interface{}, c *gin.Context, remove bool) {
+func tagFileAs(fileMetaID int, operatorName string, operationID int, tagTypeAssignment string, tagData map[string]interface{}, c *gin.Context, remove bool, authContext rabbitmq.RabbitMQAuthContext) {
 	// create the tag type in general if needed
 	// use a lock to prevent accidental double tag creations
 	tagFileAsLock.Lock()
@@ -73,6 +73,14 @@ func tagFileAs(fileMetaID int, operatorName string, operationID int, tagTypeAssi
 		newTagType := databaseStructs.TagType{
 			Name:      tagTypeAssignment,
 			Operation: operationID,
+		}
+		if authContext.APITokensID > 0 {
+			newTagType.APITokensID.Valid = true
+			newTagType.APITokensID.Int64 = int64(authContext.APITokensID)
+		}
+		if authContext.EventStepInstanceID > 0 {
+			newTagType.EventStepInstanceID.Valid = true
+			newTagType.EventStepInstanceID.Int64 = int64(authContext.EventStepInstanceID)
 		}
 		switch tagTypeAssignment {
 		case tagTypeDownload:
@@ -87,8 +95,8 @@ func tagFileAs(fileMetaID int, operatorName string, operationID int, tagTypeAssi
 		default:
 		}
 		statement, err := database.DB.PrepareNamed(`INSERT INTO tagtype 
-			(name, color, description, operation_id)
-			VALUES (:name, :color, :description, :operation_id)
+			(name, color, description, operation_id, apitokens_id, eventstepinstance_id)
+			VALUES (:name, :color, :description, :operation_id, :apitokens_id, :eventstepinstance_id)
 			RETURNING id`)
 		if err != nil {
 			logging.LogError(err, "failed to create prepared named statement")
@@ -108,6 +116,14 @@ func tagFileAs(fileMetaID int, operatorName string, operationID int, tagTypeAssi
 		Operation: operationID,
 		TagTypeID: tagtype.ID,
 		Source:    "mythic",
+	}
+	if authContext.APITokensID > 0 {
+		tag.APITokensID.Valid = true
+		tag.APITokensID.Int64 = int64(authContext.APITokensID)
+	}
+	if authContext.EventStepInstanceID > 0 {
+		tag.EventStepInstanceID.Valid = true
+		tag.EventStepInstanceID.Int64 = int64(authContext.EventStepInstanceID)
 	}
 	tag.FileMeta.Valid = true
 	tag.FileMeta.Int64 = int64(fileMetaID)
@@ -218,7 +234,7 @@ Target Host:   %s`,
 							FileUUID: newTagMap["agent_file_id"].(string),
 							HostURL:  newTagMap["host_url"].(string),
 							Remove:   remove,
-						})
+						}, authContext)
 						if err != nil {
 							logging.LogError(err, "failed to send message to container to stop hosting it")
 							go rabbitmq.SendAllOperationsMessage(fmt.Sprintf(
@@ -245,7 +261,7 @@ Target Host:   %s`,
 					FileUUID: newTagMap["agent_file_id"].(string),
 					HostURL:  newTagMap["host_url"].(string),
 					Remove:   remove,
-				})
+				}, authContext)
 				if err != nil {
 					logging.LogError(err, "failed to send host file message to c2 profile")
 					go rabbitmq.SendAllOperationsMessage(fmt.Sprintf(

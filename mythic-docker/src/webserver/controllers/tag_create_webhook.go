@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 	"github.com/its-a-feature/Mythic/eventing"
 
@@ -47,7 +48,7 @@ func TagCreateWebhook(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
 		return
 	}
-	ginOperatorOperation, exists := c.Get("operatorOperation")
+	ginOperatorOperation, exists := c.Get(authentication.ContextKeyOperatorOperationStruct)
 	if !exists {
 		logging.LogError(nil, "Failed to get operator operation information")
 		c.JSON(http.StatusOK, gin.H{
@@ -84,13 +85,15 @@ func TagCreateWebhook(c *gin.Context) {
 		databaseObj.Data = rabbitmq.GetMythicJSONTextFromStruct(jsonData)
 	}
 
-	APITokenID, ok := c.Get("apitokens-id")
 	associatedWithValidObject := false
-	if ok {
-		if APITokenID.(int) > 0 {
-			databaseObj.APITokensID.Valid = true
-			databaseObj.APITokensID.Int64 = int64(APITokenID.(int))
-		}
+	authContext := authentication.RabbitMQAuthContextFromGin(c)
+	if authContext.APITokensID > 0 {
+		databaseObj.APITokensID.Valid = true
+		databaseObj.APITokensID.Int64 = int64(authContext.APITokensID)
+	}
+	if authContext.EventStepInstanceID > 0 {
+		databaseObj.EventStepInstanceID.Valid = true
+		databaseObj.EventStepInstanceID.Int64 = int64(authContext.EventStepInstanceID)
 	}
 	if input.Input.MythicTreeID != nil {
 		mythicTree := databaseStructs.MythicTree{}
@@ -244,9 +247,9 @@ func TagCreateWebhook(c *gin.Context) {
 		return
 	}
 	statement, err := database.DB.PrepareNamed(`INSERT INTO tag 
-		(operation_id, data, url, source, tagtype_id, mythictree_id, filemeta_id, task_id, response_id, credential_id, keylog_id, taskartifact_id, payload_id, callback_id)
+		(operation_id, data, url, source, tagtype_id, mythictree_id, filemeta_id, task_id, response_id, credential_id, keylog_id, taskartifact_id, payload_id, callback_id, apitokens_id, eventstepinstance_id)
 		VALUES 
-		(:operation_id, :data, :url, :source, :tagtype_id, :mythictree_id, :filemeta_id, :task_id, :response_id, :credential_id, :keylog_id, :taskartifact_id, :payload_id, :callback_id)
+		(:operation_id, :data, :url, :source, :tagtype_id, :mythictree_id, :filemeta_id, :task_id, :response_id, :credential_id, :keylog_id, :taskartifact_id, :payload_id, :callback_id, :apitokens_id, :eventstepinstance_id)
 		RETURNING id`)
 	if err != nil {
 		logging.LogError(err, "Failed to prepare statement for adding tag")

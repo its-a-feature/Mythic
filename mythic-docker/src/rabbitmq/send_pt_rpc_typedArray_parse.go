@@ -30,25 +30,35 @@ type PTRPCTypedArrayParseMessageResponse struct {
 	TypedArray [][]string `json:"typed_array"`
 }
 
-func (r *rabbitMQConnection) SendPtRPCTypedArrayParse(dynamicQuery PTRPCTypedArrayParseMessage) (*PTRPCTypedArrayParseMessageResponse, error) {
+func (r *rabbitMQConnection) SendPtRPCTypedArrayParse(dynamicQuery PTRPCTypedArrayParseMessage, authContext RabbitMQAuthContext) (*PTRPCTypedArrayParseMessageResponse, error) {
 	dynamicQueryResponse := PTRPCTypedArrayParseMessageResponse{}
 	exclusiveQueue := true
-	if configBytes, err := json.Marshal(dynamicQuery); err != nil {
+	headers, err := GenerateRabbitMQAuthTokenHeader(authContext)
+	if err != nil {
+		logging.LogError(err, "Failed to generate auth context")
+		return nil, err
+	}
+	configBytes, err := json.Marshal(dynamicQuery)
+	if err != nil {
 		logging.LogError(err, "Failed to convert configCheck to JSON", "dynamicQuery", dynamicQuery)
 		return nil, err
-	} else if response, err := r.SendRPCMessage(
+	}
+	response, err := r.SendRPCMessage(
 		MYTHIC_EXCHANGE,
 		GetPtRPCTypedArrayParseRoutingKey(dynamicQuery.CommandPayloadType),
 		configBytes,
 		exclusiveQueue,
 		RPC_RETRY_POLICY_CUSTOM_TIMEOUT,
-	); err != nil {
+		headers,
+	)
+	if err != nil {
 		logging.LogError(err, "Failed to send RPC message")
 		return nil, err
-	} else if err := json.Unmarshal(response, &dynamicQueryResponse); err != nil {
+	}
+	err = json.Unmarshal(response, &dynamicQueryResponse)
+	if err != nil {
 		logging.LogError(err, "Failed to parse response back to struct", "response", response)
 		return nil, err
-	} else {
-		return &dynamicQueryResponse, nil
 	}
+	return &dynamicQueryResponse, nil
 }

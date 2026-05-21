@@ -1,29 +1,12 @@
-import { LoginForm } from './pages/Login/LoginForm';
-import { Settings } from './pages/Settings/Settings';
-import { PayloadTypesC2Profiles } from './pages/PayloadTypesC2Profiles/PayloadTypesC2Profiles';
-import { CreatePayload } from './pages/CreatePayload/CreatePayload';
-import { CreatePayloadWrapper } from './pages/CreateWrapper/CreatePayload';
-import { EventFeed } from './pages/EventFeed/EventFeed';
-import { Operations } from './pages/Operations/Operations';
-import { BrowserScripts } from './pages/BrowserScripts/BrowserScripts';
-import { Payloads } from './pages/Payloads/Payloads';
-import { ExpandedCallback } from './pages/ExpandedCallback/ExpandedCallback';
-import { Home } from './pages/Home/Home';
 import { LoggedInRoute } from './utilities/LoggedInRoute';
-import { Callbacks } from './pages/Callbacks/Callbacks';
-import { Search } from './pages/Search/Search';
 import React, {createContext} from 'react';
 import { Typography } from '@mui/material';
 import { useReactiveVar } from '@apollo/client';
 import { useDarkMode } from './utilities/useDarkMode';
-import { SingleTaskView } from './pages/SingleTaskView/SingleTaskView';
 import { createTheme, ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
 import { GlobalStyles } from '../themes/GlobalStyles';
 import CssBaseline from '@mui/material/CssBaseline';
 import {FailedRefresh, mePreferences, meState, operatorSettingDefaults} from '../cache';
-import { Reporting } from './pages/Reporting/Reporting';
-import { MitreAttack } from './pages/MITRE_ATTACK/MitreAttack';
-import {Tags} from './pages/Tags/Tags';
 import { Tooltip } from 'react-tooltip';
 import {useLazyQuery, gql } from '@apollo/client';
 //background-color: #282c34;
@@ -34,14 +17,37 @@ import { RefreshTokenDialog } from './RefreshTokenDialog';
 import { MythicDialog } from './MythicComponents/MythicDialog';
 import { ToastContainer } from 'react-toastify';
 import "react-toastify/dist/ReactToastify.css";
-import {Eventing} from "./pages/Eventing/Eventing";
-import {InviteForm} from "./pages/Login/InviteForm";
 import {snackActions} from "./utilities/Snackbar";
 import {TopAppBarVertical} from "./TopAppBarVertical";
+import {MythicLoadingState} from "./MythicComponents/MythicStateDisplay";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import * as Icons from '@fortawesome/free-solid-svg-icons';
-import {Jupyter} from "./pages/Jupyter/Jupyter";
-import {Hasura} from "./pages/Hasura/Hasura";
+
+const lazyNamed = (importer, exportName) => React.lazy(() =>
+    importer().then((module) => ({default: module[exportName]}))
+);
+
+const LoginForm = lazyNamed(() => import('./pages/Login/LoginForm'), 'LoginForm');
+const InviteForm = lazyNamed(() => import('./pages/Login/InviteForm'), 'InviteForm');
+const Settings = lazyNamed(() => import('./pages/Settings/Settings'), 'Settings');
+const PayloadTypesC2Profiles = lazyNamed(() => import('./pages/PayloadTypesC2Profiles/PayloadTypesC2Profiles'), 'PayloadTypesC2Profiles');
+const CreatePayload = lazyNamed(() => import('./pages/CreatePayload/CreatePayload'), 'CreatePayload');
+const CreatePayloadWrapper = lazyNamed(() => import('./pages/CreateWrapper/CreatePayload'), 'CreatePayloadWrapper');
+const EventFeed = lazyNamed(() => import('./pages/EventFeed/EventFeed'), 'EventFeed');
+const Operations = lazyNamed(() => import('./pages/Operations/Operations'), 'Operations');
+const BrowserScripts = lazyNamed(() => import('./pages/BrowserScripts/BrowserScripts'), 'BrowserScripts');
+const Payloads = lazyNamed(() => import('./pages/Payloads/Payloads'), 'Payloads');
+const ExpandedCallback = lazyNamed(() => import('./pages/ExpandedCallback/ExpandedCallback'), 'ExpandedCallback');
+const Home = lazyNamed(() => import('./pages/Home/Home'), 'Home');
+const Callbacks = lazyNamed(() => import('./pages/Callbacks/Callbacks'), 'Callbacks');
+const Search = lazyNamed(() => import('./pages/Search/Search'), 'Search');
+const SingleTaskView = lazyNamed(() => import('./pages/SingleTaskView/SingleTaskView'), 'SingleTaskView');
+const Reporting = lazyNamed(() => import('./pages/Reporting/Reporting'), 'Reporting');
+const MitreAttack = lazyNamed(() => import('./pages/MITRE_ATTACK/MitreAttack'), 'MitreAttack');
+const Tags = lazyNamed(() => import('./pages/Tags/Tags'), 'Tags');
+const Eventing = lazyNamed(() => import('./pages/Eventing/Eventing'), 'Eventing');
+const Jupyter = lazyNamed(() => import('./pages/Jupyter/Jupyter'), 'Jupyter');
+const Hasura = lazyNamed(() => import('./pages/Hasura/Hasura'), 'Hasura');
 
 // add all fas icons
 const iconList = Object
@@ -757,7 +763,7 @@ export function App(props) {
                     ...getModernThemeAdditions(themeMode, preferences),
                 })
             }catch(error){
-                console.log(error);
+                console.log("error creating theme", error);
                 snackActions.error(error.message);
                 return createTheme({
                     transitions: {
@@ -852,6 +858,20 @@ export function App(props) {
                         operatorSettingDefaults.palette.navBarColor.light,
                     topAppBarBottomColor: themeMode === 'dark' ? operatorSettingDefaults.palette.navBarBottomColor.dark :
                         operatorSettingDefaults.palette.navBarBottomColor.light,
+                    typography: {
+                        fontSize: 12,//operatorSettingDefaults?.fontSize,
+                        fontFamily: operatorSettingDefaults?.fontFamily
+                    },
+                    taskPromptTextColor: themeMode === 'dark' ? operatorSettingDefaults.palette.taskPromptTextColor.dark :
+                        operatorSettingDefaults.palette.taskPromptTextColor.light,
+                    taskPromptCommandTextColor: themeMode === 'dark' ? operatorSettingDefaults.palette.taskPromptCommandTextColor.dark :
+                        operatorSettingDefaults.palette.taskPromptCommandTextColor.light,
+                    taskContextColor: themeMode === 'dark' ? operatorSettingDefaults.palette.taskContextColor.dark :
+                        operatorSettingDefaults.palette.taskContextColor.light,
+                    taskContextImpersonationColor: themeMode === 'dark' ? operatorSettingDefaults.palette.taskContextImpersonationColor.dark :
+                         operatorSettingDefaults.palette.taskContextImpersonationColor.light,
+                    taskContextExtraColor: themeMode === 'dark' ? operatorSettingDefaults.palette.taskContextExtraColor.dark :
+                         operatorSettingDefaults.palette.taskContextExtraColor.light,
                     emptyFolderColor: themeMode === 'dark' ? operatorSettingDefaults.palette.emptyFolderColor.dark :
                         operatorSettingDefaults.palette.emptyFolderColor.light,
                     outputBackgroundColor: themeMode === 'dark' ? operatorSettingDefaults.palette.outputBackgroundColor.dark :
@@ -860,10 +880,6 @@ export function App(props) {
                         operatorSettingDefaults.palette.outputTextColor.light,
                     borderColor: themeMode === 'dark' ? operatorSettingDefaults.palette.borderColor.dark :
                         operatorSettingDefaults.palette.borderColor.light,
-                    typography: {
-                        fontSize: 12,//operatorSettingDefaults?.fontSize,
-                        fontFamily: operatorSettingDefaults?.fontFamily
-                    },
                     ...getModernThemeAdditions(themeMode, operatorSettingDefaults),
                 })
             }
@@ -918,6 +934,9 @@ export function App(props) {
                 <ThemeProvider theme={theme}>
                     <GlobalStyles theme={theme} />
                     <CssBaseline />
+                    <div style={{width: '100%', height: '100%', display: "flex", position: "relative",}}>
+                        <MythicLoadingState compact title="Loading Preferences" description="Fetching user preferences." sx={{color: "inherit"}} />
+                    </div>
                 </ThemeProvider>
             </StyledEngineProvider>
         )
@@ -1001,59 +1020,61 @@ export function App(props) {
                                 flexDirection: 'column',
                                 overflow:"hidden"
                             }}>
-                                <Routes>
-                                    <Route path='/new/login' element={<LoginForm me={me}/>}/>
-                                    <Route path='/new/invite' element={<InviteForm me={me}/>}/>
-                                    <Route path='/' element={<LoggedInRoute me={me}><Home me={me}/></LoggedInRoute>}/>
-                                    <Route exact path='/new'
-                                           element={<LoggedInRoute me={me}><Home me={me}/></LoggedInRoute>}/>
-                                    <Route exact path='/new/settings'
-                                           element={<LoggedInRoute me={me}><Settings me={me}/></LoggedInRoute>}/>
-                                    <Route exact path='/new/payloadtypes'
-                                           element={<LoggedInRoute me={me}><PayloadTypesC2Profiles
-                                               me={me}/></LoggedInRoute>}/>
-                                    <Route exact path='/new/eventfeed'
-                                           element={<LoggedInRoute me={me}><EventFeed me={me}/></LoggedInRoute>}/>
-                                    <Route exact path='/new/createpayload'
-                                           element={<LoggedInRoute me={me}><CreatePayload me={me}/></LoggedInRoute>}/>
-                                    <Route exact path='/new/createwrapper'
-                                           element={<LoggedInRoute me={me}><CreatePayloadWrapper
-                                               me={me}/></LoggedInRoute>}/>
-                                    <Route exact path='/new/payloads'
-                                           element={<LoggedInRoute me={me}><Payloads me={me}/></LoggedInRoute>}/>
-                                    <Route exact path='/new/c2profiles'
-                                           element={<LoggedInRoute me={me}><PayloadTypesC2Profiles
-                                               me={me}/></LoggedInRoute>}/>
-                                    <Route exact path='/new/services/'
-                                           element={<LoggedInRoute me={me}><PayloadTypesC2Profiles
-                                               me={me}/></LoggedInRoute>}/>
-                                    <Route exact path='/new/callbacks'
-                                           element={<LoggedInRoute me={me}><Callbacks me={me}/></LoggedInRoute>}/>
-                                    <Route path='/new/search'
-                                           element={<LoggedInRoute me={me}><Search history={props.history}
-                                                                                   me={me}/></LoggedInRoute>}/>
-                                    <Route exact path='/new/browserscripts'
-                                           element={<LoggedInRoute me={me}><BrowserScripts me={me}/></LoggedInRoute>}/>
-                                    <Route exact path='/new/task/:taskId'
-                                           element={<LoggedInRoute me={me}><SingleTaskView me={me}/></LoggedInRoute>}/>
-                                    <Route exact path='/new/tasks/by_range'
-                                           element={<LoggedInRoute me={me}><SingleTaskView me={me}/></LoggedInRoute>}/>
-                                    <Route exact path='/new/operations'
-                                           element={<LoggedInRoute me={me}><Operations me={me}/></LoggedInRoute>}/>
-                                    <Route exact path='/new/callbacks/:callbackDisplayId'
-                                           element={<LoggedInRoute me={me}><ExpandedCallback
-                                               me={me}/></LoggedInRoute>}/>
-                                    <Route exact path='/new/reporting'
-                                           element={<LoggedInRoute me={me}><Reporting me={me}/></LoggedInRoute>}/>
-                                    <Route exact path='/new/mitre'
-                                           element={<LoggedInRoute me={me}><MitreAttack me={me}/></LoggedInRoute>}/>
-                                    <Route exact path='/new/tagtypes'
-                                           element={<LoggedInRoute me={me}><Tags me={me}/></LoggedInRoute>}/>
-                                    <Route exact path='/new/eventing'
-                                           element={<LoggedInRoute me={me}><Eventing me={me}/></LoggedInRoute>}/>
-                                    <Route exact path='/new/jupyter' element={<LoggedInRoute me={me}><Jupyter/></LoggedInRoute>}/>
-                                    <Route exact path='/new/hasura' element={<LoggedInRoute me={me}><Hasura/></LoggedInRoute>}/>
-                                </Routes>
+                                <React.Suspense fallback={<div style={{height: "100%", width: "100%"}} />}>
+                                    <Routes>
+                                        <Route path='/new/login' element={<LoginForm me={me}/>}/>
+                                        <Route path='/new/invite' element={<InviteForm me={me}/>}/>
+                                        <Route path='/' element={<LoggedInRoute me={me}><Home me={me}/></LoggedInRoute>}/>
+                                        <Route exact path='/new'
+                                               element={<LoggedInRoute me={me}><Home me={me}/></LoggedInRoute>}/>
+                                        <Route exact path='/new/settings'
+                                               element={<LoggedInRoute me={me}><Settings me={me}/></LoggedInRoute>}/>
+                                        <Route exact path='/new/payloadtypes'
+                                               element={<LoggedInRoute me={me}><PayloadTypesC2Profiles
+                                                   me={me}/></LoggedInRoute>}/>
+                                        <Route exact path='/new/eventfeed'
+                                               element={<LoggedInRoute me={me}><EventFeed me={me}/></LoggedInRoute>}/>
+                                        <Route exact path='/new/createpayload'
+                                               element={<LoggedInRoute me={me}><CreatePayload me={me}/></LoggedInRoute>}/>
+                                        <Route exact path='/new/createwrapper'
+                                               element={<LoggedInRoute me={me}><CreatePayloadWrapper
+                                                   me={me}/></LoggedInRoute>}/>
+                                        <Route exact path='/new/payloads'
+                                               element={<LoggedInRoute me={me}><Payloads me={me}/></LoggedInRoute>}/>
+                                        <Route exact path='/new/c2profiles'
+                                               element={<LoggedInRoute me={me}><PayloadTypesC2Profiles
+                                                   me={me}/></LoggedInRoute>}/>
+                                        <Route exact path='/new/services/'
+                                               element={<LoggedInRoute me={me}><PayloadTypesC2Profiles
+                                                   me={me}/></LoggedInRoute>}/>
+                                        <Route exact path='/new/callbacks'
+                                               element={<LoggedInRoute me={me}><Callbacks me={me}/></LoggedInRoute>}/>
+                                        <Route path='/new/search'
+                                               element={<LoggedInRoute me={me}><Search history={props.history}
+                                                                                       me={me}/></LoggedInRoute>}/>
+                                        <Route exact path='/new/browserscripts'
+                                               element={<LoggedInRoute me={me}><BrowserScripts me={me}/></LoggedInRoute>}/>
+                                        <Route exact path='/new/task/:taskId'
+                                               element={<LoggedInRoute me={me}><SingleTaskView me={me}/></LoggedInRoute>}/>
+                                        <Route exact path='/new/tasks/by_range'
+                                               element={<LoggedInRoute me={me}><SingleTaskView me={me}/></LoggedInRoute>}/>
+                                        <Route exact path='/new/operations'
+                                               element={<LoggedInRoute me={me}><Operations me={me}/></LoggedInRoute>}/>
+                                        <Route exact path='/new/callbacks/:callbackDisplayId'
+                                               element={<LoggedInRoute me={me}><ExpandedCallback
+                                                   me={me}/></LoggedInRoute>}/>
+                                        <Route exact path='/new/reporting'
+                                               element={<LoggedInRoute me={me}><Reporting me={me}/></LoggedInRoute>}/>
+                                        <Route exact path='/new/mitre'
+                                               element={<LoggedInRoute me={me}><MitreAttack me={me}/></LoggedInRoute>}/>
+                                        <Route exact path='/new/tagtypes'
+                                               element={<LoggedInRoute me={me}><Tags me={me}/></LoggedInRoute>}/>
+                                        <Route exact path='/new/eventing'
+                                               element={<LoggedInRoute me={me}><Eventing me={me}/></LoggedInRoute>}/>
+                                        <Route exact path='/new/jupyter' element={<LoggedInRoute me={me}><Jupyter/></LoggedInRoute>}/>
+                                        <Route exact path='/new/hasura' element={<LoggedInRoute me={me}><Hasura/></LoggedInRoute>}/>
+                                    </Routes>
+                                </React.Suspense>
                             </div>
                         </div>
                     </div>

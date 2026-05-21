@@ -101,7 +101,7 @@ export function Step3SelectCommands(props){
             setCommandOptions(allCommands);
             if(props.prevData !== undefined){
               const selectedCommands = allCommands.map( (c) => {
-                if(props.prevData.includes(c.cmd)){
+                if(props.prevData.includes(c.cmd) || c?.attributes?.builtin){
                   return {...c, selected: true};
                 }else{
                   return {...c, selected: false};

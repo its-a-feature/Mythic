@@ -30,6 +30,7 @@ func init() {
 		Queue:      MYTHIC_RPC_AGENTSTORAGE_SEARCH,
 		RoutingKey: MYTHIC_RPC_AGENTSTORAGE_SEARCH,
 		Handler:    processMythicRPCAgentstorageSearch,
+		Scopes:     []string{},
 	})
 }
 

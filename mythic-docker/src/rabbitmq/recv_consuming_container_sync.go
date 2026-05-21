@@ -46,6 +46,7 @@ func init() {
 		Queue:      "mythic_consume_consuming_container_sync",
 		RoutingKey: CONSUMING_CONTAINER_SYNC_ROUTING_KEY,
 		Handler:    processConsumingContainerSyncMessages,
+		Scopes:     []string{},
 	})
 }
 

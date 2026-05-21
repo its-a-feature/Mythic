@@ -27,12 +27,17 @@ type PTRPCDynamicQueryBuildParameterFunctionMessageResponse struct {
 	Choices []string `json:"choices"`
 }
 
-func (r *rabbitMQConnection) SendPtRPCDynamicQueryBuildParameterFunction(dynamicQuery PTRPCDynamicQueryBuildParameterFunctionMessage) (*PTRPCDynamicQueryBuildParameterFunctionMessageResponse, error) {
+func (r *rabbitMQConnection) SendPtRPCDynamicQueryBuildParameterFunction(dynamicQuery PTRPCDynamicQueryBuildParameterFunctionMessage, authContext RabbitMQAuthContext) (*PTRPCDynamicQueryBuildParameterFunctionMessageResponse, error) {
 	dynamicQueryResponse := PTRPCDynamicQueryBuildParameterFunctionMessageResponse{}
 	exclusiveQueue := true
 	configBytes, err := json.Marshal(dynamicQuery)
 	if err != nil {
 		logging.LogError(err, "Failed to convert dynamicQuery to JSON", "dynamicQuery", dynamicQuery)
+		return nil, err
+	}
+	headers, err := GenerateRabbitMQAuthTokenHeader(authContext)
+	if err != nil {
+		logging.LogError(err, "Failed to generate auth context")
 		return nil, err
 	}
 	response, err := r.SendRPCMessage(
@@ -41,6 +46,7 @@ func (r *rabbitMQConnection) SendPtRPCDynamicQueryBuildParameterFunction(dynamic
 		configBytes,
 		exclusiveQueue,
 		RPC_RETRY_POLICY_CUSTOM_TIMEOUT,
+		headers,
 	)
 	if err != nil {
 		logging.LogError(err, "Failed to send RPC message")

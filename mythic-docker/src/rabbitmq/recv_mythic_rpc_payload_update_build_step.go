@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -31,103 +32,106 @@ func init() {
 		Queue:      MYTHIC_RPC_PAYLOAD_UPDATE_BUILD_STEP,   // swap out with queue in rabbitmq.constants.go file
 		RoutingKey: MYTHIC_RPC_PAYLOAD_UPDATE_BUILD_STEP,   // swap out with routing key in rabbitmq.constants.go file
 		Handler:    processMythicRPCPayloadUpdateBuildStep, // points to function that takes in amqp.Delivery and returns interface{}
+		Scopes:     []string{mythicjwt.SCOPE_PAYLOAD_WRITE},
 	})
 }
 
 // MYTHIC_RPC_OBJECT_ACTION - Say what the function does
-func MythicRPCPayloadUpdateBuildStep(input MythicRPCPayloadUpdateBuildStepMessage) MythicRPCPayloadUpdateBuildStepMessageResponse {
+func MythicRPCPayloadUpdateBuildStep(input MythicRPCPayloadUpdateBuildStepMessage, authContext RabbitMQAuthContext) MythicRPCPayloadUpdateBuildStepMessageResponse {
 	response := MythicRPCPayloadUpdateBuildStepMessageResponse{
 		Success: false,
 	}
 	payload := databaseStructs.Payload{}
-	if err := database.DB.Get(&payload, `SELECT
+	err := database.DB.Get(&payload, `SELECT
 	id
 	FROM payload
-	WHERE uuid=$1`, input.PayloadUUID); err != nil {
+	WHERE uuid=$1 AND operation_id=$2`, input.PayloadUUID, authContext.OperationID)
+	if err != nil {
 		logging.LogError(err, "Failed to find payload")
 		response.Error = err.Error()
 		return response
-	} else {
-		// we need to set the endtime for the specified step to now() and also the start time for the next step to now()
-		stepNow := time.Now().UTC()
-		allBuildSteps := []databaseStructs.PayloadBuildStep{}
-		if err := database.DB.Select(&allBuildSteps, `SELECT
+	}
+	// we need to set the endtime for the specified step to now() and also the start time for the next step to now()
+	stepNow := time.Now().UTC()
+	allBuildSteps := []databaseStructs.PayloadBuildStep{}
+	err = database.DB.Select(&allBuildSteps, `SELECT
 			id, step_number, step_name, start_time, end_time
 			FROM payload_build_step
-			WHERE payload_id=$1 ORDER BY step_number ASC`, payload.ID); err != nil {
-			logging.LogError(err, "Failed to fetch current build steps for payload")
-		} else {
-			setStartTimeOfNextStep := false
-			var prevSteps []databaseStructs.PayloadBuildStep
-			for _, step := range allBuildSteps {
-				if setStartTimeOfNextStep {
-					if !step.StartTime.Valid {
-						setStartTimeOfNextStep = false
-						step.StartTime.Time = stepNow
-						step.StartTime.Valid = true
-						if _, err := database.DB.NamedExec(`UPDATE payload_build_step SET
+			WHERE payload_id=$1 ORDER BY step_number ASC`, payload.ID)
+	if err != nil {
+		logging.LogError(err, "Failed to fetch current build steps for payload")
+		response.Error = err.Error()
+		return response
+	}
+	setStartTimeOfNextStep := false
+	var prevSteps []databaseStructs.PayloadBuildStep
+	for _, step := range allBuildSteps {
+		if setStartTimeOfNextStep {
+			if !step.StartTime.Valid {
+				setStartTimeOfNextStep = false
+				step.StartTime.Time = stepNow
+				step.StartTime.Valid = true
+				_, err = database.DB.NamedExec(`UPDATE payload_build_step SET
 							start_time=:start_time
-							WHERE id=:id`, step); err != nil {
-							logging.LogError(err, "Failed to update payload build step")
-							response.Error = err.Error()
-							return response
-						} else {
-							// break out early here so that we don't keep adding steps as "previous"
-							break
-						}
-					}
-				}
-				if step.StepName == input.StepName {
-					setStartTimeOfNextStep = true
-					step.StepStdout = input.StepStdout
-					step.StepStderr = input.StepStderr
-					step.Success = input.StepSuccess
-					step.StepSkip = input.StepSkip
-					step.EndTime.Valid = true
-					step.EndTime.Time = stepNow
-					if !step.StartTime.Valid {
-						step.StartTime.Valid = true
-						step.StartTime.Time = stepNow
-					}
-					if _, err := database.DB.NamedExec(`UPDATE payload_build_step SET
-						step_stdout=:step_stdout, step_stderr=:step_stderr, 
-						step_success=:step_success, end_time=:end_time, start_time=:start_time, step_skip=:step_skip
-						WHERE id=:id`, step); err != nil {
-						logging.LogError(err, "Failed to update payload build step")
-						response.Error = err.Error()
-						return response
-					}
-				}
-				if !step.EndTime.Valid {
-					prevSteps = append(prevSteps, step)
-				}
-
-			}
-			for _, step := range prevSteps {
-				// loop through all the steps that weren't marked as done before this one and update them
-				if !step.StartTime.Valid {
-					step.StartTime.Valid = true
-					step.StartTime.Time = stepNow
-				}
-				if !step.EndTime.Valid {
-					step.EndTime.Valid = true
-					step.EndTime.Time = stepNow
-				}
-				step.StepSkip = true
-				step.Success = input.StepSuccess
-				step.StepStdout = step.StepStdout + "\nAutomatically marked as done due to future step completing"
-				if _, err := database.DB.NamedExec(`UPDATE payload_build_step SET
-						step_stdout=:step_stdout, step_success=:step_success, end_time=:end_time, start_time=:start_time,
-						step_skip=:step_skip
-						WHERE id=:id`, step); err != nil {
+							WHERE id=:id`, step)
+				if err != nil {
 					logging.LogError(err, "Failed to update payload build step")
 					response.Error = err.Error()
 					return response
 				}
+				// break out early here so that we don't keep adding steps as "previous"
+				break
 			}
-
+		}
+		if step.StepName == input.StepName {
+			setStartTimeOfNextStep = true
+			step.StepStdout = input.StepStdout
+			step.StepStderr = input.StepStderr
+			step.Success = input.StepSuccess
+			step.StepSkip = input.StepSkip
+			step.EndTime.Valid = true
+			step.EndTime.Time = stepNow
+			if !step.StartTime.Valid {
+				step.StartTime.Valid = true
+				step.StartTime.Time = stepNow
+			}
+			_, err = database.DB.NamedExec(`UPDATE payload_build_step SET
+						step_stdout=:step_stdout, step_stderr=:step_stderr, 
+						step_success=:step_success, end_time=:end_time, start_time=:start_time, step_skip=:step_skip
+						WHERE id=:id`, step)
+			if err != nil {
+				logging.LogError(err, "Failed to update payload build step")
+				response.Error = err.Error()
+				return response
+			}
+		}
+		if !step.EndTime.Valid {
+			prevSteps = append(prevSteps, step)
 		}
 
+	}
+	for _, step := range prevSteps {
+		// loop through all the steps that weren't marked as done before this one and update them
+		if !step.StartTime.Valid {
+			step.StartTime.Valid = true
+			step.StartTime.Time = stepNow
+		}
+		if !step.EndTime.Valid {
+			step.EndTime.Valid = true
+			step.EndTime.Time = stepNow
+		}
+		step.StepSkip = true
+		step.Success = input.StepSuccess
+		step.StepStdout = step.StepStdout + "\nAutomatically marked as done due to future step completing"
+		_, err = database.DB.NamedExec(`UPDATE payload_build_step SET
+						step_stdout=:step_stdout, step_success=:step_success, end_time=:end_time, start_time=:start_time,
+						step_skip=:step_skip
+						WHERE id=:id`, step)
+		if err != nil {
+			logging.LogError(err, "Failed to update payload build step")
+			response.Error = err.Error()
+			return response
+		}
 	}
 	return response
 }
@@ -136,11 +140,16 @@ func processMythicRPCPayloadUpdateBuildStep(msg amqp.Delivery) interface{} {
 	responseMsg := MythicRPCPayloadUpdateBuildStepMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCPayloadUpdateBuildStep(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCPayloadUpdateBuildStep(incomingMessage, authContext)
 }

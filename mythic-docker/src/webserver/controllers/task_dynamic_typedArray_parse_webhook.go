@@ -3,6 +3,7 @@ package webcontroller
 import (
 	"net/http"
 
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 
@@ -32,7 +33,8 @@ type PayloadTypeDynamicTypedArrayParseResponse struct {
 func PayloadTypeDynamicTypedArrayParseWebhook(c *gin.Context) {
 	// get variables from the POST request
 	var input PayloadTypeDynamicTypedArrayParseInput
-	if err := c.ShouldBindJSON(&input); err != nil {
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
 		logging.LogError(err, "Failed to parse out required parameters")
 		c.JSON(http.StatusOK, PayloadTypeDynamicTypedArrayParseResponse{
 			Status: rabbitmq.PT_TYPEDARRAY_PARSE_STATUS_ERROR,
@@ -82,7 +84,7 @@ func PayloadTypeDynamicTypedArrayParseWebhook(c *gin.Context) {
 		PayloadType:        loadedCommand.Command.Payloadtype.Name,
 		Callback:           input.Input.Callback,
 		InputArray:         input.Input.InputArray,
-	}); err != nil {
+	}, authentication.RabbitMQAuthContextFromGin(c)); err != nil {
 		logging.LogError(err, "Failed to send SendPtRPCTypedArrayParse to payload type", "payload_type", input.Input.PayloadType)
 		c.JSON(http.StatusOK, PayloadTypeDynamicTypedArrayParseResponse{
 			Status: rabbitmq.PT_TYPEDARRAY_PARSE_STATUS_ERROR,

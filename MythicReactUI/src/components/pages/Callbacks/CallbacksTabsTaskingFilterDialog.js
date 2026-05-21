@@ -206,16 +206,16 @@ export function CallbacksTabsTaskingFilterDialog(props) {
 
   return (
     <Box className="mythic-tasking-filter-dialog">
-      <DialogTitle id="mythic-draggable-title" className="mythic-tasking-filter-dialog-title">
-        <Box className="mythic-tasking-filter-title-row">
-          <Box className="mythic-tasking-filter-title-icon">
+      <DialogTitle id="mythic-draggable-title" className="mythic-accent-dialog-title">
+        <Box className="mythic-accent-dialog-title-row">
+          <Box className="mythic-accent-dialog-title-icon">
             <FilterAltIcon fontSize="small" />
           </Box>
           <Box sx={{minWidth: 0}}>
             <Typography component="div" className="mythic-tasking-filter-title-main">
               Task visibility filters
             </Typography>
-            <Typography component="div" className="mythic-tasking-filter-title-subtitle">
+            <Typography component="div" className="mythic-accent-dialog-title-subtitle">
               Control which tasks are shown for this callback.
             </Typography>
           </Box>
@@ -249,7 +249,7 @@ export function CallbacksTabsTaskingFilterDialog(props) {
                   emptyLabel="Any operator"
                 />
               </MythicFormField>
-              <Box className="mythic-tasking-filter-switch-stack">
+              <Box className="mythic-column-stack">
                 <MythicFormSwitchRow
                   label="Only tasks with comments"
                   description="Require at least one comment."

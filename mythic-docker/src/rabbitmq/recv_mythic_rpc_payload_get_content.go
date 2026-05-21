@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -27,50 +28,60 @@ func init() {
 		Queue:      MYTHIC_RPC_PAYLOAD_GET_PAYLOAD_CONTENT, // swap out with queue in rabbitmq.constants.go file
 		RoutingKey: MYTHIC_RPC_PAYLOAD_GET_PAYLOAD_CONTENT, // swap out with routing key in rabbitmq.constants.go file
 		Handler:    processMythicRPCPayloadGetContent,      // points to function that takes in amqp.Delivery and returns interface{}
+		Scopes:     []string{mythicjwt.SCOPE_PAYLOAD_READ},
 	})
 }
 
-//MYTHIC_RPC_OBJECT_ACTION - Say what the function does
-func MythicRPCPayloadGetContent(input MythicRPCPayloadGetContentMessage) MythicRPCPayloadGetContentMessageResponse {
+// MYTHIC_RPC_OBJECT_ACTION - Say what the function does
+func MythicRPCPayloadGetContent(input MythicRPCPayloadGetContentMessage, authContext RabbitMQAuthContext) MythicRPCPayloadGetContentMessageResponse {
 	response := MythicRPCPayloadGetContentMessageResponse{
 		Success: false,
 	}
 	payload := databaseStructs.Payload{}
-	if err := database.DB.Get(&payload, `SELECT
+	err := database.DB.Get(&payload, `SELECT
 	filemeta.path "filemeta.path"
 	FROM payload
 	JOIN filemeta ON payload.file_id = filemeta.id
-	WHERE payload.uuid = $1`, input.PayloadUUID); err != nil {
+	WHERE payload.uuid = $1 AND payload.operation_id=$2`, input.PayloadUUID, authContext.OperationID)
+	if err != nil {
 		response.Error = err.Error()
 		return response
-	} else if diskFile, err := os.OpenFile(payload.Filemeta.Path, os.O_RDONLY, 0644); err != nil {
-		response.Error = err.Error()
-		return response
-	} else if fileInfo, err := diskFile.Stat(); err != nil {
-		response.Error = err.Error()
-		return response
-	} else {
-		fileContents := make([]byte, fileInfo.Size())
-		if _, err := diskFile.Read(fileContents); err != nil {
-			response.Error = err.Error()
-			return response
-		} else {
-			response.Content = fileContents
-			response.Success = true
-			return response
-		}
 	}
+	diskFile, err := os.OpenFile(payload.Filemeta.Path, os.O_RDONLY, 0644)
+	if err != nil {
+		response.Error = err.Error()
+		return response
+	}
+	fileInfo, err := diskFile.Stat()
+	if err != nil {
+		response.Error = err.Error()
+		return response
+	}
+	fileContents := make([]byte, fileInfo.Size())
+	_, err = diskFile.Read(fileContents)
+	if err != nil {
+		response.Error = err.Error()
+		return response
+	}
+	response.Content = fileContents
+	response.Success = true
+	return response
 }
 func processMythicRPCPayloadGetContent(msg amqp.Delivery) interface{} {
 	incomingMessage := MythicRPCPayloadGetContentMessage{}
 	responseMsg := MythicRPCPayloadGetContentMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCPayloadGetContent(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCPayloadGetContent(incomingMessage, authContext)
 }

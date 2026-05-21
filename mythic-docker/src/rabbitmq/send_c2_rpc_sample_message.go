@@ -18,9 +18,14 @@ type C2SampleMessageResponse struct {
 	Message string `json:"message"`
 }
 
-func (r *rabbitMQConnection) SendC2RPCSampleMessage(getSampleMessage C2SampleMessageMessage) (*C2SampleMessageResponse, error) {
+func (r *rabbitMQConnection) SendC2RPCSampleMessage(getSampleMessage C2SampleMessageMessage, authContext RabbitMQAuthContext) (*C2SampleMessageResponse, error) {
 	getSampleMessageResponse := C2SampleMessageResponse{}
 	exclusiveQueue := true
+	headers, err := GenerateRabbitMQAuthTokenHeader(authContext)
+	if err != nil {
+		logging.LogError(err, "Failed to generate auth context")
+		return nil, err
+	}
 	if configBytes, err := json.Marshal(getSampleMessage); err != nil {
 		logging.LogError(err, "Failed to convert getSampleMessage to JSON", "getSampleMessage", getSampleMessage)
 		return nil, err
@@ -30,6 +35,7 @@ func (r *rabbitMQConnection) SendC2RPCSampleMessage(getSampleMessage C2SampleMes
 		configBytes,
 		exclusiveQueue,
 		RPC_RETRY_POLICY_CUSTOM_TIMEOUT,
+		headers,
 	); err != nil {
 		logging.LogError(err, "Failed to send RPC message")
 		return nil, err

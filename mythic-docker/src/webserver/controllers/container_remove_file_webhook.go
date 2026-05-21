@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/rabbitmq"
 )
@@ -25,7 +26,8 @@ type RemoveContainerFileResponse struct {
 func ContainerRemoveFileWebhook(c *gin.Context) {
 	// get variables from the POST request
 	var input ContainerRemoveFileInput
-	if err := c.ShouldBindJSON(&input); err != nil {
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
 		c.JSON(http.StatusOK, RemoveContainerFileResponse{
 			Status: "error",
 			Error:  err.Error(),
@@ -35,7 +37,7 @@ func ContainerRemoveFileWebhook(c *gin.Context) {
 	c2ProfileResponse, err := rabbitmq.RabbitMQConnection.SendContainerRPCRemoveFile(rabbitmq.ContainerRemoveFileMessage{
 		Filename: input.Input.Filename,
 		Name:     input.Input.ContainerName,
-	})
+	}, authentication.RabbitMQAuthContextFromGin(c))
 	if err != nil {
 		c.JSON(http.StatusOK, RemoveContainerFileResponse{
 			Status: "error",

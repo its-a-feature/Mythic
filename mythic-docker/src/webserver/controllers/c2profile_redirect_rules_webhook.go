@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -29,7 +30,8 @@ func C2ProfileRedirectRulesWebhook(c *gin.Context) {
 	// get variables from the POST request
 	var input GetC2RedirectRulesInput
 	output := ""
-	if err := c.ShouldBindJSON(&input); err != nil {
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
 		logging.LogError(err, "Failed to parse out required parameters")
 		c.JSON(http.StatusOK, GetC2RedirectRulesResponse{
 			Status: "error",
@@ -57,23 +59,30 @@ func C2ProfileRedirectRulesWebhook(c *gin.Context) {
 	}
 	// get the associated database information
 	payload := databaseStructs.Payload{}
-	if err := database.DB.Get(&payload, `SELECT 
-    	id FROM payload 
-    	   WHERE uuid=$1 AND operation_id=$2`, input.Input.PayloadUUID, user.CurrentOperationID.Int64); err != nil {
+	err = database.DB.Get(&payload, `SELECT
+		id FROM payload
+		WHERE uuid=$1 AND operation_id=$2`, input.Input.PayloadUUID, user.CurrentOperationID.Int64)
+	if err != nil {
 		logging.LogError(err, "Failed to find payload when doing a C2ProfileRedirectRulesWebhook")
+		c.JSON(http.StatusOK, GetC2GetIOCResponse{
+			Status: "error",
+			Error:  err.Error(),
+		})
+		return
 	}
 	c2profileParameterInstances := []databaseStructs.C2profileparametersinstance{}
-	if err := database.DB.Select(&c2profileParameterInstances, `SELECT 
+	err = database.DB.Select(&c2profileParameterInstances, `SELECT
 	c2profile.name "c2profile.name",
 	c2profile.id "c2profile.id",
 	"value", enc_key, dec_key,
-	c2profileparameters.crypto_type "c2profileparameters.crypto_type", 
+	c2profileparameters.crypto_type "c2profileparameters.crypto_type",
 	c2profileparameters.parameter_type "c2profileparameters.parameter_type",
 	c2profileparameters.name "c2profileparameters.name"
 	FROM c2profileparametersinstance 
 	JOIN c2profileparameters ON c2profileparametersinstance.c2_profile_parameters_id = c2profileparameters.id 
 	JOIN c2profile ON c2profileparametersinstance.c2_profile_id = c2profile.id
-	WHERE payload_id=$1`, payload.ID); err != nil {
+	WHERE payload_id=$1`, payload.ID)
+	if err != nil {
 		logging.LogError(err, "Failed to fetch c2 profile parameters from database for payload", "payload_id", payload.ID)
 		c.JSON(http.StatusOK, GetC2RedirectRulesResponse{
 			Status: "error",
@@ -104,7 +113,7 @@ func C2ProfileRedirectRulesWebhook(c *gin.Context) {
 		if c2RedirectRuleResponse, err := rabbitmq.RabbitMQConnection.SendC2RPCGetRedirectorRules(rabbitmq.C2GetRedirectorRuleMessage{
 			Name:       c2ProfileName,
 			Parameters: parametersValueDictionary,
-		}); err != nil {
+		}, authentication.RabbitMQAuthContextFromGin(c)); err != nil {
 			logging.LogError(err, "Failed to send RPC call to c2 profile in C2ProfileRedirectRulesWebhook", "c2_profile", c2ProfileName)
 			output += fmt.Sprintf("#Failed Redirect Rules Check for %s\n#%s\n", c2ProfileName, err.Error())
 		} else if !c2RedirectRuleResponse.Success {

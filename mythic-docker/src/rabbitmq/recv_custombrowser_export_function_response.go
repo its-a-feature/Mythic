@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	"github.com/its-a-feature/Mythic/logging"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -17,6 +18,7 @@ func init() {
 		Queue:      CUSTOMBROWSER_EXPORT_FUNCTION_RESPONSE,
 		RoutingKey: CUSTOMBROWSER_EXPORT_FUNCTION_RESPONSE,
 		Handler:    processCbExportFunctionResponseMessages,
+		Scopes:     []string{mythicjwt.SCOPE_BROWSER_READ},
 	})
 }
 

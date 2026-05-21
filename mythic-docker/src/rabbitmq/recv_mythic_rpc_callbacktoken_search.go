@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"encoding/json"
 
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -26,11 +27,12 @@ func init() {
 		Queue:      MYTHIC_RPC_CALLBACKTOKEN_SEARCH,
 		RoutingKey: MYTHIC_RPC_CALLBACKTOKEN_SEARCH,
 		Handler:    processMythicRPCCallbackTokenSearch,
+		Scopes:     []string{mythicjwt.SCOPE_CALLBACK_READ},
 	})
 }
 
 // Endpoint: MYTHIC_RPC_CALLBACKTOKEN_CREATE
-func MythicRPCCallbackTokenSearch(input MythicRPCCallbackTokenSearchMessage) MythicRPCCallbackTokenSearchMessageResponse {
+func MythicRPCCallbackTokenSearch(input MythicRPCCallbackTokenSearchMessage, authContext RabbitMQAuthContext) MythicRPCCallbackTokenSearchMessageResponse {
 	response := MythicRPCCallbackTokenSearchMessageResponse{
 		Success: false,
 	}
@@ -40,7 +42,7 @@ func MythicRPCCallbackTokenSearch(input MythicRPCCallbackTokenSearchMessage) Myt
 		err := database.DB.Get(&task, `SELECT
 		task.id, task.callback_id
 		FROM task
-		WHERE task.id = $1`, input.TaskID)
+		WHERE task.id = $1 AND task.operation_id=$2`, input.TaskID, authContext.OperationID)
 		if err != nil {
 			logging.LogError(err, "Failed to fetch task")
 			response.Error = err.Error()
@@ -48,13 +50,23 @@ func MythicRPCCallbackTokenSearch(input MythicRPCCallbackTokenSearchMessage) Myt
 		}
 		callbackID = task.CallbackID
 	} else if input.CallbackID != nil {
-		callbackID = *input.CallbackID
+		callback := databaseStructs.Callback{}
+		err := database.DB.Get(&callback, `SELECT
+			callback.id
+			FROM callback
+			WHERE callback.id = $1 AND callback.operation_id=$2`, *input.CallbackID, authContext.OperationID)
+		if err != nil {
+			logging.LogError(err, "Failed to fetch callback")
+			response.Error = err.Error()
+			return response
+		}
+		callbackID = callback.ID
 	} else if input.AgentCallbackID != nil {
 		callback := databaseStructs.Callback{}
 		err := database.DB.Get(&callback, `SELECT
 			callback.id
 			FROM callback
-			WHERE callback.agent_callback_id = $1`, input.AgentCallbackID)
+			WHERE callback.agent_callback_id = $1 AND callback.operation_id=$2`, *input.AgentCallbackID, authContext.OperationID)
 		if err != nil {
 			logging.LogError(err, "Failed to fetch callback")
 			response.Error = err.Error()
@@ -108,11 +120,16 @@ func processMythicRPCCallbackTokenSearch(msg amqp.Delivery) interface{} {
 	responseMsg := MythicRPCCallbackTokenSearchMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCCallbackTokenSearch(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCCallbackTokenSearch(incomingMessage, authContext)
 }

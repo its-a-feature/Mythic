@@ -1,13 +1,15 @@
 package webcontroller
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/eventing"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/rabbitmq"
-	"net/http"
 )
 
 type EventingTriggerRunAgainInput struct {
@@ -36,7 +38,7 @@ func EventingTriggerRunAgainWebhook(c *gin.Context) {
 		})
 		return
 	}
-	ginOperatorOperation, ok := c.Get("operatorOperation")
+	ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct)
 	if !ok {
 		logging.LogError(nil, "Failed to get user information")
 		c.JSON(http.StatusOK, EventingTriggerRunAgainMessageResponse{

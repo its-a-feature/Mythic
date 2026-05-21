@@ -1,12 +1,14 @@
 package webcontroller
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
+	"github.com/its-a-feature/Mythic/authentication"
 	mythicCrypto "github.com/its-a-feature/Mythic/crypto"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/rabbitmq"
-	"net/http"
 )
 
 type CreateOperationEventLogInput struct {
@@ -37,7 +39,7 @@ func CreateOperationEventLog(c *gin.Context) {
 		})
 		return
 	}
-	ginOperatorOperation, ok := c.Get("operatorOperation")
+	ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct)
 	if !ok {
 		logging.LogError(nil, "Failed to get user information")
 		c.JSON(http.StatusOK, CreateOperationEventLogDataResponse{
@@ -58,8 +60,8 @@ func CreateOperationEventLog(c *gin.Context) {
 		level = "api"
 	}
 	operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
-	go rabbitmq.SendAllOperationsMessage(input.Input.Message, operatorOperation.CurrentOperation.ID,
-		source, level, warning)
+	go rabbitmq.SendAllOperationsMessageWithAuth(input.Input.Message, operatorOperation.CurrentOperation.ID,
+		source, level, warning, authentication.RabbitMQAuthContextFromGin(c))
 	c.JSON(http.StatusOK, SendExternalWebhookResponse{
 		Status: "success",
 	})

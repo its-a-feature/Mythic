@@ -25,22 +25,27 @@ type TrDecryptBytesMessageResponse struct {
 func (r *rabbitMQConnection) SendTrRPCDecryptBytes(input TrDecryptBytesMessage) (*TrDecryptBytesMessageResponse, error) {
 	responseMsg := TrDecryptBytesMessageResponse{}
 	exclusiveQueue := true
-	if opsecBytes, err := json.Marshal(input); err != nil {
+	opsecBytes, err := json.Marshal(input)
+	if err != nil {
 		logging.LogError(err, "Failed to convert SendTrRPCEncryptBytes to JSON", "input", input)
 		return nil, err
-	} else if response, err := r.SendRPCMessage(
+	}
+	response, err := r.SendRPCMessage(
 		MYTHIC_EXCHANGE,
 		GetTrRPCDecryptBytesRoutingKey(input.TranslationContainerName),
 		opsecBytes,
 		!exclusiveQueue,
 		RPC_RETRY_POLICY_RETRY_ON_TIMEOUT,
-	); err != nil {
+		nil,
+	)
+	if err != nil {
 		logging.LogError(err, "Failed to send RPC message")
 		return nil, err
-	} else if err := json.Unmarshal(response, &responseMsg); err != nil {
+	}
+	err = json.Unmarshal(response, &responseMsg)
+	if err != nil {
 		logging.LogError(err, "Failed to parse tr decrypt bytes response back to struct", "response", response)
 		return nil, err
-	} else {
-		return &responseMsg, nil
 	}
+	return &responseMsg, nil
 }

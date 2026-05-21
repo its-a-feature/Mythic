@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -47,7 +48,7 @@ func DownloadFileAuthWebhook(c *gin.Context) {
 		return
 	}
 	if !strings.Contains(c.Request.URL.Path, "screencaptures") {
-		go tagFileAs(filemeta.ID, user.Username, filemeta.OperationID, tagTypeDownload, nil, c, false)
+		go tagFileAs(filemeta.ID, user.Username, filemeta.OperationID, tagTypeDownload, nil, c, false, authentication.RabbitMQAuthContextFromGin(c))
 	}
 	c.FileAttachment(filemeta.Path, string(filemeta.Filename))
 	logging.LogDebug("Downloading a file to the user", "path", filemeta.Path, "filename", filemeta.Filename)

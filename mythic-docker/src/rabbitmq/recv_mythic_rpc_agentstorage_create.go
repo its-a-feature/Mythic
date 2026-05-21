@@ -24,11 +24,11 @@ func init() {
 		Queue:      MYTHIC_RPC_AGENTSTORAGE_CREATE,
 		RoutingKey: MYTHIC_RPC_AGENTSTORAGE_CREATE,
 		Handler:    processMythicRPCAgentstorageCreate,
+		Scopes:     []string{},
 	})
 }
 
 // Endpoint: MYTHIC_RPC_AGENTSTORAGE_CREATE
-//
 func MythicRPCAgentstorageCreate(input MythicRPCAgentstorageCreateMessage) MythicRPCAgentstorageCreateMessageResponse {
 	response := MythicRPCAgentstorageCreateMessageResponse{
 		Success: false,

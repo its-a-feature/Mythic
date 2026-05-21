@@ -22,12 +22,17 @@ type C2HostFileMessageResponse struct {
 	Error   string `json:"error"`
 }
 
-func (r *rabbitMQConnection) SendC2RPCHostFile(hostFile C2HostFileMessage) (*C2HostFileMessageResponse, error) {
+func (r *rabbitMQConnection) SendC2RPCHostFile(hostFile C2HostFileMessage, authContext RabbitMQAuthContext) (*C2HostFileMessageResponse, error) {
 	c2HostFileMessageResponse := C2HostFileMessageResponse{}
 	exclusiveQueue := true
 	opsecBytes, err := json.Marshal(hostFile)
 	if err != nil {
 		logging.LogError(err, "Failed to convert hostFile to JSON", "hostFile", hostFile)
+		return nil, err
+	}
+	headers, err := GenerateRabbitMQAuthTokenHeader(authContext)
+	if err != nil {
+		logging.LogError(err, "Failed to generate auth context")
 		return nil, err
 	}
 	response, err := r.SendRPCMessage(
@@ -36,6 +41,7 @@ func (r *rabbitMQConnection) SendC2RPCHostFile(hostFile C2HostFileMessage) (*C2H
 		opsecBytes,
 		exclusiveQueue,
 		RPC_RETRY_POLICY_CUSTOM_TIMEOUT,
+		headers,
 	)
 	if err != nil {
 		logging.LogError(err, "Failed to send RPC message")

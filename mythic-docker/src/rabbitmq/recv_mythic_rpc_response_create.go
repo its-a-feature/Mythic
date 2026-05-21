@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -25,13 +26,14 @@ func init() {
 		Queue:      MYTHIC_RPC_RESPONSE_CREATE,
 		RoutingKey: MYTHIC_RPC_RESPONSE_CREATE,
 		Handler:    processMythicRPCPayloadResponseCreate,
+		Scopes:     []string{mythicjwt.SCOPE_RESPONSE_WRITE},
 	})
 }
 
 // Endpoint: MYTHIC_RPC_RESPONSE_CREATE
 //
 // Creates a FileMeta object for a specific task in Mythic's database and writes contents to disk with a random UUID filename.
-func MythicRPCResponseCreate(input MythicRPCResponseCreateMessage) MythicRPCResponseCreateMessageResponse {
+func MythicRPCResponseCreate(input MythicRPCResponseCreateMessage, authContext RabbitMQAuthContext) MythicRPCResponseCreateMessageResponse {
 	response := MythicRPCResponseCreateMessageResponse{
 		Success: false,
 	}
@@ -42,7 +44,10 @@ func MythicRPCResponseCreate(input MythicRPCResponseCreateMessage) MythicRPCResp
 		response.Error = "Response must have actual bytes"
 		return response
 	}
-	err := database.DB.Get(&task, `SELECT operation_id, agent_task_id FROM task  WHERE id=$1`, input.TaskID)
+	err := database.DB.Get(&task, `SELECT 
+    	operation_id, agent_task_id, eventstepinstance_id, apitokens_id 
+		FROM task 
+		WHERE id=$1 AND operation_id=$2`, input.TaskID, authContext.OperationID)
 	if err != nil {
 		logging.LogError(err, "failed to fetch task from database")
 		response.Error = err.Error()
@@ -63,11 +68,16 @@ func processMythicRPCPayloadResponseCreate(msg amqp.Delivery) interface{} {
 	responseMsg := MythicRPCResponseCreateMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCResponseCreate(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCResponseCreate(incomingMessage, authContext)
 }

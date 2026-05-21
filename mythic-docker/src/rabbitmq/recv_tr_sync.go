@@ -33,6 +33,7 @@ func init() {
 		Queue:      "mythic_consume_tr_sync",
 		RoutingKey: TR_SYNC_ROUTING_KEY,
 		Handler:    processTrSyncMessages,
+		Scopes:     []string{},
 	})
 }
 

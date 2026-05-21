@@ -1328,7 +1328,7 @@ const ProcessBrowserInspector = ({nodeData, rowData, treeRootData, host, group, 
                                 target_object_id={nodeData.id || 0}
                                 me={me} />
                         }
-                        <div className="mythic-process-tags-list">
+                        <div className="mythic-tag-list mythic-tag-list-truncate">
                             <TagsDisplay tags={nodeData?.tags || []} />
                         </div>
                     </div>
@@ -1402,12 +1402,12 @@ const FileBrowserTagsCell = ({rowData, treeRootData, host, me}) => {
     const nodeData = treeRootData?.[host]?.[rowData["full_path_text"]];
     return (
         nodeData?.id ? (
-            <div className="mythic-process-tags-cell">
+            <div className="mythic-tag-cell mythic-tag-cell-fill">
                 <ViewEditTags 
                     target_object={"mythictree_id"} 
                     target_object_id={nodeData?.id || 0}
                     me={me} />
-                <div className="mythic-process-tags-list">
+                <div className="mythic-tag-list mythic-tag-list-truncate">
                     <TagsDisplay tags={nodeData?.tags || []} />
                 </div>
             </div>

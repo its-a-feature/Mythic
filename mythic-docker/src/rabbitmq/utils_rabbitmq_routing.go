@@ -23,9 +23,6 @@ type rpcResponse struct {
 func GetPtBuildRoutingKey(container string) string {
 	return fmt.Sprintf("%s_%s", container, PT_BUILD_ROUTING_KEY)
 }
-func GetPTRPCReSyncRoutingKey(container string) string {
-	return fmt.Sprintf("%s_%s", container, PT_RPC_RESYNC_ROUTING_KEY)
-}
 func GetPtC2BuildRoutingKey(container string) string {
 	return fmt.Sprintf("%s_%s", container, PT_BUILD_C2_ROUTING_KEY)
 }
@@ -76,9 +73,6 @@ func GetC2RPCGetIOCRoutingKey(container string) string {
 func GetC2RPCSampleMessageRoutingKey(container string) string {
 	return fmt.Sprintf("%s_%s", container, C2_RPC_SAMPLE_MESSAGE_ROUTING_KEY)
 }
-func GetC2RPCReSyncRoutingKey(container string) string {
-	return fmt.Sprintf("%s_%s", container, C2_RPC_RESYNC_ROUTING_KEY)
-}
 func GetC2RPCRedirectorRulesRoutingKey(container string) string {
 	return fmt.Sprintf("%s_%s", container, C2_RPC_REDIRECTOR_RULES_ROUTING_KEY)
 }
@@ -107,9 +101,6 @@ func GetC2RPCWriteFileRoutingKey(container string) string {
 	return fmt.Sprintf("%s_%s", container, CONTAINER_RPC_WRITE_FILE)
 }
 
-func GetTrRPCReSyncRoutingKey(container string) string {
-	return fmt.Sprintf("%s_%s", container, TR_RPC_RESYNC_ROUTING_KEY)
-}
 func GetTrRPCEncryptBytesRoutingKey(container string) string {
 	return fmt.Sprintf("%s_%s", container, TR_RPC_ENCRYPT_BYTES)
 }
@@ -189,20 +180,20 @@ func (r *rabbitMQConnection) GetConnection() (*amqp.Connection, error) {
 		return conn, nil
 	}
 }
-func (r *rabbitMQConnection) SendStructMessage(exchange string, queue string, correlationId string, body interface{}, ignoreErrorMessage bool) error {
+func (r *rabbitMQConnection) SendStructMessage(exchange string, queue string, correlationId string, body interface{}, ignoreErrorMessage bool, additionalHeaders amqp.Table) error {
 	jsonBody, err := json.Marshal(body)
 	if err != nil {
 		return err
 	}
-	return r.SendMessage(exchange, queue, correlationId, jsonBody, ignoreErrorMessage)
+	return r.SendMessage(exchange, queue, correlationId, jsonBody, ignoreErrorMessage, additionalHeaders)
 }
-func (r *rabbitMQConnection) SendRPCStructMessage(exchange string, queue string, body interface{}, retryPolicy RPCRetryPolicy) ([]byte, error) {
-	if inputBytes, err := json.Marshal(body); err != nil {
+func (r *rabbitMQConnection) SendRPCStructMessage(exchange string, queue string, body interface{}, retryPolicy RPCRetryPolicy, additionalHeaders amqp.Table) ([]byte, error) {
+	inputBytes, err := json.Marshal(body)
+	if err != nil {
 		logging.LogError(err, "Failed to convert input to JSON", "input", body)
 		return nil, err
-	} else {
-		return r.SendRPCMessage(exchange, queue, inputBytes, true, retryPolicy)
 	}
+	return r.SendRPCMessage(exchange, queue, inputBytes, true, retryPolicy, additionalHeaders)
 }
 
 func (r *rabbitMQConnection) getPublisherChannel() (*amqp.Channel, chan amqp.Confirmation, chan amqp.Return, error) {
@@ -238,7 +229,7 @@ func (r *rabbitMQConnection) resetPublisherChannel(ch *amqp.Channel) {
 	}
 }
 
-func (r *rabbitMQConnection) SendMessage(exchange string, queue string, correlationId string, body []byte, ignoreErrormessage bool) error {
+func (r *rabbitMQConnection) SendMessage(exchange string, queue string, correlationId string, body []byte, ignoreErrormessage bool, additionalHeaders amqp.Table) error {
 	// to send a normal message out to a direct queue set:
 	// exchange: MYTHIC_EXCHANGE
 	// queue: which routing key is listening (this is the direct name)
@@ -256,6 +247,7 @@ func (r *rabbitMQConnection) SendMessage(exchange string, queue string, correlat
 			ContentType:   "application/json",
 			CorrelationId: correlationId,
 			Body:          body,
+			Headers:       additionalHeaders,
 		}
 		err = ch.Publish(
 			exchange, // exchange
@@ -428,7 +420,7 @@ func (r *rabbitMQConnection) removePendingRPCResponse(correlationID string) {
 	r.rpcClientMutex.Unlock()
 }
 
-func (r *rabbitMQConnection) publishRPCMessage(exchange string, queue string, correlationID string, body []byte, exclusiveQueue bool, responseChannel chan rpcResponse) error {
+func (r *rabbitMQConnection) publishRPCMessage(exchange string, queue string, correlationID string, body []byte, exclusiveQueue bool, responseChannel chan rpcResponse, additionalHeaders amqp.Table) error {
 	r.rpcClientMutex.Lock()
 	defer r.rpcClientMutex.Unlock()
 	ch, confirmChannel, notifyReturnChannel, err := r.getRPCClientLocked(exchange, exclusiveQueue)
@@ -442,6 +434,7 @@ func (r *rabbitMQConnection) publishRPCMessage(exchange string, queue string, co
 		CorrelationId: correlationID,
 		Body:          body,
 		ReplyTo:       "amq.rabbitmq.reply-to",
+		Headers:       additionalHeaders,
 	}
 	err = ch.Publish(
 		exchange, // exchange
@@ -486,13 +479,13 @@ func (r *rabbitMQConnection) publishRPCMessage(exchange string, queue string, co
 	}
 }
 
-func (r *rabbitMQConnection) SendRPCMessage(exchange string, queue string, body []byte, exclusiveQueue bool, retryPolicy RPCRetryPolicy) ([]byte, error) {
+func (r *rabbitMQConnection) SendRPCMessage(exchange string, queue string, body []byte, exclusiveQueue bool, retryPolicy RPCRetryPolicy, additionalHeaders amqp.Table) ([]byte, error) {
 	var finalError error
 	timeout := r.getRPCTimeout(retryPolicy)
 	for attempt := 0; attempt < 3; attempt++ {
 		correlationID := uuid.NewString()
 		responseChannel := make(chan rpcResponse, 1)
-		err := r.publishRPCMessage(exchange, queue, correlationID, body, exclusiveQueue, responseChannel)
+		err := r.publishRPCMessage(exchange, queue, correlationID, body, exclusiveQueue, responseChannel, additionalHeaders)
 		if err != nil {
 			finalError = err
 			time.Sleep(RPC_TIMEOUT)
@@ -605,6 +598,11 @@ func (r *rabbitMQConnection) ReceiveFromMythicDirectExchange(exchange string, qu
 		go func() {
 			for d := range msgs {
 				//logging.LogDebug("got direct message", "queue", q.Name, "msg", d.Body)
+				_, err = authorizeRabbitMQRPCRequest(queue, d)
+				if err != nil {
+					logging.LogError(err, "RabbitMQ direct exchange auth check failed", "queue", queue)
+					continue
+				}
 				go handler(d)
 			}
 			forever <- true
@@ -700,7 +698,14 @@ func (r *rabbitMQConnection) ReceiveFromRPCQueue(exchange string, queue string, 
 						forever <- true
 						return
 					}
-					responseMsg := handler(d)
+					var responseMsg interface{}
+					_, err = authorizeRabbitMQRPCRequest(queue, d)
+					if err != nil {
+						logging.LogError(err, "RabbitMQ RPC auth check failed", "queue", queue)
+						responseMsg = rabbitMQAuthErrorResponse(err)
+					} else {
+						responseMsg = handler(d)
+					}
 					responseMsgJson, err := json.Marshal(responseMsg)
 					if err != nil {
 						logging.LogError(err, "Failed to generate JSON for rpc response", "queue", queue)

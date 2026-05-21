@@ -23,11 +23,11 @@ func init() {
 		Queue:      MYTHIC_RPC_AGENTSTORAGE_REMOVE,
 		RoutingKey: MYTHIC_RPC_AGENTSTORAGE_REMOVE,
 		Handler:    processMythicRPCAgentstorageRemove,
+		Scopes:     []string{},
 	})
 }
 
 // Endpoint: MYTHIC_RPC_AGENTSTORAGE_REMOVE
-//
 func MythicRPCAgentstorageRemove(input MythicRPCAgentstorageRemoveMessage) MythicRPCAgentstorageRemoveMessageResponse {
 	response := MythicRPCAgentstorageRemoveMessageResponse{
 		Success: false,

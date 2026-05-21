@@ -2,6 +2,8 @@ package rabbitmq
 
 import (
 	"encoding/json"
+
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -29,13 +31,14 @@ func init() {
 		Queue:      MYTHIC_RPC_PROXY_START,
 		RoutingKey: MYTHIC_RPC_PROXY_START,
 		Handler:    processMythicRPCProxyStart,
+		Scopes:     []string{mythicjwt.SCOPE_TASK_WRITE},
 	})
 }
 
 // Endpoint: MYTHIC_RPC_PROXY
 //
 // Creates a FileMeta object for a specific task in Mythic's database and writes contents to disk with a random UUID filename.
-func MythicRPCProxyStart(input MythicRPCProxyStartMessage) MythicRPCProxyStartMessageResponse {
+func MythicRPCProxyStart(input MythicRPCProxyStartMessage, authContext RabbitMQAuthContext) MythicRPCProxyStartMessageResponse {
 	response := MythicRPCProxyStartMessageResponse{
 		Success: false,
 	}
@@ -44,7 +47,10 @@ func MythicRPCProxyStart(input MythicRPCProxyStartMessage) MythicRPCProxyStartMe
 		return response
 	}
 	task := databaseStructs.Task{ID: input.TaskID}
-	err := database.DB.Get(&task, `SELECT id, operation_id, callback_id FROM task WHERE id=$1`, task.ID)
+	err := database.DB.Get(&task, `
+		SELECT id, operation_id, callback_id 
+		FROM task 
+		WHERE id=$1 AND operation_id=$2`, task.ID, authContext.OperationID)
 	if err != nil {
 		logging.LogError(err, "Failed to get task from database to start socks")
 		response.Error = err.Error()
@@ -89,11 +95,16 @@ func processMythicRPCProxyStart(msg amqp.Delivery) interface{} {
 	responseMsg := MythicRPCProxyStartMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCProxyStart(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCProxyStart(incomingMessage, authContext)
 }

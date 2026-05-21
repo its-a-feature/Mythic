@@ -21,9 +21,14 @@ type C2GetDebugOutputMessageResponse struct {
 	InternalServerRunning bool   `json:"server_running"`
 }
 
-func (r *rabbitMQConnection) SendC2RPCGetDebugOutput(getDebugOutput C2GetDebugOutputMessage) (*C2GetDebugOutputMessageResponse, error) {
+func (r *rabbitMQConnection) SendC2RPCGetDebugOutput(getDebugOutput C2GetDebugOutputMessage, authContext RabbitMQAuthContext) (*C2GetDebugOutputMessageResponse, error) {
 	c2GetDebutOutputResponse := C2GetDebugOutputMessageResponse{}
 	exclusiveQueue := true
+	headers, err := GenerateRabbitMQAuthTokenHeader(authContext)
+	if err != nil {
+		logging.LogError(err, "Failed to generate auth context")
+		return &c2GetDebutOutputResponse, err
+	}
 	if opsecBytes, err := json.Marshal(getDebugOutput); err != nil {
 		logging.LogError(err, "Failed to convert getDebugOutput to JSON", "getDebugOutput", getDebugOutput)
 		return &c2GetDebutOutputResponse, err
@@ -33,6 +38,7 @@ func (r *rabbitMQConnection) SendC2RPCGetDebugOutput(getDebugOutput C2GetDebugOu
 		opsecBytes,
 		exclusiveQueue,
 		RPC_RETRY_POLICY_CUSTOM_TIMEOUT,
+		headers,
 	); err != nil {
 		logging.LogError(err, "Failed to send RPC message")
 		return &c2GetDebutOutputResponse, err

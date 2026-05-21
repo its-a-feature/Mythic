@@ -749,6 +749,7 @@ func processEventFinishAndNextStepStart(eventNotification EventNotification) {
 			if err != nil {
 				logging.LogError(err, "Failed to mark apitoken as deleted")
 			}
+			InvalidateRabbitMQAuthContextsForEventStepInstance(triggeringStep.ID)
 			if !eventNotification.ActionSuccess && !triggeringStep.ContinueOnError {
 				markStepInstanceAsError(triggeringStep, eventNotification.ActionStderr)
 				return
@@ -1174,7 +1175,12 @@ func startEventStepInstanceActionCreatePayload(eventStepInstance databaseStructs
 			ID: eventStepInstance.OperationID,
 		},
 	}
-	_, _, err = RegisterNewPayload(eventData.PayloadConfiguration, &operatorOperation)
+	_, _, err = RegisterNewPayload(eventData.PayloadConfiguration, &operatorOperation, RabbitMQAuthContext{
+		OperatorID:          eventStepInstance.OperatorID,
+		OperationID:         eventStepInstance.OperationID,
+		EventStepInstanceID: eventStepInstance.ID,
+		SourceScopes:        []string{mythicjwt.SCOPE_PAYLOAD_WRITE},
+	})
 	if err != nil {
 		logging.LogError(err, "Failed to register payload for CreatePayloadWebhook")
 	}
@@ -1199,8 +1205,7 @@ func startEventStepInstanceActionCreateCallback(eventStepInstance databaseStruct
 		logging.LogError(err, "Failed to decode action data")
 		return err
 	}
-	eventData.EventStepInstanceID = &eventStepInstance.ID
-	callbackCreateResponse := MythicRPCCallbackCreate(eventData)
+	callbackCreateResponse := MythicRPCCallbackCreate(eventData, rabbitMQAuthContextForEventStepInstance(eventStepInstance))
 	if !callbackCreateResponse.Success {
 		logging.LogError(nil, callbackCreateResponse.Error)
 		return errors.New(callbackCreateResponse.Error)
@@ -1245,6 +1250,12 @@ func startEventStepInstanceActionCreateTask(eventStepInstance databaseStructs.Ev
 		ParentTaskID:        eventData.ParentTaskID,
 		IsInteractiveTask:   eventData.IsInteractiveTask,
 		InteractiveTaskType: eventData.InteractiveTaskType,
+		AuthContext: RabbitMQAuthContext{
+			OperatorID:          eventStepInstance.OperatorID,
+			OperationID:         eventStepInstance.OperationID,
+			EventStepInstanceID: eventStepInstance.ID,
+			SourceScopes:        []string{mythicjwt.SCOPE_TASK_WRITE},
+		},
 	}
 	if eventData.ParamDictionary != nil && len(eventData.ParamDictionary) > 0 {
 		paramsString, _ := json.Marshal(eventData.ParamDictionary)
@@ -1337,6 +1348,15 @@ func startEventStepInstanceActionSendWebhook(eventStepInstance databaseStructs.E
 	})
 	return nil
 }
+
+func rabbitMQAuthContextForEventStepInstance(eventStepInstance databaseStructs.EventStepInstance) RabbitMQAuthContext {
+	return RabbitMQAuthContext{
+		OperatorID:          eventStepInstance.OperatorID,
+		OperationID:         eventStepInstance.OperationID,
+		EventStepInstanceID: eventStepInstance.ID,
+	}
+}
+
 func startEventStepInstanceActionCustomFunction(eventStepInstance databaseStructs.EventStepInstance, inputs map[string]interface{},
 	actionDataMap map[string]interface{},
 	environment map[string]interface{}) error {
@@ -1359,7 +1379,7 @@ func startEventStepInstanceActionCustomFunction(eventStepInstance databaseStruct
 		ActionData:          actionDataMap,
 		FunctionName:        functionName,
 		ContainerName:       containerName,
-	})
+	}, rabbitMQAuthContextForEventStepInstance(eventStepInstance))
 }
 func startEventStepInstanceActionConditionalCheck(eventStepInstance databaseStructs.EventStepInstance, inputs map[string]interface{},
 	actionDataMap map[string]interface{},
@@ -1386,7 +1406,7 @@ func startEventStepInstanceActionConditionalCheck(eventStepInstance databaseStru
 		ActionData:          actionDataMap,
 		FunctionName:        functionName,
 		ContainerName:       containerName,
-	})
+	}, rabbitMQAuthContextForEventStepInstance(eventStepInstance))
 }
 func startEventStepInstanceActionInterceptTask(eventStepInstance databaseStructs.EventStepInstance, inputs map[string]interface{},
 	actionDataMap map[string]interface{},
@@ -1416,7 +1436,7 @@ func startEventStepInstanceActionInterceptTask(eventStepInstance databaseStructs
 		Inputs:              inputs,
 		ActionData:          actionDataMap,
 		ContainerName:       containerName,
-	})
+	}, rabbitMQAuthContextForEventStepInstance(eventStepInstance))
 }
 func startEventStepInstanceActionInterceptResponse(eventStepInstance databaseStructs.EventStepInstance, inputs map[string]interface{},
 	actionDataMap map[string]interface{},
@@ -1440,7 +1460,7 @@ func startEventStepInstanceActionInterceptResponse(eventStepInstance databaseStr
 		Inputs:              inputs,
 		ActionData:          actionDataMap,
 		ContainerName:       containerName,
-	})
+	}, rabbitMQAuthContextForEventStepInstance(eventStepInstance))
 }
 func restartFailedJobs(eventgroupInstanceID int) error {
 	_, err := database.DB.Exec(`UPDATE eventstepinstance 
@@ -1596,6 +1616,7 @@ func markStepInstanceAsError(eventStepInstance databaseStructs.EventStepInstance
 	if err != nil {
 		logging.LogError(err, "Failed to mark apitoken as deleted")
 	}
+	InvalidateRabbitMQAuthContextsForEventStepInstance(eventStepInstance.ID)
 	if eventStepInstance.ContinueOnError {
 		processEventFinishAndNextStepStart(EventNotification{
 			EventStepInstanceID: eventStepInstance.ID,
