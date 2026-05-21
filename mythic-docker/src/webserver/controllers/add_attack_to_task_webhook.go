@@ -1,9 +1,11 @@
 package webcontroller
 
 import (
+	"net/http"
+
+	"github.com/its-a-feature/Mythic/authentication"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/rabbitmq"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/logging"
@@ -33,7 +35,7 @@ func AddAttackToTaskWebhook(c *gin.Context) {
 			Error:  err.Error(),
 		})
 		return
-	} else if ginOperatorOperation, ok := c.Get("operatorOperation"); !ok {
+	} else if ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct); !ok {
 		logging.LogError(nil, "Failed to get user information")
 		c.JSON(http.StatusOK, AddAttackToTaskWebhookResponse{
 			Status: "error",

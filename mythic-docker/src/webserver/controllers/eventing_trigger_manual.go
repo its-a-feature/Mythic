@@ -2,14 +2,16 @@ package webcontroller
 
 import (
 	"fmt"
+	"net/http"
+	"slices"
+	"strings"
+
 	"github.com/gin-gonic/gin"
+	"github.com/its-a-feature/Mythic/authentication"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/eventing"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/rabbitmq"
-	"net/http"
-	"slices"
-	"strings"
 )
 
 type EventingManualTriggerInput struct {
@@ -39,7 +41,7 @@ func EventingTriggerManualWebhook(c *gin.Context) {
 		})
 		return
 	}
-	ginOperatorOperation, ok := c.Get("operatorOperation")
+	ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct)
 	if !ok {
 		logging.LogError(nil, "Failed to get user information")
 		c.JSON(http.StatusOK, EventingManualTriggerMessageResponse{
@@ -95,7 +97,7 @@ func EventingTriggerManualBulkWebhook(c *gin.Context) {
 		})
 		return
 	}
-	ginOperatorOperation, ok := c.Get("operatorOperation")
+	ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct)
 	if !ok {
 		logging.LogError(nil, "Failed to get user information")
 		c.JSON(http.StatusOK, EventingManualTriggerMessageResponse{

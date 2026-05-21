@@ -3,6 +3,8 @@ package rabbitmq
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/its-a-feature/Mythic/database"
@@ -12,7 +14,6 @@ import (
 )
 
 type MythicRPCArtifactSearchMessage struct {
-	TaskID          int                                 `json:"task_id"` //required
 	SearchArtifacts MythicRPCArtifactSearchArtifactData `json:"artifact"`
 }
 type MythicRPCArtifactSearchMessageResponse struct {
@@ -33,78 +34,72 @@ func init() {
 		Queue:      MYTHIC_RPC_ARTIFACT_SEARCH,
 		RoutingKey: MYTHIC_RPC_ARTIFACT_SEARCH,
 		Handler:    processMythicRPCArtifactSearch,
+		Scopes:     []string{mythicjwt.SCOPE_RESPONSE_READ},
 	})
 }
 
 // Endpoint: MYTHIC_RPC_PROCESS_SEARCH
-func MythicRPCArtifactSearch(input MythicRPCArtifactSearchMessage) MythicRPCArtifactSearchMessageResponse {
+func MythicRPCArtifactSearch(input MythicRPCArtifactSearchMessage, authContext RabbitMQAuthContext) MythicRPCArtifactSearchMessageResponse {
 	response := MythicRPCArtifactSearchMessageResponse{
 		Success:   false,
 		Artifacts: []MythicRPCArtifactSearchArtifactData{},
 	}
 	paramDict := make(map[string]interface{})
-	task := databaseStructs.Task{}
-	if err := database.DB.Get(&task, `SELECT 
-	task.id,
-	callback.operation_id "callback.operation_id"
-	FROM task
-	JOIN callback ON task.callback_id = callback.id
-	WHERE task.id=$1`, input.TaskID); err != nil {
-		logging.LogError(err, "Failed to search for task information when searching for artifacts")
+	paramDict["operation_id"] = authContext.OperationID
+	searchString := `SELECT * FROM taskartifact WHERE operation_id=:operation_id `
+	if input.SearchArtifacts.Host != nil {
+		paramDict["host"] = fmt.Sprintf("%%%s%%", *input.SearchArtifacts.Host)
+		searchString += "AND host ILIKE :host "
+	}
+	if input.SearchArtifacts.ArtifactMessage != nil {
+		paramDict["artifact"] = fmt.Sprintf("%%%s%%", *input.SearchArtifacts.ArtifactMessage)
+		searchString += "AND artifact LIKE :artifact "
+	}
+	if input.SearchArtifacts.TaskID != nil {
+		paramDict["task_id"] = *input.SearchArtifacts.TaskID
+		searchString += "AND task_id=:task_id "
+	}
+	if input.SearchArtifacts.ArtifactType != nil {
+		paramDict["base_artifact"] = fmt.Sprintf("%%%s%%", *input.SearchArtifacts.ArtifactType)
+		searchString += "AND base_artifact LIKE :base_artifact "
+	}
+	searchString += " ORDER BY task_id DESC"
+	rows, err := database.DB.NamedQuery(searchString, paramDict)
+	if err != nil {
+		logging.LogError(err, "Failed to search artifact information")
 		response.Error = err.Error()
 		return response
-	} else {
-		paramDict["operation_id"] = task.Callback.OperationID
-		searchString := `SELECT * FROM taskartifact WHERE operation_id=:operation_id `
-		if input.SearchArtifacts.Host != nil {
-			paramDict["host"] = fmt.Sprintf("%%%s%%", *input.SearchArtifacts.Host)
-			searchString += "AND host ILIKE :host "
-		}
-		if input.SearchArtifacts.ArtifactMessage != nil {
-			paramDict["artifact"] = fmt.Sprintf("%%%s%%", *input.SearchArtifacts.ArtifactMessage)
-			searchString += "AND artifact LIKE :artifact "
-		}
-		if input.SearchArtifacts.TaskID != nil {
-			paramDict["task_id"] = *input.SearchArtifacts.TaskID
-			searchString += "AND task_id=:task_id "
-		}
-		if input.SearchArtifacts.ArtifactType != nil {
-			paramDict["base_artifact"] = fmt.Sprintf("%%%s%%", *input.SearchArtifacts.ArtifactType)
-			searchString += "AND base_artifact LIKE :base_artifact "
-		}
-		searchString += " ORDER BY task_id DESC"
-		if rows, err := database.DB.NamedQuery(searchString, paramDict); err != nil {
-			logging.LogError(err, "Failed to search artifact information")
-			response.Error = err.Error()
-			return response
+	}
+	defer rows.Close()
+	for rows.Next() {
+		result := MythicRPCArtifactSearchArtifactData{}
+		searchResult := databaseStructs.Taskartifact{}
+		if err = rows.StructScan(&searchResult); err != nil {
+			logging.LogError(err, "Failed to get row from artifacts for search")
+		} else if err = mapstructure.Decode(searchResult, &result); err != nil {
+			logging.LogError(err, "Failed to map artifact search results into array")
 		} else {
-			defer rows.Close()
-			for rows.Next() {
-				result := MythicRPCArtifactSearchArtifactData{}
-				searchResult := databaseStructs.Taskartifact{}
-				if err = rows.StructScan(&searchResult); err != nil {
-					logging.LogError(err, "Failed to get row from artifacts for search")
-				} else if err = mapstructure.Decode(searchResult, &result); err != nil {
-					logging.LogError(err, "Failed to map artifact search results into array")
-				} else {
-					response.Artifacts = append(response.Artifacts, result)
-				}
-			}
-			response.Success = true
-			return response
+			response.Artifacts = append(response.Artifacts, result)
 		}
 	}
+	response.Success = true
+	return response
 }
 func processMythicRPCArtifactSearch(msg amqp.Delivery) interface{} {
 	incomingMessage := MythicRPCArtifactSearchMessage{}
 	responseMsg := MythicRPCArtifactSearchMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCArtifactSearch(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCArtifactSearch(incomingMessage, authContext)
 }

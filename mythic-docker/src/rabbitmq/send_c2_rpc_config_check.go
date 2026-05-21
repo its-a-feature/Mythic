@@ -8,8 +8,9 @@ import (
 
 // C2_CONFIG_CHECK STRUCTS
 type C2ConfigCheckMessage struct {
-	Name       string                 `json:"c2_profile_name"`
-	Parameters map[string]interface{} `json:"parameters"`
+	Name        string                 `json:"c2_profile_name"`
+	Parameters  map[string]interface{} `json:"parameters"`
+	PayloadUUID string                 `json:"payload_uuid,omitempty"`
 }
 
 type C2ConfigCheckMessageResponse struct {
@@ -18,7 +19,7 @@ type C2ConfigCheckMessageResponse struct {
 	Message string `json:"message"`
 }
 
-func (r *rabbitMQConnection) SendC2RPCConfigCheck(configCheck C2ConfigCheckMessage) (*C2ConfigCheckMessageResponse, error) {
+func (r *rabbitMQConnection) SendC2RPCConfigCheck(configCheck C2ConfigCheckMessage, authContext RabbitMQAuthContext) (*C2ConfigCheckMessageResponse, error) {
 	configCheckResponse := C2ConfigCheckMessageResponse{}
 	exclusiveQueue := true
 	configBytes, err := json.Marshal(configCheck)
@@ -26,13 +27,18 @@ func (r *rabbitMQConnection) SendC2RPCConfigCheck(configCheck C2ConfigCheckMessa
 		logging.LogError(err, "Failed to convert configCheck to JSON", "configCheck", configCheck)
 		return nil, err
 	}
-	logging.LogDebug("Sending configCheck to RabbitMQ", "configCheck", configCheck)
+	headers, err := GenerateRabbitMQAuthTokenHeader(authContext)
+	if err != nil {
+		logging.LogError(err, "Failed to generate auth context")
+		return nil, err
+	}
 	response, err := r.SendRPCMessage(
 		MYTHIC_EXCHANGE,
 		GetC2RPCConfigChecksRoutingKey(configCheck.Name),
 		configBytes,
 		exclusiveQueue,
 		RPC_RETRY_POLICY_CUSTOM_TIMEOUT,
+		headers,
 	)
 	if err != nil {
 		logging.LogError(err, "Failed to send RPC message")

@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"encoding/json"
 
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/logging"
 )
 
@@ -30,12 +31,18 @@ func (r *rabbitMQConnection) SendAuthProcessIDPResponse(input ProcessIDPResponse
 		logging.LogError(err, "Failed to convert input to JSON", "input", input)
 		return nil, err
 	}
+	headers, err := GenerateRabbitMQAuthTokenHeaderFromFields(0, 0, 0, 0, []string{mythicjwt.SCOPE_OPERATOR_READ, mythicjwt.SCOPE_OPERATION_READ})
+	if err != nil {
+		logging.LogError(err, "Failed to generate auth context")
+		return nil, err
+	}
 	response, err := r.SendRPCMessage(
 		MYTHIC_EXCHANGE,
 		GetAuthContainerProcessIDPResponseRoutingKey(input.ContainerName),
 		inputBytes,
 		exclusiveQueue,
 		RPC_RETRY_POLICY_NO_RETRY_ON_TIMEOUT,
+		headers,
 	)
 	if err != nil {
 		logging.LogError(err, "Failed to send RPC message")

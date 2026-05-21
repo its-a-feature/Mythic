@@ -86,3 +86,11 @@ select_permissions:
         - type
       filter: {}
     comment: ""
+update_permissions:
+  - role: mythic_admin
+    permission:
+      columns:
+        - deleted
+      filter: {}
+      check: null
+    comment: ""

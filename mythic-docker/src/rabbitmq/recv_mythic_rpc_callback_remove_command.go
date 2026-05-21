@@ -2,6 +2,8 @@ package rabbitmq
 
 import (
 	"encoding/json"
+
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -26,11 +28,12 @@ func init() {
 		Queue:      MYTHIC_RPC_CALLBACK_REMOVE_COMMAND,
 		RoutingKey: MYTHIC_RPC_CALLBACK_REMOVE_COMMAND,
 		Handler:    processMythicRPCCallbackRemoveCommand,
+		Scopes:     []string{mythicjwt.SCOPE_CALLBACK_WRITE},
 	})
 }
 
 // Endpoint: MYTHIC_RPC_CALLBACK_REMOVE_COMMAND
-func MythicRPCCallbackRemoveCommand(input MythicRPCCallbackRemoveCommandMessage) MythicRPCCallbackRemoveCommandMessageResponse {
+func MythicRPCCallbackRemoveCommand(input MythicRPCCallbackRemoveCommandMessage, authContext RabbitMQAuthContext) MythicRPCCallbackRemoveCommandMessageResponse {
 	response := MythicRPCCallbackRemoveCommandMessageResponse{
 		Success: false,
 	}
@@ -45,7 +48,7 @@ func MythicRPCCallbackRemoveCommand(input MythicRPCCallbackRemoveCommandMessage)
 				FROM task
 				JOIN callback on task.callback_id = callback.id
 				JOIN payload on callback.registered_payload_id = payload.id
-				WHERE task.id=$1`, input.TaskID)
+				WHERE task.id=$1 AND task.operation_id=$2`, input.TaskID, authContext.OperationID)
 		if err != nil {
 			logging.LogError(err, "Failed to find task in MythicRPCCallbackAddCommand")
 			response.Error = err.Error()
@@ -59,7 +62,7 @@ func MythicRPCCallbackRemoveCommand(input MythicRPCCallbackRemoveCommandMessage)
     		payload.payload_type_id "callback.payload.payload_type_id"
     		FROM callback
 			JOIN payload on callback.registered_payload_id = payload.id
-			WHERE callback.agent_callback_id = $1`, input.AgentCallbackID)
+			WHERE callback.agent_callback_id = $1 AND callback.operation_id=$2`, input.AgentCallbackID, authContext.OperationID)
 		if err != nil {
 			logging.LogError(err, "Failed to find task in MythicRPCCallbackAddCommand")
 			response.Error = err.Error()
@@ -98,18 +101,14 @@ func MythicRPCCallbackRemoveCommand(input MythicRPCCallbackRemoveCommandMessage)
 				return response
 			}
 		}
-		response.Success = true
-		return response
 	}
-	if CallbackID == 0 {
-		response.Error = "No callback supplied"
-		return response
-	}
-	err := CallbackRemoveCommand(CallbackID, commandIDs)
-	if err != nil {
-		logging.LogError(err, "Failed to remove commands to callback")
-		response.Error = err.Error()
-		return response
+	if CallbackID != 0 {
+		err := CallbackRemoveCommand(CallbackID, commandIDs)
+		if err != nil {
+			logging.LogError(err, "Failed to remove commands to callback")
+			response.Error = err.Error()
+			return response
+		}
 	}
 	response.Success = true
 	return response
@@ -131,11 +130,16 @@ func processMythicRPCCallbackRemoveCommand(msg amqp.Delivery) interface{} {
 	responseMsg := MythicRPCCallbackRemoveCommandMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCCallbackRemoveCommand(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCCallbackRemoveCommand(incomingMessage, authContext)
 }

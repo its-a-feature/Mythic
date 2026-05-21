@@ -3,19 +3,13 @@ package rabbitmq
 import (
 	"encoding/json"
 
-	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
-
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	"github.com/its-a-feature/Mythic/logging"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 type MythicRPCOperationEventLogCreateMessage struct {
-	// three optional ways to specify the operation
-	TaskID          *int    `json:"task_id"`
-	CallbackID      *int    `json:"callback_id"`
-	AgentCallbackID *string `json:"callback_agent_id"`
-	OperationID     *int    `json:"operation_id"`
 	// the data to store
 	Message      string                `json:"message"`
 	MessageLevel database.MESSAGE_TYPE `json:"level"` //info or warning
@@ -32,50 +26,20 @@ func init() {
 		Queue:      MYTHIC_RPC_EVENTLOG_CREATE,
 		RoutingKey: MYTHIC_RPC_EVENTLOG_CREATE,
 		Handler:    processMythicRPCOperationEventLogCreate,
+		Scopes:     []string{mythicjwt.SCOPE_EVENTLOG_WRITE},
 	})
 }
 
 // Endpoint: MYTHIC_RPC_OPERATIONEVENTLOG_CREATE
-func MythicRPCOperationEventLogCreate(input MythicRPCOperationEventLogCreateMessage) MythicRPCOperationEventLogCreateMessageResponse {
+func MythicRPCOperationEventLogCreate(input MythicRPCOperationEventLogCreateMessage, authContext RabbitMQAuthContext) MythicRPCOperationEventLogCreateMessageResponse {
 	response := MythicRPCOperationEventLogCreateMessageResponse{
 		Success: false,
-	}
-	operationId := 0
-	if input.TaskID != nil {
-		task := databaseStructs.Task{}
-		if err := database.DB.Get(&task, `SELECT operation_id FROM task WHERE id=$1`, input.TaskID); err != nil {
-			logging.LogError(err, "Failed to find task for creating operation event log")
-			response.Error = err.Error()
-			return response
-		} else {
-			operationId = task.OperationID
-		}
-	} else if input.CallbackID != nil {
-		callback := databaseStructs.Callback{}
-		if err := database.DB.Get(&callback, `SELECT operation_id FROM callback WHERE id=$1`, input.CallbackID); err != nil {
-			logging.LogError(err, "Failed to find callback for creating operation event log")
-			response.Error = err.Error()
-			return response
-		} else {
-			operationId = callback.OperationID
-		}
-	} else if input.AgentCallbackID != nil {
-		callback := databaseStructs.Callback{}
-		if err := database.DB.Get(&callback, `SELECT operation_id FROM callback WHERE agent_callback_id=$1`, input.AgentCallbackID); err != nil {
-			logging.LogError(err, "Failed to find callback for creating operation event log")
-			response.Error = err.Error()
-			return response
-		} else {
-			operationId = callback.OperationID
-		}
-	} else if input.OperationID != nil {
-		operationId = *input.OperationID
 	}
 	if input.MessageLevel == "warning" {
 		input.MessageLevel = database.MESSAGE_LEVEL_INFO
 		input.Warning = true
 	}
-	SendAllOperationsMessage(input.Message, operationId, "", input.MessageLevel, input.Warning)
+	SendAllOperationsMessageWithAuth(input.Message, authContext.OperationID, "", input.MessageLevel, input.Warning, authContext)
 	response.Success = true
 	return response
 }
@@ -84,11 +48,16 @@ func processMythicRPCOperationEventLogCreate(msg amqp.Delivery) interface{} {
 	responseMsg := MythicRPCOperationEventLogCreateMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCOperationEventLogCreate(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCOperationEventLogCreate(incomingMessage, authContext)
 }

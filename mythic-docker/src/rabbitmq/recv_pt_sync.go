@@ -193,6 +193,7 @@ func init() {
 		Queue:      PT_SYNC_ROUTING_KEY,
 		RoutingKey: PT_SYNC_ROUTING_KEY,
 		Handler:    processPayloadSyncMessages,
+		Scopes:     []string{},
 	})
 }
 
@@ -1408,7 +1409,7 @@ func updateAllCallbacksWithCommandAugments() {
 		return
 	}
 	for _, callback := range callbacks {
-		addCommandAugmentsToCallback(callback.ID, callback.Payload.Os, callback.Payload.Payloadtype.Name, callback.OperatorID)
+		addCommandAugmentsToCallback(callback.ID, callback.Payload.Os, callback.Payload.Payloadtype.Name, callback.OperatorID, RabbitMQAuthContext{})
 	}
 
 }

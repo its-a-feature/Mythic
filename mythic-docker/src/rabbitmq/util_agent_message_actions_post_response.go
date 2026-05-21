@@ -38,8 +38,8 @@ const defaultAgentMessagePostResponseWorkers = 8
 const defaultAgentMessagePostResponseQueueSize = 4096
 
 const insertAgentMessagePostResponseUserOutputQuery = `INSERT INTO response
-	("timestamp", task_id, response, sequence_number, operation_id)
-	VALUES ($1, $2, $3, $4, $5)
+	("timestamp", task_id, response, sequence_number, operation_id, eventstepinstance_id, apitokens_id)
+	VALUES ($1, $2, $3, $4, $5, $6, $7)
 	ON CONFLICT (task_id, sequence_number) WHERE sequence_number IS NOT NULL DO NOTHING
 	RETURNING id`
 
@@ -444,7 +444,9 @@ func processAsyncAgentMessagePostResponseUserOutput(msg agentMessagePostResponse
 			EventingChannel <- EventNotification{
 				Trigger:               eventing.TriggerResponseIntercept,
 				OperationID:           msg.Task.OperationID,
+				OperatorID:            msg.Task.OperatorID,
 				EventGroupID:          eventGroupID,
+				EventStepInstanceID:   int(msg.Task.EventStepInstanceID.Int64),
 				ResponseID:            responseID,
 				TaskID:                msg.Task.ID,
 				ResponseInterceptData: msg.Response,
@@ -867,7 +869,21 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 			logging.LogError(err, "Failed to update task from agent response")
 		}
 		if transitionedToCompleted {
-			go CheckAndProcessTaskCompletionHandlers(currentTask.ID)
+			completionAuthContext, err := GetRabbitMQAuthContextForTaskID(currentTask.ID)
+			if err != nil {
+				logging.LogError(err, "failed to get RabbitMQ auth context for completed task")
+				completionAuthContext = RabbitMQAuthContext{
+					OperatorID:  currentTask.OperatorID,
+					OperationID: currentTask.OperationID,
+				}
+				if currentTask.APITokensID.Valid {
+					completionAuthContext.APITokensID = int(currentTask.APITokensID.Int64)
+				}
+				if currentTask.EventStepInstanceID.Valid {
+					completionAuthContext.EventStepInstanceID = int(currentTask.EventStepInstanceID.Int64)
+				}
+			}
+			go CheckAndProcessTaskCompletionHandlers(currentTask.ID, completionAuthContext)
 			enqueueMythicTreeFileBrowserFlush(currentTask, 0)
 			go emitTaskLog(currentTask.ID)
 			go func(task databaseStructs.Task) {
@@ -953,6 +969,12 @@ func insertAgentMessagePostResponseUserOutput(task databaseStructs.Task, userOut
 		Response:    []byte(userOutput),
 		OperationID: task.OperationID,
 	}
+	if task.EventStepInstanceID.Valid {
+		responseOutput.EventStepInstanceID = task.EventStepInstanceID
+	}
+	if task.APITokensID.Valid {
+		responseOutput.APITokensID = task.APITokensID
+	}
 	if len(userOutput) == 0 && emitNotification {
 		//logging.LogError(nil, "Tried to add response of 0 bytes, returning")
 		return 0
@@ -968,6 +990,8 @@ func insertAgentMessagePostResponseUserOutput(task databaseStructs.Task, userOut
 		responseOutput.Response,
 		responseOutput.SequenceNumber,
 		responseOutput.OperationID,
+		responseOutput.EventStepInstanceID,
+		responseOutput.APITokensID,
 	}
 	var err error
 	if insertStatement != nil {
@@ -988,6 +1012,7 @@ func insertAgentMessagePostResponseUserOutput(task databaseStructs.Task, userOut
 		EventingChannel <- EventNotification{
 			Trigger:             eventing.TriggerUserOutput,
 			OperationID:         task.OperationID,
+			OperatorID:          task.OperatorID,
 			EventStepInstanceID: int(task.EventStepInstanceID.Int64),
 			ResponseID:          responseOutput.ID,
 		}
@@ -1003,9 +1028,9 @@ func handleAgentMessagePostResponseInteractiveOutput(agentResponses *[]agentMess
 			continue
 		}
 		err := database.DB.Get(&task, `SELECT
-    		id, operation_id
-    		FROM task
-    		WHERE agent_task_id=$1`, agentResponse.TaskUUID)
+			id, operation_id, eventstepinstance_id, apitokens_id
+			FROM task
+			WHERE agent_task_id=$1`, agentResponse.TaskUUID)
 		if err != nil {
 			logging.LogError(err, "Failed to find task")
 			continue
@@ -1022,9 +1047,15 @@ func handleAgentMessagePostResponseInteractiveOutput(agentResponses *[]agentMess
 			Response:    base64Decoded,
 			OperationID: task.OperationID,
 		}
+		if task.EventStepInstanceID.Valid {
+			responseOutput.EventStepInstanceID = task.EventStepInstanceID
+		}
+		if task.APITokensID.Valid {
+			responseOutput.APITokensID = task.APITokensID
+		}
 		if statement, err := database.DB.PrepareNamed(`INSERT INTO response
-		("timestamp", task_id, response, is_error, operation_id)
-		VALUES (:timestamp, :task_id, :response, :is_error, :operation_id)
+		("timestamp", task_id, response, is_error, operation_id, eventstepinstance_id, apitokens_id)
+		VALUES (:timestamp, :task_id, :response, :is_error, :operation_id, :eventstepinstance_id, :apitokens_id)
 		RETURNING id`); err != nil {
 			logging.LogError(err, "Failed to prepare new named statement for interactive task output", "response", agentResponse)
 		} else if err := statement.Get(&responseOutput.ID, responseOutput); err != nil {
@@ -1100,6 +1131,9 @@ func handleAgentMessagePostResponseCredentials(task databaseStructs.Task, creden
 		}
 		databaseCred.TaskID.Valid = true
 		databaseCred.TaskID.Int64 = int64(task.ID)
+		if task.APITokensID.Valid {
+			databaseCred.APITokensID = task.APITokensID
+		}
 		if utils.SliceContains(ValidCredentialTypesList, newCred.CredentialType) {
 			databaseCred.Type = newCred.CredentialType
 		} else {
@@ -1111,8 +1145,8 @@ func handleAgentMessagePostResponseCredentials(task databaseStructs.Task, creden
 			databaseCred.Account, databaseCred.Realm, databaseCred.Credential, databaseCred.OperationID); err == sql.ErrNoRows {
 			// credential doesn't exist, so create it
 			if statement, err := database.DB.PrepareNamed(`INSERT INTO credential
-				(realm, account, operation_id, credential, deleted, comment, metadata, task_id, "type", operator_id)
-				VALUES (:realm, :account, :operation_id, :credential, :deleted, :comment, :metadata, :task_id, :type, :operator_id)
+				(realm, account, operation_id, credential, deleted, comment, metadata, task_id, "type", operator_id, apitokens_id)
+				VALUES (:realm, :account, :operation_id, :credential, :deleted, :comment, :metadata, :task_id, :type, :operator_id, :apitokens_id)
 				RETURNING id `); err != nil {
 				logging.LogError(err, "Failed to create new credential")
 				return err
@@ -1147,6 +1181,12 @@ func handleAgentMessagePostResponseArtifacts(task databaseStructs.Task, artifact
 			}
 			databaseArtifact.TaskID.Int64 = int64(task.ID)
 			databaseArtifact.TaskID.Valid = true
+			if task.APITokensID.Valid {
+				databaseArtifact.APITokensID = task.APITokensID
+			}
+			if task.EventStepInstanceID.Valid {
+				databaseArtifact.EventStepInstanceID = task.EventStepInstanceID
+			}
 			if newArtifact.Host != nil && *newArtifact.Host != "" {
 				databaseArtifact.Host = strings.ToUpper(*newArtifact.Host)
 			}
@@ -1157,8 +1197,8 @@ func handleAgentMessagePostResponseArtifacts(task databaseStructs.Task, artifact
 				databaseArtifact.Resolved = *newArtifact.Resolved
 			}
 			if statement, err := database.DB.PrepareNamed(`INSERT INTO taskartifact
-			(artifact, base_artifact, operation_id, host, task_id, needs_cleanup, resolved)
-			VALUES (:artifact, :base_artifact, :operation_id, :host, :task_id, :needs_cleanup, :resolved)
+			(artifact, base_artifact, operation_id, host, task_id, needs_cleanup, resolved, apitokens_id, eventstepinstance_id)
+			VALUES (:artifact, :base_artifact, :operation_id, :host, :task_id, :needs_cleanup, :resolved, :apitokens_id, :eventstepinstance_id)
 			RETURNING id`); err != nil {
 				logging.LogError(err, "Failed to register artifact", "base artifact", newArtifact.BaseArtifact, "artifact", newArtifact.Artifact)
 				artifactResponses = append(artifactResponses, agentMessagePostResponseArtifactsResponse{
@@ -1239,9 +1279,12 @@ func handleAgentMessagePostResponseKeylogs(task databaseStructs.Task, keylogs *[
 			OperationID: task.OperationID,
 			Keystrokes:  []byte(keylog.Keystrokes),
 		}
+		if task.APITokensID.Valid {
+			databaseKeylog.APITokensID = task.APITokensID
+		}
 		if statement, err := database.DB.PrepareNamed(`INSERT INTO keylog
-			(task_id, "window", "user", operation_id, keystrokes)
-			VALUES (:task_id, :window, :user, :operation_id, :keystrokes)
+			(task_id, "window", "user", operation_id, keystrokes, apitokens_id)
+			VALUES (:task_id, :window, :user, :operation_id, :keystrokes, :apitokens_id)
 			RETURNING id`); err != nil {
 			logging.LogError(err, "Failed to register keylog", "new keylog", databaseKeylog)
 			return err
@@ -1399,7 +1442,21 @@ func handleAgentMessagePostResponseProcessResponse(task databaseStructs.Task, re
 		TaskData:     allTaskData,
 		ResponseData: *response,
 	}
-	if err := RabbitMQConnection.SendPtTaskProcessResponse(processResponseMessage); err != nil {
+	authContext, err := GetRabbitMQAuthContextForTaskID(task.ID)
+	if err != nil {
+		logging.LogError(err, "Failed to get auth context for process response", "task_id", task.ID)
+		authContext = RabbitMQAuthContext{
+			OperatorID:  task.OperatorID,
+			OperationID: task.OperationID,
+		}
+		if task.APITokensID.Valid {
+			authContext.APITokensID = int(task.APITokensID.Int64)
+		}
+		if task.EventStepInstanceID.Valid {
+			authContext.EventStepInstanceID = int(task.EventStepInstanceID.Int64)
+		}
+	}
+	if err := RabbitMQConnection.SendPtTaskProcessResponse(processResponseMessage, authContext); err != nil {
 		logging.LogError(err, "In handleAgentMessagePostResponseProcessResponse, but failed to SendPtTaskProcessResponse ")
 	}
 	return
@@ -1425,10 +1482,13 @@ func handleAgentMessagePostResponseCommands(task databaseStructs.Task, commands 
 				OperatorID: task.OperatorID,
 				Version:    databaseCommand.Version,
 			}
+			if task.APITokensID.Valid {
+				loadedCommand.APITokensID = task.APITokensID
+			}
 			if _, err := database.DB.NamedExec(`INSERT INTO loadedcommands
-				(command_id, callback_id, operator_id, version)
-				VALUES (:command_id, :callback_id, :operator_id, :version)
-				ON CONFLICT (command_id, callback_id) DO NOTHING`, loadedCommand); err != nil {
+					(command_id, callback_id, operator_id, version, apitokens_id)
+					VALUES (:command_id, :callback_id, :operator_id, :version, :apitokens_id)
+					ON CONFLICT (command_id, callback_id) DO NOTHING`, loadedCommand); err != nil {
 				logging.LogError(err, "Failed to associate command with callback")
 			}
 		} else if _, err := database.DB.Exec(`DELETE FROM loadedcommands WHERE
@@ -1438,6 +1498,20 @@ func handleAgentMessagePostResponseCommands(task databaseStructs.Task, commands 
 	}
 }
 func handleAgentMessagePostResponseCallback(task databaseStructs.Task, callbackUpdate *agentMessagePostResponseCallback) {
+	authContext, err := GetRabbitMQAuthContextForTaskID(task.ID)
+	if err != nil {
+		logging.LogError(err, "Failed to get auth context for process response", "task_id", task.ID)
+		authContext = RabbitMQAuthContext{
+			OperatorID:  task.OperatorID,
+			OperationID: task.OperationID,
+		}
+		if task.APITokensID.Valid {
+			authContext.APITokensID = int(task.APITokensID.Int64)
+		}
+		if task.EventStepInstanceID.Valid {
+			authContext.EventStepInstanceID = int(task.EventStepInstanceID.Int64)
+		}
+	}
 	MythicRPCCallbackUpdate(MythicRPCCallbackUpdateMessage{
 		TaskID:               &task.ID,
 		User:                 callbackUpdate.User,
@@ -1453,7 +1527,7 @@ func handleAgentMessagePostResponseCallback(task databaseStructs.Task, callbackU
 		ProcessName:          callbackUpdate.ProcessName,
 		Cwd:                  callbackUpdate.Cwd,
 		ImpersonationContext: callbackUpdate.ImpersonationContext,
-	})
+	}, authContext)
 }
 func handleAgentMessagePostResponseEvent(task databaseStructs.Task, eventingData *[]agentMessagePostResponseTriggerEvent) {
 	for _, event := range *eventingData {
@@ -1698,6 +1772,12 @@ func handleAgentMessagePostResponseDownload(task *databaseStructs.Task, agentRes
 		}
 		fileMeta.TaskID.Valid = true
 		fileMeta.TaskID.Int64 = int64(task.ID)
+		if task.APITokensID.Valid {
+			fileMeta.APITokensID = task.APITokensID
+		}
+		if task.EventStepInstanceID.Valid {
+			fileMeta.EventStepInstanceID = task.EventStepInstanceID
+		}
 		fileMeta.AgentFileID, fileMeta.Path, err = GetSaveFilePath()
 		if err != nil {
 			logging.LogError(err, "Failed to create new save file on disk for agent download")
@@ -1726,8 +1806,8 @@ func handleAgentMessagePostResponseDownload(task *databaseStructs.Task, agentRes
 			fileMeta.Filename = []byte(time.Now().UTC().Format(TIME_FORMAT_STRING_YYYY_MM_DD_HH_MM_SS))
 		}
 		if statement, err := database.DB.PrepareNamed(`INSERT INTO filemeta 
-			(filename,total_chunks,chunks_received,chunk_size,"path",operation_id,complete,comment,operator_id,delete_after_fetch,md5,sha1,agent_file_id,full_remote_path,task_id,is_download_from_agent,is_screenshot,host)
-			VALUES (:filename, :total_chunks, :chunks_received, :chunk_size, :path, :operation_id, :complete, :comment, :operator_id, :delete_after_fetch, :md5, :sha1, :agent_file_id, :full_remote_path, :task_id, :is_download_from_agent, :is_screenshot, :host)
+			(filename,total_chunks,chunks_received,chunk_size,"path",operation_id,complete,comment,operator_id,delete_after_fetch,md5,sha1,agent_file_id,full_remote_path,task_id,is_download_from_agent,is_screenshot,host,apitokens_id,eventstepinstance_id)
+			VALUES (:filename, :total_chunks, :chunks_received, :chunk_size, :path, :operation_id, :complete, :comment, :operator_id, :delete_after_fetch, :md5, :sha1, :agent_file_id, :full_remote_path, :task_id, :is_download_from_agent, :is_screenshot, :host, :apitokens_id, :eventstepinstance_id)
 			RETURNING id`); err != nil {
 			logging.LogError(err, "Failed to save file metadata to database")
 			return "", err
@@ -1884,13 +1964,19 @@ func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseSt
 			newFileMeta.AgentFileID = uuid.NewString()
 			newFileMeta.CopyOfFileID.Int64 = int64(fileMeta.ID)
 			newFileMeta.CopyOfFileID.Valid = true
+			if task.APITokensID.Valid {
+				newFileMeta.APITokensID = task.APITokensID
+			}
+			if task.EventStepInstanceID.Valid {
+				newFileMeta.EventStepInstanceID = task.EventStepInstanceID
+			}
 			if statement, err := database.DB.PrepareNamed(`INSERT INTO filemeta 
 			(filename,total_chunks,chunks_received,chunk_size,"path",operation_id,complete,comment,operator_id,
 			 delete_after_fetch,md5,sha1,agent_file_id,full_remote_path,task_id,is_download_from_agent,is_screenshot,
-			 host,size,is_payload,copy_of_file_id)
+			 host,size,is_payload,copy_of_file_id,apitokens_id,eventstepinstance_id)
 			VALUES (:filename, :total_chunks, :chunks_received, :chunk_size, :path, :operation_id, :complete, :comment, :operator_id, 
 			        :delete_after_fetch, :md5, :sha1, :agent_file_id, :full_remote_path, :task_id, :is_download_from_agent, :is_screenshot, 
-			        :host, :size, :is_payload, :copy_of_file_id)
+			        :host, :size, :is_payload, :copy_of_file_id, :apitokens_id, :eventstepinstance_id)
 			RETURNING id`); err != nil {
 				logging.LogError(err, "Failed to insert new filemeta data for a separate task pulling down an already uploaded file")
 				go SendAllOperationsMessage(fmt.Sprintf("Failed to insert new filemeta data for a separate task pulling down an already uploaded file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)

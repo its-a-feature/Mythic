@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/its-a-feature/Mythic/authentication"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/rabbitmq"
@@ -26,7 +27,7 @@ func TagtypeImportWebhook(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
 		return
 	}
-	ginOperatorOperation, exists := c.Get("operatorOperation")
+	ginOperatorOperation, exists := c.Get(authentication.ContextKeyOperatorOperationStruct)
 	if !exists {
 		logging.LogError(nil, "Failed to get operator operation information")
 		c.JSON(http.StatusOK, gin.H{
@@ -45,6 +46,17 @@ func TagtypeImportWebhook(c *gin.Context) {
 			"error":  "Failed to unmarshal file contents into array of tagtypes",
 		})
 		return
+	}
+	authContext := authentication.RabbitMQAuthContextFromGin(c)
+	for i := range tagtypes {
+		if authContext.APITokensID > 0 {
+			tagtypes[i].APITokensID.Valid = true
+			tagtypes[i].APITokensID.Int64 = int64(authContext.APITokensID)
+		}
+		if authContext.EventStepInstanceID > 0 {
+			tagtypes[i].EventStepInstanceID.Valid = true
+			tagtypes[i].EventStepInstanceID.Int64 = int64(authContext.EventStepInstanceID)
+		}
 	}
 	response := rabbitmq.TagtypeImport(tagtypes, operatorOperation)
 	c.JSON(http.StatusOK, response)

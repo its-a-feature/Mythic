@@ -4,9 +4,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"github.com/its-a-feature/Mythic/eventing"
 	"strings"
 	"time"
+
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+	"github.com/its-a-feature/Mythic/eventing"
 
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -20,12 +22,18 @@ func init() {
 		Queue:      PT_TASK_OPSEC_POST_CHECK_RESPONSE,
 		RoutingKey: PT_TASK_OPSEC_POST_CHECK_RESPONSE,
 		Handler:    processPtTaskOPSECPostMessages,
+		Scopes:     []string{mythicjwt.SCOPE_TASK_WRITE},
 	})
 }
 
 func processPtTaskOPSECPostMessages(msg amqp.Delivery) {
 	payloadMsg := PTTaskOPSECPostTaskMessageResponse{}
-	err := json.Unmarshal(msg.Body, &payloadMsg)
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		logging.LogError(err, "Failed to get auth headers")
+		return
+	}
+	err = json.Unmarshal(msg.Body, &payloadMsg)
 	if err != nil {
 		logging.LogError(err, "Failed to process message into struct")
 		return
@@ -37,7 +45,10 @@ func processPtTaskOPSECPostMessages(msg amqp.Delivery) {
 		go SendAllOperationsMessage(payloadMsg.Error, 0, "", database.MESSAGE_LEVEL_INFO, true)
 		return
 	}
-	err = database.DB.Get(&task, `SELECT status, operation_id, eventstepinstance_id FROM task WHERE id=$1`, task.ID)
+	err = database.DB.Get(&task, `SELECT 
+    	status, operation_id, operator_id, eventstepinstance_id, apitokens_id 
+		FROM task 
+		WHERE id=$1 AND operation_id=$2`, task.ID, authContext.OperationID)
 	if err != nil {
 		logging.LogError(err, "Failed to find task from create_tasking")
 		go SendAllOperationsMessage(err.Error(), 0, "", database.MESSAGE_LEVEL_INFO, true)
@@ -102,14 +113,15 @@ func processPtTaskOPSECPostMessages(msg amqp.Delivery) {
 					return
 				}
 				// check to potentially execute completion functions
-				go CheckAndProcessTaskCompletionHandlers(task.ID)
+				go CheckAndProcessTaskCompletionHandlers(task.ID, authContext)
 			}
 		}
 		if task.Completed {
 			EventingChannel <- EventNotification{
 				Trigger:             eventing.TriggerTaskFinish,
-				OperationID:         task.OperationID,
-				EventStepInstanceID: int(task.EventStepInstanceID.Int64),
+				OperationID:         authContext.OperationID,
+				OperatorID:          authContext.OperatorID,
+				EventStepInstanceID: authContext.EventStepInstanceID,
 				TaskID:              task.ID,
 				ActionSuccess:       !strings.Contains(strings.ToLower(task.Status), "error"),
 			}
@@ -146,18 +158,19 @@ func processPtTaskOPSECPostMessages(msg amqp.Delivery) {
 			logging.LogError(err, "Failed to update task status")
 			return
 		}
-		go CheckAndProcessTaskCompletionHandlers(task.ID)
+		go CheckAndProcessTaskCompletionHandlers(task.ID, authContext)
 		EventingChannel <- EventNotification{
 			Trigger:             eventing.TriggerTaskFinish,
-			OperationID:         task.OperationID,
-			EventStepInstanceID: int(task.EventStepInstanceID.Int64),
+			OperationID:         authContext.OperationID,
+			OperatorID:          authContext.OperatorID,
+			EventStepInstanceID: authContext.EventStepInstanceID,
 			TaskID:              task.ID,
 			ActionSuccess:       !strings.Contains(strings.ToLower(task.Status), "error"),
 		}
 	}
 }
 func checkForTaskInterception(task *databaseStructs.Task) {
-	err := database.DB.Get(&task.OperationID, `SELECT operation_id FROM task WHERE id=$1`, task.ID)
+	err := database.DB.Get(task, `SELECT operation_id, operator_id FROM task WHERE id=$1`, task.ID)
 	if err != nil {
 		logging.LogError(err, "failed to query database for task information")
 		return
@@ -178,6 +191,7 @@ func checkForTaskInterception(task *databaseStructs.Task) {
 	EventingChannel <- EventNotification{
 		Trigger:      eventing.TriggerTaskIntercept,
 		OperationID:  task.OperationID,
+		OperatorID:   task.OperatorID,
 		EventGroupID: interceptEventGroup.ID,
 		TaskID:       task.ID,
 	}

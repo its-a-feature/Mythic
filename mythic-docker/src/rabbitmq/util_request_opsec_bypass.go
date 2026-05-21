@@ -12,6 +12,7 @@ import (
 type RequestOpsecBypassMessage struct {
 	TaskID            int
 	OperatorOperation *databaseStructs.Operatoroperation
+	AuthContext       RabbitMQAuthContext
 }
 type RequestOpsecBypassMessageResponse struct {
 	Status string `json:"status"`
@@ -186,7 +187,7 @@ func updateTaskFromOpsecPreToCreateTasking(input RequestOpsecBypassMessage, task
 		logging.LogError(err, "Failed to update task")
 	} else {
 		allTaskData := GetTaskConfigurationForContainer(task.ID)
-		if err := RabbitMQConnection.SendPtTaskCreate(allTaskData); err != nil {
+		if err := RabbitMQConnection.SendPtTaskCreate(allTaskData, input.AuthContext); err != nil {
 			logging.LogError(err, "In processPtTaskOPSECPreMessages, but failed to sendSendPtTaskCreate ")
 		}
 	}

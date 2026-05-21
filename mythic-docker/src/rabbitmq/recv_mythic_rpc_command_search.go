@@ -3,8 +3,9 @@ package rabbitmq
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/its-a-feature/Mythic/utils"
 	"reflect"
+
+	"github.com/its-a-feature/Mythic/utils"
 
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -47,6 +48,7 @@ func init() {
 		Queue:      MYTHIC_RPC_COMMAND_SEARCH,     // swap out with queue in rabbitmq.constants.go file
 		RoutingKey: MYTHIC_RPC_COMMAND_SEARCH,     // swap out with routing key in rabbitmq.constants.go file
 		Handler:    processMythicRPCCommandSearch, // points to function that takes in amqp.Delivery and returns interface{}
+		Scopes:     []string{},
 	})
 }
 
@@ -70,13 +72,14 @@ func MythicRPCCommandSearch(input MythicRPCCommandSearchMessage) MythicRPCComman
 	}
 	foundCommands := []MythicRPCCommandSearchCommandData{}
 	commands := []databaseStructs.Command{}
-	if err := database.DB.Select(&commands, `SELECT
+	err := database.DB.Select(&commands, `SELECT
 		command.*,
 		payloadtype.name "payloadtype.name"
 		FROM
         command
         JOIN payloadtype on command.payload_type_id = payloadtype.id
-        WHERE payloadtype.name=$1 AND command.deleted=false`, input.SearchPayloadTypeName); err != nil {
+        WHERE payloadtype.name=$1 AND command.deleted=false`, input.SearchPayloadTypeName)
+	if err != nil {
 		logging.LogError(err, "Failed to search for commands")
 		response.Error = err.Error()
 		return response
@@ -95,7 +98,8 @@ func MythicRPCCommandSearch(input MythicRPCCommandSearchMessage) MythicRPCComman
 		uiFeatures := command.SupportedUiFeatures.StructValue()
 		stringUIFeatures := interfaceArrayToStringArray(uiFeatures)
 		attributes := map[string]interface{}{}
-		if err := command.Attributes.Unmarshal(&attributes); err != nil {
+		err = command.Attributes.Unmarshal(&attributes)
+		if err != nil {
 			logging.LogError(err, "Failed to get attributes from command")
 			response.Error = "Failed to get attributes from command"
 			return response
@@ -198,11 +202,11 @@ func processMythicRPCCommandSearch(msg amqp.Delivery) interface{} {
 	responseMsg := MythicRPCCommandSearchMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCCommandSearch(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	return MythicRPCCommandSearch(incomingMessage)
 }

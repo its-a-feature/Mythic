@@ -2,6 +2,8 @@ package rabbitmq
 
 import (
 	"encoding/json"
+
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/its-a-feature/Mythic/database"
@@ -11,7 +13,6 @@ import (
 )
 
 type MythicRPCKeylogSearchMessage struct {
-	TaskID        int                             `json:"task_id"` //required
 	SearchKeylogs MythicRPCKeylogSearchKeylogData `json:"keylogs"`
 }
 type MythicRPCKeylogSearchMessageResponse struct {
@@ -31,69 +32,62 @@ func init() {
 		Queue:      MYTHIC_RPC_KEYLOG_SEARCH,
 		RoutingKey: MYTHIC_RPC_KEYLOG_SEARCH,
 		Handler:    processMythicRPCKeylogSearch,
+		Scopes:     []string{mythicjwt.SCOPE_RESPONSE_READ},
 	})
 }
 
 // Endpoint: MYTHIC_RPC_KEYLOG_SEARCH
-func MythicRPCKeylogSearch(input MythicRPCKeylogSearchMessage) MythicRPCKeylogSearchMessageResponse {
+func MythicRPCKeylogSearch(input MythicRPCKeylogSearchMessage, authContext RabbitMQAuthContext) MythicRPCKeylogSearchMessageResponse {
 	response := MythicRPCKeylogSearchMessageResponse{
 		Success: false,
 	}
 	paramDict := make(map[string]interface{})
-	task := databaseStructs.Task{}
-	if err := database.DB.Get(&task, `SELECT 
-	task.id,
-	callback.operation_id "callback.operation_id",
-	callback.host "callback.host"
-	FROM task
-	JOIN callback ON task.callback_id = callback.id
-	WHERE task.id=$1`, input.TaskID); err != nil {
+	keylogs := []databaseStructs.Keylog{}
+	paramDict["operation_id"] = authContext.OperationID
+	searchString := `SELECT * FROM keylog WHERE operation_id=:operation_id  `
+	if input.SearchKeylogs.User != nil {
+		paramDict["user"] = "%" + *input.SearchKeylogs.User + "%"
+		searchString += "AND user ILIKE :user "
+	}
+	if input.SearchKeylogs.WindowTitle != nil {
+		paramDict["window_title"] = "%" + *input.SearchKeylogs.WindowTitle + "%"
+		searchString += "AND window ILIKE :window_title "
+	}
+	if input.SearchKeylogs.Keystrokes != nil {
+		paramDict["keystrokes"] = "%" + string(*input.SearchKeylogs.Keystrokes) + "%"
+		searchString += "AND keystrokes LIKE :keystrokes "
+	}
+	searchString += " ORDER BY id DESC"
+	err := database.DB.Select(&keylogs, searchString, paramDict)
+	if err != nil {
 		response.Error = err.Error()
 		return response
-	} else {
-		keylogs := []databaseStructs.Keylog{}
-		paramDict["operation_id"] = task.Callback.OperationID
-		searchString := `SELECT * FROM keylog WHERE operation_id=:operation_id  `
-		if input.SearchKeylogs.User != nil {
-			paramDict["user"] = "%" + *input.SearchKeylogs.User + "%"
-			searchString += "AND user ILIKE :user "
-		}
-		if input.SearchKeylogs.WindowTitle != nil {
-			paramDict["window_title"] = "%" + *input.SearchKeylogs.WindowTitle + "%"
-			searchString += "AND window ILIKE :window_title "
-		}
-		if input.SearchKeylogs.Keystrokes != nil {
-			paramDict["keystrokes"] = "%" + string(*input.SearchKeylogs.Keystrokes) + "%"
-			searchString += "AND keystrokes LIKE :keystrokes "
-		}
-		searchString += " ORDER BY id DESC"
-		if err := database.DB.Select(&keylogs, searchString, paramDict); err != nil {
-			response.Error = err.Error()
-			return response
-		} else {
-			returnedProcesses := []MythicRPCKeylogSearchKeylogData{}
-			if err := mapstructure.Decode(keylogs, &returnedProcesses); err != nil {
-				response.Error = err.Error()
-				return response
-			} else {
-				response.Success = true
-				response.Keylogs = returnedProcesses
-				return response
-			}
-
-		}
 	}
+	returnedProcesses := []MythicRPCKeylogSearchKeylogData{}
+	err = mapstructure.Decode(keylogs, &returnedProcesses)
+	if err != nil {
+		response.Error = err.Error()
+		return response
+	}
+	response.Success = true
+	response.Keylogs = returnedProcesses
+	return response
 }
 func processMythicRPCKeylogSearch(msg amqp.Delivery) interface{} {
 	incomingMessage := MythicRPCKeylogSearchMessage{}
 	responseMsg := MythicRPCKeylogSearchMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCKeylogSearch(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCKeylogSearch(incomingMessage, authContext)
 }

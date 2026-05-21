@@ -41,7 +41,7 @@ type PTRPCDynamicQueryFunctionMessageResponse struct {
 	ComplexChoices []PayloadTypeDynamicQueryFunctionComplexChoice `json:"complex_choices"`
 }
 
-func (r *rabbitMQConnection) SendPtRPCDynamicQueryFunction(dynamicQuery PTRPCDynamicQueryFunctionMessage) (*PTRPCDynamicQueryFunctionMessageResponse, error) {
+func (r *rabbitMQConnection) SendPtRPCDynamicQueryFunction(dynamicQuery PTRPCDynamicQueryFunctionMessage, authContext RabbitMQAuthContext) (*PTRPCDynamicQueryFunctionMessageResponse, error) {
 	dynamicQueryResponse := PTRPCDynamicQueryFunctionMessageResponse{}
 	exclusiveQueue := true
 	callback := databaseStructs.Callback{}
@@ -69,12 +69,18 @@ func (r *rabbitMQConnection) SendPtRPCDynamicQueryFunction(dynamicQuery PTRPCDyn
 		logging.LogError(err, "Failed to convert configCheck to JSON", "dynamicQuery", dynamicQuery)
 		return nil, err
 	}
+	headers, err := GenerateRabbitMQAuthTokenHeader(authContext)
+	if err != nil {
+		logging.LogError(err, "Failed to generate auth context")
+		return nil, err
+	}
 	response, err := r.SendRPCMessage(
 		MYTHIC_EXCHANGE,
 		GetPtRPCDynamicQueryFunctionRoutingKey(dynamicQuery.CommandPayloadType),
 		configBytes,
 		exclusiveQueue,
 		RPC_RETRY_POLICY_CUSTOM_TIMEOUT,
+		headers,
 	)
 	if err != nil {
 		logging.LogError(err, "Failed to send RPC message")

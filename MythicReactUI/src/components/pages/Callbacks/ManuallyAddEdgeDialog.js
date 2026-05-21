@@ -121,7 +121,7 @@ export function ManuallyAddEdgeDialog(props) {
     if (loading) {
      return (
         <>
-            <DialogTitle className="mythic-c2-action-title">Add P2P Edge</DialogTitle>
+            <DialogTitle className="mythic-accent-dialog-title">Add P2P Edge</DialogTitle>
             <DialogContent dividers={true}>
                 <LinearProgress />
             </DialogContent>
@@ -132,7 +132,7 @@ export function ManuallyAddEdgeDialog(props) {
      console.error(error);
      return (
         <>
-            <DialogTitle className="mythic-c2-action-title">Add P2P Edge</DialogTitle>
+            <DialogTitle className="mythic-accent-dialog-title">Add P2P Edge</DialogTitle>
             <DialogContent dividers={true}>
                 <MythicDialogBody>
                     <MythicDialogSection title="Unable to load edge options" description={error.message} />
@@ -146,7 +146,7 @@ export function ManuallyAddEdgeDialog(props) {
     }
   return (
     <>
-        <DialogTitle className="mythic-c2-action-title">
+        <DialogTitle className="mythic-accent-dialog-title">
             <div className="mythic-dialog-title-row">
                 <div>
                     <Typography component="div" className="mythic-c2-action-title-text">

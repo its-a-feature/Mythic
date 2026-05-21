@@ -21,9 +21,14 @@ type C2GetRedirectorRuleMessageResponse struct {
 	Message string `json:"message"`
 }
 
-func (r *rabbitMQConnection) SendC2RPCGetRedirectorRules(redirectorRules C2GetRedirectorRuleMessage) (*C2GetRedirectorRuleMessageResponse, error) {
+func (r *rabbitMQConnection) SendC2RPCGetRedirectorRules(redirectorRules C2GetRedirectorRuleMessage, authContext RabbitMQAuthContext) (*C2GetRedirectorRuleMessageResponse, error) {
 	redirectorRuleResponse := C2GetRedirectorRuleMessageResponse{}
 	exclusiveQueue := true
+	headers, err := GenerateRabbitMQAuthTokenHeader(authContext)
+	if err != nil {
+		logging.LogError(err, "Failed to generate auth context")
+		return nil, err
+	}
 	if opsecBytes, err := json.Marshal(redirectorRules); err != nil {
 		logging.LogError(err, "Failed to convert redirectorRules to JSON", "redirectorRules", redirectorRules)
 		return nil, err
@@ -33,6 +38,7 @@ func (r *rabbitMQConnection) SendC2RPCGetRedirectorRules(redirectorRules C2GetRe
 		opsecBytes,
 		exclusiveQueue,
 		RPC_RETRY_POLICY_CUSTOM_TIMEOUT,
+		headers,
 	); err != nil {
 		logging.LogError(err, "Failed to send RPC message")
 		return nil, err

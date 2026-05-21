@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	mythicCrypto "github.com/its-a-feature/Mythic/crypto"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -38,18 +39,19 @@ func init() {
 		Queue:      MYTHIC_RPC_PAYLOAD_CREATE_FROM_UUID,   // swap out with queue in rabbitmq.constants.go file
 		RoutingKey: MYTHIC_RPC_PAYLOAD_CREATE_FROM_UUID,   // swap out with routing key in rabbitmq.constants.go file
 		Handler:    processMythicRPCPayloadCreateFromUUID, // points to function that takes in amqp.Delivery and returns interface{}
+		Scopes:     []string{mythicjwt.SCOPE_PAYLOAD_WRITE},
 	})
 }
 
 // MYTHIC_RPC_OBJECT_ACTION - Say what the function does
-func MythicRPCPayloadCreateFromUUID(input MythicRPCPayloadCreateFromUUIDMessage) MythicRPCPayloadCreateFromUUIDMessageResponse {
+func MythicRPCPayloadCreateFromUUID(input MythicRPCPayloadCreateFromUUIDMessage, authContext RabbitMQAuthContext) MythicRPCPayloadCreateFromUUIDMessageResponse {
 	response := MythicRPCPayloadCreateFromUUIDMessageResponse{
 		Success: false,
 	}
 	// first get all of the payload information
 	payloadConfiguration := PayloadConfiguration{}
 	payload := databaseStructs.Payload{}
-	if err := database.DB.Get(&payload, `SELECT
+	err := database.DB.Get(&payload, `SELECT
 	payload.id, payload.description, payload.uuid, payload.os, payload.wrapped_payload_id, payload.operation_id,
 	payloadtype.name "payloadtype.name",
 	filemeta.filename "filemeta.filename" 
@@ -58,80 +60,96 @@ func MythicRPCPayloadCreateFromUUID(input MythicRPCPayloadCreateFromUUIDMessage)
 	JOIN payloadtype ON payload.payload_type_id = payloadtype.id
 	JOIN filemeta ON payload.file_id = filemeta.id
 	WHERE 
-	payload.uuid=$1`, input.PayloadUUID); err != nil {
+	payload.uuid=$1 AND payload.operation_id=$2`, input.PayloadUUID, authContext.OperationID)
+	if err != nil {
 		logging.LogError(err, "Failed to get payload")
 		response.Error = err.Error()
 		return response
+	}
+	if input.NewDescription != nil {
+		payloadConfiguration.Description = *input.NewDescription
 	} else {
-		if input.NewDescription != nil {
-			payloadConfiguration.Description = *input.NewDescription
-		} else {
-			payloadConfiguration.Description = payload.Description
-		}
-		if input.NewFilename != nil {
-			payloadConfiguration.Filename = *input.NewFilename
-		} else {
-			payloadConfiguration.Filename = string(payload.Filemeta.Filename)
-		}
-		payloadConfiguration.SelectedOS = payload.Os
-		payloadConfiguration.PayloadType = payload.Payloadtype.Name
-		payloadConfiguration.C2Profiles = GetPayloadC2ProfileInformation(payload)
-		payloadConfiguration.BuildParameters = GetBuildParameterInformation(payload.ID)
-		payloadConfiguration.Commands = GetPayloadCommandInformation(payload)
-		if payload.WrappedPayloadID.Valid {
-			// get the associated UUID for the wrapped payload
-			wrappedPayload := databaseStructs.Payload{}
-			if err := database.DB.Get(&wrappedPayload, `SELECT uuid FROM payload WHERE id=$1`, payload.WrappedPayloadID.Int64); err != nil {
-				logging.LogError(err, "Failed to fetch wrapped payload information")
-				response.Error = err.Error()
-				return response
-			} else {
-				payloadConfiguration.WrappedPayloadUUID = wrappedPayload.UuID
-			}
-		}
-		task := databaseStructs.Task{}
-		if err := database.DB.Get(&task, `SELECT operator_id FROM task WHERE id=$1`, input.TaskID); err != nil {
-			logging.LogError(err, "Failed to get operator_id from task when generating payload")
+		payloadConfiguration.Description = payload.Description
+	}
+	if input.NewFilename != nil {
+		payloadConfiguration.Filename = *input.NewFilename
+	} else {
+		payloadConfiguration.Filename = string(payload.Filemeta.Filename)
+	}
+	payloadConfiguration.SelectedOS = payload.Os
+	payloadConfiguration.PayloadType = payload.Payloadtype.Name
+	payloadConfiguration.C2Profiles = GetPayloadC2ProfileInformation(payload)
+	payloadConfiguration.BuildParameters = GetBuildParameterInformation(payload.ID)
+	payloadConfiguration.Commands = GetPayloadCommandInformation(payload)
+	if payload.WrappedPayloadID.Valid {
+		// get the associated UUID for the wrapped payload
+		wrappedPayload := databaseStructs.Payload{}
+		err = database.DB.Get(&wrappedPayload, `SELECT 
+    		uuid 
+			FROM payload 
+			WHERE id=$1 AND operation_id=$2`, payload.WrappedPayloadID.Int64, authContext.OperationID)
+		if err != nil {
+			logging.LogError(err, "Failed to fetch wrapped payload information")
 			response.Error = err.Error()
 			return response
 		}
-		if newUUID, newID, err := RegisterNewPayload(payloadConfiguration, &databaseStructs.Operatoroperation{
-			CurrentOperation: databaseStructs.Operation{ID: payload.OperationID},
-			CurrentOperator:  databaseStructs.Operator{ID: task.OperatorID},
-		}); err != nil {
-			response.Error = err.Error()
-			return response
-		} else if _, err := database.DB.Exec(`UPDATE payload SET auto_generated=true, task_id=$2 WHERE id=$1`, newID, input.TaskID); err != nil {
-			logging.LogError(err, "failed to update payload auto_generated status")
-			response.Error = err.Error()
-			return response
-		} else {
-			if input.RemoteHost != nil {
-				if _, err := database.DB.Exec(`INSERT INTO payloadonhost 
+		payloadConfiguration.WrappedPayloadUUID = wrappedPayload.UuID
+	}
+	task := databaseStructs.Task{}
+	err = database.DB.Get(&task, `SELECT 
+    	operator_id, apitokens_id, eventstepinstance_id 
+		FROM task 
+		WHERE id=$1 AND operation_id=$2`, input.TaskID, authContext.OperationID)
+	if err != nil {
+		logging.LogError(err, "Failed to get operator_id from task when generating payload")
+		response.Error = err.Error()
+		return response
+	}
+	payloadConfiguration.APITokensID = authContext.APITokensID
+	payloadConfiguration.EventStepInstance = authContext.EventStepInstanceID
+	newUUID, newID, err := RegisterNewPayload(payloadConfiguration, &databaseStructs.Operatoroperation{
+		CurrentOperation: databaseStructs.Operation{ID: payload.OperationID},
+		CurrentOperator:  databaseStructs.Operator{ID: task.OperatorID},
+	}, authContext)
+	if err != nil {
+		response.Error = err.Error()
+		return response
+	}
+	_, err = database.DB.Exec(`UPDATE payload SET auto_generated=true, task_id=$2 WHERE id=$1`, newID, input.TaskID)
+	if err != nil {
+		logging.LogError(err, "failed to update payload auto_generated status")
+		response.Error = err.Error()
+		return response
+	}
+	if input.RemoteHost != nil {
+		if _, err := database.DB.Exec(`INSERT INTO payloadonhost 
 					(host, payload_id, operation_id, task_id) 
 					VALUES 
 					($1, $2, $3, $4)`, strings.ToUpper(*input.RemoteHost), newID, payload.OperationID, input.TaskID); err != nil {
-					logging.LogError(err, "Failed to register payload on host")
-				}
-			}
-			response.NewPayloadUUID = newUUID
-			response.Success = true
-			return response
+			logging.LogError(err, "Failed to register payload on host")
 		}
 	}
+	response.NewPayloadUUID = newUUID
+	response.Success = true
+	return response
 }
 func processMythicRPCPayloadCreateFromUUID(msg amqp.Delivery) interface{} {
 	incomingMessage := MythicRPCPayloadCreateFromUUIDMessage{}
 	responseMsg := MythicRPCPayloadCreateFromUUIDMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCPayloadCreateFromUUID(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCPayloadCreateFromUUID(incomingMessage, authContext)
 }
 
 func associateBuildParametersWithPayload(databasePayload databaseStructs.Payload, buildParameters *[]PayloadConfigurationBuildParameter) (map[string]interface{}, error) {

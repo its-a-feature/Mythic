@@ -111,8 +111,8 @@ func ensureCallbackCheckinEdge(uuidInfo *cachedUUIDInfo) {
 		uuidInfo.CallbackID, uuidInfo.CallbackID, uuidInfo.C2ProfileID, uuidInfo.OperationID)
 	if errors.Is(err, sql.ErrNoRows) {
 		err = database.DB.Get(&uuidInfo.EdgeId, `INSERT INTO callbackgraphedge
-			(source_id, destination_id, c2_profile_id, operation_id)
-			VALUES ($1, $1, $2, $3)
+			(source_id, destination_id, c2_profile_id, operation_id, apitokens_id)
+			VALUES ($1, $1, $2, $3, NULL)
 			RETURNING id`,
 			uuidInfo.CallbackID, uuidInfo.C2ProfileID, uuidInfo.OperationID)
 		if err != nil {

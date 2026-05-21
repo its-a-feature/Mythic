@@ -2,9 +2,11 @@ package webcontroller
 
 import (
 	"fmt"
+	"net/http"
+
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 	"github.com/its-a-feature/Mythic/utils"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -37,7 +39,7 @@ func UpdateGlobalSettingsWebhook(c *gin.Context) {
 		return
 	}
 	// get the associated database information
-	ginOperatorOperation, ok := c.Get("operatorOperation")
+	ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct)
 	if !ok {
 		c.JSON(http.StatusOK, UpdateGlobalSettingsResponse{
 			Status: "error",

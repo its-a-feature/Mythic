@@ -3,6 +3,7 @@ package webcontroller
 import (
 	"net/http"
 
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 
 	"github.com/gin-gonic/gin"
@@ -29,7 +30,7 @@ func MythictreeCreateWebhook(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
 		return
 	}
-	ginOperatorOperation, exists := c.Get("operatorOperation")
+	ginOperatorOperation, exists := c.Get(authentication.ContextKeyOperatorOperationStruct)
 	if !exists {
 		logging.LogError(nil, "Failed to get operator operation information")
 		c.JSON(http.StatusOK, gin.H{
@@ -40,7 +41,7 @@ func MythictreeCreateWebhook(c *gin.Context) {
 	}
 	operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
 	apitokenId := 0
-	APITokenID, ok := c.Get("apitokens-id")
+	APITokenID, ok := c.Get(authentication.ContextKeyAPITokenID)
 	if ok {
 		if APITokenID.(int) > 0 {
 			apitokenId = APITokenID.(int)

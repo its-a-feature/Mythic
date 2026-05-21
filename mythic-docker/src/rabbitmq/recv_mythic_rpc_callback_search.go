@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/its-a-feature/Mythic/database"
@@ -15,8 +16,6 @@ import (
 )
 
 type MythicRPCCallbackSearchMessage struct {
-	AgentCallbackUUID            string    `json:"agent_callback_id"`
-	CallbackID                   int       `json:"callback_id"`
 	SearchCallbackID             *int      `json:"search_callback_id"`
 	SearchCallbackDisplayID      *int      `json:"search_callback_display_id"`
 	SearchCallbackUUID           *string   `json:"search_callback_uuid"`
@@ -78,27 +77,18 @@ func init() {
 		Queue:      MYTHIC_RPC_CALLBACK_SEARCH,
 		RoutingKey: MYTHIC_RPC_CALLBACK_SEARCH,
 		Handler:    processMythicRPCCallbackSearch,
+		Scopes:     []string{mythicjwt.SCOPE_CALLBACK_READ},
 	})
 }
 
 // Endpoint: MYTHIC_RPC_CALLBACK_SEARCH
-func MythicRPCCallbackSearch(input MythicRPCCallbackSearchMessage) MythicRPCCallbackSearchMessageResponse {
+func MythicRPCCallbackSearch(input MythicRPCCallbackSearchMessage, authContext RabbitMQAuthContext) MythicRPCCallbackSearchMessageResponse {
 	response := MythicRPCCallbackSearchMessageResponse{
 		Success: false,
 	}
 	searchResults := databaseStructs.Callback{}
-	callback := databaseStructs.Callback{}
-	err := database.DB.Get(&callback, `SELECT
-		operation_id
-		FROM callback
-		WHERE agent_callback_id=$1 OR id=$2`, input.AgentCallbackUUID, input.CallbackID)
-	if err != nil {
-		logging.LogError(err, "Failed to find callback UUID")
-		response.Error = err.Error()
-		return response
-	}
 	targetCallback := databaseStructs.Callback{
-		OperationID: callback.OperationID,
+		OperationID: authContext.OperationID,
 	}
 	if input.SearchCallbackID != nil {
 		targetCallback.ID = *input.SearchCallbackID
@@ -207,7 +197,6 @@ func MythicRPCCallbackSearch(input MythicRPCCallbackSearchMessage) MythicRPCCall
 		result.Timestamp = searchResults.Timestamp
 		result.LastCheckin = searchResults.LastCheckin
 		response.Results = append(response.Results, result)
-
 	}
 	response.Success = true
 	return response
@@ -217,11 +206,16 @@ func processMythicRPCCallbackSearch(msg amqp.Delivery) interface{} {
 	responseMsg := MythicRPCCallbackSearchMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCCallbackSearch(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCCallbackSearch(incomingMessage, authContext)
 }

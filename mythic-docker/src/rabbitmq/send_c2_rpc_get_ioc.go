@@ -21,9 +21,14 @@ type C2GetIOCMessageResponse struct {
 	IOCs    []IOC  `json:"iocs"`
 }
 
-func (r *rabbitMQConnection) SendC2RPCGetIOC(getIOC C2GetIOCMessage) (*C2GetIOCMessageResponse, error) {
+func (r *rabbitMQConnection) SendC2RPCGetIOC(getIOC C2GetIOCMessage, authContext RabbitMQAuthContext) (*C2GetIOCMessageResponse, error) {
 	getIOCResponse := C2GetIOCMessageResponse{}
 	exclusiveQueue := true
+	headers, err := GenerateRabbitMQAuthTokenHeader(authContext)
+	if err != nil {
+		logging.LogError(err, "Failed to generate auth context")
+		return nil, err
+	}
 	if configBytes, err := json.Marshal(getIOC); err != nil {
 		logging.LogError(err, "Failed to convert getIOC to JSON", "configCheck", getIOC)
 		return nil, err
@@ -33,6 +38,7 @@ func (r *rabbitMQConnection) SendC2RPCGetIOC(getIOC C2GetIOCMessage) (*C2GetIOCM
 		configBytes,
 		exclusiveQueue,
 		RPC_RETRY_POLICY_CUSTOM_TIMEOUT,
+		headers,
 	); err != nil {
 		logging.LogError(err, "Failed to send RPC message")
 		return nil, err

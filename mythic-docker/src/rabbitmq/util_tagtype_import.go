@@ -29,8 +29,8 @@ func TagtypeImport(input []databaseStructs.TagType, operatorOperation *databaseS
 			// it doesn't exist, so add it
 			newTagtype.Operation = operatorOperation.CurrentOperation.ID
 			_, err = database.DB.NamedExec(`INSERT INTO tagtype
-				(name, description, color, operation_id)
-				VALUES (:name, :description, :color, :operation_id)`, newTagtype)
+				(name, description, color, operation_id, apitokens_id, eventstepinstance_id)
+				VALUES (:name, :description, :color, :operation_id, :apitokens_id, :eventstepinstance_id)`, newTagtype)
 			if err != nil {
 				logging.LogError(err, "Failed to create new tagtype")
 				response.Error = "Failed to create new tagtype: " + err.Error()

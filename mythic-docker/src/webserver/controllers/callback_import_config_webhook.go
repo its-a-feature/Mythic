@@ -3,13 +3,15 @@ package webcontroller
 import (
 	"database/sql"
 	"encoding/base64"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/rabbitmq"
-	"net/http"
 )
 
 type ImportCallbackConfigInput struct {
@@ -36,7 +38,7 @@ func ImportCallbackConfigWebhook(c *gin.Context) {
 		})
 		return
 	}
-	ginOperatorOperation, ok := c.Get("operatorOperation")
+	ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct)
 	if !ok {
 		logging.LogError(nil, "Failed to get operatorOperation from gin context from middleware")
 		c.JSON(http.StatusOK, ImportCallbackConfigResponse{
@@ -125,9 +127,18 @@ func ImportCallbackConfigWebhook(c *gin.Context) {
 		OperationID:    operatorOperation.CurrentOperation.ID,
 		OperatorID:     operatorOperation.CurrentOperator.ID,
 	}
+	authContext := authentication.RabbitMQAuthContextFromGin(c)
+	if authContext.APITokensID > 0 {
+		fileMeta.APITokensID.Valid = true
+		fileMeta.APITokensID.Int64 = int64(authContext.APITokensID)
+	}
+	if authContext.EventStepInstanceID > 0 {
+		fileMeta.EventStepInstanceID.Valid = true
+		fileMeta.EventStepInstanceID.Int64 = int64(authContext.EventStepInstanceID)
+	}
 	statement, err := database.DB.PrepareNamed(`INSERT INTO filemeta
-(total_chunks, chunks_received, complete, is_payload, filename, operation_id, operator_id, agent_file_id, path)
-VALUES (:total_chunks, :chunks_received, :complete, :is_payload, :filename, :operation_id, :operator_id, :agent_file_id, :path) RETURNING id`)
+(total_chunks, chunks_received, complete, is_payload, filename, operation_id, operator_id, agent_file_id, path, apitokens_id, eventstepinstance_id)
+VALUES (:total_chunks, :chunks_received, :complete, :is_payload, :filename, :operation_id, :operator_id, :agent_file_id, :path, :apitokens_id, :eventstepinstance_id) RETURNING id`)
 	if err != nil {
 		logging.LogError(err, "Failed to make named statement for filemeta")
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
@@ -152,13 +163,21 @@ VALUES (:total_chunks, :chunks_received, :complete, :is_payload, :filename, :ope
 		BuildStdout:    callbackConfig.Payload.BuildStdout,
 		OperatorID:     operatorOperation.CurrentOperator.ID,
 	}
+	if authContext.APITokensID > 0 {
+		payload.APITokensID.Valid = true
+		payload.APITokensID.Int64 = int64(authContext.APITokensID)
+	}
+	if authContext.EventStepInstanceID > 0 {
+		payload.EventStepInstanceID.Valid = true
+		payload.EventStepInstanceID.Int64 = int64(authContext.EventStepInstanceID)
+	}
 	payload.FileID.Valid = true
 	payload.FileID.Int64 = int64(fileMeta.ID)
 	err = database.DB.Get(&payload, `SELECT * FROM payload WHERE uuid=$1`, payload.UuID)
 	if err == sql.ErrNoRows {
-		statement, err = database.DB.PrepareNamed(`INSERT INTO payload 
-			(uuid,description,payload_type_id,operation_id,os,build_phase, build_container, build_message, build_stderr, build_stdout, operator_id, file_id) 
-			VALUES (:uuid, :description, :payload_type_id, :operation_id, :os, :build_phase, :build_container, :build_message, :build_stderr, :build_stdout, :operator_id, :file_id) 
+		statement, err = database.DB.PrepareNamed(`INSERT INTO payload
+			(uuid,description,payload_type_id,operation_id,os,build_phase, build_container, build_message, build_stderr, build_stdout, operator_id, file_id, apitokens_id, eventstepinstance_id)
+			VALUES (:uuid, :description, :payload_type_id, :operation_id, :os, :build_phase, :build_container, :build_message, :build_stderr, :build_stdout, :operator_id, :file_id, :apitokens_id, :eventstepinstance_id)
 			RETURNING id`,
 		)
 		if err != nil {
@@ -282,12 +301,16 @@ VALUES (:total_chunks, :chunks_received, :complete, :is_payload, :filename, :ope
 	callbackConfig.Callback.OperationID = operatorOperation.CurrentOperation.ID
 	callbackConfig.Callback.RegisteredPayloadID = payload.ID
 	callbackConfig.Callback.OperatorID = operatorOperation.CurrentOperator.ID
+	if authContext.EventStepInstanceID > 0 {
+		callbackConfig.Callback.EventStepInstanceID.Valid = true
+		callbackConfig.Callback.EventStepInstanceID.Int64 = int64(authContext.EventStepInstanceID)
+	}
 	statement, err = database.DB.PrepareNamed(`INSERT INTO callback
-(agent_callback_id, "user", host, pid, ip, external_ip, process_name, description, registered_payload_id, integrity_level,
- operation_id, crypto_type, enc_key, dec_key, os, architecture, "domain", extra_info, sleep_info, mythictree_groups, operator_id)
- VALUES (:agent_callback_id, :user, :host, :pid, :ip, :external_ip, :process_name, :description, :registered_payload_id,
-         :integrity_level, :operation_id, :crypto_type, :enc_key, :dec_key, :os, :architecture, :domain, :extra_info, :sleep_info,
-         :mythictree_groups, :operator_id) RETURNING id`)
+	(agent_callback_id, "user", host, pid, ip, external_ip, process_name, description, registered_payload_id, integrity_level,
+	 operation_id, crypto_type, enc_key, dec_key, os, architecture, "domain", extra_info, sleep_info, mythictree_groups, operator_id, eventstepinstance_id)
+	 VALUES (:agent_callback_id, :user, :host, :pid, :ip, :external_ip, :process_name, :description, :registered_payload_id,
+	         :integrity_level, :operation_id, :crypto_type, :enc_key, :dec_key, :os, :architecture, :domain, :extra_info, :sleep_info,
+	         :mythictree_groups, :operator_id, :eventstepinstance_id) RETURNING id`)
 	if err != nil {
 		logging.LogError(err, "Failed to prepare named statement for creating callback")
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
@@ -301,13 +324,13 @@ VALUES (:total_chunks, :chunks_received, :complete, :is_payload, :filename, :ope
 	}
 	// make sure payload commands exist and add them if needed
 	for _, cmd := range callbackConfig.PayloadCommands {
-		err = ensureCommands(cmd, payloadtype.ID, 0, payload.ID, operatorOperation.CurrentOperator.ID)
+		err = ensureCommands(cmd, payloadtype.ID, 0, payload.ID, operatorOperation.CurrentOperator.ID, authContext.APITokensID)
 		if err != nil {
 			logging.LogError(err, "Failed to ensure command in payload")
 		}
 	}
 	for _, cmd := range callbackConfig.CallbackCommands {
-		err = ensureCommands(cmd, payloadtype.ID, callbackConfig.Callback.ID, 0, operatorOperation.CurrentOperator.ID)
+		err = ensureCommands(cmd, payloadtype.ID, callbackConfig.Callback.ID, 0, operatorOperation.CurrentOperator.ID, authContext.APITokensID)
 		if err != nil {
 			logging.LogError(err, "Failed to ensure command in callback")
 		}
@@ -450,7 +473,7 @@ func ensureC2Profile(c2Info rabbitmq.PayloadConfigurationC2Profile, operationID 
 	}
 	return nil
 }
-func ensureCommands(cmdName string, payloadTypeID int, callbackID int, payloadID int, operatorID int) error {
+func ensureCommands(cmdName string, payloadTypeID int, callbackID int, payloadID int, operatorID int, apitokensID int) error {
 	command := databaseStructs.Command{Cmd: cmdName, PayloadTypeID: payloadTypeID}
 	err := database.DB.Get(&command, `SELECT id FROM command WHERE cmd=$1 AND payload_type_id=$2`,
 		cmdName, payloadTypeID)
@@ -471,8 +494,17 @@ func ensureCommands(cmdName string, payloadTypeID int, callbackID int, payloadID
 		}
 	}
 	if callbackID > 0 {
-		_, err = database.DB.Exec(`INSERT INTO loadedcommands (command_id, callback_id, operator_id)
-			VALUES ($1, $2, $3)`, command.ID, callbackID, operatorID)
+		loadedCommand := databaseStructs.Loadedcommands{
+			CommandID:  command.ID,
+			CallbackID: callbackID,
+			OperatorID: operatorID,
+		}
+		if apitokensID > 0 {
+			loadedCommand.APITokensID.Valid = true
+			loadedCommand.APITokensID.Int64 = int64(apitokensID)
+		}
+		_, err = database.DB.NamedExec(`INSERT INTO loadedcommands (command_id, callback_id, operator_id, apitokens_id)
+			VALUES (:command_id, :callback_id, :operator_id, :apitokens_id)`, loadedCommand)
 		return err
 	}
 	if payloadID > 0 {

@@ -1,11 +1,13 @@
 package webcontroller
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
-	"net/http"
 )
 
 type DeleteTasksAndCallbacksInput struct {
@@ -36,7 +38,7 @@ func DeleteTasksAndCallbacks(c *gin.Context) {
 		})
 		return
 	}
-	if ginOperatorOperation, ok := c.Get("operatorOperation"); !ok {
+	if ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct); !ok {
 		logging.LogError(nil, "Failed to get user information")
 		c.JSON(http.StatusOK, DeleteTasksAndCallbacksMessageResponse{
 			Status: "error",

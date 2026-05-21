@@ -33,6 +33,7 @@ type PayloadConfiguration struct {
 	AgentFileID        string                                `json:"agent_file_id,omitempty" mapstructure:"agent_file_id"`
 	BuildPhase         string                                `json:"build_phase,omitempty" mapstructure:"build_phase"`
 	EventStepInstance  int                                   `json:"event_step_instance,omitempty" mapstructure:"event_step_instance"`
+	APITokensID        int                                   `json:"-" mapstructure:"-"`
 }
 type PayloadConfigurationC2Profile struct {
 	Name       string                 `json:"c2_profile" mapstructure:"c2_profile"`

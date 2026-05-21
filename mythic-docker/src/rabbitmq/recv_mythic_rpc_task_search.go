@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"encoding/json"
 
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -36,11 +37,12 @@ func init() {
 		Queue:      MYTHIC_RPC_TASK_SEARCH,     // swap out with queue in rabbitmq.constants.go file
 		RoutingKey: MYTHIC_RPC_TASK_SEARCH,     // swap out with routing key in rabbitmq.constants.go file
 		Handler:    processMythicRPCTaskSearch, // points to function that takes in amqp.Delivery and returns interface{}
+		Scopes:     []string{mythicjwt.SCOPE_TASK_READ},
 	})
 }
 
 // MYTHIC_RPC_OBJECT_ACTION - Say what the function does
-func MythicRPCTaskSearch(input MythicRPCTaskSearchMessage) MythicRPCTaskSearchMessageResponse {
+func MythicRPCTaskSearch(input MythicRPCTaskSearchMessage, authContext RabbitMQAuthContext) MythicRPCTaskSearchMessageResponse {
 	response := MythicRPCTaskSearchMessageResponse{
 		Success: false,
 	}
@@ -127,9 +129,12 @@ func MythicRPCTaskSearch(input MythicRPCTaskSearchMessage) MythicRPCTaskSearchMe
 		setAnySearchValues = true
 	}
 	if !setAnySearchValues {
-		searchString += `WHERE task.id=:id`
+		searchString += `WHERE task.id=:id AND task.operation_id=:operation_id `
 		paramDict["id"] = input.TaskID
+	} else {
+		searchString += `AND task.operation_id=:operation_id `
 	}
+	paramDict["operation_id"] = authContext.OperationID
 	searchString += " ORDER BY task.id DESC"
 	query, args, err := sqlx.Named(searchString, paramDict)
 	if err != nil {
@@ -168,5 +173,10 @@ func processMythicRPCTaskSearch(msg amqp.Delivery) interface{} {
 		responseMsg.Error = err.Error()
 		return responseMsg
 	}
-	return MythicRPCTaskSearch(incomingMessage)
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCTaskSearch(incomingMessage, authContext)
 }

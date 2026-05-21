@@ -18,25 +18,35 @@ type ContianerRPCListFileMessageResponse struct {
 	Folders []string `json:"folders"`
 }
 
-func (r *rabbitMQConnection) SendContainerRPCListFile(getFile ContainerRPCListFileMessage) (*ContianerRPCListFileMessageResponse, error) {
+func (r *rabbitMQConnection) SendContainerRPCListFile(getFile ContainerRPCListFileMessage, authContext RabbitMQAuthContext) (*ContianerRPCListFileMessageResponse, error) {
 	c2ListFileResponse := ContianerRPCListFileMessageResponse{}
 	exclusiveQueue := true
-	if opsecBytes, err := json.Marshal(getFile); err != nil {
+	headers, err := GenerateRabbitMQAuthTokenHeader(authContext)
+	if err != nil {
+		logging.LogError(err, "Failed to generate auth context")
+		return nil, err
+	}
+	opsecBytes, err := json.Marshal(getFile)
+	if err != nil {
 		logging.LogError(err, "Failed to convert list to JSON", "list", getFile)
 		return nil, err
-	} else if response, err := r.SendRPCMessage(
+	}
+	response, err := r.SendRPCMessage(
 		MYTHIC_EXCHANGE,
 		GetC2RPCListFileRoutingKey(getFile.Name),
 		opsecBytes,
 		exclusiveQueue,
 		RPC_RETRY_POLICY_CUSTOM_TIMEOUT,
-	); err != nil {
+		headers,
+	)
+	if err != nil {
 		logging.LogError(err, "Failed to send RPC message")
 		return nil, err
-	} else if err := json.Unmarshal(response, &c2ListFileResponse); err != nil {
+	}
+	err = json.Unmarshal(response, &c2ListFileResponse)
+	if err != nil {
 		logging.LogError(err, "Failed to parse c2 list file response back to struct", "response", response)
 		return nil, err
-	} else {
-		return &c2ListFileResponse, nil
 	}
+	return &c2ListFileResponse, nil
 }

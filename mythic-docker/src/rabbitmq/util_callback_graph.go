@@ -355,8 +355,8 @@ func (g *cbGraph) AddByAgentIds(source string, destination string, c2profileName
 	if errors.Is(err, sql.ErrNoRows) {
 		// this specific combination didn't yield any results, so add it
 		_, err := database.DB.NamedExec(`INSERT INTO callbackgraphedge
-			(operation_id, source_id, destination_id, c2_profile_id)
-			VALUES (:operation_id, :source_id, :destination_id, :c2_profile_id)`, edge)
+				(operation_id, source_id, destination_id, c2_profile_id, apitokens_id)
+				VALUES (:operation_id, :source_id, :destination_id, :c2_profile_id, :apitokens_id)`, edge)
 		if err != nil {
 			logging.LogError(err, "Failed to insert new edge for P2P connection")
 		} else {
@@ -512,7 +512,7 @@ func RemoveEdgeByIds(sourceId int, destinationId int, c2profileName string) erro
 	}
 	return nil
 }
-func AddEdgeById(sourceId int, destinationId int, c2profileName string) error {
+func AddEdgeById(sourceId int, destinationId int, c2profileName string, authContext RabbitMQAuthContext) error {
 	sourceCallback := databaseStructs.Callback{}
 	destinationCallback := databaseStructs.Callback{}
 	edge := databaseStructs.Callbackgraphedge{}
@@ -534,9 +534,13 @@ func AddEdgeById(sourceId int, destinationId int, c2profileName string) error {
 	edge.DestinationID = destinationCallback.ID
 	edge.OperationID = sourceCallback.OperationID
 	edge.C2ProfileID = getC2ProfileIdForName(c2profileName)
+	if authContext.APITokensID > 0 {
+		edge.APITokensID.Valid = true
+		edge.APITokensID.Int64 = int64(authContext.APITokensID)
+	}
 	_, err = database.DB.NamedExec(`INSERT INTO callbackgraphedge 
-		(operation_id, source_id, destination_id, c2_profile_id)
-		VALUES (:operation_id, :source_id, :destination_id, :c2_profile_id)
+		(operation_id, source_id, destination_id, c2_profile_id, apitokens_id)
+		VALUES (:operation_id, :source_id, :destination_id, :c2_profile_id, :apitokens_id)
 		ON CONFLICT DO NOTHING`, edge)
 	if err != nil {
 		logging.LogError(err, "Failed to insert new edge for P2P connection")
@@ -582,7 +586,7 @@ func getC2ProfileForName(c2profileName string) databaseStructs.C2profile {
 	c2profileNameToIdMap[c2profileName] = c2profile
 	return c2profile
 }
-func AddEdgeByDisplayIds(sourceId int, destinationId int, c2profileName string, operatorOperation *databaseStructs.Operatoroperation) error {
+func AddEdgeByDisplayIds(sourceId int, destinationId int, c2profileName string, operatorOperation *databaseStructs.Operatoroperation, authContext RabbitMQAuthContext) error {
 	source := databaseStructs.Callback{}
 	destination := databaseStructs.Callback{}
 	err := database.DB.Get(&source, `SELECT id FROM callback WHERE display_id=$1 AND operation_id=$2`,
@@ -597,7 +601,7 @@ func AddEdgeByDisplayIds(sourceId int, destinationId int, c2profileName string, 
 		logging.LogError(err, "Failed to find destination callback when trying to add edge")
 		return err
 	}
-	return AddEdgeById(source.ID, destination.ID, c2profileName)
+	return AddEdgeById(source.ID, destination.ID, c2profileName, authContext)
 }
 func RemoveEdgeById(edgeId int, operatorOperation *databaseStructs.Operatoroperation) error {
 	callbackEdge := databaseStructs.Callbackgraphedge{}

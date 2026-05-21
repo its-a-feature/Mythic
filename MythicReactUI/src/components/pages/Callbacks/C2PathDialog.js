@@ -267,7 +267,7 @@ const C2CollapsedGroupEdgeDialog = ({details, onClose, onOpenCallbackTasking}) =
     };
     return (
         <>
-            <DialogTitle className="mythic-c2-action-title">
+            <DialogTitle className="mythic-accent-dialog-title">
                 <Typography component="div" className="mythic-c2-action-title-text">
                     {details?.groupLabel || "Callback Group"} Route Summary
                 </Typography>
@@ -385,7 +385,7 @@ const C2ManualRemoveEdgeDialog = ({options = [], onSubmit, onClose}) => {
     };
     return (
         <>
-            <DialogTitle className="mythic-c2-action-title">
+            <DialogTitle className="mythic-accent-dialog-title">
                 <Typography component="div" className="mythic-c2-action-title-text">
                     Remove Active Edge
                 </Typography>
@@ -444,7 +444,7 @@ const C2SelectLinkCommandDialog = ({options = [], callback, onSubmit, onClose}) 
     };
     return (
         <>
-            <DialogTitle className="mythic-c2-action-title">
+            <DialogTitle className="mythic-accent-dialog-title">
                 <Typography component="div" className="mythic-c2-action-title-text">
                     Select Link Command
                 </Typography>

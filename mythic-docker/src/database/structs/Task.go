@@ -63,6 +63,7 @@ type Task struct {
 	InteractiveTaskType                structs.NullInt64 `db:"interactive_task_type" json:"interactive_task_type"`
 	EventStepInstanceID                structs.NullInt64 `db:"eventstepinstance_id" json:"event_step_instance_id" mapstructure:"event_step_instance_id"`
 	APITokensID                        structs.NullInt64 `db:"apitokens_id" json:"api_tokens_id" mapstructure:"apitokens_id"`
+	APIToken                           Apitokens         `db:"apitoken" json:"apitoken"`
 	HasInterceptedResponse             bool              `db:"has_intercepted_response" json:"has_intercepted_response"`
 	CommandPayloadType                 string            `db:"command_payload_type" json:"command_payload_type" mapstructure:"command_payload_type"`
 	ProcessAtOriginalCommand           bool              `db:"process_at_original_command" json:"process_at_original_command" mapstructure:"process_at_original_command"`

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/rabbitmq"
 
 	"github.com/gin-gonic/gin"
@@ -56,11 +57,11 @@ func FileDirectViewWebhook(c *gin.Context) {
 			c.AbortWithStatus(http.StatusNotFound)
 			return
 		}
-		go tagFileAs(payload.Filemeta.ID, user.Username, payload.Filemeta.OperationID, tagTypePreview, nil, c, false)
+		go tagFileAs(payload.Filemeta.ID, user.Username, payload.Filemeta.OperationID, tagTypePreview, nil, c, false, authentication.RabbitMQAuthContextFromGin(c))
 		c.File(payload.Filemeta.Path)
 		return
 	}
-	go tagFileAs(filemeta.ID, user.Username, filemeta.OperationID, tagTypePreview, nil, c, false)
+	go tagFileAs(filemeta.ID, user.Username, filemeta.OperationID, tagTypePreview, nil, c, false, authentication.RabbitMQAuthContextFromGin(c))
 	c.File(filemeta.Path)
 	return
 }

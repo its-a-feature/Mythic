@@ -1,8 +1,10 @@
 package webcontroller
 
 import (
-	"github.com/its-a-feature/Mythic/rabbitmq"
 	"net/http"
+
+	"github.com/its-a-feature/Mythic/authentication"
+	"github.com/its-a-feature/Mythic/rabbitmq"
 
 	"github.com/gin-gonic/gin"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -26,7 +28,7 @@ func RequestOpsecBypassWebhook(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
 		return
 	}
-	ginOperatorOperation, ok := c.Get("operatorOperation")
+	ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct)
 	if !ok {
 		logging.LogError(err, "Failed to get operatorOperation information for RequestOpsecBypassWebhook")
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": "Failed to get current operation. Is it set?"})
@@ -36,6 +38,7 @@ func RequestOpsecBypassWebhook(c *gin.Context) {
 	c.JSON(http.StatusOK, rabbitmq.RequestOpsecBypass(rabbitmq.RequestOpsecBypassMessage{
 		TaskID:            input.Input.TaskID,
 		OperatorOperation: operatorOperation,
+		AuthContext:       authentication.RabbitMQAuthContextFromGin(c),
 	}))
 	return
 }

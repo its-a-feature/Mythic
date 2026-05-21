@@ -392,8 +392,16 @@ func setRoutes(r *gin.Engine) {
 						mythicjwt.SCOPE_TASK_WRITE,
 					}),
 					webcontroller.AddAttackToTaskWebhook)
-				noSpectators.POST("reissue_task_webhook", blank)
-				noSpectators.POST("reissue_task_handler_webhook", blank)
+				noSpectators.POST("reissue_task_webhook",
+					authentication.TokenScopeMiddleware([]string{
+						mythicjwt.SCOPE_TASK_WRITE,
+					}),
+					webcontroller.ReissueTaskWebhook)
+				noSpectators.POST("reissue_task_handler_webhook",
+					authentication.TokenScopeMiddleware([]string{
+						mythicjwt.SCOPE_TASK_WRITE,
+					}),
+					webcontroller.ReissueTaskHandlerWebhook)
 				noSpectators.POST("request_opsec_bypass_webhook",
 					authentication.TokenScopeMiddleware([]string{
 						mythicjwt.SCOPE_TASK_WRITE,

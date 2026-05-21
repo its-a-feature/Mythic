@@ -905,7 +905,7 @@ const CreateEventingStep1 = ({finished, back, first, last, cancel, prevData}) =>
                         <div className="mythic-eventing-metadata-field">
                             <div className="mythic-eventing-metadata-label">Trigger data</div>
                             {triggerOptionsData[trigger]?.trigger_data?.length > 0 ?
-                                (<div className="mythic-eventing-trigger-parameter-list">
+                                (<div className="mythic-eventing-trigger-parameter-list mythic-column-stack">
                                     {triggerData?.map( t => (
                                         <CreatePayloadParameter key={t.name} onChange={onChangeTriggerData} displayMode="card" {...t} />
                                     ))}
@@ -1005,7 +1005,7 @@ const EventingActionDataShell = ({children}) => (
         <Typography component="div" className="mythic-eventing-step-help-text">
             {eventingActionDataHelp}
         </Typography>
-        <div className="mythic-eventing-action-data-list">
+        <div className="mythic-column-stack">
             {children}
         </div>
     </>

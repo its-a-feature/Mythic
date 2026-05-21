@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/logging"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -28,6 +29,7 @@ func init() {
 		Queue:      MYTHIC_RPC_CALLBACK_ENCRYPT_BYTES,
 		RoutingKey: MYTHIC_RPC_CALLBACK_ENCRYPT_BYTES,
 		Handler:    processMythicRPCCallbackEncryptBytes,
+		Scopes:     []string{mythicjwt.SCOPE_CALLBACK_WRITE},
 	})
 }
 
@@ -36,14 +38,14 @@ func MythicRPCCallbackEncryptBytes(input MythicRPCCallbackEncryptBytesMessage) M
 	response := MythicRPCCallbackEncryptBytesMessageResponse{
 		Success: false,
 	}
-	if cipherText, err := CallbackEncryptMessage(input); err != nil {
+	cipherText, err := CallbackEncryptMessage(input)
+	if err != nil {
 		response.Error = err.Error()
 		return response
-	} else {
-		response.Success = true
-		response.Message = cipherText
-		return response
 	}
+	response.Success = true
+	response.Message = cipherText
+	return response
 }
 func CallbackEncryptMessage(input MythicRPCCallbackEncryptBytesMessage) ([]byte, error) {
 	cachedInfo, err := LookupEncryptionData(input.C2Profile, input.AgentCallbackID, false)
@@ -105,11 +107,11 @@ func processMythicRPCCallbackEncryptBytes(msg amqp.Delivery) interface{} {
 	responseMsg := MythicRPCCallbackEncryptBytesMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCCallbackEncryptBytes(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	return MythicRPCCallbackEncryptBytes(incomingMessage)
 }

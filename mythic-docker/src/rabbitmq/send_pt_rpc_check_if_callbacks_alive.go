@@ -127,6 +127,7 @@ func (r *rabbitMQConnection) SendPTRPCCheckIfCallbacksAlive(sendMsg PTCheckIfCal
 		opsecBytes,
 		exclusiveQueue,
 		RPC_RETRY_POLICY_RETRY_ON_TIMEOUT,
+		nil,
 	)
 	if err != nil {
 		return nil, err

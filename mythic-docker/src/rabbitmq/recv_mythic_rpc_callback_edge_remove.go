@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"encoding/json"
 
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/logging"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -23,6 +24,7 @@ func init() {
 		Queue:      MYTHIC_RPC_CALLBACK_EDGE_REMOVE,
 		RoutingKey: MYTHIC_RPC_CALLBACK_EDGE_REMOVE,
 		Handler:    processMythicRPCCallbackEdgeRemove,
+		Scopes:     []string{mythicjwt.SCOPE_CALLBACK_WRITE},
 	})
 }
 
@@ -45,11 +47,11 @@ func processMythicRPCCallbackEdgeRemove(msg amqp.Delivery) interface{} {
 	responseMsg := MythicRPCCallbackEdgeRemoveMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCCallbackEdgeRemove(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	return MythicRPCCallbackEdgeRemove(incomingMessage)
 }

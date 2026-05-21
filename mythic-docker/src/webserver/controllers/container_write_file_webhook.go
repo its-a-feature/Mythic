@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/rabbitmq"
 )
@@ -28,7 +29,8 @@ type WriteContainerFileResponse struct {
 func ContainerWriteFileWebhook(c *gin.Context) {
 	// get variables from the POST request
 	var input WriteContainerFileInput
-	if err := c.ShouldBindJSON(&input); err != nil {
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
 		c.JSON(http.StatusOK, WriteContainerFileResponse{
 			Status: "error",
 			Error:  err.Error(),
@@ -45,11 +47,12 @@ func ContainerWriteFileWebhook(c *gin.Context) {
 		})
 		return
 	}
+	authContext := authentication.RabbitMQAuthContextFromGin(c)
 	c2ProfileResponse, err := rabbitmq.RabbitMQConnection.SendContainerRPCWriteFile(rabbitmq.ContainerWriteFileMessage{
 		Filename: input.Input.Filename,
 		Name:     input.Input.ContainerName,
 		Contents: fileContents,
-	})
+	}, authContext)
 	if err != nil {
 		c.JSON(http.StatusOK, WriteContainerFileResponse{
 			Status: "error",
@@ -67,7 +70,7 @@ func ContainerWriteFileWebhook(c *gin.Context) {
 		return
 	}
 	if input.Input.Filename == "config.json" {
-		go rabbitmq.RestartC2ServerAfterUpdate(input.Input.ContainerName, false)
+		go rabbitmq.RestartC2ServerAfterUpdate(input.Input.ContainerName, false, authContext)
 	}
 	go rabbitmq.CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(input.Input.ContainerName)
 	c.JSON(http.StatusOK, WriteContainerFileResponse{

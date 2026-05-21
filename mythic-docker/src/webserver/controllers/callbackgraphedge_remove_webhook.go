@@ -1,8 +1,10 @@
 package webcontroller
 
 import (
-	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"net/http"
+
+	"github.com/its-a-feature/Mythic/authentication"
+	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/logging"
@@ -24,7 +26,7 @@ func CallbackgraphedgeRemoveWebhook(c *gin.Context) {
 		logging.LogError(err, "Failed to get JSON parameters for CallbackgraphedgeRemoveWebhook")
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
 		return
-	} else if ginOperatorOperation, ok := c.Get("operatorOperation"); !ok {
+	} else if ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct); !ok {
 		logging.LogError(err, "Failed to get operatorOperation information for CallbackgraphedgeAddWebhook")
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": "Failed to get current operation. Is it set?"})
 		return

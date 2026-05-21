@@ -1,37 +1,98 @@
-export function copyStringToClipboard(str) {
-    let el = document.createElement('textarea');
+function copyStringToClipboardWithExecCommand(text) {
+    let copyTarget = null;
+    const selectedRanges = [];
+    const selection = document.getSelection();
+    const activeElement = document.activeElement;
+    const onCopy = (event) => {
+        if(event.clipboardData){
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+            try {
+                event.clipboardData.clearData();
+            } catch {
+                // Some browsers expose setData without allowing clearData during copy.
+            }
+            event.clipboardData.setData("text/plain", text);
+        }
+    };
     try {
-        // Create new element
-
-        // Set value (string to be copied)
-        el.value = str;
-        if(el.value === ""){
-            el.value = " ";
+        if(selection){
+            for(let i = 0; i < selection.rangeCount; i++){
+                selectedRanges.push(selection.getRangeAt(i).cloneRange());
+            }
         }
-        // Set non-editable to avoid focus and move outside of view
-        el.setAttribute('readonly', '');
-        el.style = {position: 'absolute', left: '-9999px'};
-        document.body.appendChild(el);
-        // Select text inside element
-        el.select();
-        // Copy text to clipboard
-        let success = document.execCommand('copy');
-        if(!success){
-            console.log("failed to copy data");
+        copyTarget = document.createElement('span');
+        copyTarget.textContent = text;
+        copyTarget.setAttribute('aria-hidden', 'true');
+        copyTarget.style.position = 'fixed';
+        copyTarget.style.top = '0';
+        copyTarget.style.left = '0';
+        copyTarget.style.width = '1px';
+        copyTarget.style.height = '1px';
+        copyTarget.style.margin = '-1px';
+        copyTarget.style.padding = '0';
+        copyTarget.style.border = '0';
+        copyTarget.style.overflow = 'hidden';
+        copyTarget.style.clip = 'rect(0, 0, 0, 0)';
+        copyTarget.style.whiteSpace = 'pre';
+        copyTarget.style.userSelect = 'text';
+        copyTarget.style.webkitUserSelect = 'text';
+        copyTarget.style.MozUserSelect = 'text';
+        document.body.appendChild(copyTarget);
+        if(selection){
+            const copyRange = document.createRange();
+            copyRange.selectNodeContents(copyTarget);
+            selection.removeAllRanges();
+            selection.addRange(copyRange);
         }
-        success = document.execCommand('cut');
-        if(!success){
-            console.log("failed to cut data");
-        }
-        navigator?.clipboard?.writeText(el.value);
-        // Remove temporary element
-        document.body.removeChild(el);
-        return true;
+        document.addEventListener("copy", onCopy, true);
+        return document.execCommand('copy');
     } catch (error) {
-        document.body.removeChild(el);
-        console.log("warning", "Failed to copy to clipboard: " + error.toString());
+        console.log("warning", "Failed to copy to clipboard with fallback: " + error.toString());
         return false;
+    } finally {
+        document.removeEventListener("copy", onCopy, true);
+        if(copyTarget?.parentNode){
+            copyTarget.parentNode.removeChild(copyTarget);
+        }
+        if(selection){
+            try {
+                selection.removeAllRanges();
+                selectedRanges.forEach((range) => selection.addRange(range));
+            } catch (error) {
+                console.log("warning", "Failed to restore selection after clipboard copy: " + error.toString());
+            }
+        }
+        if(activeElement?.focus){
+            try {
+                activeElement.focus({preventScroll: true});
+            } catch (error) {
+                activeElement.focus();
+            }
+        }
     }
+}
+
+export function copyStringToClipboard(str) {
+    const text = str === undefined || str === null || String(str) === "" ? " " : String(str);
+    let clipboardApiStarted = false;
+    try {
+        if(navigator?.clipboard?.writeText){
+            clipboardApiStarted = true;
+            navigator.clipboard.writeText(text).catch((error) => {
+                console.log("warning", "Failed to copy to clipboard with Clipboard API: " + error.toString());
+            });
+        }
+    } catch (error) {
+        console.log("warning", "Failed to start Clipboard API copy: " + error.toString());
+    }
+    const fallbackSuccess = copyStringToClipboardWithExecCommand(text);
+    if(clipboardApiStarted || fallbackSuccess){
+        return true;
+    }
+    console.log("failed to copy data");
+    return false;
 }
 
 export function downloadFileFromMemory(output, filename){

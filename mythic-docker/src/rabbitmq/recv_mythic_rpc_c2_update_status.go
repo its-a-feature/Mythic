@@ -3,11 +3,13 @@ package rabbitmq
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"strings"
 )
 
 type MythicRPCC2UpdateStatusMessage struct {
@@ -26,6 +28,7 @@ func init() {
 		Queue:      MYTHIC_RPC_C2_UPDATE_STATUS,
 		RoutingKey: MYTHIC_RPC_C2_UPDATE_STATUS,
 		Handler:    processMythicRPCC2UpdateStatus,
+		Scopes:     []string{mythicjwt.SCOPE_C2_WRITE},
 	})
 }
 

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -89,6 +90,7 @@ func init() {
 		Queue:      "mythic_consume_c2_sync",
 		RoutingKey: C2_SYNC_ROUTING_KEY,
 		Handler:    processC2SyncMessages,
+		Scopes:     []string{},
 	})
 }
 
@@ -192,7 +194,7 @@ func c2Sync(in C2SyncMessage) error {
 	}
 	go SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", c2Profile.Name, in.ContainerVersion), 0, "debug", database.MESSAGE_LEVEL_DEBUG, false)
 	go ResolveAllOperationsMessageBySource(getDownContainerSource(c2Profile.Name), 0)
-	go autoStartC2Profile(c2Profile, false)
+	go autoStartC2Profile(c2Profile, false, RabbitMQAuthContext{})
 	if newProfile {
 		go reSyncPayloadTypes()
 	}
@@ -362,7 +364,7 @@ func updateC2Parameters(in C2SyncMessage, c2Profile databaseStructs.C2profile) e
 	return nil
 }
 
-func autoStartC2Profile(c2Profile databaseStructs.C2profile, startC2Only bool) *C2StartServerMessageResponse {
+func autoStartC2Profile(c2Profile databaseStructs.C2profile, startC2Only bool, authContext RabbitMQAuthContext) *C2StartServerMessageResponse {
 	// on a new sync, if it's not p2p, ask it to start
 	var c2StartResp *C2StartServerMessageResponse
 	c2StartResp = new(C2StartServerMessageResponse)
@@ -372,7 +374,7 @@ func autoStartC2Profile(c2Profile databaseStructs.C2profile, startC2Only bool) *
 		CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(c2Profile.Name)
 	}
 	if !c2Profile.IsP2p {
-		c2StartResp, err = RabbitMQConnection.SendC2RPCStartServer(C2StartServerMessage{Name: c2Profile.Name})
+		c2StartResp, err = RabbitMQConnection.SendC2RPCStartServer(C2StartServerMessage{Name: c2Profile.Name}, authContext)
 		time.Sleep(10 * time.Second) // give the server a chance to start back up
 		if err != nil {
 			logging.LogError(err, "Failed to send start message to C2 profile")
@@ -416,6 +418,8 @@ func autoReHostFiles(c2Profile databaseStructs.C2profile) {
 					FileUUID: newTagMap["agent_file_id"].(string),
 					HostURL:  newTagMap["host_url"].(string),
 					Remove:   false,
+				}, RabbitMQAuthContext{
+					SourceScopes: []string{mythicjwt.SCOPE_FILE_READ},
 				})
 				logging.LogInfo("got response from sending host file", "c2", newTagMap["c2_profile"].(string), "url", newTagMap["host_url"].(string))
 				// sleep for 3 seconds to allow the internal c2 binary to start up before we send anything else

@@ -730,8 +730,8 @@ export function TopAppBarVertical(props) {
   const [serverName, setServerName] = React.useState("...");
   useQuery(GET_SETTINGS, {fetchPolicy: "no-cache",
     onCompleted: (data) => {
-      setServerVersion(data.getGlobalSettings.settings["server_config"]["version"]);
-      setServerName(data.getGlobalSettings.settings["server_config"]["name"]);
+      setServerVersion(data.getGlobalSettings?.settings?.["server_config"]?.["version"]);
+      setServerName(data.getGlobalSettings?.settings?.["server_config"]?.["name"]);
     }
   });
   const toggleDrawerOpen = (e) => {
@@ -841,11 +841,13 @@ export function TopAppBarVertical(props) {
               borderRadius: theme.shape.borderRadius,
           }}>
             <StyledListItemIcon>
-                <img src={ReactLogo} onClick={()=>navigate('/new')} width={"32px"} height={"28px"} alt="Mythic" style={{cursor: "pointer"}}/>
+                <img src={ReactLogo} onClick={()=>navigate('/new')} width={"35px"} height={"35px"} alt="Mythic" style={{cursor: "pointer"}}/>
             </StyledListItemIcon>
             <ListItemText style={{margin: 0}} primary={
                 <>
-                    <Typography style={{ fontSize: 12, color: theme.navigation.muted, display: "inline-block", lineHeight: 1.35}}>
+                    <Typography style={{ fontSize: 12, color: theme.navigation.muted, display: "inline-block",
+                        marginLeft: "1rem",
+                        lineHeight: 1.35}}>
                         <b>Mythic:</b> v{serverVersion}<br/>
                         <b>UI:</b> v{mythicUIVersion}<br/>
                     </Typography>

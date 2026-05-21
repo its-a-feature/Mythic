@@ -15,12 +15,17 @@ type CommandHelpMessageResponse struct {
 	Error   string `json:"error"`
 }
 
-func (r *rabbitMQConnection) SendPtRPCCommandHelp(msg CommandHelpMessage) (*CommandHelpMessageResponse, error) {
+func (r *rabbitMQConnection) SendPtRPCCommandHelp(msg CommandHelpMessage, authContext RabbitMQAuthContext) (*CommandHelpMessageResponse, error) {
 	configCheckResponse := CommandHelpMessageResponse{}
 	exclusiveQueue := true
 	configBytes, err := json.Marshal(msg)
 	if err != nil {
 		logging.LogError(err, "Failed to convert commandHelp to JSON", "commandHelp", msg)
+		return nil, err
+	}
+	headers, err := GenerateRabbitMQAuthTokenHeader(authContext)
+	if err != nil {
+		logging.LogError(err, "Failed to generate auth context")
 		return nil, err
 	}
 	logging.LogDebug("Sending commandHelp to RabbitMQ", "commandHelp", msg)
@@ -30,6 +35,7 @@ func (r *rabbitMQConnection) SendPtRPCCommandHelp(msg CommandHelpMessage) (*Comm
 		configBytes,
 		exclusiveQueue,
 		RPC_RETRY_POLICY_RETRY_ON_TIMEOUT,
+		headers,
 	)
 	if err != nil {
 		logging.LogError(err, "Failed to send RPC message")

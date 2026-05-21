@@ -21,12 +21,17 @@ type C2StopServerMessageResponse struct {
 	InternalServerRunning bool   `json:"server_running"`
 }
 
-func (r *rabbitMQConnection) SendC2RPCStopServer(stopServer C2StopServerMessage) (*C2StopServerMessageResponse, error) {
+func (r *rabbitMQConnection) SendC2RPCStopServer(stopServer C2StopServerMessage, authContext RabbitMQAuthContext) (*C2StopServerMessageResponse, error) {
 	c2StopServerResponse := C2StopServerMessageResponse{}
 	exclusiveQueue := true
 	opsecBytes, err := json.Marshal(stopServer)
 	if err != nil {
 		logging.LogError(err, "Failed to convert stopServer to JSON", "stopServer", stopServer)
+		return &c2StopServerResponse, err
+	}
+	headers, err := GenerateRabbitMQAuthTokenHeader(authContext)
+	if err != nil {
+		logging.LogError(err, "Failed to generate auth context")
 		return &c2StopServerResponse, err
 	}
 	response, err := r.SendRPCMessage(
@@ -35,6 +40,7 @@ func (r *rabbitMQConnection) SendC2RPCStopServer(stopServer C2StopServerMessage)
 		opsecBytes,
 		exclusiveQueue,
 		RPC_RETRY_POLICY_NO_RETRY_ON_TIMEOUT,
+		headers,
 	)
 	if err != nil {
 		logging.LogError(err, "Failed to send RPC message")

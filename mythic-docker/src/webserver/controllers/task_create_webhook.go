@@ -52,7 +52,7 @@ func CreateTaskWebhook(c *gin.Context) {
 		return
 	}
 	// get information about the user and operation that's being tasked
-	ginOperatorOperation, ok := c.Get("operatorOperation")
+	ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct)
 	if !ok {
 		c.JSON(http.StatusOK, rabbitmq.CreateTaskResponse{
 			Status: "error",
@@ -79,9 +79,12 @@ func CreateTaskWebhook(c *gin.Context) {
 			operatorOperation.CurrentOperation.ID, "mass_tasking", database.MESSAGE_LEVEL_INFO, false)
 	}
 	eventStepInstanceID := 0
+	apitokensID := 0
 	if claims != nil {
 		eventStepInstanceID = claims.EventStepInstanceID
+		apitokensID = claims.APITokensID
 	}
+	authContext := authentication.RabbitMQAuthContextFromGin(c)
 	createTaskInput := rabbitmq.CreateTaskInput{
 		CallbackDisplayID:   callbacks[0],
 		CurrentOperationID:  operatorOperation.CurrentOperation.ID,
@@ -98,7 +101,9 @@ func CreateTaskWebhook(c *gin.Context) {
 		IsInteractiveTask:   input.Input.IsInteractiveTask,
 		InteractiveTaskType: input.Input.InteractiveTaskType,
 		EventStepInstanceID: eventStepInstanceID,
+		APITokensID:         apitokensID,
 		PayloadType:         input.Input.PayloadType,
+		AuthContext:         authContext,
 	}
 	if operatorOperation.BaseDisabledCommandsID.Valid {
 		baseDisabledCommandsId := int(operatorOperation.BaseDisabledCommandsID.Int64)
@@ -107,13 +112,13 @@ func CreateTaskWebhook(c *gin.Context) {
 	logging.LogDebug("got creating tasking from web", "createTasking", createTaskInput)
 	c.JSON(http.StatusOK, rabbitmq.CreateTask(createTaskInput))
 	if len(callbacks) > 1 {
-		go issueMassTasking(input, callbacks[1:], operatorOperation, eventStepInstanceID)
+		go issueMassTasking(input, callbacks[1:], operatorOperation, eventStepInstanceID, apitokensID, authContext)
 	}
 	return
 
 }
 func issueMassTasking(input CreateTaskInput, callbacks []int, operatorOperation *databaseStructs.Operatoroperation,
-	eventStepInstanceID int) {
+	eventStepInstanceID int, apitokensID int, authContext rabbitmq.RabbitMQAuthContext) {
 	for indx, callbackDisplayID := range callbacks {
 		logging.LogInfo("Creating mass tasking", "task num", indx+2, "total tasks", len(callbacks))
 		createTaskInput := rabbitmq.CreateTaskInput{
@@ -132,7 +137,9 @@ func issueMassTasking(input CreateTaskInput, callbacks []int, operatorOperation 
 			IsInteractiveTask:   input.Input.IsInteractiveTask,
 			InteractiveTaskType: input.Input.InteractiveTaskType,
 			EventStepInstanceID: eventStepInstanceID,
+			APITokensID:         apitokensID,
 			PayloadType:         input.Input.PayloadType,
+			AuthContext:         authContext,
 		}
 		if operatorOperation.BaseDisabledCommandsID.Valid {
 			baseDisabledCommandsId := int(operatorOperation.BaseDisabledCommandsID.Int64)

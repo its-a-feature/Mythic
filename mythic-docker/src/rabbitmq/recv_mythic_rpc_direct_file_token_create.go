@@ -34,7 +34,7 @@ func init() {
 	})
 }
 
-func MythicRPCDirectFileTokenCreate(input MythicRPCDirectFileTokenCreateMessage) MythicRPCDirectFileTokenCreateMessageResponse {
+func MythicRPCDirectFileTokenCreate(input MythicRPCDirectFileTokenCreateMessage, authContext RabbitMQAuthContext) MythicRPCDirectFileTokenCreateMessageResponse {
 	response := MythicRPCDirectFileTokenCreateMessageResponse{Success: false}
 	if input.FileUUID == "" {
 		response.Error = "file_uuid is required"
@@ -42,34 +42,26 @@ func MythicRPCDirectFileTokenCreate(input MythicRPCDirectFileTokenCreateMessage)
 	}
 	file := databaseStructs.Filemeta{}
 	err := database.DB.Get(&file, `SELECT 
-    	operator_id, operation_id, eventstepinstance_id, apitokens_id
+		id
 		FROM filemeta 
-		WHERE agent_file_id=$1`,
-		input.FileUUID)
+		WHERE agent_file_id=$1 AND operation_id=$2`,
+		input.FileUUID, authContext.OperationID)
 	if err != nil {
 		response.Error = err.Error()
 		return response
 	}
 	user := databaseStructs.Operator{
-		ID: file.OperatorID,
+		ID: authContext.OperatorID,
 		CurrentOperationID: sql.NullInt64{
 			Valid: true,
-			Int64: int64(file.OperationID),
+			Int64: int64(authContext.OperationID),
 		},
 	}
-	eventstepInstanceID := 0
-	if file.EventStepInstanceID.Valid {
-		eventstepInstanceID = int(file.EventStepInstanceID.Int64)
-	}
 	scope := mythicjwt.SCOPE_FILE_READ
-	if input.Action == "upload" {
+	if input.Action == "upload" || input.Action == "both" {
 		scope = mythicjwt.SCOPE_FILE_WRITE
 	}
-	apitokenID := 0
-	if file.APITokensID.Valid {
-		apitokenID = int(file.APITokensID.Int64)
-	}
-	token, _, err := mythicjwt.GenerateScopedJWT(user, []string{scope}, input.FileUUID, directFileScopedTokenTTL, eventstepInstanceID, apitokenID)
+	token, _, err := mythicjwt.GenerateScopedJWT(user, []string{scope}, input.FileUUID, directFileScopedTokenTTL, authContext.EventStepInstanceID, authContext.APITokensID)
 	if err != nil {
 		response.Error = err.Error()
 		return response
@@ -82,11 +74,16 @@ func MythicRPCDirectFileTokenCreate(input MythicRPCDirectFileTokenCreateMessage)
 func processMythicRPCDirectFileTokenCreate(msg amqp.Delivery) interface{} {
 	incomingMessage := MythicRPCDirectFileTokenCreateMessage{}
 	responseMsg := MythicRPCDirectFileTokenCreateMessageResponse{Success: false}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCDirectFileTokenCreate(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCDirectFileTokenCreate(incomingMessage, authContext)
 }

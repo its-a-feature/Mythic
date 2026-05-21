@@ -2,11 +2,13 @@ package webcontroller
 
 import (
 	"fmt"
-	"github.com/its-a-feature/Mythic/rabbitmq"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/its-a-feature/Mythic/authentication"
+	"github.com/its-a-feature/Mythic/rabbitmq"
 
 	"github.com/gin-gonic/gin"
 	mythicCrypto "github.com/its-a-feature/Mythic/crypto"
@@ -38,7 +40,7 @@ func EventGroupRegisterFileWebhook(c *gin.Context) {
 		})
 		return
 	}
-	ginOperatorOperation, ok := c.Get("operatorOperation")
+	ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct)
 	if !ok {
 		logging.LogError(nil, "Failed to get current operation from JWT")
 		c.JSON(http.StatusOK, gin.H{
@@ -96,6 +98,15 @@ func EventGroupRegisterFileWebhook(c *gin.Context) {
 		DeleteAfterFetch: false,
 		AgentFileID:      fileUUID,
 	}
+	authContext := authentication.RabbitMQAuthContextFromGin(c)
+	if authContext.APITokensID > 0 {
+		fileMeta.APITokensID.Valid = true
+		fileMeta.APITokensID.Int64 = int64(authContext.APITokensID)
+	}
+	if authContext.EventStepInstanceID > 0 {
+		fileMeta.EventStepInstanceID.Valid = true
+		fileMeta.EventStepInstanceID.Int64 = int64(authContext.EventStepInstanceID)
+	}
 	if cmt, exists := c.GetPostForm("comment"); exists {
 		fileMeta.Comment = cmt
 	}
@@ -112,8 +123,8 @@ func EventGroupRegisterFileWebhook(c *gin.Context) {
 		fileMeta.Size = fileDisk.Size()
 	}
 	statement, err := database.DB.PrepareNamed(`INSERT INTO filemeta 
-			(filename,total_chunks,chunks_received,chunk_size,"path",operation_id,complete,"comment",operator_id,delete_after_fetch,md5,sha1,agent_file_id,size,eventgroup_id)
-			VALUES (:filename, :total_chunks, :chunks_received, :chunk_size, :path, :operation_id, :complete, :comment, :operator_id, :delete_after_fetch, :md5, :sha1, :agent_file_id, :size, :eventgroup_id)
+			(filename,total_chunks,chunks_received,chunk_size,"path",operation_id,complete,"comment",operator_id,delete_after_fetch,md5,sha1,agent_file_id,size,eventgroup_id,apitokens_id,eventstepinstance_id)
+			VALUES (:filename, :total_chunks, :chunks_received, :chunk_size, :path, :operation_id, :complete, :comment, :operator_id, :delete_after_fetch, :md5, :sha1, :agent_file_id, :size, :eventgroup_id, :apitokens_id, :eventstepinstance_id)
 			RETURNING id`)
 	if err != nil {
 		logging.LogError(err, "Failed to save metadata to database")

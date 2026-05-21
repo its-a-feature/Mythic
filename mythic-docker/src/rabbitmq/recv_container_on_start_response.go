@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/its-a-feature/Mythic/database"
 	"github.com/its-a-feature/Mythic/logging"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -20,6 +21,7 @@ func init() {
 		Queue:      CONTAINER_ON_START_RESPONSE,
 		RoutingKey: CONTAINER_ON_START_RESPONSE,
 		Handler:    processContainerOnStartMessageResponse,
+		Scopes:     []string{},
 	})
 }
 

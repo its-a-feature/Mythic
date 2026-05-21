@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"encoding/json"
 
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -11,7 +12,6 @@ import (
 )
 
 type MythicRPCTagSearchMessage struct {
-	TaskID                int     `json:"task_id"`
 	SearchTagID           *int    `json:"search_tag_id"`
 	SearchTagTaskID       *int    `json:"search_tag_task_id"`
 	SearchTagFileID       *int    `json:"search_tag_file_id,omitempty"`
@@ -55,19 +55,14 @@ func init() {
 		Queue:      MYTHIC_RPC_TAG_SEARCH,     // swap out with queue in rabbitmq.constants.go file
 		RoutingKey: MYTHIC_RPC_TAG_SEARCH,     // swap out with routing key in rabbitmq.constants.go file
 		Handler:    processMythicRPCTagSearch, // points to function that takes in amqp.Delivery and returns interface{}
+		Scopes:     []string{mythicjwt.SCOPE_TAG_READ},
 	})
 }
 
 // MYTHIC_RPC_OBJECT_ACTION - Say what the function does
-func MythicRPCTagSearch(input MythicRPCTagSearchMessage) MythicRPCTagSearchMessageResponse {
+func MythicRPCTagSearch(input MythicRPCTagSearchMessage, authContext RabbitMQAuthContext) MythicRPCTagSearchMessageResponse {
 	response := MythicRPCTagSearchMessageResponse{
 		Success: false,
-	}
-	operationID := 0
-	err := database.DB.Get(&operationID, `SELECT task.operation_id FROM task WHERE id=$1`, input.TaskID)
-	if err != nil {
-		response.Error = err.Error()
-		return response
 	}
 	paramDict := make(map[string]interface{})
 	setAnySearchValues := false
@@ -154,11 +149,10 @@ func MythicRPCTagSearch(input MythicRPCTagSearchMessage) MythicRPCTagSearchMessa
 	}
 	if !setAnySearchValues {
 		searchString += `WHERE tag.operation_id=:operation_id `
-		paramDict["operation_id"] = operationID
 	} else {
 		searchString += `AND tag.operation_id=:operation_id `
-		paramDict["operation_id"] = operationID
 	}
+	paramDict["operation_id"] = authContext.OperationID
 	searchString += " ORDER BY tag.id DESC"
 	query, args, err := sqlx.Named(searchString, paramDict)
 	if err != nil {
@@ -224,5 +218,10 @@ func processMythicRPCTagSearch(msg amqp.Delivery) interface{} {
 		responseMsg.Error = err.Error()
 		return responseMsg
 	}
-	return MythicRPCTagSearch(incomingMessage)
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCTagSearch(incomingMessage, authContext)
 }

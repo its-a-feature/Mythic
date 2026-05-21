@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/logging"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -27,6 +28,7 @@ func init() {
 		Queue:      MYTHIC_RPC_CALLBACK_NEXT_CHECKIN_RANGE,   // swap out with queue in rabbitmq.constants.go file
 		RoutingKey: MYTHIC_RPC_CALLBACK_NEXT_CHECKIN_RANGE,   // swap out with routing key in rabbitmq.constants.go file
 		Handler:    processMythicRPCCallbackNextCheckinRange, // points to function that takes in amqp.Delivery and returns interface{}
+		Scopes:     []string{mythicjwt.SCOPE_CALLBACK_READ},
 	})
 }
 
@@ -53,11 +55,11 @@ func processMythicRPCCallbackNextCheckinRange(msg amqp.Delivery) interface{} {
 	responseMsg := MythicRPCCallbackNextCheckinRangeMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCCallbackNextCheckinRange(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	return MythicRPCCallbackNextCheckinRange(incomingMessage)
 }

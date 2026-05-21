@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"encoding/json"
+
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/utils"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -22,6 +23,7 @@ func init() {
 		Queue:      MYTHIC_RPC_FILEBROWSER_PARSE_PATH,
 		RoutingKey: MYTHIC_RPC_FILEBROWSER_PARSE_PATH,
 		Handler:    processMythicRPCFileBrowserParsePath,
+		Scopes:     []string{},
 	})
 }
 
@@ -44,11 +46,11 @@ func processMythicRPCFileBrowserParsePath(msg amqp.Delivery) interface{} {
 	responseMsg := MythicRPCFileBrowserParsePathMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCFileBrowserParsePath(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	return MythicRPCFileBrowserParsePath(incomingMessage)
 }

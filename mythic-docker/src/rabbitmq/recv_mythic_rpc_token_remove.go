@@ -2,6 +2,8 @@ package rabbitmq
 
 import (
 	"encoding/json"
+
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -24,11 +26,12 @@ func init() {
 		Queue:      MYTHIC_RPC_TOKEN_REMOVE,
 		RoutingKey: MYTHIC_RPC_TOKEN_REMOVE,
 		Handler:    processMythicRPCTokenRemove,
+		Scopes:     []string{mythicjwt.SCOPE_RESPONSE_WRITE},
 	})
 }
 
 // Endpoint: MYTHIC_RPC_TOKEN_REMOVE
-func MythicRPCTokenRemove(input MythicRPCTokenRemoveMessage) MythicRPCTokenRemoveMessageResponse {
+func MythicRPCTokenRemove(input MythicRPCTokenRemoveMessage, authContext RabbitMQAuthContext) MythicRPCTokenRemoveMessageResponse {
 	response := MythicRPCTokenRemoveMessageResponse{
 		Success: false,
 	}
@@ -40,35 +43,42 @@ func MythicRPCTokenRemove(input MythicRPCTokenRemoveMessage) MythicRPCTokenRemov
 		input.Tokens[i].Action = "remove"
 	}
 	task := databaseStructs.Task{}
-	if err := database.DB.Get(&task, `SELECT
+	err := database.DB.Get(&task, `SELECT
 	callback.operation_id "callback.operation_id",
 	callback.host "callback.host",
 	task.callback_id "task.callback_id"
 	FROM task
 	JOIN callback ON task.callback_id = callback.id
-	WHERE task.id = $1`, input.TaskID); err != nil {
+	WHERE task.id = $1 AND task.operation_id=$2`, input.TaskID, authContext.OperationID)
+	if err != nil {
 		logging.LogError(err, "Failed to fetch task")
 		response.Error = err.Error()
 		return response
-	} else if err := handleAgentMessagePostResponseTokens(task, &input.Tokens); err != nil {
+	}
+	err = handleAgentMessagePostResponseTokens(task, &input.Tokens)
+	if err != nil {
 		logging.LogError(err, "Failed to create processes in MythicRPCProcessCreate")
 		response.Error = err.Error()
 		return response
-	} else {
-		response.Success = true
-		return response
 	}
+	response.Success = true
+	return response
 }
 func processMythicRPCTokenRemove(msg amqp.Delivery) interface{} {
 	incomingMessage := MythicRPCTokenRemoveMessage{}
 	responseMsg := MythicRPCTokenRemoveMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCTokenRemove(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCTokenRemove(incomingMessage, authContext)
 }

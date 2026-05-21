@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -25,32 +27,33 @@ func init() {
 		Queue:      MYTHIC_RPC_PAYLOAD_ADD_COMMAND,
 		RoutingKey: MYTHIC_RPC_PAYLOAD_ADD_COMMAND,
 		Handler:    processMythicRPCPayloadAddCommand,
+		Scopes:     []string{mythicjwt.SCOPE_PAYLOAD_WRITE},
 	})
 }
 
 // Endpoint: MYTHIC_RPC_PAYLOAD_ADD_COMMAND
-func MythicRPCPayloadAddCommand(input MythicRPCPayloadAddCommandMessage) MythicRPCPayloadAddCommandMessageResponse {
+func MythicRPCPayloadAddCommand(input MythicRPCPayloadAddCommandMessage, authContext RabbitMQAuthContext) MythicRPCPayloadAddCommandMessageResponse {
 	response := MythicRPCPayloadAddCommandMessageResponse{
 		Success: false,
 	}
 	payload := databaseStructs.Payload{}
-	if err := database.DB.Get(&payload, `SELECT payload.id, payload_type_id
+	err := database.DB.Get(&payload, `SELECT 
+    payload.id, payload_type_id
 	FROM payload
-	WHERE uuid=$1`, input.PayloadUUID); err != nil {
+	WHERE uuid=$1 AND operation_id=$2`, input.PayloadUUID, authContext.OperationID)
+	if err != nil {
 		logging.LogError(err, "Failed to fetch payload in MythicRPCPayloadAddCommand")
 		response.Error = err.Error()
 		return response
-	} else {
-		if err := PayloadAddCommand(payload.ID, payload.PayloadTypeID, input.Commands); err != nil {
-			logging.LogError(err, "Failed to add commands to callback")
-			response.Error = err.Error()
-			return response
-		} else {
-			response.Success = true
-			return response
-		}
 	}
-
+	err = PayloadAddCommand(payload.ID, payload.PayloadTypeID, input.Commands)
+	if err != nil {
+		logging.LogError(err, "Failed to add commands to callback")
+		response.Error = err.Error()
+		return response
+	}
+	response.Success = true
+	return response
 }
 func PayloadAddCommand(PayloadID int, payloadtypeID int, commands []string) error {
 	for _, command := range commands {
@@ -97,11 +100,16 @@ func processMythicRPCPayloadAddCommand(msg amqp.Delivery) interface{} {
 	responseMsg := MythicRPCPayloadAddCommandMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCPayloadAddCommand(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCPayloadAddCommand(incomingMessage, authContext)
 }

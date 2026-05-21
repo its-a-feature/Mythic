@@ -854,7 +854,7 @@ function EventStepRender({selectedEventGroup, useSuppliedData}) {
                 {selectedEventGroup.id > 0 &&
                     <div className="mythic-eventing-flow-badge">Event group {selectedEventGroup.id}</div>
                 }
-                <Controls showInteractive={false} className="mythic-eventing-flow-controls mythic-graph-controls">
+                <Controls showInteractive={false} className="mythic-graph-controls-muted-hover">
                 </Controls>
             </ReactFlow>
             {openContextMenu && typeof document !== "undefined" && createPortal(
@@ -1159,7 +1159,7 @@ function EventStepInstanceRender({selectedEventGroupInstance}) {
                 onNodeContextMenu={onNodeContextMenu}
             >
                 <div className="mythic-eventing-flow-badge">Instance {selectedEventGroupInstance}</div>
-                <Controls showInteractive={false} className="mythic-eventing-flow-controls mythic-graph-controls">
+                <Controls showInteractive={false} className="mythic-graph-controls-muted-hover">
                 </Controls>
             </ReactFlow>
             {openContextMenu && typeof document !== "undefined" && createPortal(

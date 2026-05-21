@@ -13,17 +13,23 @@ type NewCustomEventingMessage struct {
 	ActionData          map[string]interface{} `json:"action_data"`
 }
 
-func (r *rabbitMQConnection) SendEventingCustomFunction(customFunctionMessage NewCustomEventingMessage) error {
-	if err := r.SendStructMessage(
+func (r *rabbitMQConnection) SendEventingCustomFunction(customFunctionMessage NewCustomEventingMessage, authContext RabbitMQAuthContext) error {
+	headers, err := GenerateRabbitMQAuthTokenHeader(authContext)
+	if err != nil {
+		logging.LogError(err, "Failed to generate auth context")
+		return err
+	}
+	err = r.SendStructMessage(
 		MYTHIC_EXCHANGE,
 		GetEventingContainerCustomFunctionRoutingKey(customFunctionMessage.ContainerName),
 		"",
 		customFunctionMessage,
 		false,
-	); err != nil {
+		headers,
+	)
+	if err != nil {
 		logging.LogError(err, "Failed to send message")
 		return err
-	} else {
-		return nil
 	}
+	return nil
 }

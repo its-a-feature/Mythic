@@ -12,13 +12,19 @@ type ContainerOnStartMessage struct {
 	APIToken      string `json:"apitoken"`
 }
 
-func (r *rabbitMQConnection) SendContainerOnStart(onStartMessage ContainerOnStartMessage) error {
-	err := r.SendStructMessage(
+func (r *rabbitMQConnection) SendContainerOnStart(onStartMessage ContainerOnStartMessage, authContext RabbitMQAuthContext) error {
+	headers, err := GenerateRabbitMQAuthTokenHeader(authContext)
+	if err != nil {
+		logging.LogError(err, "Failed to generate auth context")
+		return err
+	}
+	err = r.SendStructMessage(
 		MYTHIC_EXCHANGE,
 		GetContainerOnStartRoutingKey(onStartMessage.ContainerName),
 		"",
 		onStartMessage,
 		true,
+		headers,
 	)
 	if err != nil {
 		logging.LogError(err, "Failed to send message")

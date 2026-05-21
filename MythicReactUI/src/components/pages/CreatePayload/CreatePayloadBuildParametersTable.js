@@ -13,11 +13,11 @@ export function CreatePayloadBuildParametersTable(props){
         <div className="mythic-create-parameter-scroll">
             {buildParameters.map(b => (
                 b.parameters.length > 0 &&
-                <section className="mythic-create-parameter-group" key={b?.name || 'undefined'}>
+                <section className="mythic-create-parameter-group mythic-column-stack" key={b?.name || 'undefined'}>
                     {b.name !== '' && b.name !== undefined &&
                         <div className="mythic-create-parameter-group-header">{b.name}</div>
                     }
-                    <div className="mythic-create-parameter-list">
+                    <div className="mythic-column-stack">
                         {b.parameters.map( (op) => (
                             <CreatePayloadParameter
                                 displayMode="card"

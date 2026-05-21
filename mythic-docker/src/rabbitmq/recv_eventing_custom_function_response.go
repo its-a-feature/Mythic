@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/its-a-feature/Mythic/database"
 	"github.com/its-a-feature/Mythic/eventing"
 	"github.com/its-a-feature/Mythic/logging"
@@ -23,6 +24,7 @@ func init() {
 		Queue:      EVENTING_CUSTOM_FUNCTION_RESPONSE,
 		RoutingKey: EVENTING_CUSTOM_FUNCTION_RESPONSE,
 		Handler:    processEventingCustomFunctionResponse,
+		Scopes:     []string{},
 	})
 }
 

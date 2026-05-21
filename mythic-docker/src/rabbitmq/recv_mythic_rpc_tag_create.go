@@ -2,6 +2,8 @@ package rabbitmq
 
 import (
 	"encoding/json"
+
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/eventing"
@@ -33,11 +35,12 @@ func init() {
 		Queue:      MYTHIC_RPC_TAG_CREATE,     // swap out with queue in rabbitmq.constants.go file
 		RoutingKey: MYTHIC_RPC_TAG_CREATE,     // swap out with routing key in rabbitmq.constants.go file
 		Handler:    processMythicRPCTagCreate, // points to function that takes in amqp.Delivery and returns interface{}
+		Scopes:     []string{mythicjwt.SCOPE_TAG_WRITE},
 	})
 }
 
 // MYTHIC_RPC_OBJECT_ACTION - Say what the function does
-func MythicRPCTagCreate(input MythicRPCTagCreateMessage) MythicRPCTagCreateMessageResponse {
+func MythicRPCTagCreate(input MythicRPCTagCreateMessage, authContext RabbitMQAuthContext) MythicRPCTagCreateMessageResponse {
 	response := MythicRPCTagCreateMessageResponse{
 		Success: false,
 	}
@@ -46,19 +49,12 @@ func MythicRPCTagCreate(input MythicRPCTagCreateMessage) MythicRPCTagCreateMessa
 		URL:       input.URL,
 		Source:    input.Source,
 		Data:      GetMythicJSONTextFromStruct(input.Data),
+		Operation: authContext.OperationID,
 	}
-	operationID := 0
-	err := database.DB.Get(&operationID, "SELECT operation_id FROM tagtype WHERE id = $1", tag.TagTypeID)
-	if err != nil {
-		response.Success = false
-		response.Error = err.Error()
-		return response
-	}
-	tag.Operation = operationID
 	if input.MythicTreeID != nil {
 		mythicTree := databaseStructs.MythicTree{}
-		err = database.DB.Get(&mythicTree, `SELECT id FROM mythictree WHERE id=$1 AND operation_id=$2`,
-			*input.MythicTreeID, operationID)
+		err := database.DB.Get(&mythicTree, `SELECT id FROM mythictree WHERE id=$1 AND operation_id=$2`,
+			*input.MythicTreeID, authContext.OperationID)
 		if err != nil {
 			logging.LogError(nil, "Failed to get mythictree info")
 			response.Success = false
@@ -70,8 +66,8 @@ func MythicRPCTagCreate(input MythicRPCTagCreateMessage) MythicRPCTagCreateMessa
 	}
 	if input.FileID != nil {
 		fileMeta := databaseStructs.Filemeta{}
-		err = database.DB.Get(&fileMeta, `SELECT id FROM filemeta WHERE id=$1 AND operation_id=$2`,
-			*input.FileID, operationID)
+		err := database.DB.Get(&fileMeta, `SELECT id FROM filemeta WHERE id=$1 AND operation_id=$2`,
+			*input.FileID, authContext.OperationID)
 		if err != nil {
 			logging.LogError(nil, "Failed to get filemeta info")
 			response.Success = false
@@ -83,8 +79,8 @@ func MythicRPCTagCreate(input MythicRPCTagCreateMessage) MythicRPCTagCreateMessa
 	}
 	if input.TaskID != nil {
 		task := databaseStructs.Task{}
-		err = database.DB.Get(&task, `SELECT id FROM task WHERE id=$1 AND operation_id=$2`,
-			*input.TaskID, operationID)
+		err := database.DB.Get(&task, `SELECT id FROM task WHERE id=$1 AND operation_id=$2`,
+			*input.TaskID, authContext.OperationID)
 		if err != nil {
 			logging.LogError(nil, "Failed to get task info")
 			response.Success = false
@@ -96,8 +92,8 @@ func MythicRPCTagCreate(input MythicRPCTagCreateMessage) MythicRPCTagCreateMessa
 	}
 	if input.CredentialID != nil {
 		credential := databaseStructs.Credential{}
-		err = database.DB.Get(&credential, `SELECT id FROM credential WHERE id=$1 AND operation_id=$2`,
-			*input.CredentialID, operationID)
+		err := database.DB.Get(&credential, `SELECT id FROM credential WHERE id=$1 AND operation_id=$2`,
+			*input.CredentialID, authContext.OperationID)
 		if err != nil {
 			logging.LogError(nil, "Failed to get credential info")
 			response.Success = false
@@ -107,10 +103,18 @@ func MythicRPCTagCreate(input MythicRPCTagCreateMessage) MythicRPCTagCreateMessa
 		tag.Credential.Valid = true
 		tag.Credential.Int64 = int64(credential.ID)
 	}
+	if authContext.APITokensID > 0 {
+		tag.APITokensID.Valid = true
+		tag.APITokensID.Int64 = int64(authContext.APITokensID)
+	}
+	if authContext.EventStepInstanceID > 0 {
+		tag.EventStepInstanceID.Valid = true
+		tag.EventStepInstanceID.Int64 = int64(authContext.EventStepInstanceID)
+	}
 	statement, err := database.DB.PrepareNamed(`INSERT INTO tag 
-		(operation_id, data, url, source, tagtype_id, mythictree_id, filemeta_id, task_id, response_id, credential_id, keylog_id, taskartifact_id)
+		(operation_id, data, url, source, tagtype_id, mythictree_id, filemeta_id, task_id, response_id, credential_id, keylog_id, taskartifact_id, apitokens_id, eventstepinstance_id)
 		VALUES 
-		(:operation_id, :data, :url, :source, :tagtype_id, :mythictree_id, :filemeta_id, :task_id, :response_id, :credential_id, :keylog_id, :taskartifact_id)
+		(:operation_id, :data, :url, :source, :tagtype_id, :mythictree_id, :filemeta_id, :task_id, :response_id, :credential_id, :keylog_id, :taskartifact_id, :apitokens_id, :eventstepinstance_id)
 		RETURNING id`)
 	if err != nil {
 		logging.LogError(nil, "Failed to prepare statement for adding tag")
@@ -147,5 +151,10 @@ func processMythicRPCTagCreate(msg amqp.Delivery) interface{} {
 		responseMsg.Error = err.Error()
 		return responseMsg
 	}
-	return MythicRPCTagCreate(incomingMessage)
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCTagCreate(incomingMessage, authContext)
 }

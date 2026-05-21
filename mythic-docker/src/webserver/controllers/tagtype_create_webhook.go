@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/its-a-feature/Mythic/authentication"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/rabbitmq"
@@ -27,7 +28,7 @@ func TagTypeCreateWebhook(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
 		return
 	}
-	ginOperatorOperation, exists := c.Get("operatorOperation")
+	ginOperatorOperation, exists := c.Get(authentication.ContextKeyOperatorOperationStruct)
 	if !exists {
 		logging.LogError(nil, "Failed to get operator operation information")
 		c.JSON(http.StatusOK, gin.H{
@@ -43,12 +44,14 @@ func TagTypeCreateWebhook(c *gin.Context) {
 		Description: input.Input.Description,
 		Operation:   operatorOperation.CurrentOperation.ID,
 	}
-	APITokenID, ok := c.Get("apitokens-id")
-	if ok {
-		if APITokenID.(int) > 0 {
-			databaseObj.APITokensID.Valid = true
-			databaseObj.APITokensID.Int64 = int64(APITokenID.(int))
-		}
+	authContext := authentication.RabbitMQAuthContextFromGin(c)
+	if authContext.APITokensID > 0 {
+		databaseObj.APITokensID.Valid = true
+		databaseObj.APITokensID.Int64 = int64(authContext.APITokensID)
+	}
+	if authContext.EventStepInstanceID > 0 {
+		databaseObj.EventStepInstanceID.Valid = true
+		databaseObj.EventStepInstanceID.Int64 = int64(authContext.EventStepInstanceID)
 	}
 	response := rabbitmq.TagtypeImport([]databaseStructs.TagType{databaseObj}, operatorOperation)
 	c.JSON(http.StatusOK, response)

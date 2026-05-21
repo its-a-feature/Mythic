@@ -24,7 +24,7 @@ type C2StartServerMessageResponse struct {
 	InternalServerRunning bool   `json:"server_running"`
 }
 
-func RestartC2ServerAfterUpdate(c2ProfileName string, sendNotifications bool) {
+func RestartC2ServerAfterUpdate(c2ProfileName string, sendNotifications bool, authContext RabbitMQAuthContext) {
 	go func() {
 		c2Profile := databaseStructs.C2profile{Name: c2ProfileName}
 		err := database.DB.Get(&c2Profile, `SELECT id FROM c2profile WHERE name=$1`, c2ProfileName)
@@ -36,7 +36,7 @@ func RestartC2ServerAfterUpdate(c2ProfileName string, sendNotifications bool) {
 		}
 		stopC2ProfileResponse, err := RabbitMQConnection.SendC2RPCStopServer(C2StopServerMessage{
 			Name: c2ProfileName,
-		})
+		}, authContext)
 		UpdateC2ProfileRunningStatus(c2Profile, stopC2ProfileResponse.InternalServerRunning)
 		if err != nil {
 			logging.LogError(err, "Failed to send RPC call to c2 profile in C2HostFileMessageWebhook", "c2_profile", c2ProfileName)
@@ -58,7 +58,7 @@ func RestartC2ServerAfterUpdate(c2ProfileName string, sendNotifications bool) {
 		}
 		startC2ProfileResponse, err := RabbitMQConnection.SendC2RPCStartServer(C2StartServerMessage{
 			Name: c2ProfileName,
-		})
+		}, authContext)
 		UpdateC2ProfileRunningStatus(c2Profile, startC2ProfileResponse.InternalServerRunning)
 		if err != nil {
 			logging.LogError(err, "Failed to send RPC call to c2 profile in C2HostFileMessageWebhook", "c2_profile", c2ProfileName)
@@ -78,12 +78,17 @@ func RestartC2ServerAfterUpdate(c2ProfileName string, sendNotifications bool) {
 		}
 	}()
 }
-func (r *rabbitMQConnection) SendC2RPCStartServer(startServer C2StartServerMessage) (*C2StartServerMessageResponse, error) {
+func (r *rabbitMQConnection) SendC2RPCStartServer(startServer C2StartServerMessage, authContext RabbitMQAuthContext) (*C2StartServerMessageResponse, error) {
 	c2StartServerResponse := C2StartServerMessageResponse{}
 	exclusiveQueue := true
 	opsecBytes, err := json.Marshal(startServer)
 	if err != nil {
 		logging.LogError(err, "Failed to convert startServer to JSON", "startServer", startServer)
+		return &c2StartServerResponse, err
+	}
+	headers, err := GenerateRabbitMQAuthTokenHeader(authContext)
+	if err != nil {
+		logging.LogError(err, "Failed to generate auth context")
 		return &c2StartServerResponse, err
 	}
 	logging.LogDebug("Sending start server request", "startServer", startServer)
@@ -93,6 +98,7 @@ func (r *rabbitMQConnection) SendC2RPCStartServer(startServer C2StartServerMessa
 		opsecBytes,
 		exclusiveQueue,
 		RPC_RETRY_POLICY_NO_RETRY_ON_TIMEOUT,
+		headers,
 	)
 	if err != nil {
 		logging.LogError(err, "Failed to send RPC message")

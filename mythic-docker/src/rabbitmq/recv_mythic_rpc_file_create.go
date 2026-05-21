@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -20,8 +21,6 @@ type MythicRPCFileCreateMessage struct {
 	TaskID              int    `json:"task_id"`
 	PayloadUUID         string `json:"payload_uuid"`
 	AgentCallbackID     string `json:"agent_callback_id"`
-	OperationID         int    `json:"operation_id"`
-	OperatorID          int    `json:"operator_id"`
 	FileContents        []byte `json:"file_contents"`
 	DeleteAfterFetch    bool   `json:"delete_after_fetch"`
 	Filename            string `json:"filename"`
@@ -43,13 +42,14 @@ func init() {
 		Queue:      MYTHIC_RPC_FILE_CREATE,
 		RoutingKey: MYTHIC_RPC_FILE_CREATE,
 		Handler:    processMythicRPCFileCreate,
+		Scopes:     []string{mythicjwt.SCOPE_FILE_WRITE},
 	})
 }
 
 // Endpoint: MYTHIC_RPC_FILE_CREATE
 //
 // Creates a FileMeta object for a specific task in Mythic's database and writes contents to disk with a random UUID filename.
-func MythicRPCFileCreate(input MythicRPCFileCreateMessage) MythicRPCFileCreateMessageResponse {
+func MythicRPCFileCreate(input MythicRPCFileCreateMessage, authContext RabbitMQAuthContext) MythicRPCFileCreateMessageResponse {
 	response := MythicRPCFileCreateMessageResponse{
 		Success: false,
 	}
@@ -93,18 +93,18 @@ func MythicRPCFileCreate(input MythicRPCFileCreateMessage) MythicRPCFileCreateMe
 	if len(input.Filename) != 0 {
 		fileData.Filename = []byte(input.Filename)
 	}
-
+	fileData.OperationID = authContext.OperationID
+	fileData.OperatorID = authContext.OperatorID
 	if input.TaskID > 0 {
 		task := databaseStructs.Task{}
 		err = database.DB.Get(&task, `SELECT
-		task.operator_id, task.display_id,
-		callback.operation_id "callback.operation_id",
+		task.display_id,
 		callback.host "callback.host"
 		FROM
 		task
 		JOIN callback ON task.callback_id = callback.id
 		WHERE
-		task.id=$1`, input.TaskID)
+		task.id=$1 AND task.operation_id=$2`, input.TaskID, authContext.OperationID)
 		if err != nil {
 			logging.LogError(err, "failed to fetch task")
 			response.Error = "Must supply a valid task ID"
@@ -117,20 +117,17 @@ func MythicRPCFileCreate(input MythicRPCFileCreateMessage) MythicRPCFileCreateMe
 		}
 		fileData.TaskID.Int64 = int64(input.TaskID)
 		fileData.TaskID.Valid = true
-		fileData.OperationID = task.Callback.OperationID
-		fileData.OperatorID = task.OperatorID
 		if input.Comment == "" {
 			fileData.Comment = fmt.Sprintf("Created from task %d", task.DisplayID)
 		}
 	} else if input.PayloadUUID != "" {
 		payload := databaseStructs.Payload{}
 		err = database.DB.Get(&payload, `SELECT
-		payload.operator_id, 
 		payload.operation_id
 		FROM
 		payload
 		WHERE
-		payload.uuid=$1`, input.PayloadUUID)
+		payload.uuid=$1 AND payload.operation_id=$2`, input.PayloadUUID, authContext.OperationID)
 		if err != nil {
 			logging.LogError(err, "failed to fetch payload uuid")
 			response.Error = "Must supply a valid payload UUID"
@@ -141,22 +138,18 @@ func MythicRPCFileCreate(input MythicRPCFileCreateMessage) MythicRPCFileCreateMe
 		} else {
 			fileData.Host = strings.ToUpper(input.TargetHostName)
 		}
-		fileData.OperationID = payload.OperationID
-		fileData.OperatorID = payload.OperatorID
 		if input.Comment == "" {
 			fileData.Comment = fmt.Sprintf("Created from payload %s", input.PayloadUUID)
 		}
 	} else if input.AgentCallbackID != "" {
 		callback := databaseStructs.Callback{}
 		err = database.DB.Get(&callback, `SELECT
-		callback.operator_id, 
-		callback.operation_id,
 		callback.display_id,
 		callback.host 
 		FROM
 		callback
 		WHERE
-		callback.agent_callback_id=$1`, input.AgentCallbackID)
+		callback.agent_callback_id=$1 AND callback.operation_id=$2`, input.AgentCallbackID, authContext.OperationID)
 		if err != nil {
 			logging.LogError(err, "failed to find agent callback id")
 			response.Error = "Must supply a valid agent callback id"
@@ -167,52 +160,54 @@ func MythicRPCFileCreate(input MythicRPCFileCreateMessage) MythicRPCFileCreateMe
 		} else {
 			fileData.Host = strings.ToUpper(input.TargetHostName)
 		}
-		fileData.OperationID = callback.OperationID
-		fileData.OperatorID = callback.OperatorID
 		if input.Comment == "" {
 			fileData.Comment = fmt.Sprintf("Created from callback %d", callback.DisplayID)
 		}
-	} else if input.OperationID > 0 {
-		fileData.OperationID = input.OperationID
-		if input.OperatorID > 0 {
-			fileData.OperatorID = input.OperatorID
-		} else {
-			response.Error = "Must supply a valid OperatorID if you're also supplying an OperationID"
-			return response
-		}
-	} else {
-		response.Error = "Must supply a task ID, payload UUID, or agent callback id. Alternatively, you can supply an OperationID and OperatorID"
-		return response
 	}
-	if statement, err := database.DB.PrepareNamed(`INSERT INTO filemeta 
-			(filename,total_chunks,chunks_received,chunk_size,path,operation_id,complete,comment,operator_id,delete_after_fetch,md5,sha1,agent_file_id,full_remote_path,task_id,is_screenshot,is_download_from_agent,host,size)
-			VALUES (:filename, :total_chunks, :chunks_received, :chunk_size, :path, :operation_id, :complete, :comment, :operator_id, :delete_after_fetch, :md5, :sha1, :agent_file_id, :full_remote_path, :task_id, :is_screenshot, :is_download_from_agent, :host, :size)
-			RETURNING id`); err != nil {
+	if authContext.APITokensID > 0 {
+		fileData.APITokensID.Valid = true
+		fileData.APITokensID.Int64 = int64(authContext.APITokensID)
+	}
+	if authContext.EventStepInstanceID > 0 {
+		fileData.EventStepInstanceID.Valid = true
+		fileData.EventStepInstanceID.Int64 = int64(authContext.EventStepInstanceID)
+	}
+	statement, err := database.DB.PrepareNamed(`INSERT INTO filemeta 
+			(filename,total_chunks,chunks_received,chunk_size,path,operation_id,complete,comment,operator_id,delete_after_fetch,md5,sha1,agent_file_id,full_remote_path,task_id,is_screenshot,is_download_from_agent,host,size,apitokens_id,eventstepinstance_id)
+			VALUES (:filename, :total_chunks, :chunks_received, :chunk_size, :path, :operation_id, :complete, :comment, :operator_id, :delete_after_fetch, :md5, :sha1, :agent_file_id, :full_remote_path, :task_id, :is_screenshot, :is_download_from_agent, :host, :size, :apitokens_id, :eventstepinstance_id)
+			RETURNING id`)
+	if err != nil {
 		logging.LogError(err, "Failed to save file metadata to database")
 		response.Error = err.Error()
 		return response
-	} else if err = statement.Get(&fileData.ID, fileData); err != nil {
+	}
+	err = statement.Get(&fileData.ID, fileData)
+	if err != nil {
 		logging.LogError(err, "Failed to save file to database")
 		response.Error = err.Error()
 		return response
-	} else {
-		logging.LogDebug("creating new file", "filedata", fileData)
-		response.Success = true
-		response.AgentFileId = fileData.AgentFileID
-		go EmitFileLog(fileData.ID)
-		return response
 	}
+	logging.LogDebug("creating new file", "filedata", fileData)
+	response.Success = true
+	response.AgentFileId = fileData.AgentFileID
+	go EmitFileLog(fileData.ID)
+	return response
 }
 func processMythicRPCFileCreate(msg amqp.Delivery) interface{} {
 	incomingMessage := MythicRPCFileCreateMessage{}
 	responseMsg := MythicRPCFileCreateMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCFileCreate(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCFileCreate(incomingMessage, authContext)
 }

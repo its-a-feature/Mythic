@@ -45,6 +45,7 @@ func (r *rabbitMQConnection) EmitSiemMessage(loggingMessage LoggingMessage) erro
 		"",
 		localLoggingMessage,
 		true,
+		nil,
 	); err != nil {
 		//logging.LogError(err, "Failed to emit SIEM Message")
 		return err

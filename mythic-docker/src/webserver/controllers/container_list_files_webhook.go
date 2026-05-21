@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/rabbitmq"
 )
@@ -27,7 +28,8 @@ type GetContainerFileListResponse struct {
 func ContainerListFilesWebhook(c *gin.Context) {
 	// get variables from the POST request
 	var input GetContainerFileListInput
-	if err := c.ShouldBindJSON(&input); err != nil {
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
 		c.JSON(http.StatusOK, GetContainerFileListResponse{
 			Status: "error",
 			Error:  err.Error(),
@@ -37,7 +39,7 @@ func ContainerListFilesWebhook(c *gin.Context) {
 	c2ProfileResponse, err := rabbitmq.RabbitMQConnection.SendContainerRPCListFile(rabbitmq.ContainerRPCListFileMessage{
 		Name: input.Input.ContainerName,
 		Path: input.Input.Path,
-	})
+	}, authentication.RabbitMQAuthContextFromGin(c))
 	if err != nil {
 		c.JSON(http.StatusOK, GetContainerFileListResponse{
 			Status: "error",

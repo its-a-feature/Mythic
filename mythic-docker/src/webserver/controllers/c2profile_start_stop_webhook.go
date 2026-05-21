@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -29,7 +30,8 @@ type StartStopC2ProfileResponse struct {
 func StartStopC2ProfileWebhook(c *gin.Context) {
 	// get variables from the POST request
 	var input StartStopC2ProfileInput
-	if err := c.ShouldBindJSON(&input); err != nil {
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
 		logging.LogError(err, "Failed to parse out required parameters")
 		c.JSON(http.StatusOK, StartStopC2ProfileResponse{
 			Status: "error",
@@ -39,7 +41,7 @@ func StartStopC2ProfileWebhook(c *gin.Context) {
 	}
 	// get the associated database information
 	c2profile := databaseStructs.C2profile{}
-	err := database.DB.Get(&c2profile, `SELECT "name", id FROM c2profile WHERE id=$1`, input.Input.C2ProfileID)
+	err = database.DB.Get(&c2profile, `SELECT "name", id FROM c2profile WHERE id=$1`, input.Input.C2ProfileID)
 	if err != nil {
 		logging.LogError(err, "Failed to fetch c2 profile from database by ID", "id", input.Input.C2ProfileID)
 		c.JSON(http.StatusOK, StartStopC2ProfileResponse{
@@ -52,7 +54,7 @@ func StartStopC2ProfileWebhook(c *gin.Context) {
 	if input.Input.Action == "start" {
 		c2ProfileResponse, err := rabbitmq.RabbitMQConnection.SendC2RPCStartServer(rabbitmq.C2StartServerMessage{
 			Name: c2profile.Name,
-		})
+		}, authentication.RabbitMQAuthContextFromGin(c))
 		if c2ProfileResponse != nil {
 			go rabbitmq.UpdateC2ProfileRunningStatus(c2profile, c2ProfileResponse.InternalServerRunning)
 		}
@@ -83,7 +85,7 @@ func StartStopC2ProfileWebhook(c *gin.Context) {
 	if input.Input.Action == "stop" {
 		c2ProfileResponse, err := rabbitmq.RabbitMQConnection.SendC2RPCStopServer(rabbitmq.C2StopServerMessage{
 			Name: c2profile.Name,
-		})
+		}, authentication.RabbitMQAuthContextFromGin(c))
 		if c2ProfileResponse != nil {
 			go rabbitmq.UpdateC2ProfileRunningStatus(c2profile, c2ProfileResponse.InternalServerRunning)
 		}
@@ -111,12 +113,11 @@ func StartStopC2ProfileWebhook(c *gin.Context) {
 		})
 		return
 
-	} else {
-		logging.LogError(nil, "Unknown action")
-		c.JSON(http.StatusOK, StartStopC2ProfileResponse{
-			Status: "error",
-			Error:  "Unknown action - was expecting `start` or `stop`",
-		})
-		return
 	}
+	logging.LogError(nil, "Unknown action")
+	c.JSON(http.StatusOK, StartStopC2ProfileResponse{
+		Status: "error",
+		Error:  "Unknown action - was expecting `start` or `stop`",
+	})
+	return
 }

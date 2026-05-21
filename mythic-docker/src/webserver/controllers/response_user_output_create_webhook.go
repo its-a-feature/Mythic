@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -36,7 +37,7 @@ func ResponseUserOutputCreateWebhook(c *gin.Context) {
 		})
 		return
 	}
-	ginOperatorOperation, ok := c.Get("operatorOperation")
+	ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct)
 	if !ok {
 		logging.LogError(err, "Failed to get operatorOperation information for CreatePayloadWebhook")
 		c.JSON(http.StatusOK, CreateResponseUserOutputInputResponse{
@@ -69,16 +70,18 @@ func ResponseUserOutputCreateWebhook(c *gin.Context) {
 		TaskID:      task.ID,
 		Response:    []byte(input.Input.UserOutput),
 	}
-	APITokenID, ok := c.Get("apitokens-id")
-	if ok {
-		if APITokenID.(int) > 0 {
-			databaseObj.APITokensID.Valid = true
-			databaseObj.APITokensID.Int64 = int64(APITokenID.(int))
-		}
+	authContext := authentication.RabbitMQAuthContextFromGin(c)
+	if authContext.APITokensID > 0 {
+		databaseObj.APITokensID.Valid = true
+		databaseObj.APITokensID.Int64 = int64(authContext.APITokensID)
+	}
+	if authContext.EventStepInstanceID > 0 {
+		databaseObj.EventStepInstanceID.Valid = true
+		databaseObj.EventStepInstanceID.Int64 = int64(authContext.EventStepInstanceID)
 	}
 	statement, err := database.DB.PrepareNamed(`INSERT INTO response
-				(task_id, operation_id, apitokens_id, response)
-				VALUES (:task_id, :operation_id, :apitokens_id, :response)
+				(task_id, operation_id, apitokens_id, eventstepinstance_id, response)
+				VALUES (:task_id, :operation_id, :apitokens_id, :eventstepinstance_id, :response)
 				RETURNING id `)
 	if err != nil {
 		logging.LogError(err, "Failed to create new user output")

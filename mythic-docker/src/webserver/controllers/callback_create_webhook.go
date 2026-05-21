@@ -3,6 +3,7 @@ package webcontroller
 import (
 	"net/http"
 
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/rabbitmq"
@@ -70,7 +71,7 @@ func CreateCallbackWebhook(c *gin.Context) {
 		Domain:      input.Input.CallbackConfig.Domain,
 		Description: input.Input.CallbackConfig.Description,
 		ProcessName: input.Input.CallbackConfig.ProcessName,
-	})
+	}, authentication.RabbitMQAuthContextFromGin(c))
 	if !callbackCreateResponse.Success {
 		logging.LogError(nil, callbackCreateResponse.Error)
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": callbackCreateResponse.Error})

@@ -23,12 +23,14 @@ type RPCQueueStruct struct {
 	Queue      string
 	RoutingKey string
 	Handler    RPCQueueHandler
+	Scopes     []string
 }
 type DirectQueueStruct struct {
 	Exchange   string
 	Queue      string
 	RoutingKey string
 	Handler    QueueHandler
+	Scopes     []string
 }
 
 type channelMutex struct {
@@ -64,11 +66,13 @@ func (r *rabbitMQConnection) AddRPCQueue(input RPCQueueStruct) {
 	r.addListenerMutex.Lock()
 	r.RPCQueues = append(r.RPCQueues, input)
 	r.addListenerMutex.Unlock()
+	RegisterRabbitMQRPCScopePolicy(input.Queue, input.Scopes)
 }
 func (r *rabbitMQConnection) AddDirectQueue(input DirectQueueStruct) {
 	r.addListenerMutex.Lock()
 	r.DirectQueues = append(r.DirectQueues, input)
 	r.addListenerMutex.Unlock()
+	RegisterRabbitMQRPCScopePolicy(input.Queue, input.Scopes)
 }
 func (r *rabbitMQConnection) startListeners() {
 	exclusiveQueue := true

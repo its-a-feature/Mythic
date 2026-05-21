@@ -23,10 +23,12 @@ var (
 )
 
 const (
-	ContextKeyClaims   = "claims"
-	ContextKeyAPIToken = "apitoken_struct"
-	ContextKeyUserID   = "user_id"
-	ContextKeyUsername = "username"
+	ContextKeyClaims                  = "claims"
+	ContextKeyAPIToken                = "apitoken_struct"
+	ContextKeyUserID                  = "user_id"
+	ContextKeyUsername                = "username"
+	ContextKeyAPITokenID              = "apitoken_id"
+	ContextKeyOperatorOperationStruct = "operatorOperation_struct"
 )
 
 var (

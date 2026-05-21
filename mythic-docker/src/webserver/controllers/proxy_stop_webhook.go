@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/its-a-feature/Mythic/authentication"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/rabbitmq"
@@ -30,7 +31,7 @@ func ProxyToggleWebhook(c *gin.Context) {
 		return
 	}
 	// get information about the user and operation that's being tasked
-	if ginOperatorOperation, ok := c.Get("operatorOperation"); !ok {
+	if ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct); !ok {
 		c.JSON(http.StatusOK, rabbitmq.ProxyStopResponse{
 			Status: "error",
 			Error:  "Failed to get current operation. Is it set?",

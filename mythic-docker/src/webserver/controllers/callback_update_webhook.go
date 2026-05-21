@@ -4,15 +4,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/gin-gonic/gin"
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 	"github.com/its-a-feature/Mythic/database/enums/PushC2Connections"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/grpc"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/rabbitmq"
-	"net/http"
-	"time"
 )
 
 type UpdateCallbackInputInput struct {
@@ -61,7 +63,7 @@ func UpdateCallbackWebhook(c *gin.Context) {
 		})
 		return
 	}
-	ginOperatorOperation, ok := c.Get("operatorOperation")
+	ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct)
 	if !ok {
 		c.JSON(http.StatusOK, UpdateCallbackResponse{
 			Status: "error",
@@ -108,7 +110,7 @@ func UpdateCallbackWebhook(c *gin.Context) {
 			}
 		}
 		if input.Input.Input.Active != nil {
-			if err = updateCallbackActiveStatus(callback, *input.Input.Input.Active); err != nil {
+			if err = updateCallbackActiveStatus(callback, *input.Input.Input.Active, authentication.RabbitMQAuthContextFromGin(c)); err != nil {
 				c.JSON(http.StatusOK, UpdateCallbackResponse{
 					Status: "error",
 					Error:  err.Error(),
@@ -269,7 +271,7 @@ func updateCallbackLock(callback databaseStructs.Callback, operatorOperation dat
 	return nil
 }
 
-func updateCallbackActiveStatus(callback databaseStructs.Callback, active bool) error {
+func updateCallbackActiveStatus(callback databaseStructs.Callback, active bool, authContext rabbitmq.RabbitMQAuthContext) error {
 	// when making something inactive, mark all of its edges as dead
 	// when making something active, just change the active status
 	associatedC2Profiles := []databaseStructs.Callbackc2profiles{}
@@ -304,7 +306,7 @@ func updateCallbackActiveStatus(callback databaseStructs.Callback, active bool) 
 				return err
 			}
 		} else if !callback.Active && active {
-			if err := rabbitmq.AddEdgeById(callback.ID, callback.ID, c2profile.C2Profile.Name); err != nil {
+			if err := rabbitmq.AddEdgeById(callback.ID, callback.ID, c2profile.C2Profile.Name, authContext); err != nil {
 				logging.LogError(err, "Failed to update callback edge status")
 				return err
 			}

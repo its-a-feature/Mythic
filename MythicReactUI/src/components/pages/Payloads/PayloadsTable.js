@@ -10,7 +10,7 @@ import {ImportPayloadConfigDialog} from './ImportPayloadConfigDialog';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {useNavigate} from 'react-router-dom';
 import { Backdrop } from '@mui/material';
-import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/MythicPageHeader";
+import {MythicPageHeader} from "../../MythicComponents/MythicPageHeader";
 import {MythicTablePagination} from "../../MythicComponents/MythicTablePagination";
 import {MythicToolbarButton, MythicToolbarToggle} from "../../MythicComponents/MythicTableToolbar";
 import {MythicLoadingState, MythicTableEmptyState} from "../../MythicComponents/MythicStateDisplay";

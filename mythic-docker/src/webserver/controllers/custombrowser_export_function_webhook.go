@@ -3,6 +3,7 @@ package webcontroller
 import (
 	"net/http"
 
+	"github.com/its-a-feature/Mythic/authentication"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/rabbitmq"
 
@@ -30,7 +31,7 @@ func CustomBrowserExportFunctionWebhook(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
 		return
 	}
-	ginOperatorOperation, ok := c.Get("operatorOperation")
+	ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct)
 	if !ok {
 		logging.LogError(err, "Failed to get operatorOperation information for custombrowserExportFunctionInput")
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": "Failed to get current operation. Is it set?"})
@@ -47,7 +48,7 @@ func CustomBrowserExportFunctionWebhook(c *gin.Context) {
 		OperatorID:       operatorOperation.CurrentOperator.ID,
 		OperatorUsername: operatorOperation.CurrentOperator.Username,
 		CallbackGroup:    input.Input.CallbackGroup,
-	})
+	}, authentication.RabbitMQAuthContextFromGin(c))
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
 		return

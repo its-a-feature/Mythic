@@ -1,8 +1,10 @@
 package webcontroller
 
 import (
-	"github.com/its-a-feature/Mythic/database"
 	"net/http"
+
+	"github.com/its-a-feature/Mythic/authentication"
+	"github.com/its-a-feature/Mythic/database"
 
 	"github.com/gin-gonic/gin"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -30,7 +32,7 @@ func ImportC2ParameterInstanceWebhook(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
 		return
 	}
-	ginOperatorOperation, ok := c.Get("operatorOperation")
+	ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct)
 	if !ok {
 		logging.LogError(err, "Failed to get operatorOperation information for CreateC2ParameterInstanceWebhook")
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": "Failed to get current operation. Is it set?"})
