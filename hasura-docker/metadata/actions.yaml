@@ -398,6 +398,17 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: c2CustomRPCFunction
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/c2_custom_rpc_function_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
+    comment: Invoke a registered CustomRPCFunctions entry on a C2 profile, returning its result blob.
   - name: dynamicQueryFunction
     definition:
       kind: synchronous
@@ -1038,4 +1049,5 @@ custom_types:
     - name: eventingTriggerManualBulkOutput
     - name: dynamicQueryBuildParameterOutput
     - name: custombrowserExportFunctionOutput
+    - name: c2CustomRPCFunctionOutput
   scalars: []

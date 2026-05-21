@@ -10,12 +10,16 @@ import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 import {PayloadSelect} from "../CreateWrapper/Step3SelectPayload";
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import AddCircleIcon from '@mui/icons-material/AddCircle';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import IconButton from '@mui/material/IconButton';
 import {getDefaultChoices, getDefaultValueForType, getSavedToType} from "./Step2SelectPayloadType";
 import {CreatePayloadBuildParametersTable} from "./CreatePayloadBuildParametersTable";
 import {ParseForDisplay} from "../Payloads/DetailedPayloadTable";
 import {getModifiedC2Params} from "./Step4C2Profiles";
 import { Backdrop } from '@mui/material';
 import {MythicLoadingState} from "../../MythicComponents/MythicStateDisplay";
+import {useTheme} from '@mui/material/styles';
 
 
 const GET_Payload_Types = gql`
@@ -141,7 +145,9 @@ query getPayloadTypesBuildParametersQuery($payload_id: Int!) {
         c2profileparameter {
           default_value
           description
+          display_name
           format_string
+          group_name
           id
           name
           parameter_type
@@ -149,6 +155,8 @@ query getPayloadTypesBuildParametersQuery($payload_id: Int!) {
           required
           verifier_regex
           choices
+          choices_display_names
+          form_schema
           ui_position
           c2profile {
               name
@@ -581,6 +589,7 @@ export const ConfigureBuildParameters = (
 ) => {
     const [payloadTypeConfigPieces, setPayloadTypeConfigPieces] = React.useState({});
     const [payloadTypeParameters, setSelectedPayloadTypeParameters] = React.useState([]);
+    const [summaryCollapsed, setSummaryCollapsed] = React.useState(false);
     const getPayloadTypeBuildParameters = useMythicLazyQuery(GetBuildParametersQuery, {fetchPolicy: "network-only"});
     const onChange = (name, value, error) => {
         const newParams = payloadTypeParameters.map( (param) => {
@@ -683,12 +692,43 @@ export const ConfigureBuildParameters = (
                     </Typography>
                 </div>
             </div>
-            <div className="mythic-create-builder-split">
-                <section className="mythic-create-section mythic-create-section-scroll">
-                    <Typography component="div" className="mythic-create-section-title" style={{textAlign: "center"}}>
-                        Configuration Summary
-                    </Typography>
-                    <ConfigurationSummary buildParameters={payloadTypeParameters} os={os} />
+            <div className="mythic-create-builder-split" style={summaryCollapsed ? {gridTemplateColumns: "3rem minmax(0, 1fr)"} : undefined}>
+                <section
+                    className="mythic-create-section mythic-create-section-scroll"
+                    style={summaryCollapsed ? {alignItems: "center", cursor: "pointer", paddingLeft: "0.25rem", paddingRight: "0.25rem"} : undefined}
+                    onClick={summaryCollapsed ? () => setSummaryCollapsed(false) : undefined}
+                >
+                    <div style={{display: "flex", alignItems: "center", justifyContent: summaryCollapsed ? "center" : "space-between", gap: "0.5rem"}}>
+                        {!summaryCollapsed && (
+                            <Typography component="div" className="mythic-create-section-title" style={{textAlign: "center", flexGrow: 1}}>
+                                Configuration Summary
+                            </Typography>
+                        )}
+                        <IconButton size="small"
+                                    aria-label={summaryCollapsed ? "Expand configuration summary" : "Collapse configuration summary"}
+                                    title={summaryCollapsed ? "Expand" : "Collapse"}
+                                    onClick={(e) => { e.stopPropagation(); setSummaryCollapsed(prev => !prev); }}>
+                            {summaryCollapsed ? <ChevronRightIcon fontSize="small" /> : <ChevronLeftIcon fontSize="small" />}
+                        </IconButton>
+                    </div>
+                    {summaryCollapsed && (
+                        <div style={{flexGrow: 1, display: "flex", alignItems: "center", justifyContent: "center", userSelect: "none"}}>
+                            <Typography variant={"body2"} style={{
+                                fontWeight: 600,
+                                writingMode: "vertical-rl",
+                                transform: "rotate(180deg)",
+                                letterSpacing: 0,
+                                textTransform: "uppercase",
+                                fontSize: "0.75rem",
+                                opacity: 0.75,
+                            }}>
+                                Configuration Summary
+                            </Typography>
+                        </div>
+                    )}
+                    {!summaryCollapsed && (
+                        <ConfigurationSummary buildParameters={payloadTypeParameters} os={os} />
+                    )}
                 </section>
                 <section className="mythic-create-section mythic-create-section-scroll">
                     <CreatePayloadBuildParametersTable onChange={onChange} buildParameters={payloadTypeParameters} os={os}
@@ -730,7 +770,29 @@ export const GetGroupedParameters = ({buildParameters, os, c2_name}) => {
     });
     if(c2_name){
         buildParameters.sort(sortByUiPositionThenName);
-        return [{name: c2_name, parameters: buildParameters}];
+        // If no parameter in this c2 profile has a group_name set, keep the
+        // legacy behavior: a single bucket labeled with the c2 profile name.
+        const hasAnyGroup = buildParameters.some(p => p?.group_name && p.group_name.length > 0);
+        if(!hasAnyGroup){
+            return [{name: c2_name, parameters: buildParameters}];
+        }
+        // Otherwise honor group_name. Scope the group label with the c2
+        // profile name so multiple included profiles don't collide when
+        // they share a group name (e.g. both defining a "Callbacks" group).
+        const byGroup = {};
+        const order = [];
+        for(const p of buildParameters){
+            const g = (p?.group_name && p.group_name.length > 0) ? p.group_name : "Other";
+            if(!(g in byGroup)){
+                byGroup[g] = [];
+                order.push(g);
+            }
+            byGroup[g].push(p);
+        }
+        return order.map(g => ({
+            name: g,
+            parameters: byGroup[g],
+        }));
     }
     for(let i = 0; i < buildParameters.length; i++){
         for(let j = 0; j < groupedData.length; j++){
@@ -840,7 +902,20 @@ export const GetGroupedParameters = ({buildParameters, os, c2_name}) => {
     //groupedData.sort((a,b) => -b.name.localeCompare(a.name));
     return groupedData;
 }
+const hasParamChangedSinceLoad = (p) => {
+    // "Changed" == different from what was auto-populated when the
+    // operator landed on this page (either the c2 profile's default
+    // or, in edit flows, the previously-saved value). Works uniformly
+    // across parameter types because trackedValue and initialValue are
+    // both stored in the same component-native shape.
+    const tracked = p?.trackedValue;
+    const initial = p?.initialValue;
+    if(tracked === undefined) return false;
+    try { return JSON.stringify(tracked) !== JSON.stringify(initial); }
+    catch(_) { return false; }
+}
 export const ConfigurationSummary = ({buildParameters, os, c2_name}) => {
+    const theme = useTheme();
     const [groupedParameters, setGroupedParameters] = React.useState([]);
     React.useEffect( () => {
         // grouped should be array of groupName
@@ -854,16 +929,24 @@ export const ConfigurationSummary = ({buildParameters, os, c2_name}) => {
                         {b.name}
                     </div>
                 }
-                {b?.parameters?.map( (p) => (
+                {b?.parameters?.map( (p) => {
+                    const displayLabel = (p.display_name && p.display_name.length > 0) ? p.display_name : p.name;
+                    const changed = hasParamChangedSinceLoad(p);
+                    return (
                     <div className="mythic-create-summary-row" key={p.name}>
-                        <Typography component="div" className="mythic-create-summary-name">
-                            {p.name}
+                        <Typography component="div" className="mythic-create-summary-name" style={{display: "flex", alignItems: "center", gap: "0.35rem"}}>
+                            {changed && (
+                                <span title="Changed since load"
+                                      style={{display: "inline-block", width: 8, height: 8, borderRadius: "50%", backgroundColor: theme.palette.warning.main, flexShrink: 0}} />
+                            )}
+                            {displayLabel}
                         </Typography>
                         <div className="mythic-create-summary-value">
                             <ParseForDisplay cmd={p} />
                         </div>
                     </div>
-                ))}
+                    );
+                })}
             </div>
         ))
     )

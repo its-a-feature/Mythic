@@ -14,6 +14,7 @@ export function CreatePayloadC2ProfileParametersTable(props){
                     displayMode="card"
                     key={"c2paramtablerow" + op.id}
                     returnAllDictValues={props.returnAllDictValues}
+                    c2_profile_name={props.name}
                     onChange={onChange}
                     {...op}
                 />

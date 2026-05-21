@@ -5,6 +5,8 @@ type C2profileparameters struct {
 	C2ProfileID   int             `db:"c2_profile_id"`
 	Description   string          `db:"description"`
 	Name          string          `db:"name"`
+	DisplayName   string          `db:"display_name"`
+	GroupName     string          `db:"group_name"`
 	DefaultValue  string          `db:"default_value"`
 	Randomize     bool            `db:"randomize"`
 	FormatString  string          `db:"format_string"`
@@ -13,6 +15,8 @@ type C2profileparameters struct {
 	VerifierRegex string          `db:"verifier_regex"`
 	Deleted       bool            `db:"deleted"`
 	IsCryptoType  bool            `db:"crypto_type"`
-	Choices       MythicJSONArray `db:"choices"`
-	UiPosition    int             `db:"ui_position"`
+	Choices              MythicJSONArray `db:"choices"`
+	ChoicesDisplayNames  MythicJSONText  `db:"choices_display_names"`
+	FormSchema           MythicJSONText  `db:"form_schema"`
+	UiPosition           int             `db:"ui_position"`
 }

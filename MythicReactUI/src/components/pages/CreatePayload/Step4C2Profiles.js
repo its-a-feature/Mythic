@@ -15,8 +15,10 @@ import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import {CreatePayloadBuildParametersTable} from "./CreatePayloadBuildParametersTable";
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
-import { IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import IconButton from '@mui/material/IconButton';
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 import {ConfigurationSummary} from "./Step1SelectOS";
 
@@ -31,7 +33,9 @@ query getPayloadTypesC2ProfilesQuery($payloadType: String!, $operation_id: Int!)
     c2profileparameters(where: {deleted: {_eq: false}}) {
       default_value
       description
+      display_name
       format_string
+      group_name
       id
       name
       parameter_type
@@ -40,6 +44,8 @@ query getPayloadTypesC2ProfilesQuery($payloadType: String!, $operation_id: Int!)
       verifier_regex
       choices
       ui_position
+      choices_display_names
+      form_schema
     }
     c2profileparametersinstances(where: {instance_name: {_is_null: false}, operation_id: {_eq: $operation_id}}, distinct_on: instance_name, order_by: {instance_name: asc}){
         instance_name
@@ -54,7 +60,9 @@ query getProfileInstanceQuery($name: String!, $operation_id: Int!, $c2_profile_i
     c2profileparameter {
       default_value
       description
+      display_name
       format_string
+      group_name
       id
       name
       parameter_type
@@ -63,6 +71,8 @@ query getProfileInstanceQuery($name: String!, $operation_id: Int!, $c2_profile_i
       verifier_regex
       choices
       ui_position
+      choices_display_names
+      form_schema
       c2profile {
           name
       }
@@ -80,7 +90,9 @@ query getDefaultC2ProfileParameters($c2profile_id: Int!) {
       c2profileparameters(where: {deleted: {_eq: false}}) {
         default_value
         description
+        display_name
         format_string
+        group_name
         id
         name
         parameter_type
@@ -89,6 +101,8 @@ query getDefaultC2ProfileParameters($c2profile_id: Int!) {
         verifier_regex
         choices
         ui_position
+        choices_display_names
+        form_schema
       }
     }
   }
@@ -149,6 +163,7 @@ export function Step4C2Profiles(props){
     const [selectedC2, setSelectedC2] = React.useState("None");
     const [includedC2Profiles, setIncludedC2Profiles] = React.useState([]);
     const [c2Profiles, setC2Profiles] = React.useState([]);
+    const [summaryCollapsed, setSummaryCollapsed] = React.useState(false);
     useQuery(GET_Payload_Types, {variables:{payloadType: props.buildOptions["payload_type"], operation_id: me?.user?.current_operation_id || 0},
         onCompleted: data => {
             const profiles = data.c2profile.map( (c2) => {
@@ -443,12 +458,41 @@ export function Step4C2Profiles(props){
                             </Typography>
                         </div>
                     </div>
-                    <div className="mythic-create-builder-split">
-                        <section className="mythic-create-section mythic-create-section-scroll">
-                            <Typography component="div" className="mythic-create-section-title" style={{textAlign: "center"}}>
-                                Configuration Summary
-                            </Typography>
-                            {includedC2Profiles.map( (c, index) => (
+                    <div className="mythic-create-builder-split" style={summaryCollapsed ? {gridTemplateColumns: "3rem minmax(0, 1fr)"} : undefined}>
+                        <section
+                            className="mythic-create-section mythic-create-section-scroll"
+                            style={summaryCollapsed ? {alignItems: "center", cursor: "pointer", paddingLeft: "0.25rem", paddingRight: "0.25rem"} : undefined}
+                            onClick={summaryCollapsed ? () => setSummaryCollapsed(false) : undefined}
+                        >
+                            <div style={{display: "flex", alignItems: "center", justifyContent: summaryCollapsed ? "center" : "space-between", gap: "0.5rem"}}>
+                                {!summaryCollapsed && (
+                                    <Typography component="div" className="mythic-create-section-title" style={{textAlign: "center", flexGrow: 1}}>
+                                        Configuration Summary
+                                    </Typography>
+                                )}
+                                <IconButton size="small"
+                                            aria-label={summaryCollapsed ? "Expand configuration summary" : "Collapse configuration summary"}
+                                            title={summaryCollapsed ? "Expand" : "Collapse"}
+                                            onClick={(e) => { e.stopPropagation(); setSummaryCollapsed(prev => !prev); }}>
+                                    {summaryCollapsed ? <ChevronRightIcon fontSize="small" /> : <ChevronLeftIcon fontSize="small" />}
+                                </IconButton>
+                            </div>
+                            {summaryCollapsed && (
+                                <div style={{flexGrow: 1, display: "flex", alignItems: "center", justifyContent: "center", userSelect: "none"}}>
+                                    <Typography variant={"body2"} style={{
+                                        fontWeight: 600,
+                                        writingMode: "vertical-rl",
+                                        transform: "rotate(180deg)",
+                                        letterSpacing: 0,
+                                        textTransform: "uppercase",
+                                        fontSize: "0.75rem",
+                                        opacity: 0.75,
+                                    }}>
+                                        Configuration Summary
+                                    </Typography>
+                                </div>
+                            )}
+                            {!summaryCollapsed && includedC2Profiles.map( (c, index) => (
                                 <ConfigurationSummary key={c.name + index} buildParameters={c.c2profileparameters}
                                                       os={props.buildOptions.os} c2_name={c.name} />
                             ))}
@@ -618,9 +662,11 @@ const C2ProfileTabs = ({includedC2Profiles, onChange, os, onCloseTab, onChangeCr
                     <Tab key={c.name + index} label={
                         <div style={{display: "flex", alignItems: "center"}}>
                                 {c.name}
-                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size='small' onClick={(e) => onCloseTabLocal(e, index)} >
+                            <span role="button" aria-label="close tab"
+                                  onClick={(e) => onCloseTabLocal(e, index)}
+                                  style={{display: "inline-flex", alignItems: "center", cursor: "pointer", marginLeft: "4px"}}>
                                 <CloseIcon fontSize="small" />
-                            </IconButton>
+                            </span>
                         </div>
                     } {...a11yProps(index)} style={{flexShrink: 0}} />
                 ))}

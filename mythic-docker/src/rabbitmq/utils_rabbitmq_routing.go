@@ -94,6 +94,9 @@ func GetC2RPCGetServerDebugOutputRoutingKey(container string) string {
 func GetC2RPCHostFileRoutingKey(container string) string {
 	return fmt.Sprintf("%s_%s", container, C2_RPC_HOST_FILE)
 }
+func GetC2RPCOtherServiceRoutingKey(container string) string {
+	return fmt.Sprintf("%s_%s", container, MYTHIC_RPC_OTHER_SERVICES_RPC)
+}
 func GetC2RPCGetFileRoutingKey(container string) string {
 	return fmt.Sprintf("%s_%s", container, CONTAINER_RPC_GET_FILE)
 }

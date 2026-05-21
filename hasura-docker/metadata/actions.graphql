@@ -278,6 +278,14 @@ type Mutation {
 }
 
 type Mutation {
+  c2CustomRPCFunction(
+    c2_profile: String!
+    function_name: String!
+    arguments: jsonb
+  ): c2CustomRPCFunctionOutput
+}
+
+type Mutation {
   dynamicQueryFunction(
     command: String!
     parameter_name: String!
@@ -1313,6 +1321,12 @@ type updatePayloadOutput {
 type eventingTriggerManualBulkOutput {
   status: String!
   error: String
+}
+
+type c2CustomRPCFunctionOutput {
+  status: String!
+  error: String
+  result: jsonb
 }
 
 type dynamicQueryBuildParameterOutput {

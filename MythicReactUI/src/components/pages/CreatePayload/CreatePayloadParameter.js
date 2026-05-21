@@ -7,7 +7,8 @@ import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import DeleteIcon from '@mui/icons-material/Delete';
-import {IconButton, Input, Button, MenuItem, Grid} from '@mui/material';
+import {IconButton, Input, Button, MenuItem, Grid, Dialog, DialogTitle, DialogContent, DialogActions, Chip, Tabs, Tab} from '@mui/material';
+import {SchemaFormRenderer, emptyValueForSchema} from './SchemaFormRenderer';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -26,6 +27,13 @@ import {CircularProgress} from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import InputLabel from '@mui/material/InputLabel';
 import {DragAndDropFileUpload} from "../Callbacks/TaskParametersDialogRow";
+import Paper from '@mui/material/Paper';
+import AceEditor from 'react-ace';
+import 'ace-builds/src-noconflict/mode-json';
+import 'ace-builds/src-noconflict/mode-toml';
+import 'ace-builds/src-noconflict/theme-github';
+import 'ace-builds/src-noconflict/theme-monokai';
+import 'ace-builds/src-noconflict/ext-searchbox';
 
 export const getDynamicQueryBuildParameterParams = gql`
 mutation getDynamicBuildParamsMutation($payload_type: String!, $parameter_name: String!, $selected_os: String!){
@@ -34,6 +42,15 @@ mutation getDynamicBuildParamsMutation($payload_type: String!, $parameter_name: 
         error
         choices
         parameter_name
+    }
+}
+`;
+export const c2CustomRPCFunctionMutation = gql`
+mutation c2CustomRPCFunctionMutation($c2_profile: String!, $function_name: String!, $arguments: jsonb){
+    c2CustomRPCFunction(c2_profile: $c2_profile, function_name: $function_name, arguments: $arguments){
+        status
+        error
+        result
     }
 }
 `;
@@ -46,10 +63,115 @@ function isTrue(value){
     }
     console.log("unknown boolean value", value);
 }
+function getConfigEditorMode(parameterType, randomize, formatString){
+    if(parameterType !== "String" || randomize || typeof formatString !== "string"){
+        return null;
+    }
+    const normalized = formatString.trim();
+    if(!normalized.toLowerCase().startsWith("ui:config_editor")){
+        return null;
+    }
+    // tokens after "ui:config_editor": first is the language hint, remaining are key=value suffixes
+    const parts = normalized.split(":");
+    const tail = parts.slice(2);
+    let languageHint = "text";
+    let presetsFn = "";
+    for(const raw of tail){
+        const token = raw.trim();
+        if(token === ""){ continue; }
+        const eq = token.indexOf("=");
+        if(eq === -1){
+            // bare token → language hint (first one wins)
+            if(languageHint === "text"){ languageHint = token.toLowerCase(); }
+            continue;
+        }
+        const key = token.slice(0, eq).trim().toLowerCase();
+        const value = token.slice(eq + 1).trim();
+        if(key === "presets_fn"){ presetsFn = value; }
+    }
+    return {languageHint, presetsFn};
+}
+function getConfigStatus(value, languageHint){
+    const raw = (value ?? "");
+    const trimmed = raw.trim();
+    if(trimmed === ""){ return {kind: "empty", label: "Using default"}; }
+    const lineCount = raw.split(/\r?\n/).length;
+    // only validate when the content is plausibly JSON
+    const looksJson = trimmed.startsWith("{") || trimmed.startsWith("[");
+    if(looksJson){
+        try{
+            JSON.parse(trimmed);
+        }catch(e){
+            return {kind: "invalid", label: "Invalid JSON"};
+        }
+    }
+    const format = (looksJson ? "JSON" : (languageHint === "toml" || languageHint === "json_toml" ? "TOML" : "TEXT"));
+    return {kind: "set", label: `Custom · ${lineCount} line${lineCount === 1 ? "" : "s"}`, format};
+}
+function detectAceMode(languageHint, content){
+    if(languageHint === "json"){ return "json"; }
+    if(languageHint === "toml"){ return "toml"; }
+    // json_toml (or anything else): sniff content
+    const trimmed = (content || "").trim();
+    if(trimmed === "" || trimmed.startsWith("{") || trimmed.startsWith("[")){
+        return "json";
+    }
+    return "toml";
+}
+function getConfigEditorPlaceholder(languageHint){
+    switch(languageHint){
+        case "json_toml":
+            return `{
+  "name": "example",
+  "post": {
+    "uris": ["/"],
+    "client": {
+      "message": {
+        "location": "body"
+      }
+    }
+  }
+}
+
+# Or TOML:
+# name = "example"
+# [post]
+# uris = ["/"]`;
+        case "json":
+            return `{
+  "name": "example",
+  "post": {
+    "uris": ["/"]
+  }
+}`;
+        case "toml":
+            return `name = "example"
+[post]
+uris = ["/"]`;
+        default:
+            return "";
+    }
+}
 export function CreatePayloadParameter({onChange, parameter_type, default_value, name, required, verifier_regex, id,
                                            description, initialValue, choices, trackedValue, instance_name,
-                                           payload_type, selected_os, dynamic_query_function, displayMode = "table"}){
+                                           payload_type, selected_os, dynamic_query_function, randomize, format_string,
+                                           c2_profile_name, display_name, choices_display_names, form_schema,
+                                           displayMode = "table"}){
     const theme = useTheme();
+    const configEditorMode = getConfigEditorMode(parameter_type, randomize, format_string);
+    const choiceLabel = (val) => {
+        const m = choices_display_names;
+        if(m && typeof m === "object" && val in m && typeof m[val] === "string" && m[val].length > 0){
+            return m[val];
+        }
+        return val;
+    };
+    const [configEditorOpen, setConfigEditorOpen] = React.useState(false);
+    const aceEditorRef = React.useRef(null);
+    const prePresetValueRef = React.useRef("");
+    const [configEditorPresets, setConfigEditorPresets] = React.useState([]);
+    const [editorTab, setEditorTab] = React.useState('source');
+    const [visualParseError, setVisualParseError] = React.useState("");
     const [value, setValue] = React.useState("");
     const [valueNum, setValueNum] = React.useState(0);
     const [multiValue, setMultiValue] = React.useState([]);
@@ -131,6 +253,53 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
             setBackdropOpen(false);
         }
     });
+    // Form schema is delivered as a parameter-level field via the c2 sync
+    // pipeline — no runtime RPC call required. Treat non-empty objects
+    // with a `type` key as a valid schema.
+    const hasFormSchema = !!(form_schema && typeof form_schema === "object" && !Array.isArray(form_schema) && typeof form_schema.type === "string" && form_schema.type.length > 0);
+    const [invokeC2CustomRPC, {loading: c2CustomRPCLoading}] = useMutation(c2CustomRPCFunctionMutation, {
+        onCompleted: (data) => {
+            if(data?.c2CustomRPCFunction?.status === "success"){
+                const result = data.c2CustomRPCFunction.result || {};
+                if(Array.isArray(result.presets)){
+                    const cleaned = result.presets
+                        .filter(p => p && typeof p.filename === "string" && typeof p.content === "string")
+                        .map(p => ({
+                            filename: p.filename,
+                            label: typeof p.label === "string" && p.label.length > 0 ? p.label : p.filename,
+                            content: p.content,
+                        }));
+                    setConfigEditorPresets(cleaned);
+                }
+            } else {
+                snackActions.warning(data?.c2CustomRPCFunction?.error || "Custom RPC failed");
+            }
+        },
+        onError: (err) => {
+            snackActions.warning("Failed to invoke C2 custom RPC");
+            console.log(err);
+        }
+    });
+    useEffect(() => {
+        if(!configEditorMode || !configEditorMode.presetsFn || !c2_profile_name){ return; }
+        invokeC2CustomRPC({variables: {
+            c2_profile: c2_profile_name,
+            function_name: configEditorMode.presetsFn,
+            arguments: {},
+        }});
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [c2_profile_name, configEditorMode?.presetsFn]);
+    const onSelectPreset = (filename) => {
+        if(!filename){ return; }
+        const preset = configEditorPresets.find(p => p.filename === filename);
+        if(!preset){ return; }
+        const prev = value ?? "";
+        prePresetValueRef.current = prev;
+        onChangeText(name, preset.content, testParameterValues(preset.content));
+        if(prev !== "" && prev !== preset.content){
+            showUndoSnackbar(`Loaded preset "${preset.label}".`, prev);
+        }
+    };
     const reIssueDynamicQueryFunction = () => {
         setBackdropOpen(true);
         snackActions.info("Querying payload type container for options...",  {autoClose: 1000});
@@ -306,6 +475,108 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
         setValue(value);
         onChange(name, value, error);
     }
+    const onConfigEditorUpload = async (evt) => {
+        const file = evt.target.files?.[0];
+        if(!file){
+            return;
+        }
+        try{
+            const uploadedValue = await file.text();
+            setValue(uploadedValue);
+            onChange(name, uploadedValue, testParameterValues(uploadedValue));
+        }catch(error){
+            snackActions.warning("Failed to read uploaded configuration file");
+            console.error(error);
+        }finally{
+            evt.target.value = "";
+        }
+    }
+    const onFormatConfigEditorJson = () => {
+        if(value.trim() === ""){
+            return;
+        }
+        try{
+            const formattedValue = JSON.stringify(JSON.parse(value), null, 2);
+            setValue(formattedValue);
+            onChange(name, formattedValue, testParameterValues(formattedValue));
+        }catch(error){
+            snackActions.info("Only JSON formatting is available inline. TOML input is left as-is.");
+        }
+    }
+    const parseSourceForVisual = () => {
+        const raw = (value ?? "").trim();
+        if(raw === ""){
+            return hasFormSchema ? emptyValueForSchema(form_schema) : {};
+        }
+        return JSON.parse(raw);
+    };
+    const visualValue = React.useMemo(() => {
+        if(editorTab !== 'visual') return null;
+        try { return parseSourceForVisual(); }
+        catch(_) { return null; }
+    }, [editorTab, value, form_schema]);
+    const onVisualChange = (newVal) => {
+        try {
+            const serialized = JSON.stringify(newVal, null, 2);
+            onChangeText(name, serialized, testParameterValues(serialized));
+        } catch(e) {
+            snackActions.warning("Failed to serialize visual form state");
+            console.log(e);
+        }
+    };
+    const onSwitchToVisual = () => {
+        try {
+            parseSourceForVisual();
+            setVisualParseError("");
+            setEditorTab('visual');
+        } catch(e) {
+            setVisualParseError(e.message || String(e));
+            setEditorTab('source');
+        }
+    };
+    const showUndoSnackbar = (label, previousValue) => {
+        snackActions.info(
+            <span style={{display: "inline-flex", alignItems: "center", gap: "8px"}}>
+                {label}
+                <Button size="small" variant="outlined" onClick={(e) => {
+                    e.stopPropagation();
+                    onChangeText(name, previousValue, testParameterValues(previousValue));
+                }}>
+                    Undo
+                </Button>
+            </span>,
+            {autoClose: 8000}
+        );
+    }
+    const onClearConfigEditor = () => {
+        const prev = value;
+        setValue("");
+        onChange(name, "", testParameterValues(""));
+        if(prev !== ""){
+            showUndoSnackbar("Config cleared.", prev);
+        }
+    }
+    const onCopyConfigToClipboard = async () => {
+        const raw = value ?? "";
+        if(raw === ""){
+            snackActions.info("Nothing to copy");
+            return;
+        }
+        try{
+            await navigator.clipboard.writeText(raw);
+            snackActions.success("Copied to clipboard");
+        }catch(err){
+            snackActions.warning("Clipboard unavailable");
+            console.error(err);
+        }
+    }
+    React.useEffect(() => {
+        if(!configEditorOpen){ return; }
+        const t = setTimeout(() => {
+            try { aceEditorRef.current?.focus(); } catch(_) {}
+        }, 200);
+        return () => clearTimeout(t);
+    }, [configEditorOpen]);
     const onChangeNumber = (name, value, error) => {
         setValueNum(value);
         onChange(name, value, error);
@@ -501,7 +772,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                             >
                             {
                                 ChoiceOptions.map((opt, i) => (
-                                    <MenuItem key={"buildparamopt" + i} value={opt}>{opt}</MenuItem>
+                                    <MenuItem key={"buildparamopt" + i} value={opt}>{choiceLabel(opt)}</MenuItem>
                                 ))
                             }
                             </Select>
@@ -532,7 +803,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                                 >
                                     {
                                         ChoiceOptions.map((opt, i) => (
-                                            <MenuItem key={name + i} value={opt}>{opt}</MenuItem>
+                                            <MenuItem key={name + i} value={opt}>{choiceLabel(opt)}</MenuItem>
                                         ))
                                     }
                                 </Select>
@@ -570,7 +841,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                             >
                             {
                                 ChoiceOptions.map((opt, i) => (
-                                    <MenuItem key={"buildparamopt" + i} value={opt}>{opt}</MenuItem>
+                                    <MenuItem key={"buildparamopt" + i} value={opt}>{choiceLabel(opt)}</MenuItem>
                                 ))
                             }
                             </Select>
@@ -634,7 +905,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                                                     >
                                                         {
                                                             choices.map((opt, i) => (
-                                                                <MenuItem key={name + i} value={opt}>{opt}</MenuItem>
+                                                                <MenuItem key={name + i} value={opt}>{choiceLabel(opt)}</MenuItem>
                                                             ))
                                                         }
                                                     </Select>
@@ -684,6 +955,119 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                     </React.Fragment>
                 );
             case "String":
+                if(configEditorMode !== null){
+                    const aceMode = detectAceMode(configEditorMode.languageHint, value);
+                    const status = getConfigStatus(value, configEditorMode.languageHint);
+                    const hasPresets = !!configEditorMode.presetsFn && configEditorPresets.length > 0;
+                    const matchingPresetFilename = (() => {
+                        const v = value ?? "";
+                        if(v === ""){ return ""; }
+                        const match = configEditorPresets.find(p => p.content === v);
+                        return match ? match.filename : "";
+                    })();
+                    const chipColor = status.kind === "invalid" ? "error" : status.kind === "set" ? "success" : "default";
+                    return (
+                        <React.Fragment>
+                            <Paper variant="outlined" style={{padding: "8px 12px"}}>
+                                <div style={{display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap"}}>
+                                    <Button variant="outlined" component="label" size="small">
+                                        Upload
+                                        <input onChange={onConfigEditorUpload} type="file" hidden accept=".json,.toml,.txt,application/json,text/plain" />
+                                    </Button>
+                                    {hasPresets && (
+                                        <FormControl size="small" style={{minWidth: "180px"}} disabled={c2CustomRPCLoading}>
+                                            <Select
+                                                value={matchingPresetFilename}
+                                                displayEmpty
+                                                renderValue={(selected) => {
+                                                    if(!selected){ return <em style={{opacity: 0.6}}>Choose a preset…</em>; }
+                                                    const p = configEditorPresets.find(x => x.filename === selected);
+                                                    return p ? p.label : selected;
+                                                }}
+                                                onChange={(e) => onSelectPreset(e.target.value)}>
+                                                {configEditorPresets.map(p => (
+                                                    <MenuItem key={p.filename} value={p.filename}>{p.label}</MenuItem>
+                                                ))}
+                                            </Select>
+                                        </FormControl>
+                                    )}
+                                    <Button variant="text" size="small" color="warning" onClick={onClearConfigEditor}>
+                                        Clear
+                                    </Button>
+                                    <Button variant="contained" size="small" onClick={() => setConfigEditorOpen(true)}>
+                                        Edit
+                                    </Button>
+                                    <div style={{marginLeft: "auto", display: "flex", gap: "6px", alignItems: "center"}}>
+                                        <MythicStyledTooltip title="Open editor">
+                                            <Chip size="small" label={status.label} color={chipColor}
+                                                  clickable
+                                                  onClick={() => setConfigEditorOpen(true)} />
+                                        </MythicStyledTooltip>
+                                        <Chip size="small" variant="outlined" label={aceMode.toUpperCase()} />
+                                    </div>
+                                </div>
+                            </Paper>
+                            <Dialog open={configEditorOpen} onClose={() => setConfigEditorOpen(false)} maxWidth="lg" fullWidth>
+                                <DialogTitle style={{paddingBottom: 0}}>
+                                    {display_name && display_name.length > 0 ? display_name : name}
+                                    {hasFormSchema && (
+                                        <Tabs value={editorTab}
+                                              onChange={(e, v) => { if(v === 'visual'){ onSwitchToVisual(); } else { setEditorTab('source'); } }}
+                                              style={{marginTop: "4px", minHeight: "32px"}}
+                                              TabIndicatorProps={{style: {height: "2px"}}}>
+                                            <Tab value="visual" label="Visual" style={{minHeight: "32px", textTransform: "none"}} />
+                                            <Tab value="source" label="Source" style={{minHeight: "32px", textTransform: "none"}} />
+                                        </Tabs>
+                                    )}
+                                </DialogTitle>
+                                <DialogContent dividers>
+                                    {(!hasFormSchema || editorTab === 'source') && (
+                                        <React.Fragment>
+                                            <div style={{display: "flex", gap: "8px", alignItems: "center", marginBottom: "8px", flexWrap: "wrap"}}>
+                                                <Typography variant="caption" color="text.secondary" style={{flex: "1 1 auto"}}>
+                                                    Paste configuration inline, upload a local JSON/TOML file, or leave empty for default behavior without transforms.
+                                                </Typography>
+                                                <Button variant="text" size="small" onClick={onFormatConfigEditorJson}>
+                                                    Format
+                                                </Button>
+                                                <Button variant="text" size="small" onClick={onCopyConfigToClipboard}>
+                                                    Copy
+                                                </Button>
+                                            </div>
+                                            {visualParseError && (
+                                                <Typography variant="caption" color="error" style={{display: "block", marginBottom: "4px"}}>
+                                                    Visual tab unavailable: {visualParseError}
+                                                </Typography>
+                                            )}
+                                            <AceEditor
+                                                mode={aceMode}
+                                                theme={theme.palette.mode === 'dark' ? 'monokai' : 'github'}
+                                                width="100%"
+                                                minLines={20}
+                                                maxLines={40}
+                                                showPrintMargin={false}
+                                                wrapEnabled={true}
+                                                value={value}
+                                                placeholder={getConfigEditorPlaceholder(configEditorMode.languageHint)}
+                                                onChange={(newValue) => onChangeText(name, newValue, testParameterValues(newValue))}
+                                                setOptions={{useWorker: false, tabSize: 2, useSoftTabs: true}}
+                                                name={"ace_config_editor_" + id}
+                                                onLoad={(editor) => { aceEditorRef.current = editor; }}
+                                                editorProps={{$blockScrolling: true}}
+                                            />
+                                        </React.Fragment>
+                                    )}
+                                    {hasFormSchema && editorTab === 'visual' && visualValue !== null && (
+                                        <SchemaFormRenderer schema={form_schema} value={visualValue} onChange={onVisualChange} />
+                                    )}
+                                </DialogContent>
+                                <DialogActions>
+                                    <Button onClick={() => setConfigEditorOpen(false)}>Close</Button>
+                                </DialogActions>
+                            </Dialog>
+                        </React.Fragment>
+                    );
+                }
                 return (
                     <MythicTextField required={required} value={value} multiline={true}
                         onChange={onChangeText} display="inline-block" name={name} showLabel={false}
@@ -828,7 +1212,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 <MythicStyledTableCell>
                     <MythicStyledTooltip title={name.length > 0 ? name : "No Description"}>
                         <Typography style={{fontWeight: "600"}} >
-                            {name}
+                            {display_name && display_name.length > 0 ? display_name : name}
                         </Typography>
                         <Typography style={{fontSize: theme.typography.pxToRem(15), marginLeft: "10px"}}>
                             {description}

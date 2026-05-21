@@ -315,6 +315,13 @@ export const ParseForDisplay = ({
 }) => {
     const [renderObj, setRenderObj] = React.useState('');
     const [fileMultipleValue, setFileMultipleValue] = React.useState([]);
+    const choiceLabel = (val) => {
+        const m = cmd?.choices_display_names;
+        if(m && typeof m === "object" && val in m && typeof m[val] === "string" && m[val].length > 0){
+            return m[val];
+        }
+        return val;
+    };
     React.useEffect( () => {
         if(cmd.parameter_type === "Dictionary") {
             try{
@@ -336,17 +343,15 @@ export const ParseForDisplay = ({
             }
         }else if(cmd.parameter_type === "Array" || cmd.parameter_type === "ChooseMultiple") {
             try {
-                if(typeof cmd.value === 'string'){
-                    let parsedValue = JSON.parse(cmd.value);
-                    setRenderObj(parsedValue.map(c => c + "\n"));
-                } else {
-                    setRenderObj(cmd.value.map(c => c + "\n"));
-                }
-
+                const raw = (typeof cmd.value === 'string') ? JSON.parse(cmd.value) : cmd.value;
+                const mapped = (cmd.parameter_type === "ChooseMultiple") ? raw.map(choiceLabel) : raw;
+                setRenderObj(mapped.map(c => c + "\n"));
             } catch (error) {
                 console.log("Failed to parse parameter value as array or choose multiple", cmd.value, error)
                 setRenderObj(cmd.value);
             }
+        } else if(cmd.parameter_type === "ChooseOne" || cmd.parameter_type === "ChooseOneCustom") {
+            setRenderObj(choiceLabel(cmd.value));
         } else if(cmd.parameter_type === "File") {
         } else if(cmd.parameter_type === "FileMultiple") {
             try {
