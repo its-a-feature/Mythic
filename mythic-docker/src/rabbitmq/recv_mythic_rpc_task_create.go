@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"encoding/json"
 
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -10,16 +11,13 @@ import (
 )
 
 type MythicRPCTaskCreateMessage struct {
-	AgentCallbackID     *string `json:"agent_callback_id"`
-	CallbackID          *int    `json:"callback_id"`
-	OperatorID          *int    `json:"operator_id"`
-	TaskID              *int    `json:"task_id"`
-	CommandName         string  `json:"command_name"`
-	PayloadTypeName     *string `json:"payload_type_name"`
-	Params              string  `json:"params"`
-	ParameterGroupName  *string `json:"parameter_group_name,omitempty"`
-	Token               *int    `json:"token,omitempty"`
-	EventStepInstanceId *int    `json:"eventstepinstance_id,omitempty"`
+	AgentCallbackID    *string `json:"agent_callback_id"`
+	CallbackID         *int    `json:"callback_id"`
+	CommandName        string  `json:"command_name"`
+	PayloadTypeName    *string `json:"payload_type_name"`
+	Params             string  `json:"params"`
+	ParameterGroupName *string `json:"parameter_group_name,omitempty"`
+	Token              *int    `json:"token,omitempty"`
 }
 
 // Every mythicRPC function call must return a response that includes the following two values
@@ -36,11 +34,12 @@ func init() {
 		Queue:      MYTHIC_RPC_TASK_CREATE,     // swap out with queue in rabbitmq.constants.go file
 		RoutingKey: MYTHIC_RPC_TASK_CREATE,     // swap out with routing key in rabbitmq.constants.go file
 		Handler:    processMythicRPCTaskCreate, // points to function that takes in amqp.Delivery and returns interface{}
+		Scopes:     []string{mythicjwt.SCOPE_TASK_WRITE},
 	})
 }
 
 // MYTHIC_RPC_OBJECT_ACTION - Say what the function does
-func MythicRPCTaskCreate(input MythicRPCTaskCreateMessage) MythicRPCTaskCreateMessageResponse {
+func MythicRPCTaskCreate(input MythicRPCTaskCreateMessage, authContext RabbitMQAuthContext) MythicRPCTaskCreateMessageResponse {
 	response := MythicRPCTaskCreateMessageResponse{
 		Success: false,
 	}
@@ -52,52 +51,26 @@ func MythicRPCTaskCreate(input MythicRPCTaskCreateMessage) MythicRPCTaskCreateMe
 		ParameterGroupName: input.ParameterGroupName,
 		TaskingLocation:    &taskingLocation,
 		PayloadType:        input.PayloadTypeName,
+		AuthContext:        authContext,
 	}
-	if input.EventStepInstanceId != nil {
-		createTaskInput.EventStepInstanceID = *input.EventStepInstanceId
-	}
+	createTaskInput.EventStepInstanceID = authContext.EventStepInstanceID
+	createTaskInput.APITokensID = authContext.APITokensID
 	callback := databaseStructs.Callback{}
 	err := database.DB.Get(&callback, `SELECT 
 		callback.id, callback.agent_callback_id,
 		callback.display_id,
 		callback.operation_id
 		FROM callback
-		WHERE callback.agent_callback_id=$1 OR callback.id=$2`, input.AgentCallbackID, input.CallbackID)
+		WHERE (callback.agent_callback_id=$1 OR callback.id=$2) AND callback.operation_id=$3`,
+		input.AgentCallbackID, input.CallbackID, authContext.OperationID)
 	if err != nil {
 		response.Error = err.Error()
 		logging.LogError(err, "Failed to fetch task/callback information when creating subtask")
 		return response
 	}
 	createTaskInput.CallbackDisplayID = callback.DisplayID
-	createTaskInput.CurrentOperationID = callback.OperationID
-	if input.OperatorID != nil {
-		createTaskInput.OperatorID = *input.OperatorID
-	} else if input.EventStepInstanceId != nil {
-		eventStepInstance := databaseStructs.EventStepInstance{ID: *input.EventStepInstanceId}
-		err := database.DB.Get(&eventStepInstance, `SELECT
-    		operator_id 
-			FROM eventstepinstance 
-			WHERE id = $1`, eventStepInstance.ID)
-		if err != nil {
-			logging.LogError(err, "Failed to fetch eventstepinstance")
-			response.Error = err.Error()
-			return response
-		}
-		createTaskInput.OperatorID = eventStepInstance.OperatorID
-	} else if input.TaskID != nil {
-		task := databaseStructs.Task{ID: *input.TaskID}
-		err = database.DB.Get(&task, `SELECT operator_id FROM task where id = $1`, task.ID)
-		if err != nil {
-			logging.LogError(err, "Failed to fetch task")
-			response.Error = err.Error()
-			return response
-		}
-		createTaskInput.OperatorID = task.OperatorID
-	} else {
-		logging.LogError(nil, "missing TaskID, EventStepInstanceID, or Operator ID")
-		response.Error = "missing TaskID, EventStepInstanceID, or Operator ID"
-		return response
-	}
+	createTaskInput.CurrentOperationID = authContext.OperationID
+	createTaskInput.OperatorID = authContext.OperatorID
 	createTaskInput.IsOperatorAdmin = false
 	err = automatedTaskCreateAugmentInput(&createTaskInput)
 	if err != nil {
@@ -136,11 +109,16 @@ func processMythicRPCTaskCreate(msg amqp.Delivery) interface{} {
 	responseMsg := MythicRPCTaskCreateMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCTaskCreate(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCTaskCreate(incomingMessage, authContext)
 }

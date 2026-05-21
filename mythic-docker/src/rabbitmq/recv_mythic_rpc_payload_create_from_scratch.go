@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -29,27 +30,31 @@ func init() {
 		Queue:      MYTHIC_RPC_PAYLOAD_CREATE_FROM_SCRATCH,   // swap out with queue in rabbitmq.constants.go file
 		RoutingKey: MYTHIC_RPC_PAYLOAD_CREATE_FROM_SCRATCH,   // swap out with routing key in rabbitmq.constants.go file
 		Handler:    processMythicRPCPayloadCreateFromScratch, // points to function that takes in amqp.Delivery and returns interface{}
+		Scopes:     []string{mythicjwt.SCOPE_PAYLOAD_WRITE},
 	})
 }
 
 // MYTHIC_RPC_OBJECT_ACTION - Say what the function does
-func MythicRPCPayloadCreateFromScratch(input MythicRPCPayloadCreateFromScratchMessage) MythicRPCPayloadCreateFromScratchMessageResponse {
+func MythicRPCPayloadCreateFromScratch(input MythicRPCPayloadCreateFromScratchMessage, authContext RabbitMQAuthContext) MythicRPCPayloadCreateFromScratchMessageResponse {
 	response := MythicRPCPayloadCreateFromScratchMessageResponse{
 		Success: false,
 	}
 	task := databaseStructs.Task{}
-	if err := database.DB.Get(&task, `SELECT 
-    operator_id, operation_id
+	err := database.DB.Get(&task, `SELECT 
+    operator_id, operation_id, apitokens_id, eventstepinstance_id
 	FROM task 
-	WHERE id=$1`, input.TaskID); err != nil {
+	WHERE id=$1 AND operation_id=$2`, input.TaskID, authContext.OperationID)
+	if err != nil {
 		logging.LogError(err, "Failed to get operator_id from task when generating payload")
 		response.Error = err.Error()
 		return response
 	}
+	input.PayloadConfiguration.APITokensID = authContext.APITokensID
+	input.PayloadConfiguration.EventStepInstance = authContext.EventStepInstanceID
 	newUUID, newID, err := RegisterNewPayload(input.PayloadConfiguration, &databaseStructs.Operatoroperation{
 		CurrentOperation: databaseStructs.Operation{ID: task.OperationID},
 		CurrentOperator:  databaseStructs.Operator{ID: task.OperatorID},
-	})
+	}, authContext)
 	if err != nil {
 		response.Error = err.Error()
 		return response
@@ -78,11 +83,16 @@ func processMythicRPCPayloadCreateFromScratch(msg amqp.Delivery) interface{} {
 	responseMsg := MythicRPCPayloadCreateFromScratchMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCPayloadCreateFromScratch(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCPayloadCreateFromScratch(incomingMessage, authContext)
 }

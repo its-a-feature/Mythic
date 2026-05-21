@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 
@@ -29,11 +30,17 @@ func init() {
 		Queue:      MYTHIC_RPC_HANDLE_AGENT_JSON,
 		RoutingKey: MYTHIC_RPC_HANDLE_AGENT_JSON,
 		Handler:    processMythicRPCHandleAgentJson,
+		Scopes: []string{
+			mythicjwt.SCOPE_CALLBACK_WRITE,
+			mythicjwt.SCOPE_RESPONSE_WRITE,
+			mythicjwt.SCOPE_FILE_WRITE,
+			mythicjwt.SCOPE_CREDENTIAL_WRITE,
+		},
 	})
 }
 
 // Endpoint: MYTHIC_RPC_HANDLE_AGENT_JSON
-func MythicRPCHandleAgentJson(input MythicRPCHandleAgentJsonMessage) MythicRPCHandleAgentJsonMessageResponse {
+func MythicRPCHandleAgentJson(input MythicRPCHandleAgentJsonMessage, authContext RabbitMQAuthContext) MythicRPCHandleAgentJsonMessageResponse {
 	response := MythicRPCHandleAgentJsonMessageResponse{
 		Success: false,
 	}
@@ -42,7 +49,7 @@ func MythicRPCHandleAgentJson(input MythicRPCHandleAgentJsonMessage) MythicRPCHa
 		err := database.DB.Get(&callback, `SELECT 
     		operation_id, id, display_id, agent_callback_id 
 			FROM callback 
-			WHERE id=$1`, *input.CallbackID)
+			WHERE id=$1 AND operation_id=$2`, *input.CallbackID, authContext.OperationID)
 		if err != nil {
 			response.Success = false
 			response.Error = err.Error()
@@ -52,7 +59,7 @@ func MythicRPCHandleAgentJson(input MythicRPCHandleAgentJsonMessage) MythicRPCHa
 		err := database.DB.Get(&callback, `SELECT 
 			operation_id, id, display_id, agent_callback_id 
 			FROM callback 
-			WHERE agent_callback_id=$1`, *input.AgentCallbackID)
+			WHERE agent_callback_id=$1 AND operation_id=$2`, *input.AgentCallbackID, authContext.OperationID)
 		if err != nil {
 			response.Success = false
 			response.Error = err.Error()
@@ -96,11 +103,16 @@ func processMythicRPCHandleAgentJson(msg amqp.Delivery) interface{} {
 	responseMsg := MythicRPCHandleAgentJsonMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCHandleAgentJson(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCHandleAgentJson(incomingMessage, authContext)
 }

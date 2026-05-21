@@ -3,11 +3,12 @@ package rabbitmq
 import (
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/its-a-feature/Mythic/database"
 	"github.com/its-a-feature/Mythic/eventing"
 	"github.com/its-a-feature/Mythic/logging"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"time"
 )
 
 type ResponseInterceptMessageResponse struct {
@@ -26,6 +27,7 @@ func init() {
 		Queue:      EVENTING_RESPONSE_INTERCEPT_RESPONSE,
 		RoutingKey: EVENTING_RESPONSE_INTERCEPT_RESPONSE,
 		Handler:    processEventingResponseInterceptResponse,
+		Scopes:     []string{},
 	})
 }
 

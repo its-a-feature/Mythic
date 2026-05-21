@@ -72,14 +72,16 @@ func handleAgentMessageCheckin(incoming *map[string]interface{}, UUIDInfo *cache
 		mythicRPCCallbackCreateMessage.ExternalIP = remoteIP
 	}
 	//logging.LogDebug("about to create a new callback with data", "callback", mythicRPCCallbackCreateMessage)
-	mythicRPCCallbackCreateMessageResponse := MythicRPCCallbackCreate(mythicRPCCallbackCreateMessage)
+	mythicRPCCallbackCreateMessageResponse := MythicRPCCallbackCreate(mythicRPCCallbackCreateMessage, RabbitMQAuthContext{
+		OperationID: UUIDInfo.OperationID,
+	})
 	if !mythicRPCCallbackCreateMessageResponse.Success {
 		errorString := fmt.Sprintf("Failed to create new callback in MythicRPCCallbackCreate: %s", mythicRPCCallbackCreateMessageResponse.Error)
 		logging.LogError(nil, errorString)
 		return nil, errors.New(errorString)
 	}
 	response := map[string]interface{}{}
-	response["id"] = mythicRPCCallbackCreateMessageResponse.CallbackUUID
+	response["id"] = mythicRPCCallbackCreateMessageResponse.AgentCallbackID
 	response["status"] = "success"
 	reflectBackOtherKeys(&response, &agentMessage.Other)
 	UUIDInfo.CallbackID = mythicRPCCallbackCreateMessageResponse.CallbackID

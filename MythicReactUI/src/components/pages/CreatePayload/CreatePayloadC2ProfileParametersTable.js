@@ -8,7 +8,7 @@ export function CreatePayloadC2ProfileParametersTable(props){
         props.onChange(props.name, paramName, value, error);
     }
     return (
-        <div className="mythic-create-parameter-list">
+        <div className="mythic-column-stack">
             {props.c2profileparameters.map( (op) => (
                 <CreatePayloadParameter
                     displayMode="card"

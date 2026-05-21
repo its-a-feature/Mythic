@@ -1030,16 +1030,16 @@ export function TaskParametersDialog(props) {
   const commandName = commandInfo.cmd || props.command?.cmd || "Command";
   return (
     <React.Fragment>
-        <DialogTitle id="mythic-draggable-title" className="mythic-task-parameters-title">
-            <Box className="mythic-task-parameters-title-row">
-                <Box className="mythic-task-parameters-title-icon">
+        <DialogTitle id="mythic-draggable-title" className="mythic-accent-dialog-title">
+            <Box className="mythic-accent-dialog-title-row">
+                <Box className="mythic-accent-dialog-title-icon">
                     <TerminalIcon fontSize="small" />
                 </Box>
                 <Box className="mythic-task-parameters-title-copy">
                     <Typography component="div" className="mythic-task-parameters-title-main">
                         {commandName}
                     </Typography>
-                    <Typography component="div" className="mythic-task-parameters-title-subtitle">
+                    <Typography component="div" className="mythic-accent-dialog-title-subtitle">
                         Command parameters
                     </Typography>
                 </Box>

@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"encoding/json"
 
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -25,11 +26,12 @@ func init() {
 		Queue:      MYTHIC_RPC_FILEBROWSER_CREATE,
 		RoutingKey: MYTHIC_RPC_FILEBROWSER_CREATE,
 		Handler:    processMythicRPCFileBrowserCreate,
+		Scopes:     []string{mythicjwt.SCOPE_BROWSER_WRITE},
 	})
 }
 
 // Endpoint: MYTHIC_RPC_FILEBROWSER_CREATE
-func MythicRPCFileBrowserCreate(input MythicRPCFileBrowserCreateMessage) MythicRPCFileBrowserCreateMessageResponse {
+func MythicRPCFileBrowserCreate(input MythicRPCFileBrowserCreateMessage, authContext RabbitMQAuthContext) MythicRPCFileBrowserCreateMessageResponse {
 	response := MythicRPCFileBrowserCreateMessageResponse{
 		Success: false,
 	}
@@ -46,7 +48,7 @@ func MythicRPCFileBrowserCreate(input MythicRPCFileBrowserCreateMessage) MythicR
 		FROM task
 		JOIN callback ON task.callback_id = callback.id
 		JOIN payload ON callback.registered_payload_id = payload.id
-		WHERE task.id = $1`, input.TaskID)
+		WHERE task.id = $1 AND task.operation_id=$2`, input.TaskID, authContext)
 	if err != nil {
 		logging.LogError(err, "Failed to fetch task")
 		response.Error = err.Error()
@@ -78,5 +80,10 @@ func processMythicRPCFileBrowserCreate(msg amqp.Delivery) interface{} {
 		responseMsg.Error = err.Error()
 		return responseMsg
 	}
-	return MythicRPCFileBrowserCreate(incomingMessage)
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCFileBrowserCreate(incomingMessage, authContext)
 }

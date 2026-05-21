@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 
 	"github.com/gin-gonic/gin"
@@ -38,7 +39,7 @@ func SendExternalWebhookWebhook(c *gin.Context) {
 			Error:  err.Error(),
 		})
 		return
-	} else if ginOperatorOperation, ok := c.Get("operatorOperation"); !ok {
+	} else if ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct); !ok {
 		logging.LogError(nil, "Failed to get user information")
 		c.JSON(http.StatusOK, SendExternalWebhookResponse{
 			Status: "error",

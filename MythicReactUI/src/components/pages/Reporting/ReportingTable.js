@@ -210,11 +210,6 @@ export function ReportingTable(){
                         Report sections, output format, and callback exclusions.
                     </Typography>
                 </Box>
-                <Box sx={{alignItems: "center", display: "flex", flexWrap: "wrap", gap: 0.5}}>
-                    <MythicPageHeaderChip label={selectedOutputFormat.toUpperCase()} status="info" />
-                    <MythicPageHeaderChip label={`${enabledSectionCount} optional ${enabledSectionCount === 1 ? "section" : "sections"}`} status={enabledSectionCount > 0 ? "success" : "neutral"} />
-                    {hasExclusions && <MythicPageHeaderChip label="Exclusions active" status="warning" />}
-                </Box>
             </Box>
 
             <MythicTableToolbar>
@@ -227,14 +222,6 @@ export function ReportingTable(){
                             <MythicToolbarMenuItem key={opt} value={opt}>{opt.toUpperCase()}</MythicToolbarMenuItem>
                         ))}
                     </MythicToolbarSelect>
-                </MythicTableToolbarGroup>
-                <MythicTableToolbarGroup grow label="Current selection">
-                    <Box sx={{alignItems: "center", display: "flex", flexWrap: "wrap", gap: 0.45}}>
-                        <MythicPageHeaderChip icon={<ArticleOutlinedIcon />} label={`${selectedOutputFormat.toUpperCase()} report`} />
-                        {includeMITREPerTask && <MythicPageHeaderChip label="MITRE per task" status="success" />}
-                        {includeMITREOverview && <MythicPageHeaderChip label="MITRE overview" status="success" />}
-                        {includeOutput && <MythicPageHeaderChip label="Command output" status="success" />}
-                    </Box>
                 </MythicTableToolbarGroup>
                 <MythicTableToolbarGroup label="Actions">
                     <MythicToolbarButton

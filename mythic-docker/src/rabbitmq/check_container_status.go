@@ -235,7 +235,12 @@ func CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(containerName string) {
 		}
 		onStartMessage.APIToken = plainAPITokenValue
 		go expireAPITokenAfterShortLivedTTL(apiToken.ID)
-		err = RabbitMQConnection.SendContainerOnStart(onStartMessage)
+		err = RabbitMQConnection.SendContainerOnStart(onStartMessage, RabbitMQAuthContext{
+			OperatorID:   apiToken.OperatorID,
+			OperationID:  onStartMessage.OperationID,
+			APITokensID:  apiToken.ID,
+			SourceScopes: apiToken.Scopes,
+		})
 		if err != nil {
 			logging.LogError(err, "Failed to send container on start")
 		}

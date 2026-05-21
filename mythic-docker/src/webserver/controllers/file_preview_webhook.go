@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -88,7 +89,7 @@ func PreviewFileWebhook(c *gin.Context) {
 		})
 		return
 	}
-	go tagFileAs(filemeta.ID, user.Username, filemeta.OperationID, tagTypePreview, nil, c, false)
+	go tagFileAs(filemeta.ID, user.Username, filemeta.OperationID, tagTypePreview, nil, c, false, authentication.RabbitMQAuthContextFromGin(c))
 	file, err := os.Open(filemeta.Path)
 	if err != nil {
 		logging.LogError(err, "Failed to open file from disk")

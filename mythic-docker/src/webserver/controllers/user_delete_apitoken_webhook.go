@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
+	"github.com/its-a-feature/Mythic/rabbitmq"
 )
 
 type DeleteAPITokenInput struct {
@@ -83,6 +84,7 @@ func DeleteAPITokenWebhook(c *gin.Context) {
 		})
 		return
 	}
+	rabbitmq.InvalidateRabbitMQAuthContextsForAPIToken(apiToken.ID)
 	c.JSON(http.StatusOK, DeleteAPITokenResponse{
 		Status:     "success",
 		OperatorID: apiToken.OperatorID,

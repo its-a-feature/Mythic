@@ -29,6 +29,7 @@ type GenerateReportMessage struct {
 	IncludeOutput       bool   `json:"includeOutput"`
 	OutputFormat        string `json:"outputFormat" `
 	OperatorOperation   *databaseStructs.Operatoroperation
+	AuthContext         RabbitMQAuthContext
 }
 type Link struct {
 	XMLName xml.Name `xml:"a"`
@@ -275,9 +276,17 @@ func GenerateReport(reportConfig GenerateReportMessage) {
 	newFileMeta.Size = int64(len(fileBytes))
 	newFileMeta.OperatorID = reportConfig.OperatorOperation.CurrentOperator.ID
 	newFileMeta.OperationID = reportConfig.OperatorOperation.CurrentOperation.ID
+	if reportConfig.AuthContext.APITokensID > 0 {
+		newFileMeta.APITokensID.Valid = true
+		newFileMeta.APITokensID.Int64 = int64(reportConfig.AuthContext.APITokensID)
+	}
+	if reportConfig.AuthContext.EventStepInstanceID > 0 {
+		newFileMeta.EventStepInstanceID.Valid = true
+		newFileMeta.EventStepInstanceID.Int64 = int64(reportConfig.AuthContext.EventStepInstanceID)
+	}
 	if _, err := database.DB.NamedExec(`INSERT INTO filemeta 
-				(agent_file_id, "path", operation_id, operator_id, sha1, md5, complete, filename, comment, chunk_size, total_chunks, chunks_received, size)
-				VALUES (:agent_file_id, :path, :operation_id, :operator_id, :sha1, :md5, :complete, :filename, :comment, :chunk_size, :total_chunks, :chunks_received, :size)`,
+				(agent_file_id, "path", operation_id, operator_id, sha1, md5, complete, filename, comment, chunk_size, total_chunks, chunks_received, size, apitokens_id, eventstepinstance_id)
+				VALUES (:agent_file_id, :path, :operation_id, :operator_id, :sha1, :md5, :complete, :filename, :comment, :chunk_size, :total_chunks, :chunks_received, :size, :apitokens_id, :eventstepinstance_id)`,
 		newFileMeta); err != nil {
 		logging.LogError(err, "Failed to create new filemeta data")
 		go SendAllOperationsMessage("Failed to create report", newFileMeta.OperationID, "generated_report", database.MESSAGE_LEVEL_INFO, true)

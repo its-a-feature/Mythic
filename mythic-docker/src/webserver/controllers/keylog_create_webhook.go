@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -38,7 +39,7 @@ func CreateKeylogWebhook(c *gin.Context) {
 		})
 		return
 	}
-	ginOperatorOperation, ok := c.Get("operatorOperation")
+	ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct)
 	if !ok {
 		logging.LogError(err, "Failed to get operatorOperation information for CreatePayloadWebhook")
 		c.JSON(http.StatusOK, CreateKeylogResponse{
@@ -79,7 +80,7 @@ func CreateKeylogWebhook(c *gin.Context) {
 		TaskID:      task.ID,
 		Keystrokes:  []byte(input.Input.Keystrokes),
 	}
-	APITokenID, ok := c.Get("apitokens-id")
+	APITokenID, ok := c.Get(authentication.ContextKeyAPITokenID)
 	if ok {
 		if APITokenID.(int) > 0 {
 			databaseObj.APITokensID.Valid = true

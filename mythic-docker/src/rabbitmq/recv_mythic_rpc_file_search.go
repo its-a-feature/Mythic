@@ -6,6 +6,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -16,7 +17,6 @@ type MythicRPCFileSearchMessage struct {
 	TaskID              int    `json:"task_id"`
 	CallbackID          int    `json:"callback_id"`
 	Filename            string `json:"filename"`
-	OperationId         int    `json:"operation_id"`
 	LimitByCallback     bool   `json:"limit_by_callback"`
 	MaxResults          int    `json:"max_results"`
 	Comment             string `json:"comment"`
@@ -56,22 +56,22 @@ func init() {
 		Queue:      MYTHIC_RPC_FILE_SEARCH,
 		RoutingKey: MYTHIC_RPC_FILE_SEARCH,
 		Handler:    processMythicRPCFileSearch,
+		Scopes:     []string{mythicjwt.SCOPE_FILE_READ},
 	})
 }
 
-func MythicRPCFileSearch(input MythicRPCFileSearchMessage) MythicRPCFileSearchMessageResponse {
+func MythicRPCFileSearch(input MythicRPCFileSearchMessage, authContext RabbitMQAuthContext) MythicRPCFileSearchMessageResponse {
 	response := MythicRPCFileSearchMessageResponse{
 		Success: false,
 	}
-	var callbackId int
-	var operationId int
+	callbackId := 0
 	if input.AgentFileID != "" {
 		// the search is for a specific fileID, so just fetch it and return
 		fileMeta := databaseStructs.Filemeta{}
 		err := database.DB.Get(&fileMeta, `SELECT 
     		filemeta.*
 			FROM filemeta 
-			WHERE filemeta.agent_file_id=$1`, input.AgentFileID)
+			WHERE filemeta.agent_file_id=$1 AND filemeta.operation_id=$2`, input.AgentFileID, authContext.OperationID)
 		if errors.Is(err, sql.ErrNoRows) {
 			payload := databaseStructs.Payload{}
 			err = database.DB.Get(&payload, `SELECT
@@ -81,12 +81,13 @@ func MythicRPCFileSearch(input MythicRPCFileSearchMessage) MythicRPCFileSearchMe
     			filemeta.operation_id "filemeta.operation_id"
     			FROM payload
     			JOIN filemeta ON payload.file_id = filemeta.id 
-    			WHERE payload.uuid=$1`, input.AgentFileID)
+    			WHERE payload.uuid=$1 AND payload.operation_id=$2`, input.AgentFileID, authContext.OperationID)
 			if errors.Is(err, sql.ErrNoRows) {
 				logging.LogError(err, "Failed to get file data from the database, it's not a payload uuid or file uuid")
 				response.Error = err.Error()
 				return response
-			} else if err != nil {
+			}
+			if err != nil {
 				logging.LogError(err, "Failed to get file data from database")
 				response.Error = err.Error()
 				return response
@@ -101,33 +102,31 @@ func MythicRPCFileSearch(input MythicRPCFileSearchMessage) MythicRPCFileSearchMe
 		response.Files = append(response.Files, convertFileMetaToFileData(fileMeta))
 		return response
 
-	} else if input.CallbackID > 0 {
+	}
+	if input.CallbackID > 0 {
 		callback := databaseStructs.Callback{ID: input.CallbackID}
-		if err := database.DB.Get(&callback, `SELECT operation_id, id FROM callback WHERE id=$1`, callback.ID); err != nil {
+		err := database.DB.Get(&callback, `
+			SELECT operation_id, id 
+			FROM callback 
+			WHERE id=$1 AND operation_id=$2`, callback.ID, authContext.OperationID)
+		if err != nil {
 			logging.LogError(err, "Failed to get operation in MythicRPCFileSearch")
 			response.Error = err.Error()
 			return response
-		} else {
-			operationId = callback.OperationID
-			callbackId = input.CallbackID
 		}
+		callbackId = input.CallbackID
 	} else if input.TaskID > 0 {
 		task := databaseStructs.Task{ID: input.TaskID}
-		if err := database.DB.Get(&task, `SELECT operation_id, callback_id FROM task WHERE id=$1`, task.ID); err != nil {
+		err := database.DB.Get(&task, `SELECT 
+    		operation_id, callback_id 
+			FROM task 
+			WHERE id=$1 AND operation_id=$2`, task.ID, authContext.OperationID)
+		if err != nil {
 			logging.LogError(err, "Failed to get task from Mythic")
 			response.Error = err.Error()
 			return response
-		} else {
-			operationId = task.OperationID
-			callbackId = task.CallbackID
 		}
-	} else if input.OperationId == 0 {
-		response.Success = false
-		response.Error = "Must supply TaskID, CallbackID or OperationID if not searching for a specific file by AgentFileID"
-		return response
-	} else {
-		operationId = input.OperationId
-		callbackId = 0
+		callbackId = task.CallbackID
 	}
 	files := []databaseStructs.Filemeta{}
 	comment := "%%"
@@ -145,7 +144,7 @@ func MythicRPCFileSearch(input MythicRPCFileSearchMessage) MythicRPCFileSearchMe
 			      is_screenshot=$5 AND deleted=false and filemeta.operation_id=$6 and filemeta.copy_of_file_id is NULL 
 			ORDER BY id DESC`
 	searchParameters := []interface{}{
-		comment, filename, input.IsPayload, input.IsDownloadFromAgent, input.IsScreenshot, operationId,
+		comment, filename, input.IsPayload, input.IsDownloadFromAgent, input.IsScreenshot, authContext.OperationID,
 	}
 	if input.MaxResults > 0 && !input.LimitByCallback {
 		searchString += ` LIMIT $7`
@@ -164,7 +163,10 @@ func MythicRPCFileSearch(input MythicRPCFileSearchMessage) MythicRPCFileSearchMe
 		if input.LimitByCallback {
 			if file.TaskID.Valid {
 				var fileCallbackID int
-				if err := database.DB.Get(&fileCallbackID, `SELECT callback_id FROM task WHERE id=$1`, file.TaskID.Int64); err != nil {
+				if err := database.DB.Get(&fileCallbackID, `
+					SELECT callback_id 
+					FROM task 
+					WHERE id=$1 AND operation_id=$2`, file.TaskID.Int64, authContext.OperationID); err != nil {
 					logging.LogError(err, "Failed to get the task information for callback")
 				} else if fileCallbackID == callbackId {
 					//logging.LogInfo("found matching callback_id", "filename", string(file.Filename), "maxResults", input.MaxResults)
@@ -233,11 +235,16 @@ func processMythicRPCFileSearch(msg amqp.Delivery) interface{} {
 	responseMsg := MythicRPCFileSearchMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCFileSearch(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCFileSearch(incomingMessage, authContext)
 }

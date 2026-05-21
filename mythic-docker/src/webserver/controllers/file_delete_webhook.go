@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/rabbitmq"
 
 	"github.com/gin-gonic/gin"
@@ -45,7 +46,7 @@ func DeleteFileWebhook(c *gin.Context) {
 	if input.Input.FileId > 0 {
 		fileIDsToProcess = append(fileIDsToProcess, input.Input.FileId)
 	}
-	ginOperatorOperation, ok := c.Get("operatorOperation")
+	ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct)
 	if !ok {
 		logging.LogError(nil, "Failed to get user information")
 		c.JSON(http.StatusOK, DeleteFileResponse{

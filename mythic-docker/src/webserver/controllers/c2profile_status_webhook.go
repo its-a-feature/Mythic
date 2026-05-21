@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -29,7 +30,8 @@ type GetC2ProfileOutputResponse struct {
 func C2ProfileStatusWebhook(c *gin.Context) {
 	// get variables from the POST request
 	var input GetC2ProfileOutputInput
-	if err := c.ShouldBindJSON(&input); err != nil {
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
 		logging.LogError(err, "Failed to get input")
 		c.JSON(http.StatusOK, GetC2ProfileOutputResponse{
 			Status: "error",
@@ -39,7 +41,7 @@ func C2ProfileStatusWebhook(c *gin.Context) {
 	}
 	// get the associated database information
 	c2profile := databaseStructs.C2profile{}
-	err := database.DB.Get(&c2profile, `SELECT name, id FROM c2profile WHERE id=$1`, input.Input.C2ProfileID)
+	err = database.DB.Get(&c2profile, `SELECT name, id FROM c2profile WHERE id=$1`, input.Input.C2ProfileID)
 	if err != nil {
 		logging.LogError(err, "Failed to fetch c2 profile from database by ID", "id", input.Input.C2ProfileID)
 		c.JSON(http.StatusOK, GetC2ProfileOutputResponse{
@@ -51,7 +53,7 @@ func C2ProfileStatusWebhook(c *gin.Context) {
 	}
 	c2ProfileResponse, err := rabbitmq.RabbitMQConnection.SendC2RPCGetDebugOutput(rabbitmq.C2GetDebugOutputMessage{
 		Name: c2profile.Name,
-	})
+	}, authentication.RabbitMQAuthContextFromGin(c))
 	go rabbitmq.UpdateC2ProfileRunningStatus(c2profile, c2ProfileResponse.InternalServerRunning)
 	if err != nil {
 		logging.LogError(err, "Failed to send C2ProfileStatusWebhook to c2 profile", "c2_profile", c2profile.Name)

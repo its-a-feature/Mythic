@@ -1,11 +1,13 @@
 package webcontroller
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
+	"github.com/its-a-feature/Mythic/authentication"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/rabbitmq"
-	"net/http"
 )
 
 type generateReportInput struct {
@@ -34,7 +36,7 @@ func ReportingWebhook(c *gin.Context) {
 		return
 	}
 	// get information about the user and operation that's being tasked
-	if ginOperatorOperation, ok := c.Get("operatorOperation"); !ok {
+	if ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct); !ok {
 		c.JSON(http.StatusOK, gin.H{
 			"status": "error",
 			"error":  "Failed to get current operation. Is it set?",
@@ -52,6 +54,7 @@ func ReportingWebhook(c *gin.Context) {
 			ExcludedIDs:         input.Input.ExcludedIDs,
 			OutputFormat:        input.Input.OutputFormat,
 			OperatorOperation:   operatorOperation,
+			AuthContext:         authentication.RabbitMQAuthContextFromGin(c),
 		}
 		go rabbitmq.GenerateReport(config)
 		c.JSON(http.StatusOK, gin.H{"status": "success"})

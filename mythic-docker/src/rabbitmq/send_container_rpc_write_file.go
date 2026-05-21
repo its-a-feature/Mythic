@@ -18,25 +18,35 @@ type ContainerWriteFileMessageResponse struct {
 	Message string `json:"message"`
 }
 
-func (r *rabbitMQConnection) SendContainerRPCWriteFile(writeFile ContainerWriteFileMessage) (*ContainerWriteFileMessageResponse, error) {
+func (r *rabbitMQConnection) SendContainerRPCWriteFile(writeFile ContainerWriteFileMessage, authContext RabbitMQAuthContext) (*ContainerWriteFileMessageResponse, error) {
 	c2WriteFileResponse := ContainerWriteFileMessageResponse{}
 	exclusiveQueue := true
-	if opsecBytes, err := json.Marshal(writeFile); err != nil {
+	headers, err := GenerateRabbitMQAuthTokenHeader(authContext)
+	if err != nil {
+		logging.LogError(err, "Failed to generate auth context")
+		return nil, err
+	}
+	opsecBytes, err := json.Marshal(writeFile)
+	if err != nil {
 		logging.LogError(err, "Failed to convert writeFile to JSON", "writeFile", writeFile)
 		return nil, err
-	} else if response, err := r.SendRPCMessage(
+	}
+	response, err := r.SendRPCMessage(
 		MYTHIC_EXCHANGE,
 		GetC2RPCWriteFileRoutingKey(writeFile.Name),
 		opsecBytes,
 		exclusiveQueue,
 		RPC_RETRY_POLICY_CUSTOM_TIMEOUT,
-	); err != nil {
+		headers,
+	)
+	if err != nil {
 		logging.LogError(err, "Failed to send RPC message")
 		return nil, err
-	} else if err := json.Unmarshal(response, &c2WriteFileResponse); err != nil {
+	}
+	err = json.Unmarshal(response, &c2WriteFileResponse)
+	if err != nil {
 		logging.LogError(err, "Failed to parse c2 get debug output response back to struct", "response", response)
 		return nil, err
-	} else {
-		return &c2WriteFileResponse, nil
 	}
+	return &c2WriteFileResponse, nil
 }

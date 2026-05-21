@@ -880,7 +880,7 @@ export function TaskParametersDialogRow(props){
                             </Typography>
                             <Switch checked={treatNewlinesAsNewEntries} onChange={toggleTreatNewlinesAsNewEntries} color={"info"} />
                         </Box>
-                        <Box className="mythic-task-array-list">
+                        <Box className="mythic-column-stack">
                             {arrayValue.map( (a, i) => (
                                 <Box className="mythic-task-array-entry" key={'array' + props.name + i}>
                                     <MythicStyledTooltip title={"Remove array element"}>
@@ -912,7 +912,7 @@ export function TaskParametersDialogRow(props){
                             </Typography>
                             <Switch checked={treatNewlinesAsNewEntries} onChange={toggleTreatNewlinesAsNewEntries} color={"info"} />
                         </Box>
-                        <Box className="mythic-task-array-list">
+                        <Box className="mythic-column-stack">
                             {typedArrayValue.map( (a, i) => (
                                 <Box className="mythic-task-typed-array-entry" key={'typedarray' + props.name + i}>
                                     <MythicStyledTooltip title={"Remove typed array element"}>
@@ -1046,7 +1046,7 @@ export function TaskParametersDialogRow(props){
                 return (
                     <Box className="mythic-task-agent-connect-editor">
                         {openAdditionalPayloadOnHostMenu ? (
-                            <Box className="mythic-task-agent-connect-panel">
+                            <Box className="mythic-task-agent-connect-panel mythic-column-stack">
                                 <ParameterFieldRow label="Hostname">
                                     <MythicTextField requiredValue={true} placeholder={"hostname"} value={agentConnectNewHost} multiline={false} autoFocus={props.autoFocus}
                                         onChange={onChangeAgentConnectNewHost} display="inline-block" marginBottom={"0px"}/>
@@ -1087,7 +1087,7 @@ export function TaskParametersDialogRow(props){
                                 </Box>
                             </Box>
                         ) : (
-                            <Box className="mythic-task-agent-connect-panel">
+                            <Box className="mythic-task-agent-connect-panel mythic-column-stack">
                                 <ParameterFieldRow label="Host">
                                     {agentConnectHostOptions.length === 0 ? (
                                         <ParameterEmptyInline>No hosts available</ParameterEmptyInline>
@@ -1183,7 +1183,7 @@ export function TaskParametersDialogRow(props){
                                 <Typography component="div" className="mythic-task-agent-connect-parameters-title">
                                     C2 profile parameters
                                 </Typography>
-                                <Box className="mythic-task-agent-connect-parameter-list">
+                                <Box className="mythic-column-stack">
                                     {(selectedC2Profile.parameters || []).map( (opt, i) => (
                                         <Box className="mythic-task-agent-connect-parameter" key={"agentconnectparameters" + props.name + i}>
                                             <Typography component="div" className="mythic-task-agent-connect-parameter-name">
@@ -1202,7 +1202,7 @@ export function TaskParametersDialogRow(props){
             }
             case "CredentialJson":
                 return (
-                    <Box className="mythic-task-credential-editor">
+                    <Box className="mythic-column-stack">
                         {createCredentialDialogOpen &&
                             <MythicDialog fullWidth={true} maxWidth="md" open={createCredentialDialogOpen}
                                           onClose={()=>{setCreateCredentialDialogOpen(false);}}

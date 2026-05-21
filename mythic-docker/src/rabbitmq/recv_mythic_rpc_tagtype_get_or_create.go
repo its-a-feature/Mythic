@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
+	"github.com/its-a-feature/Mythic/utils/structs"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -32,25 +34,30 @@ func init() {
 		Queue:      MYTHIC_RPC_TAGTYPE_GET_OR_CREATE,   // swap out with queue in rabbitmq.constants.go file
 		RoutingKey: MYTHIC_RPC_TAGTYPE_GET_OR_CREATE,   // swap out with routing key in rabbitmq.constants.go file
 		Handler:    processMythicRPCTagtypeGetOrCreate, // points to function that takes in amqp.Delivery and returns interface{}
+		Scopes:     []string{mythicjwt.SCOPE_TAG_WRITE},
 	})
 }
 
 // MYTHIC_RPC_OBJECT_ACTION - Say what the function does
-func MythicRPCTagtypeGetOrCreate(input MythicRPCTagTypeGetOrCreateMessage) MythicRPCTagTypeGetOrCreateMessageResponse {
+func MythicRPCTagtypeGetOrCreate(input MythicRPCTagTypeGetOrCreateMessage, authContext RabbitMQAuthContext) MythicRPCTagTypeGetOrCreateMessageResponse {
 	response := MythicRPCTagTypeGetOrCreateMessageResponse{
 		Success: false,
 	}
-	operationID := 0
-	err := database.DB.Get(&operationID, `SELECT task.operation_id FROM task WHERE id=$1`, input.TaskID)
-	if err != nil {
-		response.Error = err.Error()
-		return response
-	}
 	tt := databaseStructs.TagType{
-		Operation: operationID,
+		Operation: authContext.OperationID,
+	}
+	if authContext.APITokensID > 0 {
+		tt.APITokensID = structs.NullInt64{}
+		tt.APITokensID.Valid = true
+		tt.APITokensID.Int64 = int64(authContext.APITokensID)
+	}
+	if authContext.EventStepInstanceID > 0 {
+		tt.EventStepInstanceID = structs.NullInt64{}
+		tt.EventStepInstanceID.Valid = true
+		tt.EventStepInstanceID.Int64 = int64(authContext.EventStepInstanceID)
 	}
 	paramDict := make(map[string]interface{})
-	paramDict["operation_id"] = operationID
+	paramDict["operation_id"] = authContext.OperationID
 	searchString := `SELECT * FROM tagtype WHERE operation_id=:operation_id `
 	if input.GetOrCreateTagTypeID != nil {
 		searchString += `AND id=:id `
@@ -86,9 +93,9 @@ func MythicRPCTagtypeGetOrCreate(input MythicRPCTagTypeGetOrCreateMessage) Mythi
 			response.Error = "failed to find tagtype and no name provided to create one"
 			return response
 		}
-		statement, err := database.DB.PrepareNamed(`INSERT INTO tagtype 
-				(name, description, color, operation_id)
-				VALUES (:name, :description, :color, :operation_id)
+		statement, err = database.DB.PrepareNamed(`INSERT INTO tagtype 
+				(name, description, color, operation_id, apitokens_id, eventstepinstance_id)
+				VALUES (:name, :description, :color, :operation_id, :apitokens_id, :eventstepinstance_id)
 				RETURNING id`)
 		if err != nil {
 			response.Error = err.Error()
@@ -101,13 +108,13 @@ func MythicRPCTagtypeGetOrCreate(input MythicRPCTagTypeGetOrCreateMessage) Mythi
 		}
 		response.TagType = getTagTypeDataFromDatabaseTagType(tt)
 		return response
-	} else if err != nil {
+	}
+	if err != nil {
 		logging.LogError(err, "Failed to exec sqlx.IN modified statement")
 		response.Error = err.Error()
 		return response
-	} else {
-		response.TagType = getTagTypeDataFromDatabaseTagType(tt)
 	}
+	response.TagType = getTagTypeDataFromDatabaseTagType(tt)
 	response.Success = true
 	return response
 }
@@ -132,5 +139,10 @@ func processMythicRPCTagtypeGetOrCreate(msg amqp.Delivery) interface{} {
 		responseMsg.Error = err.Error()
 		return responseMsg
 	}
-	return MythicRPCTagtypeGetOrCreate(incomingMessage)
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCTagtypeGetOrCreate(incomingMessage, authContext)
 }

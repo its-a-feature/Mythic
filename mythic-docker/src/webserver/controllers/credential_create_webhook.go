@@ -3,9 +3,11 @@ package webcontroller
 import (
 	"database/sql"
 	"errors"
+	"net/http"
+
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/rabbitmq"
 	"github.com/its-a-feature/Mythic/utils"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/database"
@@ -43,7 +45,7 @@ func CreateCredentialWebhook(c *gin.Context) {
 		})
 		return
 	}
-	ginOperatorOperation, ok := c.Get("operatorOperation")
+	ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct)
 	if !ok {
 		logging.LogError(err, "Failed to get operatorOperation information for CreatePayloadWebhook")
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": "Failed to get current operation. Is it set?"})
@@ -65,7 +67,7 @@ func CreateCredentialWebhook(c *gin.Context) {
 	} else {
 		databaseCred.Type = "plaintext"
 	}
-	APITokenID, ok := c.Get("apitokens-id")
+	APITokenID, ok := c.Get(authentication.ContextKeyAPITokenID)
 	if ok {
 		if APITokenID.(int) > 0 {
 			databaseCred.APITokensID.Valid = true

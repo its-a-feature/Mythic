@@ -76,7 +76,7 @@ export function InstalledServiceMetadataSummary({items = [], description}) {
         );
     };
     return (
-        <div className="mythic-installed-service-metadata-summary">
+        <div className="mythic-column-stack">
             {visibleItems.length > 0 &&
                 <div className="mythic-installed-service-metadata-grid">
                     {visibleItems.map((item) => (

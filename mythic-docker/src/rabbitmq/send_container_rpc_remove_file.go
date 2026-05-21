@@ -16,25 +16,35 @@ type ContainerRemoveFileMessageResponse struct {
 	Error   string `json:"error"`
 }
 
-func (r *rabbitMQConnection) SendContainerRPCRemoveFile(getFile ContainerRemoveFileMessage) (*ContainerRemoveFileMessageResponse, error) {
+func (r *rabbitMQConnection) SendContainerRPCRemoveFile(getFile ContainerRemoveFileMessage, authContext RabbitMQAuthContext) (*ContainerRemoveFileMessageResponse, error) {
 	c2RemoveFileResponse := ContainerRemoveFileMessageResponse{}
 	exclusiveQueue := true
-	if opsecBytes, err := json.Marshal(getFile); err != nil {
+	headers, err := GenerateRabbitMQAuthTokenHeader(authContext)
+	if err != nil {
+		logging.LogError(err, "Failed to generate auth context")
+		return nil, err
+	}
+	opsecBytes, err := json.Marshal(getFile)
+	if err != nil {
 		logging.LogError(err, "Failed to convert getFile to JSON")
 		return nil, err
-	} else if response, err := r.SendRPCMessage(
+	}
+	response, err := r.SendRPCMessage(
 		MYTHIC_EXCHANGE,
 		GetC2RPCRemoveFileRoutingKey(getFile.Name),
 		opsecBytes,
 		exclusiveQueue,
 		RPC_RETRY_POLICY_CUSTOM_TIMEOUT,
-	); err != nil {
+		headers,
+	)
+	if err != nil {
 		logging.LogError(err, "Failed to send RPC message")
 		return nil, err
-	} else if err := json.Unmarshal(response, &c2RemoveFileResponse); err != nil {
+	}
+	err = json.Unmarshal(response, &c2RemoveFileResponse)
+	if err != nil {
 		logging.LogError(err, "Failed to parse c2 get file response back to struct")
 		return nil, err
-	} else {
-		return &c2RemoveFileResponse, nil
 	}
+	return &c2RemoveFileResponse, nil
 }

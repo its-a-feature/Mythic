@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/eventing"
@@ -39,12 +40,11 @@ type MythicRPCCallbackCreateMessage struct {
 	ProcessName          string   `json:"process_name" mapstructure:"process_name"`
 	Cwd                  string   `json:"cwd" mapstructure:"cwd"`
 	ImpersonationContext string   `json:"impersonation_context" mapstructure:"impersonation_context"`
-	EventStepInstanceID  *int     `json:"eventstepinstance_id" mapstructure:"eventstepinstance_id"`
 }
 type MythicRPCCallbackCreateMessageResponse struct {
 	Success           bool   `json:"success"`
 	Error             string `json:"error"`
-	CallbackUUID      string `json:"callback_uuid"`
+	AgentCallbackID   string `json:"agent_callback_id"`
 	CallbackID        int    `json:"callback_id"`
 	CallbackDisplayID int    `json:"callback_display_id"`
 }
@@ -55,11 +55,12 @@ func init() {
 		Queue:      MYTHIC_RPC_CALLBACK_CREATE,
 		RoutingKey: MYTHIC_RPC_CALLBACK_CREATE,
 		Handler:    processMythicRPCCallbackCreate,
+		Scopes:     []string{mythicjwt.SCOPE_CALLBACK_WRITE},
 	})
 }
 
 // Endpoint: MYTHIC_RPC_CALLBACK_CREATE
-func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCallbackCreateMessageResponse {
+func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage, authContext RabbitMQAuthContext) MythicRPCCallbackCreateMessageResponse {
 	response := MythicRPCCallbackCreateMessageResponse{
 		Success: false,
 	}
@@ -115,7 +116,7 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 	JOIN operation ON payload.operation_id = operation.id
 	JOIN payloadtype ON payload.payload_type_id = payloadtype.id
 	JOIN operator ON payload.operator_id = operator.id
-	WHERE uuid=$1`, input.PayloadUUID)
+	WHERE uuid=$1 AND operation_id=$2`, input.PayloadUUID, authContext.OperationID)
 	if err != nil {
 		logging.LogError(err, "Failed to find payload when calling MythicRPCCallbackCreate")
 		response.Error = err.Error()
@@ -130,8 +131,11 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 		return response
 	}
 	callback.RegisteredPayloadID = payload.ID
-	callback.OperationID = payload.Operation.ID
-	callback.OperatorID = payload.OperatorID
+	callback.OperationID = authContext.OperationID
+	callback.OperatorID = authContext.OperatorID
+	if callback.OperatorID == 0 {
+		callback.OperatorID = payload.OperatorID
+	}
 	if input.Description == "" {
 		callback.Description = payload.Description
 	} else {
@@ -152,9 +156,9 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 		return response
 	}
 	defer transaction.Rollback()
-	if input.EventStepInstanceID != nil {
+	if authContext.EventStepInstanceID > 0 {
 		callback.EventStepInstanceID.Valid = true
-		callback.EventStepInstanceID.Int64 = int64(*input.EventStepInstanceID)
+		callback.EventStepInstanceID.Int64 = int64(authContext.EventStepInstanceID)
 	}
 	statement, err := transaction.PrepareNamed(`
 			INSERT INTO callback 
@@ -192,10 +196,20 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 		return response
 	}
 	for _, pc := range payloadCommands {
-		if _, err := database.DB.Exec(`INSERT INTO loadedcommands
-				(command_id, "version", callback_id, operator_id)
-				VALUES ($1, $2, $3, $4)`,
-			pc.CommandID, pc.Version, callback.ID, callback.OperatorID); err != nil {
+		loadedCommand := databaseStructs.Loadedcommands{
+			CommandID:  pc.CommandID,
+			Version:    pc.Version,
+			CallbackID: callback.ID,
+			OperatorID: callback.OperatorID,
+		}
+		if authContext.APITokensID > 0 {
+			loadedCommand.APITokensID.Valid = true
+			loadedCommand.APITokensID.Int64 = int64(authContext.APITokensID)
+		}
+		if _, err := database.DB.NamedExec(`INSERT INTO loadedcommands
+				(command_id, "version", callback_id, operator_id, apitokens_id)
+				VALUES (:command_id, :version, :callback_id, :operator_id, :apitokens_id)`,
+			loadedCommand); err != nil {
 			logging.LogError(err, "Failed to mark command as loaded into callback", "payloadcommand", pc)
 		}
 	}
@@ -214,17 +228,20 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 		return response
 	}
 	for _, pc2p := range payloadC2Profiles {
-		if err := database.DB.Select(&payloadC2ProfileParameterInstances, `SELECT
+		err := database.DB.Select(&payloadC2ProfileParameterInstances, `SELECT
 						* 
 						FROM c2profileparametersinstance
 						WHERE payload_id=$1 AND c2_profile_id=$2
-						`, payload.ID, pc2p.C2profile.ID); err != nil {
+						`, payload.ID, pc2p.C2profile.ID)
+		if err != nil {
 			logging.LogError(err, "Failed to get c2 profile parameter instances from payload in MythicRPCCallbackCreate")
 			response.Error = err.Error()
 			return response
-		} else if _, err := database.DB.Exec(`INSERT INTO callbackc2profiles
+		}
+		_, err = database.DB.Exec(`INSERT INTO callbackc2profiles
 					(callback_id, c2_profile_id)
-					VALUES ($1, $2)`, callback.ID, pc2p.C2profile.ID); err != nil {
+					VALUES ($1, $2)`, callback.ID, pc2p.C2profile.ID)
+		if err != nil {
 			logging.LogError(err, "Failed to associate c2 profile with callback")
 			response.Error = err.Error()
 			return response
@@ -237,16 +254,20 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 				OperationID:   callback.OperationID,
 				Metadata:      "",
 			}
-			if _, err := database.DB.NamedExec(`INSERT INTO callbackgraphedge
-						(source_id, destination_id, c2_profile_id, operation_id, metadata)
-						VALUES (:source_id, :destination_id, :c2_profile_id, :operation_id, :metadata)`, edge); err != nil {
+			if authContext.APITokensID > 0 {
+				edge.APITokensID.Valid = true
+				edge.APITokensID.Int64 = int64(authContext.APITokensID)
+			}
+			_, err = database.DB.NamedExec(`INSERT INTO callbackgraphedge
+							(source_id, destination_id, c2_profile_id, operation_id, metadata, apitokens_id)
+							VALUES (:source_id, :destination_id, :c2_profile_id, :operation_id, :metadata, :apitokens_id)`, edge)
+			if err != nil {
 				logging.LogError(err, "Failed to create new callbackgraphedge for egress c2 profile in MythicRPCCallbackCreate")
 				response.Error = err.Error()
 				return response
-			} else {
-				logging.LogInfo("Created new callbackgraph edge", "c2", input.C2ProfileName, "callback", callback.ID)
-				callbackGraph.Add(callback, callback, pc2p.C2profile.Name, false)
 			}
+			logging.LogInfo("Created new callbackgraph edge", "c2", input.C2ProfileName, "callback", callback.ID)
+			callbackGraph.Add(callback, callback, pc2p.C2profile.Name, false)
 		}
 		for _, c2paraminstance := range payloadC2ProfileParameterInstances {
 			c2Instance := databaseStructs.C2profileparametersinstance{
@@ -305,27 +326,29 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 		}
 
 	}
-	addCommandAugmentsToCallback(callback.ID, payload.Os, payload.Payloadtype.Name, callback.OperatorID)
+	addCommandAugmentsToCallback(callback.ID, payload.Os, payload.Payloadtype.Name, callback.OperatorID, authContext)
 	operationsMsg := fmt.Sprintf("New Callback (%d) %s@%s with pid %d", callback.DisplayID, callback.User, callback.Host, callback.PID)
 	go SendAllOperationsMessage(operationsMsg, callback.OperationID, "", database.MESSAGE_LEVEL_INFO, false)
 	// prep data to send for log messages and webhook messages
 	webhookData := NewCallbackWebhookData{
-		User:           callback.User,
-		Host:           callback.Host,
-		IPs:            callback.IP,
-		Domain:         callback.Domain,
-		ExternalIP:     callback.ExternalIp,
-		ProcessName:    callback.ProcessName,
-		PID:            callback.PID,
-		Os:             callback.Os,
-		Architecture:   callback.Architecture,
-		AgentType:      payload.Payloadtype.Name,
-		Description:    callback.Description,
-		ExtraInfo:      callback.ExtraInfo,
-		SleepInfo:      callback.SleepInfo,
-		DisplayID:      callback.DisplayID,
-		ID:             callback.ID,
-		IntegrityLevel: callback.IntegrityLevel,
+		User:                 callback.User,
+		Host:                 callback.Host,
+		IPs:                  callback.IP,
+		Domain:               callback.Domain,
+		ExternalIP:           callback.ExternalIp,
+		ProcessName:          callback.ProcessName,
+		PID:                  callback.PID,
+		Os:                   callback.Os,
+		Architecture:         callback.Architecture,
+		AgentType:            payload.Payloadtype.Name,
+		Description:          callback.Description,
+		ExtraInfo:            callback.ExtraInfo,
+		SleepInfo:            callback.SleepInfo,
+		DisplayID:            callback.DisplayID,
+		ID:                   callback.ID,
+		IntegrityLevel:       callback.IntegrityLevel,
+		Cwd:                  callback.Cwd,
+		ImpersonationContext: callback.ImpersonationContext,
 	}
 	webhookMapData := map[string]interface{}{}
 	err = mapstructure.Decode(webhookData, &webhookMapData)
@@ -350,11 +373,11 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 		callback.Host, payload.ID, callback.OperationID); err != nil {
 		logging.LogError(err, "Failed to register callback on host")
 	}
-	response.CallbackUUID = callback.AgentCallbackID
+	response.AgentCallbackID = callback.AgentCallbackID
 	response.CallbackID = callback.ID
 	response.CallbackDisplayID = callback.DisplayID
 	response.Success = true
-	go sendPtOnNewCallback(callback.ID)
+	go sendPtOnNewCallback(callback.ID, authContext)
 	go func(triggerData databaseStructs.Callback) {
 		EventingChannel <- EventNotification{
 			Trigger:     eventing.TriggerCallbackNew,
@@ -364,14 +387,13 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 			PayloadID:   callback.RegisteredPayloadID,
 		}
 	}(callback)
-
 	return response
 }
-func sendPtOnNewCallback(callbackId int) {
+func sendPtOnNewCallback(callbackId int, authContext RabbitMQAuthContext) {
 	allCallbackData := GetOnNewCallbackConfigurationForContainer(callbackId)
-	_ = RabbitMQConnection.SendPtOnNewCallback(allCallbackData)
+	_ = RabbitMQConnection.SendPtOnNewCallback(allCallbackData, authContext)
 }
-func addCommandAugmentsToCallback(callbackID int, payloadOS string, payloadType string, operatorID int) {
+func addCommandAugmentsToCallback(callbackID int, payloadOS string, payloadType string, operatorID int, authContext RabbitMQAuthContext) {
 	commandAugmentPayloadTypes := []databaseStructs.Payloadtype{}
 	err := database.DB.Select(&commandAugmentPayloadTypes, `SELECT * FROM payloadtype 
 		WHERE agent_type=$1 AND deleted=false`, "command_augment")
@@ -408,11 +430,20 @@ func addCommandAugmentsToCallback(callbackID int, payloadOS string, payloadType 
 			// only add augment commands where the command is builtin or suggested
 			// this allows 'load' and 'unload' style commands to be created for more granular control
 			if builtin || suggested {
-				_, err = database.DB.Exec(`INSERT INTO loadedcommands  
-                               (command_id, callback_id, operator_id, version)
-                               VALUES ($1, $2, $3, $4)
-                               ON CONFLICT DO NOTHING`,
-					commandAugmentCommands[j].ID, callbackID, operatorID, commandAugmentCommands[j].Version)
+				loadedCommand := databaseStructs.Loadedcommands{
+					CommandID:  commandAugmentCommands[j].ID,
+					CallbackID: callbackID,
+					OperatorID: operatorID,
+					Version:    commandAugmentCommands[j].Version,
+				}
+				if authContext.APITokensID > 0 {
+					loadedCommand.APITokensID.Valid = true
+					loadedCommand.APITokensID.Int64 = int64(authContext.APITokensID)
+				}
+				_, err = database.DB.NamedExec(`INSERT INTO loadedcommands
+	                               (command_id, callback_id, operator_id, version, apitokens_id)
+	                               VALUES (:command_id, :callback_id, :operator_id, :version, :apitokens_id)
+	                               ON CONFLICT DO NOTHING`, loadedCommand)
 				if err != nil {
 					logging.LogError(err, "failed to add loaded command to callback")
 				}
@@ -425,11 +456,16 @@ func processMythicRPCCallbackCreate(msg amqp.Delivery) interface{} {
 	responseMsg := MythicRPCCallbackCreateMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCCallbackCreate(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCCallbackCreate(incomingMessage, authContext)
 }

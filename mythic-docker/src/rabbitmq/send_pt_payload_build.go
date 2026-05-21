@@ -14,7 +14,7 @@ import (
 	"github.com/its-a-feature/Mythic/utils"
 )
 
-func RegisterNewPayload(payloadDefinition PayloadConfiguration, operatorOperation *databaseStructs.Operatoroperation) (string, int, error) {
+func RegisterNewPayload(payloadDefinition PayloadConfiguration, operatorOperation *databaseStructs.Operatoroperation, authContext RabbitMQAuthContext) (string, int, error) {
 	logging.LogDebug("registering new payload", "payloadDefinition", payloadDefinition)
 	payloadtype := databaseStructs.Payloadtype{}
 	var err error
@@ -93,9 +93,17 @@ func RegisterNewPayload(payloadDefinition PayloadConfiguration, operatorOperatio
 	fileMeta.OperatorID = operatorOperation.CurrentOperator.ID
 	fileMeta.Filename = []byte(payloadDefinition.Filename)
 	fileMeta.FullRemotePath = make([]byte, 0)
-	statement, err := database.DB.PrepareNamed(`INSERT INTO filemeta 
-		(agent_file_id, operation_id,operator_id,total_chunks,is_payload,is_screenshot,is_download_from_agent,complete,chunks_received,delete_after_fetch,filename,path, chunk_size, full_remote_path) 
-		VALUES (:agent_file_id, :operation_id,:operator_id,:total_chunks,:is_payload,:is_screenshot,:is_download_from_agent,:complete,:chunks_received,:delete_after_fetch,:filename,:path,:chunk_size, :full_remote_path) 
+	if authContext.APITokensID > 0 {
+		fileMeta.APITokensID.Valid = true
+		fileMeta.APITokensID.Int64 = int64(authContext.APITokensID)
+	}
+	if authContext.EventStepInstanceID > 0 {
+		fileMeta.EventStepInstanceID.Valid = true
+		fileMeta.EventStepInstanceID.Int64 = int64(authContext.EventStepInstanceID)
+	}
+	statement, err := database.DB.PrepareNamed(`INSERT INTO filemeta
+		(agent_file_id, operation_id,operator_id,total_chunks,is_payload,is_screenshot,is_download_from_agent,complete,chunks_received,delete_after_fetch,filename,path, chunk_size, full_remote_path, apitokens_id, eventstepinstance_id)
+		VALUES (:agent_file_id, :operation_id,:operator_id,:total_chunks,:is_payload,:is_screenshot,:is_download_from_agent,:complete,:chunks_received,:delete_after_fetch,:filename,:path,:chunk_size, :full_remote_path, :apitokens_id, :eventstepinstance_id)
 		RETURNING id`,
 	)
 	if err != nil {
@@ -125,13 +133,17 @@ func RegisterNewPayload(payloadDefinition PayloadConfiguration, operatorOperatio
 		databasePayload.WrappedPayloadID.Valid = true
 		databasePayload.WrappedPayloadID.Int64 = int64(wrappedPayload.ID)
 	}
-	if payloadDefinition.EventStepInstance > 0 {
+	if authContext.EventStepInstanceID > 0 {
 		databasePayload.EventStepInstanceID.Valid = true
-		databasePayload.EventStepInstanceID.Int64 = int64(payloadDefinition.EventStepInstance)
+		databasePayload.EventStepInstanceID.Int64 = int64(authContext.EventStepInstanceID)
 	}
-	statement, err = database.DB.PrepareNamed(`INSERT INTO payload 
-		(operator_id, payload_type_id, description, uuid, operation_id, os, file_id, wrapped_payload_id, build_container, eventstepinstance_id, payload_type_semver) 
-		VALUES (:operator_id, :payload_type_id, :description, :uuid, :operation_id, :os, :file_id, :wrapped_payload_id, :build_container, :eventstepinstance_id, :payload_type_semver) 
+	if authContext.APITokensID > 0 {
+		databasePayload.APITokensID.Valid = true
+		databasePayload.APITokensID.Int64 = int64(authContext.APITokensID)
+	}
+	statement, err = database.DB.PrepareNamed(`INSERT INTO payload
+		(operator_id, payload_type_id, description, uuid, operation_id, os, file_id, wrapped_payload_id, build_container, eventstepinstance_id, payload_type_semver, apitokens_id)
+		VALUES (:operator_id, :payload_type_id, :description, :uuid, :operation_id, :os, :file_id, :wrapped_payload_id, :build_container, :eventstepinstance_id, :payload_type_semver, :apitokens_id)
 		RETURNING id`,
 	)
 	if err != nil {
@@ -180,7 +192,7 @@ func RegisterNewPayload(payloadDefinition PayloadConfiguration, operatorOperatio
 				Filename:        payloadDefinition.Filename,
 				Secrets:         GetSecrets(operatorOperation.CurrentOperator.ID, payloadDefinition.EventStepInstance),
 			}
-			SendPayloadBuildMessage(databasePayload, rabbitmqPayloadBuildMsg)
+			SendPayloadBuildMessage(databasePayload, rabbitmqPayloadBuildMsg, authContext)
 			EventingChannel <- EventNotification{
 				Trigger:             eventing.TriggerPayloadBuildStart,
 				PayloadID:           databasePayload.ID,
@@ -216,7 +228,7 @@ func RegisterNewPayload(payloadDefinition PayloadConfiguration, operatorOperatio
 			Filename:           string(fileMeta.Filename),
 			Secrets:            GetSecrets(operatorOperation.CurrentOperator.ID, payloadDefinition.EventStepInstance),
 		}
-		go SendPayloadBuildMessage(databasePayload, rabbitmqPayloadBuildMsg)
+		go SendPayloadBuildMessage(databasePayload, rabbitmqPayloadBuildMsg, authContext)
 		EventingChannel <- EventNotification{
 			Trigger:             eventing.TriggerPayloadBuildStart,
 			PayloadID:           databasePayload.ID,
@@ -260,7 +272,7 @@ func registerPayloadBuildSteps(databasePayload databaseStructs.Payload) error {
 }
 
 // send the initial build message out to the container if other checks pass
-func SendPayloadBuildMessage(databasePayload databaseStructs.Payload, buildMessage PayloadBuildMessage) {
+func SendPayloadBuildMessage(databasePayload databaseStructs.Payload, buildMessage PayloadBuildMessage, authContext RabbitMQAuthContext) {
 	// call this function when you're ready to send a build message to the payload container
 	// this will trigger a c2 opsec check for each c2 included
 	buildOutput := ""
@@ -276,9 +288,10 @@ func SendPayloadBuildMessage(databasePayload databaseStructs.Payload, buildMessa
 		buildOutput += fmt.Sprintf("Processing C2 Profile - %s:\n", c2.Name)
 		buildOutput += fmt.Sprintf("Step 1/%d - Issuing OPSEC Check\n", totalSteps)
 		if opsecCheckResponse, err := RabbitMQConnection.SendC2RPCOpsecCheck(C2OPSECMessage{
-			Name:       c2.Name,
-			Parameters: c2.Parameters,
-		}); err != nil {
+			Name:        c2.Name,
+			Parameters:  c2.Parameters,
+			PayloadUUID: databasePayload.UuID,
+		}, authContext); err != nil {
 			//checksPassed = false
 			buildOutput += err.Error() + "\n"
 		} else if !opsecCheckResponse.Success {
@@ -289,9 +302,10 @@ func SendPayloadBuildMessage(databasePayload databaseStructs.Payload, buildMessa
 		}
 		buildOutput += fmt.Sprintf("Step 2/%d - Issuing Config Check\n", totalSteps)
 		if configCheckResponse, err := RabbitMQConnection.SendC2RPCConfigCheck(C2ConfigCheckMessage{
-			Name:       c2.Name,
-			Parameters: c2.Parameters,
-		}); err != nil {
+			Name:        c2.Name,
+			Parameters:  c2.Parameters,
+			PayloadUUID: databasePayload.UuID,
+		}, authContext); err != nil {
 			//checksPassed = false
 			buildOutput += err.Error() + "\n"
 		} else if !configCheckResponse.Success {
@@ -310,7 +324,7 @@ func SendPayloadBuildMessage(databasePayload databaseStructs.Payload, buildMessa
 			if err != nil {
 				buildOutput += err.Error() + "\n"
 			} else if !c2Container.Running {
-				c2StartServerResponse := autoStartC2Profile(c2Container, true)
+				c2StartServerResponse := autoStartC2Profile(c2Container, true, authContext)
 				if !c2StartServerResponse.Success {
 					buildOutput += c2StartServerResponse.Error + "\n"
 				} else {
@@ -320,10 +334,17 @@ func SendPayloadBuildMessage(databasePayload databaseStructs.Payload, buildMessa
 		}
 	}
 	if !checksPassed {
-		// one or more opsec checks failed, we need to bail out of building the payload
 		logging.LogError(nil, "One or more c2 profiles errored out for an opsec check")
 		SendAllOperationsMessage(fmt.Sprintf("C2 Profile aborted build process due to OPSEC or Configuration error"), databasePayload.OperationID,
 			"mythic_payload_build", database.MESSAGE_LEVEL_INFO, true)
+	}
+	headers, err := GenerateRabbitMQAuthTokenHeader(authContext)
+	if err != nil {
+		logging.LogError(err, "Failed to generate auth context")
+		buildOutput += err.Error()
+	}
+	if !checksPassed || err != nil {
+		// one or more opsec checks failed, we need to bail out of building the payload
 		database.UpdatePayloadWithError(databasePayload, errors.New(buildOutput))
 		EventingChannel <- EventNotification{
 			Trigger:             eventing.TriggerPayloadBuildFinish,
@@ -338,12 +359,13 @@ func SendPayloadBuildMessage(databasePayload databaseStructs.Payload, buildMessa
 		return
 	}
 	logging.LogDebug("Sending build message to container", "payload", buildMessage.PayloadType)
-	err := RabbitMQConnection.SendStructMessage(
+	err = RabbitMQConnection.SendStructMessage(
 		MYTHIC_EXCHANGE,
 		GetPtBuildRoutingKey(buildMessage.PayloadType),
 		"",
 		buildMessage,
 		false,
+		headers,
 	)
 	if err != nil {
 		logging.LogError(err, "Failed to send build message")

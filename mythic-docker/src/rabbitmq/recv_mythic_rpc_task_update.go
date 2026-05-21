@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"encoding/json"
 
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -30,18 +31,21 @@ func init() {
 		Queue:      MYTHIC_RPC_TASK_UPDATE,     // swap out with queue in rabbitmq.constants.go file
 		RoutingKey: MYTHIC_RPC_TASK_UPDATE,     // swap out with routing key in rabbitmq.constants.go file
 		Handler:    processMythicRPCTaskUpdate, // points to function that takes in amqp.Delivery and returns interface{}
+		Scopes:     []string{mythicjwt.SCOPE_TASK_WRITE},
 	})
 }
 
 // MYTHIC_RPC_OBJECT_ACTION - Say what the function does
-func MythicRPCTaskUpdate(input MythicRPCTaskUpdateMessage) MythicRPCTaskUpdateMessageResponse {
+func MythicRPCTaskUpdate(input MythicRPCTaskUpdateMessage, authContext RabbitMQAuthContext) MythicRPCTaskUpdateMessageResponse {
 	response := MythicRPCTaskUpdateMessageResponse{
 		Success: false,
 	}
 	task := databaseStructs.Task{}
-	if err := database.DB.Get(&task, `SELECT 
+	err := database.DB.Get(&task, `SELECT 
 	id, status, stdout, stderr, command_name, completed
-	FROM task WHERE id=$1`, input.TaskID); err != nil {
+	FROM task 
+	WHERE id=$1 AND operation_id=$2`, input.TaskID, authContext.OperationID)
+	if err != nil {
 		response.Error = err.Error()
 		return response
 	}
@@ -60,29 +64,35 @@ func MythicRPCTaskUpdate(input MythicRPCTaskUpdateMessage) MythicRPCTaskUpdateMe
 	if input.UpdateCompleted != nil {
 		task.Completed = *input.UpdateCompleted
 	}
-	if _, err := database.DB.NamedExec(`UPDATE task SET
+	_, err = database.DB.NamedExec(`UPDATE task SET
 	status=:status, stdout=:stdout, stderr=:stderr, command_name=:command_name, completed=:completed
-	WHERE id=:id`, task); err != nil {
+	WHERE id=:id`, task)
+	if err != nil {
 		response.Error = err.Error()
 		return response
-	} else {
-		response.Success = true
-		if task.Completed {
-			go CheckAndProcessTaskCompletionHandlers(task.ID)
-		}
-		return response
 	}
+	response.Success = true
+	if task.Completed {
+		go CheckAndProcessTaskCompletionHandlers(task.ID, authContext)
+	}
+	return response
 }
 func processMythicRPCTaskUpdate(msg amqp.Delivery) interface{} {
 	incomingMessage := MythicRPCTaskUpdateMessage{}
 	responseMsg := MythicRPCTaskUpdateMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		logging.LogError(err, "Failed to get auth headers")
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	err = json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCTaskUpdate(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	return MythicRPCTaskUpdate(incomingMessage, authContext)
 }

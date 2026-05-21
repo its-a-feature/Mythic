@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/its-a-feature/Mythic/database"
 	"github.com/its-a-feature/Mythic/eventing"
 	"github.com/its-a-feature/Mythic/logging"
@@ -24,6 +25,7 @@ func init() {
 		Queue:      EVENTING_CONDITIONAL_CHECK_RESPONSE,
 		RoutingKey: EVENTING_CONDITIONAL_CHECK_RESPONSE,
 		Handler:    processEventingConditionalCheckResponse,
+		Scopes:     []string{},
 	})
 }
 

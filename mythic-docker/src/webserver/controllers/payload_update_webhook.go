@@ -1,12 +1,14 @@
 package webcontroller
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/rabbitmq"
-	"net/http"
 )
 
 type UpdatePayloadInput struct {
@@ -43,7 +45,7 @@ func UpdatePayloadWebhook(c *gin.Context) {
 		})
 		return
 	}
-	ginOperatorOperation, ok := c.Get("operatorOperation")
+	ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct)
 	if !ok {
 		c.JSON(http.StatusOK, UpdatePayloadResponse{
 			Status: "error",

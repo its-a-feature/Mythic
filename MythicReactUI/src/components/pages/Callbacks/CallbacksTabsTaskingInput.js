@@ -133,6 +133,20 @@ const GetCommandName = (task) => {
         return task.command_name;
     }
 }
+const GetTaskHistoryDuplicateKey = (task) => {
+    const commandName = task?.command_name || task?.command?.cmd || "";
+    return `${commandName}\u0000${task?.original_params || ""}`;
+}
+const CollapseAdjacentDuplicateTaskHistory = (tasks) => {
+    const collapsedTasks = [];
+    tasks.forEach((task) => {
+        const previousTask = collapsedTasks[collapsedTasks.length - 1];
+        if(previousTask === undefined || GetTaskHistoryDuplicateKey(previousTask) !== GetTaskHistoryDuplicateKey(task)){
+            collapsedTasks.push(task);
+        }
+    });
+    return collapsedTasks;
+}
 const GetDefaultValueForType = (parameter_type) => {
     switch(parameter_type){
         case "string":
@@ -556,7 +570,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             }, [...taskOptions.current]);
             newTasks.sort((a,b) => a.id > b.id ? -1 : 1);
             taskOptions.current= newTasks;
-            const filteredOptions = newTasks.filter( c => applyFilteringToTasks(c));
+            const filteredOptions = CollapseAdjacentDuplicateTaskHistory(newTasks.filter( c => applyFilteringToTasks(c)));
             setFilteredTaskOptions(filteredOptions);
         }
     });
@@ -580,7 +594,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
     });
     React.useEffect( () => {
         //console.log("filter updated")
-        const filteredOptions = taskOptions.current.filter( c => applyFilteringToTasks(c));
+        const filteredOptions = CollapseAdjacentDuplicateTaskHistory(taskOptions.current.filter( c => applyFilteringToTasks(c)));
         setFilteredTaskOptions(filteredOptions);
         let active = false;
         if(props.filterOptions?.commandsList?.length > 0){

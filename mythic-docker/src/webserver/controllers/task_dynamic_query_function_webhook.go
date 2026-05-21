@@ -3,6 +3,7 @@ package webcontroller
 import (
 	"net/http"
 
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 
@@ -34,7 +35,8 @@ type PayloadTypeDynamicQueryFunctionResponse struct {
 func PayloadTypeDynamicQueryFunctionWebhook(c *gin.Context) {
 	// get variables from the POST request
 	var input PayloadTypeDynamicQueryFunctionInput
-	if err := c.ShouldBindJSON(&input); err != nil {
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
 		logging.LogError(err, "Failed to parse out required parameters")
 		c.JSON(http.StatusOK, PayloadTypeDynamicQueryFunctionResponse{
 			Status: "error",
@@ -87,7 +89,7 @@ func PayloadTypeDynamicQueryFunctionWebhook(c *gin.Context) {
 		Callback:           input.Input.Callback,
 		Secrets:            user.Secrets.StructValue(),
 		OtherParameters:    input.Input.OtherParameters,
-	})
+	}, authentication.RabbitMQAuthContextFromGin(c))
 	if err != nil {
 		logging.LogError(err, "Failed to send SendPtRPCDynamicQueryFunction to payload type", "payload_type", input.Input.PayloadType)
 		c.JSON(http.StatusOK, PayloadTypeDynamicQueryFunctionResponse{

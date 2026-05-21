@@ -77,6 +77,7 @@ func (r *rabbitMQConnection) EmitWebhookMessage(webhookMessage WebhookMessage) e
 		"",
 		localWebhookMessage,
 		true,
+		nil,
 	); err != nil {
 		//logging.LogError(err, "Failed to emit webhook Message")
 		return err

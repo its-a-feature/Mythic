@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/rabbitmq"
@@ -29,7 +30,8 @@ type PayloadTypeDynamicQueryBuildParameterFunctionResponse struct {
 func PayloadTypeDynamicQueryBuildParameterFunctionWebhook(c *gin.Context) {
 	// get variables from the POST request
 	var input PayloadTypeDynamicQueryBuildParameterFunctionInput
-	if err := c.ShouldBindJSON(&input); err != nil {
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
 		logging.LogError(err, "Failed to parse out required parameters")
 		c.JSON(http.StatusOK, PayloadTypeDynamicQueryBuildParameterFunctionResponse{
 			Status: "error",
@@ -63,7 +65,7 @@ func PayloadTypeDynamicQueryBuildParameterFunctionWebhook(c *gin.Context) {
 		ParameterName: input.Input.ParameterName,
 		SelectedOS:    input.Input.SelectedOS,
 		Secrets:       user.Secrets.StructValue(),
-	})
+	}, authentication.RabbitMQAuthContextFromGin(c))
 	if err != nil {
 		logging.LogError(err, "Failed to send SendPtRPCDynamicQueryBuildParameterFunction to payload type", "payload_type", input.Input.PayloadType)
 		c.JSON(http.StatusOK, PayloadTypeDynamicQueryBuildParameterFunctionResponse{

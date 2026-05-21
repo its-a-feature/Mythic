@@ -7,6 +7,7 @@ type RPCRetryPolicy int
 const (
 	MYTHIC_EXCHANGE                        = "mythic_exchange"
 	MYTHIC_TOPIC_EXCHANGE                  = "mythic_topic_exchange"
+	MYTHIC_RABBITMQ_AUTH_CONTEXT_HEADER    = "mythic-auth-context"
 	RETRY_CONNECT_DELAY                    = 5 * time.Second
 	CHECK_CONTAINER_STATUS_DELAY           = 10 * time.Second
 	TIME_FORMAT_STRING_YYYY_MM_DD          = "2006-01-02"
@@ -178,7 +179,6 @@ const (
 	MYTHIC_RPC_FILE_SEARCH      = "mythic_rpc_file_search"
 	MYTHIC_RPC_FILE_UPDATE      = "mythic_rpc_file_update"
 	MYTHIC_RPC_FILE_GET_CONTENT = "mythic_rpc_file_get_content"
-	MYTHIC_RPC_FILE_REGISTER    = "mythic_rpc_file_register"
 	// MYTHIC_RPC_PAYLOAD_CREATE_FROM_UUID payload operations
 	MYTHIC_RPC_PAYLOAD_CREATE_FROM_UUID    = "mythic_rpc_payload_create_from_uuid"
 	MYTHIC_RPC_PAYLOAD_CREATE_FROM_SCRATCH = "mythic_rpc_payload_create_from_scratch"
@@ -260,7 +260,7 @@ const (
 	// Agent Message
 	MYTHIC_RPC_HANDLE_AGENT_JSON = "mythic_rpc_handle_agent_message_json"
 	// CustomBrowser
-	CUSTOMBROWSER_SEARCH = "mythic_rpc_custombrowser_search"
+	MYTHIC_RPC_CUSTOMBROWSER_SEARCH = "mythic_rpc_custombrowser_search"
 	// MYTHIC_RPC_BLANK blank
 	MYTHIC_RPC_BLANK = "mythic_rpc_blank"
 )

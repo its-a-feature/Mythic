@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/its-a-feature/Mythic/authentication"
 	mythicCrypto "github.com/its-a-feature/Mythic/crypto"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -32,7 +33,7 @@ func EventingImportWebhook(c *gin.Context) {
 			"error":  "Missing file in form",
 		})
 	}
-	ginOperatorOperation, ok := c.Get("operatorOperation")
+	ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct)
 	if !ok {
 		logging.LogError(nil, "Failed to get user information")
 		c.JSON(http.StatusOK, EventingImportWebhookResponse{
@@ -57,6 +58,15 @@ func EventingImportWebhook(c *gin.Context) {
 		OperationID:         operatorOperation.CurrentOperation.ID,
 		OperatorID:          operatorOperation.CurrentOperator.ID,
 		Comment:             "Uploaded EventGroup",
+	}
+	authContext := authentication.RabbitMQAuthContextFromGin(c)
+	if authContext.APITokensID > 0 {
+		fileData.APITokensID.Valid = true
+		fileData.APITokensID.Int64 = int64(authContext.APITokensID)
+	}
+	if authContext.EventStepInstanceID > 0 {
+		fileData.EventStepInstanceID.Valid = true
+		fileData.EventStepInstanceID.Int64 = int64(authContext.EventStepInstanceID)
 	}
 	fileData.Filename = []byte(file.Filename)
 	if cmt, exists := c.GetPostForm("comment"); exists {
@@ -92,8 +102,8 @@ func EventingImportWebhook(c *gin.Context) {
 	fileData.Sha1 = mythicCrypto.HashSha1(fileDataContents)
 	// register the data with database
 	statement, err := database.DB.PrepareNamed(`INSERT INTO filemeta 
-			(filename,total_chunks,chunks_received,chunk_size,path,operation_id,complete,comment,operator_id,delete_after_fetch,md5,sha1,agent_file_id,full_remote_path,task_id,is_screenshot,is_download_from_agent,host,size)
-			VALUES (:filename, :total_chunks, :chunks_received, :chunk_size, :path, :operation_id, :complete, :comment, :operator_id, :delete_after_fetch, :md5, :sha1, :agent_file_id, :full_remote_path, :task_id, :is_screenshot, :is_download_from_agent, :host, :size)
+			(filename,total_chunks,chunks_received,chunk_size,path,operation_id,complete,comment,operator_id,delete_after_fetch,md5,sha1,agent_file_id,full_remote_path,task_id,is_screenshot,is_download_from_agent,host,size,apitokens_id,eventstepinstance_id)
+			VALUES (:filename, :total_chunks, :chunks_received, :chunk_size, :path, :operation_id, :complete, :comment, :operator_id, :delete_after_fetch, :md5, :sha1, :agent_file_id, :full_remote_path, :task_id, :is_screenshot, :is_download_from_agent, :host, :size, :apitokens_id, :eventstepinstance_id)
 			RETURNING id`)
 	if err != nil {
 		logging.LogError(err, "Failed to create statement for saving file metadata")
@@ -210,7 +220,7 @@ func EventingImportAutomaticWebhook(c *gin.Context) {
 		})
 		return
 	}
-	ginOperatorOperation, ok := c.Get("operatorOperation")
+	ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct)
 	if !ok {
 		logging.LogError(nil, "Failed to get user information")
 		c.JSON(http.StatusOK, EventingImportWebhookResponse{
@@ -288,6 +298,15 @@ func EventingImportAutomaticWebhook(c *gin.Context) {
 		OperatorID:          operatorOperation.CurrentOperator.ID,
 		Comment:             targetComment,
 	}
+	authContext := authentication.RabbitMQAuthContextFromGin(c)
+	if authContext.APITokensID > 0 {
+		fileData.APITokensID.Valid = true
+		fileData.APITokensID.Int64 = int64(authContext.APITokensID)
+	}
+	if authContext.EventStepInstanceID > 0 {
+		fileData.EventStepInstanceID.Valid = true
+		fileData.EventStepInstanceID.Int64 = int64(authContext.EventStepInstanceID)
+	}
 	fileData.Filename = []byte(input.Input.Filename)
 	fileData.AgentFileID, fileData.Path, err = rabbitmq.GetSaveFilePath()
 	if err != nil {
@@ -328,8 +347,8 @@ func EventingImportAutomaticWebhook(c *gin.Context) {
 	fileData.Sha1 = mythicCrypto.HashSha1(fileDataContents)
 	// register the data with database
 	statement, err := database.DB.PrepareNamed(`INSERT INTO filemeta 
-			(filename,total_chunks,chunks_received,chunk_size,path,operation_id,complete,comment,operator_id,delete_after_fetch,md5,sha1,agent_file_id,full_remote_path,task_id,is_screenshot,is_download_from_agent,host,size)
-			VALUES (:filename, :total_chunks, :chunks_received, :chunk_size, :path, :operation_id, :complete, :comment, :operator_id, :delete_after_fetch, :md5, :sha1, :agent_file_id, :full_remote_path, :task_id, :is_screenshot, :is_download_from_agent, :host, :size)
+			(filename,total_chunks,chunks_received,chunk_size,path,operation_id,complete,comment,operator_id,delete_after_fetch,md5,sha1,agent_file_id,full_remote_path,task_id,is_screenshot,is_download_from_agent,host,size,apitokens_id,eventstepinstance_id)
+			VALUES (:filename, :total_chunks, :chunks_received, :chunk_size, :path, :operation_id, :complete, :comment, :operator_id, :delete_after_fetch, :md5, :sha1, :agent_file_id, :full_remote_path, :task_id, :is_screenshot, :is_download_from_agent, :host, :size, :apitokens_id, :eventstepinstance_id)
 			RETURNING id`)
 	if err != nil {
 		logging.LogError(err, "Failed to create statement for saving file metadata")

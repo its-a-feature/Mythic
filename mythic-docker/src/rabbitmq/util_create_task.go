@@ -48,8 +48,10 @@ type CreateTaskInput struct {
 	IsInteractiveTask       bool
 	InteractiveTaskType     *int
 	EventStepInstanceID     int
+	APITokensID             int
 	PayloadType             *string
 	IsAlias                 *bool
+	AuthContext             RabbitMQAuthContext
 }
 
 type CreateTaskResponse struct {
@@ -588,6 +590,10 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 		}
 		task.OperatorID = eventInstance.OperatorID
 	}
+	if createTaskInput.APITokensID > 0 {
+		task.APITokensID.Valid = true
+		task.APITokensID.Int64 = int64(createTaskInput.APITokensID)
+	}
 	if task.IsInteractiveTask {
 		if createTaskInput.InteractiveTaskType == nil {
 			logging.LogError(nil, "Missing a task type for an interactive task")
@@ -679,12 +685,12 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 	}
 	if task.IsInteractiveTask {
 		if utils.SliceContains(supportedUIFeatures, PT_TASK_SUPPORTED_UI_FEATURE_TASK_PROCESS_INTERACTIVE_TASKS) {
-			go submitTaskToContainerCreateTasking(task.ID)
+			go sendTaskToContainerCreateTasking(task.ID, createTaskInput.AuthContext)
 		} else {
 			go submittedTasksAwaitingFetching.addTask(task)
 		}
 	} else {
-		go submitTaskToContainerOpsecPre(task.ID)
+		go sendTaskToContainerOpsecPre(task.ID, createTaskInput.AuthContext)
 	}
 	return CreateTaskResponse{
 		Status:        "success",
@@ -721,12 +727,12 @@ func addTaskToDatabase(task *databaseStructs.Task) error {
 		original_params,display_params,status,tasking_location,parameter_group_name,
 		parent_task_id,subtask_callback_function,group_callback_function,subtask_group_name,operation_id,
 	    is_interactive_task, interactive_task_type, eventstepinstance_id, status_timestamp_submitted,
-	 command_payload_type, mythic_parsed_params)
+	 command_payload_type, mythic_parsed_params, apitokens_id)
 		VALUES (:agent_task_id, :command_name, :callback_id, :operator_id, :command_id, :token_id, :params,
 			:original_params, :display_params, :status, :tasking_location, :parameter_group_name,
 			:parent_task_id, :subtask_callback_function, :group_callback_function, :subtask_group_name, :operation_id,
 		        :is_interactive_task, :interactive_task_type, :eventstepinstance_id, :status_timestamp_submitted,
-		        :command_payload_type, :mythic_parsed_params)
+		        :command_payload_type, :mythic_parsed_params, :apitokens_id)
 			RETURNING id, display_id`)
 	if err != nil {
 		logging.LogError(err, "Failed to make a prepared statement for new task creation")
@@ -820,8 +826,10 @@ func handleClearCommand(createTaskInput CreateTaskInput, callback databaseStruct
 	return output
 }
 func addOutputToTask(taskId int, output string, operationId int) {
-	if _, err := database.DB.Exec(`INSERT INTO response (task_id, response, operation_id)
-		VALUES ($1, $2, $3)`, taskId, output, operationId); err != nil {
+	if _, err := database.DB.Exec(`INSERT INTO response (task_id, response, operation_id, eventstepinstance_id, apitokens_id)
+		SELECT id, $2, $3, eventstepinstance_id, apitokens_id
+		FROM task
+		WHERE id=$1`, taskId, output, operationId); err != nil {
 		logging.LogError(err, "Failed to add output to task")
 	}
 }
@@ -883,7 +891,7 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 		resp, err := RabbitMQConnection.SendPtRPCCommandHelp(CommandHelpMessage{
 			PayloadType:  callback.Payload.Payloadtype.Name,
 			CommandNames: commandNames,
-		})
+		}, createTaskInput.AuthContext)
 		if err == nil {
 			if resp.Success {
 				updateTaskStatus(task.ID, "success", true)
@@ -1047,21 +1055,70 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 
 }
 
-func submitTaskToContainerOpsecPre(taskID int) {
+func sendTaskToContainerOpsecPre(taskID int, authContext RabbitMQAuthContext) error {
 	taskMessage := GetTaskConfigurationForContainer(taskID)
-	err := RabbitMQConnection.SendPtTaskOPSECPre(taskMessage)
+	err := RabbitMQConnection.SendPtTaskOPSECPre(taskMessage, authContext)
 	if err != nil {
 		logging.LogError(err, "Failed to send task to payload type")
 		if _, err := database.DB.Exec(`UPDATE task SET status=$1 WHERE id=$2`,
 			TASK_STATUS_CONTAINER_DOWN, taskID); err != nil {
 			logging.LogError(err, "Failed to update task status")
 		}
+		return err
 	}
-	return
+	return nil
 }
-func submitTaskToContainerCreateTasking(taskID int) {
+
+func sendTaskToContainerCreateTasking(taskID int, authContext RabbitMQAuthContext) error {
 	allTaskData := GetTaskConfigurationForContainer(taskID)
-	if err := RabbitMQConnection.SendPtTaskCreate(allTaskData); err != nil {
+	err := RabbitMQConnection.SendPtTaskCreate(allTaskData, authContext)
+	if err != nil {
 		logging.LogError(err, "In submitTaskToContainerCreateTasking, but failed to sendSendPtTaskCreate ")
+		if _, err := database.DB.Exec(`UPDATE task SET status=$1 WHERE id=$2`,
+			TASK_STATUS_CONTAINER_DOWN, taskID); err != nil {
+			logging.LogError(err, "Failed to update task status")
+		}
 	}
+	return err
+}
+
+func ReissueTask(taskID int, authContext RabbitMQAuthContext) error {
+	task := databaseStructs.Task{}
+	err := database.DB.Get(&task, `SELECT
+		task.id, task.status, task.completed, task.operation_id, task.is_interactive_task,
+		command.supported_ui_features "command.supported_ui_features"
+		FROM task
+		LEFT JOIN command ON task.command_id = command.id
+		WHERE task.id=$1`, taskID)
+	if err != nil {
+		logging.LogError(err, "Failed to find task for reissue", "task_id", taskID)
+		return errors.New("failed to find task in current operation")
+	}
+	if task.Completed {
+		return errors.New("task is already completed")
+	}
+	supportedUIFeatures := task.Command.SupportedUiFeatures.StructStringValue()
+	if task.IsInteractiveTask {
+		if utils.SliceContains(supportedUIFeatures, PT_TASK_SUPPORTED_UI_FEATURE_TASK_PROCESS_INTERACTIVE_TASKS) {
+			if _, err := database.DB.Exec(`UPDATE task SET status=$1 WHERE id=$2`,
+				PT_TASK_CREATE_TASKING, task.ID); err != nil {
+				logging.LogError(err, "Failed to update task status for reissue")
+				return err
+			}
+			return sendTaskToContainerCreateTasking(task.ID, authContext)
+		}
+		if _, err := database.DB.Exec(`UPDATE task SET status=$1, status_timestamp_submitted=$2 WHERE id=$3`,
+			PT_TASK_FUNCTION_STATUS_SUBMITTED, time.Now().UTC(), task.ID); err != nil {
+			logging.LogError(err, "Failed to update interactive task status for reissue")
+			return err
+		}
+		submittedTasksAwaitingFetching.addTaskById(task.ID)
+		return nil
+	}
+	if _, err := database.DB.Exec(`UPDATE task SET status=$1 WHERE id=$2`,
+		PT_TASK_FUNCTION_STATUS_OPSEC_PRE, task.ID); err != nil {
+		logging.LogError(err, "Failed to update task status for reissue")
+		return err
+	}
+	return sendTaskToContainerOpsecPre(task.ID, authContext)
 }

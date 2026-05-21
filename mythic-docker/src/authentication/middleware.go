@@ -38,7 +38,7 @@ func IPBlockMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		// make sure the ipAddr is in at least one of the alowed IP blocks
+		// make sure the ipAddr is in at least one of the allowed IP blocks
 		for _, subnet := range utils.MythicConfig.AllowedIPBlocks {
 			if subnet.Contains(ipAddr) {
 				c.Next()
@@ -71,8 +71,8 @@ func RBACMiddleware(allowedRoles []string) gin.HandlerFunc {
 			return
 		}
 		if operatorOperation.CurrentOperator.Admin || utils.SliceContains(allowedRoles, operatorOperation.ViewMode) {
-			c.Set("operatorOperation", operatorOperation)
-			c.Set("apitokens-id", customClaims.APITokensID)
+			c.Set(ContextKeyOperatorOperationStruct, operatorOperation)
+			c.Set(ContextKeyAPITokenID, customClaims.APITokensID)
 			c.Next()
 			return
 		}
@@ -146,6 +146,7 @@ func TokenScopeMiddleware(requiredScopes []string) gin.HandlerFunc {
 				return
 			}
 		}
+		SetRabbitMQAuthContextForGin(c)
 		c.Next()
 	}
 }

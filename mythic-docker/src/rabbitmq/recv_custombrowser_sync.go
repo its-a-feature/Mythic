@@ -74,6 +74,7 @@ func init() {
 		Queue:      CUSTOMBROWSER_SYNC_ROUTING_KEY,
 		RoutingKey: CUSTOMBROWSER_SYNC_ROUTING_KEY,
 		Handler:    processCustomBrowserSyncMessages,
+		Scopes:     []string{},
 	})
 }
 

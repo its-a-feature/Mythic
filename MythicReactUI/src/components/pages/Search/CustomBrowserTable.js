@@ -197,9 +197,9 @@ function CustomBrowserTableRow(props){
                     </div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <div className="mythic-custom-browser-tags-cell">
+                    <div className="mythic-tag-cell">
                         <ViewEditTags target_object={"mythictree_id"} target_object_id={props.id} me={me} />
-                        <div className="mythic-custom-browser-tags-list">
+                        <div className="mythic-tag-list mythic-tag-list-truncate">
                             <TagsDisplay tags={props.tags} />
                         </div>
                     </div>

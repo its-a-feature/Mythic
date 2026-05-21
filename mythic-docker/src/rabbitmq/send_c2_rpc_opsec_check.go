@@ -11,8 +11,9 @@ import (
 type C2_OPSEC_STATUS = string
 
 type C2OPSECMessage struct {
-	Name       string                 `json:"c2_profile_name"`
-	Parameters map[string]interface{} `json:"parameters"`
+	Name        string                 `json:"c2_profile_name"`
+	Parameters  map[string]interface{} `json:"parameters"`
+	PayloadUUID string                 `json:"payload_uuid,omitempty"`
 }
 
 type C2OPSECMessageResponse struct {
@@ -21,7 +22,7 @@ type C2OPSECMessageResponse struct {
 	Message string `json:"message"`
 }
 
-func (r *rabbitMQConnection) SendC2RPCOpsecCheck(opsecCheck C2OPSECMessage) (*C2OPSECMessageResponse, error) {
+func (r *rabbitMQConnection) SendC2RPCOpsecCheck(opsecCheck C2OPSECMessage, authContext RabbitMQAuthContext) (*C2OPSECMessageResponse, error) {
 	opsecCheckResponse := C2OPSECMessageResponse{}
 	exclusiveQueue := true
 	opsecBytes, err := json.Marshal(opsecCheck)
@@ -30,12 +31,18 @@ func (r *rabbitMQConnection) SendC2RPCOpsecCheck(opsecCheck C2OPSECMessage) (*C2
 		return nil, err
 	}
 	logging.LogDebug("Sending opsecCheck to RabbitMQ", "opsecCheck", opsecCheck)
+	headers, err := GenerateRabbitMQAuthTokenHeader(authContext)
+	if err != nil {
+		logging.LogError(err, "Failed to generate auth context")
+		return nil, err
+	}
 	response, err := r.SendRPCMessage(
 		MYTHIC_EXCHANGE,
 		GetC2RPCOpsecChecksRoutingKey(opsecCheck.Name),
 		opsecBytes,
 		exclusiveQueue,
 		RPC_RETRY_POLICY_CUSTOM_TIMEOUT,
+		headers,
 	)
 	if err != nil {
 		logging.LogError(err, "Failed to send RPC message")

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -12,8 +13,6 @@ import (
 )
 
 type MythicRPCCustomBrowserSearchMessage struct {
-	TaskID                 *int                             `json:"task_id"`
-	OperationID            *int                             `json:"operation_id"`
 	GetAllMatchingChildren bool                             `json:"all_matching_children"`
 	SearchCustomBrowser    MythicRPCCustomBrowserSearchData `json:"custombrowser"`
 }
@@ -44,36 +43,20 @@ type MythicRPCCustomBrowserSearchDataResponse struct {
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
 		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      CUSTOMBROWSER_SEARCH,
-		RoutingKey: CUSTOMBROWSER_SEARCH,
+		Queue:      MYTHIC_RPC_CUSTOMBROWSER_SEARCH,
+		RoutingKey: MYTHIC_RPC_CUSTOMBROWSER_SEARCH,
 		Handler:    processMythicRPCCustomBrowserSearch,
+		Scopes:     []string{mythicjwt.SCOPE_BROWSER_READ},
 	})
 }
 
-func MythicRPCCustomBrowserSearch(input MythicRPCCustomBrowserSearchMessage) MythicRPCCustomBrowserSearchMessageResponse {
+func MythicRPCCustomBrowserSearch(input MythicRPCCustomBrowserSearchMessage, authContext RabbitMQAuthContext) MythicRPCCustomBrowserSearchMessageResponse {
 	response := MythicRPCCustomBrowserSearchMessageResponse{
 		Success:              false,
 		CustomBrowserEntries: []MythicRPCCustomBrowserSearchDataResponse{},
 	}
 	paramDict := make(map[string]interface{})
-	if input.TaskID != nil {
-		task := databaseStructs.Task{}
-		err := database.DB.Get(&task, `SELECT 
-			task.id, task.operation_id
-			FROM task
-			WHERE task.id=$1`, *input.TaskID)
-		if err != nil {
-			response.Error = err.Error()
-			return response
-		}
-		paramDict["operation_id"] = task.OperationID
-	} else if input.OperationID != nil {
-		paramDict["operation_id"] = *input.OperationID
-	} else {
-		logging.LogError(nil, "must provide task_id or operation_id")
-		response.Error = "must provide task_id or operation_id"
-		return response
-	}
+	paramDict["operation_id"] = authContext.OperationID
 	paramDict["tree_type"] = input.SearchCustomBrowser.TreeType
 	searchString := `SELECT 
     	 mythictree.id, mythictree.task_id, mythictree.timestamp, mythictree.operation_id,
@@ -175,5 +158,10 @@ func processMythicRPCCustomBrowserSearch(msg amqp.Delivery) interface{} {
 		responseMsg.Error = err.Error()
 		return responseMsg
 	}
-	return MythicRPCCustomBrowserSearch(incomingMessage)
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCCustomBrowserSearch(incomingMessage, authContext)
 }

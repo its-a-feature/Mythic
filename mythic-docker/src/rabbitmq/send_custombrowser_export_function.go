@@ -1,5 +1,7 @@
 package rabbitmq
 
+import "github.com/its-a-feature/Mythic/logging"
+
 type ExportFunctionMessage struct {
 	TreeType         string `json:"tree_type"`
 	ContainerName    string `json:"container_name"`
@@ -18,13 +20,19 @@ type ExportFunctionMessageResponse struct {
 	TreeType          string `json:"tree_type"`
 }
 
-func (r *rabbitMQConnection) SendCbExportFunction(msg ExportFunctionMessage) error {
-	err := r.SendStructMessage(
+func (r *rabbitMQConnection) SendCbExportFunction(msg ExportFunctionMessage, authContext RabbitMQAuthContext) error {
+	headers, err := GenerateRabbitMQAuthTokenHeader(authContext)
+	if err != nil {
+		logging.LogError(err, "Failed to generate auth context")
+		return err
+	}
+	err = r.SendStructMessage(
 		MYTHIC_EXCHANGE,
 		GetCustomBrowserExportFunctionRoutingKey(msg.ContainerName),
 		"",
 		msg,
 		false,
+		headers,
 	)
 	return err
 }

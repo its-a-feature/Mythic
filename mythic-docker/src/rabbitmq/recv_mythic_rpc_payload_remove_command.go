@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -25,31 +26,33 @@ func init() {
 		Queue:      MYTHIC_RPC_PAYLOAD_REMOVE_COMMAND,
 		RoutingKey: MYTHIC_RPC_PAYLOAD_REMOVE_COMMAND,
 		Handler:    processMythicRPCPayloadRemoveCommand,
+		Scopes:     []string{mythicjwt.SCOPE_PAYLOAD_WRITE},
 	})
 }
 
 // Endpoint: MYTHIC_RPC_PAYLOAD_REMOVE_COMMAND
-func MythicRPCPayloadRemoveCommand(input MythicRPCPayloadRemoveCommandMessage) MythicRPCPayloadRemoveCommandMessageResponse {
+func MythicRPCPayloadRemoveCommand(input MythicRPCPayloadRemoveCommandMessage, authContext RabbitMQAuthContext) MythicRPCPayloadRemoveCommandMessageResponse {
 	response := MythicRPCPayloadRemoveCommandMessageResponse{
 		Success: false,
 	}
 	payload := databaseStructs.Payload{}
-	if err := database.DB.Get(&payload, `SELECT payload.id, payload.payload_type_id 
+	err := database.DB.Get(&payload, `SELECT 
+    payload.id, payload.payload_type_id 
 	FROM payload
-	WHERE uuid=$1`, input.PayloadUUID); err != nil {
+	WHERE uuid=$1 AND operation_id=$2`, input.PayloadUUID, authContext.OperationID)
+	if err != nil {
 		logging.LogError(err, "Failed to fetch callback in MythicRPCPayloadRemoveCommand")
 		response.Error = err.Error()
 		return response
-	} else {
-		if err := PayloadRemoveCommand(payload.ID, payload.PayloadTypeID, input.Commands); err != nil {
-			logging.LogError(err, "Failed to remove commands in payload")
-			response.Error = err.Error()
-			return response
-		} else {
-			response.Success = true
-			return response
-		}
 	}
+	err = PayloadRemoveCommand(payload.ID, payload.PayloadTypeID, input.Commands)
+	if err != nil {
+		logging.LogError(err, "Failed to remove commands in payload")
+		response.Error = err.Error()
+		return response
+	}
+	response.Success = true
+	return response
 }
 func PayloadRemoveCommand(PayloadID int, payloadtypeID int, commands []string) error {
 	for _, command := range commands {
@@ -88,11 +91,16 @@ func processMythicRPCPayloadRemoveCommand(msg amqp.Delivery) interface{} {
 	responseMsg := MythicRPCPayloadRemoveCommandMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCPayloadRemoveCommand(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCPayloadRemoveCommand(incomingMessage, authContext)
 }

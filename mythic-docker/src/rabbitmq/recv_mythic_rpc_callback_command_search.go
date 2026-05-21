@@ -2,6 +2,8 @@ package rabbitmq
 
 import (
 	"encoding/json"
+
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/utils"
 
 	"github.com/its-a-feature/Mythic/database"
@@ -45,18 +47,19 @@ func init() {
 		Queue:      MYTHIC_RPC_CALLBACK_SEARCH_COMMAND,    // swap out with queue in rabbitmq.constants.go file
 		RoutingKey: MYTHIC_RPC_CALLBACK_SEARCH_COMMAND,    // swap out with routing key in rabbitmq.constants.go file
 		Handler:    processMythicRPCCallbackSearchCommand, // points to function that takes in amqp.Delivery and returns interface{}
+		Scopes:     []string{mythicjwt.SCOPE_CALLBACK_READ},
 	})
 }
 
 // MYTHIC_RPC_OBJECT_ACTION - Say what the function does
-func MythicRPCCallbackSearchCommand(input MythicRPCCallbackSearchCommandMessage) MythicRPCCallbackSearchCommandMessageResponse {
+func MythicRPCCallbackSearchCommand(input MythicRPCCallbackSearchCommandMessage, authContext RabbitMQAuthContext) MythicRPCCallbackSearchCommandMessageResponse {
 	response := MythicRPCCallbackSearchCommandMessageResponse{
 		Success: false,
 	}
 	foundCommands := []MythicRPCCommandSearchCommandData{}
 	loadedCommands := []databaseStructs.Loadedcommands{}
 	if input.CallbackID != nil {
-		if err := database.DB.Select(&loadedCommands, `SELECT
+		err := database.DB.Select(&loadedCommands, `SELECT
 			command.needs_admin "command.needs_admin",
 			command.help_cmd "command.help_cmd",
 			command.description "command.description",
@@ -70,18 +73,25 @@ func MythicRPCCallbackSearchCommand(input MythicRPCCallbackSearchCommandMessage)
 			FROM
 			loadedcommands
 			JOIN command on loadedcommands.command_id = command.id
-			WHERE loadedcommands.callback_id=$1`, input.CallbackID); err != nil {
+			JOIN callback on callback.id = loadedcommands.callback_id
+			WHERE loadedcommands.callback_id=$1 AND callback.operation_id=$2`, input.CallbackID, authContext.OperationID)
+		if err != nil {
 			logging.LogError(err, "Failed to search loaded commands for callback_id")
 			response.Error = err.Error()
 			return response
 		}
 	} else if input.TaskID != nil {
 		task := databaseStructs.Task{ID: *input.TaskID}
-		if err := database.DB.Get(&task.CallbackID, `SELECT callback_id FROM task WHERE id=$1`, task.ID); err != nil {
+		err := database.DB.Get(&task.CallbackID, `SELECT 
+    		callback_id 
+			FROM task 
+			WHERE id=$1 AND operation_id=$2`, task.ID, authContext.OperationID)
+		if err != nil {
 			logging.LogError(err, "Failed to find task number")
 			response.Error = err.Error()
 			return response
-		} else if err := database.DB.Select(&loadedCommands, `SELECT
+		}
+		err = database.DB.Select(&loadedCommands, `SELECT
 			command.needs_admin "command.needs_admin",
 			command.help_cmd "command.help_cmd",
 			command.description "command.description",
@@ -95,7 +105,8 @@ func MythicRPCCallbackSearchCommand(input MythicRPCCallbackSearchCommandMessage)
 			FROM
 			loadedcommands
 			JOIN command on loadedcommands.command_id = command.id
-			WHERE loadedcommands.callback_id=$1`, task.CallbackID); err != nil {
+			WHERE loadedcommands.callback_id=$1`, task.CallbackID)
+		if err != nil {
 			logging.LogError(err, "Failed to search loaded commands for callback_id")
 			response.Error = err.Error()
 			return response
@@ -181,11 +192,16 @@ func processMythicRPCCallbackSearchCommand(msg amqp.Delivery) interface{} {
 	responseMsg := MythicRPCCallbackSearchCommandMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCCallbackSearchCommand(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCCallbackSearchCommand(incomingMessage, authContext)
 }

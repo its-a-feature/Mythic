@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/utils"
 
 	"github.com/its-a-feature/Mythic/database"
@@ -52,11 +53,12 @@ func init() {
 		Queue:      MYTHIC_RPC_CALLBACK_UPDATE,
 		RoutingKey: MYTHIC_RPC_CALLBACK_UPDATE,
 		Handler:    processMythicRPCCallbackUpdate,
+		Scopes:     []string{mythicjwt.SCOPE_CALLBACK_WRITE},
 	})
 }
 
 // Endpoint: MYTHIC_RPC_CALLBACK_UPDATE
-func MythicRPCCallbackUpdate(input MythicRPCCallbackUpdateMessage) MythicRPCCallbackUpdateMessageResponse {
+func MythicRPCCallbackUpdate(input MythicRPCCallbackUpdateMessage, authContext RabbitMQAuthContext) MythicRPCCallbackUpdateMessageResponse {
 	response := MythicRPCCallbackUpdateMessageResponse{
 		Success: false,
 	}
@@ -65,7 +67,7 @@ func MythicRPCCallbackUpdate(input MythicRPCCallbackUpdateMessage) MythicRPCCall
 		if err := database.DB.Get(&callback, `SELECT
 			*
 			FROM callback
-			WHERE agent_callback_id=$1`, input.AgentCallbackID); err != nil {
+			WHERE agent_callback_id=$1 AND operation_id=$2`, input.AgentCallbackID, authContext.OperationID); err != nil {
 			logging.LogError(err, "Failed to find callback UUID")
 			response.Error = err.Error()
 			return response
@@ -74,7 +76,7 @@ func MythicRPCCallbackUpdate(input MythicRPCCallbackUpdateMessage) MythicRPCCall
 		if err := database.DB.Get(&callback, `SELECT
 			*
 			FROM callback
-			WHERE id=$1`, input.CallbackID); err != nil {
+			WHERE id=$1 AND operation_id=$2`, input.CallbackID, authContext.OperationID); err != nil {
 			logging.LogError(err, "Failed to find callback ID")
 			response.Error = err.Error()
 			return response
@@ -84,7 +86,7 @@ func MythicRPCCallbackUpdate(input MythicRPCCallbackUpdateMessage) MythicRPCCall
 			callback.*
 			FROM callback
 			JOIN task on task.callback_id = callback.id
-			WHERE task.id=$1`, *input.TaskID); err != nil {
+			WHERE task.id=$1 AND task.operation_id=$2`, *input.TaskID, authContext.OperationID); err != nil {
 			logging.LogError(err, "failed to get callback information from task")
 			response.Error = err.Error()
 			return response
@@ -207,11 +209,16 @@ func processMythicRPCCallbackUpdate(msg amqp.Delivery) interface{} {
 	responseMsg := MythicRPCCallbackUpdateMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCCallbackUpdate(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCCallbackUpdate(incomingMessage, authContext)
 }

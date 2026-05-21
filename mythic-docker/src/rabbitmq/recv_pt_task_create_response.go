@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/eventing"
 
 	"github.com/its-a-feature/Mythic/database"
@@ -20,12 +21,18 @@ func init() {
 		Queue:      PT_TASK_CREATE_TASKING_RESPONSE,
 		RoutingKey: PT_TASK_CREATE_TASKING_RESPONSE,
 		Handler:    processPtTaskCreateMessages,
+		Scopes:     []string{mythicjwt.SCOPE_RESPONSE_WRITE},
 	})
 }
 
 func processPtTaskCreateMessages(msg amqp.Delivery) {
 	payloadMsg := PTTaskCreateTaskingMessageResponse{}
-	err := json.Unmarshal(msg.Body, &payloadMsg)
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		logging.LogError(err, "Failed to get auth headers")
+		return
+	}
+	err = json.Unmarshal(msg.Body, &payloadMsg)
 	if err != nil {
 		logging.LogError(err, "Failed to process message into struct")
 		return
@@ -38,7 +45,9 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 		go SendAllOperationsMessage(payloadMsg.Error, 0, "", database.MESSAGE_LEVEL_INFO, true)
 		return
 	}
-	err = database.DB.Get(&task, `SELECT * FROM task WHERE id=$1`, task.ID)
+	err = database.DB.Get(&task, `SELECT * 
+		FROM task 
+		WHERE id=$1 AND operation_id=$2`, task.ID, authContext.OperationID)
 	if err != nil {
 		logging.LogError(err, "Failed to find task from create_tasking")
 		go SendAllOperationsMessage(err.Error(), 0, "", database.MESSAGE_LEVEL_INFO, true)
@@ -154,13 +163,13 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 				}
 				logging.LogInfo("sending task back to create tasking", "payload type", allTaskData.CommandPayloadType,
 					"command name", allTaskData.Task.CommandName)
-				err = RabbitMQConnection.SendPtTaskCreate(allTaskData)
+				err = RabbitMQConnection.SendPtTaskCreate(allTaskData, authContext)
 				if err != nil {
 					logging.LogError(err, "In processPtTaskCreateMessages, but failed to SendPtTaskCreate ")
 				}
 				return
 			}
-			err = RabbitMQConnection.SendPtTaskOPSECPost(allTaskData)
+			err = RabbitMQConnection.SendPtTaskOPSECPost(allTaskData, authContext)
 			if err != nil {
 				logging.LogError(err, "In processPtTaskCreateMessages, but failed to SendPtTaskOPSECPost ")
 			}
@@ -174,7 +183,7 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 				TaskID:              task.ID,
 				ActionSuccess:       !strings.Contains(strings.ToLower(task.Status), "error"),
 			}
-			go CheckAndProcessTaskCompletionHandlers(task.ID)
+			go CheckAndProcessTaskCompletionHandlers(task.ID, authContext)
 		} else if task.IsInteractiveTask {
 			// we're not completed and we are an interactive task, send it down to the agent
 			go submittedTasksAwaitingFetching.addTask(task)
@@ -183,11 +192,11 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 		task.Completed = true
 		task.Stderr += payloadMsg.Error
 		_, err = database.DB.NamedExec(`UPDATE task SET
-					status=:status, stderr=:stderr, completed=:completed 
+					status=:status, stderr=:stderr, completed=:completed
 					WHERE
 					id=:id`, task)
-		_, err = database.DB.Exec(`INSERT INTO response (task_id, operation_id, response) 
-				VALUES ($1, $2, $3)`, task.ID, task.OperationID, task.Stderr)
+		_, err = database.DB.Exec(`INSERT INTO response (task_id, operation_id, response, eventstepinstance_id, apitokens_id)
+				VALUES ($1, $2, $3, $4, $5)`, task.ID, task.OperationID, task.Stderr, task.EventStepInstanceID, task.APITokensID)
 		if err != nil {
 			logging.LogError(err, "failed to add error to responses")
 		}
@@ -204,6 +213,6 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 			ActionSuccess:       false,
 		}
 		// we hit an error in processing, so check if others are waiting on us to finish
-		go CheckAndProcessTaskCompletionHandlers(task.ID)
+		go CheckAndProcessTaskCompletionHandlers(task.ID, authContext)
 	}
 }
