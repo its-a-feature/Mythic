@@ -110,6 +110,12 @@ func setMythicConfigDefaultValues() {
 	mythicEnv.SetDefault("global_restart_policy", "always")
 	mythicEnvInfo["global_restart_policy"] = `This sets the restart policy for the containers within Mythic. Valid options should only be 'always', 'unless-stopped', and 'on-failure'. The default of 'always' will ensure that Mythic comes back up even when the server reboots. The 'unless-stopped' value means that Mythic should come back online after reboot unless you specifically ran './mythic-cli stop' first.`
 
+	mythicEnv.SetDefault("mythic_docker_image_prefix", "ghcr.io/its-a-feature")
+	mythicEnvInfo["mythic_docker_image_prefix"] = `This sets the registry + namespace prefix used to pull the core Mythic service images (mythic_server, mythic_postgres, mythic_react, mythic_documentation, mythic_graphql, mythic_rabbitmq, mythic_nginx, mythic_jupyter). The image used for each service will be <prefix>/<service>:<global_docker_latest>. Set this to an internal/custom registry+namespace (for example, "myregistry.local/mythic") to pull the core images from there instead of GitHub's Container Registry. This setting has no effect on services where *_use_build_context is true. The default of "ghcr.io/its-a-feature" preserves the original GitHub-hosted image location.`
+
+	mythicEnv.SetDefault("mythic_agent_docker_image_prefix", "")
+	mythicEnvInfo["mythic_agent_docker_image_prefix"] = `This sets the registry + namespace prefix used to pull images for installed agents and C2 profiles. When this is empty (the default), each agent's image URL from its config.json's "remote_images" map is used verbatim. When this is set to a non-empty value, every URL declared in an agent's "remote_images" has everything before the trailing image[:tag|@digest] segment replaced with this prefix before being stored in <agent>_remote_image. The same rewrite is also re-applied each time the docker-compose entry is generated, so changing this value and running start/build will switch the image without re-installing. Set this to an internal/custom registry+namespace (for example, "myregistry.local/agents") to pull installed agent images from there.`
+
 	// nginx configuration ---------------------------------------------
 	mythicEnv.SetDefault("nginx_port", 7443)
 	mythicEnvInfo["nginx_port"] = `This sets the port used for the Nginx reverse proxy - this port is used by the React UI and Mythic's Scripting`

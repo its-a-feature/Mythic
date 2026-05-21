@@ -44,7 +44,7 @@ func AddMythicService(service string, removeVolume bool) {
 			}
 			pStruct["image"] = service
 		} else {
-			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("global_docker_latest"))
+			pStruct["image"] = fmt.Sprintf("%s/%s:%s", mythicEnv.GetString("mythic_docker_image_prefix"), service, mythicEnv.GetString("global_docker_latest"))
 		}
 
 		pStruct["cpus"] = mythicEnv.GetInt("POSTGRES_CPUS")
@@ -126,7 +126,7 @@ func AddMythicService(service string, removeVolume bool) {
 			}
 			pStruct["image"] = service
 		} else {
-			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("global_docker_latest"))
+			pStruct["image"] = fmt.Sprintf("%s/%s:%s", mythicEnv.GetString("mythic_docker_image_prefix"), service, mythicEnv.GetString("global_docker_latest"))
 		}
 		if mythicEnv.GetString("mythic_docker_networking") == "bridge" {
 			if mythicEnv.GetBool("documentation_bind_localhost_only") {
@@ -200,7 +200,7 @@ func AddMythicService(service string, removeVolume bool) {
 			}
 			pStruct["image"] = service
 		} else {
-			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("global_docker_latest"))
+			pStruct["image"] = fmt.Sprintf("%s/%s:%s", mythicEnv.GetString("mythic_docker_image_prefix"), service, mythicEnv.GetString("global_docker_latest"))
 		}
 
 		pStruct["cpus"] = mythicEnv.GetInt("HASURA_CPUS")
@@ -288,7 +288,7 @@ func AddMythicService(service string, removeVolume bool) {
 			}
 			pStruct["image"] = service
 		} else {
-			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("global_docker_latest"))
+			pStruct["image"] = fmt.Sprintf("%s/%s:%s", mythicEnv.GetString("mythic_docker_image_prefix"), service, mythicEnv.GetString("global_docker_latest"))
 		}
 
 		nginxUseSSL := "ssl"
@@ -393,7 +393,7 @@ func AddMythicService(service string, removeVolume bool) {
 			}
 			pStruct["image"] = service
 		} else {
-			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("global_docker_latest"))
+			pStruct["image"] = fmt.Sprintf("%s/%s:%s", mythicEnv.GetString("mythic_docker_image_prefix"), service, mythicEnv.GetString("global_docker_latest"))
 		}
 		pStruct["cpus"] = mythicEnv.GetInt("RABBITMQ_CPUS")
 		if mythicEnv.GetString("rabbitmq_mem_limit") != "" {
@@ -502,7 +502,7 @@ func AddMythicService(service string, removeVolume bool) {
 				}
 				pStruct["image"] = service
 			} else {
-				pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("global_docker_latest"))
+				pStruct["image"] = fmt.Sprintf("%s/%s:%s", mythicEnv.GetString("mythic_docker_image_prefix"), service, mythicEnv.GetString("global_docker_latest"))
 			}
 
 			if !mythicEnv.GetBool("mythic_react_use_volume") {
@@ -592,7 +592,7 @@ func AddMythicService(service string, removeVolume bool) {
 			}
 			pStruct["image"] = service
 		} else {
-			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("global_docker_latest"))
+			pStruct["image"] = fmt.Sprintf("%s/%s:%s", mythicEnv.GetString("mythic_docker_image_prefix"), service, mythicEnv.GetString("global_docker_latest"))
 		}
 
 		pStruct["cpus"] = mythicEnv.GetInt("JUPYTER_CPUS")
@@ -680,7 +680,7 @@ func AddMythicService(service string, removeVolume bool) {
 			}
 			pStruct["image"] = service
 		} else {
-			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("global_docker_latest"))
+			pStruct["image"] = fmt.Sprintf("%s/%s:%s", mythicEnv.GetString("mythic_docker_image_prefix"), service, mythicEnv.GetString("global_docker_latest"))
 		}
 
 		pStruct["cpus"] = mythicEnv.GetInt("MYTHIC_SERVER_CPUS")
@@ -894,7 +894,7 @@ func Add3rdPartyService(service string, additionalConfigs map[string]interface{}
 	if useBuildContext, ok := agentConfigs[agentUseBuildContextKey]; ok {
 		if useBuildContext == "false" {
 			delete(existingConfig, "build")
-			existingConfig["image"] = agentConfigs[agentRemoteImageKey]
+			existingConfig["image"] = rewriteImagePrefix(agentConfigs[agentRemoteImageKey], config.GetMythicEnv().GetString("mythic_agent_docker_image_prefix"))
 		}
 	}
 	if useVolume, ok := agentConfigs[agentUseVolumeKey]; ok {
@@ -983,4 +983,15 @@ func Initialize() {
 			log.Printf("[-] Error adding 3rd party service: %v\n", err)
 		}
 	}
+}
+
+// rewriteImagePrefix replaces everything before the trailing image[:tag|@digest]
+// segment of imageURL with newPrefix. An empty newPrefix returns imageURL unchanged.
+func rewriteImagePrefix(imageURL, newPrefix string) string {
+	newPrefix = strings.TrimRight(newPrefix, "/")
+	if newPrefix == "" {
+		return imageURL
+	}
+	parts := strings.Split(imageURL, "/")
+	return newPrefix + "/" + parts[len(parts)-1]
 }

@@ -39,8 +39,9 @@ func InstallFolder(installPath string, overWrite bool, keepVolume bool, installU
 		}
 	}
 	latestVersion := installConfig.GetStringMapString("remote_images")
+	agentImagePrefix := config.GetMythicEnv().GetString("mythic_agent_docker_image_prefix")
 	for key, val := range latestVersion {
-		config.SetNewConfigStrings(fmt.Sprintf("%s_remote_image", key), val)
+		config.SetNewConfigStrings(fmt.Sprintf("%s_remote_image", key), rewriteImagePrefix(val, agentImagePrefix))
 		if !config.GetMythicEnv().InConfig(fmt.Sprintf("%s_use_volume", key)) {
 			config.SetNewConfigStrings(fmt.Sprintf("%s_use_volume", key), "false")
 		}
