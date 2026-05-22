@@ -4,7 +4,7 @@ import { Typography } from '@mui/material';
 import { useReactiveVar } from '@apollo/client';
 import { useDarkMode } from './utilities/useDarkMode';
 import { createTheme, ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
-import { GlobalStyles } from '../themes/GlobalStyles';
+import { GlobalStyles, ThemeVariables } from '../themes/GlobalStyles';
 import CssBaseline from '@mui/material/CssBaseline';
 import {FailedRefresh, mePreferences, meState, operatorSettingDefaults} from '../cache';
 import { Tooltip } from 'react-tooltip';
@@ -939,7 +939,8 @@ export function App(props) {
         return (
             <StyledEngineProvider injectFirst>
                 <ThemeProvider theme={theme}>
-                    <GlobalStyles theme={theme} />
+                    <ThemeVariables theme={theme} />
+                    <GlobalStyles />
                     <CssBaseline />
                     <div style={{width: '100%', height: '100%', display: "flex", position: "relative",}}>
                         <MythicLoadingState compact title="Loading Preferences" description="Fetching user preferences." sx={{color: "inherit"}} />
@@ -958,7 +959,8 @@ export function App(props) {
     return (
         <StyledEngineProvider injectFirst>
             <ThemeProvider theme={theme}>
-                <GlobalStyles theme={theme} />
+                <ThemeVariables theme={theme} />
+                <GlobalStyles />
                 <CssBaseline />
                 <MeContext.Provider value={me}>
                     <Tooltip id={"my-tooltip"} style={{zIndex: 100000, wordBreak: "break-word", maxWidth: "80%", whiteSpace: "pre-wrap"}}/>
@@ -981,7 +983,7 @@ export function App(props) {
                             />
                         }
                         {me.loggedIn && me.user !== undefined && me.user !== null &&
-                            <TopAppBarVertical me={me} toggleTheme={themeToggler} />
+                            <TopAppBarVertical me={me} toggleTheme={themeToggler} themeMode={themeMode} />
                         }
                         <div style={{
                             maxHeight: '100%',
