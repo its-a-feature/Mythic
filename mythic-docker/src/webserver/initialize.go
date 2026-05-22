@@ -313,6 +313,10 @@ func setRoutes(r *gin.Engine) {
 						mythicjwt.SCOPE_FILE_READ,
 					}),
 					webcontroller.DownloadBulkFilesWebhook)
+				allOperationMembers.POST("chat_search_webhook",
+					webcontroller.ChatSearchWebhook)
+				allOperationMembers.POST("chat_mark_read_webhook",
+					webcontroller.MarkChatReadWebhook)
 				allOperationMembers.POST("preview_file_webhook",
 					authentication.TokenScopeMiddleware([]string{
 						mythicjwt.SCOPE_FILE_READ,
@@ -354,6 +358,21 @@ func setRoutes(r *gin.Engine) {
 					webcontroller.ConsumingServicesTestWebhook)
 				noSpectators.POST("consuming_services_test_log",
 					webcontroller.ConsumingServicesTestLog)
+				// chat
+				noSpectators.POST("chat_create_channel_webhook",
+					webcontroller.CreateChatChannelWebhook)
+				noSpectators.POST("chat_update_channel_webhook",
+					webcontroller.UpdateChatChannelWebhook)
+				noSpectators.POST("chat_create_message_webhook",
+					webcontroller.CreateChatMessageWebhook)
+				noSpectators.POST("chat_edit_message_webhook",
+					webcontroller.EditChatMessageWebhook)
+				noSpectators.POST("chat_delete_message_webhook",
+					webcontroller.DeleteChatMessageWebhook)
+				noSpectators.POST("chat_cancel_request_webhook",
+					webcontroller.CancelChatRequestWebhook)
+				noSpectators.POST("chat_retry_request_webhook",
+					webcontroller.RetryChatRequestWebhook)
 				// creating a payload
 				noSpectators.POST("createpayload_webhook",
 					authentication.TokenScopeMiddleware([]string{

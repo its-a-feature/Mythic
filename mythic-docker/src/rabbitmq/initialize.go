@@ -31,6 +31,7 @@ type DirectQueueStruct struct {
 	RoutingKey string
 	Handler    QueueHandler
 	Scopes     []string
+	Sequential bool
 }
 
 type channelMutex struct {
@@ -90,6 +91,7 @@ func (r *rabbitMQConnection) startListeners() {
 			directQueue.Queue,
 			directQueue.RoutingKey,
 			directQueue.Handler,
+			directQueue.Sequential,
 			exclusiveQueue)
 	}
 	go checkContainerStatus()

@@ -52,6 +52,80 @@ type Query {
 }
 
 type Mutation {
+  chatCancelRequest(
+    request_id: Int!
+  ): ChatActionOutput
+}
+
+type Mutation {
+  chatCreateChannel(
+    name: String!
+    description: String
+    channel_type: String
+    chat_container_id: Int
+    chat_model: String
+    locked: Boolean
+    ai_metadata: jsonb
+  ): ChatActionOutput
+}
+
+type Mutation {
+  chatCreateMessage(
+    channel_id: Int!
+    message: String!
+    system_message: Boolean
+    all_operations: Boolean
+  ): ChatActionOutput
+}
+
+type Mutation {
+  chatDeleteMessage(
+    message_id: Int!
+  ): ChatActionOutput
+}
+
+type Mutation {
+  chatEditMessage(
+    message_id: Int!
+    message: String!
+  ): ChatActionOutput
+}
+
+type Mutation {
+  chatMarkRead(
+    channel_id: Int!
+    last_read_message_id: Int
+  ): ChatActionOutput
+}
+
+type Mutation {
+  chatRetryRequest(
+    request_id: Int!
+  ): ChatActionOutput
+}
+
+type Query {
+  chatSearch(
+    query: String!
+    channel_id: Int
+    limit: Int
+    offset: Int
+  ): ChatActionOutput
+}
+
+type Mutation {
+  chatUpdateChannel(
+    channel_id: Int!
+    name: String
+    description: String
+    archived: Boolean
+    locked: Boolean
+    chat_model: String
+    ai_metadata: jsonb
+  ): ChatActionOutput
+}
+
+type Mutation {
   consumingServicesTestLog(
     service_type: String!
   ): consumingServicesTestLogOutput
@@ -1327,3 +1401,28 @@ type custombrowserExportFunctionOutput {
   error: String
 }
 
+type ChatActionOutput {
+  status: String!
+  error: String
+  id: Int
+  channel_id: Int
+  message_id: Int
+  request_id: Int
+  response_message_id: Int
+  results: [ChatSearchResult]
+}
+
+type ChatSearchResult {
+  id: Int!
+  channel_id: Int!
+  channel_name: String!
+  channel_slug: String!
+  channel_type: String!
+  author_type: String!
+  sender_display_name: String!
+  message: String!
+  edited: Boolean!
+  status: String!
+  created_at: String!
+  rank: Float!
+}

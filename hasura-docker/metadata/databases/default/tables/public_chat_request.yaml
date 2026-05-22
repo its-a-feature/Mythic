@@ -1,0 +1,130 @@
+table:
+  name: chat_request
+  schema: public
+object_relationships:
+  - name: channel
+    using:
+      foreign_key_constraint_on: channel_id
+  - name: chat_container
+    using:
+      foreign_key_constraint_on: chat_container_id
+  - name: creator
+    using:
+      foreign_key_constraint_on: created_by
+  - name: operation
+    using:
+      foreign_key_constraint_on: operation_id
+  - name: request_message
+    using:
+      foreign_key_constraint_on: request_message_id
+  - name: response_message
+    using:
+      foreign_key_constraint_on: response_message_id
+  - name: retry_of
+    using:
+      foreign_key_constraint_on: retry_of_id
+select_permissions:
+  - role: mythic_admin
+    permission:
+      columns:
+        - cancelled_at
+        - channel_id
+        - chat_container_id
+        - completed_at
+        - context_snapshot
+        - created_at
+        - created_by
+        - error
+        - id
+        - model
+        - operation_id
+        - request_message_id
+        - response_message_id
+        - retry_of_id
+        - status
+        - updated_at
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _lte: X-Hasura-Scope-chat-ai-read-operation
+      allow_aggregations: true
+  - role: operation_admin
+    permission:
+      columns:
+        - cancelled_at
+        - channel_id
+        - chat_container_id
+        - completed_at
+        - context_snapshot
+        - created_at
+        - created_by
+        - error
+        - id
+        - model
+        - operation_id
+        - request_message_id
+        - response_message_id
+        - retry_of_id
+        - status
+        - updated_at
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _lte: X-Hasura-Scope-chat-ai-read-operation
+      allow_aggregations: true
+  - role: operator
+    permission:
+      columns:
+        - cancelled_at
+        - channel_id
+        - chat_container_id
+        - completed_at
+        - context_snapshot
+        - created_at
+        - created_by
+        - error
+        - id
+        - model
+        - operation_id
+        - request_message_id
+        - response_message_id
+        - retry_of_id
+        - status
+        - updated_at
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _lte: X-Hasura-Scope-chat-ai-read-operation
+      allow_aggregations: true
+  - role: spectator
+    permission:
+      columns:
+        - cancelled_at
+        - channel_id
+        - chat_container_id
+        - completed_at
+        - context_snapshot
+        - created_at
+        - created_by
+        - error
+        - id
+        - model
+        - operation_id
+        - request_message_id
+        - response_message_id
+        - retry_of_id
+        - status
+        - updated_at
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _lte: X-Hasura-Scope-chat-ai-read-operation
+      allow_aggregations: true

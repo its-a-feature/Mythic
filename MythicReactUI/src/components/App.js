@@ -46,6 +46,7 @@ const Reporting = lazyNamed(() => import('./pages/Reporting/Reporting'), 'Report
 const MitreAttack = lazyNamed(() => import('./pages/MITRE_ATTACK/MitreAttack'), 'MitreAttack');
 const Tags = lazyNamed(() => import('./pages/Tags/Tags'), 'Tags');
 const Eventing = lazyNamed(() => import('./pages/Eventing/Eventing'), 'Eventing');
+const Chat = lazyNamed(() => import('./pages/Chat/Chat'), 'Chat');
 const Jupyter = lazyNamed(() => import('./pages/Jupyter/Jupyter'), 'Jupyter');
 const Hasura = lazyNamed(() => import('./pages/Hasura/Hasura'), 'Hasura');
 
@@ -162,6 +163,16 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
             muted: surfaceMuted,
             hover: tableRowHoverColor,
             selected: tableSelectedColor,
+        },
+        chat: {
+            message: {
+                operatorBackground: getColor("chatMessageOperatorBackground"),
+                selfBackground: getColor("chatMessageSelfBackground"),
+                aiBackground: getColor("chatMessageAIBackground"),
+                systemBackground: getColor("chatMessageSystemBackground"),
+                markdownSurface: getColor("chatMarkdownSurfaceBackground"),
+                markdownSurfaceStrong: getColor("chatMarkdownSurfaceStrongBackground"),
+            },
         },
         table: {
             header: tableHeaderColor,
@@ -709,8 +720,6 @@ export function App(props) {
                             preferences?.palette?.borderColor?.light || operatorSettingDefaults.palette.borderColor.light,
                         graphGroupRGBA: themeMode === 'dark' ? `${preferences?.palette?.graphGroupColor?.dark || operatorSettingDefaults.palette.graphGroupColor.dark}80` :
                             `${preferences?.palette?.graphGroupColor?.light || operatorSettingDefaults.palette.graphGroupColor.light}80`,
-                        speedDialAction: themeMode === 'dark' ? preferences?.palette?.speedDialAction?.dark || operatorSettingDefaults.palette.speedDialAction.dark :
-                            preferences?.palette?.speedDialAction?.light || operatorSettingDefaults.palette.speedDialAction.light,
                     },
                     folderColor: themeMode === 'dark' ? preferences?.palette?.folderColor?.dark || operatorSettingDefaults.palette.folderColor.dark :
                         preferences?.palette?.folderColor?.light || operatorSettingDefaults.palette.folderColor.light,
@@ -829,8 +838,6 @@ export function App(props) {
                             operatorSettingDefaults.palette.borderColor.light,
                         graphGroupRGBA: themeMode === 'dark' ? `${operatorSettingDefaults.palette.graphGroupColor.dark}80` :
                             `${operatorSettingDefaults.palette.graphGroupColor.light}80`,
-                        speedDialAction: themeMode === 'dark' ? operatorSettingDefaults.palette.speedDialAction.dark :
-                            operatorSettingDefaults.palette.speedDialAction.light,
                     },
                     folderColor: themeMode === 'dark' ? operatorSettingDefaults.palette.folderColor.dark :
                         operatorSettingDefaults.palette.folderColor.light,
@@ -1071,6 +1078,8 @@ export function App(props) {
                                                element={<LoggedInRoute me={me}><Tags me={me}/></LoggedInRoute>}/>
                                         <Route exact path='/new/eventing'
                                                element={<LoggedInRoute me={me}><Eventing me={me}/></LoggedInRoute>}/>
+                                        <Route exact path='/new/chat'
+                                               element={<LoggedInRoute me={me}><Chat me={me}/></LoggedInRoute>}/>
                                         <Route exact path='/new/jupyter' element={<LoggedInRoute me={me}><Jupyter/></LoggedInRoute>}/>
                                         <Route exact path='/new/hasura' element={<LoggedInRoute me={me}><Hasura/></LoggedInRoute>}/>
                                     </Routes>

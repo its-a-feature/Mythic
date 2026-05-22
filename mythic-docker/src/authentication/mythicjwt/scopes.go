@@ -18,6 +18,12 @@ const (
 	SCOPE_CALLBACK_READ  = "callback.read"
 	SCOPE_CALLBACK_WRITE = "callback.write"
 
+	SCOPE_CHAT_READ  = "chat.read"
+	SCOPE_CHAT_WRITE = "chat.write"
+
+	SCOPE_CHAT_AI_READ  = "chat-ai.read"
+	SCOPE_CHAT_AI_WRITE = "chat-ai.write"
+
 	SCOPE_CONTAINER_FILE_READ  = "container_file.read"
 	SCOPE_CONTAINER_FILE_WRITE = "container_file.write"
 
@@ -85,6 +91,10 @@ var scopeDefinitions = []ScopeDefinition{
 	{Name: SCOPE_C2_WRITE, DisplayName: "Write C2 profiles", Description: "Start, stop, update, or interact with C2 profile containers. Includes read access.", Resource: "c2", Access: "write", Includes: []string{SCOPE_C2_READ}},
 	{Name: SCOPE_CALLBACK_READ, DisplayName: "Read callbacks", Description: "View callbacks and callback metadata for accessible operations.", Resource: "callback", Access: "read"},
 	{Name: SCOPE_CALLBACK_WRITE, DisplayName: "Write callbacks", Description: "Create or update callback state. Includes read access.", Resource: "callback", Access: "write", Includes: []string{SCOPE_CALLBACK_READ}},
+	{Name: SCOPE_CHAT_READ, DisplayName: "Read operation chat", Description: "View and search standard chat channels and messages for accessible operations.", Resource: "chat", Access: "read"},
+	{Name: SCOPE_CHAT_WRITE, DisplayName: "Write operation chat", Description: "Create standard chat channels and post, edit, or delete standard chat messages. Includes read access.", Resource: "chat", Access: "write", Includes: []string{SCOPE_CHAT_READ}},
+	{Name: SCOPE_CHAT_AI_READ, DisplayName: "Read AI chat", Description: "View and search AI-backed chat sessions and messages for accessible operations.", Resource: "chat-ai", Access: "read"},
+	{Name: SCOPE_CHAT_AI_WRITE, DisplayName: "Write AI chat", Description: "Create AI chat sessions, post prompts, and receive AI chat responses. Includes read access.", Resource: "chat-ai", Access: "write", Includes: []string{SCOPE_CHAT_AI_READ}},
 	{Name: SCOPE_CONTAINER_FILE_READ, DisplayName: "Read container files", Description: "List and download files exposed by Mythic service containers.", Resource: "container_file", Access: "read"},
 	{Name: SCOPE_CONTAINER_FILE_WRITE, DisplayName: "Write container files", Description: "Write or remove files exposed by Mythic service containers. Includes read access.", Resource: "container_file", Access: "write", Includes: []string{SCOPE_CONTAINER_FILE_READ}},
 	{Name: SCOPE_CREDENTIAL_READ, DisplayName: "Read credentials", Description: "View credential records for accessible operations.", Resource: "credential", Access: "read"},

@@ -89,6 +89,9 @@ const (
 	CONTAINER_ON_START          = "container_on_start"
 	CONTAINER_ON_START_RESPONSE = "container_on_start_response"
 
+	// CHAT
+	CHAT_RESPONSE_ROUTING_KEY = "chat_response"
+
 	// CUSTOM_BROWSER  routes
 	CUSTOMBROWSER_SYNC_ROUTING_KEY         = "custombrowser_sync"
 	CUSTOMBROWSER_EXPORT_FUNCTION          = "custombrowser_exportfunction"
@@ -124,6 +127,7 @@ const (
 	//
 	PT_TASK_PROCESS_RESPONSE = "pt_task_process_response"
 	PT_COMMAND_HELP_FUNCTION = "pt_command_help_function"
+	CHAT_REQUEST             = "chat_request"
 )
 
 // Routes where container is consuming messages and responding back to Mythic

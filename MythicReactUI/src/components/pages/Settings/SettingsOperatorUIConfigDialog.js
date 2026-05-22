@@ -294,11 +294,22 @@ const COLOR_EDITOR_SECTIONS = [
         ],
     },
     {
-        title: "Graphs and Floating Controls",
-        description: "Graph grouping surfaces and legacy floating action controls.",
+        title: "Chat",
+        description: "Chat message bubbles and markdown block surfaces.",
+        colors: [
+            {name: "chatMessageOperatorBackground", display: "Other Messages", description: "Message bubble background for operator messages from other users.", preview: "chat"},
+            {name: "chatMessageSelfBackground", display: "My Messages", description: "Message bubble background for messages sent by the current operator.", preview: "chat"},
+            {name: "chatMessageAIBackground", display: "AI Messages", description: "Message bubble background for AI-generated messages.", preview: "chat"},
+            {name: "chatMessageSystemBackground", display: "System Messages", description: "Message bubble background for chat system messages.", preview: "chat"},
+            {name: "chatMarkdownSurfaceBackground", display: "Markdown Surface", description: "Background for inline code, fenced code blocks, blockquotes, and markdown table headers.", preview: "chat"},
+            {name: "chatMarkdownSurfaceStrongBackground", display: "Markdown Label Surface", description: "Background for compact markdown labels such as fenced-code language tags.", preview: "chat"},
+        ],
+    },
+    {
+        title: "Graphs",
+        description: "Graph grouping surfaces.",
         colors: [
             {name: "graphGroupColor", display: "Graph Group", description: "Grouped node backgrounds in graph-style views.", preview: "graph"},
-            {name: "speedDialAction", display: "Floating Action", description: "Floating action buttons where SpeedDial controls are still used.", preview: "floatingAction"},
         ],
     },
     {
@@ -517,7 +528,6 @@ const ColorUsagePreview = ({option, palette, mode}) => {
     const subtleAccentGradientStart = getPaletteValue(palette, "subtleAccentGradientStart", mode);
     const subtleAccentGradientEnd = getPaletteValue(palette, "subtleAccentGradientEnd", mode);
     const graphGroup = getPaletteValue(palette, "graphGroupColor", mode);
-    const speedDialAction = getPaletteValue(palette, "speedDialAction", mode);
     const chartSeriesColors = Array.from({length: 10}, (_, index) => getPaletteValue(palette, `chartSeries${index + 1}`, mode));
     const navTop = getPaletteValue(palette, "navBarColor", mode);
     const navBottom = getPaletteValue(palette, "navBarBottomColor", mode);
@@ -536,6 +546,12 @@ const ColorUsagePreview = ({option, palette, mode}) => {
     const extra = getPaletteValue(palette, "taskContextExtraColor", mode);
     const folder = getPaletteValue(palette, "folderColor", mode);
     const emptyFolder = getPaletteValue(palette, "emptyFolderColor", mode);
+    const chatOperatorBackground = getPaletteValue(palette, "chatMessageOperatorBackground", mode);
+    const chatSelfBackground = getPaletteValue(palette, "chatMessageSelfBackground", mode);
+    const chatAIBackground = getPaletteValue(palette, "chatMessageAIBackground", mode);
+    const chatSystemBackground = getPaletteValue(palette, "chatMessageSystemBackground", mode);
+    const chatMarkdownSurface = getPaletteValue(palette, "chatMarkdownSurfaceBackground", mode);
+    const chatMarkdownSurfaceStrong = getPaletteValue(palette, "chatMarkdownSurfaceStrongBackground", mode);
     const previewColor = getPaletteValue(palette, option.name, mode);
     const shellSx = {
         border: `1px solid ${addAlpha(border, "99")}`,
@@ -637,12 +653,6 @@ const ColorUsagePreview = ({option, palette, mode}) => {
                     <PreviewLabel color={textSecondary}>Grouped graph node</PreviewLabel>
                 </Box>
             );
-        case "floatingAction":
-            return (
-                <Box sx={{...shellSx, p: 0.75, backgroundColor: surfaceMuted, display: "flex", alignItems: "center", justifyContent: "center"}}>
-                    <Box sx={{height: 34, width: 34, borderRadius: "50%", backgroundColor: speedDialAction, border: `1px solid ${addAlpha(border, "99")}`, boxShadow: `0 4px 10px ${addAlpha(text, "33")}`}} />
-                </Box>
-            );
         case "chart":
             return (
                 <Box sx={{...shellSx, p: 0.75, backgroundColor: paper}}>
@@ -658,6 +668,33 @@ const ColorUsagePreview = ({option, palette, mode}) => {
                                 }}
                             />
                         ))}
+                    </Box>
+                </Box>
+            );
+        case "chat":
+            return (
+                <Box sx={{...shellSx, p: 0.75, backgroundColor: background}}>
+                    <Box sx={{display: "grid", gap: 0.45}}>
+                        <Box sx={{justifySelf: "start", maxWidth: "82%", border: `1px solid ${addAlpha(border, "99")}`, borderRadius: "6px", backgroundColor: chatOperatorBackground, color: text, px: 0.75, py: 0.4}}>
+                            <PreviewLabel color={text}>Other operator</PreviewLabel>
+                        </Box>
+                        <Box sx={{justifySelf: "end", maxWidth: "82%", border: `1px solid ${addAlpha(border, "99")}`, borderRadius: "6px", backgroundColor: chatSelfBackground, color: text, px: 0.75, py: 0.4}}>
+                            <PreviewLabel color={text}>My message</PreviewLabel>
+                        </Box>
+                        <Box sx={{justifySelf: "start", maxWidth: "82%", border: `1px solid ${addAlpha(border, "99")}`, borderRadius: "6px", backgroundColor: chatAIBackground, color: text, px: 0.75, py: 0.4}}>
+                            <PreviewLabel color={text}>AI response</PreviewLabel>
+                            <Box sx={{mt: 0.35, backgroundColor: chatMarkdownSurface, border: `1px solid ${addAlpha(border, "99")}`, borderRadius: "4px", px: 0.5, py: 0.25}}>
+                                <Typography variant="caption" sx={{color: text, display: "block", fontFamily: "monospace", lineHeight: 1.2}}>
+                                    markdown block
+                                </Typography>
+                            </Box>
+                        </Box>
+                        <Box sx={{justifySelf: "center", maxWidth: "82%", border: `1px solid ${addAlpha(border, "99")}`, borderRadius: "6px", backgroundColor: chatSystemBackground, color: text, px: 0.75, py: 0.35}}>
+                            <Box sx={{display: "inline-flex", alignItems: "center", gap: 0.4}}>
+                                <PreviewLabel color={text}>System</PreviewLabel>
+                                <Box sx={{height: 12, width: 34, borderRadius: "3px", backgroundColor: chatMarkdownSurfaceStrong, border: `1px solid ${addAlpha(border, "66")}`}} />
+                            </Box>
+                        </Box>
                     </Box>
                 </Box>
             );

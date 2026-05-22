@@ -135,7 +135,7 @@ function useCustomSubscription({customSubscription, dataKey}){
     return customData
 }
 
-const tabTypes = ["Payload Types", "C2 Profiles", "Translators", "Command Augmentation", "3rd Party", "Webhooks", "Loggers",  "Eventing", "Auth", "Browsers"];
+const tabTypes = ["Payload Types", "C2 Profiles", "Translators", "Command Augmentation", "3rd Party", "Webhooks", "Loggers",  "Eventing", "Auth", "Chat", "Browsers"];
 
 const filterDeleted = (c, showDeleted) => {
     if(showDeleted){
@@ -197,6 +197,8 @@ export function PayloadTypesC2Profiles({me}){
                 return visibleData.filter(c => c.__typename === "consuming_container" && c.type === "eventing");
             case "Auth":
                 return visibleData.filter(c => c.__typename === "consuming_container" && c.type === "auth");
+            case "Chat":
+                return visibleData.filter(c => c.__typename === "consuming_container" && c.type === "chat");
             case "Browsers":
                 return visibleData.filter(c => c.__typename === "custombrowser");
             default:
@@ -235,6 +237,9 @@ export function PayloadTypesC2Profiles({me}){
                 return <ContainersTabConsumingServicesPanel key={"Auth"} type={"Auth"} index={value} value={value} showDeleted={showDeleted}
                                                             containers={getContainersForTab("Auth")} />
             case 9:
+                return <ContainersTabConsumingServicesPanel key={"Chat"} type={"Chat"} index={value} value={value} showDeleted={showDeleted}
+                                                            containers={getContainersForTab("Chat")} />
+            case 10:
                 return <ContainersTabCustomBrowsersPanel key={"Browsers"} type={"Browsers"} index={value} value={value} showDeleted={showDeleted}
                                                        containers={getContainersForTab("Browsers")} />
             default:
@@ -314,6 +319,9 @@ export function PayloadTypesC2Profiles({me}){
                                 case "Auth":
                                     return <ContainersTabAuthLabel key={"auth"}
                                                                    containers={getContainersForTab("Auth")}/>;
+                                case "Chat":
+                                    return <ContainersTabChatLabel key={"chat"}
+                                                                   containers={getContainersForTab("Chat")}/>;
                                 case "Browsers":
                                     return <ContainersTabBrowsersLabel key={"browsers"}
                                                                    containers={getContainersForTab("Browsers")}/>;
@@ -395,6 +403,13 @@ const ContainersTabEventingLabel = (props) => {
 const ContainersTabAuthLabel = (props) => {
     return (
         <MythicSearchTabLabel label={"Auth"  + (props.containers.length > 0 ? " (" + props.containers.length + ") " : "")} iconComponent={
+            <></>
+        } {...props}/>
+    )
+}
+const ContainersTabChatLabel = (props) => {
+    return (
+        <MythicSearchTabLabel label={"Chat"  + (props.containers.length > 0 ? " (" + props.containers.length + ") " : "")} iconComponent={
             <></>
         } {...props}/>
     )
@@ -514,6 +529,9 @@ You can easily create your own containers, or you can use github.com/MythicAgent
             case "Auth":
                 message = `Mythic supports basic username/password authentication to users within its database.
 You can extend this auth capability to support your own LDAP, SSO, or otherwise customized authentication flow with auth containers.`;
+                break;
+            case "Chat":
+                message = `Chat containers connect operation chat channels to AI chat services.`;
                 break;
         }
         return (

@@ -77,7 +77,7 @@ export const taskingContextFieldsOptions = ["impersonation_context", "cwd", "use
 export const defaultShortcuts = [
     "ActiveCallbacks", "Payloads", "PayloadTypesAndC2",
     "Operations", "SearchFiles", "SearchProxies",
-    "CreatePayload", "Eventing",
+    "CreatePayload", "Eventing", "Chat",
 ].sort();
 export const operatorSettingDefaults =  {
     fontSize: 13,
@@ -154,6 +154,30 @@ export const operatorSettingDefaults =  {
             dark: "#e5e7eb",
             light: "#111827",
         },
+        chatMessageOperatorBackground: {
+            dark: "#18191c",
+            light: "#ffffff",
+        },
+        chatMessageSelfBackground: {
+            dark: "#202123",
+            light: "#f2f3f2",
+        },
+        chatMessageAIBackground: {
+            dark: "#232220",
+            light: "#f3f2ef",
+        },
+        chatMessageSystemBackground: {
+            dark: "#252320",
+            light: "#f7f3eb",
+        },
+        chatMarkdownSurfaceBackground: {
+            dark: "#17181a",
+            light: "#f3f4f5",
+        },
+        chatMarkdownSurfaceStrongBackground: {
+            dark: "#2b2c2f",
+            light: "#e8e9eb",
+        },
         sectionHeaderAccent: {
             dark: "#8ab4f8",
             light: "#2563eb",
@@ -181,10 +205,6 @@ export const operatorSettingDefaults =  {
         graphGroupColor: {
             dark: "#394c5d",
             light: "#d3d7e8",
-        },
-        speedDialAction: {
-            dark: "#495054",
-            light: "#ffffff",
         },
         chartSeries1: {
             dark: "#09bdff",
@@ -338,7 +358,7 @@ export const successfulRefresh = (data) => {
     let now = new Date();
     let serverNow = new Date(data.user.current_utc_time);
     const difference = (serverNow.getTime() - now.getTime()) ;
-    let me = {...meState().user};
+    let me = {...meState().user, ...(data.user || {})};
     me.server_skew = difference;
     me.login_time = now;
     meState({

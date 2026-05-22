@@ -1,0 +1,194 @@
+table:
+  name: chat_channel
+  schema: public
+object_relationships:
+  - name: archived_operator
+    using:
+      foreign_key_constraint_on: archived_by
+  - name: chat_container
+    using:
+      foreign_key_constraint_on: chat_container_id
+  - name: creator
+    using:
+      foreign_key_constraint_on: created_by
+  - name: locked_operator
+    using:
+      foreign_key_constraint_on: locked_by
+  - name: operation
+    using:
+      foreign_key_constraint_on: operation_id
+array_relationships:
+  - name: messages
+    using:
+      foreign_key_constraint_on:
+        column: channel_id
+        table:
+          name: chat_message
+          schema: public
+  - name: read_states
+    using:
+      foreign_key_constraint_on:
+        column: channel_id
+        table:
+          name: chat_read_state
+          schema: public
+  - name: requests
+    using:
+      foreign_key_constraint_on:
+        column: channel_id
+        table:
+          name: chat_request
+          schema: public
+select_permissions:
+  - role: mythic_admin
+    permission:
+      columns:
+        - ai_metadata
+        - archived
+        - archived_at
+        - archived_by
+        - channel_type
+        - chat_container_id
+        - chat_model
+        - created_at
+        - created_by
+        - description
+        - id
+        - locked
+        - locked_at
+        - locked_by
+        - last_message_id
+        - name
+        - operation_id
+        - slug
+        - updated_at
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - _or:
+              - _and:
+                  - channel_type:
+                      _eq: standard
+                  - operation_id:
+                      _lte: X-Hasura-Scope-chat-read-operation
+              - _and:
+                  - channel_type:
+                      _eq: ai
+                  - operation_id:
+                      _lte: X-Hasura-Scope-chat-ai-read-operation
+      allow_aggregations: true
+  - role: operation_admin
+    permission:
+      columns:
+        - ai_metadata
+        - archived
+        - archived_at
+        - archived_by
+        - channel_type
+        - chat_container_id
+        - chat_model
+        - created_at
+        - created_by
+        - description
+        - id
+        - locked
+        - locked_at
+        - locked_by
+        - last_message_id
+        - name
+        - operation_id
+        - slug
+        - updated_at
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - _or:
+              - _and:
+                  - channel_type:
+                      _eq: standard
+                  - operation_id:
+                      _lte: X-Hasura-Scope-chat-read-operation
+              - _and:
+                  - channel_type:
+                      _eq: ai
+                  - operation_id:
+                      _lte: X-Hasura-Scope-chat-ai-read-operation
+      allow_aggregations: true
+  - role: operator
+    permission:
+      columns:
+        - ai_metadata
+        - archived
+        - archived_at
+        - archived_by
+        - channel_type
+        - chat_container_id
+        - chat_model
+        - created_at
+        - created_by
+        - description
+        - id
+        - locked
+        - locked_at
+        - locked_by
+        - last_message_id
+        - name
+        - operation_id
+        - slug
+        - updated_at
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - _or:
+              - _and:
+                  - channel_type:
+                      _eq: standard
+                  - operation_id:
+                      _lte: X-Hasura-Scope-chat-read-operation
+              - _and:
+                  - channel_type:
+                      _eq: ai
+                  - operation_id:
+                      _lte: X-Hasura-Scope-chat-ai-read-operation
+      allow_aggregations: true
+  - role: spectator
+    permission:
+      columns:
+        - ai_metadata
+        - archived
+        - archived_at
+        - archived_by
+        - channel_type
+        - chat_container_id
+        - chat_model
+        - created_at
+        - created_by
+        - description
+        - id
+        - locked
+        - locked_at
+        - locked_by
+        - last_message_id
+        - name
+        - operation_id
+        - slug
+        - updated_at
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - _or:
+              - _and:
+                  - channel_type:
+                      _eq: standard
+                  - operation_id:
+                      _lte: X-Hasura-Scope-chat-read-operation
+              - _and:
+                  - channel_type:
+                      _eq: ai
+                  - operation_id:
+                      _lte: X-Hasura-Scope-chat-ai-read-operation
+      allow_aggregations: true

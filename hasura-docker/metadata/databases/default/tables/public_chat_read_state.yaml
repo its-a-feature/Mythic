@@ -1,0 +1,125 @@
+table:
+  name: chat_read_state
+  schema: public
+object_relationships:
+  - name: channel
+    using:
+      foreign_key_constraint_on: channel_id
+  - name: last_read_message
+    using:
+      foreign_key_constraint_on: last_read_message_id
+  - name: operation
+    using:
+      foreign_key_constraint_on: operation_id
+  - name: operator
+    using:
+      foreign_key_constraint_on: operator_id
+select_permissions:
+  - role: mythic_admin
+    permission:
+      columns:
+        - channel_id
+        - last_read_message_id
+        - operation_id
+        - operator_id
+        - updated_at
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operator_id:
+              _eq: X-Hasura-User-Id
+          - channel:
+              _or:
+                - _and:
+                    - channel_type:
+                        _eq: standard
+                    - operation_id:
+                        _lte: X-Hasura-Scope-chat-read-operation
+                - _and:
+                    - channel_type:
+                        _eq: ai
+                    - operation_id:
+                        _lte: X-Hasura-Scope-chat-ai-read-operation
+      allow_aggregations: true
+  - role: operation_admin
+    permission:
+      columns:
+        - channel_id
+        - last_read_message_id
+        - operation_id
+        - operator_id
+        - updated_at
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operator_id:
+              _eq: X-Hasura-User-Id
+          - channel:
+              _or:
+                - _and:
+                    - channel_type:
+                        _eq: standard
+                    - operation_id:
+                        _lte: X-Hasura-Scope-chat-read-operation
+                - _and:
+                    - channel_type:
+                        _eq: ai
+                    - operation_id:
+                        _lte: X-Hasura-Scope-chat-ai-read-operation
+      allow_aggregations: true
+  - role: operator
+    permission:
+      columns:
+        - channel_id
+        - last_read_message_id
+        - operation_id
+        - operator_id
+        - updated_at
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operator_id:
+              _eq: X-Hasura-User-Id
+          - channel:
+              _or:
+                - _and:
+                    - channel_type:
+                        _eq: standard
+                    - operation_id:
+                        _lte: X-Hasura-Scope-chat-read-operation
+                - _and:
+                    - channel_type:
+                        _eq: ai
+                    - operation_id:
+                        _lte: X-Hasura-Scope-chat-ai-read-operation
+      allow_aggregations: true
+  - role: spectator
+    permission:
+      columns:
+        - channel_id
+        - last_read_message_id
+        - operation_id
+        - operator_id
+        - updated_at
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operator_id:
+              _eq: X-Hasura-User-Id
+          - channel:
+              _or:
+                - _and:
+                    - channel_type:
+                        _eq: standard
+                    - operation_id:
+                        _lte: X-Hasura-Scope-chat-read-operation
+                - _and:
+                    - channel_type:
+                        _eq: ai
+                    - operation_id:
+                        _lte: X-Hasura-Scope-chat-ai-read-operation
+      allow_aggregations: true
