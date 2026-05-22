@@ -20,6 +20,7 @@ type EventStep struct {
 	Environment     map[string]interface{} `db:"environment" json:"environment" toml:"environment" yaml:"environment"`
 	Inputs          map[string]interface{} `db:"inputs" json:"inputs" toml:"inputs" yaml:"inputs"`
 	Outputs         map[string]interface{} `db:"outputs" json:"outputs" toml:"outputs" yaml:"outputs"`
+	UserInteraction map[string]interface{} `db:"user_interaction" json:"user_interaction,omitempty" toml:"user_interaction,omitempty" yaml:"user_interaction,omitempty"`
 	Order           int                    `db:"order" json:"-" toml:"-" yaml:"-"`
 	ContinueOnError bool                   `db:"continue_on_error" json:"continue_on_error" toml:"continue_on_error" yaml:"continue_on_error"`
 }

@@ -583,6 +583,65 @@ const inputOptionsData = {
         description: "this is a completely custom input that's whatever you desire"
     }
 }
+const userInteractionInputTypes = ["string", "number", "boolean", "json"];
+const userInteractionBotApprovalApprovers = {
+    operator: {
+        label: "Any operator",
+        description: "Operators and the operation lead can approve when this workflow runs as bot."
+    },
+    lead: {
+        label: "Operation lead",
+        description: "Only the operation lead can approve when this workflow runs as bot."
+    },
+};
+const getDefaultUserInteractionConfig = () => ({
+    approval_required: false,
+    approval_prompt: "",
+    approval_policy: {
+        bot_context: {
+            approver: "operator",
+        },
+    },
+    input_required: false,
+    input_prompt: "",
+    inputs: [],
+});
+const normalizeUserInteractionConfig = (config) => {
+    const normalizedConfig = {...getDefaultUserInteractionConfig(), ...(config || {})};
+    const approvalPolicy = normalizedConfig.approval_policy && typeof normalizedConfig.approval_policy === "object" ? normalizedConfig.approval_policy : {};
+    const botContext = approvalPolicy.bot_context && typeof approvalPolicy.bot_context === "object" ? approvalPolicy.bot_context : {};
+    normalizedConfig.approval_policy = {
+        bot_context: {
+            approver: Object.keys(userInteractionBotApprovalApprovers).includes(botContext.approver) ? botContext.approver : "operator",
+        },
+    };
+    if(!Array.isArray(normalizedConfig.inputs)){
+        if(normalizedConfig.inputs && typeof normalizedConfig.inputs === "object"){
+            normalizedConfig.inputs = Object.entries(normalizedConfig.inputs).map(([name, value]) => {
+                if(value && typeof value === "object" && !Array.isArray(value)){
+                    return {name, ...value};
+                }
+                return {name, type: "string", required: false, description: "", default_value: value || ""};
+            });
+        }else{
+            normalizedConfig.inputs = [];
+        }
+    }
+    normalizedConfig.inputs = normalizedConfig.inputs.map((input) => ({
+        name: input?.name || "",
+        type: input?.type || "string",
+        required: Boolean(input?.required),
+        description: input?.description || "",
+        default_value: input?.default_value === undefined || input?.default_value === null ? "" : (
+            typeof input.default_value === "string" ? input.default_value : JSON.stringify(input.default_value)
+        ),
+    }));
+    return normalizedConfig;
+}
+const hasUserInteractionConfig = (config) => {
+    const normalizedConfig = normalizeUserInteractionConfig(config);
+    return Boolean(normalizedConfig.approval_required || normalizedConfig.input_required || normalizedConfig.inputs.length > 0);
+}
 const outputOptionsData = {
     payload_create: {
         output_fields: payloadFields,
@@ -2468,6 +2527,178 @@ const actionOptionsData = {
     }
 
 }
+const EventingStepUserInteraction = ({config, onChange}) => {
+    const userInteraction = normalizeUserInteractionConfig(config);
+    const updateUserInteraction = (updates) => {
+        onChange({...userInteraction, ...updates});
+    }
+    const updateInputField = (index, fieldName, value) => {
+        const nextInputs = userInteraction.inputs.map((input, i) => {
+            if(i !== index){
+                return {...input};
+            }
+            return {...input, [fieldName]: value};
+        });
+        updateUserInteraction({inputs: nextInputs});
+    }
+    const addInputField = () => {
+        updateUserInteraction({
+            input_required: true,
+            inputs: [...userInteraction.inputs, {
+                name: "",
+                type: "string",
+                required: true,
+                description: "",
+                default_value: "",
+            }],
+        });
+    }
+    const removeInputField = (index) => {
+        const nextInputs = [...userInteraction.inputs];
+        nextInputs.splice(index, 1);
+        updateUserInteraction({inputs: nextInputs});
+    }
+    return (
+        <div className="mythic-eventing-step-dynamic-section mythic-eventing-step-user-interaction-section">
+            <div className="mythic-eventing-step-switch-stack">
+                <label className="mythic-eventing-step-switch-row">
+                    <span className="mythic-eventing-step-switch-copy">
+                        <span className="mythic-eventing-step-switch-title">Require approval</span>
+                        <span className="mythic-eventing-step-switch-subtitle">Pause before this step runs until an operator approves it.</span>
+                    </span>
+                    <Switch
+                        checked={userInteraction.approval_required}
+                        onChange={(event) => updateUserInteraction({approval_required: event.target.checked})}
+                        color={"info"}
+                        inputProps={{ 'aria-label': 'require approval' }}
+                    />
+                </label>
+                {userInteraction.approval_required &&
+                    <MythicTextField
+                        placeholder="Prompt shown to the approving user..."
+                        onChange={(name, value) => updateUserInteraction({approval_prompt: value})}
+                        value={userInteraction.approval_prompt}
+                        marginBottom="0px"
+                    />
+                }
+                {userInteraction.approval_required &&
+                    <div className="mythic-eventing-step-approval-policy-row">
+                        <TextField
+                            label="Bot approval role"
+                            select
+                            size="small"
+                            value={userInteraction.approval_policy.bot_context.approver}
+                            onChange={(event) => updateUserInteraction({
+                                approval_policy: {
+                                    ...userInteraction.approval_policy,
+                                    bot_context: {
+                                        ...userInteraction.approval_policy.bot_context,
+                                        approver: event.target.value,
+                                    },
+                                },
+                            })}
+                            fullWidth
+                        >
+                            {Object.entries(userInteractionBotApprovalApprovers).map(([value, data]) => (
+                                <MenuItem key={`user-interaction-approver-${value}`} value={value}>{data.label}</MenuItem>
+                            ))}
+                        </TextField>
+                        <div className="mythic-eventing-step-helper-text">
+                            {userInteractionBotApprovalApprovers[userInteraction.approval_policy.bot_context.approver]?.description}
+                        </div>
+                    </div>
+                }
+                <label className="mythic-eventing-step-switch-row">
+                    <span className="mythic-eventing-step-switch-copy">
+                        <span className="mythic-eventing-step-switch-title">Require user input</span>
+                        <span className="mythic-eventing-step-switch-subtitle">Collect key/value data and merge it into this step's runtime inputs.</span>
+                    </span>
+                    <Switch
+                        checked={userInteraction.input_required || userInteraction.inputs.length > 0}
+                        onChange={(event) => updateUserInteraction(event.target.checked ? {input_required: true} : {input_required: false, inputs: []})}
+                        color={"info"}
+                        inputProps={{ 'aria-label': 'require user input' }}
+                    />
+                </label>
+                {(userInteraction.input_required || userInteraction.inputs.length > 0) &&
+                    <MythicTextField
+                        placeholder="Prompt shown with the input fields..."
+                        onChange={(name, value) => updateUserInteraction({input_prompt: value})}
+                        value={userInteraction.input_prompt}
+                        marginBottom="0px"
+                    />
+                }
+            </div>
+            {(userInteraction.input_required || userInteraction.inputs.length > 0) &&
+                <div className="mythic-eventing-step-list">
+                    {userInteraction.inputs.length === 0 &&
+                        <EventingStepEmptyInline>No input fields configured.</EventingStepEmptyInline>
+                    }
+                    {userInteraction.inputs.map((input, index) => (
+                        <div className="mythic-eventing-step-list-item mythic-eventing-step-list-item-editable mythic-eventing-user-input-field-row" key={`user-interaction-input-${index}`}>
+                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={() => removeInputField(index)}>
+                                <DeleteIcon fontSize="small" />
+                            </IconButton>
+                            <div className="mythic-eventing-step-list-content">
+                                <div className="mythic-eventing-step-field-grid">
+                                    <MythicTextField
+                                        placeholder="Input name"
+                                        onChange={(name, value) => updateInputField(index, "name", value)}
+                                        value={input.name}
+                                        marginBottom="0px"
+                                    />
+                                    <FormControl sx={{ display: "inline-block", width: "100%" }} size="small">
+                                        <TextField
+                                            label="Type"
+                                            select
+                                            size="small"
+                                            style={{ width: "100%" }}
+                                            value={input.type}
+                                            onChange={(event) => updateInputField(index, "type", event.target.value)}
+                                        >
+                                            {userInteractionInputTypes.map((type) => (
+                                                <MenuItem key={`user-interaction-type-${type}`} value={type}>{type}</MenuItem>
+                                            ))}
+                                        </TextField>
+                                    </FormControl>
+                                    <MythicTextField
+                                        placeholder="Description"
+                                        onChange={(name, value) => updateInputField(index, "description", value)}
+                                        value={input.description}
+                                        marginBottom="0px"
+                                    />
+                                    <MythicTextField
+                                        placeholder="Default value"
+                                        onChange={(name, value) => updateInputField(index, "default_value", value)}
+                                        value={input.default_value}
+                                        marginBottom="0px"
+                                    />
+                                </div>
+                                <label className="mythic-eventing-step-switch-row mythic-eventing-step-switch-row-compact">
+                                    <span className="mythic-eventing-step-switch-copy">
+                                        <span className="mythic-eventing-step-switch-title">Required</span>
+                                        <span className="mythic-eventing-step-switch-subtitle">User must supply this value before the step resumes.</span>
+                                    </span>
+                                    <Switch
+                                        checked={input.required}
+                                        onChange={(event) => updateInputField(index, "required", event.target.checked)}
+                                        color={"info"}
+                                        inputProps={{ 'aria-label': 'required user input' }}
+                                    />
+                                </label>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            }
+            {(userInteraction.input_required || userInteraction.inputs.length > 0) &&
+                <Button className="mythic-table-row-action mythic-table-row-action-hover-success" onClick={addInputField} variant="outlined" startIcon={<AddCircleIcon fontSize="small" />}>
+                    Add input field
+                </Button>
+            }
+        </div>
+    )
+}
 const EventingStep = ({step, allSteps, updateStep, index, step1Data, updateStep1Data}) => {
     const [name, setName] = React.useState(step.name);
     const [description, setDescription] = React.useState(step.description);
@@ -2476,6 +2707,7 @@ const EventingStep = ({step, allSteps, updateStep, index, step1Data, updateStep1
     const [dependsOn, setDependsOn] = React.useState([]);
     const [updatedActionOptions, setUpdatedActionOptions] = React.useState([]);
     const [continueOnError, setContinueOnError] = React.useState(step.continue_on_error || false);
+    const [userInteraction, setUserInteraction] = React.useState(normalizeUserInteractionConfig(step.user_interaction));
     const [localInputOptions, setLocalInputOptions] = React.useState([]);
     const [inputEditorData, setInputEditorData] = React.useState(null);
 
@@ -2533,6 +2765,11 @@ const EventingStep = ({step, allSteps, updateStep, index, step1Data, updateStep1
         setContinueOnError(evt.target.checked)
         updateStep(index, "continue_on_error", evt.target.checked);
     }
+    const onChangeUserInteraction = (nextConfig) => {
+        const normalizedConfig = normalizeUserInteractionConfig(nextConfig);
+        setUserInteraction(normalizedConfig);
+        updateStep(index, "user_interaction", normalizedConfig);
+    }
     const updateStepInputs = React.useCallback((nextInputs) => {
         setInputEditorData(nextInputs);
         updateStep(index, "inputs", nextInputs);
@@ -2577,6 +2814,9 @@ const EventingStep = ({step, allSteps, updateStep, index, step1Data, updateStep1
                 </div>
                 <div className="mythic-eventing-step-config-summary-actions">
                     <span className="mythic-eventing-step-action-chip">{selectedAction}</span>
+                    {hasUserInteractionConfig(userInteraction) &&
+                        <span className="mythic-eventing-step-action-chip mythic-eventing-step-action-chip-warning">user interaction</span>
+                    }
                     <label className="mythic-eventing-step-switch-row">
                         <span className="mythic-eventing-step-switch-copy">
                             <span className="mythic-eventing-step-switch-title">Continue on error</span>
@@ -2651,6 +2891,13 @@ const EventingStep = ({step, allSteps, updateStep, index, step1Data, updateStep1
                                             prevData={step?.outputs || []}/>
                     </EventingStepConfigSection>
                 </div>
+                <EventingStepConfigSection
+                    className="mythic-eventing-step-config-section-wide"
+                    title="User interaction"
+                    description="Pause before execution to request approval, runtime input, or both."
+                >
+                    <EventingStepUserInteraction config={userInteraction} onChange={onChangeUserInteraction} />
+                </EventingStepConfigSection>
                 <EventingStepConfigSection
                     className="mythic-eventing-step-config-section-wide"
                     title="Action data"
@@ -2742,6 +2989,7 @@ const CreateEventingStep2 = ({finished, back, first, last, cancel, prevData, ste
             outputs: [],
             depends_on: [],
             environment: {},
+            user_interaction: getDefaultUserInteractionConfig(),
             continue_on_error: false
         }]);
     }
@@ -2928,6 +3176,9 @@ const CreateEventingStep3 = ({finished, back, first, last, cancel, prevData, ste
                 inputs: {},
                 outputs: {},
             };
+            if(hasUserInteractionConfig(step2Data[i].user_interaction)){
+                stepData.user_interaction = normalizeUserInteractionConfig(step2Data[i].user_interaction);
+            }
             for(let j = 0; j < step2Data[i].inputs.length; j++){
                 if(step2Data[i].inputs[j].type === "custom"){
                     stepData.inputs[step2Data[i].inputs[j].name] = step2Data[i].inputs[j].value;
