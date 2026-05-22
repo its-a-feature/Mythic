@@ -43,9 +43,10 @@ import UnarchiveIcon from '@mui/icons-material/Unarchive';
 import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
 import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/MythicPageHeader";
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
+import {MythicConfirmDialog} from "../../MythicComponents/MythicConfirmDialog";
 import {MeContext} from "../../App";
 import {snackActions} from "../../utilities/Snackbar";
-import {getSkewedNow, toLocalTime} from "../../utilities/Time";
+import {getSkewedNow} from "../../utilities/Time";
 
 const CHAT_MESSAGE_LIMIT = 250;
 const CHAT_REQUEST_LIMIT = 50;
@@ -63,6 +64,7 @@ fragment ChatChannelFields on chat_channel {
     last_message_id
     chat_container_id
     chat_model
+    ai_metadata
     updated_at
     chat_container {
       id
@@ -340,10 +342,122 @@ const allowedLinkSchemes = ["http:", "https:", "mailto:"];
 
 const isGeneralChatChannel = (channel) => channel?.channel_type === "standard" && channel?.slug === "general";
 
-const formatTimestamp = (timestamp, viewUTCTime) => {
-    if(!timestamp){ return ""; }
-    return toLocalTime(timestamp, viewUTCTime);
+const CHAT_SEARCH_SNIPPET_LENGTH = 260;
+const CHAT_SEARCH_SNIPPET_CONTEXT = 90;
+const timestampHasTimeZone = (timestampText) => /(?:[zZ]|[+-]\d{2}:?\d{2})$/.test(timestampText);
+const utcWeekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const utcMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+const padTimePart = (value) => String(value).padStart(2, "0");
+
+const parseChatTimestamp = (timestamp) => {
+    if(!timestamp){ return null; }
+    if(timestamp instanceof Date){
+        return Number.isNaN(timestamp.getTime()) ? null : timestamp;
+    }
+    if(typeof timestamp === "number"){
+        const parsedNumber = new Date(timestamp);
+        return Number.isNaN(parsedNumber.getTime()) ? null : parsedNumber;
+    }
+    const timestampText = String(timestamp).trim();
+    if(timestampText === ""){ return null; }
+    const normalizedTimestamp = timestampHasTimeZone(timestampText) ? timestampText : `${timestampText}Z`;
+    const parsedTimestamp = new Date(normalizedTimestamp);
+    return Number.isNaN(parsedTimestamp.getTime()) ? null : parsedTimestamp;
 };
+
+const formatUTCTimestamp = (date) => (
+    `${utcWeekdays[date.getUTCDay()]} ${utcMonths[date.getUTCMonth()]} ${padTimePart(date.getUTCDate())} ` +
+    `${date.getUTCFullYear()} ${padTimePart(date.getUTCHours())}:${padTimePart(date.getUTCMinutes())}:${padTimePart(date.getUTCSeconds())} UTC`
+);
+
+const formatTimestamp = (timestamp, viewUTCTime) => {
+    const parsedTimestamp = parseChatTimestamp(timestamp);
+    if(!parsedTimestamp){ return ""; }
+    if(viewUTCTime){
+        return formatUTCTimestamp(parsedTimestamp);
+    }
+    return `${parsedTimestamp.toDateString()} ${parsedTimestamp.toLocaleString(["en-us"], {hour12: true, hour: "2-digit", minute: "2-digit"})}`;
+};
+
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const getSearchTerms = (query) => {
+    const trimmedQuery = (query || "").trim();
+    if(trimmedQuery === ""){
+        return [];
+    }
+    const uniqueTerms = new Set();
+    return [trimmedQuery, ...trimmedQuery.split(/\s+/)]
+        .map((term) => term.replace(/^[^\w]+|[^\w]+$/g, ""))
+        .filter((term) => term.length > 1 || trimmedQuery.length === 1)
+        .filter((term) => {
+            const normalizedTerm = term.toLocaleLowerCase();
+            if(uniqueTerms.has(normalizedTerm)){
+                return false;
+            }
+            uniqueTerms.add(normalizedTerm);
+            return true;
+        })
+        .sort((a, b) => b.length - a.length);
+};
+
+const buildSearchSnippetParts = (message, query) => {
+    const messageText = String(message || "");
+    if(messageText === ""){
+        return [];
+    }
+    const searchTerms = getSearchTerms(query);
+    const lowerMessageText = messageText.toLocaleLowerCase();
+    const firstMatch = searchTerms.reduce((bestMatch, term) => {
+        const index = lowerMessageText.indexOf(term.toLocaleLowerCase());
+        if(index === -1){
+            return bestMatch;
+        }
+        if(!bestMatch || index < bestMatch.index){
+            return {index, term};
+        }
+        return bestMatch;
+    }, null);
+    let snippetStart = 0;
+    let snippetEnd = Math.min(messageText.length, CHAT_SEARCH_SNIPPET_LENGTH);
+    if(firstMatch){
+        snippetStart = Math.max(0, firstMatch.index - CHAT_SEARCH_SNIPPET_CONTEXT);
+        snippetEnd = Math.min(messageText.length, snippetStart + CHAT_SEARCH_SNIPPET_LENGTH);
+        snippetStart = Math.max(0, snippetEnd - CHAT_SEARCH_SNIPPET_LENGTH);
+    }
+    const hasLeadingText = snippetStart > 0;
+    const hasTrailingText = snippetEnd < messageText.length;
+    const snippetText = `${hasLeadingText ? "..." : ""}${messageText.slice(snippetStart, snippetEnd).replace(/\s+/g, " ").trim()}${hasTrailingText ? "..." : ""}`;
+    if(searchTerms.length === 0){
+        return [{text: snippetText, highlight: false}];
+    }
+    const highlightExpression = new RegExp(searchTerms.map(escapeRegExp).join("|"), "gi");
+    const parts = [];
+    let lastIndex = 0;
+    snippetText.replace(highlightExpression, (match, offset) => {
+        if(offset > lastIndex){
+            parts.push({text: snippetText.slice(lastIndex, offset), highlight: false});
+        }
+        parts.push({text: match, highlight: true});
+        lastIndex = offset + match.length;
+        return match;
+    });
+    if(lastIndex < snippetText.length){
+        parts.push({text: snippetText.slice(lastIndex), highlight: false});
+    }
+    return parts;
+};
+
+const renderSearchSnippet = (message, query) => (
+    buildSearchSnippetParts(message, query).map((part, index) => (
+        part.highlight ? (
+            <mark className="mythic-chat-search-highlight" key={`highlight-${index}`}>{part.text}</mark>
+        ) : (
+            <React.Fragment key={`text-${index}`}>{part.text}</React.Fragment>
+        )
+    ))
+);
 
 const timestampValue = (timestamp) => {
     if(!timestamp){ return 0; }
@@ -524,6 +638,173 @@ const parseChatContainerModels = (container) => {
     }).filter((model) => model.name);
 };
 
+const parseJSONLikeObject = (value) => {
+    if(!value){
+        return {};
+    }
+    if(typeof value === "object" && !Array.isArray(value)){
+        return value;
+    }
+    if(typeof value === "string"){
+        try{
+            const parsed = JSON.parse(value);
+            return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+        }catch(error){
+            return {};
+        }
+    }
+    return {};
+};
+
+const getChannelAIMetadata = (channel) => parseJSONLikeObject(channel?.ai_metadata);
+
+const getChannelAIConfig = (channel) => {
+    const metadata = getChannelAIMetadata(channel);
+    return parseJSONLikeObject(metadata.config || metadata.configuration);
+};
+
+const modelForChannel = (channel, chatContainers) => {
+    if(!channel || channel.channel_type !== "ai"){
+        return null;
+    }
+    const container = chatContainers.find((item) => item.id === channel.chat_container_id) || channel.chat_container;
+    return parseChatContainerModels(container).find((model) => model.name === channel.chat_model) || null;
+};
+
+const getModelConfigOptions = (model) => {
+    const metadata = model?.metadata || {};
+    const rawOptions = metadata.configuration_options ||
+        metadata.config_options ||
+        metadata?.configuration?.options ||
+        metadata?.config?.options ||
+        [];
+    if(!Array.isArray(rawOptions)){
+        return [];
+    }
+    return rawOptions.map((option) => {
+        const name = option.name || option.key || option.Name || option.Key || "";
+        const choices = Array.isArray(option.choices || option.Choices) ? (option.choices || option.Choices).map((choice) => {
+            if(choice && typeof choice === "object"){
+                const value = choice.value ?? choice.Value ?? choice.name ?? choice.Name ?? choice.label ?? choice.Label ?? "";
+                return {
+                    value,
+                    label: `${choice.label ?? choice.Label ?? value}`,
+                    description: choice.description || choice.Description || "",
+                };
+            }
+            return {value: choice, label: `${choice}`, description: ""};
+        }) : [];
+        const type = `${option.type || option.Type || (choices.length > 0 ? "choice" : "string")}`.toLowerCase();
+        return {
+            name: `${name}`,
+            displayName: option.display_name || option.displayName || option.DisplayName || option.label || option.Label || `${name}`,
+            description: option.description || option.Description || "",
+            type: choices.length > 0 ? "choice" : type,
+            required: Boolean(option.required || option.Required),
+            defaultValue: option.default_value ?? option.defaultValue ?? option.DefaultValue ?? option.default ?? option.Default ?? "",
+            choices,
+        };
+    }).filter((option) => option.name);
+};
+
+const configValueForField = (value) => {
+    if(value === undefined || value === null){
+        return "";
+    }
+    return `${value}`;
+};
+
+const buildDefaultConfigValues = (options, existing = {}) => {
+    return options.reduce((prev, option) => {
+        const existingValue = existing[option.name];
+        prev[option.name] = configValueForField(existingValue !== undefined ? existingValue : option.defaultValue);
+        return prev;
+    }, {});
+};
+
+const normalizeConfigForSubmit = (values, options) => {
+    return options.reduce((prev, option) => {
+        const rawValue = values[option.name];
+        if(rawValue === undefined || rawValue === null || `${rawValue}`.trim() === ""){
+            return prev;
+        }
+        if(option.type === "number"){
+            const numberValue = Number(rawValue);
+            if(!Number.isNaN(numberValue)){
+                prev[option.name] = numberValue;
+            }
+            return prev;
+        }
+        prev[option.name] = rawValue;
+        return prev;
+    }, {});
+};
+
+const configHasMissingRequiredValues = (values, options) => options.some((option) => (
+    option.required && `${values[option.name] ?? ""}`.trim() === ""
+));
+
+const applyConfigToMetadata = (metadata, config) => ({
+    ...parseJSONLikeObject(metadata),
+    config,
+});
+
+const ChatConfigurationFields = ({options, values, setValues}) => {
+    if(options.length === 0){
+        return null;
+    }
+    return (
+        <Box sx={{display: "flex", flexDirection: "column", gap: 1.25}}>
+            <Typography variant="subtitle2">AI Configuration</Typography>
+            {options.map((option) => {
+                if(option.type === "choice"){
+                    return (
+                        <FormControl size="small" fullWidth key={option.name}>
+                            <InputLabel>{option.displayName}</InputLabel>
+                            <Select
+                                label={option.displayName}
+                                value={configValueForField(values[option.name])}
+                                onChange={(e) => setValues((prev) => ({...prev, [option.name]: e.target.value}))}
+                            >
+                                {option.choices.map((choice) => (
+                                    <MenuItem value={configValueForField(choice.value)} key={`${option.name}-${choice.value}`}>
+                                        <Box sx={{display: "flex", flexDirection: "column", py: 0.25}}>
+                                            <Typography variant="body2">{choice.label}</Typography>
+                                            {choice.description &&
+                                                <Typography variant="caption" color="text.secondary" sx={{whiteSpace: "normal"}}>
+                                                    {choice.description}
+                                                </Typography>
+                                            }
+                                        </Box>
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                            {option.description &&
+                                <Typography variant="caption" color="text.secondary" sx={{mt: 0.5}}>
+                                    {option.description}
+                                </Typography>
+                            }
+                        </FormControl>
+                    );
+                }
+                return (
+                    <TextField
+                        key={option.name}
+                        fullWidth
+                        size="small"
+                        type={option.type === "number" ? "number" : "text"}
+                        label={option.displayName}
+                        required={option.required}
+                        value={configValueForField(values[option.name])}
+                        helperText={option.description}
+                        onChange={(e) => setValues((prev) => ({...prev, [option.name]: e.target.value}))}
+                    />
+                );
+            })}
+        </Box>
+    );
+};
+
 const ChatEmptyState = ({icon, title, detail}) => (
     <Box className="mythic-chat-empty-state">
         {icon}
@@ -676,6 +957,7 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers}) => {
     const [channelType, setChannelType] = React.useState("standard");
     const [containerID, setContainerID] = React.useState("");
     const [model, setModel] = React.useState("");
+    const [configValues, setConfigValues] = React.useState({});
     const [locked, setLocked] = React.useState(true);
     React.useEffect(() => {
         if(open){
@@ -684,6 +966,7 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers}) => {
             setChannelType("standard");
             setContainerID("");
             setModel("");
+            setConfigValues({});
             setLocked(true);
         }
     }, [open]);
@@ -693,6 +976,10 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers}) => {
     const selectedContainerModels = React.useMemo(() => (
         parseChatContainerModels(selectedContainer)
     ), [selectedContainer]);
+    const selectedModel = React.useMemo(() => (
+        selectedContainerModels.find((containerModel) => containerModel.name === model) || null
+    ), [selectedContainerModels, model]);
+    const configOptions = React.useMemo(() => getModelConfigOptions(selectedModel), [selectedModel]);
     React.useEffect(() => {
         if(channelType !== "ai" || !containerID){
             return;
@@ -705,12 +992,20 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers}) => {
             setModel(selectedContainerModels[0].name);
         }
     }, [channelType, containerID, model, selectedContainerModels]);
+    React.useEffect(() => {
+        if(channelType === "ai" && model){
+            setConfigValues(buildDefaultConfigValues(configOptions));
+        } else {
+            setConfigValues({});
+        }
+    }, [channelType, containerID, model, configOptions]);
     const changeChannelType = (event) => {
         const nextType = event.target.value;
         setChannelType(nextType);
         if(nextType !== "ai"){
             setContainerID("");
             setModel("");
+            setConfigValues({});
         }
     };
     const changeContainer = (event) => {
@@ -719,10 +1014,12 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers}) => {
         const nextModels = parseChatContainerModels(nextContainer);
         setContainerID(nextContainerID);
         setModel(nextModels.length === 1 ? nextModels[0].name : "");
+        setConfigValues({});
     };
     const createDisabled = name.trim() === "" ||
-        (channelType === "ai" && (!containerID || selectedContainerModels.length === 0 || model === ""));
+        (channelType === "ai" && (!containerID || selectedContainerModels.length === 0 || model === "" || configHasMissingRequiredValues(configValues, configOptions)));
     const submit = () => {
+        const aiConfig = channelType === "ai" ? normalizeConfigForSubmit(configValues, configOptions) : {};
         onCreate({
             name,
             description,
@@ -730,7 +1027,7 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers}) => {
             chat_container_id: channelType === "ai" ? Number(containerID) : null,
             chat_model: channelType === "ai" ? model : "",
             locked: channelType === "ai" ? locked : false,
-            ai_metadata: {},
+            ai_metadata: channelType === "ai" ? applyConfigToMetadata({}, aiConfig) : {},
         });
     };
     return (
@@ -796,6 +1093,9 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers}) => {
                                 )}
                             </>
                         }
+                        {configOptions.length > 0 &&
+                            <ChatConfigurationFields options={configOptions} values={configValues} setValues={setConfigValues} />
+                        }
                         <Box sx={{border: `1px solid ${alpha(theme.palette.info.main, 0.22)}`, borderRadius: 1, p: 1.25, backgroundColor: alpha(theme.palette.info.main, theme.palette.mode === "dark" ? 0.12 : 0.07)}}>
                             <FormControlLabel
                                 control={<Switch checked={locked} onChange={(e) => setLocked(e.target.checked)} />}
@@ -818,59 +1118,95 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers}) => {
     );
 };
 
-const ChatSearchDialog = ({open, onClose, onSearch, searchText, setSearchText, results, onSelectResult, viewUTCTime}) => (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-        <DialogTitle>Search Chat</DialogTitle>
-        <DialogContent className="mythic-chat-dialog-content" sx={{display: "flex", flexDirection: "column", gap: 1.75, pt: "20px !important", px: 3}}>
-            <Box sx={{display: "flex", gap: 1, alignItems: "flex-start"}}>
-                <TextField
-                    fullWidth
-                    size="small"
-                    label="Search"
-                    value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                    onKeyDown={(e) => {
-                        if(e.key === "Enter"){
-                            onSearch();
-                        }
-                    }}
-                />
-                <Button variant="contained" startIcon={<SearchIcon />} onClick={onSearch}>Search</Button>
-            </Box>
-            <Box className="mythic-chat-search-results">
-                {(results || []).map((result) => (
-                    <button
-                        type="button"
-                        className="mythic-chat-search-result"
-                        key={result.id}
-                        onClick={() => onSelectResult(result)}
-                    >
-                        <span className="mythic-chat-search-channel">
-                            {result.channel_type === "ai" ? <SmartToyTwoToneIcon fontSize="small" /> : <ForumTwoToneIcon fontSize="small" />}
-                            {result.channel_type === "ai" ? result.channel_name : `#${result.channel_name}`}
-                        </span>
-                        <span className="mythic-chat-search-message">{result.message}</span>
-                        <span className="mythic-chat-search-meta">{result.sender_display_name} · {formatTimestamp(result.created_at, viewUTCTime)}</span>
-                    </button>
-                ))}
-            </Box>
-        </DialogContent>
-        <DialogActions>
-            <Button onClick={onClose}>Close</Button>
-        </DialogActions>
-    </Dialog>
-);
+const ChatSearchDialog = ({open, onClose, onSearch, searchText, setSearchText, searchQuery, results, loading, hasSearched, onSelectResult, viewUTCTime}) => {
+    const trimmedSearchText = searchText.trim();
+    const searchResults = results || [];
+    const highlightQuery = searchQuery || trimmedSearchText;
+    return (
+        <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{className: "mythic-chat-search-dialog"}}>
+            <DialogTitle>Search Chat</DialogTitle>
+            <DialogContent className="mythic-chat-dialog-content mythic-chat-search-content" sx={{display: "flex", flexDirection: "column", gap: 1.75, pt: "20px !important", px: 3}}>
+                <Box className="mythic-chat-search-form">
+                    <TextField
+                        autoFocus
+                        fullWidth
+                        size="small"
+                        label="Search"
+                        value={searchText}
+                        onChange={(e) => setSearchText(e.target.value)}
+                        onKeyDown={(e) => {
+                            if(e.key === "Enter"){
+                                onSearch();
+                            }
+                        }}
+                    />
+                    <Button variant="contained" startIcon={<SearchIcon />} disabled={trimmedSearchText === "" || loading} onClick={onSearch}>
+                        {loading ? "Searching" : "Search"}
+                    </Button>
+                </Box>
+                <Box className="mythic-chat-search-results">
+                    {loading && <Box className="mythic-chat-search-empty">Searching...</Box>}
+                    {!loading && hasSearched && searchResults.length === 0 && <Box className="mythic-chat-search-empty">No matches</Box>}
+                    {!loading && searchResults.map((result) => (
+                        <button
+                            type="button"
+                            className="mythic-chat-search-result"
+                            key={result.id}
+                            onClick={() => onSelectResult(result)}
+                        >
+                            <span className="mythic-chat-search-result-header">
+                                <span className="mythic-chat-search-channel">
+                                    {result.channel_type === "ai" ? <SmartToyTwoToneIcon fontSize="small" /> : <ForumTwoToneIcon fontSize="small" />}
+                                    <span>{result.channel_type === "ai" ? result.channel_name : `#${result.channel_name}`}</span>
+                                </span>
+                                <span className="mythic-chat-search-meta">{result.sender_display_name} · {formatTimestamp(result.created_at, viewUTCTime)}</span>
+                            </span>
+                            <span className="mythic-chat-search-message">{renderSearchSnippet(result.message, highlightQuery)}</span>
+                        </button>
+                    ))}
+                </Box>
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={onClose}>Close</Button>
+            </DialogActions>
+        </Dialog>
+    );
+};
 
-const ChatEditChannelDialog = ({open, channel, onClose, onSave}) => {
+const ChatEditChannelDialog = ({open, channel, onClose, onSave, chatContainers = []}) => {
     const [name, setName] = React.useState("");
     const [description, setDescription] = React.useState("");
+    const [chatModel, setChatModel] = React.useState("");
+    const [configValues, setConfigValues] = React.useState({});
     const isGeneralChannel = isGeneralChatChannel(channel);
+    const isAIChannel = channel?.channel_type === "ai";
+    const containerModels = React.useMemo(() => {
+        if(!isAIChannel){
+            return [];
+        }
+        const container = chatContainers.find((item) => item.id === channel.chat_container_id) || channel.chat_container;
+        return parseChatContainerModels(container);
+    }, [channel, chatContainers, isAIChannel]);
+    const selectedModel = React.useMemo(() => (
+        containerModels.find((containerModel) => containerModel.name === chatModel) || (chatModel ? null : modelForChannel(channel, chatContainers))
+    ), [channel, chatContainers, chatModel, containerModels]);
+    const configOptions = React.useMemo(() => getModelConfigOptions(selectedModel), [selectedModel]);
     React.useEffect(() => {
         if(open && channel){
             setName(channel.name || "");
             setDescription(channel.description || "");
+            setChatModel(channel.chat_model || "");
+            const initialModel = modelForChannel(channel, chatContainers);
+            setConfigValues(buildDefaultConfigValues(getModelConfigOptions(initialModel), getChannelAIConfig(channel)));
         }
-    }, [open, channel]);
+    }, [open, channel, chatContainers]);
+    const changeModel = (event) => {
+        const nextModelName = event.target.value;
+        const nextModel = containerModels.find((containerModel) => containerModel.name === nextModelName) || null;
+        const nextOptions = getModelConfigOptions(nextModel);
+        setChatModel(nextModelName);
+        setConfigValues((prev) => buildDefaultConfigValues(nextOptions, prev));
+    };
     const submit = () => {
         if(!channel){
             return;
@@ -882,11 +1218,20 @@ const ChatEditChannelDialog = ({open, channel, onClose, onSave}) => {
         if(!isGeneralChatChannel(channel)){
             update.name = name.trim();
         }
+        if(isAIChannel){
+            update.chat_model = chatModel;
+            update.ai_metadata = applyConfigToMetadata(
+                getChannelAIMetadata(channel),
+                normalizeConfigForSubmit(configValues, configOptions),
+            );
+        }
         onSave(update);
     };
+    const saveDisabled = (!isGeneralChannel && name.trim() === "") ||
+        (isAIChannel && configHasMissingRequiredValues(configValues, configOptions));
     return (
         <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-            <DialogTitle>Edit Channel</DialogTitle>
+            <DialogTitle>{isAIChannel ? "Edit AI Chat" : "Edit Channel"}</DialogTitle>
             <DialogContent className="mythic-chat-dialog-content" sx={{display: "flex", flexDirection: "column", gap: 1.75, pt: "20px !important", px: 3}}>
                 <TextField
                     autoFocus={!isGeneralChannel}
@@ -907,10 +1252,40 @@ const ChatEditChannelDialog = ({open, channel, onClose, onSave}) => {
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                 />
+                {isAIChannel &&
+                    <>
+                        <FormControl size="small" fullWidth>
+                            <InputLabel>Model</InputLabel>
+                            <Select
+                                label="Model"
+                                value={chatModel}
+                                onChange={changeModel}
+                                renderValue={(selected) => selected}
+                            >
+                                {containerModels.length === 0 &&
+                                    <MenuItem value={chatModel} disabled>{chatModel || "No models reported"}</MenuItem>
+                                }
+                                {containerModels.map((containerModel) => (
+                                    <MenuItem value={containerModel.name} key={`${channel?.id}-${containerModel.name}`}>
+                                        <Box sx={{display: "flex", flexDirection: "column", py: 0.5, minWidth: 0}}>
+                                            <Typography variant="body2">{containerModel.name}</Typography>
+                                            {containerModel.description &&
+                                                <Typography variant="caption" color="text.secondary" sx={{whiteSpace: "normal"}}>
+                                                    {containerModel.description}
+                                                </Typography>
+                                            }
+                                        </Box>
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                        <ChatConfigurationFields options={configOptions} values={configValues} setValues={setConfigValues} />
+                    </>
+                }
             </DialogContent>
             <DialogActions>
                 <Button onClick={onClose}>Cancel</Button>
-                <Button onClick={submit} variant="contained" disabled={!isGeneralChannel && name.trim() === ""}>
+                <Button onClick={submit} variant="contained" disabled={saveDisabled}>
                     Save
                 </Button>
             </DialogActions>
@@ -988,8 +1363,10 @@ export function Chat({me}) {
     const [createOpen, setCreateOpen] = React.useState(false);
     const [editChannelOpen, setEditChannelOpen] = React.useState(false);
     const [systemMessageOpen, setSystemMessageOpen] = React.useState(false);
+    const [archiveTarget, setArchiveTarget] = React.useState(null);
     const [searchOpen, setSearchOpen] = React.useState(false);
     const [searchText, setSearchText] = React.useState("");
+    const [searchQuery, setSearchQuery] = React.useState("");
     const [editingID, setEditingID] = React.useState(null);
     const [editText, setEditText] = React.useState("");
     const messagesEndRef = React.useRef(null);
@@ -1225,7 +1602,7 @@ export function Chat({me}) {
         onError: (error) => snackActions.error(error.message),
     });
     const [markRead] = useMutation(MARK_READ);
-    const [runSearch, {data: searchData}] = useLazyQuery(CHAT_SEARCH, {
+    const [runSearch, {data: searchData, loading: searchLoading}] = useLazyQuery(CHAT_SEARCH, {
         fetchPolicy: "no-cache",
         onCompleted: (data) => {
             if(data.chatSearch.status !== "success"){
@@ -1305,8 +1682,18 @@ export function Chat({me}) {
     const composerDisabled = disabledReason !== "";
     const onCreateChannel = (variables) => createChannel({variables});
     const toggleArchive = () => {
-        if(selectedChannel && !isGeneralChatChannel(selectedChannel)){
-            updateChannel({variables: {channel_id: selectedChannel.id, archived: !selectedChannel.archived}});
+        if(!selectedChannel || isGeneralChatChannel(selectedChannel)){
+            return;
+        }
+        if(selectedChannel.archived){
+            updateChannel({variables: {channel_id: selectedChannel.id, archived: false}});
+        } else {
+            setArchiveTarget(selectedChannel);
+        }
+    };
+    const confirmArchiveChannel = () => {
+        if(archiveTarget){
+            updateChannel({variables: {channel_id: archiveTarget.id, archived: true}});
         }
     };
     const toggleLock = () => {
@@ -1331,8 +1718,10 @@ export function Chat({me}) {
         }
     };
     const runChatSearch = () => {
-        if(searchText.trim()){
-            runSearch({variables: {query: searchText.trim(), limit: 50}});
+        const trimmedSearchText = searchText.trim();
+        if(trimmedSearchText){
+            setSearchQuery(trimmedSearchText);
+            runSearch({variables: {query: trimmedSearchText, limit: 50}});
         }
     };
     const selectSearchResult = (result) => {
@@ -1559,6 +1948,7 @@ export function Chat({me}) {
             <ChatEditChannelDialog
                 open={editChannelOpen}
                 channel={selectedChannel}
+                chatContainers={chatContainers}
                 onClose={() => setEditChannelOpen(false)}
                 onSave={saveChannelDetails}
             />
@@ -1569,13 +1959,27 @@ export function Chat({me}) {
                 onClose={() => setSystemMessageOpen(false)}
                 onSend={submitSystemMessage}
             />
+            {archiveTarget &&
+                <MythicConfirmDialog
+                    open={Boolean(archiveTarget)}
+                    title="Archive Channel?"
+                    dialogText={`Archive ${channelDisplayName(archiveTarget)}? This hides the channel from the default chat list until archived channels are shown.`}
+                    acceptText="Archive"
+                    acceptColor="warning"
+                    onClose={() => setArchiveTarget(null)}
+                    onSubmit={confirmArchiveChannel}
+                />
+            }
             <ChatSearchDialog
                 open={searchOpen}
                 onClose={() => setSearchOpen(false)}
                 onSearch={runChatSearch}
                 searchText={searchText}
                 setSearchText={setSearchText}
+                searchQuery={searchQuery}
                 results={searchData?.chatSearch?.results || []}
+                loading={searchLoading}
+                hasSearched={searchQuery !== ""}
                 onSelectResult={selectSearchResult}
                 viewUTCTime={currentMe?.user?.view_utc_time}
             />
