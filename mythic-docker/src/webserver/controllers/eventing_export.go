@@ -108,6 +108,7 @@ func getFormattedEventingFile(eventGroup *databaseStructs.EventGroup, includeSte
 				Environment:     step.Environment.StructValue(),
 				Inputs:          step.Inputs.StructValue(),
 				Outputs:         step.Outputs.StructValue(),
+				UserInteraction: step.UserInteraction.StructValue(),
 				Order:           step.Order,
 				ContinueOnError: step.ContinueOnError,
 			})

@@ -1259,7 +1259,10 @@ const getTaskWidth = (node) => {
     return Math.max(325, (nodeText.length * 8) + 10)
 }
 const getEventNodeWidth = (node) => {
-    return Math.max(190, (node.maxNameLength * 8) + 120);
+    const labelLength = Math.max(node.maxNameLength || 0, String(node?.data?.label || "").length);
+    const actionLength = String(node?.data?.action || "").length;
+    const statusLength = String(node?.data?.status || "").replace(/_/g, " ").length;
+    return Math.min(420, Math.max(260, (labelLength * 7) + 130, (actionLength * 7) + 105, (statusLength * 7) + 105));
 }
 const getBrowserscriptWidth = (node) => {
     let nodeText = " ";
@@ -1282,7 +1285,7 @@ const getHeight = (node) => {
         return Math.max(node.height || 0, 132);
     }
     if(node.type === "eventNode"){
-        return 88;
+        return node?.data?.status ? 112 : 96;
     }
     return 80;
 }

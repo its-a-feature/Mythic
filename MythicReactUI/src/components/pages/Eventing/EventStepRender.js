@@ -1,6 +1,6 @@
 import React, {useCallback} from 'react';
 import {createPortal} from 'react-dom';
-import {gql, useQuery, useSubscription, useMutation, useLazyQuery} from '@apollo/client';
+import {gql, useQuery, useSubscription, useMutation, useLazyQuery, useReactiveVar} from '@apollo/client';
 import Typography from '@mui/material/Typography';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -60,6 +60,8 @@ import {getStringSize} from "../Callbacks/ResponseDisplayTable";
 import {MythicPageHeader} from "../../MythicComponents/MythicPageHeader";
 import {MythicEmptyState, MythicErrorState, MythicLoadingState} from "../../MythicComponents/MythicStateDisplay";
 import {MythicClientSideTablePagination, useMythicClientPagination} from "../../MythicComponents/MythicTablePagination";
+import TextField from '@mui/material/TextField';
+import {meState} from "../../../cache";
 
 
 const getEventSteps = gql`
@@ -74,6 +76,7 @@ query GetEventSteps($eventgroup_id: Int!) {
     action_data
     inputs
     outputs
+    user_interaction
     order
   }
 }
@@ -89,6 +92,14 @@ subscription GetEventStepInstances($eventgroupinstance_id: Int!) {
         depends_on
         order
         action
+        user_interaction
+    }
+    eventgroupinstance {
+        operator {
+            id
+            username
+            account_type
+        }
     }
     eventgroupinstance_id
     created_at
@@ -96,6 +107,10 @@ subscription GetEventStepInstances($eventgroupinstance_id: Int!) {
     end_timestamp
     status
     order
+    user_interaction
+    user_interaction_response
+    user_interaction_resolved_by
+    user_interaction_resolved_at
   }
 }
  `;
@@ -105,6 +120,7 @@ query getEventStepInstanceDetails($eventstepinstance_id: Int!){
         environment
         inputs
         outputs
+        user_interaction
         id
         status
         updated_at
@@ -112,6 +128,9 @@ query getEventStepInstanceDetails($eventstepinstance_id: Int!){
         order
         end_timestamp
         action_data
+        user_interaction_response
+        user_interaction_resolved_by
+        user_interaction_resolved_at
         stdout
         stderr
         eventstep {
@@ -121,6 +140,7 @@ query getEventStepInstanceDetails($eventstepinstance_id: Int!){
             name
             inputs
             outputs
+            user_interaction
             environment
             depends_on
         }
@@ -275,6 +295,7 @@ query getEventStepInformation($eventstep_id: Int!){
         action_data
         inputs
         outputs
+        user_interaction
         order
   }
 }
@@ -284,6 +305,47 @@ mutation retryFromEventStep($eventstepinstance_id: Int!, $retry_all_groups: Bool
     eventingTriggerRetryFromStep(eventstepinstance_id: $eventstepinstance_id, retry_all_groups: $retry_all_groups){
         status
         error
+    }
+}
+`;
+const submitEventStepUserInteractionMutation = gql`
+mutation submitEventStepUserInteraction($eventstepinstance_id: Int!, $approved: Boolean, $inputs: jsonb, $comment: String) {
+    eventingStepUserInteractionSubmit(eventstepinstance_id: $eventstepinstance_id, approved: $approved, inputs: $inputs, comment: $comment) {
+        status
+        error
+    }
+}
+`;
+const getEventStepInstancesForUserInteraction = gql`
+query getEventStepInstancesForUserInteraction($eventgroupinstance_id: Int!, $statuses: [String!]) {
+    eventstepinstance(where: {eventgroupinstance_id: {_eq: $eventgroupinstance_id}, status: {_in: $statuses}}, order_by: {order: asc}) {
+        id
+        eventstep {
+            name
+            id
+            description
+            depends_on
+            order
+            action
+            user_interaction
+        }
+        eventgroupinstance {
+            operator {
+                id
+                username
+                account_type
+            }
+        }
+        eventgroupinstance_id
+        created_at
+        updated_at
+        end_timestamp
+        status
+        order
+        user_interaction
+        user_interaction_response
+        user_interaction_resolved_by
+        user_interaction_resolved_at
     }
 }
 `;
@@ -310,6 +372,14 @@ export const GetStatusSymbol = ({data}) => {
         case "skipped":
             return (<MythicStyledTooltip title={"Skipped"}>
                         <HideSourceIcon color={"info"} style={{...style}}/>
+                    </MythicStyledTooltip>)
+        case "awaiting_approval":
+            return (<MythicStyledTooltip title={"Awaiting approval"}>
+                        <TimelapseIcon color={"warning"} style={{...style}}/>
+                    </MythicStyledTooltip>)
+        case "input_needed":
+            return (<MythicStyledTooltip title={"Input needed"}>
+                        <InfoIconOutline color={"warning"} style={{...style}}/>
                     </MythicStyledTooltip>)
         default:
             return (<MythicStyledTooltip title={"Waiting..."}>
@@ -376,6 +446,10 @@ const getStatusLabel = (status) => {
             return "Cancelled";
         case "skipped":
             return "Skipped";
+        case "awaiting_approval":
+            return "Awaiting approval";
+        case "input_needed":
+            return "Input needed";
         case "queued":
             return "Queued";
         default:
@@ -394,6 +468,10 @@ const getStatusClass = (status) => {
             return "cancelled";
         case "skipped":
             return "skipped";
+        case "awaiting_approval":
+            return "awaiting_approval";
+        case "input_needed":
+            return "input_needed";
         default:
             return "waiting";
     }
@@ -470,6 +548,375 @@ const EventingCodeBlock = ({value, emptyText="No data"}) => {
                 />
             )}
         </div>
+    )
+}
+export const eventingUserInteractionStatuses = ["awaiting_approval", "input_needed"];
+export const eventStepNeedsUserInteraction = (step) => eventingUserInteractionStatuses.includes(step?.status);
+const getUserInteractionConfig = (step) => {
+    const config = step?.user_interaction || step?.eventstep?.user_interaction || {};
+    return config && typeof config === "object" ? config : {};
+}
+const normalizeUserInteractionInputs = (config) => {
+    const inputs = config?.inputs || [];
+    if(Array.isArray(inputs)){
+        return inputs.filter((input) => input && typeof input === "object").map((input) => ({...input}));
+    }
+    if(inputs && typeof inputs === "object"){
+        return Object.entries(inputs).map(([name, value]) => {
+            if(value && typeof value === "object" && !Array.isArray(value)){
+                return {name, ...value};
+            }
+            return {name, default_value: value};
+        });
+    }
+    return [];
+}
+const getInteractionInputDefault = (field) => {
+    const defaultValue = field?.default_value;
+    if(defaultValue === undefined || defaultValue === null){
+        return "";
+    }
+    if(typeof defaultValue === "string"){
+        return defaultValue;
+    }
+    return JSON.stringify(defaultValue);
+}
+const coerceUserInteractionInputs = (fields, values) => {
+    const coercedValues = {};
+    for(const field of fields){
+        const name = field?.name || "";
+        if(name === ""){
+            continue;
+        }
+        const value = values[name];
+        const type = (field?.type || "string").toLowerCase();
+        if(value === undefined || value === null || value === ""){
+            coercedValues[name] = value || "";
+            continue;
+        }
+        if(type === "number"){
+            const numberValue = Number(value);
+            if(Number.isNaN(numberValue)){
+                throw new Error(`${name} must be a number`);
+            }
+            coercedValues[name] = numberValue;
+        }else if(type === "boolean"){
+            coercedValues[name] = value === true || String(value).toLowerCase() === "true";
+        }else if(type === "json"){
+            coercedValues[name] = JSON.parse(value);
+        }else{
+            coercedValues[name] = value;
+        }
+    }
+    return coercedValues;
+}
+const getUserInteractionStepName = (step) => step?.eventstep?.name || step?.name || `Step ${step?.id || ""}`.trim();
+const getUserInteractionStepAction = (step) => step?.eventstep?.action || step?.action || "";
+const getUserInteractionPrompt = (config, key, fallback) => {
+    const value = config?.[key];
+    return typeof value === "string" && value.trim().length > 0 ? value : fallback;
+}
+const getUserInteractionBotApprovalApprover = (config) => {
+    const approver = config?.approval_policy?.bot_context?.approver;
+    return approver === "lead" ? "lead" : "operator";
+}
+const getNextUserInteractionStepId = (steps, currentStepId) => {
+    if(steps.length === 0){
+        return 0;
+    }
+    const currentIndex = steps.findIndex((step) => `${step.id}` === `${currentStepId}`);
+    if(currentIndex === -1 || currentIndex >= steps.length - 1){
+        return steps[0].id;
+    }
+    return steps[currentIndex + 1].id;
+}
+export const EventStepUserInteractionDialog = ({onClose, selectedEventGroupInstance, selectedStep, steps}) => {
+    const me = useReactiveVar(meState);
+    const [resolvedStepIds, setResolvedStepIds] = React.useState([]);
+    const [selectedStepId, setSelectedStepId] = React.useState(selectedStep?.id || 0);
+    const shouldFetchSteps = !steps && selectedEventGroupInstance > 0;
+    const {data, loading, refetch} = useQuery(getEventStepInstancesForUserInteraction, {
+        variables: {eventgroupinstance_id: selectedEventGroupInstance, statuses: eventingUserInteractionStatuses},
+        fetchPolicy: "no-cache",
+        skip: !shouldFetchSteps,
+    });
+    const sourceSteps = React.useMemo(() => {
+        if(steps){
+            return steps;
+        }
+        if(data?.eventstepinstance){
+            return data.eventstepinstance;
+        }
+        if(selectedStep){
+            return [selectedStep];
+        }
+        return [];
+    }, [steps, data?.eventstepinstance, selectedStep]);
+    const waitingSteps = React.useMemo(() => {
+        return sourceSteps.filter((step) => eventStepNeedsUserInteraction(step) && !resolvedStepIds.includes(step.id));
+    }, [sourceSteps, resolvedStepIds]);
+    React.useEffect(() => {
+        if(selectedStep?.id && waitingSteps.some((step) => `${step.id}` === `${selectedStep.id}`)){
+            setSelectedStepId(selectedStep.id);
+            return;
+        }
+        if(waitingSteps.length > 0 && !waitingSteps.some((step) => `${step.id}` === `${selectedStepId}`)){
+            setSelectedStepId(waitingSteps[0].id);
+        }
+    }, [selectedStep?.id, waitingSteps, selectedStepId]);
+    const activeStep = waitingSteps.find((step) => `${step.id}` === `${selectedStepId}`) || waitingSteps[0];
+    const config = React.useMemo(() => getUserInteractionConfig(activeStep), [activeStep]);
+    const inputFields = React.useMemo(() => normalizeUserInteractionInputs(config), [config]);
+    const approvalRequired = Boolean(config?.approval_required);
+    const inputRequired = Boolean(config?.input_required) || inputFields.length > 0;
+    const [inputValues, setInputValues] = React.useState({});
+    const [comment, setComment] = React.useState("");
+    const [submitInteraction] = useMutation(submitEventStepUserInteractionMutation, {
+        onCompleted: (data) => {
+            if(data.eventingStepUserInteractionSubmit.status === "success"){
+                snackActions.success("Submitted eventing step response");
+            }else{
+                snackActions.error(data.eventingStepUserInteractionSubmit.error);
+            }
+        },
+        onError: (data) => {
+            console.log(data);
+            snackActions.error("Failed to submit eventing step response");
+        }
+    });
+    React.useEffect(() => {
+        const nextValues = inputFields.reduce((prev, field) => {
+            if(!field?.name){
+                return prev;
+            }
+            return {...prev, [field.name]: getInteractionInputDefault(field)};
+        }, {});
+        setInputValues(nextValues);
+        setComment("");
+    }, [activeStep?.id, inputFields]);
+    if(loading && waitingSteps.length === 0){
+        return (
+            <>
+                <EventingDialogTitle title="User Interaction" subtitle="Loading waiting eventing steps..." />
+                <DialogContent dividers={true} className="mythic-eventing-user-interaction-dialog-content">
+                    <MythicLoadingState compact title="Loading interaction request" description="Fetching waiting step details." minHeight={180} />
+                </DialogContent>
+                <DialogActions className="mythic-eventing-detail-dialog-actions">
+                    <Button className="mythic-table-row-action" onClick={onClose} variant="outlined">Close</Button>
+                </DialogActions>
+            </>
+        )
+    }
+    if(waitingSteps.length === 0 || !activeStep){
+        return (
+            <>
+                <EventingDialogTitle title="User Interaction" subtitle="No eventing steps are currently waiting for approval or input." />
+                <DialogContent dividers={true} className="mythic-eventing-user-interaction-dialog-content">
+                    <MythicEmptyState compact title="Nothing waiting" description="This workflow instance no longer has a step waiting for user interaction." minHeight={180} />
+                </DialogContent>
+                <DialogActions className="mythic-eventing-detail-dialog-actions">
+                    <Button className="mythic-table-row-action" onClick={onClose} variant="outlined">Close</Button>
+                </DialogActions>
+            </>
+        )
+    }
+    const runOperator = activeStep?.eventgroupinstance?.operator;
+    const currentUserID = me?.user?.id || me?.user?.user_id;
+    const botApprovalApprover = getUserInteractionBotApprovalApprover(config);
+    const currentUserViewMode = me?.user?.view_mode || "";
+    const currentUserIsLead = currentUserViewMode === "lead";
+    const currentUserCanRespondToInteraction = currentUserIsLead || currentUserViewMode === "operator";
+    const canRespond = currentUserCanRespondToInteraction && (!runOperator ||
+        (runOperator?.account_type === "bot" && (
+            !approvalRequired ||
+            (botApprovalApprover === "lead" ? currentUserIsLead : currentUserCanRespondToInteraction)
+        )) ||
+        `${runOperator?.id}` === `${currentUserID}`);
+    const submitResponse = (approved) => {
+        let coercedInputs = {};
+        try{
+            const shouldSubmitInputs = inputRequired && (!approvalRequired || approved);
+            if(shouldSubmitInputs){
+                for(const field of inputFields){
+                    const name = field?.name || "";
+                    if(!name || !field?.required){
+                        continue;
+                    }
+                    const value = inputValues[name];
+                    if(value === undefined || value === null || value === ""){
+                        snackActions.error(`Missing required input ${name}`);
+                        return;
+                    }
+                }
+            }
+            coercedInputs = shouldSubmitInputs ? coerceUserInteractionInputs(inputFields, inputValues) : {};
+        }catch(error){
+            snackActions.error(error.message);
+            return;
+        }
+        submitInteraction({
+            variables: {
+                eventstepinstance_id: activeStep.id,
+                approved: approvalRequired ? approved : null,
+                inputs: coercedInputs,
+                comment,
+            }
+        }).then(async (result) => {
+            if(result?.data?.eventingStepUserInteractionSubmit?.status !== "success"){
+                return;
+            }
+            const remainingSteps = waitingSteps.filter((step) => step.id !== activeStep.id);
+            setResolvedStepIds((prev) => [...prev, activeStep.id]);
+            if(refetch){
+                await refetch();
+            }
+            if(remainingSteps.length === 0){
+                onClose?.();
+            }else{
+                setSelectedStepId(getNextUserInteractionStepId(remainingSteps, activeStep.id));
+            }
+        });
+    }
+    const approvalPrompt = getUserInteractionPrompt(config, "approval_prompt", "Approval is required before this step can execute.");
+    const inputPrompt = getUserInteractionPrompt(config, "input_prompt", "Additional input is required before this step can execute.");
+    const stepName = getUserInteractionStepName(activeStep);
+    const stepAction = getUserInteractionStepAction(activeStep);
+    return (
+        <>
+            <EventingDialogTitle
+                title="User Interaction"
+                subtitle={`${waitingSteps.length} waiting step${waitingSteps.length === 1 ? "" : "s"} in this workflow instance`}
+                statusData={activeStep}
+            />
+            <DialogContent dividers={true} className="mythic-eventing-user-interaction-dialog-content">
+                <div className={`mythic-eventing-user-interaction-modal ${waitingSteps.length === 1 ? "mythic-eventing-user-interaction-modal-single" : ""}`.trim()}>
+                    {waitingSteps.length > 1 &&
+                        <div className="mythic-eventing-user-interaction-step-picker">
+                            <div className="mythic-eventing-user-interaction-section-label">Waiting steps</div>
+                            {waitingSteps.map((step) => (
+                                <button
+                                    className={`mythic-eventing-user-interaction-step-option ${`${step.id}` === `${activeStep.id}` ? "mythic-eventing-user-interaction-step-option-active" : ""}`.trim()}
+                                    key={`user-interaction-step-${step.id}`}
+                                    onClick={() => setSelectedStepId(step.id)}
+                                    type="button"
+                                >
+                                    <span className="mythic-eventing-user-interaction-step-name">{getUserInteractionStepName(step)}</span>
+                                    <span className="mythic-eventing-user-interaction-step-meta">{getStatusLabel(step.status)}{getUserInteractionStepAction(step) ? ` - ${getUserInteractionStepAction(step)}` : ""}</span>
+                                </button>
+                            ))}
+                        </div>
+                    }
+                    <div className="mythic-eventing-user-interaction-workspace">
+                        <div className="mythic-eventing-user-interaction-step-summary">
+                            <div>
+                                <div className="mythic-eventing-user-interaction-section-label">Step</div>
+                                <div className="mythic-eventing-user-interaction-title">{stepName}</div>
+                            </div>
+                            <div className="mythic-eventing-user-interaction-summary-chips">
+                                <EventingStatusChip data={activeStep} />
+                                {stepAction &&
+                                    <span className="mythic-eventing-flow-node-action">{stepAction}</span>
+                                }
+                            </div>
+                        </div>
+                        {approvalRequired &&
+                            <div className="mythic-eventing-user-interaction-section">
+                                <div className="mythic-eventing-user-interaction-section-title">Approval</div>
+                                <div className="mythic-eventing-user-interaction-prompt">{approvalPrompt}</div>
+                                {runOperator?.account_type === "bot" &&
+                                    <div className="mythic-eventing-user-interaction-policy-note">
+                                        {botApprovalApprover === "lead" ? "Requires operation lead approval." : "Operators and the operation lead can approve because this workflow is running as bot."}
+                                    </div>
+                                }
+                            </div>
+                        }
+                        {inputRequired &&
+                            <div className="mythic-eventing-user-interaction-section">
+                                <div className="mythic-eventing-user-interaction-section-title">Inputs</div>
+                                <div className="mythic-eventing-user-interaction-prompt">{inputPrompt}</div>
+                                {inputFields.length > 0 &&
+                                    <div className="mythic-eventing-user-interaction-inputs">
+                                        {inputFields.map((field, index) => (
+                                            <div className="mythic-eventing-user-interaction-input-row" key={`${activeStep.id}-${field.name || index}`}>
+                                                <div className="mythic-eventing-user-interaction-input-copy">
+                                                    <div className="mythic-eventing-user-interaction-input-name">
+                                                        {field.name || "Input"}
+                                                        {field.required &&
+                                                            <span className="mythic-eventing-user-interaction-required">required</span>
+                                                        }
+                                                    </div>
+                                                    <div className="mythic-eventing-user-interaction-input-description">
+                                                        {field.description || field.type || "string"}
+                                                    </div>
+                                                </div>
+                                                <TextField
+                                                    size="small"
+                                                    value={inputValues[field.name] || ""}
+                                                    onChange={(event) => setInputValues({...inputValues, [field.name]: event.target.value})}
+                                                    fullWidth
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                }
+                            </div>
+                        }
+                        <div className="mythic-eventing-user-interaction-section">
+                            <div className="mythic-eventing-user-interaction-section-title">Comment</div>
+                            <TextField
+                                size="small"
+                                placeholder="Optional note for this response"
+                                value={comment}
+                                onChange={(event) => setComment(event.target.value)}
+                                fullWidth
+                            />
+                            <div className="mythic-eventing-user-interaction-permission">
+                                {!currentUserCanRespondToInteraction ? (
+                                    "Spectators cannot respond to user interaction steps."
+                                ) : !runOperator ? (
+                                    "Permission will be checked when this response is submitted."
+                                ) : canRespond ? (
+                                    runOperator?.account_type === "bot" ? (
+                                        approvalRequired && botApprovalApprover === "lead" ? "You can respond because you are the operation lead." : (
+                                            approvalRequired ? "You can respond because your operation role can approve this step." : "Operators and the operation lead can respond because this workflow is running as bot."
+                                        )
+                                    ) : `Waiting for ${runOperator?.username || "the run operator"}.`
+                                ) : (
+                                    runOperator?.account_type === "bot" && approvalRequired ? (
+                                        botApprovalApprover === "lead" ? "Only the operation lead can approve this step." : "Only operators or the operation lead can approve this step."
+                                    ) : `Only ${runOperator?.username || "the run operator"} can respond.`
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </DialogContent>
+            <DialogActions className="mythic-eventing-detail-dialog-actions">
+                {approvalRequired &&
+                    <Button
+                        className="mythic-table-row-action mythic-table-row-action-hover-warning"
+                        disabled={!canRespond}
+                        onClick={() => submitResponse(false)}
+                        size="small"
+                        variant="outlined"
+                    >
+                        Deny
+                    </Button>
+                }
+                <Button className="mythic-table-row-action" onClick={onClose} size="small" variant="outlined">
+                    Close
+                </Button>
+                <Button
+                    className="mythic-table-row-action mythic-table-row-action-hover-success"
+                    disabled={!canRespond}
+                    onClick={() => submitResponse(true)}
+                    size="small"
+                    variant="outlined"
+                >
+                    {approvalRequired ? (inputRequired ? "Approve and Submit" : "Approve") : "Submit Input"}
+                </Button>
+            </DialogActions>
+        </>
     )
 }
 const EventingDetailSection = ({title, subtitle, count, actions, children, className = "", collapsible = false, defaultExpanded = false}) => {
@@ -590,18 +1037,18 @@ function EventNode({data}) {
         <>
             <Handle type={"source"} position={sourcePosition}/>
             <div className={`mythic-eventing-flow-node mythic-eventing-flow-node-${getEventingStatusClass(data?.status)}`.trim()}>
+                <Typography className="mythic-eventing-flow-node-title" title={data.name}>{data.name}</Typography>
                 <div className="mythic-eventing-flow-node-main">
                     <EventingStatusChip data={data}/>
-                    {data.status &&
-                        <GetTimeDuration data={data} />
-                    }
-                </div>
-                <Typography className="mythic-eventing-flow-node-title">{data.name}</Typography>
-                <div className="mythic-eventing-flow-node-meta">
                     {data.action &&
-                        <span className="mythic-eventing-flow-node-action">{data.action}</span>
+                        <span className="mythic-eventing-flow-node-action" title={data.action}>{data.action}</span>
                     }
                 </div>
+                {data.status &&
+                    <div className="mythic-eventing-flow-node-meta">
+                        <GetTimeDuration data={data} customStyle={{float: "none", fontSize: "unset"}} />
+                    </div>
+                }
             </div>
             <Handle type={"target"} position={targetPosition}/>
         </>
@@ -897,8 +1344,10 @@ function EventStepInstanceRender({selectedEventGroupInstance}) {
     const [nodes, setNodes] = React.useState([]);
     const [edges, setEdges] = React.useState([]);
     const currentEventStepInstance = React.useRef(0);
+    const selectedUserInteractionStep = React.useRef(null);
     const [openEventStepInstanceDetails, setOpenEventStepInstanceDetails] = React.useState(false);
     const [openEventGroupInstanceDetails, setOpenEventGroupInstanceDetails] = React.useState(false);
+    const [openUserInteractionDialog, setOpenUserInteractionDialog] = React.useState(false);
     const [graphData, setGraphData] = React.useState({nodes: [], edges: [], groups: []});
     const {fitView} = useReactFlow()
     const updateNodeInternals = useUpdateNodeInternals();
@@ -954,6 +1403,17 @@ function EventStepInstanceRender({selectedEventGroupInstance}) {
         }
     });
     const contextMenu = React.useMemo(() => {return [
+        {
+            title: 'Respond to approval / input',
+            className: 'mythic-table-row-action-hover-success',
+            shouldShow: function(node) {
+                return eventStepNeedsUserInteraction(node);
+            },
+            onClick: function(node) {
+                selectedUserInteractionStep.current = node;
+                setOpenUserInteractionDialog(true);
+            }
+        },
         {
             title: 'View Details',
             onClick: function(node) {
@@ -1164,8 +1624,8 @@ function EventStepInstanceRender({selectedEventGroupInstance}) {
             </ReactFlow>
             {openContextMenu && typeof document !== "undefined" && createPortal(
                 <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu mythic-graph-context-menu">
-                    {contextMenu.map( (m) => (
-                        <Button key={m.title} className="context-menu-button mythic-graph-context-menu-button mythic-table-row-action mythic-table-row-action-hover-info" variant="outlined" onClick={() => {
+                    {contextMenu.filter((m) => !m.shouldShow || m.shouldShow(contextMenuNode.current)).map( (m) => (
+                        <Button key={m.title} className={`context-menu-button mythic-graph-context-menu-button mythic-table-row-action ${m.className || "mythic-table-row-action-hover-info"}`.trim()} variant="outlined" onClick={() => {
                             m.onClick(contextMenuNode.current);
                             setOpenContextMenu(false);
                         }}>{m.title}</Button>
@@ -1181,6 +1641,20 @@ function EventStepInstanceRender({selectedEventGroupInstance}) {
                               innerDialog={
                                   <EventStepInstanceDetailDialog onClose={() => { setOpenEventStepInstanceDetails(false); }}
                                                                  selectedEventStepInstance={currentEventStepInstance.current}
+                                  />}
+                />
+            }
+            {openUserInteractionDialog &&
+                <MythicDialog fullWidth={true} maxWidth="md" open={openUserInteractionDialog}
+                              onClose={() => {
+                                  setOpenUserInteractionDialog(false);
+                              }}
+                              innerDialog={
+                                  <EventStepUserInteractionDialog
+                                      onClose={() => { setOpenUserInteractionDialog(false); }}
+                                      selectedEventGroupInstance={selectedEventGroupInstance}
+                                      selectedStep={selectedUserInteractionStep.current}
+                                      steps={steps}
                                   />}
                 />
             }
@@ -1319,6 +1793,7 @@ function EventStepInstanceDetailDialog({selectedEventStepInstance, onClose}) {
                                 <EventingMetadataPair label="Inputs" original={stepDefinition.inputs} instance={stepInstance.inputs} />
                                 <EventingMetadataPair label="Outputs" original={stepDefinition.outputs} instance={stepInstance.outputs} />
                                 <EventingMetadataPair label="Action data" original={stepDefinition.action_data} instance={stepInstance.action_data} />
+                                <EventingMetadataPair label="User interaction" original={stepDefinition.user_interaction} instance={stepInstance.user_interaction_response} originalLabel="Configured" instanceLabel="Response" />
                             </div>
                         </AccordionDetails>
                     </Accordion>
@@ -1542,6 +2017,10 @@ function EventStepDetailDialog({selectedEventStep, onClose}) {
                         <div className="mythic-eventing-metadata-panel">
                             <div className="mythic-eventing-metadata-panel-title">Action data</div>
                             <EventingCodeBlock value={stepDefinition.action_data} />
+                        </div>
+                        <div className="mythic-eventing-metadata-panel">
+                            <div className="mythic-eventing-metadata-panel-title">User interaction</div>
+                            <EventingCodeBlock value={stepDefinition.user_interaction} />
                         </div>
                     </div>
                 </EventingDetailSection>

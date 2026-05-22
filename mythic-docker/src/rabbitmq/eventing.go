@@ -343,6 +343,12 @@ func listenForEvents() {
 			processEventFinishAndNextStepStart(event)
 		case eventing.TriggerConditionalCheckResponse:
 			processEventFinishAndNextStepStart(event)
+		case eventing.TriggerStepUserInteractionSubmit:
+			if event.ActionSuccess {
+				go resumeWaitingEventStepInstance(event.EventStepInstanceID)
+			} else {
+				processEventFinishAndNextStepStart(event)
+			}
 		case eventing.TriggerCallbackCheckin:
 			go findEventGroupsToStart(event)
 		case eventing.TriggerTagCreate:
@@ -694,7 +700,12 @@ func processEventFinishAndNextStepStart(eventNotification EventNotification) {
 		return
 	}
 	foundStepToFinish := false
-	stepOutput := getStepInstanceOutputs(eventNotification, triggeringStep)
+	stepOutput := map[string]interface{}{}
+	if eventNotification.Trigger == eventing.TriggerStepUserInteractionSubmit {
+		stepOutput = triggeringStep.EventStep.Outputs.StructValue()
+	} else {
+		stepOutput = getStepInstanceOutputs(eventNotification, triggeringStep)
+	}
 	// process potential steps for skips
 	inputs := triggeringStep.ActionData.StructValue()
 	skipSteps := []string{}
@@ -826,6 +837,12 @@ func startProcessingRunAgainGroupInstanceSteps(oldEventGroupInstanceID int, newO
 	// still need to do something to start processing steps
 	go startProcessingNewEventGroupInstanceSteps(eventgroupinstanceID)
 }
+func eventStepStatusBlocksOrder(status string) bool {
+	return status == eventing.EventGroupInstanceStatusQueued ||
+		status == eventing.EventGroupInstanceStatusRunning ||
+		status == eventing.EventGroupInstanceStatusAwaitingApproval ||
+		status == eventing.EventGroupInstanceStatusInputNeeded
+}
 func findNextStepToStartAndStartIt(eventSteps []databaseStructs.EventStepInstance, eventGroupInstance databaseStructs.EventGroupInstance) error {
 	currentStepOrder := eventGroupInstance.CurrentOrderStep
 	// marked current step as done, now to see if there are any others to kick off
@@ -834,9 +851,7 @@ func findNextStepToStartAndStartIt(eventSteps []databaseStructs.EventStepInstanc
 	for allCurrentStepsAreDone {
 		// make sure all steps of the current order are done before trying to start
 		for i := 0; i < len(eventSteps); i++ {
-			if (eventSteps[i].Status == eventing.EventGroupInstanceStatusRunning ||
-				eventSteps[i].Status == eventing.EventGroupInstanceStatusQueued) &&
-				eventSteps[i].Order == currentStepOrder {
+			if eventStepStatusBlocksOrder(eventSteps[i].Status) && eventSteps[i].Order == currentStepOrder {
 				allCurrentStepsAreDone = false
 			}
 			if finalGroupInstanceStatus == eventing.EventGroupInstanceStatusSuccess && eventSteps[i].Status == eventing.EventGroupInstanceStatusError {
@@ -903,8 +918,7 @@ func findNextStepToStartAndStartIt(eventSteps []databaseStructs.EventStepInstanc
 	}
 	// lastly check if any steps are still running / queued
 	for i := 0; i < len(eventSteps); i++ {
-		if eventSteps[i].Status == eventing.EventGroupInstanceStatusQueued ||
-			eventSteps[i].Status == eventing.EventGroupInstanceStatusRunning {
+		if eventStepStatusBlocksOrder(eventSteps[i].Status) {
 			// something is still running or about to run
 			return nil
 		}
@@ -919,12 +933,13 @@ func startEventStepInstance(eventStepInstanceID int) error {
 	err := database.DB.Get(&eventStepInstance, `SELECT 
     	eventstepinstance.id, eventstepinstance.status, eventstepinstance.order, eventstepinstance.eventgroupinstance_id,
     	eventstepinstance.operator_id, eventstepinstance.operation_id, eventstepinstance.environment,
-    	eventstepinstance.continue_on_error,
+		eventstepinstance.continue_on_error, eventstepinstance.user_interaction, eventstepinstance.user_interaction_response,
     	eventstep.action "eventstep.action",
     	eventstep.name "eventstep.name",
     	eventstep.action_data "eventstep.action_data",
     	eventstep.inputs "eventstep.inputs",
     	eventstep.outputs "eventstep.outputs",
+		eventstep.user_interaction "eventstep.user_interaction",
     	eventgroupinstance.environment "eventgroupinstance.environment",
     	eventgroupinstance.eventgroup_id "eventgroupinstance.eventgroup_id"
 		FROM eventstepinstance 
@@ -946,6 +961,13 @@ func startEventStepInstance(eventStepInstanceID int) error {
 	if err != nil {
 		logging.LogError(err, "failed to get all event step instances")
 		return err
+	}
+	userSuppliedInputs, waitingForUser, err := prepareEventStepUserInteraction(eventStepInstance)
+	if err != nil {
+		return err
+	}
+	if waitingForUser {
+		return nil
 	}
 	// still need to process inputs from outputs of previous steps
 	inputs := eventStepInstance.EventStep.Inputs.StructValue()
@@ -1074,6 +1096,10 @@ func startEventStepInstance(eventStepInstanceID int) error {
 			}
 		}
 	}
+	for key, val := range userSuppliedInputs {
+		inputs[key] = val
+		actionDataString = replaceVariableInActionDataString(actionDataString, key, val)
+	}
 	eventStepInstance.Inputs = GetMythicJSONTextFromStruct(inputs)
 	// update action data based on event step input as needed
 	actionDataMap := make(map[string]interface{})
@@ -1123,6 +1149,64 @@ func replaceVariableInActionDataString(actionDataString string, key string, val 
 	default:
 		return strings.ReplaceAll(actionDataString, fmt.Sprintf("\"%s\"", key),
 			fmt.Sprintf("%v", v))
+	}
+}
+
+func prepareEventStepUserInteraction(eventStepInstance databaseStructs.EventStepInstance) (map[string]interface{}, bool, error) {
+	config := eventStepInstance.UserInteraction.StructValue()
+	if len(config) == 0 {
+		config = eventStepInstance.EventStep.UserInteraction.StructValue()
+	}
+	if !eventing.UserInteractionHasRequirements(config) {
+		return map[string]interface{}{}, false, nil
+	}
+	response := eventStepInstance.UserInteractionResponse.StructValue()
+	if len(response) > 0 {
+		if approvedInterface, ok := response["approved"]; ok {
+			if approved, ok := approvedInterface.(bool); ok && !approved {
+				return map[string]interface{}{}, false, errors.New("user interaction denied")
+			}
+		}
+		if responseInputs, ok := response["inputs"].(map[string]interface{}); ok {
+			return responseInputs, false, nil
+		}
+		return map[string]interface{}{}, false, nil
+	}
+	nextStatus := eventing.EventGroupInstanceStatusInputNeeded
+	if eventing.UserInteractionApprovalRequired(config) {
+		nextStatus = eventing.EventGroupInstanceStatusAwaitingApproval
+	}
+	eventStepInstance.Status = nextStatus
+	eventStepInstance.UserInteraction = GetMythicJSONTextFromStruct(config)
+	_, err := database.DB.NamedExec(`UPDATE eventstepinstance SET
+		status=:status, user_interaction=:user_interaction
+		WHERE id=:id`, eventStepInstance)
+	if err != nil {
+		logging.LogError(err, "failed to update event step to waiting for user interaction")
+		return map[string]interface{}{}, false, err
+	}
+	_, err = database.DB.Exec(`UPDATE eventgroupinstance SET status=$1 WHERE id=$2 AND end_timestamp IS NULL`,
+		nextStatus, eventStepInstance.EventGroupInstanceID)
+	if err != nil {
+		logging.LogError(err, "failed to update event group to waiting for user interaction")
+		return map[string]interface{}{}, false, err
+	}
+	return map[string]interface{}{}, true, nil
+}
+
+func resumeWaitingEventStepInstance(eventStepInstanceID int) {
+	eventStepInstance := databaseStructs.EventStepInstance{}
+	err := database.DB.Get(&eventStepInstance, `SELECT
+		id, eventgroupinstance_id, operation_id, operator_id, continue_on_error
+		FROM eventstepinstance WHERE id=$1`,
+		eventStepInstanceID)
+	if err != nil {
+		logging.LogError(err, "failed to get event step instance for user interaction resume")
+		return
+	}
+	err = startEventStepInstance(eventStepInstanceID)
+	if err != nil {
+		markStepInstanceAsError(eventStepInstance, err.Error())
 	}
 }
 
@@ -1464,8 +1548,11 @@ func startEventStepInstanceActionInterceptResponse(eventStepInstance databaseStr
 }
 func restartFailedJobs(eventgroupInstanceID int) error {
 	_, err := database.DB.Exec(`UPDATE eventstepinstance 
-		SET status=$1, end_timestamp=$2 WHERE eventgroupinstance_id=$3 AND status IN ($4, $5)`,
-		eventing.EventGroupInstanceStatusQueued, nil, eventgroupInstanceID,
+		SET status=$1, end_timestamp=$2, user_interaction_response=$3,
+		    user_interaction_resolved_by=$4, user_interaction_resolved_at=$5
+		WHERE eventgroupinstance_id=$6 AND status IN ($7, $8)`,
+		eventing.EventGroupInstanceStatusQueued, nil, GetMythicJSONTextFromStruct(map[string]interface{}{}),
+		nil, nil, eventgroupInstanceID,
 		eventing.EventGroupInstanceStatusError, eventing.EventGroupInstanceStatusCancelled)
 	if err != nil {
 		logging.LogError(err, "Failed to update event steps")
@@ -1542,11 +1629,13 @@ func restartFromStepJobs(eventStepInstanceID int, retryAllEventGroups bool) erro
 			eventGroupInstances[i].ID == triggerStep.EventGroupInstanceID {
 
 			_, err = database.DB.Exec(`UPDATE eventstepinstance
-				SET status=$1, end_timestamp=$2 
+				SET status=$1, end_timestamp=$2, user_interaction_response=$3,
+				    user_interaction_resolved_by=$4, user_interaction_resolved_at=$5
 				FROM eventstep
 				WHERE eventstepinstance.eventstep_id = eventstep.id AND 
-				      eventgroupinstance_id=$3 AND (eventstep.name=$4 OR eventstepinstance.order > $5)`,
-				eventing.EventGroupInstanceStatusQueued, nil, eventGroupInstances[i].ID,
+				      eventgroupinstance_id=$6 AND (eventstep.name=$7 OR eventstepinstance.order > $8)`,
+				eventing.EventGroupInstanceStatusQueued, nil, GetMythicJSONTextFromStruct(map[string]interface{}{}),
+				nil, nil, eventGroupInstances[i].ID,
 				triggerStep.EventStep.Name, triggerStep.Order)
 			if err != nil {
 				logging.LogError(err, "Failed to update event steps")
@@ -1641,8 +1730,10 @@ func markStepInstanceAsError(eventStepInstance databaseStructs.EventStepInstance
 func cancelQueuedEventStepInstances(eventGroupInstanceID int) error {
 	_, err := database.DB.Exec(`UPDATE eventstepinstance 
 		SET status=$1, end_timestamp=$2
-		WHERE eventgroupinstance_id=$3 AND status=$4`,
+		WHERE eventgroupinstance_id=$3 AND status IN ($4, $5, $6)`,
 		eventing.EventGroupInstanceStatusCancelled, time.Now().UTC(),
-		eventGroupInstanceID, eventing.EventGroupInstanceStatusQueued)
+		eventGroupInstanceID, eventing.EventGroupInstanceStatusQueued,
+		eventing.EventGroupInstanceStatusAwaitingApproval,
+		eventing.EventGroupInstanceStatusInputNeeded)
 	return err
 }

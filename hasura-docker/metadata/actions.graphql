@@ -428,6 +428,15 @@ type Mutation {
 }
 
 type Mutation {
+  eventingStepUserInteractionSubmit(
+    approved: Boolean
+    comment: String
+    eventstepinstance_id: Int!
+    inputs: jsonb
+  ): eventingStepUserInteractionSubmitOutput
+}
+
+type Mutation {
   eventingTriggerRunAgain(
     eventgroupinstance_id: Int!
   ): eventingTriggerRunAgainOutput
@@ -1312,6 +1321,11 @@ type containerWriteFileOutput {
 }
 
 type eventingTriggerRetryFromStepOutput {
+  status: String!
+  error: String
+}
+
+type eventingStepUserInteractionSubmitOutput {
   status: String!
   error: String
 }

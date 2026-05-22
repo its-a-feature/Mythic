@@ -611,6 +611,17 @@ actions:
       - role: mythic_admin
       - role: developer
     comment: Manually retry an eventgroup instance from a specific instance step by ID
+  - name: eventingStepUserInteractionSubmit
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/eventing_step_user_interaction_submit_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
+    comment: Submit approval or runtime input for an eventing step instance waiting on user interaction
   - name: eventingTriggerRunAgain
     definition:
       kind: synchronous
@@ -1116,6 +1127,7 @@ custom_types:
     - name: containerUploadFileOutput
     - name: containerWriteFileOutput
     - name: eventingTriggerRetryFromStepOutput
+    - name: eventingStepUserInteractionSubmitOutput
     - name: testProxyOutput
     - name: eventingTestFileOutput
     - name: getOperatorPreferencesOutput

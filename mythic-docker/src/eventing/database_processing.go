@@ -13,12 +13,14 @@ import (
 )
 
 var (
-	EventGroupInstanceStatusRunning   = "running"
-	EventGroupInstanceStatusCancelled = "cancelled"
-	EventGroupInstanceStatusSuccess   = "success"
-	EventGroupInstanceStatusError     = "error"
-	EventGroupInstanceStatusQueued    = "queued"
-	EventGroupInstanceStatusSkipped   = "skipped"
+	EventGroupInstanceStatusRunning          = "running"
+	EventGroupInstanceStatusCancelled        = "cancelled"
+	EventGroupInstanceStatusSuccess          = "success"
+	EventGroupInstanceStatusError            = "error"
+	EventGroupInstanceStatusQueued           = "queued"
+	EventGroupInstanceStatusSkipped          = "skipped"
+	EventGroupInstanceStatusAwaitingApproval = "awaiting_approval"
+	EventGroupInstanceStatusInputNeeded      = "input_needed"
 )
 
 func SaveEventGroup(eventGroup *databaseStructs.EventGroup, currentOperatorOperation *databaseStructs.Operatoroperation) error {
@@ -121,8 +123,8 @@ func SaveEventGroup(eventGroup *databaseStructs.EventGroup, currentOperatorOpera
 		eventGroup.Steps[i].EventGroup = eventGroup.ID
 		eventGroup.Steps[i].OperatorID = currentOperatorOperation.CurrentOperator.ID
 		statement, err = database.DB.PrepareNamed(`INSERT INTO eventstep 
-			(operator_id, operation_id, "name", description, eventgroup_id, environment, depends_on, action, action_data, inputs, outputs, "order", continue_on_error)
-			VALUES (:operator_id, :operation_id,:name, :description, :eventgroup_id, :environment, :depends_on, :action, :action_data, :inputs, :outputs, :order, :continue_on_error )
+			(operator_id, operation_id, "name", description, eventgroup_id, environment, depends_on, action, action_data, inputs, outputs, user_interaction, "order", continue_on_error)
+			VALUES (:operator_id, :operation_id,:name, :description, :eventgroup_id, :environment, :depends_on, :action, :action_data, :inputs, :outputs, :user_interaction, :order, :continue_on_error )
 			RETURNING id`)
 		if err != nil {
 			logging.LogError(err, "Failed to create statement for saving eventstep")
@@ -496,6 +498,7 @@ func CreateEventGroupInstance(eventGroupId int, trigger string, triggeringOperat
 			EventStepID:          eventGroupSteps[i].ID,
 			Inputs:               eventGroupSteps[i].Inputs,
 			Outputs:              eventGroupSteps[i].Outputs,
+			UserInteraction:      eventGroupSteps[i].UserInteraction,
 			Status:               EventGroupInstanceStatusQueued,
 			Order:                eventGroupSteps[i].Order,
 			ContinueOnError:      eventGroupSteps[i].ContinueOnError,
@@ -508,8 +511,8 @@ func CreateEventGroupInstance(eventGroupId int, trigger string, triggeringOperat
 		}
 		eventStepInstance.Environment = GetMythicJSONTextFromStruct(eventGroupEnv)
 		_, err = database.DB.NamedExec(`INSERT INTO eventstepinstance
-		(eventgroupinstance_id, operator_id, operation_id, eventstep_id, inputs, outputs, status, "order", environment, continue_on_error)
-		VALUES (:eventgroupinstance_id, :operator_id, :operation_id, :eventstep_id, :inputs, :outputs, :status, :order, :environment, :continue_on_error)`,
+		(eventgroupinstance_id, operator_id, operation_id, eventstep_id, inputs, outputs, user_interaction, status, "order", environment, continue_on_error)
+		VALUES (:eventgroupinstance_id, :operator_id, :operation_id, :eventstep_id, :inputs, :outputs, :user_interaction, :status, :order, :environment, :continue_on_error)`,
 			eventStepInstance)
 		if err != nil {
 			logging.LogError(err, "Failed to create new eventStepInstance")
@@ -558,7 +561,10 @@ func updateAllRemainingStepInstances(eventGroupInstanceId int, status string) er
 		return err
 	}
 	for i, _ := range eventStepInstances {
-		if eventStepInstances[i].Status == EventGroupInstanceStatusQueued || eventStepInstances[i].Status == EventGroupInstanceStatusRunning {
+		if eventStepInstances[i].Status == EventGroupInstanceStatusQueued ||
+			eventStepInstances[i].Status == EventGroupInstanceStatusRunning ||
+			eventStepInstances[i].Status == EventGroupInstanceStatusAwaitingApproval ||
+			eventStepInstances[i].Status == EventGroupInstanceStatusInputNeeded {
 			eventStepInstances[i].Status = status
 			eventStepInstances[i].EndTimestamp.Time = time.Now().UTC()
 			eventStepInstances[i].EndTimestamp.Valid = true
