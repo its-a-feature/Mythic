@@ -205,6 +205,8 @@ func CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(containerName string) {
 			mythicjwt.SCOPE_FILE_WRITE,
 			mythicjwt.SCOPE_TAG_WRITE,
 			mythicjwt.SCOPE_CALLBACK_WRITE,
+			mythicjwt.SCOPE_CHAT_AI_READ,
+			mythicjwt.SCOPE_CHAT_AI_WRITE,
 		}
 		statement, err := database.DB.PrepareNamed(`INSERT INTO apitokens
 		(token_value, operator_id, token_type, active, "name", created_by, task_id, callback_id, scopes)
