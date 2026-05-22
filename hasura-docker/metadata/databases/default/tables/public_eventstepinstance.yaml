@@ -93,12 +93,16 @@ select_permissions:
         - environment
         - inputs
         - outputs
+        - user_interaction
+        - user_interaction_response
         - status
         - stderr
         - stdout
         - created_at
         - end_timestamp
         - updated_at
+        - user_interaction_resolved_at
+        - user_interaction_resolved_by
       filter:
         _and:
           - operation_id:
@@ -120,12 +124,16 @@ select_permissions:
         - environment
         - inputs
         - outputs
+        - user_interaction
+        - user_interaction_response
         - status
         - stderr
         - stdout
         - created_at
         - end_timestamp
         - updated_at
+        - user_interaction_resolved_at
+        - user_interaction_resolved_by
       filter:
         _and:
           - operation_id:
@@ -147,12 +155,16 @@ select_permissions:
         - environment
         - inputs
         - outputs
+        - user_interaction
+        - user_interaction_response
         - status
         - stderr
         - stdout
         - created_at
         - end_timestamp
         - updated_at
+        - user_interaction_resolved_at
+        - user_interaction_resolved_by
       filter:
         _and:
           - operation_id:
@@ -174,12 +186,16 @@ select_permissions:
         - environment
         - inputs
         - outputs
+        - user_interaction
+        - user_interaction_response
         - status
         - stderr
         - stdout
         - created_at
         - end_timestamp
         - updated_at
+        - user_interaction_resolved_at
+        - user_interaction_resolved_by
       filter:
         _and:
           - operation_id:

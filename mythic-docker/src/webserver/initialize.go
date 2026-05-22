@@ -625,6 +625,11 @@ func setRoutes(r *gin.Engine) {
 						mythicjwt.SCOPE_EVENTING_WRITE,
 					}),
 					webcontroller.EventingTriggerRetryFromStepWebhook)
+				noSpectators.POST("eventing_step_user_interaction_submit_webhook",
+					authentication.TokenScopeMiddleware([]string{
+						mythicjwt.SCOPE_EVENTING_WRITE,
+					}),
+					webcontroller.EventingStepUserInteractionSubmitWebhook)
 				noSpectators.POST("eventing_trigger_runagain_webhook",
 					authentication.TokenScopeMiddleware([]string{
 						mythicjwt.SCOPE_EVENTING_WRITE,

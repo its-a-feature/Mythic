@@ -1,5 +1,10 @@
 import React, {} from 'react';
-import {EventingStatusChip, EventStepInstanceRenderDialog} from "./EventStepRender";
+import {
+    EventingStatusChip,
+    EventStepInstanceRenderDialog,
+    EventStepUserInteractionDialog,
+    eventingUserInteractionStatuses
+} from "./EventStepRender";
 import {toLocalTime} from "../../utilities/Time";
 import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
 import { gql, useMutation } from '@apollo/client';
@@ -16,6 +21,7 @@ import {snackActions} from "../../utilities/Snackbar";
 import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import OpenInNewTwoToneIcon from '@mui/icons-material/OpenInNewTwoTone';
 import IosShareIcon from '@mui/icons-material/IosShare';
+import RuleTwoToneIcon from '@mui/icons-material/RuleTwoTone';
 import {copyStringToClipboard} from "../../utilities/Clipboard";
 import {ipCompare} from "../Callbacks/CallbacksTable";
 import MythicResizableGrid from "../../MythicComponents/MythicResizableGrid";
@@ -115,6 +121,7 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
     const [openRetryDialog, setOpenRetryDialog] = React.useState(false);
     const [openRunAgainDialog, setOpenRunAgainDialog] = React.useState(false);
     const [openEventStepRender, setOpenEventStepRender] = React.useState(false);
+    const [openUserInteractionDialog, setOpenUserInteractionDialog] = React.useState(false);
     const [openInstanceDropdown, setOpenInstanceDropdown] = React.useState(false);
     const instanceDropdownRef = React.useRef({options: [], anchor: null});
     const selectedLocalInstanceID = React.useRef(0);
@@ -182,6 +189,11 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
         selectedLocalEventGroup.current = e.eventgroup;
         setOpenEventStepRender(true);
     }
+    const openUserInteractionResponseDialog = (e) => {
+        selectedLocalInstanceID.current = e.id;
+        selectedLocalEventGroup.current = e.eventgroup;
+        setOpenUserInteractionDialog(true);
+    }
     const onSaveToClipboard = (e) => {
         let path = window.location.origin;
         path += `/new/eventing?eventgroup=${e.eventgroup.id}&eventgroupinstance=${e.id}`;
@@ -231,6 +243,17 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
             });
         }
         return [
+            ...(eventingUserInteractionStatuses.includes(row.status) ? [{
+                name: "Respond to approval / input",
+                type: "item",
+                icon: <RuleTwoToneIcon style={eventingInstanceMenuIconStyle} />,
+                className: "mythic-menu-item-hover-success",
+                click: ({event}) => {
+                    event?.preventDefault();
+                    event?.stopPropagation();
+                    openUserInteractionResponseDialog(row);
+                },
+            }] : []),
             {
                 name: "Open graph in modal",
                 type: "item",
@@ -571,6 +594,18 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
                                   <EventStepInstanceRenderDialog onClose={() => { setOpenEventStepRender(false); }}
                                                                  selectedEventGroupInstance={selectedLocalInstanceID.current}
                                                                  selectedEventGroup={selectedLocalEventGroup.current}
+                                  />}
+                />
+            }
+            {openUserInteractionDialog &&
+                <MythicDialog fullWidth={true} maxWidth="md" open={openUserInteractionDialog}
+                              onClose={() => {
+                                  setOpenUserInteractionDialog(false);
+                              }}
+                              innerDialog={
+                                  <EventStepUserInteractionDialog
+                                      onClose={() => { setOpenUserInteractionDialog(false); }}
+                                      selectedEventGroupInstance={selectedLocalInstanceID.current}
                                   />}
                 />
             }

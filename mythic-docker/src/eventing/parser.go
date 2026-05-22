@@ -64,6 +64,7 @@ var (
 	TriggerResponseInterceptResponse = "response_intercept_response"
 	TriggerCallbackCheckin           = "callback_checkin"
 	TriggerTagCreate                 = "tag_create"
+	TriggerStepUserInteractionSubmit = "step_user_interaction_submit"
 )
 
 // when to trigger a new workflow
@@ -163,6 +164,7 @@ func Ingest(fileContents []byte) (databaseStructs.EventGroup, error) {
 		databaseEventStep.ActionData = GetMythicJSONTextFromStruct(eventGroup.Steps[i].ActionData)
 		databaseEventStep.Inputs = GetMythicJSONTextFromStruct(eventGroup.Steps[i].Inputs)
 		databaseEventStep.Outputs = GetMythicJSONTextFromStruct(eventGroup.Steps[i].Outputs)
+		databaseEventStep.UserInteraction = GetMythicJSONTextFromStruct(eventGroup.Steps[i].UserInteraction)
 		databaseEventStep.ContinueOnError = eventGroup.Steps[i].ContinueOnError
 		databaseEventGroup.Steps = append(databaseEventGroup.Steps, databaseEventStep)
 	}
