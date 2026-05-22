@@ -776,6 +776,7 @@ func createAIChatMessage(c *gin.Context, operatorOperation *databaseStructs.Oper
 		chatRespondError(c, err.Error())
 		return
 	}
+	chatConfig := getChatChannelConfig(channel)
 	contextIDs := make([]int, len(contextMessages))
 	for i := range contextMessages {
 		contextIDs[i] = contextMessages[i].ID
@@ -786,6 +787,7 @@ func createAIChatMessage(c *gin.Context, operatorOperation *databaseStructs.Oper
 		"response_message_id":   responseMessageID,
 		"retry_of_id":           retryOf,
 		"context_message_limit": chatContextMessageLimit,
+		"config":                chatConfig,
 	})
 	_, _ = database.DB.Exec(`UPDATE chat_request
 		SET context_snapshot=$3::jsonb
@@ -801,6 +803,7 @@ func createAIChatMessage(c *gin.Context, operatorOperation *databaseStructs.Oper
 		ResponseMessageID: responseMessageID,
 		Model:             channel.ChatModel,
 		Prompt:            message,
+		Config:            chatConfig,
 		Context:           contextMessages,
 		Secrets:           rabbitmq.GetSecrets(operatorOperation.CurrentOperator.ID, 0),
 	}, authContext)
@@ -959,6 +962,16 @@ func chatJSONText(input interface{}) databaseStructs.MythicJSONText {
 		}
 	}
 	return rabbitmq.GetMythicJSONTextFromStruct(input)
+}
+
+func getChatChannelConfig(channel databaseStructs.ChatChannel) map[string]interface{} {
+	metadata := channel.AIMetadata.StructValue()
+	for _, key := range []string{"config", "configuration"} {
+		if config, ok := metadata[key].(map[string]interface{}); ok {
+			return config
+		}
+	}
+	return map[string]interface{}{}
 }
 
 func getChatContainer(containerID int) (databaseStructs.ConsumingContainer, error) {

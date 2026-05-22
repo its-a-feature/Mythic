@@ -25,6 +25,7 @@ type ChatContainerRequestMessage struct {
 	ResponseMessageID int                           `json:"response_message_id" mapstructure:"response_message_id"`
 	Model             string                        `json:"model" mapstructure:"model"`
 	Prompt            string                        `json:"prompt" mapstructure:"prompt"`
+	Config            map[string]interface{}        `json:"config" mapstructure:"config"`
 	Context           []ChatContainerContextMessage `json:"context" mapstructure:"context"`
 	Secrets           map[string]interface{}        `json:"secrets" mapstructure:"secrets"`
 }
