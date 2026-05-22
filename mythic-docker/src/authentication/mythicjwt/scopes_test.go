@@ -104,6 +104,18 @@ func TestAllowsScope(t *testing.T) {
 			want:     true,
 		},
 		{
+			name:     "hyphenated resource wildcard grants ai chat scope",
+			granted:  []string{"chat-ai.*"},
+			required: SCOPE_CHAT_AI_WRITE,
+			want:     true,
+		},
+		{
+			name:     "chat write does not grant ai chat write",
+			granted:  []string{SCOPE_CHAT_WRITE},
+			required: SCOPE_CHAT_AI_WRITE,
+			want:     false,
+		},
+		{
 			name:     "file write grants upload",
 			granted:  []string{SCOPE_FILE_WRITE},
 			required: SCOPE_FILE_WRITE,
@@ -231,6 +243,16 @@ func TestHasuraScopeRequirementsUseScalarClaims(t *testing.T) {
 			scope:      SCOPE_OPERATION_WRITE,
 			wantAnchor: "operation",
 			wantClaim:  "x-hasura-scope-operation-write-operation",
+		},
+		{
+			scope:      SCOPE_CHAT_READ,
+			wantAnchor: "operation",
+			wantClaim:  "x-hasura-scope-chat-read-operation",
+		},
+		{
+			scope:      SCOPE_CHAT_AI_WRITE,
+			wantAnchor: "operation",
+			wantClaim:  "x-hasura-scope-chat-ai-write-operation",
 		},
 	}
 

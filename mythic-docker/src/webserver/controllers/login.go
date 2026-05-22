@@ -46,6 +46,8 @@ func Login(c *gin.Context) {
 		"username":                       currentOperation.CurrentOperator.Username,
 		"id":                             currentOperation.CurrentOperator.ID,
 		"user_id":                        currentOperation.CurrentOperator.ID,
+		"admin":                          currentOperation.CurrentOperator.Admin,
+		"view_mode":                      currentOperation.ViewMode,
 		"view_utc_time":                  currentOperation.CurrentOperator.ViewUtcTime,
 		"current_utc_time":               time.Now().UTC(),
 	}
@@ -75,8 +77,12 @@ func GetMeWebhook(c *gin.Context) {
 		"current_operation_banner_color": currentOperation.CurrentOperation.BannerColor,
 		"current_operation_complete":     currentOperation.CurrentOperation.Complete,
 		"current_operation_id":           currentOperation.CurrentOperation.ID,
+		"username":                       currentOperation.CurrentOperator.Username,
 		"user_id":                        currentOperation.CurrentOperator.ID,
 		"id":                             currentOperation.CurrentOperator.ID,
+		"admin":                          currentOperation.CurrentOperator.Admin,
+		"view_mode":                      currentOperation.ViewMode,
+		"view_utc_time":                  currentOperation.CurrentOperator.ViewUtcTime,
 		"current_utc_time":               time.Now().UTC(),
 		"scope_info":                     buildScopeIntrospectionResponse(c, currentClaimsOrNil(c)),
 	})
@@ -162,6 +168,8 @@ func RefreshJWT(c *gin.Context) {
 		"username":                       currentOperation.CurrentOperator.Username,
 		"id":                             currentOperation.CurrentOperator.ID,
 		"user_id":                        currentOperation.CurrentOperator.ID,
+		"admin":                          currentOperation.CurrentOperator.Admin,
+		"view_mode":                      currentOperation.ViewMode,
 		"view_utc_time":                  currentOperation.CurrentOperator.ViewUtcTime,
 		"current_utc_time":               time.Now().UTC(),
 	}

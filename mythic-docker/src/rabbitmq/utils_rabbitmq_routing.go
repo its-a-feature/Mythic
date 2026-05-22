@@ -59,6 +59,9 @@ func GetPtTaskProcessResponseRoutingKey(container string) string {
 func GetPtCommandHelpRoutingKey(container string) string {
 	return fmt.Sprintf("%s_%s", container, PT_COMMAND_HELP_FUNCTION)
 }
+func GetChatContainerRequestRoutingKey(container string) string {
+	return fmt.Sprintf("%s_%s", container, CHAT_REQUEST)
+}
 
 // c2 rpc routing key functions
 func GetC2RPCOpsecChecksRoutingKey(container string) string {
@@ -519,7 +522,7 @@ func (r *rabbitMQConnection) SendRPCMessage(exchange string, queue string, body 
 	logging.LogError(finalError, "failed 3 times")
 	return nil, finalError
 }
-func (r *rabbitMQConnection) ReceiveFromMythicDirectExchange(exchange string, queue string, routingKey string, handler QueueHandler, exclusiveQueue bool) {
+func (r *rabbitMQConnection) ReceiveFromMythicDirectExchange(exchange string, queue string, routingKey string, handler QueueHandler, sequential bool, exclusiveQueue bool) {
 	// exchange is a direct exchange
 	// queue is where the messages get sent to (local name)
 	// routingKey is the specific direct topic we're interested in for the exchange
@@ -603,7 +606,11 @@ func (r *rabbitMQConnection) ReceiveFromMythicDirectExchange(exchange string, qu
 					logging.LogError(err, "RabbitMQ direct exchange auth check failed", "queue", queue)
 					continue
 				}
-				go handler(d)
+				if sequential {
+					handler(d)
+				} else {
+					go handler(d)
+				}
 			}
 			forever <- true
 		}()

@@ -141,6 +141,7 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
                 }
                 break;
             case "auth":
+            case "chat":
                 try{
                     const newSubs = service.subscriptions.map( s => {
                         try{
@@ -300,6 +301,17 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
                         {label: "Identity Providers", value: getSubscriptionNames(w), render: renderIdentityProviderMetadata(w)},
                     ],
                 });
+            case "chat":
+                return renderBaseRow({
+                    w,
+                    typeLabel: "Chat",
+                    metadataItems: [
+                        {label: "Type", value: w.type},
+                        {label: "Version", value: w.semver, chip: true},
+                        {label: "Models", value: getSubscriptionNames(w)},
+                    ],
+                    hasDetails: true,
+                });
             default:
                 return null;
         }
@@ -320,6 +332,18 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
                 );
             case "auth":
                 return null;
+            case "chat":
+                return (
+                    <InstalledServiceDetailSection title="Chat models" count={(w.subscriptions || []).length}>
+                        <InstalledServiceDefinitionList
+                            items={(w.subscriptions || []).map((subscription) => ({
+                                title: subscription.name || subscription,
+                                description: subscription.description || subscription.type || "",
+                            }))}
+                            emptyText="No chat models registered."
+                        />
+                    </InstalledServiceDetailSection>
+                );
             default:
                 return null;
         }

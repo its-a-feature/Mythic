@@ -13,6 +13,7 @@ const getSubtleAccentGradient = (props) => props.theme.gradients?.subtleAccent |
     `linear-gradient(135deg, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.13 : 0.075)} 0%, ${alpha(props.theme.palette.background.paper, 0)} 62%)`;
 const getSubtleAccentHorizontalGradient = (props) => props.theme.gradients?.subtleAccentHorizontal ||
     `linear-gradient(90deg, ${alpha(props.theme.palette.primary.main, props.theme.palette.mode === "dark" ? 0.12 : 0.07)} 0%, ${alpha(props.theme.palette.background.paper, 0)} 100%)`;
+const getSoftBorderColor = (props) => props.theme.table?.borderSoft || props.theme.borderColor;
 
 export const GlobalStyles = createGlobalStyle`
 body {
@@ -130,13 +131,6 @@ tspan {
 .MuiTab-root {
     min-height: unset;
     max-width: unset;
-}
-.MuiSpeedDialAction-staticTooltipLabel {
-    white-space: nowrap;
-    max-width: none;
-}
-.MuiSpeedDialAction-fab {
-    background-color: ${(props) => props.theme.palette.speedDialAction};
 }
 .MuiTooltip-tooltip {
     background-color: ${(props) => props.theme.palette.background.contrast};
@@ -4655,6 +4649,7 @@ tspan {
     line-height: 1.4;
     margin-top: 0.25rem;
     overflow-wrap: anywhere;
+    white-space: pre-wrap;
 }
 .mythic-metadata-grid {
     display: grid;
@@ -9985,7 +9980,7 @@ tspan {
     line-height: 1.35;
     margin: 0;
     overflow: hidden;
-    white-space: normal;
+    white-space: pre-wrap;
 }
 .mythic-installed-service-browser-metadata {
     display: flex;
@@ -10111,6 +10106,7 @@ tspan {
     font-weight: 650;
     line-height: 1.35;
     overflow-wrap: anywhere;
+    white-space: pre-wrap;
 }
 .mythic-installed-service-definition-action {
     align-items: center;
@@ -10478,6 +10474,488 @@ tspan {
 .mythic-search-tab-label .svg-inline--fa {
     color: inherit;
     font-size: 1rem;
+}
+.mythic-chat-layout {
+    display: grid;
+    grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+    gap: 8px;
+    min-height: 0;
+    flex: 1 1 auto;
+    border-radius: 8px;
+    overflow: visible;
+}
+.mythic-chat-sidebar {
+    background-color: ${(props) => alpha(props.theme.palette.background.paper, props.theme.palette.mode === "dark" ? 0.72 : 0.86)};
+    border: 1px solid ${(props) => alpha(props.theme.pageHeaderText?.main || props.theme.palette.text.primary, 0.18)};
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    border-radius: 8px;
+    box-shadow: inset 0 1px 0 ${(props) => alpha(props.theme.pageHeaderText?.main || props.theme.palette.text.primary, 0.12)};
+    overflow: hidden;
+}
+.mythic-chat-sidebar-toolbar {
+    background-color: ${(props) => props.theme.pageHeader?.main || props.theme.palette.background.paper};
+    border-bottom: 1px solid ${(props) => alpha(props.theme.pageHeaderText?.main || props.theme.palette.text.primary, 0.18)};
+    color: ${(props) => props.theme.pageHeaderText?.main || props.theme.palette.text.primary};
+    min-height: 48px;
+}
+.mythic-chat-sidebar-toolbar,
+.mythic-chat-conversation-header,
+.mythic-chat-composer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+}
+.mythic-chat-sidebar-heading {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    min-width: 0;
+}
+.mythic-chat-sidebar-heading .MuiTypography-root {
+    font-weight: 750;
+}
+.mythic-chat-sidebar-count {
+    background-color: ${(props) => alpha(props.theme.pageHeaderText?.main || props.theme.palette.text.primary, 0.1)} !important;
+    border: 1px solid ${(props) => alpha(props.theme.pageHeaderText?.main || props.theme.palette.text.primary, 0.24)} !important;
+    color: ${(props) => props.theme.pageHeaderText?.main || props.theme.palette.text.primary} !important;
+    font-size: 0.68rem !important;
+    font-weight: 800 !important;
+    height: 22px !important;
+}
+.mythic-chat-conversation-header {
+    background-color: ${(props) => props.theme.pageHeader?.main || props.theme.palette.background.paper};
+    border-bottom: 1px solid ${(props) => alpha(props.theme.pageHeaderText?.main || props.theme.palette.text.primary, 0.18)};
+    box-shadow: inset 0 1px 0 ${(props) => alpha(props.theme.pageHeaderText?.main || props.theme.palette.text.primary, 0.12)};
+    color: ${(props) => props.theme.pageHeaderText?.main || props.theme.palette.text.primary};
+    min-height: 54px;
+}
+.mythic-chat-composer {
+    box-shadow: inset 0 1px 0 ${getSoftBorderColor};
+    align-items: center;
+}
+.mythic-chat-channel-section {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 8px;
+    overflow-y: auto;
+}
+.mythic-chat-channel-section > .MuiTypography-caption {
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}
+.mythic-chat-channel-button {
+    align-items: center;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    cursor: pointer;
+    display: grid;
+    gap: 8px;
+    grid-template-columns: 26px minmax(0, 1fr) auto;
+    min-height: 42px;
+    padding: 6px 8px;
+    text-align: left;
+    transition: background-color 120ms ease, border-color 120ms ease;
+}
+.mythic-chat-channel-button:hover {
+    background-color: ${(props) => props.theme.surfaces?.hover || props.theme.palette.action.hover} !important;
+    border-color: ${getSoftBorderColor} !important;
+}
+.mythic-chat-channel-button-selected {
+    box-shadow: inset 3px 0 0 var(--mythic-chat-channel-accent);
+}
+.mythic-chat-channel-icon,
+.mythic-chat-author,
+.mythic-chat-search-channel {
+    align-items: center;
+    display: inline-flex;
+    gap: 5px;
+}
+.mythic-chat-channel-icon {
+    color: var(--mythic-chat-channel-accent);
+    justify-content: center;
+}
+.mythic-chat-channel-button-archived .mythic-chat-channel-icon {
+    color: var(--mythic-chat-channel-warning);
+}
+.mythic-chat-channel-button-archived .mythic-chat-channel-name,
+.mythic-chat-channel-button-archived .mythic-chat-channel-meta {
+    color: var(--mythic-chat-channel-muted);
+}
+.mythic-chat-channel-main {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+.mythic-chat-channel-name {
+    font-weight: 650;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-chat-channel-meta {
+    font-size: 0.74rem;
+    opacity: 0.72;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-chat-channel-states {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+.mythic-chat-channel-state,
+.mythic-chat-unread-badge {
+    align-items: center;
+    background: ${(props) => props.theme.palette.action.selected};
+    border-radius: 999px;
+    display: inline-flex;
+    font-size: 0.66rem;
+    font-weight: 800;
+    line-height: 1.2;
+    padding: 2px 6px;
+    white-space: nowrap;
+}
+.mythic-chat-channel-state-archived {
+    color: var(--mythic-chat-channel-warning);
+    box-shadow: inset 0 0 0 1px var(--mythic-chat-channel-warning);
+}
+.mythic-chat-channel-state-locked {
+    color: var(--mythic-chat-channel-warning);
+}
+.mythic-chat-channel-state-offline {
+    color: var(--mythic-chat-channel-error);
+}
+.mythic-chat-unread-badge {
+    align-self: center;
+    color: var(--mythic-chat-channel-error);
+    box-shadow: inset 0 0 0 1px var(--mythic-chat-channel-error);
+}
+.mythic-chat-main {
+    background-color: ${(props) => props.theme.palette.background.paper};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+.mythic-chat-conversation-icon {
+    align-items: center;
+    border: 1px solid;
+    border-radius: 7px;
+    display: inline-flex;
+    flex: 0 0 auto;
+    height: 32px;
+    justify-content: center;
+    width: 32px;
+}
+.mythic-chat-conversation-title {
+    font-weight: 800 !important;
+    line-height: 1.2 !important;
+}
+.mythic-chat-conversation-subtitle {
+    opacity: 0.82;
+}
+.mythic-chat-header-actions {
+    align-items: center;
+    display: flex;
+    gap: 5px;
+}
+.mythic-chat-messages {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 10px;
+}
+.mythic-chat-message-row {
+    display: flex;
+    justify-content: flex-start;
+}
+.mythic-chat-message-row-mine {
+    justify-content: flex-end;
+}
+.mythic-chat-message {
+    border: 1px solid var(--mythic-chat-markdown-border);
+    border-radius: 8px;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    padding: 0;
+    width: fit-content;
+}
+.mythic-chat-message-header {
+    align-items: center;
+    background: var(--mythic-chat-markdown-surface);
+    border-bottom: 1px solid var(--mythic-chat-markdown-border);
+    display: flex;
+    gap: 8px;
+    justify-content: space-between;
+    margin: 0;
+    padding: 7px 10px;
+}
+.mythic-chat-message-system .mythic-chat-message-header {
+    background: ${(props) => `linear-gradient(135deg, ${alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.34 : 0.24)} 0%, ${alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.18 : 0.12)} 58%, ${alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.08 : 0.06)} 100%)`};
+    border-bottom-color: ${(props) => alpha(props.theme.palette.warning.main, props.theme.palette.mode === "dark" ? 0.36 : 0.28)};
+}
+.mythic-chat-author {
+    font-weight: 750;
+    min-width: 0;
+}
+.mythic-chat-author > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-chat-message-actions {
+    align-items: center;
+    display: flex;
+    gap: 2px;
+    white-space: nowrap;
+
+}
+.mythic-chat-message-actions .MuiTypography-caption {
+    font-size: 0.72rem;
+    font-weight: 650;
+}
+.mythic-chat-message-actions .MuiIconButton-root,
+.mythic-chat-header-actions .MuiIconButton-root {
+    border-radius: 6px;
+    height: 28px;
+    width: 28px;
+}
+.mythic-chat-paragraph {
+    margin: 0 0 6px 0;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+.mythic-chat-paragraph:last-child {
+    margin-bottom: 0;
+}
+.mythic-chat-markdown {
+    overflow-wrap: anywhere;
+    padding: 8px 10px 9px;
+}
+.mythic-chat-edit-box {
+    padding: 8px 10px 9px;
+}
+.mythic-chat-message > .MuiTypography-caption {
+    padding: 0 10px 8px;
+}
+.mythic-chat-heading {
+    font-weight: 800;
+    line-height: 1.25;
+    margin: 0 0 6px 0;
+}
+.mythic-chat-heading-1,
+.mythic-chat-heading-2 {
+    font-size: 1rem;
+}
+.mythic-chat-heading-3,
+.mythic-chat-heading-4,
+.mythic-chat-heading-5,
+.mythic-chat-heading-6 {
+    font-size: 0.9rem;
+}
+.mythic-chat-list {
+    margin: 4px 0 8px 0;
+    padding-left: 1.25rem;
+}
+.mythic-chat-list li {
+    margin: 2px 0;
+    padding-left: 0.15rem;
+}
+.mythic-chat-blockquote {
+    background: var(--mythic-chat-markdown-surface);
+    border: 1px solid var(--mythic-chat-markdown-border);
+    border-left: 3px solid var(--mythic-chat-markdown-border);
+    border-radius: 7px;
+    color: inherit;
+    margin: 6px 0;
+    padding: 4px 8px 4px 10px;
+}
+.mythic-chat-rule {
+    border: 0;
+    border-top: 1px solid var(--mythic-chat-markdown-border);
+    margin: 8px 0;
+}
+.mythic-chat-inline-code {
+    background: var(--mythic-chat-markdown-surface);
+    border: 1px solid var(--mythic-chat-markdown-border);
+    border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.88em;
+    padding: 1px 4px;
+}
+.mythic-chat-code-block {
+    margin: 6px 0;
+    position: relative;
+}
+.mythic-chat-code-block pre {
+    background: var(--mythic-chat-markdown-surface);
+    border: 1px solid var(--mythic-chat-markdown-border);
+    border-radius: 7px;
+    margin: 0;
+    overflow-x: auto;
+    padding: 10px;
+}
+.mythic-chat-code-block code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.86rem;
+}
+.mythic-chat-code-language {
+    background: var(--mythic-chat-markdown-surface-strong);
+    border: 1px solid var(--mythic-chat-markdown-border);
+    border-radius: 4px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 1px 5px;
+    position: absolute;
+    right: 6px;
+    top: 5px;
+}
+.mythic-chat-table-wrap {
+    margin: 6px 0;
+    max-width: 100%;
+    overflow-x: auto;
+    width: fit-content;
+}
+.mythic-chat-table {
+    font-size: 0.82rem;
+    min-width: 100%;
+    width: 100%;
+}
+.mythic-chat-table .MuiTableCell-root {
+    font-size: 0.82rem;
+    vertical-align: top;
+}
+.mythic-chat-edit-box {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.mythic-chat-edit-actions {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+}
+.mythic-chat-dialog-content {
+    padding-top: 20px !important;
+}
+.mythic-chat-composer .MuiFormControl-root {
+    flex: 1 1 auto;
+}
+.mythic-chat-composer .MuiOutlinedInput-root {
+    align-items: center;
+    background: transparent;
+    padding-left: 0;
+}
+.mythic-chat-composer .MuiOutlinedInput-notchedOutline {
+    border: 0 !important;
+}
+.mythic-chat-composer .MuiInputBase-input {
+    padding-left: 0 !important;
+}
+.mythic-chat-send-button .MuiSvgIcon-root {
+    display: block;
+}
+.mythic-chat-system-button.MuiIconButton-root {
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    flex: 0 0 auto;
+    height: 38px;
+    width: 38px;
+}
+.mythic-chat-system-destination {
+    align-items: center;
+    background-color: ${(props) => props.theme.surfaces?.hover || props.theme.palette.action.hover};
+    border: 1px solid ${getSoftBorderColor};
+    border-radius: 7px;
+    display: flex;
+    gap: 8px;
+    min-width: 0;
+    padding: 8px 10px;
+}
+.mythic-chat-system-destination .MuiSvgIcon-root {
+    color: ${(props) => props.theme.palette.warning.main};
+}
+.mythic-chat-system-options {
+    background-color: ${(props) => props.theme.surfaces?.hover || props.theme.palette.action.hover};
+    border: 1px solid ${getSoftBorderColor};
+    border-radius: 7px;
+    padding: 4px 10px;
+}
+.mythic-chat-dialog-content .MuiFormControl-root {
+    margin-top: 4px;
+}
+.mythic-chat-empty-state {
+    align-items: center;
+    align-self: center;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 6px;
+    justify-content: center;
+    min-height: 12rem;
+    opacity: 0.72;
+    text-align: center;
+}
+.mythic-chat-empty-list {
+    background: ${(props) => props.theme.palette.action.hover};
+    border-radius: 7px;
+    font-size: 0.76rem;
+    opacity: 0.72;
+    padding: 9px;
+}
+.mythic-chat-search-results {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 55vh;
+    overflow-y: auto;
+}
+.mythic-chat-search-result {
+    background: transparent;
+    border: 1px solid ${getSoftBorderColor};
+    border-radius: 7px;
+    color: inherit;
+    cursor: pointer;
+    display: grid;
+    gap: 3px;
+    padding: 8px;
+    text-align: left;
+}
+.mythic-chat-search-message {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-chat-search-meta {
+    font-size: 0.74rem;
+    opacity: 0.72;
+}
+@media (max-width: 900px) {
+    .mythic-chat-layout {
+        grid-template-columns: 1fr;
+    }
+    .mythic-chat-sidebar {
+        max-height: 220px;
+    }
+    .mythic-chat-message {
+        max-width: 100%;
+        min-width: 0;
+    }
 }
 .ace_editor{
     background-color: ${(props) => props.theme.outputBackgroundColor + "20"};

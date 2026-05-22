@@ -10,6 +10,7 @@ import ManageAccountsTwoToneIcon from '@mui/icons-material/ManageAccountsTwoTone
 import { Link } from 'react-router-dom';
 import List from '@mui/material/List';
 import Divider from '@mui/material/Divider';
+import Badge from '@mui/material/Badge';
 import SportsScoreIcon from '@mui/icons-material/SportsScore';
 import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
@@ -47,8 +48,9 @@ import LocalOfferTwoToneIcon from '@mui/icons-material/LocalOfferTwoTone';
 import LightModeTwoToneIcon from '@mui/icons-material/LightModeTwoTone';
 import DarkModeTwoToneIcon from '@mui/icons-material/DarkModeTwoTone';
 import PlayCircleFilledTwoToneIcon from '@mui/icons-material/PlayCircleFilledTwoTone';
+import ForumTwoToneIcon from '@mui/icons-material/ForumTwoTone';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import {useQuery, gql} from '@apollo/client';
+import {useQuery, useSubscription, gql} from '@apollo/client';
 import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import AssignmentIcon from '@mui/icons-material/Assignment';
@@ -74,6 +76,7 @@ import {reorder} from "./MythicComponents/MythicDraggableList";
 import { useNavigate } from 'react-router-dom';
 import LogoutIcon from '@mui/icons-material/Logout';
 import TuneIcon from '@mui/icons-material/Tune';
+import {getSkewedNow} from "./utilities/Time";
 import {
     MythicDialogBody,
     MythicDialogButton,
@@ -241,6 +244,79 @@ query getGlobalSettings {
   }
 }
 `;
+
+const CHAT_UNREAD_STATUS_QUERY = gql`
+query ChatUnreadStatus {
+  chat_channel(where: {last_message_id: {_is_null: false}}) {
+    id
+    archived
+    last_message_id
+    updated_at
+  }
+  chat_read_state {
+    channel_id
+    last_read_message_id
+    updated_at
+  }
+}
+`;
+
+const CHAT_UNREAD_CHANNELS_STREAM_SUBSCRIPTION = gql`
+subscription ChatUnreadChannelsStream($now: timestamp!) {
+  chat_channel_stream(batch_size: 50, cursor: {initial_value: {updated_at: $now}, ordering: ASC}, where: {last_message_id: {_is_null: false}}) {
+    id
+    archived
+    last_message_id
+    updated_at
+  }
+}
+`;
+
+const CHAT_UNREAD_READ_STATE_STREAM_SUBSCRIPTION = gql`
+subscription ChatUnreadReadStateStream($now: timestamp!) {
+  chat_read_state_stream(batch_size: 50, cursor: {initial_value: {updated_at: $now}, ordering: ASC}) {
+    channel_id
+    last_read_message_id
+    updated_at
+  }
+}
+`;
+
+const unreadTimestampValue = (timestamp) => {
+    if(!timestamp){ return 0; }
+    const value = new Date(timestamp).getTime();
+    return Number.isNaN(value) ? 0 : value;
+};
+
+const mergeUnreadChannels = (current, incoming) => {
+    if(!incoming || incoming.length === 0){ return current; }
+    const rowsByID = new Map((current || []).map((channel) => [channel.id, channel]));
+    incoming.forEach((channel) => {
+        const existing = rowsByID.get(channel.id);
+        if(!existing || unreadTimestampValue(channel.updated_at) >= unreadTimestampValue(existing.updated_at)){
+            rowsByID.set(channel.id, {...existing, ...channel});
+        }
+    });
+    return [...rowsByID.values()];
+};
+
+const mergeUnreadReadStates = (current, incoming) => {
+    if(!incoming || incoming.length === 0){ return current; }
+    return incoming.reduce((prev, readState) => ({
+        ...prev,
+        [readState.channel_id]: Math.max(prev[readState.channel_id] || 0, readState.last_read_message_id || 0),
+    }), current);
+};
+
+const getUnreadChatCount = (channels, readState) => {
+    return (channels || []).reduce((count, channel) => {
+        if(channel.archived){ return count; }
+        const latestMessageID = channel.last_message_id || 0;
+        const lastReadMessageID = readState[channel.id] || 0;
+        return latestMessageID > lastReadMessageID ? count + 1 : count;
+    }, 0);
+};
+
 const Dashboard = () => {
     const theme = useTheme();
   return (
@@ -492,6 +568,80 @@ const Eventing = () => {
       </StyledListItem>
   )
 }
+const Chat = ({me}) => {
+    const theme = useTheme();
+    const streamStart = React.useRef(getSkewedNow().toISOString());
+    const [channels, setChannels] = React.useState([]);
+    const [readState, setReadState] = React.useState({});
+    const {data: initialData, error: initialError} = useQuery(CHAT_UNREAD_STATUS_QUERY, {
+        skip: !me?.user?.current_operation_id,
+        fetchPolicy: "no-cache",
+    });
+    React.useEffect(() => {
+        streamStart.current = getSkewedNow().toISOString();
+        setChannels([]);
+        setReadState({});
+    }, [me?.user?.current_operation_id]);
+    React.useEffect(() => {
+        if(initialData?.chat_channel){
+            setChannels((prev) => mergeUnreadChannels(prev, initialData.chat_channel));
+        }
+        if(initialData?.chat_read_state){
+            setReadState((prev) => mergeUnreadReadStates(prev, initialData.chat_read_state));
+        }
+    }, [initialData]);
+    const {error: channelStreamError} = useSubscription(CHAT_UNREAD_CHANNELS_STREAM_SUBSCRIPTION, {
+        variables: {now: streamStart.current},
+        skip: !me?.user?.current_operation_id,
+        fetchPolicy: "no-cache",
+        onData: ({data}) => {
+            const updates = data.data?.chat_channel_stream || [];
+            if(updates.length > 0){
+                setChannels((prev) => mergeUnreadChannels(prev, updates));
+            }
+        },
+        onError: (errorData) => {
+            console.log("chat unread channel stream error");
+            console.error(errorData);
+        },
+    });
+    const {error: readStateStreamError} = useSubscription(CHAT_UNREAD_READ_STATE_STREAM_SUBSCRIPTION, {
+        variables: {now: streamStart.current},
+        skip: !me?.user?.current_operation_id,
+        fetchPolicy: "no-cache",
+        onData: ({data}) => {
+            const updates = data.data?.chat_read_state_stream || [];
+            if(updates.length > 0){
+                setReadState((prev) => mergeUnreadReadStates(prev, updates));
+            }
+        },
+        onError: (errorData) => {
+            console.log("chat unread status error");
+            console.error(errorData);
+        },
+    });
+    const error = initialError || channelStreamError || readStateStreamError;
+    const unreadCount = React.useMemo(() => getUnreadChatCount(channels, readState), [channels, readState]);
+    const tooltipTitle = error ? "Operation Chat unread status unavailable" :
+        unreadCount > 0 ? `Operation Chat (${unreadCount} unread ${unreadCount === 1 ? "chat" : "chats"})` : "Operation Chat";
+    return (
+        <StyledListItem className={classes.listSubHeader} component={Link} to='/new/chat' >
+            <StyledListItemIcon>
+                <MythicStyledTooltip title={tooltipTitle} tooltipStyle={{display: "inline-flex"}}>
+                    <Badge
+                        badgeContent={error ? "X" : unreadCount}
+                        color={error ? "secondary" : "error"}
+                        invisible={!error && unreadCount === 0}
+                        max={99}
+                    >
+                        <ForumTwoToneIcon style={{color: theme.navBarTextIconColor}} fontSize={"medium"} className="mythicElement"/>
+                    </Badge>
+                </MythicStyledTooltip>
+            </StyledListItemIcon>
+            <ListItemText primary={"Operation Chat"} />
+        </StyledListItem>
+    )
+}
 const JupyterNotebook = () => {
   return (
       <StyledListItem className={classes.listSubHeader} target="_blank"  component={Link} to='/jupyter' key={"jupyter"} >
@@ -586,7 +736,7 @@ const BrowserScripts = () => {
 const AllSettingOptions = [
     "Dashboard", "ActiveCallbacks", "Payloads", "SearchCallbacks", "SearchTasks", "SearchPayloads",
     "SearchFiles", "SearchScreenshots", "SearchCredentials", "SearchKeylogs", "SearchArtifacts", "SearchTokens", "SearchProxies",
-    "SearchProcesses", "SearchTags", "Mitre", "Reporting", "Tags", "Eventing", "JupyterNotebook",
+    "SearchProcesses", "SearchTags", "Mitre", "Reporting", "Tags", "Eventing", "Chat", "JupyterNotebook",
     "GraphQL", "CreatePayload", "CreateWrapper", "PayloadTypesAndC2", "Operations",
     "BrowserScripts"
 ].sort();
@@ -789,6 +939,8 @@ export function TopAppBarVertical(props) {
                   return <Tags key={c + i} />
               case "Eventing":
                   return <Eventing key={c + i} />
+              case "Chat":
+                  return <Chat key={c + i} me={me} />
               case "JupyterNotebook":
                   return <JupyterNotebook key={c + i} />
               case "GraphQL":

@@ -38,6 +38,7 @@ const (
 	CONSUMING_SERVICES_TYPE_WEBHOOK                         = "webhook"
 	CONSUMING_SERVICES_TYPE_EVENTING                        = "eventing"
 	CONSUMING_SERVICES_TYPE_SCRIPTING                       = "scripting"
+	CONSUMING_SERVICES_TYPE_CHAT                            = "chat"
 )
 
 func init() {
