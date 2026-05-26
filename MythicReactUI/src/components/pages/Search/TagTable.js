@@ -22,6 +22,7 @@ import PublicIcon from '@mui/icons-material/Public';
 import {DetailedPayloadTable} from "../Payloads/DetailedPayloadTable";
 import InfoIconOutline from '@mui/icons-material/InfoOutlined';
 import {getReadableTextColor, isValidHexColor} from "../../MythicComponents/MythicColorInput";
+import {FileDownloadLinkWithAuth} from "../../utilities/FileDownloadWithAuth";
 
 const singleLineCellStyle = {
     minWidth: 0,
@@ -277,9 +278,9 @@ function TagTableRowElement(props){
                         }
                     >
                         <TagDetailItem label="Filename" wide>
-                            <Link color="textPrimary" download underline="always" target="_blank" href={"/direct/download/" + props.filemetum.agent_file_id}>
+                            <FileDownloadLinkWithAuth color="textPrimary" download underline="always" target="_blank" href={"/direct/download/" + props.filemetum.agent_file_id}>
                                 {filename}
-                            </Link>
+                            </FileDownloadLinkWithAuth>
                         </TagDetailItem>
                         <TagDetailItem label="Hash" wide>
                             <div className="mythic-search-result-stack">

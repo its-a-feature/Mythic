@@ -99,6 +99,12 @@ type Mutation {
 }
 
 type Mutation {
+  chatRefreshSpecialMessage(
+    message_id: Int!
+  ): ChatActionOutput
+}
+
+type Mutation {
   chatRetryRequest(
     request_id: Int!
   ): ChatActionOutput

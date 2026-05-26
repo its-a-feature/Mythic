@@ -13,6 +13,7 @@ import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import {PreviewFileMediaDialog} from "../../MythicComponents/PreviewFileMedia";
 import {faPhotoVideo} from '@fortawesome/free-solid-svg-icons';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import {FileDownloadLinkWithAuth} from "../../utilities/FileDownloadWithAuth";
 
 export function DownloadHistoryDialog(props){
    const [history, setHistory] = React.useState([]);
@@ -59,7 +60,7 @@ export function DownloadHistoryDialog(props){
                                     {hist.deleted ? (
                                         <Typography variant="body2" style={{wordBreak: "break-all"}}>{hist.full_remote_path_text === "" ? hist.filename_text : hist.full_remote_path_text}</Typography>
                                     ) : (
-                                        <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + hist.agent_file_id}>{hist.full_remote_path_text === "" ? hist.filename_text : hist.full_remote_path_text}</Link>
+                                        <FileDownloadLinkWithAuth style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + hist.agent_file_id}>{hist.full_remote_path_text === "" ? hist.filename_text : hist.full_remote_path_text}</FileDownloadLinkWithAuth>
                                     )
                                     }
                                 </div>

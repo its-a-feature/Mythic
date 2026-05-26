@@ -158,6 +158,16 @@ actions:
       - role: mythic_admin
       - role: developer
     comment: Mark a chat channel as read for the current operator
+  - name: chatRefreshSpecialMessage
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/chat_refresh_special_message_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+    comment: Refresh a chat special message from its source object
   - name: chatRetryRequest
     definition:
       kind: synchronous

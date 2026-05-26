@@ -21,10 +21,11 @@ import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
 import {faPhotoVideo} from '@fortawesome/free-solid-svg-icons';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import DeleteIcon from '@mui/icons-material/Delete';
-import {IconButton, Link, Typography} from '@mui/material';
+import {IconButton, Typography} from '@mui/material';
 import {MythicConfirmDialog} from "../../MythicComponents/MythicConfirmDialog";
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import {MythicTableEmptyState} from "../../MythicComponents/MythicStateDisplay";
+import {FileDownloadLinkWithAuth} from "../../utilities/FileDownloadWithAuth";
 
 export function EventFileManageDialog({onClose, selectedEventGroup}) {
 
@@ -142,7 +143,7 @@ function EventFileManageDialogTableRow({eventFile}) {
                 {eventFile.deleted ? (
                     <Typography variant="body2" style={{wordBreak: "break-all"}}>{b64DecodeUnicode(eventFile.filename_text)}</Typography>
                 ) : (
-                    <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + eventFile.agent_file_id}>{b64DecodeUnicode(eventFile.filename_text)}</Link>
+                    <FileDownloadLinkWithAuth style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + eventFile.agent_file_id}>{b64DecodeUnicode(eventFile.filename_text)}</FileDownloadLinkWithAuth>
                 )
                 }
             </MythicStyledTableCell>

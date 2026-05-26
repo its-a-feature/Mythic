@@ -81,9 +81,9 @@ export const SnackMessage = (props) => {
             <Typography variant="subtitle2" >
                     Zip Created! This is available at any time via the "Uploads" page.
             </Typography>
-            <Link color="textPrimary" href={"/direct/download/" + props.file_id} >
+            <FileDownloadLinkWithAuth color="textPrimary" href={"/direct/download/" + props.file_id} >
                 Download here
-            </Link>
+            </FileDownloadLinkWithAuth>
                 
         </React.Fragment>
 
@@ -405,7 +405,7 @@ function FileMetaDownloadTableRow(props){
                     {props.deleted ? (
                         <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.full_remote_path_text === "" ? props.filename_text : props.full_remote_path_text}</Typography>
                         ) : (
-                        <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + props.agent_file_id}>{props.full_remote_path_text === "" ? props.filename_text : props.full_remote_path_text}</Link>
+                        <FileDownloadLinkWithAuth style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + props.agent_file_id}>{props.full_remote_path_text === "" ? props.filename_text : props.full_remote_path_text}</FileDownloadLinkWithAuth>
                         )
                     }
                     {props.complete ? null : (
@@ -823,7 +823,7 @@ function FileMetaUploadTableRow(props){
                     <MythicCallbackGroupsDisplay groups={props?.task?.callback.mythictree_groups} />
                     {props.deleted ? (<Typography variant="body2" style={{wordBreak: "break-all"}}>{props.full_remote_path_text}</Typography>) : (
                         props.complete ? (
-                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" +  props.agent_file_id}>{props.full_remote_path_text}</Link>
+                            <FileDownloadLinkWithAuth style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" +  props.agent_file_id}>{props.full_remote_path_text}</FileDownloadLinkWithAuth>
                         ) : (
                             <React.Fragment>
                                 <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.full_remote_path_text}</Typography> <Typography color="secondary" style={{wordBreak: "break-all"}} >{props.chunks_received} / {props.total_chunks} Chunks Received</Typography>
@@ -950,7 +950,7 @@ function FileMetaUploadTableRow(props){
                                                                 <MythicCallbackGroupsDisplay groups={props.copy_of_file?.task?.callback.mythictree_groups} />
                                                                 {props.copy_of_file.deleted ? (<Typography variant="body2" style={{wordBreak: "break-all"}}>{props.copy_of_file.full_remote_path_text}</Typography>) : (
                                                                     props.copy_of_file.complete ? (
-                                                                        <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" +  props.copy_of_file.agent_file_id}>{props.copy_of_file.full_remote_path_text}</Link>
+                                                                        <FileDownloadLinkWithAuth style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" +  props.copy_of_file.agent_file_id}>{props.copy_of_file.full_remote_path_text}</FileDownloadLinkWithAuth>
                                                                     ) : (
                                                                         <React.Fragment>
                                                                             <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.copy_of_file.full_remote_path_text}</Typography> <Typography color="secondary" style={{wordBreak: "break-all"}} >{props.copy_of_file.chunks_received} / {props.copy_of_file.total_chunks} Chunks Received</Typography>
@@ -1464,7 +1464,7 @@ function FileMetaEventingWorkflowsTableRow(props){
                     )}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + props.agent_file_id}>{props.filename_text}</Link>
+                    <FileDownloadLinkWithAuth style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + props.agent_file_id}>{props.filename_text}</FileDownloadLinkWithAuth>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell  style={{wordBreak: "break-all"}}>
                     <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/new/eventing?eventgroup=" +  props.eventgroup?.id}>{props.eventgroup?.name}</Link>

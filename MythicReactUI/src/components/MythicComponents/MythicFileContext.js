@@ -2,13 +2,13 @@ import React from 'react';
 import {snackActions} from "../utilities/Snackbar";
 import {MythicStyledTooltip} from "./MythicStyledTooltip";
 import {MythicDialog} from "./MythicDialog";
-import {Link} from '@mui/material';
 import {gql} from '@apollo/client';
 import {b64DecodeUnicode} from "../pages/Callbacks/ResponseDisplay";
 import {PreviewFileMediaDialog} from "./PreviewFileMedia";
 import {faPhotoVideo} from '@fortawesome/free-solid-svg-icons';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {useMythicLazyQuery} from "../utilities/useMythicLazyQuery";
+import {FileDownloadLinkWithAuth} from "../utilities/FileDownloadWithAuth";
 
 export const getfileInformationQuery = gql`
 query getFileInformation($file_id: String!){
@@ -85,9 +85,9 @@ export const MythicFileContext = ({agent_file_id, display_link, filename, extraS
                                  style={{height: "20px", position: "relative", cursor: "pointer", display: "inline-block"}}
                                  onClick={onPreviewMedia} />
             </MythicStyledTooltip>
-            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + fileData.agent_file_id}>
+            <FileDownloadLinkWithAuth style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + fileData.agent_file_id}>
                 {fileData.display_link === "" ? window.location.origin + "/direct/download/" + fileData.agent_file_id : fileData.display_link}
-            </Link>
+            </FileDownloadLinkWithAuth>
             {openPreviewMediaDialog &&
                 <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewMediaDialog}
                               onClose={onClose}

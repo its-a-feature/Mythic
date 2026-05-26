@@ -71,7 +71,7 @@ import {
     DragDropContext,
     Droppable,
 } from "@hello-pangea/dnd";
-import {reorder} from "./MythicComponents/MythicDraggableList";
+import {MythicDraggablePortal, reorder} from "./MythicComponents/MythicDraggableList";
 import { useNavigate } from 'react-router-dom';
 import LogoutIcon from '@mui/icons-material/Logout';
 import TuneIcon from '@mui/icons-material/Tune';
@@ -757,7 +757,7 @@ const TopAppBarVerticalAdjustShortcutsDialog = ({onClose, onSave, sideShortcuts}
     return (
         <React.Fragment>
             <DialogTitle id="form-dialog-title">Configure Side Shortcuts</DialogTitle>
-            <DialogContent dividers={true} sx={{p: 0}}>
+            <DialogContent dividers={true} sx={{p: 0, overflow: "hidden"}}>
                 <MythicDialogBody sx={{height: "min(70vh, 42rem)", p: 1}}>
                     <MythicDialogSection
                         title="Side Shortcuts"
@@ -783,40 +783,47 @@ const TopAppBarVerticalAdjustShortcutsDialog = ({onClose, onSave, sideShortcuts}
                                     <div className="mythic-reorder-list" ref={provided.innerRef} {...provided.droppableProps}>
                                         {currentShortcuts.map((c, i) => (
                                             <Draggable key={c + i} draggableId={`shortcut-${c}-${i}`} index={i}>
-                                                {(provided2, snapshot) => (
-                                                    <div
-                                                        ref={provided2.innerRef}
-                                                        className={`mythic-reorder-row${snapshot.isDragging ? " mythic-reorder-row-dragging" : ""}`}
-                                                        {...provided2.draggableProps}
-                                                    >
-                                                        <span className="mythic-reorder-drag-handle" {...provided2.dragHandleProps}>
-                                                            <DragHandleIcon fontSize="small" />
-                                                        </span>
-                                                        <div className="mythic-reorder-row-main">
-                                                            <Select
-                                                                className="mythic-reorder-select"
-                                                                fullWidth
-                                                                size="small"
-                                                                value={c}
-                                                                onChange={(e) => onChangeShortcutValue(e, i)}
-                                                            >
-                                                                {AllSettingOptions.map((opt) => (
-                                                                    <MenuItem value={opt} key={opt}>{opt}</MenuItem>
-                                                                ))}
-                                                            </Select>
+                                                {(provided2, snapshot) => {
+                                                    const row = (
+                                                        <div
+                                                            ref={provided2.innerRef}
+                                                            className={`mythic-reorder-row${snapshot.isDragging ? " mythic-reorder-row-dragging" : ""}`}
+                                                            {...provided2.draggableProps}
+                                                        >
+                                                            <span className="mythic-reorder-drag-handle" {...provided2.dragHandleProps}>
+                                                                <DragHandleIcon fontSize="small" />
+                                                            </span>
+                                                            <div className="mythic-reorder-row-main">
+                                                                <Select
+                                                                    className="mythic-reorder-select"
+                                                                    fullWidth
+                                                                    size="small"
+                                                                    value={c}
+                                                                    onChange={(e) => onChangeShortcutValue(e, i)}
+                                                                >
+                                                                    {AllSettingOptions.map((opt) => (
+                                                                        <MenuItem value={opt} key={opt}>{opt}</MenuItem>
+                                                                    ))}
+                                                                </Select>
+                                                            </div>
+                                                            <div className="mythic-reorder-row-actions">
+                                                                <IconButton
+                                                                    aria-label={`Remove ${c}`}
+                                                                    className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger"
+                                                                    size="small"
+                                                                    onClick={() => removeShortcut(i)}
+                                                                >
+                                                                    <DeleteIcon fontSize="small" />
+                                                                </IconButton>
+                                                            </div>
                                                         </div>
-                                                        <div className="mythic-reorder-row-actions">
-                                                            <IconButton
-                                                                aria-label={`Remove ${c}`}
-                                                                className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger"
-                                                                size="small"
-                                                                onClick={() => removeShortcut(i)}
-                                                            >
-                                                                <DeleteIcon fontSize="small" />
-                                                            </IconButton>
-                                                        </div>
-                                                    </div>
-                                                )}
+                                                    );
+                                                    return (
+                                                        <MythicDraggablePortal isDragging={snapshot.isDragging}>
+                                                            {row}
+                                                        </MythicDraggablePortal>
+                                                    );
+                                                }}
                                             </Draggable>
                                         ))}
                                         {provided.placeholder}

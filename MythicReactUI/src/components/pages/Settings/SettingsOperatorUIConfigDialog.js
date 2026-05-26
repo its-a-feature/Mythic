@@ -40,7 +40,7 @@ import {
     MythicDialogFooter,
     MythicDialogSection,
 } from "../../MythicComponents/MythicDialogLayout";
-import {reorder} from "../../MythicComponents/MythicDraggableList";
+import {MythicDraggablePortal, reorder} from "../../MythicComponents/MythicDraggableList";
 import {
     Draggable,
     DragDropContext,
@@ -166,7 +166,7 @@ const TaskingMetadataLayoutDialog = ({initialItems, onClose, onReset, onSubmit})
     return (
         <>
             <DialogTitle id="form-dialog-title">Tasking Metadata Layout</DialogTitle>
-            <DialogContent dividers={true} sx={{p: 0}}>
+            <DialogContent dividers={true} sx={{p: 0, overflow: "hidden"}}>
                 <MythicDialogBody sx={{height: "min(70vh, 38rem)", p: 1}}>
                     <MythicDialogSection
                         title="Metadata Chips"
@@ -219,35 +219,42 @@ const TaskingMetadataDraggableList = ({items, onDragEnd, onToggleVisibility}) =>
 const TaskingMetadataDraggableListItem = ({item, index, onToggleVisibility}) => {
     return (
         <Draggable draggableId={item.name} index={index}>
-            {(provided, snapshot) => (
-                <div
-                    ref={provided.innerRef}
-                    className={`mythic-reorder-row mythic-tasking-metadata-row${snapshot.isDragging ? " mythic-reorder-row-dragging" : ""}${item.visible ? "" : " mythic-reorder-row-disabled"}`}
-                    {...provided.draggableProps}
-                >
-                    <span className="mythic-reorder-drag-handle" {...provided.dragHandleProps}>
-                        <DragHandleIcon fontSize="small" />
-                    </span>
-                    <div className="mythic-reorder-row-main">
-                        <span className="mythic-reorder-row-title">{item.display}</span>
-                        <span className="mythic-reorder-row-description">{item.description}</span>
+            {(provided, snapshot) => {
+                const row = (
+                    <div
+                        ref={provided.innerRef}
+                        className={`mythic-reorder-row mythic-tasking-metadata-row${snapshot.isDragging ? " mythic-reorder-row-dragging" : ""}${item.visible ? "" : " mythic-reorder-row-disabled"}`}
+                        {...provided.draggableProps}
+                    >
+                        <span className="mythic-reorder-drag-handle" {...provided.dragHandleProps}>
+                            <DragHandleIcon fontSize="small" />
+                        </span>
+                        <div className="mythic-reorder-row-main">
+                            <span className="mythic-reorder-row-title">{item.display}</span>
+                            <span className="mythic-reorder-row-description">{item.description}</span>
+                        </div>
+                        <div className="mythic-reorder-row-actions">
+                            <IconButton
+                                aria-label={item.visible ? `Hide ${item.display}` : `Show ${item.display}`}
+                                className={`mythic-table-row-icon-action ${item.visible ? "mythic-table-row-icon-action-hover-danger" : "mythic-table-row-icon-action-hover-info"}`}
+                                size="small"
+                                onClick={() => onToggleVisibility(index)}
+                            >
+                                {item.visible ? (
+                                    <VisibilityIcon fontSize="small" />
+                                ) : (
+                                    <VisibilityOffIcon fontSize="small" />
+                                )}
+                            </IconButton>
+                        </div>
                     </div>
-                    <div className="mythic-reorder-row-actions">
-                        <IconButton
-                            aria-label={item.visible ? `Hide ${item.display}` : `Show ${item.display}`}
-                            className={`mythic-table-row-icon-action ${item.visible ? "mythic-table-row-icon-action-hover-danger" : "mythic-table-row-icon-action-hover-info"}`}
-                            size="small"
-                            onClick={() => onToggleVisibility(index)}
-                        >
-                            {item.visible ? (
-                                <VisibilityIcon fontSize="small" />
-                            ) : (
-                                <VisibilityOffIcon fontSize="small" />
-                            )}
-                        </IconButton>
-                    </div>
-                </div>
-            )}
+                );
+                return (
+                    <MythicDraggablePortal isDragging={snapshot.isDragging}>
+                        {row}
+                    </MythicDraggablePortal>
+                );
+            }}
         </Draggable>
     )
 }
