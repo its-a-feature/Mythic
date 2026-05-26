@@ -38,6 +38,7 @@ import TableRow from '@mui/material/TableRow';
 import TableHead from '@mui/material/TableHead';
 import {OperationTableRowNotificationsDialog} from "../Operations/OperationTableRowNotificationsDialog";
 import {OperationTableRowUpdateOperatorsDialog} from "../Operations/OperationTableRowUpdateOperatorsDialog";
+import {FileDownloadLinkWithAuth} from "../../utilities/FileDownloadWithAuth";
 import EditIcon from '@mui/icons-material/Edit';
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import {newOperationMutation, Update_Operation} from "../Operations/OperationTable";
@@ -48,7 +49,6 @@ import PlaylistRemoveIcon from '@mui/icons-material/PlaylistRemove';
 import {PreviewFileMediaDialog} from "../../MythicComponents/PreviewFileMedia";
 import {faPhotoVideo} from '@fortawesome/free-solid-svg-icons';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {Link} from '@mui/material';
 import {ResponseDisplayScreenshotModal} from "../Callbacks/ResponseDisplayScreenshotModal";
 import KeyboardArrowRight from '@mui/icons-material/KeyboardArrowRight';
 import KeyboardArrowLeft from '@mui/icons-material/KeyboardArrowLeft';
@@ -1482,7 +1482,7 @@ const Top10RecentFileDownloadsDashboardElement = ({me, data, editing, removeElem
                         <FontAwesomeIcon className="mythic-dashboard-table-icon-action mythic-dashboard-table-icon-action-info" icon={faPhotoVideo}
                                          onClick={(e) => onPreviewMedia(e, newFile)} />
                     </MythicStyledTooltip>
-                    <Link className="mythic-dashboard-table-link" color="textPrimary" underline="always" href={"/direct/download/" + newFile.agent_file_id}>{newFile.filename_text}</Link>
+                    <FileDownloadLinkWithAuth className="mythic-dashboard-table-link" color="textPrimary" underline="always" href={"/direct/download/" + newFile.agent_file_id}>{newFile.filename_text}</FileDownloadLinkWithAuth>
                     {!newFile.complete &&
                         <Typography className="mythic-dashboard-table-secondary" color="secondary" >({newFile.chunks_received} / <b>{newFile.total_chunks}</b>) Chunks</Typography>
                     }

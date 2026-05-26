@@ -120,6 +120,20 @@ const ParameterEmptyInline = ({children}) => (
         {children}
     </Box>
 );
+const getCredentialChoiceIndex = (choices, credential) => {
+    if(!credential || choices.length === 0){
+        return -1;
+    }
+    if(credential.id !== undefined && credential.id !== null){
+        return choices.findIndex((choice) => choice.id === credential.id);
+    }
+    return choices.findIndex((choice) =>
+        choice.account === credential.account &&
+        choice.realm === credential.realm &&
+        choice.type === credential.type &&
+        choice.credential_text === credential.credential_text
+    );
+};
 export function TaskParametersDialogRow(props){
     const [value, setValue] = React.useState('');
     const currentParameterGroup = React.useRef(props.parameterGroupName);
@@ -494,14 +508,26 @@ export function TaskParametersDialogRow(props){
            }
            if(props.type === "CredentialJson"){
                //console.log("updating choiceOptions from useEffect in dialog row: ", [...props.choices])
-               setChoiceOptions([...props.choices]);
+               const credentialChoices = [...props.choices];
+               setChoiceOptions(credentialChoices);
                if(updateToLatestCredential.current){
-                setValue(0);
-                props.onChange(props.name, {...props.choices[0]}, false);
-                updateToLatestCredential.current = false;
-               }
-               if(value === ""){
-                   setValue(0);
+                   if(credentialChoices.length > 0){
+                       setValue(0);
+                       props.onChange(props.name, {...credentialChoices[0]}, false);
+                   }else{
+                       setValue("");
+                   }
+                   updateToLatestCredential.current = false;
+               }else{
+                   const selectedCredentialIndex = getCredentialChoiceIndex(credentialChoices, props.value);
+                   if(selectedCredentialIndex >= 0){
+                       setValue(selectedCredentialIndex);
+                   }else if(credentialChoices.length > 0){
+                       setValue(0);
+                       props.onChange(props.name, {...credentialChoices[0]}, false);
+                   }else{
+                       setValue("");
+                   }
                }
            }
            if(props.dynamic_query_function === null && value===""){
@@ -553,7 +579,7 @@ export function TaskParametersDialogRow(props){
     }
     const onChangeCredentialJSONValue = (evt) => {
         setValue(evt.target.value);
-        props.onChange(props.name, ChoiceOptions[evt.target.value], false);
+        props.onChange(props.name, {...ChoiceOptions[evt.target.value]}, false);
     }
     const onChangeChooseMultiple = (event) => {
         const { value:options } = event.target;

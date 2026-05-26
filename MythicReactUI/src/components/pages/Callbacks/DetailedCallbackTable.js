@@ -33,6 +33,7 @@ import PublicIcon from '@mui/icons-material/Public';
 import {payloadsCallbackAllowed} from "../Payloads/Payloads";
 import Switch from '@mui/material/Switch';
 import {MythicSectionHeader} from "../../MythicComponents/MythicPageHeader";
+import {FileDownloadLinkWithAuth} from "../../utilities/FileDownloadWithAuth";
 
 const GET_Payload_Details = gql`
 query GetCallbackDetails($callback_id: Int!) {
@@ -383,9 +384,9 @@ export function DetailedCallbackTable(props){
                     <TableRow hover>
                         <TableCell>Download URL</TableCell>
                         <TableCell style={{display: "flex", alignItems: "center"}}>
-                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + data.callback_by_pk.payload.filemetum.agent_file_id}>
+                            <FileDownloadLinkWithAuth style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + data.callback_by_pk.payload.filemetum.agent_file_id}>
                                 {window.location.origin + "/direct/download/" + data.callback_by_pk.payload.filemetum.agent_file_id}
-                            </Link>
+                            </FileDownloadLinkWithAuth>
                             <MythicStyledTooltip title={"Host Payload Through C2"} >
                                 <PublicIcon color={"info"} style={{marginLeft: "20px", cursor: "pointer"}} onClick={()=>{setOpenHostDialog(true);}}  />
                             </MythicStyledTooltip>

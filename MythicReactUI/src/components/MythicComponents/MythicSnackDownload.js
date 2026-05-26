@@ -1,7 +1,7 @@
 import React from 'react';
 import { styled } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
-import { Link } from '@mui/material';
+import {FileDownloadLinkWithAuth} from "../utilities/FileDownloadWithAuth";
 
 const PREFIX = 'MythicSnackDownload';
 
@@ -77,9 +77,9 @@ export const MythicSnackDownload = (props) => {
             </Typography>
                 <React.Fragment>
                     <Typography gutterBottom>File ready for download</Typography>
-                    <Link color="textPrimary" download={true} href={"/direct/download/" + props.file_id} target="_blank">
+                    <FileDownloadLinkWithAuth color="textPrimary" download={true} href={"/direct/download/" + props.file_id} target="_blank">
                         Download here
-                    </Link>
+                    </FileDownloadLinkWithAuth>
                 </React.Fragment>
         </Root>
     );

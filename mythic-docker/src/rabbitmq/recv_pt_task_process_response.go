@@ -17,7 +17,7 @@ func init() {
 		Queue:      PT_TASK_PROCESS_RESPONSE_RESPONSE,
 		RoutingKey: PT_TASK_PROCESS_RESPONSE_RESPONSE,
 		Handler:    processPtTaskProcessResponseMessages,
-		Scopes:     []string{mythicjwt.SCOPE_RESPONSE_READ},
+		Scopes:     []string{mythicjwt.SCOPE_TASK_WRITE},
 	})
 }
 

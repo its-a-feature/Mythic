@@ -172,9 +172,6 @@ func validateEventingStepUserInteractionSubmit(input EventingStepUserInteraction
 	if eventing.UserInteractionInputRequired(config) {
 		submittedInputs := normalizeSubmittedUserInteractionInputs(input.Inputs, config)
 		for _, field := range eventing.UserInteractionInputs(config) {
-			if !eventing.UserInteractionFieldRequired(field) {
-				continue
-			}
 			fieldName := eventing.UserInteractionFieldName(field)
 			if fieldName == "" {
 				continue

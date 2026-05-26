@@ -1,6 +1,6 @@
 import React from 'react';
 import { OperationTable } from './OperationTable';
-import {useQuery, gql, useLazyQuery} from '@apollo/client';
+import {useQuery, gql} from '@apollo/client';
 import {CommandBlockListTable} from './CommandBlockListTable';
 import { snackActions } from '../../utilities/Snackbar';
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
@@ -63,29 +63,30 @@ export function Operations(props){
         snackActions.error("Failed to get list of operations");
       }
     });
-    const getBlockListsSuccess = (data) => {
-      const condensed = data.disabledcommandsprofile.reduce( (prev, cur) => {
+    const getBlockListsSuccess = React.useCallback((data) => {
+      const condensed = (data?.disabledcommandsprofile || []).reduce( (prev, cur) => {
+        const payloadTypeName = cur?.command?.payloadtype?.name || "Unknown";
         if(prev[cur.name] === undefined){
           prev[cur.name] = {};
         }
-        if(prev[cur.name][cur.command.payloadtype.name] === undefined){
-          prev[cur.name][cur.command.payloadtype.name] = [];
+        if(prev[cur.name][payloadTypeName] === undefined){
+          prev[cur.name][payloadTypeName] = [];
         }
-        prev[cur.name][cur.command.payloadtype.name].push(cur);
-        return {...prev};
+        prev[cur.name][payloadTypeName].push(cur);
+        return prev;
       }, {});
-      // now break out into array
-      let arrayForm = [];
-      for(const [key, value] of Object.entries(condensed)){
-        arrayForm.push({"name": key, entries: value});
-      }
+      let arrayForm = Object.entries(condensed).map(([key, value]) => ({"name": key, entries: value}));
+      arrayForm.sort((a, b) => a.name.localeCompare(b.name));
       setBlockLists(arrayForm);
-    }
-    const getBlockListsError = (data) => {
+    }, []);
+    const getBlockListsError = React.useCallback(() => {
       snackActions.error("Failed to get blocklist options");
-    }
-    const getBlockLists = useMythicLazyQuery(GET_BlockLists, {fetchPolicy: "network-only"
-    });
+    }, []);
+    const getBlockListOptions = React.useMemo(() => ({fetchPolicy: "network-only"}), []);
+    const getBlockLists = useMythicLazyQuery(GET_BlockLists, getBlockListOptions);
+    const refreshBlockLists = React.useCallback(() => {
+      return getBlockLists().then(({data}) => getBlockListsSuccess(data)).catch((error) => getBlockListsError(error));
+    }, [getBlockLists, getBlockListsError, getBlockListsSuccess]);
     const onUpdateOperation = ({id, name, complete}) => {
       const updatedOperations = operations.map( o => {
         if(o.id === id){
@@ -109,11 +110,11 @@ export function Operations(props){
       setOperations(updatedOps);
     }
     const onUpdateCurrentOperation = (operation_id) => {
-      getBlockLists().then(({data}) => getBlockListsSuccess(data)).catch(({data}) => getBlockListsError(data));
+      refreshBlockLists();
     }
     React.useEffect( () => {
-      getBlockLists().then(({data}) => getBlockListsSuccess(data)).catch(({data}) => getBlockListsError(data));
-    }, []);
+      refreshBlockLists();
+    }, [refreshBlockLists]);
     return (
       <MythicPageBody>
         <OperationTable operations={operations}

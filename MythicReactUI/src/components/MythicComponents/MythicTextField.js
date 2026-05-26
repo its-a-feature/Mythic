@@ -66,6 +66,7 @@ const MythicTextField = ({
                              disabled = false,
                              marginTop = "5px",
                              InputProps = {},
+                             inputProps = {},
                              inputLabelProps  = {},
                              multiline = false,
                              maxRows = 10,
@@ -104,6 +105,9 @@ const MythicTextField = ({
           handleChange(event);
       }
     }
+    const resolvedAutoComplete = autoComplete === undefined ? "new-password" : (
+        typeof autoComplete === "string" ? autoComplete : (autoComplete ? "on" : "off")
+    );
 
     return (
         <Root style={{width:  width ? width + "rem" : "100%", display: inline ? "inline-block": "",}}>
@@ -118,7 +122,7 @@ const MythicTextField = ({
                 autoFocus={autoFocus}
                 variant={variant}
                 data-lpignore={true}
-                autoComplete={autoComplete === undefined ? "new-password" : (autoComplete ? "on" : "off")}
+                autoComplete={resolvedAutoComplete}
                 disabled={disabled}
                 required={requiredValue}
                 InputLabelProps={inputLabelProps}
@@ -128,6 +132,7 @@ const MythicTextField = ({
                 type={type}
                 onWheel={ event => event.target.blur() }
                 InputProps={{...InputProps, spellCheck: false}}
+                inputProps={{...inputProps, autoComplete: resolvedAutoComplete}}
                 helperText={localError ? errorText : helperText}
                 style={{
                     padding:0,

@@ -755,6 +755,9 @@ func processEventFinishAndNextStepStart(eventNotification EventNotification) {
 			if err != nil {
 				logging.LogError(err, "Failed to update eventstepinstance")
 			}
+			if err = eventing.RefreshExistingUserInteractionChatMessage(eventSteps[i].ID, eventSteps[i].OperationID); err != nil {
+				logging.LogError(err, "failed to refresh eventing user interaction chat message after step finished")
+			}
 			_, err = database.DB.Exec(`UPDATE apitokens SET deleted=true, active=false 
                  WHERE eventstepinstance_id=$1`, triggeringStep.ID)
 			if err != nil {
@@ -962,7 +965,7 @@ func startEventStepInstance(eventStepInstanceID int) error {
 		logging.LogError(err, "failed to get all event step instances")
 		return err
 	}
-	userSuppliedInputs, waitingForUser, err := prepareEventStepUserInteraction(eventStepInstance)
+	userSuppliedInputs, waitingForUser, err := prepareEventStepUserInteraction(eventStepInstance, allEventSteps)
 	if err != nil {
 		return err
 	}
@@ -1152,11 +1155,12 @@ func replaceVariableInActionDataString(actionDataString string, key string, val 
 	}
 }
 
-func prepareEventStepUserInteraction(eventStepInstance databaseStructs.EventStepInstance) (map[string]interface{}, bool, error) {
+func prepareEventStepUserInteraction(eventStepInstance databaseStructs.EventStepInstance, allEventSteps []databaseStructs.EventStepInstance) (map[string]interface{}, bool, error) {
 	config := eventStepInstance.UserInteraction.StructValue()
 	if len(config) == 0 {
 		config = eventStepInstance.EventStep.UserInteraction.StructValue()
 	}
+	config = resolveUserInteractionConfigValueSources(config, allEventSteps)
 	if !eventing.UserInteractionHasRequirements(config) {
 		return map[string]interface{}{}, false, nil
 	}
@@ -1191,7 +1195,84 @@ func prepareEventStepUserInteraction(eventStepInstance databaseStructs.EventStep
 		logging.LogError(err, "failed to update event group to waiting for user interaction")
 		return map[string]interface{}{}, false, err
 	}
+	if err = eventing.UpsertUserInteractionChatMessage(eventStepInstance.ID, eventStepInstance.OperationID); err != nil {
+		logging.LogError(err, "failed to create eventing user interaction chat message")
+	}
 	return map[string]interface{}{}, true, nil
+}
+
+func resolveUserInteractionConfigValueSources(config map[string]interface{}, allEventSteps []databaseStructs.EventStepInstance) map[string]interface{} {
+	if len(config) == 0 {
+		return config
+	}
+	resolvedConfig := map[string]interface{}{}
+	configBytes, err := json.Marshal(config)
+	if err == nil {
+		err = json.Unmarshal(configBytes, &resolvedConfig)
+	}
+	if err != nil {
+		for key, value := range config {
+			resolvedConfig[key] = value
+		}
+	}
+	inputs := eventing.UserInteractionInputs(resolvedConfig)
+	for i := range inputs {
+		source, ok := inputs[i]["default_value_source"]
+		if !ok {
+			logging.LogError(nil, "failed to get default_value_source for user interaction", "input", inputs[i])
+			continue
+		}
+		inputType, ok := inputs[i]["type"].(string)
+		if !ok {
+			logging.LogError(nil, "failed to get type", "input", inputs[i])
+			continue
+		}
+		if source.(string) != "custom" {
+			resolvedValue, ok := resolveUserInteractionStepOutputReference(source.(string), allEventSteps)
+			if !ok {
+				logging.LogError(nil, "failed to resolve user interaction step output reference", "source", source, "all_event_steps", allEventSteps)
+				continue
+			}
+			if inputType == eventing.UserInteractionInputTypeChooseOne {
+				switch resolvedValue.(type) {
+				case string:
+					inputs[i]["choices"] = []string{resolvedValue.(string)}
+				case []string:
+					inputs[i]["choices"] = resolvedValue
+				case []interface{}:
+					inputs[i]["choices"] = resolvedValue
+				default:
+					logging.LogError(nil, "failed to resolve type of user interaction choices", "source", source, "resolvedValue", resolvedValue)
+				}
+			} else {
+				inputs[i]["default_value"] = resolvedValue
+			}
+		} else {
+			if inputType == eventing.UserInteractionInputTypeChooseOne {
+				inputs[i]["choices"] = eventing.NormalizeUserInteractionChoices(inputs[i]["choices"])
+			}
+		}
+	}
+	resolvedConfig["inputs"] = inputs
+	return resolvedConfig
+}
+
+func resolveUserInteractionStepOutputReference(sourceReference string, allEventSteps []databaseStructs.EventStepInstance) (interface{}, bool) {
+	sourcePieces := strings.Split(sourceReference, ".")
+	if len(sourcePieces) < 2 {
+		return nil, false
+	}
+	stepName := sourcePieces[0]
+	outputName := sourcePieces[1]
+	for i := 0; i < len(allEventSteps); i++ {
+		if allEventSteps[i].EventStep.Name != stepName {
+			continue
+		}
+		stepOutputs := allEventSteps[i].Outputs.StructValue()
+		outputValue, ok := stepOutputs[outputName]
+		return outputValue, ok
+	}
+	return nil, false
 }
 
 func resumeWaitingEventStepInstance(eventStepInstanceID int) {
@@ -1699,6 +1780,9 @@ func markStepInstanceAsError(eventStepInstance databaseStructs.EventStepInstance
                              WHERE id=:id`, eventStepInstance)
 	if err != nil {
 		logging.LogError(err, "Failed to update eventstep instance error status")
+	}
+	if err = eventing.RefreshExistingUserInteractionChatMessage(eventStepInstance.ID, eventStepInstance.OperationID); err != nil {
+		logging.LogError(err, "failed to refresh eventing user interaction chat message after step error")
 	}
 	_, err = database.DB.Exec(`UPDATE apitokens SET deleted=true, active=false 
                  WHERE eventstepinstance_id=$1`, eventStepInstance.ID)

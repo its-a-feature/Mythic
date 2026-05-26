@@ -14,6 +14,7 @@ import (
 	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
+	"github.com/its-a-feature/Mythic/eventing"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/rabbitmq"
 	"github.com/lib/pq"
@@ -100,6 +101,14 @@ type MarkChatReadInput struct {
 type MarkChatRead struct {
 	ChannelID         int  `json:"channel_id" binding:"required"`
 	LastReadMessageID *int `json:"last_read_message_id"`
+}
+
+type RefreshChatSpecialMessageInput struct {
+	Input RefreshChatSpecialMessage `json:"input" binding:"required"`
+}
+
+type RefreshChatSpecialMessage struct {
+	MessageID int `json:"message_id" binding:"required"`
 }
 
 type ChatSearchInput struct {
@@ -558,6 +567,62 @@ func MarkChatReadWebhook(c *gin.Context) {
 	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", ChannelID: channel.ID})
 }
 
+func RefreshChatSpecialMessageWebhook(c *gin.Context) {
+	var input RefreshChatSpecialMessageInput
+	if !bindChatInput(c, &input) {
+		return
+	}
+	operatorOperation, ok := chatOperatorOperation(c)
+	if !ok {
+		return
+	}
+	chatMessage, channel, err := getChatMessageAndChannel(input.Input.MessageID, operatorOperation.CurrentOperation.ID)
+	if err != nil {
+		logging.LogError(err, "Failed to get chat message for refresh")
+		chatRespondError(c, "failed to find chat message")
+		return
+	}
+	if !chatRequireScope(c, chatScopeForChannel(channel, false)) {
+		return
+	}
+	if chatMessage.Deleted {
+		chatRespondError(c, "cannot refresh a deleted chat message")
+		return
+	}
+	metadata := chatMessage.Metadata.StructValue()
+	if metadata["special_type"] != eventing.ChatSpecialTypeEventingUserInteraction {
+		chatRespondError(c, "chat message is not refreshable")
+		return
+	}
+	eventStepInstanceID, ok := chatMetadataInt(metadata, "eventstepinstance_id")
+	if !ok || eventStepInstanceID <= 0 {
+		chatRespondError(c, "chat message is missing its eventstep instance reference")
+		return
+	}
+	message, senderDisplayName, refreshedMetadata, err := eventing.BuildUserInteractionChatMessage(eventStepInstanceID, operatorOperation.CurrentOperation.ID)
+	if err != nil {
+		logging.LogError(err, "Failed to refresh eventing user interaction chat message")
+		chatRespondError(c, err.Error())
+		return
+	}
+	refreshedMetadataText := eventing.GetMythicJSONTextFromStruct(refreshedMetadata)
+	_, err = database.DB.Exec(`UPDATE chat_message
+		SET sender_display_name=$3, message=$4, metadata=$5::jsonb, status=$6, updated_at=now()
+		WHERE id=$1 AND operation_id=$2`,
+		chatMessage.ID,
+		operatorOperation.CurrentOperation.ID,
+		senderDisplayName,
+		message,
+		refreshedMetadataText.String(),
+		databaseStructs.ChatMessageStatusComplete)
+	if err != nil {
+		logging.LogError(err, "Failed to update refreshed chat message")
+		chatRespondError(c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", ID: chatMessage.ID, MessageID: chatMessage.ID, ChannelID: channel.ID})
+}
+
 func ChatSearchWebhook(c *gin.Context) {
 	var input ChatSearchInput
 	if !bindChatInput(c, &input) {
@@ -962,6 +1027,23 @@ func chatJSONText(input interface{}) databaseStructs.MythicJSONText {
 		}
 	}
 	return rabbitmq.GetMythicJSONTextFromStruct(input)
+}
+
+func chatMetadataInt(metadata map[string]interface{}, key string) (int, bool) {
+	value, ok := metadata[key]
+	if !ok {
+		return 0, false
+	}
+	switch typedValue := value.(type) {
+	case int:
+		return typedValue, true
+	case int64:
+		return int(typedValue), true
+	case float64:
+		return int(typedValue), true
+	default:
+		return 0, false
+	}
 }
 
 func getChatChannelConfig(channel databaseStructs.ChatChannel) map[string]interface{} {

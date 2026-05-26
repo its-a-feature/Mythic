@@ -186,10 +186,10 @@ func GetRabbitMQAuthContextForTaskID(taskID int) (RabbitMQAuthContext, error) {
 	task := databaseStructs.Task{}
 	err := database.DB.Get(&task, `SELECT 
 			task.operator_id, task.operation_id, task.eventstepinstance_id, task.apitokens_id,
-			apitokens.scopes "apitoken.scopes",
-			apitokens.id "apitoken.id",
-			apitokens.active "apitoken.active",
-			apitokens.deleted "apitoken.deleted"
+			COALESCE(apitokens.scopes, ARRAY[]::text[]) "apitoken.scopes",
+			COALESCE(apitokens.id, 0) "apitoken.id",
+			COALESCE(apitokens.active, false) "apitoken.active",
+			COALESCE(apitokens.deleted, true) "apitoken.deleted"
 			FROM task
 			LEFT JOIN apitokens ON task.apitokens_id = apitokens.id
 			WHERE task.id=$1`, taskID)

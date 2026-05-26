@@ -5,6 +5,7 @@ import {MythicStyledTooltip} from '../../MythicComponents/MythicStyledTooltip';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {PayloadBuildMessageDialog} from './PayloadBuildMessageDialog';
 import {MythicStatusChip} from '../../MythicComponents/MythicStatusChip';
+import {handleAuthLink} from "../../utilities/FileDownloadWithAuth";
 
 export function PayloadsTableRowBuildStatus(props){
     const [openBuildMessage, setOpenBuildMessageDialog] = React.useState(false);
@@ -14,17 +15,17 @@ export function PayloadsTableRowBuildStatus(props){
     if(props.deleted){
         return null;
     }
+    const downloadHref = "/direct/download/" + props.filemetum.agent_file_id;
     return (
         <React.Fragment>
             {props.build_phase === "success" ?
                 ( <MythicStyledTooltip title="Download payload">
                     <MythicStatusChip
-                        component="a"
-                        href={"/direct/download/" + props.filemetum.agent_file_id}
                         clickable
                         label="Ready"
                         status="success"
                         icon={<GetAppIcon />}
+                        onClick={(event) => handleAuthLink(event, downloadHref)}
                     />
                   </MythicStyledTooltip>
                     

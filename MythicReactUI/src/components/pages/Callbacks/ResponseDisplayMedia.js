@@ -63,7 +63,7 @@ import {Backdrop, CircularProgress} from '@mui/material';
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import sqlWasm from "!!file-loader?name=sql-wasm-[contenthash].wasm!sql.js/dist/sql-wasm.wasm";
 import {copyStringToClipboard} from "../../utilities/Clipboard";
-import {FileDownloadButtonWithAuth} from "../../utilities/FileDownloadWithAuth";
+import {FileDownloadButtonWithAuth, FileDownloadLinkWithAuth} from "../../utilities/FileDownloadWithAuth";
 import {ImageWithAuth} from "../../utilities/ImageWithAuth";
 
 export const modeOptions = ["csharp", "golang", "html", "json", "markdown", "ruby", "python", "java",
@@ -332,9 +332,9 @@ export const DisplayMedia = ({agent_file_id, filename, expand, task, fileMetaDat
                 <Typography variant={"h4"} >
                     {fileData.message}
                 </Typography>
-                <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + agent_file_id} >
+                <FileDownloadLinkWithAuth style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + agent_file_id} >
                     {"Download here"}
-                </Link>
+                </FileDownloadLinkWithAuth>
             </div>
         )
     }

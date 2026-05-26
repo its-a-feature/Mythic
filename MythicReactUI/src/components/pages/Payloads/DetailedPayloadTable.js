@@ -38,6 +38,7 @@ import {meState} from "../../../cache";
 import { useReactiveVar } from '@apollo/client';
 import {MythicErrorState, MythicLoadingState} from "../../MythicComponents/MythicStateDisplay";
 import {MythicSectionHeader} from "../../MythicComponents/MythicPageHeader";
+import {FileDownloadLinkWithAuth} from "../../utilities/FileDownloadWithAuth";
 
 
 const GET_Payload_Details = gql`
@@ -588,9 +589,9 @@ function DetailedPayloadInnerTable(props){
                     <TableRow hover>
                         <TableCell>Download URL</TableCell>
                         <TableCell style={{display: "flex", alignItems: "center"}}>
-                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + data.payload[0].filemetum.agent_file_id}>
+                            <FileDownloadLinkWithAuth style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + data.payload[0].filemetum.agent_file_id}>
                                 {window.location.origin + "/direct/download/" + data.payload[0].filemetum.agent_file_id}
-                            </Link>
+                            </FileDownloadLinkWithAuth>
                             <MythicStyledTooltip title={"Host Payload Through C2"} >
                                 <IconButton
                                     className="mythic-table-row-icon-action mythic-table-row-icon-action-info"

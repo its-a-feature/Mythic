@@ -1015,8 +1015,8 @@ func CheckAndProcessTaskCompletionHandlers(taskId int, authContext RabbitMQAuthC
 		task.group_callback_function_started,
 		task.completed_callback_function_completed, task.completed_callback_function_started,
 		task.subtask_group_name, task.id, task.status, task.eventstepinstance_id,
-		apitokens.scopes "apitoken.scopes",
-		apitokens.id "apitoken.id"
+		COALESCE(apitokens.scopes, ARRAY[]::text[]) "apitoken.scopes",
+		COALESCE(apitokens.id, 0) "apitoken.id"
 		FROM task
 		LEFT JOIN apitokens ON task.apitokens_id = apitokens.id
 		WHERE task.id=$1`, taskId)

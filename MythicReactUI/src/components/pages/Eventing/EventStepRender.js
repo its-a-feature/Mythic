@@ -6,6 +6,8 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import Button from '@mui/material/Button';
 import {Link} from '@mui/material';
+import MenuItem from '@mui/material/MenuItem';
+import {FileDownloadLinkWithAuth} from "../../utilities/FileDownloadWithAuth";
 import createLayout, {getSourcePosition, getTargetPosition} from "../Callbacks/C2PathDialog";
 import {ReactFlow,
     applyEdgeChanges,
@@ -576,10 +578,59 @@ const getInteractionInputDefault = (field) => {
     if(defaultValue === undefined || defaultValue === null){
         return "";
     }
+    if(field?.type === "ChooseOne"){
+        const serializedDefault = serializeUserInteractionValue(defaultValue);
+        const matchingChoice = getUserInteractionChoiceOptions(field).find((choice) => choice.serializedValue === serializedDefault);
+        return matchingChoice?.serializedValue || "";
+    }
     if(typeof defaultValue === "string"){
         return defaultValue;
     }
     return JSON.stringify(defaultValue);
+}
+const serializeUserInteractionValue = (value) => {
+    if(value === undefined || value === null){
+        return "";
+    }
+    if(typeof value === "string"){
+        return value;
+    }
+    try{
+        return JSON.stringify(value);
+    }catch(error){
+        return String(value);
+    }
+}
+const getUserInteractionChoiceOptions = (field) => {
+    const choices = field?.choices || field?.options || [];
+    const normalizeChoice = (choice, index) => {
+        if(choice && typeof choice === "object" && !Array.isArray(choice)){
+            const hasValue = Object.prototype.hasOwnProperty.call(choice, "value");
+            const value = hasValue ? choice.value : choice;
+            const label = choice.label === undefined || choice.label === null ? serializeUserInteractionValue(value) : String(choice.label);
+            return {
+                label,
+                value,
+                serializedValue: serializeUserInteractionValue(value),
+            };
+        }
+        return {
+            label: choice === undefined || choice === null ? `Choice ${index + 1}` : String(choice),
+            value: choice,
+            serializedValue: serializeUserInteractionValue(choice),
+        };
+    }
+    if(Array.isArray(choices)){
+        return choices.map(normalizeChoice);
+    }
+    if(choices && typeof choices === "object"){
+        return Object.entries(choices).map(([label, value]) => ({
+            label,
+            value,
+            serializedValue: serializeUserInteractionValue(value),
+        }));
+    }
+    return [];
 }
 const coerceUserInteractionInputs = (fields, values) => {
     const coercedValues = {};
@@ -604,6 +655,12 @@ const coerceUserInteractionInputs = (fields, values) => {
             coercedValues[name] = value === true || String(value).toLowerCase() === "true";
         }else if(type === "json"){
             coercedValues[name] = JSON.parse(value);
+        }else if(type === "ChooseOne"){
+            const selectedChoice = getUserInteractionChoiceOptions(field).find((choice) => choice.serializedValue === value);
+            if(selectedChoice === undefined){
+                throw new Error(`${name} must be one of the available choices`);
+            }
+            coercedValues[name] = selectedChoice.value;
         }else{
             coercedValues[name] = value;
         }
@@ -630,7 +687,7 @@ const getNextUserInteractionStepId = (steps, currentStepId) => {
     }
     return steps[currentIndex + 1].id;
 }
-export const EventStepUserInteractionDialog = ({onClose, selectedEventGroupInstance, selectedStep, steps}) => {
+export const EventStepUserInteractionDialog = ({onClose, onResolved, selectedEventGroupInstance, selectedStep, steps}) => {
     const me = useReactiveVar(meState);
     const [resolvedStepIds, setResolvedStepIds] = React.useState([]);
     const [selectedStepId, setSelectedStepId] = React.useState(selectedStep?.id || 0);
@@ -770,6 +827,13 @@ export const EventStepUserInteractionDialog = ({onClose, selectedEventGroupInsta
             if(refetch){
                 await refetch();
             }
+            if(onResolved){
+                try{
+                    await onResolved(activeStep);
+                }catch(error){
+                    console.log(error);
+                }
+            }
             if(remainingSteps.length === 0){
                 onClose?.();
             }else{
@@ -836,27 +900,56 @@ export const EventStepUserInteractionDialog = ({onClose, selectedEventGroupInsta
                                 <div className="mythic-eventing-user-interaction-prompt">{inputPrompt}</div>
                                 {inputFields.length > 0 &&
                                     <div className="mythic-eventing-user-interaction-inputs">
-                                        {inputFields.map((field, index) => (
-                                            <div className="mythic-eventing-user-interaction-input-row" key={`${activeStep.id}-${field.name || index}`}>
-                                                <div className="mythic-eventing-user-interaction-input-copy">
-                                                    <div className="mythic-eventing-user-interaction-input-name">
-                                                        {field.name || "Input"}
-                                                        {field.required &&
-                                                            <span className="mythic-eventing-user-interaction-required">required</span>
-                                                        }
+                                        {inputFields.map((field, index) => {
+                                            const fieldType = field?.type;
+                                            const choiceOptions = fieldType === "ChooseOne" ? getUserInteractionChoiceOptions(field) : [];
+                                            return (
+                                                <div className="mythic-eventing-user-interaction-input-row" key={`${activeStep.id}-${field.name || index}`}>
+                                                    <div className="mythic-eventing-user-interaction-input-copy">
+                                                        <div className="mythic-eventing-user-interaction-input-name">
+                                                            {field.name || "Input"}
+                                                            {field.required &&
+                                                                <span className="mythic-eventing-user-interaction-required">required</span>
+                                                            }
+                                                        </div>
+                                                        <div className="mythic-eventing-user-interaction-input-description">
+                                                            {field.description || field.type || "string"}
+                                                        </div>
                                                     </div>
-                                                    <div className="mythic-eventing-user-interaction-input-description">
-                                                        {field.description || field.type || "string"}
-                                                    </div>
+                                                    {fieldType === "ChooseOne" ? (
+                                                        <TextField
+                                                            disabled={choiceOptions.length === 0}
+                                                            fullWidth
+                                                            onChange={(event) => setInputValues({...inputValues, [field.name]: event.target.value})}
+                                                            select
+                                                            size="small"
+                                                            value={inputValues[field.name] || ""}
+                                                            SelectProps={{ displayEmpty: true }}
+                                                        >
+                                                            {choiceOptions.length === 0 ? (
+                                                                <MenuItem value="" disabled>No choices available</MenuItem>
+                                                            ) : (
+                                                                [
+                                                                    <MenuItem key={`${activeStep.id}-${field.name || index}-choice-empty`} value="" disabled>Select a choice</MenuItem>,
+                                                                    ...choiceOptions.map((choice, choiceIndex) => (
+                                                                        <MenuItem key={`${activeStep.id}-${field.name || index}-choice-${choiceIndex}`} value={choice.serializedValue}>
+                                                                            {choice.label}
+                                                                        </MenuItem>
+                                                                    ))
+                                                                ]
+                                                            )}
+                                                        </TextField>
+                                                    ) : (
+                                                        <TextField
+                                                            size="small"
+                                                            value={inputValues[field.name] || ""}
+                                                            onChange={(event) => setInputValues({...inputValues, [field.name]: event.target.value})}
+                                                            fullWidth
+                                                        />
+                                                    )}
                                                 </div>
-                                                <TextField
-                                                    size="small"
-                                                    value={inputValues[field.name] || ""}
-                                                    onChange={(event) => setInputValues({...inputValues, [field.name]: event.target.value})}
-                                                    fullWidth
-                                                />
-                                            </div>
-                                        ))}
+                                            )
+                                        })}
                                     </div>
                                 }
                             </div>
@@ -2385,11 +2478,11 @@ function EventDetailsFilesTable({files}){
                                                         b64DecodeUnicode(trackedData.full_remote_path_text)}
                                                 </Typography>
                                             ) : (
-                                                <Link className="mythic-eventing-resource-link" color="textPrimary" underline="always" href={"/direct/download/" + trackedData.agent_file_id}>
+                                                <FileDownloadLinkWithAuth className="mythic-eventing-resource-link" color="textPrimary" underline="always" href={"/direct/download/" + trackedData.agent_file_id}>
                                                     {b64DecodeUnicode(trackedData.full_remote_path_text) === "" ?
                                                         b64DecodeUnicode(trackedData.filename_text) :
                                                         b64DecodeUnicode(trackedData.full_remote_path_text)}
-                                                </Link>
+                                                </FileDownloadLinkWithAuth>
                                             )
                                             }
                                         </MythicStyledTableCell>
