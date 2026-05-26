@@ -44,7 +44,7 @@ func AddMythicService(service string, removeVolume bool) {
 			}
 			pStruct["image"] = service
 		} else {
-			pStruct["image"] = fmt.Sprintf("%s/%s:%s", mythicEnv.GetString("mythic_docker_image_prefix"), service, mythicEnv.GetString("global_docker_latest"))
+			pStruct["image"] = applyImageMirror(fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("global_docker_latest")), mythicEnv.GetString("mythic_docker_image_mirror"))
 		}
 
 		pStruct["cpus"] = mythicEnv.GetInt("POSTGRES_CPUS")
@@ -126,7 +126,7 @@ func AddMythicService(service string, removeVolume bool) {
 			}
 			pStruct["image"] = service
 		} else {
-			pStruct["image"] = fmt.Sprintf("%s/%s:%s", mythicEnv.GetString("mythic_docker_image_prefix"), service, mythicEnv.GetString("global_docker_latest"))
+			pStruct["image"] = applyImageMirror(fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("global_docker_latest")), mythicEnv.GetString("mythic_docker_image_mirror"))
 		}
 		if mythicEnv.GetString("mythic_docker_networking") == "bridge" {
 			if mythicEnv.GetBool("documentation_bind_localhost_only") {
@@ -200,7 +200,7 @@ func AddMythicService(service string, removeVolume bool) {
 			}
 			pStruct["image"] = service
 		} else {
-			pStruct["image"] = fmt.Sprintf("%s/%s:%s", mythicEnv.GetString("mythic_docker_image_prefix"), service, mythicEnv.GetString("global_docker_latest"))
+			pStruct["image"] = applyImageMirror(fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("global_docker_latest")), mythicEnv.GetString("mythic_docker_image_mirror"))
 		}
 
 		pStruct["cpus"] = mythicEnv.GetInt("HASURA_CPUS")
@@ -288,7 +288,7 @@ func AddMythicService(service string, removeVolume bool) {
 			}
 			pStruct["image"] = service
 		} else {
-			pStruct["image"] = fmt.Sprintf("%s/%s:%s", mythicEnv.GetString("mythic_docker_image_prefix"), service, mythicEnv.GetString("global_docker_latest"))
+			pStruct["image"] = applyImageMirror(fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("global_docker_latest")), mythicEnv.GetString("mythic_docker_image_mirror"))
 		}
 
 		nginxUseSSL := "ssl"
@@ -393,7 +393,7 @@ func AddMythicService(service string, removeVolume bool) {
 			}
 			pStruct["image"] = service
 		} else {
-			pStruct["image"] = fmt.Sprintf("%s/%s:%s", mythicEnv.GetString("mythic_docker_image_prefix"), service, mythicEnv.GetString("global_docker_latest"))
+			pStruct["image"] = applyImageMirror(fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("global_docker_latest")), mythicEnv.GetString("mythic_docker_image_mirror"))
 		}
 		pStruct["cpus"] = mythicEnv.GetInt("RABBITMQ_CPUS")
 		if mythicEnv.GetString("rabbitmq_mem_limit") != "" {
@@ -502,7 +502,7 @@ func AddMythicService(service string, removeVolume bool) {
 				}
 				pStruct["image"] = service
 			} else {
-				pStruct["image"] = fmt.Sprintf("%s/%s:%s", mythicEnv.GetString("mythic_docker_image_prefix"), service, mythicEnv.GetString("global_docker_latest"))
+				pStruct["image"] = applyImageMirror(fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("global_docker_latest")), mythicEnv.GetString("mythic_docker_image_mirror"))
 			}
 
 			if !mythicEnv.GetBool("mythic_react_use_volume") {
@@ -592,7 +592,7 @@ func AddMythicService(service string, removeVolume bool) {
 			}
 			pStruct["image"] = service
 		} else {
-			pStruct["image"] = fmt.Sprintf("%s/%s:%s", mythicEnv.GetString("mythic_docker_image_prefix"), service, mythicEnv.GetString("global_docker_latest"))
+			pStruct["image"] = applyImageMirror(fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("global_docker_latest")), mythicEnv.GetString("mythic_docker_image_mirror"))
 		}
 
 		pStruct["cpus"] = mythicEnv.GetInt("JUPYTER_CPUS")
@@ -680,7 +680,7 @@ func AddMythicService(service string, removeVolume bool) {
 			}
 			pStruct["image"] = service
 		} else {
-			pStruct["image"] = fmt.Sprintf("%s/%s:%s", mythicEnv.GetString("mythic_docker_image_prefix"), service, mythicEnv.GetString("global_docker_latest"))
+			pStruct["image"] = applyImageMirror(fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("global_docker_latest")), mythicEnv.GetString("mythic_docker_image_mirror"))
 		}
 
 		pStruct["cpus"] = mythicEnv.GetInt("MYTHIC_SERVER_CPUS")
@@ -894,7 +894,7 @@ func Add3rdPartyService(service string, additionalConfigs map[string]interface{}
 	if useBuildContext, ok := agentConfigs[agentUseBuildContextKey]; ok {
 		if useBuildContext == "false" {
 			delete(existingConfig, "build")
-			existingConfig["image"] = rewriteImagePrefix(agentConfigs[agentRemoteImageKey], config.GetMythicEnv().GetString("mythic_agent_docker_image_prefix"))
+			existingConfig["image"] = applyImageMirror(agentConfigs[agentRemoteImageKey], config.GetMythicEnv().GetString("mythic_docker_image_mirror"))
 		}
 	}
 	if useVolume, ok := agentConfigs[agentUseVolumeKey]; ok {
@@ -985,13 +985,21 @@ func Initialize() {
 	}
 }
 
-// rewriteImagePrefix replaces everything before the trailing image[:tag|@digest]
-// segment of imageURL with newPrefix. An empty newPrefix returns imageURL unchanged.
-func rewriteImagePrefix(imageURL, newPrefix string) string {
-	newPrefix = strings.TrimRight(newPrefix, "/")
-	if newPrefix == "" {
+// applyImageMirror rewrites imageURL to be served from mirror by stripping the
+// upstream registry host (the first '/'-separated segment, when it contains '.'
+// or ':' or equals 'localhost' per Docker's reference parsing) and prepending
+// mirror. An empty mirror returns imageURL unchanged.
+func applyImageMirror(imageURL, mirror string) string {
+	mirror = strings.TrimSpace(mirror)
+	mirror = strings.TrimRight(mirror, "/")
+	if mirror == "" {
 		return imageURL
 	}
-	parts := strings.Split(imageURL, "/")
-	return newPrefix + "/" + parts[len(parts)-1]
+	if idx := strings.Index(imageURL, "/"); idx > 0 {
+		first := imageURL[:idx]
+		if strings.ContainsAny(first, ".:") || first == "localhost" {
+			return mirror + "/" + imageURL[idx+1:]
+		}
+	}
+	return mirror + "/" + imageURL
 }

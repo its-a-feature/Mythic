@@ -156,6 +156,10 @@ func Status(verbose bool) {
 		log.Printf("\n[*] MythicServer is currently listening on localhost. If you have a remote Service, they will be unable to connect (i.e. one running on another server)")
 		log.Printf("\n    Use 'sudo ./mythic-cli config set mythic_server_bind_localhost_only false' and restart mythic ('sudo ./mythic-cli restart') to change this\n")
 	}
+	if mirror := mythicEnv.GetString("mythic_docker_image_mirror"); mirror != "" {
+		log.Printf("\n[*] Image mirror is active: pulling all images from \"%s\" instead of their upstream registries.", mirror)
+		log.Printf("\n    Use 'sudo ./mythic-cli config set mythic_docker_image_mirror \"\"' and restart mythic ('sudo ./mythic-cli restart') to disable.\n")
+	}
 	log.Printf("[*] If you are using a remote PayloadType or C2Profile, they will need certain environment variables to properly connect to Mythic.\n")
 	log.Printf("    Use 'sudo ./mythic-cli config service' for configs for these services.\n")
 }
