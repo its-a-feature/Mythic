@@ -1,10 +1,17 @@
 package eventing
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/its-a-feature/Mythic/logging"
+)
 
 const (
 	UserInteractionApproverOperator = "operator"
 	UserInteractionApproverLead     = "lead"
+
+	UserInteractionInputSourceCustom  = "custom"
+	UserInteractionInputTypeChooseOne = "ChooseOne"
 )
 
 func UserInteractionApprovalRequired(config map[string]interface{}) bool {
@@ -91,6 +98,50 @@ func UserInteractionFieldRequired(field map[string]interface{}) bool {
 		return userInteractionBool(value)
 	}
 	return false
+}
+
+func UserInteractionFieldType(field map[string]interface{}) string {
+	if value, ok := field["type"].(string); ok {
+		return strings.ToLower(value)
+	}
+	return "string"
+}
+
+func UserInteractionFieldChoices(field map[string]interface{}) []interface{} {
+	if value, ok := field["choices"]; ok {
+		return NormalizeUserInteractionChoices(value)
+	}
+	return []interface{}{}
+}
+
+func NormalizeUserInteractionChoices(rawChoices interface{}) []interface{} {
+	choices := []interface{}{}
+	if rawChoices == nil {
+		return choices
+	}
+	switch typedChoices := rawChoices.(type) {
+	case []interface{}:
+		for _, choice := range typedChoices {
+			stringChoice, ok := choice.(string)
+			if ok {
+				choices = append(choices, stringChoice)
+			}
+		}
+	case []string:
+		for _, choice := range typedChoices {
+			choices = append(choices, choice)
+		}
+	case string:
+		for _, choice := range strings.Split(typedChoices, "\n") {
+			choice = strings.TrimSpace(choice)
+			if choice != "" {
+				choices = append(choices, choice)
+			}
+		}
+	default:
+		logging.LogError(nil, "invalid choice type", "type", typedChoices, "choices", rawChoices)
+	}
+	return choices
 }
 
 func userInteractionBool(value interface{}) bool {

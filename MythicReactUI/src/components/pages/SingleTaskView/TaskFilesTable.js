@@ -4,11 +4,11 @@ import TableBody from '@mui/material/TableBody';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import Link from '@mui/material/Link';
 import {b64DecodeUnicode} from '../Callbacks/ResponseDisplay';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {MythicPageHeaderChip, MythicSectionHeader} from "../../MythicComponents/MythicPageHeader";
 import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
+import {FileDownloadLinkWithAuth} from "../../utilities/FileDownloadWithAuth";
 
 
 export function TaskFilesTable(props){
@@ -50,7 +50,7 @@ export function TaskFilesTable(props){
                     <TableRow key={"file" + file.id} hover>
                       <MythicStyledTableCell className="mythic-single-task-cell-break">
                         {!file.deleted && file.complete ? (
-                          <Link className="mythic-single-task-table-link" href={"/direct/download/" + file.agent_file_id}>{b64DecodeUnicode(file.filename_text)}</Link>
+                          <FileDownloadLinkWithAuth className="mythic-single-task-table-link" href={"/direct/download/" + file.agent_file_id}>{b64DecodeUnicode(file.filename_text)}</FileDownloadLinkWithAuth>
                         ) : ( 
                           !file.complete ? (
                             b64DecodeUnicode(file.filename_text) +  " (" + file.chunks_received + "/" + file.total_chunks + ")"

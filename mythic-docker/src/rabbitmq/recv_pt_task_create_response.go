@@ -21,7 +21,7 @@ func init() {
 		Queue:      PT_TASK_CREATE_TASKING_RESPONSE,
 		RoutingKey: PT_TASK_CREATE_TASKING_RESPONSE,
 		Handler:    processPtTaskCreateMessages,
-		Scopes:     []string{mythicjwt.SCOPE_RESPONSE_WRITE},
+		Scopes:     []string{mythicjwt.SCOPE_TASK_WRITE},
 	})
 }
 

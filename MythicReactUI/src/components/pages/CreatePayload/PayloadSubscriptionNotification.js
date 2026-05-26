@@ -12,7 +12,8 @@ import { toast } from 'react-toastify';
 import DialogActions from '@mui/material/DialogActions';
 import DialogTitle from '@mui/material/DialogTitle';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
-import {Button, Link, Typography} from '@mui/material';
+import {Button, Typography} from '@mui/material';
+import {FileDownloadLinkWithAuth} from "../../utilities/FileDownloadWithAuth";
 
 const PREFIX = 'PayloadSubscriptionNotification';
 
@@ -119,9 +120,9 @@ const SnackMessage = (props) => {
             {props.payloadData.build_phase === "success" &&
                 <React.Fragment>
                     <Typography gutterBottom>Agent ready for download</Typography>
-                    <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/direct/download/" + props.file_id}>
+                    <FileDownloadLinkWithAuth style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/direct/download/" + props.file_id}>
                         Download here
-                    </Link>
+                    </FileDownloadLinkWithAuth>
                 </React.Fragment>
             }
         </div>

@@ -314,9 +314,22 @@ func setRoutes(r *gin.Engine) {
 					}),
 					webcontroller.DownloadBulkFilesWebhook)
 				allOperationMembers.POST("chat_search_webhook",
+					authentication.TokenScopeMiddleware([]string{
+						mythicjwt.SCOPE_CHAT_READ,
+						mythicjwt.SCOPE_CHAT_AI_READ,
+					}),
 					webcontroller.ChatSearchWebhook)
 				allOperationMembers.POST("chat_mark_read_webhook",
+					authentication.TokenScopeMiddleware([]string{
+						mythicjwt.SCOPE_CHAT_READ,
+						mythicjwt.SCOPE_CHAT_AI_READ,
+					}),
 					webcontroller.MarkChatReadWebhook)
+				allOperationMembers.POST("chat_refresh_special_message_webhook",
+					authentication.TokenScopeMiddleware([]string{
+						mythicjwt.SCOPE_CHAT_READ,
+					}),
+					webcontroller.RefreshChatSpecialMessageWebhook)
 				allOperationMembers.POST("preview_file_webhook",
 					authentication.TokenScopeMiddleware([]string{
 						mythicjwt.SCOPE_FILE_READ,
@@ -360,6 +373,10 @@ func setRoutes(r *gin.Engine) {
 					webcontroller.ConsumingServicesTestLog)
 				// chat
 				noSpectators.POST("chat_create_channel_webhook",
+					authentication.TokenScopeMiddleware([]string{
+						mythicjwt.SCOPE_CHAT_WRITE,
+						mythicjwt.SCOPE_CHAT_AI_WRITE,
+					}),
 					webcontroller.CreateChatChannelWebhook)
 				noSpectators.POST("chat_update_channel_webhook",
 					webcontroller.UpdateChatChannelWebhook)

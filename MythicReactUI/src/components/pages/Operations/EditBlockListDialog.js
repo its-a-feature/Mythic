@@ -1,12 +1,18 @@
 import React, {useEffect} from 'react';
+import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
+import CircularProgress from '@mui/material/CircularProgress';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import Grid from '@mui/material/Grid';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
+import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Checkbox from '@mui/material/Checkbox';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
+import Typography from '@mui/material/Typography';
 import {useQuery, gql} from '@apollo/client';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import { snackActions } from '../../utilities/Snackbar';
@@ -19,104 +25,88 @@ import {
   MythicFormField
 } from '../../MythicComponents/MythicDialogLayout';
 
-function PayloadTypeBlockListPreMemo(props){
+const commandSort = (a, b) => (a?.cmd || "").localeCompare(b?.cmd || "");
+const commandID = (command) => command?.id || command?.cmd || "";
+const normalizeCommandSelection = (selection) => {
+  if(!selection || typeof selection !== "object"){
+    return {};
+  }
+  return Object.entries(selection).reduce((prev, [name, commands]) => {
+    prev[name] = Array.isArray(commands) ? commands.filter(Boolean).sort(commandSort) : [];
+    return prev;
+  }, {});
+};
+const flattenCommands = (commandsByPayloadType) => {
+  return Object.values(commandsByPayloadType || {}).flat().filter(Boolean);
+};
+const getSelectedCommandCount = (commandsByPayloadType, payloadTypeName) => {
+  return (commandsByPayloadType?.[payloadTypeName] || []).length;
+};
+
+function PayloadTypeBlockListPreMemo({left: allCommands = [], right = [], leftTitle, rightTitle, name, onChange, itemKey}){
 
     const [checked, setChecked] = React.useState([]);
-    const [left, setLeft] = React.useState([]);
-    const [right, setRight] = React.useState(props.right);
-    const [leftTitle, setLeftTitle] = React.useState("");
-    const [rightTitle, setRightTitle] = React.useState("");
-    const leftChecked = intersection(checked, left);
-    const rightChecked = intersection(checked, right);
-    function not(a, b) {
-      if(props.itemKey){
-        return a.filter( (value) => b.find( (element) => element[props.itemKey] === value[props.itemKey] ) === undefined)
-      }
-      return a.filter((value) => b.indexOf(value) === -1);
-    }
-    function intersection(a, b) {
-      if(props.itemKey){
-        return a.filter( (value) => b.find( (element) => element[props.itemKey] === value[props.itemKey] ) !== undefined)
-      }
-      return a.filter((value) => b.indexOf(value) !== -1);
-    }
+    const rightCommandIDs = React.useMemo(() => new Set(right.map(commandID)), [right]);
+    const left = React.useMemo(() => {
+      return (allCommands || []).filter((command) => !rightCommandIDs.has(commandID(command))).sort(commandSort);
+    }, [allCommands, rightCommandIDs]);
+    const sortedRight = React.useMemo(() => [...right].sort(commandSort), [right]);
+    const checkedCommandIDs = React.useMemo(() => new Set(checked), [checked]);
+    const leftChecked = React.useMemo(() => left.filter((command) => checkedCommandIDs.has(commandID(command))), [left, checkedCommandIDs]);
+    const rightChecked = React.useMemo(() => sortedRight.filter((command) => checkedCommandIDs.has(commandID(command))), [sortedRight, checkedCommandIDs]);
+    const moveCommands = React.useCallback((selected) => {
+      setChecked([]);
+      onChange({selected: [...selected].sort(commandSort), name});
+    }, [name, onChange]);
     const handleToggle = (value) => () => {
-      let currentIndex = -1;
-      if(props.itemKey){
-        currentIndex = checked.findIndex( (element) => element[props.itemKey] === value[props.itemKey]);
-      }else{
-        currentIndex = checked.indexOf(value);
-      }
-      
-      const newChecked = [...checked];
-
-      if (currentIndex === -1) {
-        newChecked.push(value);
-      } else {
-        newChecked.splice(currentIndex, 1);
-      }
-
-      setChecked(newChecked);
+      const selectedCommandID = commandID(value);
+      setChecked((current) => {
+        if(current.includes(selectedCommandID)){
+          return current.filter((existingID) => existingID !== selectedCommandID);
+        }
+        return [...current, selectedCommandID];
+      });
     };
     const handleAllRight = () => {
-      setRight(right.concat(left));
-      setLeft([]);
+      moveCommands([...sortedRight, ...left]);
     };
     const handleCheckedRight = () => {
-      setRight(right.concat(leftChecked));
-      setLeft(not(left, leftChecked));
-      setChecked(not(checked, leftChecked));
+      const movingCommandIDs = new Set(leftChecked.map(commandID));
+      moveCommands([...sortedRight, ...left.filter((command) => movingCommandIDs.has(commandID(command)))]);
     };
     const handleCheckedLeft = () => {
-      setLeft(left.concat(rightChecked));
-      setRight(not(right, rightChecked));
-      setChecked(not(checked, rightChecked));
+      const movingCommandIDs = new Set(rightChecked.map(commandID));
+      moveCommands(sortedRight.filter((command) => !movingCommandIDs.has(commandID(command))));
     };
     const handleAllLeft = () => {
-      setLeft(left.concat(right));
-      setRight([]);
+      moveCommands([]);
     };
-    useEffect( () => {
-      const left = props.left.reduce( (prev, cur) => {
-        if(props.itemKey === undefined){
-          if(props.right.includes(cur)){
-            return [...prev];
-          }
-          return [...prev, cur];
-        }else{
-          if(props.right.find( element => element[props.itemKey] === cur[props.itemKey])){
-            return [...prev]
-          }
-          return [...prev, cur];
-        }
-        
-      }, [])
-      setLeft(left);
-      setLeftTitle(props.leftTitle);
-      setRightTitle(props.rightTitle);
-    }, [props.left, props.right, props.leftTitle, props.rightTitle, props.itemKey]);
-    useEffect( () => {
-      props.onChange({selected: right, name: props.name});
-    }, [right])
+    useEffect(() => {
+      const visibleCommandIDs = new Set([...left, ...sortedRight].map(commandID));
+      setChecked((current) => current.filter((existingID) => visibleCommandIDs.has(existingID)));
+    }, [left, sortedRight]);
     const customList = (title, items) => (
       <div className="mythic-transfer-list">
           <div className="mythic-transfer-list-header">{title}</div>
           <div className="mythic-transfer-list-body">
             <List dense component="div" role="list" style={{padding:0}}>
               {items.map((valueObj) => {
-                const value = props.itemKey === undefined ? valueObj : valueObj[props.itemKey];
+                const value = itemKey === undefined ? valueObj : valueObj[itemKey];
+                const valueID = commandID(valueObj);
                 const labelId = `transfer-list-item-${value}-label`;
                 return (
-                  <ListItem style={{padding:0}} key={value} role="listitem" button onClick={handleToggle(valueObj)}>
-                    <ListItemIcon>
-                      <Checkbox
-                        checked={props.itemKey === undefined ? checked.indexOf(value) !== -1 : checked.findIndex( (element) => element[props.itemKey] === value) !== -1}
-                        tabIndex={-1}
-                        disableRipple
-                        inputProps={{ 'aria-labelledby': labelId }}
-                      />
-                    </ListItemIcon>
-                    <ListItemText id={labelId} primary={value} />
+                  <ListItem style={{padding:0}} key={valueID} role="listitem" disablePadding>
+                    <ListItemButton onClick={handleToggle(valueObj)} dense>
+                      <ListItemIcon>
+                        <Checkbox
+                          checked={checkedCommandIDs.has(valueID)}
+                          tabIndex={-1}
+                          disableRipple
+                          inputProps={{ 'aria-labelledby': labelId }}
+                        />
+                      </ListItemIcon>
+                      <ListItemText id={labelId} primary={value} />
+                    </ListItemButton>
                   </ListItem>
                 );
               })}
@@ -126,10 +116,10 @@ function PayloadTypeBlockListPreMemo(props){
     );
     
   return (
-    <MythicDialogSection title={props.name} className="mythic-transfer-section">
-    <Grid container spacing={1} justifyContent="center" alignItems="stretch">
-      <Grid size={5}>{customList(leftTitle, left)}</Grid>
-      <Grid>
+    <MythicDialogSection title={name} className="mythic-transfer-section">
+    <div className="mythic-block-list-transfer-grid">
+      <div>{customList(leftTitle, left)}</div>
+      <div>
         <div className="mythic-transfer-controls">
           <StyledButton
             variant="contained"
@@ -172,9 +162,9 @@ function PayloadTypeBlockListPreMemo(props){
             ≪
           </StyledButton>
         </div>
-      </Grid>
-      <Grid size={5}>{customList(rightTitle, right)}</Grid>
-    </Grid>
+      </div>
+      <div>{customList(rightTitle, sortedRight)}</div>
+    </div>
     </MythicDialogSection>
   );
 }
@@ -192,86 +182,179 @@ const getPayloadTypesAndCommandsQuery = gql`
   }
 `;
 export function EditBlockListDialog({dialogTitle, onSubmit, blockListName: propBlockListName, onClose, currentSelected, editable}) {
-  const [payloadtypes, setPayloadTypes] = React.useState([]);
-  const [selectedCommands, setSelectedCommands] = React.useState({});
+  const [selectedCommands, setSelectedCommands] = React.useState(() => normalizeCommandSelection(currentSelected));
   const [blockListName, setBlockListName] = React.useState("");
-  useQuery(getPayloadTypesAndCommandsQuery, {fetchPolicy: "network-only",
-    onCompleted: (data) => {
-      if(propBlockListName){
-        setBlockListName(propBlockListName);
-      }
-      // for each of the possible commands mark them as selected or not
-      const updatedPayloadTypes = data.payloadtype.map( p => {
-        let selectedCommands = [];
-        if(currentSelected[p.name] !== undefined){
-          selectedCommands = [...currentSelected[p.name]];
-        }
-        return {...p, selected: selectedCommands};
-      });
-      setPayloadTypes(updatedPayloadTypes);      
-      setSelectedCommands({...currentSelected});
-      
-    },
-    onError: (data) => {
-
+  const [activePayloadTypeName, setActivePayloadTypeName] = React.useState("");
+  const [submitting, setSubmitting] = React.useState(false);
+  const {data, loading} = useQuery(getPayloadTypesAndCommandsQuery, {
+    fetchPolicy: "cache-first",
+    onError: () => {
+      snackActions.error("Failed to load payload type commands");
     }
-  })
-  const onChange = React.useCallback( ({selected, name}) => {
-    setSelectedCommands({...selectedCommands, [name]: selected});
-  }, [selectedCommands]);
-  const onChangeBlockListName = (name, value, error) => {
+  });
+  const normalizedCurrentSelected = React.useMemo(() => normalizeCommandSelection(currentSelected), [currentSelected]);
+  const payloadtypes = React.useMemo(() => {
+    return (data?.payloadtype || []).map((payloadtype) => ({
+      ...payloadtype,
+      commands: [...(payloadtype.commands || [])].sort(commandSort),
+      selected: selectedCommands[payloadtype.name] || [],
+    }));
+  }, [data, selectedCommands]);
+  const activePayloadType = React.useMemo(() => {
+    return payloadtypes.find((payloadtype) => payloadtype.name === activePayloadTypeName) || payloadtypes[0] || null;
+  }, [activePayloadTypeName, payloadtypes]);
+  const selectedCommandCount = React.useMemo(() => flattenCommands(selectedCommands).length, [selectedCommands]);
+  React.useEffect(() => {
+    setBlockListName(propBlockListName || "");
+  }, [propBlockListName]);
+  React.useEffect(() => {
+    setSelectedCommands(normalizedCurrentSelected);
+  }, [normalizedCurrentSelected]);
+  React.useEffect(() => {
+    if(payloadtypes.length === 0){
+      return;
+    }
+    if(!payloadtypes.some((payloadtype) => payloadtype.name === activePayloadTypeName)){
+      const firstSelectedPayloadType = payloadtypes.find((payloadtype) => getSelectedCommandCount(selectedCommands, payloadtype.name) > 0);
+      setActivePayloadTypeName((firstSelectedPayloadType || payloadtypes[0]).name);
+    }
+  }, [activePayloadTypeName, payloadtypes, selectedCommands]);
+  const onChange = React.useCallback(({selected, name}) => {
+    setSelectedCommands((current) => ({...current, [name]: selected}));
+  }, []);
+  const onChangeBlockListName = (name, value) => {
     setBlockListName(value);
   };
-  const submit = () => {
+  const submit = async () => {
     if(blockListName.trim() === ""){
       snackActions.warning("Must supply a block list name");
       return;
     }
-    // now diff selectedCommands with props.currentSelected to see which should be added or removed
+    if(editable && selectedCommandCount === 0){
+      snackActions.warning("Select at least one command for the block list");
+      return;
+    }
     let toAdd = [];
     let toRemove = [];
+    const existingCommandIDs = new Set(flattenCommands(normalizedCurrentSelected).map(commandID));
+    const selectedCommandIDs = new Set(flattenCommands(selectedCommands).map(commandID));
     for(const value of Object.values(selectedCommands)){
-      //key is the payload type name, value is an array of commands
       for(let i = 0; i < value.length; i++){
-        toAdd.push({command_id: value[i].id, name:blockListName.trim()});
+        if(!existingCommandIDs.has(commandID(value[i]))){
+          toAdd.push({command_id: value[i].id, name: blockListName.trim()});
+        }
       }
     }
-    for(const value of Object.values(currentSelected)){
+    for(const value of Object.values(normalizedCurrentSelected)){
       for(let i = 0; i < value.length; i++){
-        // if value[i] in add, then remove it from add because it was selected before and is selected now
-        // if value[i] is not in add, then add it to toRemove because it was selected and is no longer selected
-        let index = toAdd.findIndex(c => c.command_id === value[i].id);
-        if(index > -1){
-          toAdd.splice(index, 1); //remove it
-        }else{
+        if(!selectedCommandIDs.has(commandID(value[i]))){
           toRemove.push({command_id: value[i].id, name: blockListName.trim()});
         }
       }
     }
-    onSubmit({toAdd, toRemove});
-    onClose();
+    if(toAdd.length === 0 && toRemove.length === 0){
+      onClose();
+      return;
+    }
+    setSubmitting(true);
+    try{
+      const result = await onSubmit({toAdd, toRemove});
+      if(result !== false){
+        onClose();
+      }
+    }catch(error){
+      snackActions.warning("Unable to update block list");
+      console.log(error);
+    }finally{
+      setSubmitting(false);
+    }
   }
   return (
     <>
       <DialogTitle id="form-dialog-title">{dialogTitle}</DialogTitle>
-      <DialogContent dividers={true}>
-        <MythicDialogBody>
+      <DialogContent dividers={true} className="mythic-block-list-dialog-content">
+        <MythicDialogBody className="mythic-block-list-dialog-body">
           <MythicDialogSection title="Block List">
             <MythicFormField label="Block List Name" required>
-              <MythicTextField disabled={!editable} onChange={onChangeBlockListName} value={blockListName} name="Block List Name" showLabel={false} autoFocus requiredValue marginTop="0px" marginBottom="0px"/>
+              <MythicTextField
+                disabled={!editable}
+                onChange={onChangeBlockListName}
+                value={blockListName}
+                name="command_block_list_title"
+                showLabel={false}
+                autoFocus
+                autoComplete="new-password"
+                inputProps={{
+                  id: "mythic-command-block-list-title",
+                  name: "mythic-command-block-list-title",
+                  "data-form-type": "other",
+                }}
+                requiredValue
+                marginTop="0px"
+                marginBottom="0px"
+              />
             </MythicFormField>
           </MythicDialogSection>
-          {payloadtypes.map(p => (
-            <PayloadTypeBlockList key={p.name} leftTitle={"Not Blocked"} onChange={onChange} rightTitle={"Blocked Commands"} itemKey={"cmd"} right={p.selected} left={p.commands} name={p.name}/>
-          ))}
+          <MythicDialogSection
+            title="Commands"
+            actions={<Chip size="small" label={`${selectedCommandCount} blocked`} />}
+          >
+            {loading && payloadtypes.length === 0 ? (
+              <Box className="mythic-block-list-loading">
+                <CircularProgress size={20} />
+                <Typography variant="body2">Loading commands</Typography>
+              </Box>
+            ) : payloadtypes.length === 0 ? (
+              <Box className="mythic-block-list-loading">
+                <Typography variant="body2">No payload type commands available</Typography>
+              </Box>
+            ) : (
+              <>
+                <Tabs
+                  className="mythic-block-list-payload-tabs"
+                  value={activePayloadType?.name || false}
+                  onChange={(event, value) => setActivePayloadTypeName(value)}
+                  variant="scrollable"
+                  scrollButtons="auto"
+                >
+                  {payloadtypes.map((payloadtype) => (
+                    <Tab
+                      aria-label={`${payloadtype.name}, ${getSelectedCommandCount(selectedCommands, payloadtype.name)} blocked commands`}
+                      id={`block-list-payload-tab-${payloadtype.id}`}
+                      key={payloadtype.name}
+                      value={payloadtype.name}
+                      label={
+                        <Box component="span" className="mythic-block-list-payload-tab-label">
+                          <span>{payloadtype.name}</span>
+                          <span className="mythic-block-list-payload-tab-count">{getSelectedCommandCount(selectedCommands, payloadtype.name)}</span>
+                        </Box>
+                      }
+                    />
+                  ))}
+                </Tabs>
+                {activePayloadType &&
+                  <PayloadTypeBlockList
+                    key={activePayloadType.name}
+                    leftTitle={"Not Blocked"}
+                    onChange={onChange}
+                    rightTitle={"Blocked Commands"}
+                    itemKey={"cmd"}
+                    right={activePayloadType.selected}
+                    left={activePayloadType.commands}
+                    name={activePayloadType.name}
+                  />
+                }
+              </>
+            )}
+          </MythicDialogSection>
         </MythicDialogBody>
       </DialogContent>
       <MythicDialogFooter>
-        <MythicDialogButton onClick={onClose}>
+        <MythicDialogButton onClick={onClose} disabled={submitting}>
           Close
         </MythicDialogButton>
-        <MythicDialogButton intent="primary" onClick={submit}>
-          Submit
+        <MythicDialogButton intent="primary" onClick={submit} disabled={submitting || loading}>
+          {submitting ? "Saving" : "Submit"}
         </MythicDialogButton>
       </MythicDialogFooter>
     </>

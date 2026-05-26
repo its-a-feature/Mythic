@@ -40,6 +40,7 @@ import SendIcon from '@mui/icons-material/Send';
 import SmartToyTwoToneIcon from '@mui/icons-material/SmartToyTwoTone';
 import StopCircleIcon from '@mui/icons-material/StopCircle';
 import UnarchiveIcon from '@mui/icons-material/Unarchive';
+import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
 import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/MythicPageHeader";
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
@@ -47,6 +48,7 @@ import {MythicConfirmDialog} from "../../MythicComponents/MythicConfirmDialog";
 import {MeContext} from "../../App";
 import {snackActions} from "../../utilities/Snackbar";
 import {getSkewedNow} from "../../utilities/Time";
+import {EventStepUserInteractionDialog} from "../Eventing/EventStepRender";
 
 const CHAT_MESSAGE_LIMIT = 250;
 const CHAT_REQUEST_LIMIT = 50;
@@ -98,6 +100,7 @@ fragment ChatMessageFields on chat_message {
     author_type
     sender_display_name
     message
+    metadata
     edited
     deleted
     status
@@ -311,6 +314,16 @@ mutation MarkChatRead($channel_id: Int!, $last_read_message_id: Int) {
   chatMarkRead(channel_id: $channel_id, last_read_message_id: $last_read_message_id) {
     status
     error
+  }
+}
+`;
+
+const REFRESH_SPECIAL_MESSAGE = gql`
+mutation RefreshSpecialMessage($message_id: Int!) {
+  chatRefreshSpecialMessage(message_id: $message_id) {
+    status
+    error
+    message_id
   }
 }
 `;
@@ -611,6 +624,152 @@ const MarkdownMessage = ({message}) => {
     );
 };
 
+const CHAT_SPECIAL_TYPE_EVENTING_USER_INTERACTION = "eventing_user_interaction";
+
+const getChatMessageMetadata = (message) => {
+    const metadata = message?.metadata || {};
+    return metadata && typeof metadata === "object" && !Array.isArray(metadata) ? metadata : {};
+};
+
+const getEventingInteractionSnapshot = (message) => {
+    const metadata = getChatMessageMetadata(message);
+    if(metadata.special_type !== CHAT_SPECIAL_TYPE_EVENTING_USER_INTERACTION){
+        return null;
+    }
+    const snapshot = metadata.eventing_user_interaction || {};
+    return snapshot && typeof snapshot === "object" && !Array.isArray(snapshot) ? snapshot : {};
+};
+
+const getChatEventingPrompt = (snapshot) => {
+    if(snapshot.approval_required && snapshot.approval_prompt){
+        return snapshot.approval_prompt;
+    }
+    if(snapshot.input_required && snapshot.input_prompt){
+        return snapshot.input_prompt;
+    }
+    if(snapshot.approval_required && snapshot.input_required){
+        return "Approval and input are required before this step can continue.";
+    }
+    if(snapshot.approval_required){
+        return "Approval is required before this step can continue.";
+    }
+    return "Input is required before this step can continue.";
+};
+
+const chatEventingStatusLabels = {
+    awaiting_approval: "Awaiting approval",
+    input_needed: "Input needed",
+    queued: "Queued",
+    running: "Running",
+    success: "Success",
+    error: "Error",
+    cancelled: "Cancelled",
+    skipped: "Skipped",
+};
+
+const getChatEventingStatusText = (snapshot) => {
+    if(snapshot.status === "awaiting_approval"){
+        return "Awaiting approval";
+    }
+    if(snapshot.status === "input_needed"){
+        return "Input needed";
+    }
+    return chatEventingStatusLabels[snapshot.status] || snapshot.status || "Unknown";
+};
+
+const getChatEventingStateClass = (snapshot) => {
+    switch(snapshot.status){
+        case "success":
+            return "success";
+        case "error":
+        case "cancelled":
+            return "error";
+        case "running":
+            return "running";
+        case "queued":
+            return "queued";
+        case "awaiting_approval":
+        case "input_needed":
+            return "waiting";
+        default:
+            return snapshot.waiting ? "waiting" : "neutral";
+    }
+};
+
+const ChatEventingUserInteractionCard = ({message, me, onRefresh, onReview, refreshing}) => {
+    const metadata = getChatMessageMetadata(message);
+    const snapshot = getEventingInteractionSnapshot(message) || {};
+    const waiting = Boolean(snapshot.waiting);
+    const statusText = getChatEventingStatusText(snapshot);
+    const stateClass = getChatEventingStateClass(snapshot);
+    const stepName = snapshot.step_name || `Step ${snapshot.eventstepinstance_id || ""}`.trim();
+    const requirementText = [
+        snapshot.approval_required ? "approval" : null,
+        snapshot.input_required ? `${snapshot.input_count || 0} input${snapshot.input_count === 1 ? "" : "s"}` : null,
+    ].filter(Boolean).join(" + ");
+    const refreshedAt = metadata.refreshed_at || snapshot.user_interaction_updated_at;
+    const detailItems = [
+        snapshot.step_action ? {label: "Action", value: snapshot.step_action} : null,
+        requirementText ? {label: "Needs", value: requirementText} : null,
+        snapshot.run_operator_username ? {label: "Run as", value: snapshot.run_operator_username} : null,
+        snapshot.resolved_by_username ? {label: "Resolved by", value: snapshot.resolved_by_username} : null,
+    ].filter(Boolean);
+    return (
+        <Box className={`mythic-chat-special-card mythic-chat-eventing-card mythic-chat-eventing-card-${stateClass}`.trim()}>
+            <Box className="mythic-chat-special-card-header">
+                <Box className="mythic-chat-special-card-title-wrap">
+                    <Typography className="mythic-chat-special-card-title" variant="subtitle2">{stepName}</Typography>
+                    <Typography className="mythic-chat-special-card-subtitle" variant="caption">Eventing user interaction</Typography>
+                </Box>
+                <Chip
+                    size="small"
+                    className={`mythic-chat-special-status mythic-chat-special-status-${stateClass}`.trim()}
+                    label={statusText}
+                    variant="outlined"
+                />
+            </Box>
+            <Box className="mythic-chat-special-card-prompt">{getChatEventingPrompt(snapshot)}</Box>
+            <Box className="mythic-chat-special-card-details">
+                {detailItems.map((item) => (
+                    <span className="mythic-chat-special-card-detail" key={`${message.id}-${item.label}`}>
+                        <span className="mythic-chat-special-card-detail-label">{item.label}</span>
+                        <span className="mythic-chat-special-card-detail-value">{item.value}</span>
+                    </span>
+                ))}
+            </Box>
+            <Box className="mythic-chat-special-card-footer">
+                <Typography className="mythic-chat-special-card-refresh-time" variant="caption">
+                    {refreshedAt ? `Refreshed ${formatTimestamp(refreshedAt, me?.user?.view_utc_time)}` : ""}
+                </Typography>
+                <Box className="mythic-chat-special-card-actions">
+                    <MythicStyledTooltip title="Refresh">
+                        <span>
+                            <IconButton
+                                aria-label="Refresh eventing interaction"
+                                className="mythic-chat-special-refresh-button"
+                                disabled={refreshing}
+                                onClick={() => onRefresh(message)}
+                                size="small"
+                            >
+                                <RestartAltIcon fontSize="small" />
+                            </IconButton>
+                        </span>
+                    </MythicStyledTooltip>
+                    <Button
+                        size="small"
+                        variant="contained"
+                        className="mythic-table-row-action mythic-table-row-action-hover-success"
+                        disabled={!waiting}
+                        onClick={() => onReview(message)}
+                    >
+                        Review
+                    </Button>
+                </Box>
+            </Box>
+        </Box>
+    );
+};
+
 const channelDisplayName = (channel) => `# ${channel?.name || ""}`;
 
 const parseChatContainerModels = (container) => {
@@ -857,11 +1016,13 @@ const ChannelButton = ({channel, selected, unread, onSelect}) => {
     );
 };
 
-const MessageBubble = ({message, request, me, onEdit, onDelete, onCancel, onRetry, editing, editText, setEditText, saveEdit, cancelEdit}) => {
+const MessageBubble = ({message, request, me, onEdit, onDelete, onCancel, onRetry, onRefreshSpecial, onReviewSpecial, refreshingSpecialMessageID, editing, editText, setEditText, saveEdit, cancelEdit}) => {
     const theme = useTheme();
     const isMine = message.operator_id === me?.user?.user_id;
     const isAI = message.author_type === "ai";
     const isSystem = message.author_type === "system";
+    const eventingInteractionSnapshot = getEventingInteractionSnapshot(message);
+    const eventingInteractionStateClass = eventingInteractionSnapshot ? getChatEventingStateClass(eventingInteractionSnapshot) : "";
     const canEdit = isMine && message.author_type === "operator" && !message.deleted;
     const canDelete = !message.deleted && (isMine || message.author_type !== "operator");
     const streaming = message.status === "pending" || message.status === "streaming";
@@ -875,7 +1036,7 @@ const MessageBubble = ({message, request, me, onEdit, onDelete, onCancel, onRetr
     return (
         <Box className={`mythic-chat-message-row ${isMine ? "mythic-chat-message-row-mine" : ""}`}>
             <Box
-                className={`mythic-chat-message ${isAI ? "mythic-chat-message-ai" : ""} ${isSystem ? "mythic-chat-message-system" : ""}`}
+                className={`mythic-chat-message ${isAI ? "mythic-chat-message-ai" : ""} ${isSystem ? "mythic-chat-message-system" : ""} ${eventingInteractionSnapshot ? `mythic-chat-message-special-eventing mythic-chat-message-special-eventing-${eventingInteractionStateClass}` : ""}`.trim()}
                 sx={{
                     "--mythic-chat-markdown-border": softBorderColor,
                     "--mythic-chat-markdown-surface": markdownSurface,
@@ -939,6 +1100,14 @@ const MessageBubble = ({message, request, me, onEdit, onDelete, onCancel, onRetr
                             <Button size="small" variant="contained" onClick={saveEdit}>Save</Button>
                         </Box>
                     </Box>
+                ) : eventingInteractionSnapshot ? (
+                    <ChatEventingUserInteractionCard
+                        message={message}
+                        me={me}
+                        onRefresh={onRefreshSpecial}
+                        onReview={onReviewSpecial}
+                        refreshing={refreshingSpecialMessageID === message.id}
+                    />
                 ) : (
                     <MarkdownMessage message={message.message} />
                 )}
@@ -1369,7 +1538,19 @@ export function Chat({me}) {
     const [searchQuery, setSearchQuery] = React.useState("");
     const [editingID, setEditingID] = React.useState(null);
     const [editText, setEditText] = React.useState("");
+    const [reviewMessage, setReviewMessage] = React.useState(null);
+    const [refreshingSpecialMessageID, setRefreshingSpecialMessageID] = React.useState(null);
+    const messagesContainerRef = React.useRef(null);
     const messagesEndRef = React.useRef(null);
+    const messagesNearBottomRef = React.useRef(true);
+    const messagesScrollStateRef = React.useRef({
+        channelID: null,
+        messageIDs: new Set(),
+        lastMessageID: null,
+        lastMessageUpdatedAt: null,
+        lastMessageStatus: null,
+        lastMessageLength: 0,
+    });
     const streamStart = React.useRef(getSkewedNow().toISOString());
     const [baseChannels, setBaseChannels] = React.useState([]);
     const [allChatContainers, setAllChatContainers] = React.useState([]);
@@ -1602,6 +1783,14 @@ export function Chat({me}) {
         onError: (error) => snackActions.error(error.message),
     });
     const [markRead] = useMutation(MARK_READ);
+    const [refreshSpecialMessage] = useMutation(REFRESH_SPECIAL_MESSAGE, {
+        onCompleted: (data) => {
+            if(data.chatRefreshSpecialMessage.status !== "success"){
+                snackActions.error(data.chatRefreshSpecialMessage.error);
+            }
+        },
+        onError: (error) => snackActions.error(error.message),
+    });
     const [runSearch, {data: searchData, loading: searchLoading}] = useLazyQuery(CHAT_SEARCH, {
         fetchPolicy: "no-cache",
         onCompleted: (data) => {
@@ -1612,10 +1801,54 @@ export function Chat({me}) {
         onError: (error) => snackActions.error(error.message),
     });
 
+    const updateMessagesNearBottom = React.useCallback(() => {
+        const messagesContainer = messagesContainerRef.current;
+        if(!messagesContainer){
+            messagesNearBottomRef.current = true;
+            return;
+        }
+        messagesNearBottomRef.current = messagesContainer.scrollHeight - messagesContainer.scrollTop - messagesContainer.clientHeight < 80;
+    }, []);
+
     React.useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({block: "end"});
         const lastMessage = messages[messages.length - 1];
-        if(selectedChannelID && lastMessage){
+        const lastMessageMatchesChannel = Boolean(lastMessage && lastMessage.channel_id === selectedChannelID);
+        const previousScrollState = messagesScrollStateRef.current;
+        const messageIDs = new Set(messages.map((message) => message.id));
+        const channelChanged = previousScrollState.channelID !== selectedChannelID;
+        const hasNewMessages = messages.some((message) => !previousScrollState.messageIDs.has(message.id));
+        const lastMessageChanged = Boolean(lastMessage &&
+            previousScrollState.lastMessageID === lastMessage.id &&
+            (
+                previousScrollState.lastMessageUpdatedAt !== lastMessage.updated_at ||
+                previousScrollState.lastMessageStatus !== lastMessage.status ||
+                previousScrollState.lastMessageLength !== (lastMessage.message || "").length
+            )
+        );
+        const shouldScrollToBottom = Boolean(
+            lastMessageMatchesChannel &&
+            (
+                channelChanged ||
+                hasNewMessages ||
+                (lastMessageChanged && messagesNearBottomRef.current)
+            )
+        );
+
+        messagesScrollStateRef.current = {
+            channelID: selectedChannelID,
+            messageIDs,
+            lastMessageID: lastMessage?.id || null,
+            lastMessageUpdatedAt: lastMessage?.updated_at || null,
+            lastMessageStatus: lastMessage?.status || null,
+            lastMessageLength: (lastMessage?.message || "").length,
+        };
+
+        if(shouldScrollToBottom){
+            messagesEndRef.current?.scrollIntoView({block: "end"});
+            messagesNearBottomRef.current = true;
+        }
+
+        if(selectedChannelID && lastMessageMatchesChannel){
             markRead({variables: {channel_id: selectedChannelID, last_read_message_id: lastMessage.id}}).catch(() => {});
         }
     }, [messages, selectedChannelID, markRead]);
@@ -1728,6 +1961,18 @@ export function Chat({me}) {
         setSelectedChannelID(result.channel_id);
         setSearchOpen(false);
     };
+    const refreshChatSpecialMessage = React.useCallback((message) => {
+        if(!message?.id){
+            return Promise.resolve();
+        }
+        setRefreshingSpecialMessageID(message.id);
+        return refreshSpecialMessage({variables: {message_id: message.id}})
+            .finally(() => setRefreshingSpecialMessageID(null));
+    }, [refreshSpecialMessage]);
+    const reviewChatSpecialMessage = (message) => {
+        setReviewMessage(message);
+    };
+    const reviewSnapshot = getEventingInteractionSnapshot(reviewMessage);
     const metaChips = (
         <>
             <MythicPageHeaderChip label={`${channels.filter((channel) => !channel.archived).length} active`} />
@@ -1848,7 +2093,7 @@ export function Chat({me}) {
                             }
                         </Box>
                     </Box>
-                    <Box className="mythic-chat-messages">
+                    <Box className="mythic-chat-messages" ref={messagesContainerRef} onScroll={updateMessagesNearBottom}>
                         {!selectedChannel ? (
                             <ChatEmptyState
                                 icon={<ForumTwoToneIcon fontSize="large" />}
@@ -1871,6 +2116,9 @@ export function Chat({me}) {
                                     onDelete={(messageID) => deleteMessage({variables: {message_id: messageID}})}
                                     onCancel={(requestID) => cancelRequest({variables: {request_id: requestID}})}
                                     onRetry={(requestID) => retryRequest({variables: {request_id: requestID}})}
+                                    onRefreshSpecial={refreshChatSpecialMessage}
+                                    onReviewSpecial={reviewChatSpecialMessage}
+                                    refreshingSpecialMessageID={refreshingSpecialMessageID}
                                     editing={editingID === message.id}
                                     editText={editText}
                                     setEditText={setEditText}
@@ -1983,6 +2231,27 @@ export function Chat({me}) {
                 onSelectResult={selectSearchResult}
                 viewUTCTime={currentMe?.user?.view_utc_time}
             />
+            {reviewMessage && reviewSnapshot &&
+                <MythicDialog
+                    fullWidth={true}
+                    maxWidth="md"
+                    open={Boolean(reviewMessage)}
+                    onClose={() => {
+                        refreshChatSpecialMessage(reviewMessage).catch(() => {});
+                        setReviewMessage(null);
+                    }}
+                    innerDialog={
+                        <EventStepUserInteractionDialog
+                            onClose={() => {
+                                refreshChatSpecialMessage(reviewMessage).catch(() => {});
+                                setReviewMessage(null);
+                            }}
+                            onResolved={() => refreshChatSpecialMessage(reviewMessage)}
+                            selectedEventGroupInstance={reviewSnapshot.eventgroupinstance_id}
+                            selectedStep={{id: reviewSnapshot.eventstepinstance_id}}
+                        />}
+                />
+            }
         </MythicPageBody>
     );
 }

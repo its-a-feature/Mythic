@@ -12,10 +12,8 @@ const (
 	ChatChannelTypeAI       = "ai"
 
 	ChatMessageAuthorOperator = "operator"
-	ChatMessageAuthorAI       = "ai"
 	ChatMessageAuthorSystem   = "system"
 
-	ChatMessageStatusPending   = "pending"
 	ChatMessageStatusStreaming = "streaming"
 	ChatMessageStatusComplete  = "complete"
 	ChatMessageStatusError     = "error"

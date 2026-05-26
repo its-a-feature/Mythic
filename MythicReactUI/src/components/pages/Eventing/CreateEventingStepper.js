@@ -583,7 +583,7 @@ const inputOptionsData = {
         description: "this is a completely custom input that's whatever you desire"
     }
 }
-const userInteractionInputTypes = ["string", "number", "boolean", "json"];
+const userInteractionInputTypes = ["string", "number", "boolean", "json", "ChooseOne"];
 const userInteractionBotApprovalApprovers = {
     operator: {
         label: "Any operator",
@@ -606,6 +606,9 @@ const getDefaultUserInteractionConfig = () => ({
     input_prompt: "",
     inputs: [],
 });
+const getUserInteractionOutputSourceOptions = (localInputOptions = []) => {
+    return (localInputOptions || []).filter((option) => option.includes(".")).sort();
+}
 const normalizeUserInteractionConfig = (config) => {
     const normalizedConfig = {...getDefaultUserInteractionConfig(), ...(config || {})};
     const approvalPolicy = normalizedConfig.approval_policy && typeof normalizedConfig.approval_policy === "object" ? normalizedConfig.approval_policy : {};
@@ -615,27 +618,21 @@ const normalizeUserInteractionConfig = (config) => {
             approver: Object.keys(userInteractionBotApprovalApprovers).includes(botContext.approver) ? botContext.approver : "operator",
         },
     };
-    if(!Array.isArray(normalizedConfig.inputs)){
-        if(normalizedConfig.inputs && typeof normalizedConfig.inputs === "object"){
-            normalizedConfig.inputs = Object.entries(normalizedConfig.inputs).map(([name, value]) => {
-                if(value && typeof value === "object" && !Array.isArray(value)){
-                    return {name, ...value};
-                }
-                return {name, type: "string", required: false, description: "", default_value: value || ""};
-            });
-        }else{
-            normalizedConfig.inputs = [];
-        }
-    }
-    normalizedConfig.inputs = normalizedConfig.inputs.map((input) => ({
-        name: input?.name || "",
-        type: input?.type || "string",
-        required: Boolean(input?.required),
-        description: input?.description || "",
-        default_value: input?.default_value === undefined || input?.default_value === null ? "" : (
+    normalizedConfig.inputs = normalizedConfig.inputs.map((input) => {
+        const inputType = userInteractionInputTypes.find((type) => type.toLowerCase() === (input?.type || "string").toLowerCase()) || "string";
+        const defaultValue = input?.default_value === undefined || input?.default_value === null ? "" : (
             typeof input.default_value === "string" ? input.default_value : JSON.stringify(input.default_value)
-        ),
-    }));
+        );
+        return {
+            name: input?.name || "",
+            type: inputType,
+            required: Boolean(input?.required),
+            description: input?.description || "",
+            default_value: defaultValue,
+            default_value_source: input.default_value_source || "custom",
+            choices: input?.choices || [],
+        };
+    });
     return normalizedConfig;
 }
 const hasUserInteractionConfig = (config) => {
@@ -2527,29 +2524,114 @@ const actionOptionsData = {
     }
 
 }
-const EventingStepUserInteraction = ({config, onChange}) => {
+const EventingUserInteractionSourcePicker = ({localInputOptions, onChange, default_value, default_value_source}) => {
+    const outputSourceOptions = getUserInteractionOutputSourceOptions(localInputOptions);
+    const sourceOptions = default_value_source !== "custom" && !outputSourceOptions.includes(default_value_source) ? [default_value_source, ...outputSourceOptions] : outputSourceOptions;
+    const onChangeSourceType = (event) => {
+        const nextType = event.target.value;
+        if(nextType === "custom"){
+            onChange(nextType, "");
+        }else{
+            onChange(nextType, nextType);
+        }
+    }
+    return (
+        <div className="mythic-eventing-user-input-source-cell">
+            <TextField
+                label={`Default Value Source`}
+                select
+                size="small"
+                style={{ width: "100%" }}
+                value={default_value_source}
+                onChange={onChangeSourceType}
+            >
+                <MenuItem key={`custom`} value="custom">custom</MenuItem>
+                {sourceOptions.map((option) => (
+                    <MenuItem key={`${option}`} value={option}>{option}</MenuItem>
+                ))}
+            </TextField>
+            {default_value_source !== "custom" &&
+                <div className="mythic-eventing-step-helper-text">
+                    Resolved from {default_value} when the step pauses.
+                </div>
+            }
+        </div>
+    )
+}
+const EventingUserInteractionChoicesEditor = ({input, index, updateInputFields}) => {
+    const choices = input.choices;
+    const setChoices = (nextChoices) => {
+        updateInputFields(index, {
+            choices: nextChoices,
+        });
+    }
+    const addChoice = () => {
+        setChoices([...choices, ""]);
+    }
+    const removeChoice = (choiceIndex) => {
+        const nextChoices = [...choices];
+        nextChoices.splice(choiceIndex, 1);
+        setChoices(nextChoices);
+    }
+    const updateChoice = (choiceIndex, value) => {
+        const nextChoices = [...choices];
+        nextChoices[choiceIndex] = value;
+        setChoices(nextChoices);
+    }
+    return (
+        <div className="mythic-eventing-user-input-choices">
+            <div className="mythic-eventing-user-input-choice-list">
+                {choices.length === 0 &&
+                    <EventingStepEmptyInline>No choices configured.</EventingStepEmptyInline>
+                }
+                {choices.map((choice, choiceIndex) => (
+                    <div className="mythic-eventing-user-input-choice-row" key={`choice-${index}-${choiceIndex}`}>
+                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={() => removeChoice(choiceIndex)}>
+                            <DeleteIcon fontSize="small" />
+                        </IconButton>
+                        <MythicTextField
+                            placeholder={`Choice ${choiceIndex + 1}`}
+                            onChange={(name, value) => updateChoice(choiceIndex, value)}
+                            value={choice}
+                            marginBottom="0px"
+                        />
+                    </div>
+                ))}
+                <Button className="mythic-table-row-action mythic-table-row-action-hover-success" onClick={addChoice} size="small" variant="outlined" startIcon={<AddCircleIcon fontSize="small" />}>
+                    Add choice
+                </Button>
+            </div>
+        </div>
+    )
+}
+const EventingStepUserInteraction = ({config, localInputOptions, onChange}) => {
     const userInteraction = normalizeUserInteractionConfig(config);
     const updateUserInteraction = (updates) => {
         onChange({...userInteraction, ...updates});
     }
-    const updateInputField = (index, fieldName, value) => {
+    const updateInputFields = (index, updates) => {
         const nextInputs = userInteraction.inputs.map((input, i) => {
             if(i !== index){
                 return {...input};
             }
-            return {...input, [fieldName]: value};
+            return {...input, ...updates};
         });
         updateUserInteraction({inputs: nextInputs});
     }
+    const updateInputField = (index, fieldName, value) => {
+        updateInputFields(index, {[fieldName]: value});
+    }
     const addInputField = () => {
         updateUserInteraction({
-            input_required: true,
+            input_required: false,
             inputs: [...userInteraction.inputs, {
                 name: "",
                 type: "string",
-                required: true,
+                required: false,
                 description: "",
                 default_value: "",
+                default_value_source: "custom",
+                choices: [],
             }],
         });
     }
@@ -2642,9 +2724,17 @@ const EventingStepUserInteraction = ({config, onChange}) => {
                             <div className="mythic-eventing-step-list-content">
                                 <div className="mythic-eventing-step-field-grid">
                                     <MythicTextField
+                                        name={"Name"}
                                         placeholder="Input name"
                                         onChange={(name, value) => updateInputField(index, "name", value)}
                                         value={input.name}
+                                        marginBottom="0px"
+                                    />
+                                    <MythicTextField
+                                        name={"Description"}
+                                        placeholder="Description"
+                                        onChange={(name, value) => updateInputField(index, "description", value)}
+                                        value={input.description}
                                         marginBottom="0px"
                                     />
                                     <FormControl sx={{ display: "inline-block", width: "100%" }} size="small">
@@ -2654,26 +2744,51 @@ const EventingStepUserInteraction = ({config, onChange}) => {
                                             size="small"
                                             style={{ width: "100%" }}
                                             value={input.type}
-                                            onChange={(event) => updateInputField(index, "type", event.target.value)}
+                                            onChange={(event) => {
+                                                const nextType = event.target.value;
+                                                updateInputFields(index, {
+                                                    type: nextType,
+                                                    ...(nextType === "ChooseOne" ?
+                                                        {
+                                                            default_value: "",
+                                                            choices: input.default_value_source === "custom" ? input.choices : []
+                                                        } :
+                                                        {choices: [] }
+                                                    )
+                                                });
+                                            }}
                                         >
                                             {userInteractionInputTypes.map((type) => (
                                                 <MenuItem key={`user-interaction-type-${type}`} value={type}>{type}</MenuItem>
                                             ))}
                                         </TextField>
                                     </FormControl>
+                                    <EventingUserInteractionSourcePicker
+                                            localInputOptions={localInputOptions}
+                                            default_value={input.default_value}
+                                            default_value_source={input.default_value_source}
+                                            onChange={(nextSource, nextValue) => updateInputFields(index, {
+                                                default_value_source: nextSource,
+                                                default_value: nextValue,
+                                            })}
+                                        />
+                                </div>
+                                {input.type !== "ChooseOne" && input.default_value_source === "custom" &&
                                     <MythicTextField
-                                        placeholder="Description"
-                                        onChange={(name, value) => updateInputField(index, "description", value)}
-                                        value={input.description}
-                                        marginBottom="0px"
-                                    />
-                                    <MythicTextField
-                                        placeholder="Default value"
+                                        name={"Default Value"}
+                                        placeholder={"Default Value"}
                                         onChange={(name, value) => updateInputField(index, "default_value", value)}
                                         value={input.default_value}
                                         marginBottom="0px"
                                     />
-                                </div>
+                                }
+                                {input.type === "ChooseOne" && input.default_value_source === "custom" &&
+                                    <EventingUserInteractionChoicesEditor
+                                        input={input}
+                                        index={index}
+                                        updateInputFields={updateInputFields}
+                                    />
+                                }
                                 <label className="mythic-eventing-step-switch-row mythic-eventing-step-switch-row-compact">
                                     <span className="mythic-eventing-step-switch-copy">
                                         <span className="mythic-eventing-step-switch-title">Required</span>
@@ -2896,7 +3011,7 @@ const EventingStep = ({step, allSteps, updateStep, index, step1Data, updateStep1
                     title="User interaction"
                     description="Pause before execution to request approval, runtime input, or both."
                 >
-                    <EventingStepUserInteraction config={userInteraction} onChange={onChangeUserInteraction} />
+                    <EventingStepUserInteraction config={userInteraction} localInputOptions={localInputOptions} onChange={onChangeUserInteraction} />
                 </EventingStepConfigSection>
                 <EventingStepConfigSection
                     className="mythic-eventing-step-config-section-wide"
