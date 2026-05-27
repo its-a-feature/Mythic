@@ -65,6 +65,9 @@ func init() {
 }
 
 func updateCheck(cmd *cobra.Command, args []string) {
+	if mirror := config.GetMythicEnv().GetString("mythic_docker_image_mirror"); mirror != "" {
+		log.Printf("[*] mythic_docker_image_mirror is set to %q; image URLs printed below are the upstream sources used for version checking, not the mirrored locations actually pulled by docker compose\n", mirror)
+	}
 	var tr = &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
