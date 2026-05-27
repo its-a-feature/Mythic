@@ -33,8 +33,8 @@ import EditIcon from '@mui/icons-material/Edit';
 import SettingsInputComponentRoundedIcon from '@mui/icons-material/SettingsInputComponentRounded';
 import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
 
-const fileDataFragment = gql`
-    fragment fileObjData on mythictree {
+const fileBrowserDataFragment = gql`
+    fragment fileBrowserObjData on mythictree {
         comment
         deleted
         task_id
@@ -65,45 +65,45 @@ const fileDataFragment = gql`
     }
 `;
 const rootFileQuery = gql`
-    ${fileDataFragment}
+    ${fileBrowserDataFragment}
     query myRootCustomFolderQuery($tree_type: String!) {
         mythictree(where: { parent_path_text: { _eq: "" }, tree_type: {_eq: $tree_type} }) {
-            ...fileObjData
+            ...fileBrowserObjData
         }
     }
 `;
 const folderQuery = gql`
-    ${fileDataFragment}
+    ${fileBrowserDataFragment}
     query myFolderQuery($parent_path_text: String!, $parents: [String], $tree_type: String!) {
         children: mythictree(
             where: { parent_path_text: { _eq: $parent_path_text }, tree_type: {_eq: $tree_type} }
             order_by: { can_have_children: asc, name: asc }
         ) {
-            ...fileObjData
+            ...fileBrowserObjData
         }
         parents: mythictree(
             where: { full_path_text: { _in: $parents }, tree_type: {_eq: $tree_type} }
             order_by: { can_have_children: asc, name: asc }
         ) {
-            ...fileObjData
+            ...fileBrowserObjData
         }
         self: mythictree(
             where: { full_path_text: { _eq: $parent_path_text }, tree_type: {_eq: $tree_type} }
             order_by: { can_have_children: asc, name: asc }
         ) {
-            ...fileObjData
+            ...fileBrowserObjData
         }
     }
 `;
 const fileDataSubscription = gql`
-    ${fileDataFragment}
+    ${fileBrowserDataFragment}
     subscription liveData($now: timestamp!, $tree_type: String!) {
         mythictree_stream(
             batch_size: 1000,
             cursor: {initial_value: {timestamp: $now}},
             where: {tree_type: {_eq: $tree_type} }
         ) {
-            ...fileObjData
+            ...fileBrowserObjData
         }
     }
 `;

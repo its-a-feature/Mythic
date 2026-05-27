@@ -6,12 +6,9 @@ import {b64DecodeUnicode} from "./ResponseDisplay";
 import {SearchBar} from './ResponseDisplay';
 import Pagination from '@mui/material/Pagination';
 import {Typography, CircularProgress, Backdrop, Menu} from '@mui/material';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import MenuItem from '@mui/material/MenuItem';
-import Anser from "anser";
 import PaletteIcon from '@mui/icons-material/Palette';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
-import './ResponseDisplayInteractiveANSI.css';
 import {Terminal} from '@xterm/xterm';
 import {FitAddon} from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
@@ -77,145 +74,24 @@ const sortInteractiveEntries = (entries) => {
         return (a.id || 0) < (b.id || 0) ? -1 : 1;
     });
 }
-const getTaskingStatus = (task) => {
-    if(task.status === "completed" || task.status === "success"){
-        return <CheckCircleOutlineIcon color={"success"} fontSize={"1rem"} style={{marginRight: "2px"}} />
-    } else if(task.status === "submitted"){
-        return  <CircularProgress size={"1rem"} />
-    } else {
-        console.log(task.status);
-        return null
-    }
-}
-const getClassnames = (entry) => {
-    let classnames = [];
-    if(entry.decoration && entry.decoration === "reverse"){
-        if(entry.fg){
-            classnames.push(entry.fg + "-background");
-        }
-        if(entry.bg){
-            classnames.push(entry.bg);
-        }
-    } else {
-        if(entry.fg){
-            classnames.push(entry.fg);
-        }
-        if(entry.bg){
-            classnames.push(entry.bg + "-background");
-        }
-    }
-
-    if(entry.decoration){
-        classnames.push("ansi-" + entry.decoration);
-    }
-    for(let i = 0; i < entry.decorations.length; i++){
-        classnames.push("ansi-" + entry.decorations[i])
-    }
-    if(entry.bg_truecolor || entry.fg_truecolor){
-        console.log(entry);
-    }
-    //console.log(entry);
-    return classnames.join(" ");
-}
-const handleTerminalCodes = (response) => {
-    let output = response.replaceAll("[?2004h", "");
-    output = output.replaceAll("[?2004l", "");
-    let indexOfTitleSeq = output.indexOf("]0");
-    if(indexOfTitleSeq >= 0){
-        let endIndexOfTitleSeq = output.indexOf("]");
-        if(endIndexOfTitleSeq >= 0 && endIndexOfTitleSeq > indexOfTitleSeq){
-            output = output.substring(0, indexOfTitleSeq + 2) + output.substring(endIndexOfTitleSeq);
-        }
-    }
-    let indexOfClearLeft = output.indexOf("[J");
-    if(indexOfClearLeft >= 0){
-        let indexOfLastNewLine = 0;
-        for(let i = indexOfClearLeft; i >= 0; i--){
-            if(output[i] === "\n"){
-                indexOfLastNewLine = i;
-                break;
-            }
-        }
-        output = output.substring(0, indexOfLastNewLine+1) + output.substring(indexOfClearLeft + 2);
-    }
-
-    return output;
-}
-export const GetOutputFormatAll = ({data, useASNIColor, messagesEndRef, showTaskStatus, wrapText, autoScroll=false}) => {
-    const theme = useTheme();
-    const errorOutputBackground = theme.palette.error.main + (theme.palette.mode === "dark" ? "33" : "22");
-    const outputTextColor = theme.outputTextColor;
-    const [dataElement, setDataElement] = React.useState(null);
-    React.useEffect( () => {
-        const elements = data.map( d => {
-            if(d.response !== undefined) {
-                // we're looking at response output
-                if(d.is_error){
-                    return (<pre id={"response" + d.timestamp + d.id} style={{display: "inline", backgroundColor: errorOutputBackground, color: outputTextColor, margin: "0 0 0 0",
-                        wordBreak: wrapText ? "break-all" : "",
-                        whiteSpace: wrapText ? "pre-wrap" : ""}} key={d.timestamp + d.id}>
-                    {d.response}
-                </pre>)
-                } else {
-                    if(useASNIColor){
-                        let removedTerminalCodes = handleTerminalCodes(d.response);
-                        let ansiJSON = Anser.ansiToJson(removedTerminalCodes, { use_classes: true });
-                        //console.log(ansiJSON)
-                        return (
-                            ansiJSON.map( (a, i) => (
-                                <pre id={"response" + d.timestamp + d.id} style={{display: "inline", margin: "0 0 0 0",
-                                    wordBreak: wrapText ? "break-all" : "",
-                                    whiteSpace: wrapText ? "pre-wrap" : "",
-                                }} className={getClassnames(a)} key={d.id + d.timestamp + i}>{a.content}</pre>
-                            ))
-                    )
-                    } else {
-                        return (<pre id={"response" + d.timestamp + d.id} style={{display: "inline", margin: "0 0 0 0",
-                            wordBreak: wrapText ? "break-all" : "",
-                            whiteSpace: wrapText ? "pre-wrap" : "",
-                        }} key={d.timestamp + d.id}>{d.response}</pre>)
-                    }
-
-                }
-            } else {
-                // we're looking at tasking
-                return(
-                    <pre id={"task" + d.timestamp + d.id} key={d.timestamp + d.id} style={{display: "inline",margin: "0 0 0 0",
-                        wordBreak: wrapText ? "break-all" : "", whiteSpace: "pre-wrap"}}>
-                    {showTaskStatus && getTaskingStatus(d)}
-                        {d.original_params}
-                </pre>
-                )
-            }
-        })
-        setDataElement(elements);
-    }, [data, useASNIColor, showTaskStatus, wrapText, errorOutputBackground, outputTextColor]);
-    React.useLayoutEffect( () => {
-        if(autoScroll){
-            messagesEndRef?.current?.scrollIntoView({ behavior: "auto", block: "nearest" });
-        }
-    }, [autoScroll, dataElement, messagesEndRef]);
-    return (
-        dataElement
-    )
-
-}
-
-const INTERACTIVE_TERMINAL_SCROLLBACK = 5000;
-const INTERACTIVE_TERMINAL_MAX_UNWRAPPED_COLS = 300;
-const ANSI_STYLE_CODE_REGEX = /\x1b\[[0-?]*[ -/]*m/g;
-const TERMINAL_CONTROL_CODE_REGEX = /\x1b\][^\x07]*(?:\x07|\x1b\\)|\x1b\[[0-?]*[ -/]*[@-~]|\x1b[ -/]*[@-~]/g;
-const TERMINAL_QUERY_CODE_REGEX = /\x1bc|\x1b\[(?:\?|>)?[0-9;]*[cn]|\x1b\](?:4|10|11|12);[^\x07]*(?:\x07|\x1b\\)/g;
-const stripAnsiStyleCodes = (value) => {
+export const INTERACTIVE_TERMINAL_SCROLLBACK = 5000;
+export const INTERACTIVE_TERMINAL_MAX_UNWRAPPED_COLS = 300;
+// eslint-disable-next-line no-control-regex
+export const ANSI_STYLE_CODE_REGEX = /\x1b\[[0-?]*[ -/]*m/g;
+// eslint-disable-next-line no-control-regex
+export const TERMINAL_CONTROL_CODE_REGEX = /\x1b\][^\x07]*(?:\x07|\x1b\\)|\x1b\[[0-?]*[ -/]*[@-~]|\x1b[ -/]*[@-~]/g;
+// eslint-disable-next-line no-control-regex
+export const TERMINAL_QUERY_CODE_REGEX = /\x1bc|\x1b\[(?:\?|>)?[0-9;]*[cn]|\x1b\](?:4|10|11|12);[^\x07]*(?:\x07|\x1b\\)/g;
+export const stripAnsiStyleCodes = (value) => {
     return value.replace(ANSI_STYLE_CODE_REGEX, "");
 }
-const getTerminalText = (value) => {
+export const getTerminalText = (value) => {
     return value === undefined || value === null ? "" : String(value);
 }
-const sanitizeTerminalOutput = (value) => {
+export const sanitizeTerminalOutput = (value) => {
     return getTerminalText(value).replace(TERMINAL_QUERY_CODE_REGEX, "");
 }
-const getInteractiveTerminalTheme = (theme) => {
+export const getInteractiveTerminalTheme = (theme) => {
     return {
         background: theme.outputBackgroundColor,
         foreground: theme.outputTextColor,
@@ -229,20 +105,23 @@ const getInteractiveTerminalEntrySignature = (entry) => {
     }
     return `task:${entry.id}:${entry.status}:${entry.original_params}:${entry.display_params}`;
 }
-const getInteractiveTerminalMeasurementText = (value) => {
+export const getInteractiveTerminalMeasurementText = (value) => {
     return sanitizeTerminalOutput(value).replace(TERMINAL_CONTROL_CODE_REGEX, "");
 }
-const getInteractiveTerminalEntryMeasurementText = (entry) => {
+export const getLongestTerminalTextLineLength = (value) => {
+    return getInteractiveTerminalMeasurementText(value).split(/\r\n|\n|\r/).reduce( (longestLineLength, line) => {
+        return Math.max(longestLineLength, Array.from(line.replaceAll("\t", "    ")).length);
+    }, 0);
+}
+const getInteractiveTerminalEntryText = (entry) => {
     if(entry.response !== undefined){
-        return getInteractiveTerminalMeasurementText(entry.response);
+        return entry.response;
     }
-    return getInteractiveTerminalMeasurementText(entry.original_params || entry.display_params);
+    return entry.original_params || entry.display_params;
 }
 const getLongestInteractiveTerminalLineLength = (entries) => {
     return entries.reduce( (longestLineLength, entry) => {
-        return getInteractiveTerminalEntryMeasurementText(entry).split(/\r\n|\n|\r/).reduce( (longestEntryLineLength, line) => {
-            return Math.max(longestEntryLineLength, Array.from(line.replaceAll("\t", "    ")).length);
-        }, longestLineLength);
+        return Math.max(longestLineLength, getLongestTerminalTextLineLength(getInteractiveTerminalEntryText(entry)));
     }, 0);
 }
 const getInteractiveTerminalTaskStatus = ({task, useASNIColor}) => {
@@ -257,7 +136,7 @@ const getInteractiveTerminalTaskStatus = ({task, useASNIColor}) => {
     }
     return task.status ? `[${task.status}] ` : "";
 }
-const formatInteractiveTerminalEntry = ({entry, useASNIColor, showTaskStatus}) => {
+export const formatInteractiveTerminalEntry = ({entry, useASNIColor, showTaskStatus}) => {
     if(entry.response !== undefined){
         const terminalResponse = sanitizeTerminalOutput(entry.response);
         const response = useASNIColor ? terminalResponse : stripAnsiStyleCodes(terminalResponse);
@@ -269,6 +148,13 @@ const formatInteractiveTerminalEntry = ({entry, useASNIColor, showTaskStatus}) =
     const status = showTaskStatus ? getInteractiveTerminalTaskStatus({task: entry, useASNIColor}) : "";
     const prompt = useASNIColor ? "\x1b[36m> \x1b[0m" : "> ";
     return `\r\n${status}${prompt}${getTerminalText(entry.original_params || entry.display_params)}\r\n`;
+}
+export const formatInteractiveTerminalEntries = ({entries, useASNIColor=true, showTaskStatus=false}) => {
+    return entries.map((entry) => formatInteractiveTerminalEntry({
+        entry,
+        useASNIColor,
+        showTaskStatus,
+    })).join("");
 }
 const InteractiveTerminalDisplay = ({
     data,
@@ -400,7 +286,8 @@ const InteractiveTerminalDisplay = ({
         scheduleFitTerminal();
     }, [longestLineLength, scheduleFitTerminal, wrapText]);
     React.useEffect( () => {
-        if(!terminalElementRef.current){
+        const terminalElement = terminalElementRef.current;
+        if(!terminalElement){
             return;
         }
         const terminal = new Terminal({
@@ -427,7 +314,7 @@ const InteractiveTerminalDisplay = ({
             event.preventDefault();
             writeLocalTerminalAction(onTerminalInputRef.current?.(pastedText));
         };
-        terminalElementRef.current.addEventListener("paste", handleTerminalPaste);
+        terminalElement.addEventListener("paste", handleTerminalPaste);
         terminal.attachCustomKeyEventHandler((event) => {
             if(!onTerminalKeyEventRef.current){
                 return true;
@@ -441,7 +328,7 @@ const InteractiveTerminalDisplay = ({
         });
         const fitAddon = new FitAddon();
         terminal.loadAddon(fitAddon);
-        terminal.open(terminalElementRef.current);
+        terminal.open(terminalElement);
         terminalRef.current = terminal;
         fitAddonRef.current = fitAddon;
         resizeObserverRef.current = new ResizeObserver(() => scheduleFitTerminal());
@@ -465,7 +352,7 @@ const InteractiveTerminalDisplay = ({
             resizeObserverRef.current = null;
             fitAddonRef.current = null;
             terminalRef.current = null;
-            terminalElementRef.current?.removeEventListener("paste", handleTerminalPaste);
+            terminalElement.removeEventListener("paste", handleTerminalPaste);
             keyDisposable.dispose();
             terminal.dispose();
         }
@@ -496,11 +383,11 @@ const InteractiveTerminalDisplay = ({
         if(!canAppend){
             terminal.reset();
         }
-        const terminalOutput = entriesToWrite.map( (entry) => formatInteractiveTerminalEntry({
-            entry,
+        const terminalOutput = formatInteractiveTerminalEntries({
+            entries: entriesToWrite,
             useASNIColor,
             showTaskStatus,
-        })).join("");
+        });
         replayStateRef.current = {
             settingsKey,
             signatures: nextSignatures,
@@ -611,6 +498,7 @@ const TERMINAL_KEY_EVENT_INPUTS = {
     PageDown: "\x1b[6~",
 };
 const isPrintableTerminalText = (value) => {
+    // eslint-disable-next-line no-control-regex
     return value !== "" && !/[\x00-\x1f\x7f]/.test(value) && !value.startsWith("\x1b");
 };
 const getTerminalInputLabel = (value) => {

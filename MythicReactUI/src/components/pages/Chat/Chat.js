@@ -1,7 +1,6 @@
 import React from 'react';
 import {gql, useLazyQuery, useMutation, useQuery, useSubscription} from '@apollo/client';
 import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import {alpha, useTheme} from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -48,6 +47,7 @@ import {MythicConfirmDialog} from "../../MythicComponents/MythicConfirmDialog";
 import {MeContext} from "../../App";
 import {snackActions} from "../../utilities/Snackbar";
 import {getSkewedNow} from "../../utilities/Time";
+import {isAllowedMarkdownLink, markdownPlugins} from "../../utilities/Markdown";
 import {EventStepUserInteractionDialog} from "../Eventing/EventStepRender";
 
 const CHAT_MESSAGE_LIMIT = 250;
@@ -351,8 +351,6 @@ query ChatSearch($query: String!, $channel_id: Int, $limit: Int, $offset: Int) {
 }
 `;
 
-const allowedLinkSchemes = ["http:", "https:", "mailto:"];
-
 const isGeneralChatChannel = (channel) => channel?.channel_type === "standard" && channel?.slug === "general";
 
 const CHAT_SEARCH_SNIPPET_LENGTH = 260;
@@ -544,7 +542,6 @@ const mergeReadStateRows = (current, incoming) => {
     }, current);
 };
 
-const markdownPlugins = [remarkGfm];
 const markdownTableAlignments = ["left", "right", "center"];
 const getMarkdownTableAlign = (align) => markdownTableAlignments.includes(align) ? align : "left";
 
@@ -596,15 +593,7 @@ const markdownComponents = {
         <code className={className || "mythic-chat-inline-code"}>{children}</code>
     ),
     a: ({href, children}) => {
-        if(!href){
-            return children;
-        }
-        try{
-            const url = new URL(href, window.location.origin);
-            if(!allowedLinkSchemes.includes(url.protocol)){
-                return children;
-            }
-        }catch(error){
+        if(!isAllowedMarkdownLink(href)){
             return children;
         }
         return <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>;

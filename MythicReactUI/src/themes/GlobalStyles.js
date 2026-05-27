@@ -4381,6 +4381,286 @@ tspan {
     line-height: 1.35;
     padding: 0.35rem 0.5rem;
 }
+.mythic-response-render-toolbar {
+    background-color: var(--mythic-global-210);
+    border-bottom: 1px solid var(--mythic-global-211);
+    color: var(--mythic-global-212);
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    min-width: 0;
+}
+.mythic-response-render-toolbar-toggle {
+    align-items: center;
+    background-color: transparent;
+    border: 0;
+    color: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    font: inherit;
+    gap: 0.35rem;
+    justify-content: flex-start;
+    min-height: 2rem;
+    min-width: 0;
+    padding: 0.28rem 0.55rem;
+    text-align: left;
+    width: 100%;
+}
+.mythic-response-render-toolbar-toggle:hover {
+    background-color: var(--mythic-global-219);
+}
+.mythic-response-render-toolbar-title {
+    font-size: 0.75rem;
+    font-weight: 850;
+    line-height: 1;
+}
+.mythic-response-render-toolbar-mode {
+    align-items: center;
+    background-color: var(--mythic-global-213);
+    border: 1px solid var(--mythic-global-214);
+    border-radius: var(--mythic-global-008);
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-size: 0.68rem;
+    font-weight: 800;
+    line-height: 1;
+    min-height: 1.35rem;
+    padding: 0.18rem 0.4rem;
+}
+.mythic-response-render-toolbar-controls {
+    align-items: center;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0.45rem;
+    min-width: 0;
+    min-height: calc(1.8rem + 2px);
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0.08rem 0.55rem 0.45rem;
+}
+.mythic-response-render-mode-group,
+.mythic-response-render-action-group {
+    align-items: center;
+    background-color: var(--mythic-global-216);
+    border: 1px solid var(--mythic-global-211);
+    border-radius: var(--mythic-global-008);
+    display: inline-flex;
+    flex: 0 0 auto;
+    overflow: hidden;
+}
+.mythic-response-render-mode-button {
+    align-items: center;
+    background-color: transparent;
+    border: 0;
+    border-right: 1px solid var(--mythic-global-217);
+    color: var(--mythic-global-218);
+    cursor: pointer;
+    display: inline-flex;
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 800;
+    gap: 0.25rem;
+    justify-content: center;
+    min-height: 1.8rem;
+    padding: 0 0.52rem;
+    transition: background-color 120ms ease, color 120ms ease;
+}
+.mythic-response-render-mode-button:last-child {
+    border-right: 0;
+}
+.mythic-response-render-mode-button:hover {
+    background-color: var(--mythic-global-219);
+    color: var(--mythic-global-220);
+}
+.mythic-response-render-mode-button.is-selected {
+    background-color: var(--mythic-global-225);
+    color: var(--mythic-global-220);
+}
+.mythic-response-render-action-group {
+    gap: 0;
+}
+.mythic-response-render-action-button {
+    align-items: center;
+    background-color: transparent;
+    border: 0;
+    border-right: 1px solid var(--mythic-global-217);
+    color: var(--mythic-global-218);
+    cursor: pointer;
+    display: inline-flex;
+    height: 1.8rem;
+    justify-content: center;
+    padding: 0;
+    transition: background-color 120ms ease, color 120ms ease;
+    width: 1.8rem;
+}
+.mythic-response-render-action-button:last-child {
+    border-right: 0;
+}
+.mythic-response-render-action-button:hover {
+    background-color: var(--mythic-global-219);
+    color: var(--mythic-global-220);
+}
+.mythic-response-render-action-button.is-selected {
+    background-color: var(--mythic-global-225);
+    color: var(--mythic-global-220);
+}
+.mythic-response-syntax-group {
+    align-items: center;
+    background-color: var(--mythic-global-216);
+    border: 1px solid var(--mythic-global-211);
+    border-radius: var(--mythic-global-008);
+    color: var(--mythic-global-218);
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-size: 0.72rem;
+    font-weight: 800;
+    gap: 0.35rem;
+    height: 1.8rem;
+    line-height: 1;
+    min-width: 0;
+    overflow: hidden;
+    padding: 0 0.42rem;
+}
+.mythic-response-syntax-select {
+    background-color: transparent;
+    border: 0;
+    color: var(--mythic-global-220);
+    cursor: pointer;
+    font: inherit;
+    height: 100%;
+    min-width: 7.2rem;
+    outline: none;
+}
+.mythic-response-syntax-select option {
+    color: initial;
+}
+.mythic-response-markdown {
+    box-sizing: border-box;
+    color: var(--mythic-global-212);
+    font-size: 0.86rem;
+    line-height: 1.45;
+    min-height: 0;
+    max-width: 100%;
+    overflow: auto;
+    padding: 0.65rem 0.75rem;
+    width: 100%;
+}
+.mythic-response-markdown.is-expanded {
+    height: 100%;
+}
+.mythic-response-markdown.is-capped {
+    max-height: 360px;
+}
+.mythic-response-markdown > :first-child {
+    margin-top: 0;
+}
+.mythic-response-markdown > :last-child {
+    margin-bottom: 0;
+}
+.mythic-response-markdown p {
+    margin: 0 0 0.55rem;
+    overflow-wrap: anywhere;
+}
+.mythic-response-markdown h1,
+.mythic-response-markdown h2,
+.mythic-response-markdown h3,
+.mythic-response-markdown h4,
+.mythic-response-markdown h5,
+.mythic-response-markdown h6 {
+    font-weight: 850;
+    letter-spacing: 0;
+    line-height: 1.22;
+    margin: 0.8rem 0 0.45rem;
+}
+.mythic-response-markdown h1,
+.mythic-response-markdown h2 {
+    font-size: 1.05rem;
+}
+.mythic-response-markdown h3,
+.mythic-response-markdown h4,
+.mythic-response-markdown h5,
+.mythic-response-markdown h6 {
+    font-size: 0.92rem;
+}
+.mythic-response-markdown ul,
+.mythic-response-markdown ol {
+    margin: 0.35rem 0 0.65rem;
+    padding-left: 1.35rem;
+}
+.mythic-response-markdown li {
+    margin: 0.14rem 0;
+}
+.mythic-response-markdown blockquote {
+    background-color: var(--mythic-global-216);
+    border: 1px solid var(--mythic-global-211);
+    border-left: 3px solid var(--mythic-global-215);
+    border-radius: var(--mythic-global-008);
+    margin: 0.5rem 0;
+    padding: 0.45rem 0.6rem;
+}
+.mythic-response-markdown hr {
+    border: 0;
+    border-top: 1px solid var(--mythic-global-211);
+    margin: 0.75rem 0;
+}
+.mythic-response-markdown a {
+    color: var(--mythic-global-023);
+}
+.mythic-response-markdown-inline-code {
+    background-color: var(--mythic-global-216);
+    border: 1px solid var(--mythic-global-211);
+    border-radius: 4px;
+    font-family: var(--mythic-global-065);
+    font-size: 0.9em;
+    padding: 1px 4px;
+}
+.mythic-response-markdown-code-block {
+    background-color: var(--mythic-global-216);
+    border: 1px solid var(--mythic-global-211);
+    border-radius: var(--mythic-global-008);
+    font-family: var(--mythic-global-065);
+    font-size: 0.82rem;
+    margin: 0.45rem 0 0.65rem;
+    overflow-x: auto;
+    padding: 0.65rem;
+}
+.mythic-response-markdown-code-block code {
+    font-family: inherit;
+}
+.mythic-response-markdown.is-wrapped .mythic-response-markdown-code-block code {
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+.mythic-response-markdown.is-unwrapped .mythic-response-markdown-code-block code {
+    white-space: pre;
+}
+.mythic-response-markdown-table {
+    border-collapse: collapse;
+    display: block;
+    margin: 0.45rem 0 0.65rem;
+    max-width: 100%;
+    overflow-x: auto;
+    width: fit-content;
+}
+.mythic-response-markdown-table th,
+.mythic-response-markdown-table td {
+    border: 1px solid var(--mythic-global-211);
+    padding: 0.35rem 0.5rem;
+    text-align: left;
+    vertical-align: top;
+}
+.mythic-response-markdown-table th {
+    background-color: var(--mythic-global-216);
+    font-weight: 850;
+}
+.mythic-response-terminal-shell {
+    min-width: 0;
+    width: 100%;
+}
+.mythic-response-terminal {
+    min-height: 0;
+    width: 100%;
+}
 @media (max-width: 760px) {
     .mythic-interactive-terminal-toolbar-row {
         flex-wrap: wrap;

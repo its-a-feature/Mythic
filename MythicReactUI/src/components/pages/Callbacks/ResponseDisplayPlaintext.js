@@ -3,22 +3,203 @@ import AceEditor from 'react-ace';
 import {useTheme} from '@mui/material/styles';
 import {snackActions} from "../../utilities/Snackbar";
 import {modeOptions} from "./ResponseDisplayMedia";
-import FormControl from '@mui/material/FormControl';
 import WrapTextIcon from '@mui/icons-material/WrapText';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
-import MenuItem from '@mui/material/MenuItem';
-import TextField from '@mui/material/TextField';
-import { IconButton, Select } from '@mui/material';
 import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
 import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
 import { useReactiveVar } from '@apollo/client';
 import { meState } from '../../../cache';
 import CodeIcon from '@mui/icons-material/Code';
-import {GetOutputFormatAll} from "./ResponseDisplayInteractive";
-import PaletteIcon from '@mui/icons-material/Palette';
-import Input from '@mui/material/Input';
+import ArticleIcon from '@mui/icons-material/Article';
+import NotesIcon from '@mui/icons-material/Notes';
+import TerminalIcon from '@mui/icons-material/Terminal';
+import ReactMarkdown from 'react-markdown';
+import {Terminal} from '@xterm/xterm';
+import {FitAddon} from '@xterm/addon-fit';
+import '@xterm/xterm/css/xterm.css';
+import {
+  getInteractiveTerminalTheme as getTerminalTheme,
+  getLongestTerminalTextLineLength as getLongestTerminalLineLength,
+  sanitizeTerminalOutput
+} from "./ResponseDisplayInteractive";
+import {isAllowedMarkdownLink, markdownPlugins} from "../../utilities/Markdown";
 
 const MaxRenderSize = 2000000;
+const RenderModes = {
+  plaintext: "plaintext",
+  markdown: "markdown",
+  terminal: "terminal",
+};
+const renderModeOptions = [
+  {value: RenderModes.plaintext, label: "Plaintext", Icon: ArticleIcon},
+  {value: RenderModes.markdown, label: "Markdown", Icon: NotesIcon},
+  {value: RenderModes.terminal, label: "Terminal", Icon: TerminalIcon},
+];
+const normalizeRenderMode = (value) => {
+  return Object.values(RenderModes).includes(value) ? value : RenderModes.plaintext;
+}
+const getInitialRenderMode = (props) => {
+  if(props?.render_mode !== undefined){
+    return normalizeRenderMode(props.render_mode);
+  }
+  if(props?.initial_render_mode !== undefined){
+    return normalizeRenderMode(props.initial_render_mode);
+  }
+  return props?.render_colors ? RenderModes.terminal : RenderModes.plaintext;
+}
+const markdownComponents = {
+  a: ({href, children}) => {
+    if(!isAllowedMarkdownLink(href)){
+      return children;
+    }
+    return <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
+  },
+  code: ({className, children}) => (
+      <code className={className || "mythic-response-markdown-inline-code"}>{children}</code>
+  ),
+  table: ({children}) => <table className="mythic-response-markdown-table">{children}</table>,
+  pre: ({children}) => <pre className="mythic-response-markdown-code-block">{children}</pre>,
+};
+
+const ResponseMarkdownDisplay = ({value, wrapText, expand}) => {
+  return (
+      <div className={`mythic-response-markdown${wrapText ? " is-wrapped" : " is-unwrapped"}${expand ? " is-expanded" : " is-capped"}`}>
+        <ReactMarkdown remarkPlugins={markdownPlugins} components={markdownComponents} skipHtml>
+          {value}
+        </ReactMarkdown>
+      </div>
+  )
+}
+
+const ResponseTerminalDisplay = ({value, wrapText, expand, theme}) => {
+  const terminalScrollContainerRef = React.useRef(null);
+  const terminalElementRef = React.useRef(null);
+  const terminalRef = React.useRef(null);
+  const fitAddonRef = React.useRef(null);
+  const resizeObserverRef = React.useRef(null);
+  const fitAnimationFrameRef = React.useRef(null);
+  const wrapTextRef = React.useRef(wrapText);
+  const unwrappedColumnCountRef = React.useRef(0);
+  const [terminalReady, setTerminalReady] = React.useState(false);
+  const longestLineLength = React.useMemo( () => getLongestTerminalLineLength(value), [value]);
+  const fitTerminal = React.useCallback( () => {
+    const terminal = terminalRef.current;
+    const fitAddon = fitAddonRef.current;
+    const terminalElement = terminalElementRef.current;
+    const scrollContainer = terminalScrollContainerRef.current;
+    if(!terminal || !fitAddon || !terminalElement || !scrollContainer){
+      return;
+    }
+    try{
+      terminalElement.style.width = "100%";
+      const proposedDimensions = fitAddon.proposeDimensions();
+      if(!proposedDimensions){
+        return;
+      }
+      const rows = Math.max(1, proposedDimensions.rows);
+      if(wrapTextRef.current){
+        fitAddon.fit();
+        scrollContainer.scrollLeft = 0;
+      } else {
+        const visibleCols = Math.max(1, proposedDimensions.cols);
+        const cols = Math.max(visibleCols, unwrappedColumnCountRef.current);
+        terminalElement.style.width = `${Math.ceil((cols / visibleCols) * scrollContainer.clientWidth)}px`;
+        terminal.resize(cols, rows);
+      }
+    }catch(error){
+      console.error(error);
+    }
+  }, []);
+  const scheduleFitTerminal = React.useCallback( () => {
+    if(fitAnimationFrameRef.current !== null){
+      return;
+    }
+    fitAnimationFrameRef.current = window.requestAnimationFrame(() => {
+      fitAnimationFrameRef.current = null;
+      fitTerminal();
+    });
+  }, [fitTerminal]);
+  React.useEffect( () => {
+    wrapTextRef.current = wrapText;
+    if(wrapText){
+      unwrappedColumnCountRef.current = 0;
+    } else {
+      unwrappedColumnCountRef.current = Math.min(Math.max(longestLineLength + 2, 1), 1000);
+    }
+    scheduleFitTerminal();
+  }, [longestLineLength, scheduleFitTerminal, wrapText]);
+  React.useEffect( () => {
+    if(!terminalElementRef.current){
+      return;
+    }
+    const terminal = new Terminal({
+      allowTransparency: true,
+      convertEol: true,
+      cursorBlink: false,
+      disableStdin: true,
+      fontFamily: 'Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+      fontSize: 13,
+      scrollback: 5000,
+      theme: getTerminalTheme(theme),
+    });
+    const fitAddon = new FitAddon();
+    terminal.loadAddon(fitAddon);
+    terminal.open(terminalElementRef.current);
+    terminalRef.current = terminal;
+    fitAddonRef.current = fitAddon;
+    resizeObserverRef.current = new ResizeObserver(() => scheduleFitTerminal());
+    if(terminalScrollContainerRef.current){
+      resizeObserverRef.current.observe(terminalScrollContainerRef.current);
+    }
+    fitAnimationFrameRef.current = window.requestAnimationFrame(() => {
+      fitAnimationFrameRef.current = null;
+      fitTerminal();
+      setTerminalReady(true);
+    });
+    return () => {
+      if(fitAnimationFrameRef.current !== null){
+        window.cancelAnimationFrame(fitAnimationFrameRef.current);
+        fitAnimationFrameRef.current = null;
+      }
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
+      fitAddonRef.current = null;
+      terminalRef.current = null;
+      terminal.dispose();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  React.useEffect( () => {
+    if(terminalRef.current){
+      terminalRef.current.options.theme = getTerminalTheme(theme);
+    }
+  }, [theme]);
+  React.useEffect( () => {
+    if(!terminalReady || !terminalRef.current){
+      return;
+    }
+    const terminal = terminalRef.current;
+    scheduleFitTerminal();
+    terminal.reset();
+    terminal.write(sanitizeTerminalOutput(value), () => terminal.scrollToBottom());
+  }, [scheduleFitTerminal, terminalReady, value]);
+  return (
+      <div className="mythic-response-terminal-shell"
+           style={{height: expand ? "100%" : "360px", minHeight: expand ? 0 : "140px"}}>
+        <div
+            ref={terminalScrollContainerRef}
+            className={"MythicInteractiveTerminal mythic-response-terminal"}
+            style={{
+              height: "100%",
+              overflowX: wrapText ? "hidden" : "auto",
+              overflowY: "hidden",
+              width: "100%",
+            }}>
+          <div ref={terminalElementRef} style={{height: "100%", width: "100%"}} />
+        </div>
+      </div>
+  )
+}
+
 export const ResponseDisplayPlaintext = (props) =>{
   const theme = useTheme();
   const me = useReactiveVar(meState);
@@ -26,9 +207,9 @@ export const ResponseDisplayPlaintext = (props) =>{
   const [plaintextView, setPlaintextView] = React.useState("");
   const initialMode = props?.initial_mode || "html";
   const [mode, setMode] = React.useState(initialMode);
+  const [renderMode, setRenderMode] = React.useState(getInitialRenderMode(props));
   const [wrapText, setWrapText] = React.useState(props?.wrap_text === undefined ? true : props.wrap_text);
   const [showOptions, setShowOptions] = React.useState(false);
-  const [renderColors, setRenderColors] = React.useState(props?.render_colors === undefined ? false : props.render_colors);
   const largeResponseWarningShown = React.useRef(false);
   const onChangeText = (data) => {
       if(props.onChangeContent){
@@ -40,43 +221,48 @@ export const ResponseDisplayPlaintext = (props) =>{
       largeResponseWarningShown.current = false;
   }, [props?.task?.id]);
   useEffect( () => {
-      if(props.plaintext.length > MaxRenderSize){
+      const plaintext = props.plaintext === undefined || props.plaintext === null ? "" : String(props.plaintext);
+      if(plaintext.length > MaxRenderSize){
           if(!largeResponseWarningShown.current){
               snackActions.warning("Response too large (> 2MB), truncating the render. Download task output to view entire response.");
               largeResponseWarningShown.current = true;
           }
-          setPlaintextView(props.plaintext.substring(0, MaxRenderSize));
+          setPlaintextView(plaintext.substring(0, MaxRenderSize));
       } else {
           largeResponseWarningShown.current = false;
           try{
               if(props.autoFormat === undefined || props.autoFormat){
-                  const newPlaintext = JSON.stringify(JSON.parse(String(props.plaintext)), null, 4);
+                  const newPlaintext = JSON.stringify(JSON.parse(plaintext), null, 4);
                   setPlaintextView(newPlaintext);
                   setMode("json");
               } else {
-                  setPlaintextView(String(props.plaintext));
+                  setPlaintextView(plaintext);
               }
           }catch(error){
-              setPlaintextView(String(props.plaintext));
+              setPlaintextView(plaintext);
           }
       }
-  }, [props.plaintext]);
+  }, [props.plaintext, props.autoFormat]);
     const onChangeMode = (event) => {
         setMode(event.target.value);
+    }
+    const onChangeRenderMode = (newMode) => {
+        setRenderMode(newMode);
     }
     const toggleWrapText = () => {
         setWrapText(!wrapText);
     }
     const formatJSON = () => {
         try{
-            let tmp = JSON.stringify(JSON.parse(currentContentRef.current?.editor?.getValue()), null, 2);
+            const currentValue = currentContentRef.current?.editor?.getValue?.() || plaintextView;
+            let tmp = JSON.stringify(JSON.parse(currentValue), null, 2);
             setPlaintextView(tmp);
             setMode("json");
         }catch(error){
             snackActions.warning("Failed to reformat as JSON")
         }
     }
-    const onChangeShowOptions = (e) => {
+    const onChangeShowOptions = () => {
         setShowOptions(!showOptions);
     }
     const scrollContent = (node, isAppearing) => {
@@ -98,75 +284,85 @@ export const ResponseDisplayPlaintext = (props) =>{
     }
     React.useLayoutEffect( () => {
         scrollContent()
-    }, []);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
     React.useEffect( () => {
         setMode(props?.initial_mode || "html");
     }, [props?.initial_mode]);
+    React.useEffect( () => {
+        setRenderMode(getInitialRenderMode({
+            initial_render_mode: props?.initial_render_mode,
+            render_colors: props?.render_colors,
+            render_mode: props?.render_mode,
+        }));
+    }, [props?.initial_render_mode, props?.render_mode, props?.render_colors]);
+    const currentRenderModeLabel = renderModeOptions.find((option) => option.value === renderMode)?.label || "Plaintext";
+    const displayWrapText = renderMode === RenderModes.plaintext ? wrapText : true;
   return (
       <div style={{display: "flex", height: "100%", flexDirection: "column"}}>
-          {showOptions &&
-              <div style={{display: "inline-flex", flexDirection: "row", alignItems: "center",
-                  color: theme.outputTextColor,
-                  backgroundColor: theme.outputBackgroundColor + (theme.palette.mode === 'dark' ? "D0" : "20"),}}>
-                  <FormControl sx={{ display: "inline-block", marginLeft: "10px", color: theme.outputTextColor, }} size="small">
-                      <TextField
-                          label={"Syntax"}
-                          select
-                          margin={"dense"}
-                          size={"small"}
-                          sx={{
-                              // Target the icon element directly within the Select
-                              '.MuiSelect-icon': {
-                                  color: theme.outputTextColor, // Set your desired color
-                              },
-                              '.MuiInputBase-root': {
-                                  color: theme.outputTextColor,
-                              }
-                          }}
-                          style={{display: "inline-block", width: "100%",}}
-                          value={mode}
-                          onChange={onChangeMode}
-                      >
-                          {
-                              modeOptions.map((opt, i) => (
-                                  <MenuItem key={"searchopt" + opt} value={opt}>{opt}</MenuItem>
-                              ))
-                          }
-                      </TextField>
-                  </FormControl>
-                  <MythicStyledTooltip title={wrapText ?  "Unwrap Text" : "Wrap Text"} >
-                      <IconButton onClick={toggleWrapText} style={{}}>
-                          <WrapTextIcon color={wrapText ? "success" : "secondary"}
-                                        style={{cursor: "pointer"}}
-                          />
-                      </IconButton>
-                  </MythicStyledTooltip>
-                  <MythicStyledTooltip title={"Auto format JSON"} >
-                      <IconButton onClick={formatJSON} style={{}}>
-                          <CodeIcon color={"info"} style={{cursor: "pointer"}} />
-                      </IconButton>
-                  </MythicStyledTooltip>
-                  <MythicStyledTooltip title={renderColors ? "Render Plaintext" : "Render Colors"} >
-                      <IconButton onClick={() => {setRenderColors(!renderColors)}}>
-                          <PaletteIcon color={renderColors ? "success" : "secondary"} style={{cursor: "pointer"}} />
-                      </IconButton>
-                  </MythicStyledTooltip>
-              </div>
-          }
           {props.displayType !== 'console' &&
-              <div style={{
-                  height: "1px",
-                  width: "100%",
-                  display: "flex",
-                  zIndex: 1,
-              }}>
+              <div className={`mythic-response-render-toolbar${showOptions ? " is-open" : ""}`}>
+                  <button className="mythic-response-render-toolbar-toggle"
+                          type="button"
+                          onClick={onChangeShowOptions}
+                          style={{color: theme.outputTextColor}}>
+                      {showOptions ? <UnfoldLessIcon fontSize="small" /> : <UnfoldMoreIcon fontSize="small" />}
+                      <span className="mythic-response-render-toolbar-title">Output</span>
+                      <span className="mythic-response-render-toolbar-mode">{currentRenderModeLabel}</span>
+                  </button>
                   {showOptions &&
-                      <UnfoldLessIcon onClick={onChangeShowOptions}
-                                      style={{cursor: "pointer", position: "relative", top: "-9px"}}/>
-                  }
-                  {!showOptions &&
-                      <UnfoldMoreIcon onClick={onChangeShowOptions}
-                                      style={{cursor: "pointer", position: "relative", top: "-9px"}}/>
+                      <div className="mythic-response-render-toolbar-controls">
+                          <div className="mythic-response-render-mode-group" role="group" aria-label="Response render mode">
+                              {renderModeOptions.map(({value, label, Icon}) => (
+                                  <button
+                                      aria-pressed={renderMode === value}
+                                      className={`mythic-response-render-mode-button${renderMode === value ? " is-selected" : ""}`}
+                                      key={value}
+                                      onClick={() => onChangeRenderMode(value)}
+                                      type="button">
+                                      <Icon fontSize="small" />
+                                      <span>{label}</span>
+                                  </button>
+                              ))}
+                          </div>
+                          {renderMode === RenderModes.plaintext &&
+                              <>
+                                  <div className="mythic-response-render-action-group">
+                                      <MythicStyledTooltip title={wrapText ?  "Unwrap Text" : "Wrap Text"} >
+                                          <button
+                                              aria-label={wrapText ? "Unwrap Text" : "Wrap Text"}
+                                              aria-pressed={wrapText}
+                                              className={`mythic-response-render-action-button${wrapText ? " is-selected" : ""}`}
+                                              onClick={toggleWrapText}
+                                              type="button">
+                                              <WrapTextIcon fontSize="small" />
+                                          </button>
+                                      </MythicStyledTooltip>
+                                      <MythicStyledTooltip title={"Auto format JSON"} >
+                                          <button
+                                              aria-label="Auto format JSON"
+                                              className="mythic-response-render-action-button"
+                                              onClick={formatJSON}
+                                              type="button">
+                                              <CodeIcon fontSize="small" />
+                                          </button>
+                                      </MythicStyledTooltip>
+                                  </div>
+                                  <label className="mythic-response-syntax-group">
+                                      <span>Syntax</span>
+                                      <select
+                                          className="mythic-response-syntax-select"
+                                          value={mode}
+                                          onChange={onChangeMode}>
+                                          {
+                                              modeOptions.map((opt) => (
+                                                  <option key={"searchopt" + opt} value={opt}>{opt}</option>
+                                              ))
+                                          }
+                                      </select>
+                                  </label>
+                              </>
+                          }
+                      </div>
                   }
               </div>
           }
@@ -174,21 +370,15 @@ export const ResponseDisplayPlaintext = (props) =>{
           <div style={{
               flexGrow: 1,
               height: "100%",
-              paddingLeft: renderColors ? "15px" : "0px",
-              paddingRight: renderColors ? "5px" : "0px"
+              minHeight: 0,
           }}>
-              {renderColors &&
-                  <GetOutputFormatAll data={[
-                      {response: plaintextView, id: props?.task?.id || 0, timestamp: "1970-01-01"}]}
-                                      myTask={false}
-                                      taskID={props?.task?.id || 0}
-                                      useASNIColor={true}
-                                      messagesEndRef={null}
-                                      showTaskStatus={false}
-                                      search={undefined}
-                                      wrapText={wrapText}/>
+              {renderMode === RenderModes.markdown &&
+                  <ResponseMarkdownDisplay value={plaintextView} wrapText={displayWrapText} expand={props.expand} />
               }
-              {!renderColors &&
+              {renderMode === RenderModes.terminal &&
+                  <ResponseTerminalDisplay value={plaintextView} wrapText={displayWrapText} expand={props.expand} theme={theme} />
+              }
+              {renderMode === RenderModes.plaintext &&
                   <AceEditor
                       className={"roundedBottomCorners"}
                       ref={currentContentRef}
@@ -206,7 +396,7 @@ export const ResponseDisplayPlaintext = (props) =>{
                       width={"100%"}
                       //style={{backgroundColor: "transparent"}}
                       //autoScrollEditorIntoView={true}
-                      wrapEnabled={props.displayType !== 'console' ? wrapText : true}
+                      wrapEnabled={props.displayType !== 'console' ? displayWrapText : true}
                       minLines={1}
                       setOptions={{
                           showLineNumbers: props.displayType !== 'console',
