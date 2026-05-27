@@ -19,44 +19,51 @@ message TrCustomMessageToMythicC2FormatMessage {
   string                    UUID = 4;
   bool                      MythicEncrypts = 5;
   repeated CryptoKeysFormat CryptoKeys = 6;
+  string                    AuthContext = 7;
 }
 message CryptoKeysFormat {
   bytes  EncKey   = 1;
   bytes  DecKey   = 2;
   string Value    = 3;
+  string Location = 4;
 }
 message TrCustomMessageToMythicC2FormatMessageResponse  {
-bool Success  =1;
-string    Error   =2;
-bytes Message = 3;
-  string                    TranslationContainerName = 4;
+  bool    Success  =1;
+  string  Error   =2;
+  bytes   Message = 3;
+  string  TranslationContainerName = 4;
+  string  AuthContext = 5;
 }
 
 message TrMythicC2ToCustomMessageFormatMessage {
-string TranslationContainerName =1;
-string    C2Name =2;
-bytes    Message = 3;
-string    UUID        =4;
-bool    MythicEncrypts =5;
-repeated CryptoKeysFormat    CryptoKeys   =6;
+  string    TranslationContainerName =1;
+  string    C2Name =2;
+  bytes     Message = 3;
+  string    UUID        =4;
+  bool      MythicEncrypts =5;
+  repeated  CryptoKeysFormat    CryptoKeys   =6;
+  string    AuthContext =7;
 }
 message TrMythicC2ToCustomMessageFormatMessageResponse {
-bool Success  =1;
-string    Error   =2;
-bytes    Message =3;
-  string                    TranslationContainerName = 4;
+  bool    Success  =1;
+  string  Error   =2;
+  bytes   Message =3;
+  string  TranslationContainerName = 4;
+  string  AuthContext =5;
 }
 
 message TrGenerateEncryptionKeysMessage {
-string TranslationContainerName =1;
-string    C2Name    =2;
-string    CryptoParamValue   =3;
-string    CryptoParamName    =4;
+  string TranslationContainerName =1;
+  string C2Name    =2;
+  string CryptoParamValue   =3;
+  string CryptoParamName    =4;
+  string AuthContext    =5;
 }
 message TrGenerateEncryptionKeysMessageResponse  {
-bool Success  =1;
-string    Error    =2;
-bytes    EncryptionKey =3;
-bytes    DecryptionKey =4;
-  string                    TranslationContainerName = 5;
+  bool    Success  =1;
+  string  Error    =2;
+  bytes   EncryptionKey =3;
+  bytes   DecryptionKey =4;
+  string  TranslationContainerName = 5;
+  string  AuthContext =6;
 }

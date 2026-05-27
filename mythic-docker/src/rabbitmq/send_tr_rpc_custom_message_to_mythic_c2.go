@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/its-a-feature/Mythic/grpc"
 	"github.com/its-a-feature/Mythic/grpc/services"
-	"time"
 
 	mythicCrypto "github.com/its-a-feature/Mythic/crypto"
 	"github.com/its-a-feature/Mythic/logging"
@@ -29,20 +30,29 @@ type TrCustomMessageToMythicC2FormatMessageResponse struct {
 	Message map[string]interface{} `json:"message"`
 }
 
-func (r *rabbitMQConnection) SendTrRPCCustomMessageToMythicC2(toMythicC2Format TrCustomMessageToMythicC2FormatMessage) (*TrCustomMessageToMythicC2FormatMessageResponse, error) {
+func (r *rabbitMQConnection) SendTrRPCCustomMessageToMythicC2(toMythicC2Format TrCustomMessageToMythicC2FormatMessage, authContext RabbitMQAuthContext) (*TrCustomMessageToMythicC2FormatMessageResponse, error) {
 	trCustomMessageToMythicC2Format := TrCustomMessageToMythicC2FormatMessageResponse{}
+	authToken, err := GenerateRabbitMQAuthContextToken(authContext)
+	if err != nil {
+		logging.LogError(err, "Failed to generate auth context token for translation gRPC")
+		trCustomMessageToMythicC2Format.Success = false
+		trCustomMessageToMythicC2Format.Error = err.Error()
+		return &trCustomMessageToMythicC2Format, err
+	}
 	grpcSendMsg := services.TrCustomMessageToMythicC2FormatMessage{
 		TranslationContainerName: toMythicC2Format.TranslationContainerName,
 		C2Name:                   toMythicC2Format.C2Name,
 		Message:                  toMythicC2Format.Message,
 		UUID:                     toMythicC2Format.UUID,
 		MythicEncrypts:           toMythicC2Format.MythicEncrypts,
+		AuthContext:              authToken,
 	}
 	adjustedKeys := make([]*services.CryptoKeysFormat, len(toMythicC2Format.CryptoKeys))
 	for i := 0; i < len(toMythicC2Format.CryptoKeys); i++ {
 		newCrypto := services.CryptoKeysFormat{}
 		adjustedKeys[i] = &newCrypto
 		adjustedKeys[i].Value = toMythicC2Format.CryptoKeys[i].Value
+		adjustedKeys[i].Location = toMythicC2Format.CryptoKeys[i].Location
 		if toMythicC2Format.CryptoKeys[i].EncKey != nil {
 			adjustedKeys[i].EncKey = *toMythicC2Format.CryptoKeys[i].EncKey
 		}
@@ -69,48 +79,32 @@ func (r *rabbitMQConnection) SendTrRPCCustomMessageToMythicC2(toMythicC2Format T
 		if !ok {
 			logging.LogError(nil, "Failed to receive from translation container")
 			return nil, errors.New(fmt.Sprintf("failed to receive from translation container: %s", toMythicC2Format.TranslationContainerName))
-		} else {
-			if response.GetSuccess() {
-				responseMap := map[string]interface{}{}
-				if err := json.Unmarshal(response.Message, &responseMap); err != nil {
-					logging.LogError(err, "Failed to convert mythic message to json bytes ")
-					trCustomMessageToMythicC2Format.Success = false
-					trCustomMessageToMythicC2Format.Error = err.Error()
-				} else {
-					trCustomMessageToMythicC2Format.Message = responseMap
-					trCustomMessageToMythicC2Format.Success = response.GetSuccess()
-					trCustomMessageToMythicC2Format.Error = response.GetError()
-				}
+		}
+		err = ValidateRabbitMQAuthContextResponseToken(authToken, response.GetAuthContext())
+		if err != nil {
+			logging.LogError(err, "Failed to validate translation gRPC response auth context")
+			trCustomMessageToMythicC2Format.Success = false
+			trCustomMessageToMythicC2Format.Error = err.Error()
+			return &trCustomMessageToMythicC2Format, err
+		}
+		if response.GetSuccess() {
+			responseMap := map[string]interface{}{}
+			if err := json.Unmarshal(response.Message, &responseMap); err != nil {
+				logging.LogError(err, "Failed to convert mythic message to json bytes ")
+				trCustomMessageToMythicC2Format.Success = false
+				trCustomMessageToMythicC2Format.Error = err.Error()
 			} else {
+				trCustomMessageToMythicC2Format.Message = responseMap
 				trCustomMessageToMythicC2Format.Success = response.GetSuccess()
 				trCustomMessageToMythicC2Format.Error = response.GetError()
 			}
-			return &trCustomMessageToMythicC2Format, err
+		} else {
+			trCustomMessageToMythicC2Format.Success = response.GetSuccess()
+			trCustomMessageToMythicC2Format.Error = response.GetError()
 		}
+		return &trCustomMessageToMythicC2Format, err
 	case <-time.After(grpc.TranslationContainerServer.GetTimeout()):
 		logging.LogError(err, "timeout hit waiting to receive a message from the translation container")
 		return nil, errors.New(fmt.Sprintf("timeout hit waiting to receive message from the translation container: %s", toMythicC2Format.TranslationContainerName))
 	}
-
-	/*
-		exclusiveQueue := true
-		if opsecBytes, err := json.Marshal(toMythicC2Format); err != nil {
-			logging.LogError(err, "Failed to convert toMythicC2Format to JSON", "toMythicC2Format", toMythicC2Format)
-			return nil, err
-		} else if response, err := r.SendRPCMessage(
-			MYTHIC_EXCHANGE,
-			GetTrRPCConvertToMythicFormatRoutingKey(toMythicC2Format.TranslationContainerName),
-			opsecBytes,
-			!exclusiveQueue,
-		); err != nil {
-			logging.LogError(err, "Failed to send RPC message")
-			return nil, err
-		} else if err := json.Unmarshal(response, &trCustomMessageToMythicC2Format); err != nil {
-			logging.LogError(err, "Failed to parse tr custom message to mythic c2 response back to struct", "response", response)
-			return nil, err
-		} else {
-			return &trCustomMessageToMythicC2Format, nil
-		}
-
-	*/
 }

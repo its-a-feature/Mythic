@@ -4,13 +4,14 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"io"
+	"sync"
+	"time"
+
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/grpc/services"
 	"github.com/its-a-feature/Mythic/logging"
-	"io"
-	"sync"
-	"time"
 )
 
 type RabbitMQProcessAgentMessageFromPushC2 struct {

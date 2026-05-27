@@ -3,6 +3,8 @@ package rabbitmq
 import (
 	"encoding/base64"
 	"errors"
+	"time"
+
 	"github.com/its-a-feature/Mythic/database"
 	"github.com/its-a-feature/Mythic/database/enums/InteractiveTask"
 	"github.com/its-a-feature/Mythic/database/enums/PushC2Connections"
@@ -11,7 +13,6 @@ import (
 	"github.com/its-a-feature/Mythic/grpc/services"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/jmoiron/sqlx"
-	"time"
 )
 
 func processAgentMessageFromPushC2() {
@@ -89,7 +90,8 @@ func sendMessageToDirectPushC2(callbackID int, message map[string]interface{}) e
 		logging.LogError(err, "Failed to find encryption data for callback")
 		return err
 	}
-	responseBytes, err := EncryptMessage(uUIDInfo, callbackUUID, message, base64Encoded)
+	responseBytes, err := EncryptMessageWithAuthContext(uUIDInfo, callbackUUID, message, base64Encoded,
+		getMessageProcessingAuthContext(uUIDInfo, RabbitMQAuthContext{}))
 	if err != nil {
 		logging.LogError(err, "Failed to encrypt message")
 		return err

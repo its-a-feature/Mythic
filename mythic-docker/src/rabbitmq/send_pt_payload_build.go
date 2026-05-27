@@ -157,7 +157,7 @@ func RegisterNewPayload(payloadDefinition PayloadConfiguration, operatorOperatio
 	}
 	go func() {
 		// now that we have a payload, we need to handle adding build parameters
-		buildParameters, err := associateBuildParametersWithPayload(databasePayload, payloadDefinition.BuildParameters)
+		buildParameters, err := associateBuildParametersWithPayload(databasePayload, payloadDefinition.BuildParameters, authContext)
 		if err != nil {
 			logging.LogError(err, "Failed to associate build parameters with new payload")
 			database.UpdatePayloadWithError(databasePayload, err)
@@ -165,7 +165,7 @@ func RegisterNewPayload(payloadDefinition PayloadConfiguration, operatorOperatio
 		}
 		// if this isn't a wrapper payload, we need to handle c2 profiles and commands
 		if !payloadtype.Wrapper {
-			c2Profiles, err := associateC2ProfilesWithPayload(databasePayload, payloadDefinition.C2Profiles)
+			c2Profiles, err := associateC2ProfilesWithPayload(databasePayload, payloadDefinition.C2Profiles, authContext)
 			if err != nil {
 				logging.LogError(err, "Failed to associated C2 Profiles with Payload", "c2_profiles", payloadDefinition.C2Profiles)
 				database.UpdatePayloadWithError(databasePayload, err)
