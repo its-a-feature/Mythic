@@ -4,10 +4,11 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import {useTheme} from '@mui/material/styles';
 import { gql, useQuery } from '@apollo/client';
 import {ColoredTaskLabel, StyledPaper, classes, StyledAccordionSummary, accordionClasses} from '../Callbacks/TaskDisplay';
-import {GetOutputFormatAll} from '../Callbacks/ResponseDisplayInteractive';
+import {formatInteractiveTerminalEntries} from '../Callbacks/ResponseDisplayInteractive';
 import {b64DecodeUnicode} from "../Callbacks/ResponseDisplay";
 import Accordion from '@mui/material/Accordion';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
+import {ResponseDisplayPlaintext} from "../Callbacks/ResponseDisplayPlaintext";
 
 
 const responsesQuery = gql`
@@ -25,7 +26,7 @@ query subResponsesQuery($task_id: Int!, $task_processing_time: timestamp!, $resp
 export const TaskDisplayInteractiveSearch = ({me, task}) => {
     const theme = useTheme();
     const [taskDisplayID, setTaskDisplayID] = React.useState("");
-    const [responsesSurrounding, setResponsesSurrounding] = React.useState(5);
+    const responsesSurrounding = 5;
     const [dropdownOpen, setDropdownOpen] = React.useState(false);
     const toggleTaskDropdown = React.useCallback( (event, expanded) => {
         if(window.getSelection().toString() !== ""){
@@ -34,6 +35,11 @@ export const TaskDisplayInteractiveSearch = ({me, task}) => {
         setDropdownOpen(!dropdownOpen);
     }, [dropdownOpen]);
     const [alloutput, setAllOutput] = React.useState([]);
+    const terminalOutput = React.useMemo(() => formatInteractiveTerminalEntries({
+        entries: alloutput,
+        useASNIColor: true,
+        showTaskStatus: false,
+    }), [alloutput]);
     useQuery(responsesQuery, {
         variables: {task_id: task.parent_task_id, task_processing_time: task?.status_timestamp_submitted || "1970-01-01", responses_surrounding: responsesSurrounding},
         onCompleted: (data) => {
@@ -72,17 +78,13 @@ export const TaskDisplayInteractiveSearch = ({me, task}) => {
                                   href={"/new/task/" + taskDisplayID}>{taskDisplayID}</Link>
                           </MythicStyledTooltip>
                     </span>
-                    <div style={{
-                        overflowY: "auto", width: "100%", marginBottom: "5px", paddingLeft: "10px", maxHeight: "500px"
-                    }}  id={`ptytask${task.id}`}>
-                        <GetOutputFormatAll key={"getoutput"} data={alloutput}
-                                             myTask={task.operator.username === (me?.user?.username || "")}
-                                             taskID={task.id}
-                                             useASNIColor={true}
-                                             messagesEndRef={null}
-                                             showTaskStatus={false}
-                                             wrapText={true}/>
-
+                    <div style={{width: "100%", marginBottom: "5px", paddingLeft: "10px", maxHeight: "500px"}} id={`ptytask${task.id}`}>
+                        <ResponseDisplayPlaintext
+                            displayType={"console"}
+                            expand={false}
+                            plaintext={terminalOutput}
+                            render_mode={"terminal"}
+                            wrap_text={true}/>
                     </div>
             </Accordion>
         </StyledPaper>
