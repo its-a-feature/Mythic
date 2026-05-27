@@ -4,14 +4,15 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"io"
+	"sync"
+	"time"
+
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/grpc/services"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/jmoiron/sqlx"
-	"io"
-	"sync"
-	"time"
 )
 
 func (t *pushC2Server) StartPushC2StreamingOneToMany(stream services.PushC2_StartPushC2StreamingOneToManyServer) error {

@@ -152,7 +152,7 @@ func processMythicRPCPayloadCreateFromUUID(msg amqp.Delivery) interface{} {
 	return MythicRPCPayloadCreateFromUUID(incomingMessage, authContext)
 }
 
-func associateBuildParametersWithPayload(databasePayload databaseStructs.Payload, buildParameters *[]PayloadConfigurationBuildParameter) (map[string]interface{}, error) {
+func associateBuildParametersWithPayload(databasePayload databaseStructs.Payload, buildParameters *[]PayloadConfigurationBuildParameter, authContext RabbitMQAuthContext) (map[string]interface{}, error) {
 	logging.LogDebug("about to associate build parameters with payload", "buildParametersFromPayloadConfig", buildParameters)
 	if buildParameters == nil {
 		return nil, nil
@@ -220,36 +220,37 @@ func associateBuildParametersWithPayload(databasePayload databaseStructs.Payload
 		}
 		if databaseBuildParameter.IsCryptoType {
 			if databasePayload.Payloadtype.TranslationContainerID.Valid && !databasePayload.Payloadtype.MythicEncrypts {
-				if cryptoKeysResponse, err := RabbitMQConnection.SendTrRPCGenerateEncryptionKeys(TrGenerateEncryptionKeysMessage{
+				cryptoKeysResponse, err := RabbitMQConnection.SendTrRPCGenerateEncryptionKeys(TrGenerateEncryptionKeysMessage{
 					TranslationContainerName: databasePayload.Payloadtype.Translationcontainer.Name,
 					C2Name:                   "",
 					CryptoParamValue:         finalBuildParameters[databaseBuildParameter.Name],
 					CryptoParamName:          databaseBuildParameter.Name,
-				}); err != nil {
+				}, authContext)
+				if err != nil {
 					logging.LogError(err, "Failed to contact translation container to generate crypto keys")
 					return nil, errors.New(fmt.Sprintf("failed to contact translation container, %s, to generate encryption keys:\n %s", databasePayload.Payloadtype.Translationcontainer.Name, err.Error()))
-				} else if !cryptoKeysResponse.Success {
+				}
+				if !cryptoKeysResponse.Success {
 					logging.LogError(errors.New(cryptoKeysResponse.Error), "Failed to have translation container successfully generate keys")
 					return nil, errors.New(fmt.Sprintf("failed to have translation container, %s, to successfully generate keys:\n %s", databasePayload.Payloadtype.Translationcontainer.Name, cryptoKeysResponse.Error))
-				} else {
-					if cryptoKeysResponse.EncryptionKey != nil {
-						databaseBuildParameterInstance.EncKey = cryptoKeysResponse.EncryptionKey
-					}
-					if cryptoKeysResponse.DecryptionKey != nil {
-						databaseBuildParameterInstance.DecKey = cryptoKeysResponse.DecryptionKey
-					}
+				}
+				if cryptoKeysResponse.EncryptionKey != nil {
+					databaseBuildParameterInstance.EncKey = cryptoKeysResponse.EncryptionKey
+				}
+				if cryptoKeysResponse.DecryptionKey != nil {
+					databaseBuildParameterInstance.DecKey = cryptoKeysResponse.DecryptionKey
 				}
 			} else {
-				if cryptoKeys, err := mythicCrypto.GenerateKeysForPayload(finalBuildParameters[databaseBuildParameter.Name]); err != nil {
+				cryptoKeys, err := mythicCrypto.GenerateKeysForPayload(finalBuildParameters[databaseBuildParameter.Name])
+				if err != nil {
 					logging.LogError(err, "Failed to generate crypto keys for payload")
 					return nil, err
-				} else {
-					if cryptoKeys.EncKey != nil {
-						databaseBuildParameterInstance.EncKey = cryptoKeys.EncKey
-					}
-					if cryptoKeys.DecKey != nil {
-						databaseBuildParameterInstance.DecKey = cryptoKeys.DecKey
-					}
+				}
+				if cryptoKeys.EncKey != nil {
+					databaseBuildParameterInstance.EncKey = cryptoKeys.EncKey
+				}
+				if cryptoKeys.DecKey != nil {
+					databaseBuildParameterInstance.DecKey = cryptoKeys.DecKey
 				}
 			}
 		}
@@ -277,7 +278,7 @@ func associateBuildParametersWithPayload(databasePayload databaseStructs.Payload
 	return returnBuildParameters, nil
 }
 
-func associateC2ProfilesWithPayload(databasePayload databaseStructs.Payload, c2Profiles *[]PayloadConfigurationC2Profile) ([]PayloadBuildC2Profile, error) {
+func associateC2ProfilesWithPayload(databasePayload databaseStructs.Payload, c2Profiles *[]PayloadConfigurationC2Profile, authContext RabbitMQAuthContext) ([]PayloadBuildC2Profile, error) {
 	// associate c2 profiles and their parameters with the payload
 	if c2Profiles == nil {
 		return nil, errors.New("Creating a Payload without any C2 Profiles")
@@ -415,39 +416,39 @@ func associateC2ProfilesWithPayload(databasePayload databaseStructs.Payload, c2P
 			c2ParameterInstance.OperationID.Int64 = int64(databasePayload.OperationID)
 			if databaseC2ProfileParameter.IsCryptoType {
 				if databasePayload.Payloadtype.TranslationContainerID.Valid && !databasePayload.Payloadtype.MythicEncrypts {
-					if cryptoKeysResponse, err := RabbitMQConnection.SendTrRPCGenerateEncryptionKeys(TrGenerateEncryptionKeysMessage{
+					cryptoKeysResponse, err := RabbitMQConnection.SendTrRPCGenerateEncryptionKeys(TrGenerateEncryptionKeysMessage{
 						TranslationContainerName: databasePayload.Payloadtype.Translationcontainer.Name,
 						C2Name:                   "",
 						CryptoParamValue:         paramStringVal,
 						CryptoParamName:          databaseC2ProfileParameter.Name,
-					}); err != nil {
+					}, authContext)
+					if err != nil {
 						logging.LogError(err, "Failed to contact translation container to generate crypto keys")
 						return nil, errors.New(fmt.Sprintf("failed to contact translation container, %s, to generate encryption keys:\n %s", databasePayload.Payloadtype.Translationcontainer.Name, err.Error()))
-					} else if !cryptoKeysResponse.Success {
+					}
+					if !cryptoKeysResponse.Success {
 						logging.LogError(errors.New(cryptoKeysResponse.Error), "Failed to have translation container successfully generate keys")
 						return nil, errors.New(fmt.Sprintf("failed to have translation container, %s, to successfully generate keys:\n %s", databasePayload.Payloadtype.Translationcontainer.Name, cryptoKeysResponse.Error))
-					} else {
-						if cryptoKeysResponse.EncryptionKey != nil {
-							c2ParameterInstance.EncKey = cryptoKeysResponse.EncryptionKey
-						}
-						if cryptoKeysResponse.DecryptionKey != nil {
-							c2ParameterInstance.DecKey = cryptoKeysResponse.DecryptionKey
-						}
+					}
+					if cryptoKeysResponse.EncryptionKey != nil {
+						c2ParameterInstance.EncKey = cryptoKeysResponse.EncryptionKey
+					}
+					if cryptoKeysResponse.DecryptionKey != nil {
+						c2ParameterInstance.DecKey = cryptoKeysResponse.DecryptionKey
 					}
 				} else {
-					if cryptoKeys, err := mythicCrypto.GenerateKeysForPayload(paramStringVal); err != nil {
+					cryptoKeys, err := mythicCrypto.GenerateKeysForPayload(paramStringVal)
+					if err != nil {
 						logging.LogError(err, "Failed to generate crypto keys for payload", "value", paramStringVal, "name", databaseC2ProfileParameter.Name)
 						return nil, err
-					} else {
-						if cryptoKeys.EncKey != nil {
-							c2ParameterInstance.EncKey = cryptoKeys.EncKey
-						}
-						if cryptoKeys.DecKey != nil {
-							c2ParameterInstance.DecKey = cryptoKeys.DecKey
-						}
+					}
+					if cryptoKeys.EncKey != nil {
+						c2ParameterInstance.EncKey = cryptoKeys.EncKey
+					}
+					if cryptoKeys.DecKey != nil {
+						c2ParameterInstance.DecKey = cryptoKeys.DecKey
 					}
 				}
-
 			}
 			interfaceParam, err := GetInterfaceValueForContainer(
 				databaseC2ProfileParameter.ParameterType,

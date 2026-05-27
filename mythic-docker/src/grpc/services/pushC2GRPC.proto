@@ -29,8 +29,8 @@ message PushC2MessageFromAgent {
 // mythic sends along success/error information if any
 // mythic sends along the messages
 message PushC2MessageFromMythic  {
-bool   Success                = 1;
-string Error                  = 2;
-bytes  Message                = 3;
-string TrackingID             = 4;
+  bool   Success                = 1;
+  string Error                  = 2;
+  bytes  Message                = 3;
+  string TrackingID             = 4;
 }
