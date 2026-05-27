@@ -162,15 +162,43 @@ func GenerateRabbitMQAuthTokenHeaderFromFields(operatorID int, operationID int,
 }
 
 func GenerateRabbitMQAuthTokenHeader(authContext RabbitMQAuthContext) (amqp.Table, error) {
-	if authContext.IsEmpty() {
+	token, err := GenerateRabbitMQAuthContextToken(authContext)
+	if err != nil {
+		return nil, err
+	}
+	if token == "" {
 		return nil, nil
+	}
+	return amqp.Table{MYTHIC_RABBITMQ_AUTH_CONTEXT_HEADER: token}, nil
+}
+
+func GenerateRabbitMQAuthContextToken(authContext RabbitMQAuthContext) (string, error) {
+	if authContext.IsEmpty() {
+		return "", nil
 	}
 	authContext.SourceScopes = append([]string{}, authContext.SourceScopes...)
 	token, err := generateRabbitMQAuthContext(authContext)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	return amqp.Table{MYTHIC_RABBITMQ_AUTH_CONTEXT_HEADER: token}, nil
+	return token, nil
+}
+
+func ValidateRabbitMQAuthContextResponseToken(expectedToken string, responseToken string) error {
+	if expectedToken == "" && responseToken == "" {
+		return nil
+	}
+	if expectedToken == "" {
+		return errors.New("unexpected RabbitMQ auth context in response")
+	}
+	if responseToken == "" {
+		return errors.New("missing RabbitMQ auth context in response")
+	}
+	if responseToken != expectedToken {
+		return errors.New("mismatched RabbitMQ auth context in response")
+	}
+	_, err := ValidateRabbitMQAuthContextToken(responseToken)
+	return err
 }
 
 func (authContext RabbitMQAuthContext) IsEmpty() bool {

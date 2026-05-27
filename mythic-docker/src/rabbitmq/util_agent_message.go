@@ -43,6 +43,7 @@ type AgentMessageRawInput struct {
 	Base64Response    bool
 	UpdateCheckinTime bool
 	TrackingID        string
+	AuthContext       RabbitMQAuthContext
 }
 
 type cachedUUIDInfo struct {
@@ -719,8 +720,9 @@ func recursiveProcessAgentMessage(agentMessageInput *AgentMessageRawInput) recur
 		instanceResponse.Err = errors.New("can't generate callback from payload")
 		return instanceResponse
 	}
+	messageProcessingAuthContext := getMessageProcessingAuthContext(uuidInfo, agentMessageInput.AuthContext)
 	decryptBytes := base64DecodedMessage[agentUUIDLength:totalBase64Bytes]
-	decryptedMessage, err := DecryptMessage(uuidInfo, &decryptBytes)
+	decryptedMessage, err := DecryptMessageWithAuthContext(uuidInfo, &decryptBytes, messageProcessingAuthContext)
 	if err != nil {
 		logging.LogError(err, "Failed to decrypt message and process as JSON")
 		errorMessage := fmt.Sprintf("Failed to decrypt message due to: %s\n", err.Error())
@@ -737,7 +739,7 @@ func recursiveProcessAgentMessage(agentMessageInput *AgentMessageRawInput) recur
 		return instanceResponse
 	}
 	if instanceResponse.Message == nil {
-		instanceResponse.Message, err = EncryptMessage(uuidInfo, instanceResponse.OuterUuid, response, true)
+		instanceResponse.Message, err = EncryptMessageWithAuthContext(uuidInfo, instanceResponse.OuterUuid, response, true, messageProcessingAuthContext)
 		if err != nil {
 			logging.LogError(err, "Failed to encrypt message in agent_message")
 			instanceResponse.Err = err
@@ -962,7 +964,18 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 	return uuidInfo, nil
 }
 
-func DecryptMessage(uuidInfo *cachedUUIDInfo, agentMessage *[]byte) (map[string]interface{}, error) {
+func getMessageProcessingAuthContext(uuidInfo *cachedUUIDInfo, authContext RabbitMQAuthContext) RabbitMQAuthContext {
+	if authContext.IsEmpty() {
+		return RabbitMQAuthContext{OperationID: uuidInfo.OperationID}
+	}
+	if authContext.OperationID == 0 {
+		authContext.OperationID = uuidInfo.OperationID
+	}
+	return authContext
+}
+
+func DecryptMessageWithAuthContext(uuidInfo *cachedUUIDInfo, agentMessage *[]byte, authContext RabbitMQAuthContext) (map[string]interface{}, error) {
+	authContext = getMessageProcessingAuthContext(uuidInfo, authContext)
 	var jsonAgentMessage map[string]interface{}
 	if uuidInfo.MythicEncrypts {
 		if uuidInfo.TranslationContainerName == "" {
@@ -978,72 +991,73 @@ func DecryptMessage(uuidInfo *cachedUUIDInfo, agentMessage *[]byte) (map[string]
 				return nil, err
 			}
 			return jsonAgentMessage, nil
-
-		} else {
-			// we decrypt, but then need to pass to translation container
-			if decrypted, err := uuidInfo.IterateAndAct(agentMessage, "decrypt"); err != nil {
-				logging.LogError(err, "Failed to get decryption keys and decrypt")
-				return nil, err
-			} else if convertedResponse, err := RabbitMQConnection.SendTrRPCCustomMessageToMythicC2(TrCustomMessageToMythicC2FormatMessage{
-				TranslationContainerName: uuidInfo.TranslationContainerName,
-				C2Name:                   uuidInfo.C2ProfileName,
-				Message:                  *decrypted,
-				UUID:                     uuidInfo.UUID,
-				MythicEncrypts:           uuidInfo.MythicEncrypts,
-				CryptoKeys:               uuidInfo.getAllKeys(),
-			}); err != nil {
-				//logging.LogError(err, "Failed to send response to translate custom message to Mythic C2")
-				//go SendAllOperationsMessage(fmt.Sprintf("Failed to have translation container process message: %s\n%s", uuidInfo.TranslationContainerName, err.Error()), uuidInfo.OperationID,
-				//	"c2_to_mythic_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
-				return nil, err
-			} else if !convertedResponse.Success {
-				logging.LogError(errors.New(convertedResponse.Error), "Failed to have translation container process custom message from agent")
-				go SendAllOperationsMessage(fmt.Sprintf("Failed to have translation container process message: %s\n%s", uuidInfo.TranslationContainerName, convertedResponse.Error), uuidInfo.OperationID,
-					"c2_to_mythic_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
-				return nil, errors.New(convertedResponse.Error)
-			} else {
-				return convertedResponse.Message, nil
-			}
 		}
-	} else {
-		// we don't decrypt
-		if uuidInfo.TranslationContainerName == "" {
-			// no translation container and we're not in charge of decrypting, so just return it
-			err := unmarshalMessageForAgentFormat(uuidInfo, agentMessage, &jsonAgentMessage)
-			//err := json.Unmarshal(agentMessage, &jsonAgentMessage)
-			if err != nil {
-				return nil, err
-			}
-			return jsonAgentMessage, nil
-
-		} else {
-			// we don't decrypt and there's a translation container
-			// translation container should decrypt and convert
-			if convertedResponse, err := RabbitMQConnection.SendTrRPCCustomMessageToMythicC2(TrCustomMessageToMythicC2FormatMessage{
-				TranslationContainerName: uuidInfo.TranslationContainerName,
-				C2Name:                   uuidInfo.C2ProfileName,
-				Message:                  *agentMessage,
-				UUID:                     uuidInfo.UUID,
-				MythicEncrypts:           uuidInfo.MythicEncrypts,
-				CryptoKeys:               uuidInfo.getAllKeys(),
-			}); err != nil {
-				//logging.LogError(err, "Failed to send response to translate custom message to Mythic C2")
-				//go SendAllOperationsMessage(fmt.Sprintf("Failed to have translation container process message: %s\n%s", uuidInfo.TranslationContainerName, err.Error()), uuidInfo.OperationID,
-				//	"c2_to_mythic_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
-				return nil, err
-			} else if !convertedResponse.Success {
-				logging.LogError(errors.New(convertedResponse.Error), "Failed to have translation container process custom message from agent")
-				go SendAllOperationsMessage(fmt.Sprintf("Failed to have translation container process message: %s\n%s", uuidInfo.TranslationContainerName, convertedResponse.Error), uuidInfo.OperationID,
-					"c2_to_mythic_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
-				return nil, errors.New(convertedResponse.Error)
-			} else {
-				return convertedResponse.Message, nil
-			}
+		// we decrypt, but then need to pass to translation container
+		decrypted, err := uuidInfo.IterateAndAct(agentMessage, "decrypt")
+		if err != nil {
+			logging.LogError(err, "Failed to get decryption keys and decrypt")
+			return nil, err
 		}
+		convertedResponse, err := RabbitMQConnection.SendTrRPCCustomMessageToMythicC2(TrCustomMessageToMythicC2FormatMessage{
+			TranslationContainerName: uuidInfo.TranslationContainerName,
+			C2Name:                   uuidInfo.C2ProfileName,
+			Message:                  *decrypted,
+			UUID:                     uuidInfo.UUID,
+			MythicEncrypts:           uuidInfo.MythicEncrypts,
+			CryptoKeys:               uuidInfo.getAllKeys(),
+		}, authContext)
+		if err != nil {
+			//logging.LogError(err, "Failed to send response to translate custom message to Mythic C2")
+			//go SendAllOperationsMessage(fmt.Sprintf("Failed to have translation container process message: %s\n%s", uuidInfo.TranslationContainerName, err.Error()), uuidInfo.OperationID,
+			//	"c2_to_mythic_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
+			return nil, err
+		}
+		if !convertedResponse.Success {
+			logging.LogError(errors.New(convertedResponse.Error), "Failed to have translation container process custom message from agent")
+			go SendAllOperationsMessage(fmt.Sprintf("Failed to have translation container process message: %s\n%s", uuidInfo.TranslationContainerName, convertedResponse.Error), uuidInfo.OperationID,
+				"c2_to_mythic_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
+			return nil, errors.New(convertedResponse.Error)
+		}
+		return convertedResponse.Message, nil
 	}
+	// we don't decrypt
+	if uuidInfo.TranslationContainerName == "" {
+		// no translation container and we're not in charge of decrypting, so just return it
+		err := unmarshalMessageForAgentFormat(uuidInfo, agentMessage, &jsonAgentMessage)
+		//err := json.Unmarshal(agentMessage, &jsonAgentMessage)
+		if err != nil {
+			return nil, err
+		}
+		return jsonAgentMessage, nil
+
+	}
+	// we don't decrypt and there's a translation container
+	// translation container should decrypt and convert
+	convertedResponse, err := RabbitMQConnection.SendTrRPCCustomMessageToMythicC2(TrCustomMessageToMythicC2FormatMessage{
+		TranslationContainerName: uuidInfo.TranslationContainerName,
+		C2Name:                   uuidInfo.C2ProfileName,
+		Message:                  *agentMessage,
+		UUID:                     uuidInfo.UUID,
+		MythicEncrypts:           uuidInfo.MythicEncrypts,
+		CryptoKeys:               uuidInfo.getAllKeys(),
+	}, authContext)
+	if err != nil {
+		//logging.LogError(err, "Failed to send response to translate custom message to Mythic C2")
+		//go SendAllOperationsMessage(fmt.Sprintf("Failed to have translation container process message: %s\n%s", uuidInfo.TranslationContainerName, err.Error()), uuidInfo.OperationID,
+		//	"c2_to_mythic_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
+		return nil, err
+	}
+	if !convertedResponse.Success {
+		logging.LogError(errors.New(convertedResponse.Error), "Failed to have translation container process custom message from agent")
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to have translation container process message: %s\n%s", uuidInfo.TranslationContainerName, convertedResponse.Error), uuidInfo.OperationID,
+			"c2_to_mythic_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
+		return nil, errors.New(convertedResponse.Error)
+	}
+	return convertedResponse.Message, nil
 }
 
-func EncryptMessage(uuidInfo *cachedUUIDInfo, outerUUID string, agentMessage map[string]interface{}, shouldBase64Encode bool) ([]byte, error) {
+func EncryptMessageWithAuthContext(uuidInfo *cachedUUIDInfo, outerUUID string, agentMessage map[string]interface{}, shouldBase64Encode bool, authContext RabbitMQAuthContext) ([]byte, error) {
+	authContext = getMessageProcessingAuthContext(uuidInfo, authContext)
 	//logging.LogDebug("Sending back final message", "response", agentMessage)
 	if uuidInfo.MythicEncrypts {
 		if uuidInfo.TranslationContainerName == "" {
@@ -1069,7 +1083,6 @@ func EncryptMessage(uuidInfo *cachedUUIDInfo, outerUUID string, agentMessage map
 				return []byte(base64.StdEncoding.EncodeToString(finalBytes)), nil
 			}
 			return finalBytes, nil
-
 		}
 		convertedResponse, err := RabbitMQConnection.SendTrRPCMythicC2ToCustomMessage(TrMythicC2ToCustomMessageFormatMessage{
 			TranslationContainerName: uuidInfo.TranslationContainerName,
@@ -1078,7 +1091,7 @@ func EncryptMessage(uuidInfo *cachedUUIDInfo, outerUUID string, agentMessage map
 			UUID:                     uuidInfo.UUID,
 			MythicEncrypts:           uuidInfo.MythicEncrypts,
 			CryptoKeys:               uuidInfo.getAllKeys(),
-		})
+		}, authContext)
 		if err != nil {
 			// we send to translation container to convert to c2 specific format, then we encrypt
 			//logging.LogError(err, "Failed to send agent message response to translation container")
@@ -1115,49 +1128,46 @@ func EncryptMessage(uuidInfo *cachedUUIDInfo, outerUUID string, agentMessage map
 			return []byte(base64.StdEncoding.EncodeToString(finalBytes)), nil
 		}
 		return finalBytes, nil
-
-	} else {
-		if uuidInfo.TranslationContainerName == "" {
-			// mythic doesn't encrypt, but there's no translation container, so just return it
-			jsonBytes, err := marshalMessageForAgentFormat(uuidInfo, agentMessage)
-			//jsonBytes, err := json.Marshal(agentMessage)
-			if err != nil {
-				logging.LogError(err, "Failed to marshal agent message into json")
-				return nil, err
-			}
-			uuidBytes, err := GetUUIDBytes(outerUUID, uuidInfo.PayloadTypeMessageUUIDLength)
-			if err != nil {
-				logging.LogError(err, "Failed to generate final UUID bytes")
-				return nil, err
-			}
-			finalBytes := append(uuidBytes, jsonBytes...)
-			if shouldBase64Encode {
-				return []byte(base64.StdEncoding.EncodeToString(finalBytes)), nil
-			}
-			return finalBytes, nil
-
-		}
-		convertedResponse, err := RabbitMQConnection.SendTrRPCMythicC2ToCustomMessage(TrMythicC2ToCustomMessageFormatMessage{
-			TranslationContainerName: uuidInfo.TranslationContainerName,
-			C2Name:                   uuidInfo.C2ProfileName,
-			Message:                  agentMessage,
-			UUID:                     uuidInfo.UUID,
-			MythicEncrypts:           uuidInfo.MythicEncrypts,
-			CryptoKeys:               uuidInfo.getAllKeys(),
-		})
+	}
+	if uuidInfo.TranslationContainerName == "" {
+		// mythic doesn't encrypt, but there's no translation container, so just return it
+		jsonBytes, err := marshalMessageForAgentFormat(uuidInfo, agentMessage)
+		//jsonBytes, err := json.Marshal(agentMessage)
 		if err != nil {
-			//go SendAllOperationsMessage(fmt.Sprintf("Failed to send agent message response to translation container:\n%s", err.Error()), uuidInfo.OperationID,
-			//	"mythic_to_c2_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
+			logging.LogError(err, "Failed to marshal agent message into json")
 			return nil, err
 		}
-		if !convertedResponse.Success {
-			go SendAllOperationsMessage(fmt.Sprintf("Failed to send agent message response to translation container:\n%s", convertedResponse.Error), uuidInfo.OperationID,
-				"mythic_to_c2_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
-			return nil, errors.New(convertedResponse.Error)
+		uuidBytes, err := GetUUIDBytes(outerUUID, uuidInfo.PayloadTypeMessageUUIDLength)
+		if err != nil {
+			logging.LogError(err, "Failed to generate final UUID bytes")
+			return nil, err
 		}
-		return convertedResponse.Message, nil
+		finalBytes := append(uuidBytes, jsonBytes...)
+		if shouldBase64Encode {
+			return []byte(base64.StdEncoding.EncodeToString(finalBytes)), nil
+		}
+		return finalBytes, nil
 
 	}
+	convertedResponse, err := RabbitMQConnection.SendTrRPCMythicC2ToCustomMessage(TrMythicC2ToCustomMessageFormatMessage{
+		TranslationContainerName: uuidInfo.TranslationContainerName,
+		C2Name:                   uuidInfo.C2ProfileName,
+		Message:                  agentMessage,
+		UUID:                     uuidInfo.UUID,
+		MythicEncrypts:           uuidInfo.MythicEncrypts,
+		CryptoKeys:               uuidInfo.getAllKeys(),
+	}, authContext)
+	if err != nil {
+		//go SendAllOperationsMessage(fmt.Sprintf("Failed to send agent message response to translation container:\n%s", err.Error()), uuidInfo.OperationID,
+		//	"mythic_to_c2_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
+		return nil, err
+	}
+	if !convertedResponse.Success {
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to send agent message response to translation container:\n%s", convertedResponse.Error), uuidInfo.OperationID,
+			"mythic_to_c2_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
+		return nil, errors.New(convertedResponse.Error)
+	}
+	return convertedResponse.Message, nil
 }
 
 func RecursivelyEncryptMessage(path []cbGraphAdjMatrixEntry, message map[string]interface{}, updateCheckinTime bool) ([]byte, error) {
@@ -1172,7 +1182,8 @@ func RecursivelyEncryptMessage(path []cbGraphAdjMatrixEntry, message map[string]
 			logging.LogError(err, "Failed to lookup encryption data for target", "target", path[i].DestinationAgentId, "target_id", path[i].DestinationId)
 			return nil, err
 		}
-		encryptedBytes, err := EncryptMessage(targetUuidInfo, path[i].DestinationAgentId, currentMessage, true)
+		encryptedBytes, err := EncryptMessageWithAuthContext(targetUuidInfo, path[i].DestinationAgentId, currentMessage, true,
+			getMessageProcessingAuthContext(targetUuidInfo, RabbitMQAuthContext{}))
 		if err != nil {
 			logging.LogError(err, "Failed to encrypt message when trying to prep tasks for delegates")
 			return nil, err
@@ -1197,7 +1208,8 @@ func RecursivelyEncryptMessage(path []cbGraphAdjMatrixEntry, message map[string]
 			logging.LogError(err, "Failed to lookup encryption data for target", "target", path[i].DestinationAgentId, "target_id", path[i].DestinationId)
 			return nil, err
 		}
-		encryptedBytes, err := EncryptMessage(targetUuidInfo, path[i].DestinationAgentId, currentMessage, true)
+		encryptedBytes, err := EncryptMessageWithAuthContext(targetUuidInfo, path[i].DestinationAgentId, currentMessage, true,
+			getMessageProcessingAuthContext(targetUuidInfo, RabbitMQAuthContext{}))
 		if err != nil {
 			logging.LogError(err, "Failed to encrypt message when trying to prep tasks for delegates")
 			return nil, err

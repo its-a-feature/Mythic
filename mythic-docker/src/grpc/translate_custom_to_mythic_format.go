@@ -48,6 +48,7 @@ func (t *translationContainerServer) TranslateFromCustomToMythicFormat(stream se
 					Success:                  false,
 					Error:                    err.Error(),
 					TranslationContainerName: clientName,
+					AuthContext:              msgToSend.GetAuthContext(),
 				}:
 				case <-time.After(t.GetChannelTimeout()):
 					logging.LogError(errors.New("timeout sending to channel"), "gRPC stream connection needs to exit due to timeouts")
@@ -64,6 +65,7 @@ func (t *translationContainerServer) TranslateFromCustomToMythicFormat(stream se
 					Success:                  false,
 					Error:                    err.Error(),
 					TranslationContainerName: clientName,
+					AuthContext:              msgToSend.GetAuthContext(),
 				}:
 				case <-time.After(t.GetChannelTimeout()):
 					logging.LogError(errors.New("timeout sending to channel"), "gRPC stream connection needs to exit due to timeouts")
@@ -79,6 +81,7 @@ func (t *translationContainerServer) TranslateFromCustomToMythicFormat(stream se
 					Success:                  false,
 					Error:                    err.Error(),
 					TranslationContainerName: clientName,
+					AuthContext:              msgToSend.GetAuthContext(),
 				}:
 				case <-time.After(t.GetChannelTimeout()):
 					logging.LogError(errors.New("timeout sending to channel"), "gRPC stream connection needs to exit due to timeouts")

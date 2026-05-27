@@ -48,8 +48,14 @@ run_local_build:
 	./${BINARY_NAME}
 
 build_protobuf_go:
-	protoc --go_out=`pwd`/grpc/services --go_opt=paths=source_relative \
+	~/protoc/bin/protoc --go_out=`pwd`/grpc/services --go_opt=paths=source_relative \
 --go-grpc_out=`pwd`/grpc/services --go-grpc_opt=paths=source_relative \
+--proto_path=`pwd`/grpc/services \
+`pwd`/grpc/services/*.proto
+
+build_protobuf_go_mythic_container:
+	~/protoc/bin/protoc --go_out=`pwd`/../../../MythicMeta/MythicContainer/grpc/services --go_opt=paths=source_relative \
+--go-grpc_out=`pwd`/../../../MythicMeta/MythicContainer/grpc/services --go-grpc_opt=paths=source_relative \
 --proto_path=`pwd`/grpc/services \
 `pwd`/grpc/services/*.proto
 

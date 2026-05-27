@@ -253,7 +253,8 @@ func (s *submittedTasksForAgents) addTask(task databaseStructs.Task) {
 					logging.LogError(err, "Failed to find encryption data for callback")
 					break
 				}
-				responseBytes, err := EncryptMessage(uUIDInfo, callbackUUID, newTaskMsg, base64Encoded)
+				responseBytes, err := EncryptMessageWithAuthContext(uUIDInfo, callbackUUID, newTaskMsg, base64Encoded,
+					getMessageProcessingAuthContext(uUIDInfo, RabbitMQAuthContext{}))
 				if err != nil {
 					logging.LogError(err, "Failed to encrypt message")
 					break
