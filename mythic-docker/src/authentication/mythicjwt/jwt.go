@@ -37,6 +37,7 @@ var (
 	AUTH_METHOD_ON_START        = "on_start"
 	AUTH_METHOD_PAYLOAD         = "payload"
 	AUTH_METHOD_CALLBACK        = "callback"
+	AUTH_METHOD_CHAT            = "chat"
 	ErrFailedToFindRefreshToken = errors.New("Failed to find refresh token for specified access token")
 	ErrRefreshTokenMissmatch    = errors.New("Refresh token doesn't match for the given access token")
 	ErrUnexpectedSigningMethod  = errors.New("Unexpected signing method")

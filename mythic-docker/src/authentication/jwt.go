@@ -126,6 +126,7 @@ func GetClaims(c *gin.Context) (*mythicjwt.CustomClaims, error) {
 	}
 	tokenString, err := ExtractToken(c)
 	if err != nil {
+		logging.LogError(err, "failed to extract token")
 		return nil, err
 	}
 	if looksLikeOpaqueAPIToken(tokenString) {
@@ -139,6 +140,7 @@ func GetClaims(c *gin.Context) (*mythicjwt.CustomClaims, error) {
 				return typedClaims, nil
 			}
 		}
+		logging.LogError(errors.New("failed to get claims from validated apitoken"), "failed to get claims from validated apitoken")
 		return nil, errors.New("failed to get claims from validated apitoken")
 	}
 	claims := mythicjwt.CustomClaims{}
@@ -166,8 +168,10 @@ func TokenValid(c *gin.Context) error {
 	operator, err := database.GetUserFromID(claims.UserID)
 	if err == nil {
 		c.Set(ContextKeyUsername, operator.Username)
+	} else {
+		logging.LogError(err, "failed to get user from id")
 	}
-	return nil
+	return err
 }
 
 type HasuraRequest struct {

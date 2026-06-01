@@ -765,10 +765,10 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
-  - name: meHook
+  - name: whoami
     definition:
       kind: ""
-      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/me_webhook'
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/whoami_webhook'
       forward_client_headers: true
     permissions:
       - role: spectator
@@ -1088,7 +1088,7 @@ custom_types:
           type: object
     - name: generateReportOutput
     - name: previewFileOutput
-    - name: meHookOutput
+    - name: whoamiOutput
     - name: deleteTasksAndCallbacksOutput
     - name: sendExternalWebhookOutput
     - name: deleteTagtypeOutput

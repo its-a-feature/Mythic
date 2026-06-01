@@ -66,6 +66,7 @@ type Mutation {
     chat_model: String
     locked: Boolean
     ai_metadata: jsonb
+    apitokens_id: Int
   ): ChatActionOutput
 }
 
@@ -128,6 +129,7 @@ type Mutation {
     locked: Boolean
     chat_model: String
     ai_metadata: jsonb
+    apitokens_id: Int
   ): ChatActionOutput
 }
 
@@ -526,7 +528,7 @@ type Mutation {
 }
 
 type Query {
-  meHook: meHookOutput
+  whoami: whoamiOutput
 }
 
 type Mutation {
@@ -1026,11 +1028,29 @@ type previewFileOutput {
   contents: String
 }
 
-type meHookOutput {
+type whoamiOutput {
   status: String!
   error: String
+  user_id: Int
+  username: String
+  email: String
+  account_type: String
+  admin: Boolean
+  active: Boolean
+  deleted: Boolean
   current_operation_id: Int
   current_operation: String
+  view_mode: String
+  view_utc_time: Boolean
+  last_login: String
+  current_utc_time: String
+  auth_method: String
+  apitoken: jsonb
+  eventstepinstance_id: Int
+  scopes: [String!]
+  effective_scopes: [String!]
+  operations: jsonb
+  scope_info: jsonb
 }
 
 type deleteTasksAndCallbacksOutput {

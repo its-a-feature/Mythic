@@ -15,6 +15,7 @@ type MythicRPCAPITokenCreateMessage struct {
 	AgentTaskID     *string  `json:"agent_task_id"`
 	AgentCallbackID *string  `json:"agent_callback_id"`
 	PayloadUUID     *string  `json:"payload_uuid"`
+	ChatChannelID   *int     `json:"chat_channel_id"`
 	Scopes          []string `json:"scopes"`
 }
 
@@ -43,6 +44,13 @@ func MythicRPCAPITokenCreate(input MythicRPCAPITokenCreateMessage, authContext R
 	if err != nil {
 		response.Error = err.Error()
 		return response
+	}
+	if len(normalizedScopes) == 0 {
+		normalizedScopes, err = mythicjwt.NormalizeAPITokenScopes(authContext.SourceScopes)
+		if err != nil {
+			response.Error = err.Error()
+			return response
+		}
 	}
 	// save off the access_token as an API token and then return it
 	apiToken := databaseStructs.Apitokens{
@@ -106,8 +114,26 @@ func MythicRPCAPITokenCreate(input MythicRPCAPITokenCreateMessage, authContext R
 		apiToken.TokenType = mythicjwt.AUTH_METHOD_CALLBACK
 		apiToken.CallbackID.Valid = true
 		apiToken.CallbackID.Int64 = int64(callback.ID)
+	} else if input.ChatChannelID != nil {
+		channel := databaseStructs.ChatChannel{}
+		err = database.DB.Get(&channel, `SELECT id, operation_id, apitokens_id, "name"
+			FROM chat_channel
+			WHERE id=$1 AND operation_id=$2 AND channel_type=$3`,
+			*input.ChatChannelID, authContext.OperationID, databaseStructs.ChatChannelTypeAI)
+		if err != nil {
+			response.Error = err.Error()
+			return response
+		}
+		if !channel.APITokensID.Valid || int(channel.APITokensID.Int64) != authContext.APITokensID {
+			response.Error = "ChatChannelID token delegation requires the RabbitMQ auth context to use the API token associated with that chat channel"
+			return response
+		}
+		apiToken.TokenType = mythicjwt.AUTH_METHOD_CHAT
+		apiToken.ChatChannelID.Valid = true
+		apiToken.ChatChannelID.Int64 = int64(channel.ID)
+		apiToken.Name = fmt.Sprintf("Generated Chat API Token via MythicRPC for Chat Channel \"%s\"", channel.Name)
 	} else {
-		response.Error = "No task or callback information provided, can't generate apitoken"
+		response.Error = "No task, callback, payload, or chat channel information provided, can't generate apitoken"
 		return response
 	}
 	defaultScopes := authContext.SourceScopes
@@ -121,9 +147,9 @@ func MythicRPCAPITokenCreate(input MythicRPCAPITokenCreateMessage, authContext R
 		return response
 	}
 	statement, err := database.DB.PrepareNamed(`INSERT INTO apitokens
-		(token_value, operator_id, token_type, active, "name", created_by, task_id, callback_id, payload_id, scopes, eventstepinstance_id)
+		(token_value, operator_id, token_type, active, "name", created_by, task_id, callback_id, payload_id, scopes, eventstepinstance_id, chat_channel_id)
 		VALUES
-		(:token_value, :operator_id, :token_type, :active, :name, :created_by, :task_id, :callback_id, :payload_id, :scopes, :eventstepinstance_id)
+		(:token_value, :operator_id, :token_type, :active, :name, :created_by, :task_id, :callback_id, :payload_id, :scopes, :eventstepinstance_id, :chat_channel_id)
 		RETURNING id`)
 	if err != nil {
 		response.Error = err.Error()
@@ -149,7 +175,8 @@ func MythicRPCAPITokenCreate(input MythicRPCAPITokenCreateMessage, authContext R
 	}
 	response.Success = true
 	response.APIToken = accessToken
-	if apiToken.TokenType == mythicjwt.AUTH_METHOD_CALLBACK || apiToken.TokenType == mythicjwt.AUTH_METHOD_PAYLOAD {
+	if apiToken.TokenType == mythicjwt.AUTH_METHOD_CALLBACK ||
+		apiToken.TokenType == mythicjwt.AUTH_METHOD_PAYLOAD {
 		// deactivate the token after 5 min (should be a short-lived use)
 		go expireAPITokenAfterShortLivedTTL(apiToken.ID)
 	}

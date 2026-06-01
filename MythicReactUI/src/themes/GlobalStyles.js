@@ -11550,13 +11550,27 @@ tspan {
     font-size: 1rem;
 }
 .mythic-chat-layout {
-    display: grid;
-    grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
-    gap: 8px;
+    display: flex;
     min-height: 0;
     flex: 1 1 auto;
-    border-radius: 8px;
     overflow: visible;
+}
+.mythic-chat-layout > .gutter.gutter-horizontal {
+    cursor: col-resize;
+    margin: 0;
+    position: relative;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+.mythic-chat-layout > .gutter.gutter-horizontal::after {
+    background-color: var(--mythic-global-411);
+    border-radius: 999px;
+    content: "";
+    position: absolute;
+    transition: background-color 120ms ease;
+}
+.mythic-chat-layout > .gutter.gutter-horizontal:hover::after {
+    background-color: var(--mythic-global-070);
 }
 .mythic-chat-sidebar {
     background-color: var(--mythic-global-410);
@@ -11564,9 +11578,16 @@ tspan {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    min-width: 0;
     border-radius: 8px;
     box-shadow: inset 0 1px 0 var(--mythic-global-096);
     overflow: hidden;
+}
+.mythic-chat-layout-channels-collapsed .mythic-chat-sidebar {
+    border-left-width: 0;
+    border-right-width: 0;
+    opacity: 0;
+    pointer-events: none;
 }
 .mythic-chat-sidebar-toolbar {
     background-color: var(--mythic-global-412);
@@ -12257,9 +12278,6 @@ tspan {
     text-align: center;
 }
 @media (max-width: 900px) {
-    .mythic-chat-layout {
-        grid-template-columns: 1fr;
-    }
     .mythic-chat-sidebar {
         max-height: 220px;
     }

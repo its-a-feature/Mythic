@@ -15,7 +15,7 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-const chatStreamFlushInterval = 500 * time.Millisecond
+const chatStreamFlushInterval = 750 * time.Millisecond
 
 type ChatContainerResponseMessage struct {
 	OperationID       int                    `json:"operation_id" mapstructure:"operation_id"`

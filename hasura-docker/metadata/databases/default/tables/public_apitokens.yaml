@@ -5,6 +5,9 @@ object_relationships:
   - name: callback
     using:
       foreign_key_constraint_on: callback_id
+  - name: chat_channel
+    using:
+      foreign_key_constraint_on: chat_channel_id
   - name: created_by_operator
     using:
       foreign_key_constraint_on: created_by
@@ -21,6 +24,13 @@ object_relationships:
     using:
       foreign_key_constraint_on: task_id
 array_relationships:
+  - name: chat_channels
+    using:
+      foreign_key_constraint_on:
+        column: apitokens_id
+        table:
+          name: chat_channel
+          schema: public
   - name: callbackgraphedges
     using:
       foreign_key_constraint_on:
@@ -140,6 +150,7 @@ select_permissions:
         - active
         - deleted
         - callback_id
+        - chat_channel_id
         - created_by
         - eventstepinstance_id
         - id
@@ -169,6 +180,7 @@ select_permissions:
         - active
         - deleted
         - callback_id
+        - chat_channel_id
         - created_by
         - eventstepinstance_id
         - id
@@ -187,6 +199,12 @@ select_permissions:
                   _eq: X-Hasura-User-Id
               - operator_id:
                   _eq: X-Hasura-User-Id
+              - operator:
+                  _and:
+                    - account_type:
+                        _eq: bot
+                    - current_operation_id:
+                        _eq: X-Hasura-current-operation-id
           - operator_id:
               _lte: X-Hasura-Scope-apitoken-read-operator
   - role: operator
@@ -195,6 +213,7 @@ select_permissions:
         - active
         - deleted
         - callback_id
+        - chat_channel_id
         - created_by
         - eventstepinstance_id
         - id
@@ -213,6 +232,12 @@ select_permissions:
                   _eq: X-Hasura-User-Id
               - operator_id:
                   _eq: X-Hasura-User-Id
+              - operator:
+                  _and:
+                    - account_type:
+                        _eq: bot
+                    - current_operation_id:
+                        _eq: X-Hasura-current-operation-id
           - operator_id:
               _lte: X-Hasura-Scope-apitoken-read-operator
   - role: spectator
@@ -221,6 +246,7 @@ select_permissions:
         - active
         - deleted
         - callback_id
+        - chat_channel_id
         - created_by
         - eventstepinstance_id
         - id

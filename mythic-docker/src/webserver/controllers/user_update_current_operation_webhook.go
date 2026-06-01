@@ -1,8 +1,9 @@
 package webcontroller
 
 import (
-	"github.com/its-a-feature/Mythic/logging"
 	"net/http"
+
+	"github.com/its-a-feature/Mythic/logging"
 
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/database"
@@ -42,6 +43,7 @@ func UpdateCurrentOperationWebhook(c *gin.Context) {
 	// get the associated database information
 	operatorOperation := databaseStructs.Operatoroperation{}
 	issuingOperator := databaseStructs.Operator{}
+	targetOperator := databaseStructs.Operator{}
 	userID, err := GetUserIDFromGin(c)
 	if err != nil {
 		c.JSON(http.StatusOK, UpdateCurrentOperationResponse{
@@ -50,7 +52,7 @@ func UpdateCurrentOperationWebhook(c *gin.Context) {
 		})
 		return
 	}
-	err = database.DB.Get(&issuingOperator, `SELECT id, admin FROM operator WHERE id=$1`, userID)
+	err = database.DB.Get(&issuingOperator, `SELECT id, admin, account_type FROM operator WHERE id=$1`, userID)
 	if err != nil {
 		logging.LogError(err, "Failed to get information about issuing user")
 		c.JSON(http.StatusOK, UpdateCurrentOperationResponse{
@@ -59,10 +61,40 @@ func UpdateCurrentOperationWebhook(c *gin.Context) {
 		})
 		return
 	}
-	if userID != input.Input.UserID && !issuingOperator.Admin {
+	err = database.DB.Get(&targetOperator, `SELECT id, admin, account_type, deleted, active FROM operator WHERE id=$1`, input.Input.UserID)
+	if err != nil {
+		logging.LogError(err, "Failed to get information about issuing user")
 		c.JSON(http.StatusOK, UpdateCurrentOperationResponse{
 			Status: "error",
-			Error:  "Cannot set the current operation for another user",
+			Error:  err.Error(),
+		})
+		return
+	}
+	if targetOperator.Deleted {
+		c.JSON(http.StatusOK, UpdateCurrentOperationResponse{
+			Status: "error",
+			Error:  "Cannot set the current operation for a deleted user",
+		})
+		return
+	}
+	if !targetOperator.Active {
+		c.JSON(http.StatusOK, UpdateCurrentOperationResponse{
+			Status: "error",
+			Error:  "Cannot set the current operation for an inactive user",
+		})
+		return
+	}
+	if targetOperator.AccountType == databaseStructs.AccountTypeBot {
+		c.JSON(http.StatusOK, UpdateCurrentOperationResponse{
+			Status: "error",
+			Error:  "Cannot change the current operation for a bot account",
+		})
+		return
+	}
+	if issuingOperator.ID != input.Input.UserID && !issuingOperator.Admin {
+		c.JSON(http.StatusOK, UpdateCurrentOperationResponse{
+			Status: "error",
+			Error:  "Cannot set the current operation for another user unless you're an admin",
 		})
 		return
 	}

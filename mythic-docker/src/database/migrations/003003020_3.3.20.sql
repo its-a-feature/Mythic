@@ -137,7 +137,13 @@ create table if not exists "public"."chat_message" (
     message text not null default '',
     deleted boolean not null default false,
     search_vector tsvector generated always as (
-        to_tsvector('simple', case when deleted then '' else coalesce(message, '') end)
+        to_tsvector(
+            'simple',
+            case
+                when deleted or status <> 'complete' then ''
+                else coalesce(message, '')
+            end
+        )
     ) stored,
     edited boolean not null default false,
     edited_at timestamp without time zone,
@@ -227,6 +233,10 @@ create table if not exists "public"."chat_request" (
 
 create index if not exists chat_request_operation_channel_idx
 on "public"."chat_request" using btree (operation_id, channel_id, id desc);
+
+create index if not exists chat_request_active_operation_channel_idx
+on "public"."chat_request" using btree (operation_id, channel_id, id desc)
+where status in ('pending', 'streaming');
 
 create index if not exists chat_request_response_message_id_idx
 on "public"."chat_request" using btree (response_message_id);
@@ -447,6 +457,7 @@ drop index if exists "public"."mythictree_operation_tree_host_full_callback_idx"
 drop index if exists "public"."mythictree_operation_tree_host_parent_callback_idx";
 drop index if exists "public"."operationeventlog_unresolved_warning_source_operation_level_idx";
 drop index if exists "public"."chat_channel_operation_unread_idx";
+drop index if exists "public"."chat_request_active_operation_channel_idx";
 drop trigger if exists update_chat_channel_last_message_id_trigger on "public"."chat_message";
 drop function if exists public.update_chat_channel_last_message_id();
 drop trigger if exists create_default_chat_channel_for_operation_trigger on "public"."operation";
