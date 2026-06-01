@@ -31,6 +31,16 @@ type ChatContainerRequestMessage struct {
 	Secrets           map[string]interface{}        `json:"secrets" mapstructure:"secrets"`
 }
 
+type ChatContainerCancelRequestMessage struct {
+	ContainerName     string `json:"container_name" mapstructure:"container_name"`
+	OperationID       int    `json:"operation_id" mapstructure:"operation_id"`
+	ChannelID         int    `json:"channel_id" mapstructure:"channel_id"`
+	RequestID         int    `json:"request_id" mapstructure:"request_id"`
+	ResponseMessageID int    `json:"response_message_id" mapstructure:"response_message_id"`
+	Reason            string `json:"reason" mapstructure:"reason"`
+	CancelledBy       int    `json:"cancelled_by" mapstructure:"cancelled_by"`
+}
+
 func (r *rabbitMQConnection) SendChatContainerRequest(containerName string, chatMessage ChatContainerRequestMessage, authContext RabbitMQAuthContext) error {
 	chatMessage.ContainerName = containerName
 	headers, err := GenerateRabbitMQAuthTokenHeader(authContext)
@@ -48,6 +58,28 @@ func (r *rabbitMQConnection) SendChatContainerRequest(containerName string, chat
 	)
 	if err != nil {
 		logging.LogError(err, "Failed to send chat request", "container", containerName, "request_id", chatMessage.RequestID)
+		return err
+	}
+	return nil
+}
+
+func (r *rabbitMQConnection) SendChatContainerCancelRequest(containerName string, cancelMessage ChatContainerCancelRequestMessage, authContext RabbitMQAuthContext) error {
+	cancelMessage.ContainerName = containerName
+	headers, err := GenerateRabbitMQAuthTokenHeader(authContext)
+	if err != nil {
+		logging.LogError(err, "Failed to generate auth context for chat cancellation")
+		return err
+	}
+	err = r.SendStructMessage(
+		MYTHIC_EXCHANGE,
+		GetChatContainerCancelRoutingKey(containerName),
+		"",
+		cancelMessage,
+		false,
+		headers,
+	)
+	if err != nil {
+		logging.LogError(err, "Failed to send chat cancellation", "container", containerName, "request_id", cancelMessage.RequestID)
 		return err
 	}
 	return nil

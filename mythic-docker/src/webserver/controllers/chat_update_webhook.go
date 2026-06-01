@@ -550,8 +550,8 @@ func CancelChatRequestWebhook(c *gin.Context) {
 		chatRespondError(c, "only the request creator or an operation admin can cancel this request")
 		return
 	}
-	_, err = database.DB.Exec(`UPDATE chat_request
-		SET status='cancelled', cancelled_at=now(), error='Cancelled by operator'
+	result, err := database.DB.Exec(`UPDATE chat_request
+		SET status='cancelled', cancelled_at=now(), error='Operator issued cancel'
 		WHERE id=$1 AND operation_id=$2 AND status IN ('pending', 'streaming')`,
 		request.ID, operatorOperation.CurrentOperation.ID)
 	if err != nil {
@@ -559,10 +559,38 @@ func CancelChatRequestWebhook(c *gin.Context) {
 		chatRespondError(c, err.Error())
 		return
 	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		logging.LogError(err, "Failed to check cancelled chat request rows affected")
+		rowsAffected = 0
+	}
 	_, _ = database.DB.Exec(`UPDATE chat_message
 		SET status='cancelled'
 		WHERE id=$1 AND operation_id=$2 AND status IN ('pending', 'streaming')`,
 		request.ResponseMessageID, operatorOperation.CurrentOperation.ID)
+	if rowsAffected > 0 {
+		container := databaseStructs.ConsumingContainer{}
+		if err = database.DB.Get(&container, `SELECT *
+			FROM consuming_container
+			WHERE id=$1`, request.ChatContainerID); err != nil {
+			logging.LogError(err, "Failed to find chat container for cancellation", "request_id", request.ID)
+			chatRespondError(c, "cancelled in Mythic, but failed to find the chat container to notify")
+			return
+		}
+		authContext := authentication.RabbitMQAuthContextFromGin(c)
+		if err = rabbitmq.RabbitMQConnection.SendChatContainerCancelRequest(container.Name, rabbitmq.ChatContainerCancelRequestMessage{
+			OperationID:       operatorOperation.CurrentOperation.ID,
+			ChannelID:         channel.ID,
+			RequestID:         request.ID,
+			ResponseMessageID: request.ResponseMessageID,
+			Reason:            "Cancelled by operator",
+			CancelledBy:       operatorOperation.CurrentOperator.ID,
+		}, authContext); err != nil {
+			logging.LogError(err, "Failed to send chat cancellation", "request_id", request.ID, "container", container.Name)
+			chatRespondError(c, "cancelled in Mythic, but failed to notify the chat container")
+			return
+		}
+	}
 	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", RequestID: request.ID, ResponseMessageID: request.ResponseMessageID, ChannelID: channel.ID})
 }
 
