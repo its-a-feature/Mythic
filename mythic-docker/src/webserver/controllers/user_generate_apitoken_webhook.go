@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+	"github.com/its-a-feature/Mythic/rabbitmq"
 
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/authentication"
@@ -86,10 +87,23 @@ func GenerateAPITokenWebhook(c *gin.Context) {
 			})
 			return
 		}
-		if !issuingUser.Admin {
+		issuingUserOperatorOperation := databaseStructs.Operatoroperation{}
+		err = database.DB.Get(&issuingUserOperatorOperation, `SELECT
+		id, view_mode
+		FROM operatoroperation 
+		WHERE operatoroperation.operator_id=$1 and operatoroperation.operation_id=$2`,
+			issuingUser.ID, targetOperator.CurrentOperationID.Int64)
+		if err != nil {
+			c.JSON(http.StatusOK, UpdateCurrentOperationResponse{
+				Status: "error",
+				Error:  "Cannot generate an apitoken for a bot that's a member of an operation you don't belong to",
+			})
+			return
+		}
+		if issuingUserOperatorOperation.ViewMode == database.OPERATOR_OPERATION_VIEW_MODE_SPECTATOR {
 			c.JSON(http.StatusOK, GenerateAPITokenResponse{
 				Status: "error",
-				Error:  "only admins can generate API tokens for bot accounts",
+				Error:  "cannot generate an apitoken for a bot as a spectator",
 			})
 			return
 		}
@@ -182,7 +196,38 @@ func GenerateAPITokenWebhook(c *gin.Context) {
 		Name:         apiToken.Name,
 		CreatedBy:    apiToken.CreatedBy,
 		TokenType:    apiToken.TokenType,
-		Scopes:       []string(apiToken.Scopes),
+		Scopes:       apiToken.Scopes,
 		CreationTime: apiToken.CreationTime,
 	})
+}
+
+func invalidateAPITokensCreatedByOperatorIDAndOperationID(operatorID int, operatorUsername string, operationID int) error {
+	var err error
+	if operationID > 0 {
+		_, err = database.DB.Exec(`UPDATE apitokens
+			SET active=false, deleted=true
+			FROM operator bot_operator
+			WHERE apitokens.created_by=$1
+			  AND apitokens.operator_id = bot_operator.id
+			  AND apitokens.operator_id != apitokens.created_by
+			  AND bot_operator.account_type='bot'
+			  AND bot_operator.current_operation_id=$2
+			RETURNING apitokens.id
+			`,
+			operatorID, operationID)
+		go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Invalidating APITokens created by %s for bot accounts", operatorUsername),
+			operationID, "", database.MESSAGE_LEVEL_INFO, false)
+	} else {
+		_, err = database.DB.Exec(`UPDATE apitokens
+			SET active=false, deleted=true
+			FROM operator bot_operator
+			WHERE apitokens.created_by=$1
+			  AND apitokens.operator_id = bot_operator.id
+			  AND apitokens.operator_id != apitokens.created_by
+			  AND bot_operator.account_type='bot'
+			RETURNING apitokens.id`,
+			operatorID)
+	}
+
+	return err
 }

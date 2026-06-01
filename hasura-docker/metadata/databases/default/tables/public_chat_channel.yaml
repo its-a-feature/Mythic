@@ -5,6 +5,9 @@ object_relationships:
   - name: archived_operator
     using:
       foreign_key_constraint_on: archived_by
+  - name: apitoken
+    using:
+      foreign_key_constraint_on: apitokens_id
   - name: chat_container
     using:
       foreign_key_constraint_on: chat_container_id
@@ -44,6 +47,7 @@ select_permissions:
     permission:
       columns:
         - ai_metadata
+        - apitokens_id
         - archived
         - archived_at
         - archived_by
@@ -82,6 +86,7 @@ select_permissions:
     permission:
       columns:
         - ai_metadata
+        - apitokens_id
         - archived
         - archived_at
         - archived_by
@@ -120,6 +125,7 @@ select_permissions:
     permission:
       columns:
         - ai_metadata
+        - apitokens_id
         - archived
         - archived_at
         - archived_by
@@ -158,6 +164,7 @@ select_permissions:
     permission:
       columns:
         - ai_metadata
+        - apitokens_id
         - archived
         - archived_at
         - archived_by

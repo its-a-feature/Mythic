@@ -3,6 +3,7 @@ package webcontroller
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -14,10 +15,8 @@ import (
 	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
-	"github.com/its-a-feature/Mythic/eventing"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/rabbitmq"
-	"github.com/lib/pq"
 )
 
 const (
@@ -50,20 +49,7 @@ type CreateChatChannel struct {
 	ChatModel       string      `json:"chat_model"`
 	Locked          bool        `json:"locked"`
 	AIMetadata      interface{} `json:"ai_metadata"`
-}
-
-type UpdateChatChannelInput struct {
-	Input UpdateChatChannel `json:"input" binding:"required"`
-}
-
-type UpdateChatChannel struct {
-	ChannelID   int         `json:"channel_id" binding:"required"`
-	Name        *string     `json:"name"`
-	Description *string     `json:"description"`
-	Archived    *bool       `json:"archived"`
-	Locked      *bool       `json:"locked"`
-	ChatModel   *string     `json:"chat_model"`
-	AIMetadata  interface{} `json:"ai_metadata"`
+	APITokenID      *int        `json:"apitokens_id"`
 }
 
 type CreateChatMessageInput struct {
@@ -75,74 +61,6 @@ type CreateChatMessage struct {
 	Message       string `json:"message" binding:"required"`
 	SystemMessage bool   `json:"system_message"`
 	AllOperations bool   `json:"all_operations"`
-}
-
-type EditChatMessageInput struct {
-	Input EditChatMessage `json:"input" binding:"required"`
-}
-
-type EditChatMessage struct {
-	MessageID int    `json:"message_id" binding:"required"`
-	Message   string `json:"message" binding:"required"`
-}
-
-type DeleteChatMessageInput struct {
-	Input DeleteChatMessage `json:"input" binding:"required"`
-}
-
-type DeleteChatMessage struct {
-	MessageID int `json:"message_id" binding:"required"`
-}
-
-type MarkChatReadInput struct {
-	Input MarkChatRead `json:"input" binding:"required"`
-}
-
-type MarkChatRead struct {
-	ChannelID         int  `json:"channel_id" binding:"required"`
-	LastReadMessageID *int `json:"last_read_message_id"`
-}
-
-type RefreshChatSpecialMessageInput struct {
-	Input RefreshChatSpecialMessage `json:"input" binding:"required"`
-}
-
-type RefreshChatSpecialMessage struct {
-	MessageID int `json:"message_id" binding:"required"`
-}
-
-type ChatSearchInput struct {
-	Input ChatSearch `json:"input" binding:"required"`
-}
-
-type ChatSearch struct {
-	Query     string `json:"query" binding:"required"`
-	ChannelID *int   `json:"channel_id"`
-	Limit     int    `json:"limit"`
-	Offset    int    `json:"offset"`
-}
-
-type ChatSearchResult struct {
-	ID                int       `db:"id" json:"id"`
-	ChannelID         int       `db:"channel_id" json:"channel_id"`
-	ChannelName       string    `db:"channel_name" json:"channel_name"`
-	ChannelSlug       string    `db:"channel_slug" json:"channel_slug"`
-	ChannelType       string    `db:"channel_type" json:"channel_type"`
-	AuthorType        string    `db:"author_type" json:"author_type"`
-	SenderDisplayName string    `db:"sender_display_name" json:"sender_display_name"`
-	Message           string    `db:"message" json:"message"`
-	Edited            bool      `db:"edited" json:"edited"`
-	Status            string    `db:"status" json:"status"`
-	CreatedAt         time.Time `db:"created_at" json:"created_at"`
-	Rank              float64   `db:"rank" json:"rank"`
-}
-
-type ChatRequestActionInput struct {
-	Input ChatRequestAction `json:"input" binding:"required"`
-}
-
-type ChatRequestAction struct {
-	RequestID int `json:"request_id" binding:"required"`
 }
 
 func CreateChatChannelWebhook(c *gin.Context) {
@@ -162,7 +80,7 @@ func CreateChatChannelWebhook(c *gin.Context) {
 		chatRespondError(c, "unknown chat channel type")
 		return
 	}
-	if !chatRequireScope(c, chatScopeForChannelType(channelType, true)) {
+	if !chatRequireScope(c, chatScopeForChannel(databaseStructs.ChatChannel{ChannelType: channelType}, true)) {
 		return
 	}
 	name := strings.TrimSpace(input.Input.Name)
@@ -178,9 +96,14 @@ func CreateChatChannelWebhook(c *gin.Context) {
 	}
 
 	var chatContainerID interface{}
+	var apiTokenID interface{}
 	if channelType == databaseStructs.ChatChannelTypeAI {
 		if input.Input.ChatContainerID == nil || *input.Input.ChatContainerID <= 0 {
 			chatRespondError(c, "AI chat channels require a chat_container_id")
+			return
+		}
+		if input.Input.APITokenID == nil || *input.Input.APITokenID <= 0 {
+			chatRespondError(c, "AI chat channels require an apitokens_id")
 			return
 		}
 		if _, err = getChatContainer(*input.Input.ChatContainerID); err != nil {
@@ -188,7 +111,15 @@ func CreateChatChannelWebhook(c *gin.Context) {
 			chatRespondError(c, "failed to find a chat container with that id")
 			return
 		}
+		if _, err = validateAIChatChannelAPIToken(*input.Input.APITokenID, operatorOperation.CurrentOperation.ID); err != nil {
+			chatRespondError(c, err.Error())
+			return
+		}
 		chatContainerID = *input.Input.ChatContainerID
+		apiTokenID = *input.Input.APITokenID
+	} else if input.Input.APITokenID != nil && *input.Input.APITokenID > 0 {
+		chatRespondError(c, "apitokens_id can only be set for AI chat channels")
+		return
 	}
 	var lockedBy interface{}
 	var lockedAt interface{}
@@ -200,8 +131,8 @@ func CreateChatChannelWebhook(c *gin.Context) {
 	var channelID int
 	err = database.DB.Get(&channelID, `INSERT INTO chat_channel
 		(operation_id, name, slug, description, channel_type, created_by, locked, locked_by, locked_at,
-		 chat_container_id, chat_model, ai_metadata)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb)
+		 chat_container_id, chat_model, ai_metadata, apitokens_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13)
 		RETURNING id`,
 		operatorOperation.CurrentOperation.ID,
 		name,
@@ -215,6 +146,7 @@ func CreateChatChannelWebhook(c *gin.Context) {
 		chatContainerID,
 		input.Input.ChatModel,
 		metadata.String(),
+		apiTokenID,
 	)
 	if err != nil {
 		logging.LogError(err, "Failed to create chat channel")
@@ -222,140 +154,6 @@ func CreateChatChannelWebhook(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", ID: channelID, ChannelID: channelID})
-}
-
-func UpdateChatChannelWebhook(c *gin.Context) {
-	var input UpdateChatChannelInput
-	if !bindChatInput(c, &input) {
-		return
-	}
-	operatorOperation, ok := chatOperatorOperation(c)
-	if !ok {
-		return
-	}
-	channel, err := getChatChannel(input.Input.ChannelID, operatorOperation.CurrentOperation.ID)
-	if err != nil {
-		logging.LogError(err, "Failed to get chat channel")
-		chatRespondError(c, "failed to find chat channel")
-		return
-	}
-	if !chatRequireScope(c, chatScopeForChannel(channel, true)) {
-		return
-	}
-	if !chatCanManageChannel(operatorOperation, channel) {
-		chatRespondError(c, "only the channel creator or an operation admin can update this channel")
-		return
-	}
-
-	name := channel.Name
-	slug := channel.Slug
-	if input.Input.Name != nil {
-		name = strings.TrimSpace(*input.Input.Name)
-		if name == "" {
-			chatRespondError(c, "channel name is required")
-			return
-		}
-		if chatIsGeneralChannel(channel) {
-			if name != channel.Name {
-				chatRespondError(c, "the general channel name cannot be changed")
-				return
-			}
-		} else {
-			slug, err = uniqueChatSlug(operatorOperation.CurrentOperation.ID, slugifyChatChannelName(name), channel.ID)
-			if err != nil {
-				logging.LogError(err, "Failed to generate unique chat slug")
-				chatRespondError(c, err.Error())
-				return
-			}
-		}
-	}
-	description := channel.Description
-	if input.Input.Description != nil {
-		description = *input.Input.Description
-	}
-	archived := channel.Archived
-	var archivedBy interface{}
-	var archivedAt interface{}
-	if channel.ArchivedBy.Valid {
-		archivedBy = channel.ArchivedBy.Int64
-	}
-	if channel.ArchivedAt.Valid {
-		archivedAt = channel.ArchivedAt.Time
-	}
-	if input.Input.Archived != nil {
-		archived = *input.Input.Archived
-		if chatIsGeneralChannel(channel) && archived {
-			chatRespondError(c, "the general channel cannot be archived")
-			return
-		}
-		if archived {
-			archivedBy = operatorOperation.CurrentOperator.ID
-			archivedAt = time.Now().UTC()
-		} else {
-			archivedBy = nil
-			archivedAt = nil
-		}
-	}
-	locked := channel.Locked
-	var lockedBy interface{}
-	var lockedAt interface{}
-	if channel.LockedBy.Valid {
-		lockedBy = channel.LockedBy.Int64
-	}
-	if channel.LockedAt.Valid {
-		lockedAt = channel.LockedAt.Time
-	}
-	if input.Input.Locked != nil {
-		if channel.ChannelType != databaseStructs.ChatChannelTypeAI {
-			chatRespondError(c, "only AI chat channels can be locked")
-			return
-		}
-		locked = *input.Input.Locked
-		if locked {
-			lockedBy = operatorOperation.CurrentOperator.ID
-			lockedAt = time.Now().UTC()
-		} else {
-			if !chatIsModerator(operatorOperation) &&
-				(!channel.LockedBy.Valid || int(channel.LockedBy.Int64) != operatorOperation.CurrentOperator.ID) {
-				chatRespondError(c, "only the lock owner or an operation admin can unlock this AI chat")
-				return
-			}
-			lockedBy = nil
-			lockedAt = nil
-		}
-	}
-	chatModel := channel.ChatModel
-	if input.Input.ChatModel != nil {
-		chatModel = *input.Input.ChatModel
-	}
-	metadata := channel.AIMetadata
-	if input.Input.AIMetadata != nil {
-		metadata = chatJSONText(input.Input.AIMetadata)
-	}
-	_, err = database.DB.Exec(`UPDATE chat_channel
-		SET name=$3, slug=$4, description=$5, archived=$6, archived_by=$7, archived_at=$8,
-			locked=$9, locked_by=$10, locked_at=$11, chat_model=$12, ai_metadata=$13::jsonb
-		WHERE id=$1 AND operation_id=$2`,
-		channel.ID,
-		operatorOperation.CurrentOperation.ID,
-		name,
-		slug,
-		description,
-		archived,
-		archivedBy,
-		archivedAt,
-		locked,
-		lockedBy,
-		lockedAt,
-		chatModel,
-		metadata.String(),
-	)
-	if err != nil {
-		logging.LogError(err, "Failed to update chat channel")
-		chatRespondError(c, err.Error())
-		return
-	}
-	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", ID: channel.ID, ChannelID: channel.ID})
 }
 
 func CreateChatMessageWebhook(c *gin.Context) {
@@ -404,7 +202,7 @@ func CreateChatMessageWebhook(c *gin.Context) {
 		return
 	}
 	if input.Input.SystemMessage {
-		if !chatCanCreateSystemMessage(operatorOperation) {
+		if !chatIsModerator(operatorOperation) {
 			chatRespondError(c, "only an admin can create system messages")
 			return
 		}
@@ -434,339 +232,6 @@ func CreateChatMessageWebhook(c *gin.Context) {
 	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", ID: messageID, MessageID: messageID, ChannelID: channel.ID})
 }
 
-func EditChatMessageWebhook(c *gin.Context) {
-	var input EditChatMessageInput
-	if !bindChatInput(c, &input) {
-		return
-	}
-	operatorOperation, ok := chatOperatorOperation(c)
-	if !ok {
-		return
-	}
-	message := strings.TrimSpace(input.Input.Message)
-	if message == "" {
-		chatRespondError(c, "message is required")
-		return
-	}
-	chatMessage, channel, err := getChatMessageAndChannel(input.Input.MessageID, operatorOperation.CurrentOperation.ID)
-	if err != nil {
-		logging.LogError(err, "Failed to get chat message for edit")
-		chatRespondError(c, "failed to find chat message")
-		return
-	}
-	if !chatRequireScope(c, chatScopeForChannel(channel, true)) {
-		return
-	}
-	if chatMessage.Deleted {
-		chatRespondError(c, "cannot edit a deleted chat message")
-		return
-	}
-	if chatMessage.AuthorType != databaseStructs.ChatMessageAuthorOperator ||
-		!chatMessage.OperatorID.Valid ||
-		int(chatMessage.OperatorID.Int64) != operatorOperation.CurrentOperator.ID {
-		chatRespondError(c, "only the message author can edit this message")
-		return
-	}
-	_, err = database.DB.Exec(`UPDATE chat_message
-		SET message=$3, edited=true, edited_at=now()
-		WHERE id=$1 AND operation_id=$2`, chatMessage.ID, operatorOperation.CurrentOperation.ID, message)
-	if err != nil {
-		logging.LogError(err, "Failed to edit chat message")
-		chatRespondError(c, err.Error())
-		return
-	}
-	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", ID: chatMessage.ID, MessageID: chatMessage.ID, ChannelID: channel.ID})
-}
-
-func DeleteChatMessageWebhook(c *gin.Context) {
-	var input DeleteChatMessageInput
-	if !bindChatInput(c, &input) {
-		return
-	}
-	operatorOperation, ok := chatOperatorOperation(c)
-	if !ok {
-		return
-	}
-	chatMessage, channel, err := getChatMessageAndChannel(input.Input.MessageID, operatorOperation.CurrentOperation.ID)
-	if err != nil {
-		logging.LogError(err, "Failed to get chat message for delete")
-		chatRespondError(c, "failed to find chat message")
-		return
-	}
-	if !chatRequireScope(c, chatScopeForChannel(channel, true)) {
-		return
-	}
-	if !chatIsModerator(operatorOperation) &&
-		(!chatMessage.OperatorID.Valid || int(chatMessage.OperatorID.Int64) != operatorOperation.CurrentOperator.ID) {
-		chatRespondError(c, "only the message author or an operation admin can delete this message")
-		return
-	}
-	_, err = database.DB.Exec(`UPDATE chat_message
-		SET message='Message Deleted',
-			deleted=true,
-			deleted_by=$3,
-			deleted_at=now(),
-			status='complete'
-		WHERE id=$1 AND operation_id=$2`, chatMessage.ID, operatorOperation.CurrentOperation.ID, operatorOperation.CurrentOperator.ID)
-	if err != nil {
-		logging.LogError(err, "Failed to delete chat message")
-		chatRespondError(c, err.Error())
-		return
-	}
-	_, _ = database.DB.Exec(`UPDATE chat_request
-		SET status='cancelled', cancelled_at=now(), error='Chat message was deleted'
-		WHERE operation_id=$1 AND (request_message_id=$2 OR response_message_id=$2) AND status IN ('pending', 'streaming')`,
-		operatorOperation.CurrentOperation.ID, chatMessage.ID)
-	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", ID: chatMessage.ID, MessageID: chatMessage.ID, ChannelID: channel.ID})
-}
-
-func MarkChatReadWebhook(c *gin.Context) {
-	var input MarkChatReadInput
-	if !bindChatInput(c, &input) {
-		return
-	}
-	operatorOperation, ok := chatOperatorOperation(c)
-	if !ok {
-		return
-	}
-	channel, err := getChatChannel(input.Input.ChannelID, operatorOperation.CurrentOperation.ID)
-	if err != nil {
-		logging.LogError(err, "Failed to get chat channel for read marker")
-		chatRespondError(c, "failed to find chat channel")
-		return
-	}
-	if !chatRequireScope(c, chatScopeForChannel(channel, false)) {
-		return
-	}
-	var lastReadID interface{}
-	if input.Input.LastReadMessageID != nil {
-		lastReadID = *input.Input.LastReadMessageID
-	} else {
-		var maxID sql.NullInt64
-		if err = database.DB.Get(&maxID, `SELECT max(id) FROM chat_message
-			WHERE operation_id=$1 AND channel_id=$2`, operatorOperation.CurrentOperation.ID, channel.ID); err != nil {
-			logging.LogError(err, "Failed to get max chat message id")
-			chatRespondError(c, err.Error())
-			return
-		}
-		if maxID.Valid {
-			lastReadID = maxID.Int64
-		}
-	}
-	_, err = database.DB.Exec(`INSERT INTO chat_read_state
-		(operation_id, channel_id, operator_id, last_read_message_id)
-		VALUES ($1, $2, $3, $4)
-		ON CONFLICT (operator_id, channel_id) DO UPDATE
-		SET last_read_message_id=excluded.last_read_message_id`,
-		operatorOperation.CurrentOperation.ID, channel.ID, operatorOperation.CurrentOperator.ID, lastReadID)
-	if err != nil {
-		logging.LogError(err, "Failed to mark chat channel read")
-		chatRespondError(c, err.Error())
-		return
-	}
-	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", ChannelID: channel.ID})
-}
-
-func RefreshChatSpecialMessageWebhook(c *gin.Context) {
-	var input RefreshChatSpecialMessageInput
-	if !bindChatInput(c, &input) {
-		return
-	}
-	operatorOperation, ok := chatOperatorOperation(c)
-	if !ok {
-		return
-	}
-	chatMessage, channel, err := getChatMessageAndChannel(input.Input.MessageID, operatorOperation.CurrentOperation.ID)
-	if err != nil {
-		logging.LogError(err, "Failed to get chat message for refresh")
-		chatRespondError(c, "failed to find chat message")
-		return
-	}
-	if !chatRequireScope(c, chatScopeForChannel(channel, false)) {
-		return
-	}
-	if chatMessage.Deleted {
-		chatRespondError(c, "cannot refresh a deleted chat message")
-		return
-	}
-	metadata := chatMessage.Metadata.StructValue()
-	if metadata["special_type"] != eventing.ChatSpecialTypeEventingUserInteraction {
-		chatRespondError(c, "chat message is not refreshable")
-		return
-	}
-	eventStepInstanceID, ok := chatMetadataInt(metadata, "eventstepinstance_id")
-	if !ok || eventStepInstanceID <= 0 {
-		chatRespondError(c, "chat message is missing its eventstep instance reference")
-		return
-	}
-	message, senderDisplayName, refreshedMetadata, err := eventing.BuildUserInteractionChatMessage(eventStepInstanceID, operatorOperation.CurrentOperation.ID)
-	if err != nil {
-		logging.LogError(err, "Failed to refresh eventing user interaction chat message")
-		chatRespondError(c, err.Error())
-		return
-	}
-	refreshedMetadataText := eventing.GetMythicJSONTextFromStruct(refreshedMetadata)
-	_, err = database.DB.Exec(`UPDATE chat_message
-		SET sender_display_name=$3, message=$4, metadata=$5::jsonb, status=$6, updated_at=now()
-		WHERE id=$1 AND operation_id=$2`,
-		chatMessage.ID,
-		operatorOperation.CurrentOperation.ID,
-		senderDisplayName,
-		message,
-		refreshedMetadataText.String(),
-		databaseStructs.ChatMessageStatusComplete)
-	if err != nil {
-		logging.LogError(err, "Failed to update refreshed chat message")
-		chatRespondError(c, err.Error())
-		return
-	}
-	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", ID: chatMessage.ID, MessageID: chatMessage.ID, ChannelID: channel.ID})
-}
-
-func ChatSearchWebhook(c *gin.Context) {
-	var input ChatSearchInput
-	if !bindChatInput(c, &input) {
-		return
-	}
-	operatorOperation, ok := chatOperatorOperation(c)
-	if !ok {
-		return
-	}
-	query := strings.TrimSpace(input.Input.Query)
-	if query == "" {
-		chatRespondError(c, "query is required")
-		return
-	}
-	allowedTypes := chatSearchAllowedChannelTypes(c)
-	if len(allowedTypes) == 0 {
-		chatRespondError(c, "missing required chat read scope")
-		return
-	}
-	limit := input.Input.Limit
-	if limit <= 0 || limit > 100 {
-		limit = 50
-	}
-	offset := input.Input.Offset
-	if offset < 0 {
-		offset = 0
-	}
-	var channelID interface{}
-	if input.Input.ChannelID != nil {
-		channelID = *input.Input.ChannelID
-	}
-	results := []ChatSearchResult{}
-	err := database.DB.Select(&results, `SELECT
-			chat_message.id,
-			chat_message.channel_id,
-			chat_channel.name "channel_name",
-			chat_channel.slug "channel_slug",
-			chat_channel.channel_type,
-			chat_message.author_type,
-			chat_message.sender_display_name,
-			chat_message.message,
-			chat_message.edited,
-			chat_message.status,
-			chat_message.created_at,
-			ts_rank(chat_message.search_vector, plainto_tsquery('simple', $3)) "rank"
-		FROM chat_message
-		JOIN chat_channel ON chat_message.channel_id = chat_channel.id
-		WHERE chat_message.operation_id=$1
-			AND chat_message.deleted=false
-			AND chat_channel.channel_type = ANY($2)
-			AND chat_message.search_vector @@ plainto_tsquery('simple', $3)
-			AND ($4::integer IS NULL OR chat_message.channel_id=$4)
-		ORDER BY rank DESC, chat_message.id DESC
-		LIMIT $5 OFFSET $6`,
-		operatorOperation.CurrentOperation.ID,
-		pq.Array(allowedTypes),
-		query,
-		channelID,
-		limit,
-		offset,
-	)
-	if err != nil {
-		logging.LogError(err, "Failed to search chat")
-		chatRespondError(c, err.Error())
-		return
-	}
-	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", Results: results})
-}
-
-func CancelChatRequestWebhook(c *gin.Context) {
-	var input ChatRequestActionInput
-	if !bindChatInput(c, &input) {
-		return
-	}
-	operatorOperation, ok := chatOperatorOperation(c)
-	if !ok {
-		return
-	}
-	request, channel, err := getChatRequestAndChannel(input.Input.RequestID, operatorOperation.CurrentOperation.ID)
-	if err != nil {
-		logging.LogError(err, "Failed to find chat request for cancel")
-		chatRespondError(c, "failed to find chat request")
-		return
-	}
-	if !chatRequireScope(c, chatScopeForChannel(channel, true)) {
-		return
-	}
-	if !chatIsModerator(operatorOperation) && request.CreatedBy != operatorOperation.CurrentOperator.ID {
-		chatRespondError(c, "only the request creator or an operation admin can cancel this request")
-		return
-	}
-	_, err = database.DB.Exec(`UPDATE chat_request
-		SET status='cancelled', cancelled_at=now(), error='Cancelled by operator'
-		WHERE id=$1 AND operation_id=$2 AND status IN ('pending', 'streaming')`,
-		request.ID, operatorOperation.CurrentOperation.ID)
-	if err != nil {
-		logging.LogError(err, "Failed to cancel chat request")
-		chatRespondError(c, err.Error())
-		return
-	}
-	_, _ = database.DB.Exec(`UPDATE chat_message
-		SET status='cancelled'
-		WHERE id=$1 AND operation_id=$2 AND status IN ('pending', 'streaming')`,
-		request.ResponseMessageID, operatorOperation.CurrentOperation.ID)
-	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", RequestID: request.ID, ResponseMessageID: request.ResponseMessageID, ChannelID: channel.ID})
-}
-
-func RetryChatRequestWebhook(c *gin.Context) {
-	var input ChatRequestActionInput
-	if !bindChatInput(c, &input) {
-		return
-	}
-	operatorOperation, ok := chatOperatorOperation(c)
-	if !ok {
-		return
-	}
-	request, channel, err := getChatRequestAndChannel(input.Input.RequestID, operatorOperation.CurrentOperation.ID)
-	if err != nil {
-		logging.LogError(err, "Failed to find chat request for retry")
-		chatRespondError(c, "failed to find chat request")
-		return
-	}
-	if !chatRequireScope(c, chatScopeForChannel(channel, true)) {
-		return
-	}
-	if channel.Archived {
-		chatRespondError(c, "cannot retry in an archived chat channel")
-		return
-	}
-	if !chatCanPostToAIChannel(operatorOperation, channel) {
-		chatRespondError(c, "this AI chat is locked to another operator")
-		return
-	}
-	var prompt string
-	if err = database.DB.Get(&prompt, `SELECT message FROM chat_message
-		WHERE id=$1 AND operation_id=$2 AND deleted=false`,
-		request.RequestMessageID, operatorOperation.CurrentOperation.ID); err != nil {
-		logging.LogError(err, "Failed to get original prompt for retry")
-		chatRespondError(c, "failed to find original prompt")
-		return
-	}
-	createAIChatMessage(c, operatorOperation, channel, prompt, &request.ID)
-}
-
 func createAIChatMessage(c *gin.Context, operatorOperation *databaseStructs.Operatoroperation, channel databaseStructs.ChatChannel, message string, retryOfID *int) {
 	container, err := getChatContainer(int(channel.ChatContainerID.Int64))
 	if err != nil {
@@ -788,8 +253,13 @@ func createAIChatMessage(c *gin.Context, operatorOperation *databaseStructs.Oper
 		chatRespondError(c, fmt.Sprintf("AI chat request %d is still in progress; wait for it to finish or cancel it before sending another prompt", activeRequestID))
 		return
 	}
-	authContext := authentication.RabbitMQAuthContextFromGin(c)
-	requestMessageID, err := insertOperatorChatMessage(operatorOperation, channel, message, authContext)
+	chatAuthContext, err := chatChannelAuthContext(channel)
+	if err != nil {
+		chatRespondError(c, err.Error())
+		return
+	}
+	operatorAuthContext := authentication.RabbitMQAuthContextFromGin(c)
+	requestMessageID, err := insertOperatorChatMessage(operatorOperation, channel, message, operatorAuthContext)
 	if err != nil {
 		logging.LogError(err, "Failed to create AI prompt message")
 		chatRespondError(c, err.Error())
@@ -834,11 +304,46 @@ func createAIChatMessage(c *gin.Context, operatorOperation *databaseStructs.Oper
 		chatRespondError(c, err.Error())
 		return
 	}
-	contextMessages, err := getChatContextMessages(operatorOperation.CurrentOperation.ID, channel.ID, requestMessageID)
+
+	go dispatchAIChatRequest(
+		operatorOperation.CurrentOperation.ID,
+		operatorOperation.CurrentOperator.ID,
+		channel,
+		container,
+		requestID,
+		requestMessageID,
+		responseMessageID,
+		message,
+		retryOf,
+		chatAuthContext,
+	)
+
+	c.JSON(http.StatusOK, ChatActionResponse{
+		Status:            "success",
+		ID:                requestMessageID,
+		MessageID:         requestMessageID,
+		ChannelID:         channel.ID,
+		RequestID:         requestID,
+		ResponseMessageID: responseMessageID,
+	})
+}
+
+func dispatchAIChatRequest(
+	operationID int,
+	operatorID int,
+	channel databaseStructs.ChatChannel,
+	container databaseStructs.ConsumingContainer,
+	requestID int,
+	requestMessageID int,
+	responseMessageID int,
+	prompt string,
+	retryOf interface{},
+	chatAuthContext rabbitmq.RabbitMQAuthContext,
+) {
+	contextMessages, err := getChatContextMessages(operationID, channel.ID, requestMessageID)
 	if err != nil {
 		logging.LogError(err, "Failed to fetch AI chat context")
-		markChatRequestFailed(requestID, responseMessageID, operatorOperation.CurrentOperation.ID, err.Error())
-		chatRespondError(c, err.Error())
+		markChatRequestFailed(requestID, responseMessageID, operationID, err.Error())
 		return
 	}
 	chatConfig := getChatChannelConfig(channel)
@@ -856,35 +361,27 @@ func createAIChatMessage(c *gin.Context, operatorOperation *databaseStructs.Oper
 	})
 	_, _ = database.DB.Exec(`UPDATE chat_request
 		SET context_snapshot=$3::jsonb
-		WHERE id=$1 AND operation_id=$2`, requestID, operatorOperation.CurrentOperation.ID, contextSnapshot.String())
+		WHERE id=$1 AND operation_id=$2`, requestID, operationID, contextSnapshot.String())
 
 	err = rabbitmq.RabbitMQConnection.SendChatContainerRequest(container.Name, rabbitmq.ChatContainerRequestMessage{
-		OperationID:       operatorOperation.CurrentOperation.ID,
+		OperationID:       operationID,
 		ChannelID:         channel.ID,
+		APITokenID:        int(channel.APITokensID.Int64),
 		ChannelName:       channel.Name,
 		ChannelSlug:       channel.Slug,
 		RequestID:         requestID,
 		RequestMessageID:  requestMessageID,
 		ResponseMessageID: responseMessageID,
 		Model:             channel.ChatModel,
-		Prompt:            message,
+		Prompt:            prompt,
 		Config:            chatConfig,
 		Context:           contextMessages,
-		Secrets:           rabbitmq.GetSecrets(operatorOperation.CurrentOperator.ID, 0),
-	}, authContext)
+		Secrets:           rabbitmq.GetSecrets(operatorID, 0),
+	}, chatAuthContext)
 	if err != nil {
-		markChatRequestFailed(requestID, responseMessageID, operatorOperation.CurrentOperation.ID, err.Error())
-		chatRespondError(c, err.Error())
-		return
+		logging.LogError(err, "Failed to send AI chat request", "request_id", requestID, "response_message_id", responseMessageID)
+		markChatRequestFailed(requestID, responseMessageID, operationID, err.Error())
 	}
-	c.JSON(http.StatusOK, ChatActionResponse{
-		Status:            "success",
-		ID:                requestMessageID,
-		MessageID:         requestMessageID,
-		ChannelID:         channel.ID,
-		RequestID:         requestID,
-		ResponseMessageID: responseMessageID,
-	})
 }
 
 func bindChatInput(c *gin.Context, input interface{}) bool {
@@ -924,24 +421,8 @@ func chatRequireScope(c *gin.Context, requiredScope string) bool {
 	return true
 }
 
-func chatSearchAllowedChannelTypes(c *gin.Context) []string {
-	claims, err := authentication.GetClaims(c)
-	if err != nil {
-		logging.LogError(err, "Failed to get claims for chat search scope check")
-		return []string{}
-	}
-	channelTypes := []string{}
-	if mythicjwt.AllowsScope(claims.Scopes, mythicjwt.SCOPE_CHAT_READ) {
-		channelTypes = append(channelTypes, databaseStructs.ChatChannelTypeStandard)
-	}
-	if mythicjwt.AllowsScope(claims.Scopes, mythicjwt.SCOPE_CHAT_AI_READ) {
-		channelTypes = append(channelTypes, databaseStructs.ChatChannelTypeAI)
-	}
-	return channelTypes
-}
-
-func chatScopeForChannelType(channelType string, write bool) string {
-	if channelType == databaseStructs.ChatChannelTypeAI {
+func chatScopeForChannel(channel databaseStructs.ChatChannel, write bool) string {
+	if channel.ChannelType == databaseStructs.ChatChannelTypeAI {
 		if write {
 			return mythicjwt.SCOPE_CHAT_AI_WRITE
 		}
@@ -953,17 +434,9 @@ func chatScopeForChannelType(channelType string, write bool) string {
 	return mythicjwt.SCOPE_CHAT_READ
 }
 
-func chatScopeForChannel(channel databaseStructs.ChatChannel, write bool) string {
-	return chatScopeForChannelType(channel.ChannelType, write)
-}
-
 func chatIsModerator(operatorOperation *databaseStructs.Operatoroperation) bool {
 	return operatorOperation.CurrentOperator.Admin ||
 		operatorOperation.ViewMode == database.OPERATOR_OPERATION_VIEW_MODE_LEAD
-}
-
-func chatCanCreateSystemMessage(operatorOperation *databaseStructs.Operatoroperation) bool {
-	return chatIsModerator(operatorOperation)
 }
 
 func chatIsGeneralChannel(channel databaseStructs.ChatChannel) bool {
@@ -971,19 +444,11 @@ func chatIsGeneralChannel(channel databaseStructs.ChatChannel) bool {
 		strings.EqualFold(channel.Slug, chatGeneralChannelName)
 }
 
-func chatCanManageChannel(operatorOperation *databaseStructs.Operatoroperation, channel databaseStructs.ChatChannel) bool {
-	return chatIsModerator(operatorOperation) || channel.CreatedBy == operatorOperation.CurrentOperator.ID
-}
-
 func chatCanPostToAIChannel(operatorOperation *databaseStructs.Operatoroperation, channel databaseStructs.ChatChannel) bool {
-	if channel.ChannelType != databaseStructs.ChatChannelTypeAI {
-		return true
-	}
 	if !channel.Locked {
 		return true
 	}
-	return chatIsModerator(operatorOperation) ||
-		(channel.LockedBy.Valid && int(channel.LockedBy.Int64) == operatorOperation.CurrentOperator.ID)
+	return channel.LockedBy.Valid && int(channel.LockedBy.Int64) == operatorOperation.CurrentOperator.ID
 }
 
 func slugifyChatChannelName(name string) string {
@@ -1006,7 +471,7 @@ func uniqueChatSlug(operationID int, baseSlug string, excludeChannelID int) (str
 		err := database.DB.Get(&existingID, `SELECT id FROM chat_channel
 			WHERE operation_id=$1 AND lower(slug)=lower($2) AND id <> $3`,
 			operationID, candidate, excludeChannelID)
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return candidate, nil
 		}
 		if err != nil {
@@ -1056,20 +521,55 @@ func getChatChannelConfig(channel databaseStructs.ChatChannel) map[string]interf
 	return map[string]interface{}{}
 }
 
+func validateAIChatChannelAPIToken(apiTokenID int, operationID int) (databaseStructs.Apitokens, error) {
+	apiToken := databaseStructs.Apitokens{}
+	if apiTokenID <= 0 {
+		return apiToken, fmt.Errorf("AI chat channels require an apitokens_id")
+	}
+	err := database.DB.Get(&apiToken, `SELECT apitokens.*
+		FROM apitokens
+		JOIN operatoroperation ON operatoroperation.operator_id = apitokens.operator_id
+		WHERE apitokens.id=$1 AND operatoroperation.operation_id=$2`,
+		apiTokenID, operationID)
+	if err != nil {
+		return apiToken, fmt.Errorf("failed to find an active API token for this operation")
+	}
+	if apiToken.Deleted || !apiToken.Active {
+		return apiToken, fmt.Errorf("AI chat channel API token must be active and not deleted")
+	}
+	if apiToken.TokenType != mythicjwt.AUTH_METHOD_API {
+		return apiToken, fmt.Errorf("AI chat channel API token must be a normal API token")
+	}
+	if !mythicjwt.AllowsScope(apiToken.Scopes, mythicjwt.SCOPE_APITOKEN_WRITE) ||
+		!mythicjwt.AllowsScope(apiToken.Scopes, mythicjwt.SCOPE_CHAT_AI_WRITE) {
+		return apiToken, fmt.Errorf("AI chat channel API token must include %s and %s",
+			mythicjwt.SCOPE_APITOKEN_WRITE, mythicjwt.SCOPE_CHAT_AI_WRITE)
+	}
+	return apiToken, nil
+}
+
+func chatChannelAuthContext(channel databaseStructs.ChatChannel) (rabbitmq.RabbitMQAuthContext, error) {
+	if !channel.APITokensID.Valid || channel.APITokensID.Int64 <= 0 {
+		return rabbitmq.RabbitMQAuthContext{}, fmt.Errorf("AI chat channel is missing an API token")
+	}
+	apiToken, err := validateAIChatChannelAPIToken(int(channel.APITokensID.Int64), channel.OperationID)
+	if err != nil {
+		return rabbitmq.RabbitMQAuthContext{}, err
+	}
+	return rabbitmq.RabbitMQAuthContext{
+		OperatorID:   apiToken.OperatorID,
+		OperationID:  channel.OperationID,
+		APITokensID:  apiToken.ID,
+		SourceScopes: mythicjwt.EffectiveScopes(apiToken.Scopes),
+	}, nil
+}
+
 func getChatContainer(containerID int) (databaseStructs.ConsumingContainer, error) {
 	container := databaseStructs.ConsumingContainer{}
 	err := database.DB.Get(&container, `SELECT *
 		FROM consuming_container
 		WHERE id=$1 AND type=$2 AND deleted=false`, containerID, string(rabbitmq.CONSUMING_SERVICES_TYPE_CHAT))
 	return container, err
-}
-
-func getChatChannel(channelID int, operationID int) (databaseStructs.ChatChannel, error) {
-	channel := databaseStructs.ChatChannel{}
-	err := database.DB.Get(&channel, `SELECT *
-		FROM chat_channel
-		WHERE id=$1 AND operation_id=$2`, channelID, operationID)
-	return channel, err
 }
 
 func getChatMessageAndChannel(messageID int, operationID int) (databaseStructs.ChatMessage, databaseStructs.ChatChannel, error) {

@@ -41,6 +41,8 @@ type ChatChannel struct {
 	ChatContainer   ConsumingContainer `db:"chat_container" json:"chat_container,omitempty"`
 	ChatModel       string             `db:"chat_model" json:"chat_model"`
 	AIMetadata      MythicJSONText     `db:"ai_metadata" json:"ai_metadata"`
+	APITokensID     structs.NullInt64  `db:"apitokens_id" json:"api_tokens_id" mapstructure:"apitokens_id"`
+	APIToken        Apitokens          `db:"apitoken" json:"apitoken,omitempty"`
 	CreatedAt       time.Time          `db:"created_at" json:"created_at"`
 	UpdatedAt       time.Time          `db:"updated_at" json:"updated_at"`
 }

@@ -23,6 +23,7 @@ import {
   sanitizeTerminalOutput
 } from "./ResponseDisplayInteractive";
 import {isAllowedMarkdownLink, markdownPlugins} from "../../utilities/Markdown";
+import {markdownComponents} from "../Chat/Chat";
 
 const MaxRenderSize = 2000000;
 const RenderModes = {
@@ -47,7 +48,7 @@ const getInitialRenderMode = (props) => {
   }
   return props?.render_colors ? RenderModes.terminal : RenderModes.plaintext;
 }
-const markdownComponents = {
+const markdownComponentsOld = {
   a: ({href, children}) => {
     if(!isAllowedMarkdownLink(href)){
       return children;

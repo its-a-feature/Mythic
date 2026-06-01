@@ -19,10 +19,12 @@ func TestMythicConnection() {
 	webAddress := "127.0.0.1"
 	mythicEnv := config.GetMythicEnv()
 	queryBodyString := `
-	query meHook {
-		status
-		error
-	  }
+	query whoami {
+		whoami {
+			status
+			error
+		}
+	}
 `
 
 	if mythicEnv.GetString("NGINX_HOST") == "mythic_nginx" {
@@ -54,9 +56,9 @@ func TestMythicConnection() {
 			resp.Body.Close()
 			if resp.StatusCode == 200 || resp.StatusCode == 403 || resp.StatusCode == 404 {
 				if resp.StatusCode == 403 {
-					log.Printf("[+] Successfully connected to Mythic at " + loginAddress + ", but blocked by ALLOWED_IP_BLOCKS setting\n\n")
+					log.Printf("[+] Successfully connected to Mythic at %s, but blocked by ALLOWED_IP_BLOCKS setting\n\n", loginAddress)
 				} else {
-					log.Printf("[+] Successfully connected to Mythic at " + loginAddress + "\n\n")
+					log.Printf("[+] Successfully connected to Mythic at %s\n\n", loginAddress)
 				}
 				for j := range count {
 					log.Printf("[*] Attempting to connect to Mythic's GraphQL, attempt %d/%d\n", j+1, maxCount)

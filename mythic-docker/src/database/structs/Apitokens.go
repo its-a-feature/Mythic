@@ -22,4 +22,5 @@ type Apitokens struct {
 	TaskID              structs.NullInt64 `db:"task_id" json:"task_id" mapstructure:"task_id"`
 	CallbackID          structs.NullInt64 `db:"callback_id" json:"callback_id" mapstructure:"callback_id"`
 	PayloadID           structs.NullInt64 `db:"payload_id" json:"payload_id" mapstructure:"payload_id"`
+	ChatChannelID       structs.NullInt64 `db:"chat_channel_id" json:"chat_channel_id" mapstructure:"chat_channel_id"`
 }

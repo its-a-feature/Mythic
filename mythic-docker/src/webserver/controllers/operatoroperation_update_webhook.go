@@ -2,9 +2,11 @@ package webcontroller
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
-	"github.com/its-a-feature/Mythic/rabbitmq"
 	"net/http"
+
+	"github.com/its-a-feature/Mythic/rabbitmq"
 
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/database"
@@ -68,7 +70,7 @@ func UpdateOperatorOperationWebhook(c *gin.Context) {
 	}
 	err = database.DB.Get(&operatorRole, `SELECT * FROM operatoroperation WHERE 
 		operator_id=$1 AND operation_id=$2`, operator.ID, input.Input.OperationID)
-	if err != sql.ErrNoRows && err != nil {
+	if !errors.Is(err, sql.ErrNoRows) && err != nil {
 		logging.LogError(err, "Failed to get information about operator's role in operation")
 		c.JSON(http.StatusOK, UpdateOperatorOperationResponse{
 			Status: "error",
@@ -93,26 +95,30 @@ func UpdateOperatorOperationWebhook(c *gin.Context) {
 	// add users
 	for _, user := range input.Input.AddUsers {
 		newUser := databaseStructs.Operator{ID: user}
-		if _, err := database.DB.Exec(`INSERT INTO operatoroperation
-				(operator_id, operation_id) VALUES ($1, $2) ON CONFLICT DO NOTHING `, user, currentOperation.ID); err != nil {
+		_, err = database.DB.Exec(`INSERT INTO operatoroperation
+				(operator_id, operation_id) VALUES ($1, $2) ON CONFLICT DO NOTHING `, user, currentOperation.ID)
+		if err != nil {
 			logging.LogError(err, "Failed to add operator to operation")
-		} else if err := database.DB.Get(&newUser, `SELECT username FROM operator WHERE id=$1`, newUser.ID); err != nil {
+			continue
+		}
+		err = database.DB.Get(&newUser, `SELECT username FROM operator WHERE id=$1`, newUser.ID)
+		if err != nil {
 			logging.LogError(err, "Failed to lookup operator username")
-		} else {
-			go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Adding %s to operation", newUser.Username),
-				currentOperation.ID, "", database.MESSAGE_LEVEL_INFO, false)
-			err = database.DB.Get(&newUser, `SELECT current_operation_id FROM operator WHERE id=$1`, newUser.ID)
-			if err != nil {
-				logging.LogError(err, "Failed to lookup operator username")
-			}
-			if int(newUser.CurrentOperationID.Int64) == 0 {
-				newUser.CurrentOperationID.Valid = true
-				newUser.CurrentOperationID.Int64 = int64(currentOperation.ID)
-				_, err = database.DB.NamedExec(`UPDATE operator SET current_operation_id=:current_operation_id 
+			continue
+		}
+		go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Adding %s to operation", newUser.Username),
+			currentOperation.ID, "", database.MESSAGE_LEVEL_INFO, false)
+		err = database.DB.Get(&newUser, `SELECT current_operation_id FROM operator WHERE id=$1`, newUser.ID)
+		if err != nil {
+			logging.LogError(err, "Failed to lookup operator username")
+		}
+		if int(newUser.CurrentOperationID.Int64) == 0 {
+			newUser.CurrentOperationID.Valid = true
+			newUser.CurrentOperationID.Int64 = int64(currentOperation.ID)
+			_, err = database.DB.NamedExec(`UPDATE operator SET current_operation_id=:current_operation_id 
                 WHERE id=:id`, newUser)
-				if err != nil {
-					logging.LogError(err, "Failed to update operator's current operation")
-				}
+			if err != nil {
+				logging.LogError(err, "Failed to update operator's current operation")
 			}
 		}
 	}
@@ -120,61 +126,81 @@ func UpdateOperatorOperationWebhook(c *gin.Context) {
 	for _, user := range input.Input.RemoveUsers {
 		newUser := databaseStructs.Operator{ID: user}
 		// can't remove the lead this way, you need to use the update first
-		if _, err := database.DB.Exec(`DELETE FROM operatoroperation
+		_, err = database.DB.Exec(`DELETE FROM operatoroperation
 				WHERE operator_id=$1 AND operation_id=$2 AND view_mode!=$3`,
-			user, currentOperation.ID, database.OPERATOR_OPERATION_VIEW_MODE_LEAD); err != nil {
+			user, currentOperation.ID, database.OPERATOR_OPERATION_VIEW_MODE_LEAD)
+		if err != nil {
 			logging.LogError(err, "Failed to remove operator from operation")
-		} else if err := database.DB.Get(&newUser, `SELECT username FROM operator WHERE id=$1`, newUser.ID); err != nil {
+			continue
+		}
+		err = database.DB.Get(&newUser, `SELECT username FROM operator WHERE id=$1`, newUser.ID)
+		if err != nil {
 			logging.LogError(err, "Failed to lookup operator username")
-		} else {
-			go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Removing %s from operation", newUser.Username),
-				currentOperation.ID, "", database.MESSAGE_LEVEL_INFO, false)
-			// now that a user was removed from the op, see if they have any other's available and update
-			err = database.DB.Get(&newUser, `SELECT current_operation_id FROM operator WHERE id=$1`, newUser.ID)
-			if err != nil {
-				logging.LogError(err, "Failed to lookup operator username")
-			}
-			if int(newUser.CurrentOperationID.Int64) == currentOperation.ID {
-				newUser.CurrentOperationID.Valid = false
-				newUser.CurrentOperationID.Int64 = 0
-				_, err = database.DB.NamedExec(`UPDATE operator SET current_operation_id=:current_operation_id 
+			continue
+		}
+		go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Removing %s from operation", newUser.Username),
+			currentOperation.ID, "", database.MESSAGE_LEVEL_INFO, false)
+		// now that a user was removed from the op, see if they have any other's available and update
+		err = database.DB.Get(&newUser, `SELECT current_operation_id FROM operator WHERE id=$1`, newUser.ID)
+		if err != nil {
+			logging.LogError(err, "Failed to lookup operator username")
+		}
+		err = invalidateAPITokensCreatedByOperatorIDAndOperationID(newUser.ID, newUser.Username, currentOperation.ID)
+		if err != nil {
+			logging.LogError(err, "Failed to invalidate API tokens created by operator")
+		}
+		if int(newUser.CurrentOperationID.Int64) == currentOperation.ID {
+			newUser.CurrentOperationID.Valid = false
+			newUser.CurrentOperationID.Int64 = 0
+			_, err = database.DB.NamedExec(`UPDATE operator SET current_operation_id=:current_operation_id 
                 WHERE id=:id`, newUser)
-				if err != nil {
-					logging.LogError(err, "Failed to update operator's current operation")
-				}
+			if err != nil {
+				logging.LogError(err, "Failed to update operator's current operation")
 			}
 		}
-
 	}
 	// change view_mode to operator for specified users
 	for _, user := range input.Input.ViewModeOperators {
 		newUser := databaseStructs.Operator{ID: user}
-		if _, err := database.DB.Exec(`UPDATE operatoroperation SET
+		_, err = database.DB.Exec(`UPDATE operatoroperation SET
 				view_mode=$1 WHERE operator_id=$2 AND operation_id=$3 AND view_mode!=$4`,
 			database.OPERATOR_OPERATION_VIEW_MODE_OPERATOR, user, currentOperation.ID,
-			database.OPERATOR_OPERATION_VIEW_MODE_LEAD); err != nil {
+			database.OPERATOR_OPERATION_VIEW_MODE_LEAD)
+		if err != nil {
 			logging.LogError(err, "Failed to update view mode to operator")
-		} else if err := database.DB.Get(&newUser, `SELECT username FROM operator WHERE id=$1`, newUser.ID); err != nil {
-			logging.LogError(err, "Failed to lookup operator username")
-		} else {
-			go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Updated %s to operator", newUser.Username),
-				currentOperation.ID, "", database.MESSAGE_LEVEL_INFO, false)
+			continue
 		}
+		err = database.DB.Get(&newUser, `SELECT username FROM operator WHERE id=$1`, newUser.ID)
+		if err != nil {
+			logging.LogError(err, "Failed to lookup operator username")
+			continue
+		}
+		go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Updated %s to operator", newUser.Username),
+			currentOperation.ID, "", database.MESSAGE_LEVEL_INFO, false)
 	}
 	// change view_mode to spectator for specified users
 	for _, user := range input.Input.ViewModeSpectators {
 		newUser := databaseStructs.Operator{ID: user}
-		if _, err := database.DB.Exec(`UPDATE operatoroperation SET
+		_, err = database.DB.Exec(`UPDATE operatoroperation SET
 				view_mode=$1 WHERE operator_id=$2 AND operation_id=$3 AND view_mode!=$4`,
 			database.OPERATOR_OPERATION_VIEW_MODE_SPECTATOR, user, currentOperation.ID,
-			database.OPERATOR_OPERATION_VIEW_MODE_LEAD); err != nil {
+			database.OPERATOR_OPERATION_VIEW_MODE_LEAD)
+		if err != nil {
 			logging.LogError(err, "Failed to update view mode to spectator")
-		} else if err := database.DB.Get(&newUser, `SELECT username FROM operator WHERE id=$1`, newUser.ID); err != nil {
-			logging.LogError(err, "Failed to lookup operator username")
-		} else {
-			go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Updated %s to spectator", newUser.Username),
-				currentOperation.ID, "", database.MESSAGE_LEVEL_INFO, false)
+			continue
 		}
+
+		err = database.DB.Get(&newUser, `SELECT username FROM operator WHERE id=$1`, newUser.ID)
+		if err != nil {
+			logging.LogError(err, "Failed to lookup operator username")
+			continue
+		}
+		err = invalidateAPITokensCreatedByOperatorIDAndOperationID(newUser.ID, newUser.Username, currentOperation.ID)
+		if err != nil {
+			logging.LogError(err, "Failed to invalidate API tokens created by operator")
+		}
+		go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Updated %s to spectator", newUser.Username),
+			currentOperation.ID, "", database.MESSAGE_LEVEL_INFO, false)
 	}
 	// update disabled command profiles
 	for _, disabledProfile := range input.Input.DisabledCommandProfiles {
@@ -183,19 +209,26 @@ func UpdateOperatorOperationWebhook(c *gin.Context) {
 			newProfileID = &disabledProfile.DisabledCommandProfileID
 		}
 		newUser := databaseStructs.Operator{ID: disabledProfile.UserID}
-		if _, err := database.DB.Exec(`UPDATE operatoroperation SET base_disabled_commands_id=$1
-				WHERE operator_id=$2 AND operation_id=$3`, newProfileID, disabledProfile.UserID, currentOperation.ID); err != nil {
+		_, err = database.DB.Exec(`UPDATE operatoroperation SET base_disabled_commands_id=$1
+				WHERE operator_id=$2 AND operation_id=$3`, newProfileID, disabledProfile.UserID, currentOperation.ID)
+		if err != nil {
 			logging.LogError(err, "Failed to update disabled commands profile")
-		} else if err := database.DB.Get(&newUser, `SELECT username FROM operator WHERE id=$1`, newUser.ID); err != nil {
+			continue
+		}
+		err = database.DB.Get(&newUser, `SELECT username FROM operator WHERE id=$1`, newUser.ID)
+		if err != nil {
 			logging.LogError(err, "Failed to lookup operator username")
-		} else if disabledProfile.DisabledCommandProfileID > 0 {
+			continue
+		}
+		if disabledProfile.DisabledCommandProfileID > 0 {
 			var profileName string
-			if err := database.DB.Get(&profileName, `SELECT "name" FROM disabledcommandsprofile WHERE id=$1`, disabledProfile.DisabledCommandProfileID); err != nil {
+			err = database.DB.Get(&profileName, `SELECT "name" FROM disabledcommandsprofile WHERE id=$1`, disabledProfile.DisabledCommandProfileID)
+			if err != nil {
 				logging.LogError(err, "Failed to get disabled commands profile name")
-			} else {
-				go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Updated %s's disabled commands profile to '%s' ", newUser.Username, profileName),
-					currentOperation.ID, "", database.MESSAGE_LEVEL_INFO, false)
+				continue
 			}
+			go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Updated %s's disabled commands profile to '%s' ", newUser.Username, profileName),
+				currentOperation.ID, "", database.MESSAGE_LEVEL_INFO, false)
 		} else {
 			go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Removed %s's disabled commands profile ", newUser.Username),
 				currentOperation.ID, "", database.MESSAGE_LEVEL_INFO, false)

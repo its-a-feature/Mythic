@@ -1,6 +1,7 @@
 import React from 'react';
 import {gql, useLazyQuery, useMutation, useQuery, useSubscription} from '@apollo/client';
 import ReactMarkdown from 'react-markdown';
+import Split from 'react-split';
 import {alpha, useTheme} from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -31,6 +32,8 @@ import CampaignTwoToneIcon from '@mui/icons-material/CampaignTwoTone';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import ForumTwoToneIcon from '@mui/icons-material/ForumTwoTone';
+import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft';
+import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArrowRight';
 import LockIcon from '@mui/icons-material/Lock';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
@@ -49,9 +52,12 @@ import {snackActions} from "../../utilities/Snackbar";
 import {getSkewedNow} from "../../utilities/Time";
 import {isAllowedMarkdownLink, markdownPlugins} from "../../utilities/Markdown";
 import {EventStepUserInteractionDialog} from "../Eventing/EventStepRender";
+import {SettingsAPITokenDialog} from "../Settings/SettingsOperatorDialog";
 
 const CHAT_MESSAGE_LIMIT = 250;
 const CHAT_REQUEST_LIMIT = 50;
+const CHAT_SPLIT_STORAGE_KEY = "chatSplitSizes";
+const CHAT_SPLIT_DEFAULT_SIZES = [20, 80];
 
 const CHAT_CHANNEL_FIELDS = gql`
 fragment ChatChannelFields on chat_channel {
@@ -67,7 +73,18 @@ fragment ChatChannelFields on chat_channel {
     chat_container_id
     chat_model
     ai_metadata
+    apitokens_id
     updated_at
+    apitoken {
+      id
+      name
+      scopes
+      token_type
+      active
+      deleted
+      operator_id
+      created_by
+    }
     chat_container {
       id
       name
@@ -195,6 +212,14 @@ query ChatCurrentOperator($operator_id: Int!, $operation_id: Int!) {
     id
     view_mode
   }
+  operation_bot: operator(where: {account_type: {_eq: "bot"}, current_operation_id: {_eq: $operation_id}, active: {_eq: true}, deleted: {_eq: false}}, limit: 1, order_by: {id: asc}) {
+    id
+    username
+    account_type
+    current_operation_id
+    active
+    deleted
+  }
 }
 `;
 
@@ -235,8 +260,8 @@ subscription ChatRequestsStream($channel_id: Int!, $now: timestamp!) {
 `;
 
 const CREATE_CHANNEL = gql`
-mutation CreateChatChannel($name: String!, $description: String, $channel_type: String, $chat_container_id: Int, $chat_model: String, $locked: Boolean, $ai_metadata: jsonb) {
-  chatCreateChannel(name: $name, description: $description, channel_type: $channel_type, chat_container_id: $chat_container_id, chat_model: $chat_model, locked: $locked, ai_metadata: $ai_metadata) {
+mutation CreateChatChannel($name: String!, $description: String, $channel_type: String, $chat_container_id: Int, $chat_model: String, $locked: Boolean, $ai_metadata: jsonb, $apitokens_id: Int) {
+  chatCreateChannel(name: $name, description: $description, channel_type: $channel_type, chat_container_id: $chat_container_id, chat_model: $chat_model, locked: $locked, ai_metadata: $ai_metadata, apitokens_id: $apitokens_id) {
     status
     error
     id
@@ -246,11 +271,44 @@ mutation CreateChatChannel($name: String!, $description: String, $channel_type: 
 `;
 
 const UPDATE_CHANNEL = gql`
-mutation UpdateChatChannel($channel_id: Int!, $name: String, $description: String, $archived: Boolean, $locked: Boolean, $chat_model: String, $ai_metadata: jsonb) {
-  chatUpdateChannel(channel_id: $channel_id, name: $name, description: $description, archived: $archived, locked: $locked, chat_model: $chat_model, ai_metadata: $ai_metadata) {
+mutation UpdateChatChannel($channel_id: Int!, $name: String, $description: String, $archived: Boolean, $locked: Boolean, $chat_model: String, $ai_metadata: jsonb, $apitokens_id: Int) {
+  chatUpdateChannel(channel_id: $channel_id, name: $name, description: $description, archived: $archived, locked: $locked, chat_model: $chat_model, ai_metadata: $ai_metadata, apitokens_id: $apitokens_id) {
     status
     error
     channel_id
+  }
+}
+`;
+
+const CHAT_API_TOKENS_QUERY = gql`
+query ChatAPITokens($operator_ids: [Int!]!) {
+  apitokens(where: {operator_id: {_in: $operator_ids}, token_type: {_eq: "api"}, deleted: {_eq: false}, active: {_eq: true}}, order_by: [{operator_id: asc}, {id: desc}]) {
+    id
+    name
+    scopes
+    token_type
+    active
+    deleted
+    operator_id
+    created_by
+    creation_time
+  }
+}
+`;
+
+const CREATE_API_TOKEN = gql`
+mutation CreateChatAPIToken($operator_id: Int, $name: String, $scopes: [String!]) {
+  createAPIToken(operator_id: $operator_id, name: $name, scopes: $scopes) {
+    id
+    token_value
+    scopes
+    token_type
+    status
+    error
+    operator_id
+    name
+    created_by
+    creation_time
   }
 }
 `;
@@ -352,6 +410,14 @@ query ChatSearch($query: String!, $channel_id: Int, $limit: Int, $offset: Int) {
 `;
 
 const isGeneralChatChannel = (channel) => channel?.channel_type === "standard" && channel?.slug === "general";
+
+const getStoredChatSplitSizes = () => {
+    try {
+        return JSON.parse(localStorage.getItem(CHAT_SPLIT_STORAGE_KEY));
+    } catch(error) {
+        return CHAT_SPLIT_DEFAULT_SIZES;
+    }
+};
 
 const CHAT_SEARCH_SNIPPET_LENGTH = 260;
 const CHAT_SEARCH_SNIPPET_CONTEXT = 90;
@@ -551,7 +617,7 @@ const MarkdownHeading = ({level, children}) => (
     </Typography>
 );
 
-const markdownComponents = {
+export const markdownComponents = {
     p: ({children}) => <Typography component="p" className="mythic-chat-paragraph">{children}</Typography>,
     h1: ({children}) => <MarkdownHeading level={1}>{children}</MarkdownHeading>,
     h2: ({children}) => <MarkdownHeading level={2}>{children}</MarkdownHeading>,
@@ -892,6 +958,34 @@ const configHasMissingRequiredValues = (values, options) => options.some((option
     option.required && `${values[option.name] ?? ""}`.trim() === ""
 ));
 
+const AI_CHAT_REQUIRED_TOKEN_SCOPES = ["apitoken.write", "chat-ai.write"];
+
+const tokenHasScope = (token, scope) => {
+    const scopes = token?.scopes || [];
+    if(scopes.includes("*") || scopes.includes(scope)){
+        return true;
+    }
+    const resource = scope.split(".")[0];
+    return scopes.includes(`${resource}.*`);
+};
+
+const tokenMeetsAIChatRequirements = (token) => AI_CHAT_REQUIRED_TOKEN_SCOPES.every((scope) => tokenHasScope(token, scope));
+
+const formatTokenLabel = (token) => {
+    if(!token){
+        return "";
+    }
+    const status = token.active && !token.deleted ? "" : " inactive";
+    return `${token.name || `Token ${token.id}`} (#${token.id})${status}`;
+};
+
+const tokenOwnerLabel = (owner) => {
+    if(!owner){
+        return "";
+    }
+    return owner.accountType === "bot" ? `Operation bot (${owner.username})` : `Current user (${owner.username})`;
+};
+
 const applyConfigToMetadata = (metadata, config) => ({
     ...parseJSONLikeObject(metadata),
     config,
@@ -949,6 +1043,192 @@ const ChatConfigurationFields = ({options, values, setValues}) => {
                     />
                 );
             })}
+        </Box>
+    );
+};
+
+const ChatAPITokenSelector = ({value, setValue, currentToken, currentUser, operationBot}) => {
+    const [openCreateToken, setOpenCreateToken] = React.useState(false);
+    const [localTokens, setLocalTokens] = React.useState([]);
+    const ownerOptions = React.useMemo(() => {
+        const owners = [];
+        if(currentUser?.id){
+            owners.push({
+                id: currentUser.id,
+                username: currentUser.username || `Operator ${currentUser.id}`,
+                accountType: "user",
+            });
+        }
+        if(operationBot?.id && !owners.some((owner) => owner.id === operationBot.id)){
+            owners.push({
+                id: operationBot.id,
+                username: operationBot.username || `Operator ${operationBot.id}`,
+                accountType: "bot",
+            });
+        }
+        return owners;
+    }, [currentUser?.id, currentUser?.username, operationBot?.id, operationBot?.username]);
+    const ownerIDs = React.useMemo(() => ownerOptions.map((owner) => owner.id), [ownerOptions]);
+    const ownerIDKey = React.useMemo(() => ownerIDs.join(","), [ownerIDs]);
+    const [tokenOwnerID, setTokenOwnerID] = React.useState("");
+    const {data, loading} = useQuery(CHAT_API_TOKENS_QUERY, {
+        variables: {operator_ids: ownerIDs.length > 0 ? ownerIDs : [0]},
+        skip: ownerIDs.length === 0,
+        fetchPolicy: "no-cache",
+    });
+    React.useEffect(() => {
+        setLocalTokens([]);
+    }, [ownerIDKey]);
+    React.useEffect(() => {
+        if(data?.apitokens){
+            setLocalTokens(data.apitokens);
+        }
+    }, [data]);
+    React.useEffect(() => {
+        if(currentToken?.operator_id && ownerOptions.some((owner) => owner.id === currentToken.operator_id)){
+            setTokenOwnerID(currentToken.operator_id);
+            return;
+        }
+        setTokenOwnerID((previousOwnerID) => (
+            ownerOptions.length > 0 && !ownerOptions.some((owner) => `${owner.id}` === `${previousOwnerID}`) ?
+                ownerOptions[0].id :
+                previousOwnerID
+        ));
+    }, [currentToken?.id, currentToken?.operator_id, ownerOptions]);
+    const selectedOwner = ownerOptions.find((owner) => `${owner.id}` === `${tokenOwnerID}`) || null;
+    const tokens = React.useMemo(() => {
+        const combined = localTokens.filter((token) => `${token.operator_id}` === `${tokenOwnerID}`);
+        if(currentToken?.id && `${currentToken.operator_id}` === `${tokenOwnerID}` && !combined.some((token) => token.id === currentToken.id)){
+            combined.unshift(currentToken);
+        }
+        if(value && !combined.some((token) => `${token.id}` === `${value}`)){
+            combined.unshift({id: value, name: `Token ${value}`, scopes: [], active: true, deleted: false, operator_id: tokenOwnerID});
+        }
+        return combined;
+    }, [localTokens, currentToken, value, tokenOwnerID]);
+    const selectedToken = tokens.find((token) => `${token.id}` === `${value}`) || null;
+    const createTokenInitialScopes = React.useMemo(() => selectedToken?.scopes || [], [selectedToken]);
+    const [createAPIToken] = useMutation(CREATE_API_TOKEN, {
+        onCompleted: (result) => {
+            if(result.createAPIToken.status === "success"){
+                const {token_value, ...createdToken} = result.createAPIToken;
+                setLocalTokens((prev) => [{...createdToken, active: true, deleted: false}, ...prev]);
+                setTokenOwnerID(createdToken.operator_id);
+                setValue(createdToken.id);
+                snackActions.success("Created and selected API token");
+                setOpenCreateToken(false);
+            }else{
+                snackActions.error(result.createAPIToken.error);
+            }
+        },
+        onError: (error) => snackActions.error(error.message),
+    });
+    const createToken = (name, scopes) => {
+        createAPIToken({variables: {operator_id: selectedOwner?.id, name, scopes}});
+    };
+    const changeTokenOwner = (event) => {
+        setTokenOwnerID(Number(event.target.value));
+        setValue("");
+    };
+    const tokenSelectorDisabled = !selectedOwner;
+    return (
+        <Box sx={{display: "flex", flexDirection: "column", gap: 1}}>
+            <Box sx={{border: `1px solid ${alpha("#ffffff", 0.12)}`, borderRadius: 1, p: 1.25}}>
+                <Typography variant="subtitle2">AI Chat API Token</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{display: "block", mt: 0.5}}>
+                    AI chat can use a token for your operator account or the operation bot{operationBot?.username ? ` (${operationBot.username})` : ""}. The token must include apitoken.write to generate scoped Mythic API tokens and chat-ai.write to stream responses back to this channel.
+                </Typography>
+                <Box sx={{display: "flex", gap: 0.75, flexWrap: "wrap", mt: 1}}>
+                    {AI_CHAT_REQUIRED_TOKEN_SCOPES.map((scope) => (
+                        <Chip key={scope} size="small" label={scope} color={selectedToken && tokenHasScope(selectedToken, scope) ? "success" : "warning"} />
+                    ))}
+                </Box>
+            </Box>
+            <Box sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(160px, 0.55fr) minmax(220px, 1fr) auto"}, gap: 1, alignItems: "stretch"}}>
+                <FormControl size="small" fullWidth required>
+                    <InputLabel>Owner</InputLabel>
+                    <Select
+                        label="Owner"
+                        value={tokenOwnerID ? `${tokenOwnerID}` : ""}
+                        disabled={ownerOptions.length === 0}
+                        onChange={changeTokenOwner}
+                    >
+                        {ownerOptions.length === 0 &&
+                            <MenuItem value="" disabled>No token owners available</MenuItem>
+                        }
+                        {ownerOptions.map((owner) => (
+                            <MenuItem value={`${owner.id}`} key={`chat-token-owner-${owner.id}`}>
+                                {tokenOwnerLabel(owner)}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
+                <FormControl size="small" fullWidth required>
+                    <InputLabel>API Token</InputLabel>
+                    <Select
+                        label="API Token"
+                        value={value ? `${value}` : ""}
+                        disabled={tokenSelectorDisabled}
+                        onChange={(event) => setValue(Number(event.target.value))}
+                    >
+                        {!selectedOwner &&
+                            <MenuItem value="" disabled>Select a token owner first</MenuItem>
+                        }
+                        {tokens.length === 0 &&
+                            <MenuItem value="" disabled>{loading ? "Loading API tokens..." : "No active API tokens available"}</MenuItem>
+                        }
+                        {tokens.map((token) => (
+                            <MenuItem value={`${token.id}`} key={`chat-token-${token.id}`}>
+                                <Box sx={{display: "flex", flexDirection: "column", py: 0.25}}>
+                                    <Typography variant="body2">{formatTokenLabel(token)}</Typography>
+                                    <Typography variant="caption" color={tokenMeetsAIChatRequirements(token) ? "text.secondary" : "warning.main"} sx={{whiteSpace: "normal"}}>
+                                        {(token.scopes || []).join(", ") || "No scopes"}
+                                    </Typography>
+                                </Box>
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
+                <Button
+                    variant="outlined"
+                    size="small"
+                    disabled={tokenSelectorDisabled}
+                    onClick={() => setOpenCreateToken(true)}
+                    sx={{height: 40, whiteSpace: "nowrap", px: 2}}
+                >
+                    Create
+                </Button>
+            </Box>
+            {selectedToken &&
+                <Box sx={{display: "flex", flexWrap: "wrap", gap: 0.5}}>
+                    {selectedOwner &&
+                        <Chip size="small" variant="outlined" label={tokenOwnerLabel(selectedOwner)} />
+                    }
+                    {(selectedToken.scopes || []).map((scope) => <Chip size="small" key={`${selectedToken.id}-${scope}`} label={scope} />)}
+                </Box>
+            }
+            {openCreateToken &&
+                <MythicDialog
+                    open={openCreateToken}
+                    fullWidth={true}
+                    maxWidth="md"
+                    onClose={() => setOpenCreateToken(false)}
+                    innerDialog={
+                        <SettingsAPITokenDialog
+                            title={`New AI Chat API Token${selectedOwner ? ` for ${selectedOwner.username}` : ""}`}
+                            name={`${selectedOwner?.accountType === "bot" ? "Operation bot" : "Operator"} AI chat token`}
+                            initialScopes={createTokenInitialScopes}
+                            requiredScopes={AI_CHAT_REQUIRED_TOKEN_SCOPES}
+                            requiredScopeDescriptions={{
+                                "apitoken.write": "Required so the chat container can request scoped Mythic API tokens for tools.",
+                                "chat-ai.write": "Required so the chat container can stream AI responses back into this channel.",
+                            }}
+                            onAccept={createToken}
+                            handleClose={() => setOpenCreateToken(false)}
+                        />
+                    }
+                />
+            }
         </Box>
     );
 };
@@ -1108,7 +1388,7 @@ const MessageBubble = ({message, request, me, onEdit, onDelete, onCancel, onRetr
     );
 };
 
-const ChatCreateDialog = ({open, onClose, onCreate, chatContainers}) => {
+const ChatCreateDialog = ({open, onClose, onCreate, chatContainers, currentUser, operationBot}) => {
     const theme = useTheme();
     const [name, setName] = React.useState("");
     const [description, setDescription] = React.useState("");
@@ -1117,6 +1397,7 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers}) => {
     const [model, setModel] = React.useState("");
     const [configValues, setConfigValues] = React.useState({});
     const [locked, setLocked] = React.useState(true);
+    const [apiTokenID, setAPITokenID] = React.useState("");
     React.useEffect(() => {
         if(open){
             setName("");
@@ -1126,6 +1407,7 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers}) => {
             setModel("");
             setConfigValues({});
             setLocked(true);
+            setAPITokenID("");
         }
     }, [open]);
     const selectedContainer = React.useMemo(() => (
@@ -1164,6 +1446,7 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers}) => {
             setContainerID("");
             setModel("");
             setConfigValues({});
+            setAPITokenID("");
         }
     };
     const changeContainer = (event) => {
@@ -1175,7 +1458,7 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers}) => {
         setConfigValues({});
     };
     const createDisabled = name.trim() === "" ||
-        (channelType === "ai" && (!containerID || selectedContainerModels.length === 0 || model === "" || configHasMissingRequiredValues(configValues, configOptions)));
+        (channelType === "ai" && (!containerID || selectedContainerModels.length === 0 || model === "" || !apiTokenID || configHasMissingRequiredValues(configValues, configOptions)));
     const submit = () => {
         const aiConfig = channelType === "ai" ? normalizeConfigForSubmit(configValues, configOptions) : {};
         onCreate({
@@ -1186,6 +1469,7 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers}) => {
             chat_model: channelType === "ai" ? model : "",
             locked: channelType === "ai" ? locked : false,
             ai_metadata: channelType === "ai" ? applyConfigToMetadata({}, aiConfig) : {},
+            apitokens_id: channelType === "ai" ? Number(apiTokenID) : null,
         });
     };
     return (
@@ -1254,6 +1538,12 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers}) => {
                         {configOptions.length > 0 &&
                             <ChatConfigurationFields options={configOptions} values={configValues} setValues={setConfigValues} />
                         }
+                        <ChatAPITokenSelector
+                            value={apiTokenID}
+                            setValue={setAPITokenID}
+                            currentUser={currentUser}
+                            operationBot={operationBot}
+                        />
                         <Box sx={{border: `1px solid ${alpha(theme.palette.info.main, 0.22)}`, borderRadius: 1, p: 1.25, backgroundColor: alpha(theme.palette.info.main, theme.palette.mode === "dark" ? 0.12 : 0.07)}}>
                             <FormControlLabel
                                 control={<Switch checked={locked} onChange={(e) => setLocked(e.target.checked)} />}
@@ -1331,11 +1621,12 @@ const ChatSearchDialog = ({open, onClose, onSearch, searchText, setSearchText, s
     );
 };
 
-const ChatEditChannelDialog = ({open, channel, onClose, onSave, chatContainers = []}) => {
+const ChatEditChannelDialog = ({open, channel, onClose, onSave, chatContainers = [], currentUser, operationBot}) => {
     const [name, setName] = React.useState("");
     const [description, setDescription] = React.useState("");
     const [chatModel, setChatModel] = React.useState("");
     const [configValues, setConfigValues] = React.useState({});
+    const [apiTokenID, setAPITokenID] = React.useState("");
     const isGeneralChannel = isGeneralChatChannel(channel);
     const isAIChannel = channel?.channel_type === "ai";
     const containerModels = React.useMemo(() => {
@@ -1354,6 +1645,7 @@ const ChatEditChannelDialog = ({open, channel, onClose, onSave, chatContainers =
             setName(channel.name || "");
             setDescription(channel.description || "");
             setChatModel(channel.chat_model || "");
+            setAPITokenID(channel.apitokens_id || "");
             const initialModel = modelForChannel(channel, chatContainers);
             setConfigValues(buildDefaultConfigValues(getModelConfigOptions(initialModel), getChannelAIConfig(channel)));
         }
@@ -1382,11 +1674,12 @@ const ChatEditChannelDialog = ({open, channel, onClose, onSave, chatContainers =
                 getChannelAIMetadata(channel),
                 normalizeConfigForSubmit(configValues, configOptions),
             );
+            update.apitokens_id = Number(apiTokenID);
         }
         onSave(update);
     };
     const saveDisabled = (!isGeneralChannel && name.trim() === "") ||
-        (isAIChannel && configHasMissingRequiredValues(configValues, configOptions));
+        (isAIChannel && (!apiTokenID || configHasMissingRequiredValues(configValues, configOptions)));
     return (
         <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
             <DialogTitle>{isAIChannel ? "Edit AI Chat" : "Edit Channel"}</DialogTitle>
@@ -1438,6 +1731,13 @@ const ChatEditChannelDialog = ({open, channel, onClose, onSave, chatContainers =
                             </Select>
                         </FormControl>
                         <ChatConfigurationFields options={configOptions} values={configValues} setValues={setConfigValues} />
+                        <ChatAPITokenSelector
+                            value={apiTokenID}
+                            setValue={setAPITokenID}
+                            currentToken={channel?.apitoken}
+                            currentUser={currentUser}
+                            operationBot={operationBot}
+                        />
                     </>
                 }
             </DialogContent>
@@ -1529,6 +1829,7 @@ export function Chat({me}) {
     const [editText, setEditText] = React.useState("");
     const [reviewMessage, setReviewMessage] = React.useState(null);
     const [refreshingSpecialMessageID, setRefreshingSpecialMessageID] = React.useState(null);
+    const [chatSplitSizes, setChatSplitSizes] = React.useState(getStoredChatSplitSizes);
     const messagesContainerRef = React.useRef(null);
     const messagesEndRef = React.useRef(null);
     const messagesNearBottomRef = React.useRef(true);
@@ -1540,6 +1841,10 @@ export function Chat({me}) {
         lastMessageStatus: null,
         lastMessageLength: 0,
     });
+    const readStateRef = React.useRef({});
+    const submittedReadStateRef = React.useRef({});
+    const pendingReadStateRef = React.useRef({});
+    const markReadTimersRef = React.useRef({});
     const streamStart = React.useRef(getSkewedNow().toISOString());
     const [baseChannels, setBaseChannels] = React.useState([]);
     const [allChatContainers, setAllChatContainers] = React.useState([]);
@@ -1549,6 +1854,7 @@ export function Chat({me}) {
     const selectedChannelIDRef = React.useRef(selectedChannelID);
     const selectedChannelStreamStart = React.useMemo(() => getSkewedNow().toISOString(), [selectedChannelID]);
     selectedChannelIDRef.current = selectedChannelID;
+    readStateRef.current = readState;
 
     const {data: channelData} = useQuery(CHAT_CHANNELS_QUERY, {fetchPolicy: "no-cache"});
     const {data: readStateData} = useQuery(CHAT_READ_STATE_QUERY, {fetchPolicy: "no-cache"});
@@ -1635,10 +1941,19 @@ export function Chat({me}) {
     const generalChannel = React.useMemo(() => {
         return channels.find((channel) => isGeneralChatChannel(channel)) || null;
     }, [channels]);
+    const currentUser = React.useMemo(() => ({
+        id: currentOperatorData?.operator_by_pk?.id || currentMe?.user?.user_id || 0,
+        username: currentOperatorData?.operator_by_pk?.username || currentMe?.user?.username || "Current user",
+    }), [currentOperatorData?.operator_by_pk?.id, currentOperatorData?.operator_by_pk?.username, currentMe?.user?.user_id, currentMe?.user?.username]);
     const currentOperatorViewMode = currentOperatorData?.operatoroperation?.[0]?.view_mode || currentMe?.user?.view_mode || "";
+    const operationBot = currentOperatorData?.operation_bot?.[0] || null;
     const isMythicAdmin = Boolean(currentMe?.user?.admin || currentOperatorData?.operator_by_pk?.admin);
     const canCreateSystemMessage = isMythicAdmin || currentOperatorViewMode === "lead";
     const selectedChannelIsGeneral = isGeneralChatChannel(selectedChannel);
+    const updateChatSplitSizes = React.useCallback((sizes) => {
+        setChatSplitSizes(sizes);
+        localStorage.setItem(CHAT_SPLIT_STORAGE_KEY, JSON.stringify(sizes));
+    }, []);
 
     React.useEffect(() => {
         if(!selectedChannelID && channels.length > 0){
@@ -1772,6 +2087,57 @@ export function Chat({me}) {
         onError: (error) => snackActions.error(error.message),
     });
     const [markRead] = useMutation(MARK_READ);
+    const queueMarkRead = React.useCallback((channelID, messageID) => {
+        if(!channelID || !messageID){
+            return;
+        }
+        const currentReadID = readStateRef.current[channelID] || 0;
+        const submittedReadID = submittedReadStateRef.current[channelID] || 0;
+        const pendingReadID = pendingReadStateRef.current[channelID] || 0;
+        if(messageID <= Math.max(currentReadID, submittedReadID, pendingReadID)){
+            return;
+        }
+        pendingReadStateRef.current[channelID] = messageID;
+        if(markReadTimersRef.current[channelID]){
+            clearTimeout(markReadTimersRef.current[channelID]);
+        }
+        markReadTimersRef.current[channelID] = setTimeout(() => {
+            const lastReadMessageID = pendingReadStateRef.current[channelID] || 0;
+            delete pendingReadStateRef.current[channelID];
+            delete markReadTimersRef.current[channelID];
+            const latestKnownReadID = Math.max(
+                readStateRef.current[channelID] || 0,
+                submittedReadStateRef.current[channelID] || 0
+            );
+            if(lastReadMessageID <= latestKnownReadID){
+                return;
+            }
+            submittedReadStateRef.current[channelID] = lastReadMessageID;
+            markRead({variables: {channel_id: channelID, last_read_message_id: lastReadMessageID}}).catch(() => {
+                if((submittedReadStateRef.current[channelID] || 0) <= lastReadMessageID){
+                    submittedReadStateRef.current[channelID] = readStateRef.current[channelID] || 0;
+                }
+            });
+        }, 750);
+    }, [markRead]);
+    React.useEffect(() => {
+        Object.entries(readState).forEach(([channelID, lastReadMessageID]) => {
+            submittedReadStateRef.current[channelID] = Math.max(submittedReadStateRef.current[channelID] || 0, lastReadMessageID || 0);
+            if((pendingReadStateRef.current[channelID] || 0) <= (lastReadMessageID || 0)){
+                delete pendingReadStateRef.current[channelID];
+                if(markReadTimersRef.current[channelID]){
+                    clearTimeout(markReadTimersRef.current[channelID]);
+                    delete markReadTimersRef.current[channelID];
+                }
+            }
+        });
+    }, [readState]);
+    React.useEffect(() => {
+        return () => {
+            Object.values(markReadTimersRef.current).forEach((timer) => clearTimeout(timer));
+            markReadTimersRef.current = {};
+        };
+    }, []);
     const [refreshSpecialMessage] = useMutation(REFRESH_SPECIAL_MESSAGE, {
         onCompleted: (data) => {
             if(data.chatRefreshSpecialMessage.status !== "success"){
@@ -1838,9 +2204,9 @@ export function Chat({me}) {
         }
 
         if(selectedChannelID && lastMessageMatchesChannel){
-            markRead({variables: {channel_id: selectedChannelID, last_read_message_id: lastMessage.id}}).catch(() => {});
+            queueMarkRead(selectedChannelID, lastMessage.id);
         }
-    }, [messages, selectedChannelID, markRead]);
+    }, [messages, selectedChannelID, queueMarkRead]);
 
     const standardChannels = channels.filter((channel) => channel.channel_type === "standard" && (showArchived || !channel.archived));
     const aiChannels = channels.filter((channel) => channel.channel_type === "ai" && (showArchived || !channel.archived));
@@ -1983,11 +2349,16 @@ export function Chat({me}) {
                     </Box>
                 }
             />
-            <Box
-                className="mythic-chat-layout"
-                sx={{
+            <Split
+                className={`mythic-chat-layout`}
+                direction="horizontal"
+                sizes={chatSplitSizes}
+                minSize={[0, 0]}
+                onDragEnd={updateChatSplitSizes}
+                style={{
                     backgroundColor: "transparent",
                     boxShadow: "none",
+                    width: "100%",
                 }}
             >
                 <Box className="mythic-chat-sidebar">
@@ -2175,12 +2546,14 @@ export function Chat({me}) {
                         </IconButton>
                     </Box>
                 </Box>
-            </Box>
+            </Split>
             <ChatCreateDialog
                 open={createOpen}
                 onClose={() => setCreateOpen(false)}
                 onCreate={onCreateChannel}
                 chatContainers={chatContainers}
+                currentUser={currentUser}
+                operationBot={operationBot}
             />
             <ChatEditChannelDialog
                 open={editChannelOpen}
@@ -2188,6 +2561,8 @@ export function Chat({me}) {
                 chatContainers={chatContainers}
                 onClose={() => setEditChannelOpen(false)}
                 onSave={saveChannelDetails}
+                currentUser={currentUser}
+                operationBot={operationBot}
             />
             <ChatSystemMessageDialog
                 open={systemMessageOpen}

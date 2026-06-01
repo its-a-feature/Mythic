@@ -37,6 +37,26 @@ query apiTokenScopeDefinitionsQuery {
 }
 `;
 
+const normalizeAPITokenScopeSelection = (scopes) => {
+    const uniqueScopes = Array.from(new Set(scopes.filter((scope) => Boolean(scope)))).sort();
+    if(uniqueScopes.includes("*")){
+        return ["*"];
+    }
+    return uniqueScopes.reduce((prev, scope) => {
+        const resource = scope.endsWith(".*") ? scope.slice(0, -2) : scope.split(".")[0];
+        if(scope.endsWith(".*")){
+            return [
+                ...prev.filter((selectedScope) => !selectedScope.startsWith(`${resource}.`)),
+                scope,
+            ].sort();
+        }
+        if(prev.includes(`${resource}.*`)){
+            return prev;
+        }
+        return [...prev, scope].sort();
+    }, []);
+};
+
 
 export function SettingsOperatorDialog(props) {
     const [username, setUsername] = React.useState(props.username ? props.username : "");
@@ -208,7 +228,13 @@ export function SettingsBotDialog(props) {
 }
 export function SettingsAPITokenDialog(props) {
     const [name, setName] = React.useState(props.name ? props.name : "");
-    const [selectedScopes, setSelectedScopes] = React.useState([]);
+    const requiredScopes = React.useMemo(() => props.requiredScopes || [], [props.requiredScopes]);
+    const requiredScopeDescriptions = props.requiredScopeDescriptions || {};
+    const initialScopes = React.useMemo(() => props.initialScopes || [], [props.initialScopes]);
+    const initialSelectedScopes = React.useMemo(() => (
+        normalizeAPITokenScopeSelection([...initialScopes, ...requiredScopes])
+    ), [initialScopes, requiredScopes]);
+    const [selectedScopes, setSelectedScopes] = React.useState(initialSelectedScopes);
     const [filter, setFilter] = React.useState("");
     const {data: scopeData, loading: scopeLoading, error: scopeQueryError} = useQuery(apiTokenScopeDefinitionsQuery, {
         fetchPolicy: "no-cache",
@@ -254,6 +280,11 @@ export function SettingsAPITokenDialog(props) {
     const scopesUnavailable = scopeLoading || scopeLoadFailed;
     const selectedScopesLabel = selectedScopes.includes("*") ? "Full access selected" : `${selectedScopes.length} selected`;
     const fullAccessDisabled = !grantableWildcards.includes("*");
+    React.useEffect(() => {
+        if(initialSelectedScopes.length > 0){
+            setSelectedScopes((prev) => Array.from(new Set([...initialSelectedScopes, ...prev])).sort());
+        }
+    }, [initialSelectedScopes]);
 
     const onUsernameChange = (name, value, error) => {
         setName(value);
@@ -344,6 +375,18 @@ export function SettingsAPITokenDialog(props) {
                         </>
                     }
                 >
+                {requiredScopes.length > 0 &&
+                    <Box className="mythic-api-token-scope-card mythic-api-token-scope-card-selected" sx={{mb: 1.25}}>
+                        <Box className="mythic-api-token-scope-card-copy">
+                            <Typography className="mythic-api-token-scope-card-title">Needed for this use</Typography>
+                            {requiredScopes.map((scope) => (
+                                <Typography key={`required-${scope}`} variant="caption" color="text.secondary" sx={{display: "block"}}>
+                                    {scope}: {requiredScopeDescriptions[scope] || "Required for this workflow."}
+                                </Typography>
+                            ))}
+                        </Box>
+                    </Box>
+                }
                 <TextField
                     className="mythic-api-token-scope-search"
                     size="small"

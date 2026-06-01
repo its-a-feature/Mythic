@@ -174,11 +174,8 @@ func setRoutes(r *gin.Engine) {
 			//protected.GET("/graphql/webhook", webcontroller.GetHasuraClaims)
 			protected.POST("/graphql/webhook", webcontroller.GetHasuraClaims)
 			// user
-			protected.POST("/me_webhook",
-				authentication.TokenScopeMiddleware([]string{
-					mythicjwt.SCOPE_OPERATOR_READ,
-				}),
-				webcontroller.GetMeWebhook) // controller.login
+			protected.POST("/whoami_webhook",
+				webcontroller.GetWhoamiWebhook) // controller.login
 			protected.POST("/generate_apitoken_webhook",
 				authentication.TokenScopeMiddleware([]string{
 					mythicjwt.SCOPE_APITOKEN_WRITE,

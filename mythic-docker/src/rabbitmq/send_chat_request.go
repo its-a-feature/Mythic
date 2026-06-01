@@ -18,6 +18,7 @@ type ChatContainerRequestMessage struct {
 	ContainerName     string                        `json:"container_name" mapstructure:"container_name"`
 	OperationID       int                           `json:"operation_id" mapstructure:"operation_id"`
 	ChannelID         int                           `json:"channel_id" mapstructure:"channel_id"`
+	APITokenID        int                           `json:"apitokens_id" mapstructure:"apitokens_id"`
 	ChannelName       string                        `json:"channel_name" mapstructure:"channel_name"`
 	ChannelSlug       string                        `json:"channel_slug" mapstructure:"channel_slug"`
 	RequestID         int                           `json:"request_id" mapstructure:"request_id"`
@@ -37,14 +38,15 @@ func (r *rabbitMQConnection) SendChatContainerRequest(containerName string, chat
 		logging.LogError(err, "Failed to generate auth context for chat request")
 		return err
 	}
-	if err = r.SendStructMessage(
+	err = r.SendStructMessage(
 		MYTHIC_EXCHANGE,
 		GetChatContainerRequestRoutingKey(containerName),
 		"",
 		chatMessage,
 		false,
 		headers,
-	); err != nil {
+	)
+	if err != nil {
 		logging.LogError(err, "Failed to send chat request", "container", containerName, "request_id", chatMessage.RequestID)
 		return err
 	}
