@@ -128,6 +128,7 @@ const (
 	PT_TASK_PROCESS_RESPONSE = "pt_task_process_response"
 	PT_COMMAND_HELP_FUNCTION = "pt_command_help_function"
 	CHAT_REQUEST             = "chat_request"
+	CHAT_CANCEL              = "chat_cancel"
 )
 
 // Routes where container is consuming messages and responding back to Mythic

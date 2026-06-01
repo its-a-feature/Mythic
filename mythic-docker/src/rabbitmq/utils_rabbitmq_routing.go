@@ -62,6 +62,9 @@ func GetPtCommandHelpRoutingKey(container string) string {
 func GetChatContainerRequestRoutingKey(container string) string {
 	return fmt.Sprintf("%s_%s", container, CHAT_REQUEST)
 }
+func GetChatContainerCancelRoutingKey(container string) string {
+	return fmt.Sprintf("%s_%s", container, CHAT_CANCEL)
+}
 
 // c2 rpc routing key functions
 func GetC2RPCOpsecChecksRoutingKey(container string) string {

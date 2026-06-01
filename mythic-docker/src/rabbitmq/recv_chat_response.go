@@ -290,7 +290,7 @@ func setChatResponseStatus(request chatResponseRequest, status string, responseE
 	_, err := database.DB.Exec(`UPDATE chat_message
 		SET status=$3,
 			metadata = metadata || $4::jsonb
-		WHERE id=$1 AND operation_id=$2 AND deleted=false`, request.ResponseMessageID, request.OperationID, status, metadataJSON.String())
+		WHERE id=$1 AND operation_id=$2 AND deleted=false AND status <> 'cancelled'`, request.ResponseMessageID, request.OperationID, status, metadataJSON.String())
 	if err != nil {
 		return err
 	}
