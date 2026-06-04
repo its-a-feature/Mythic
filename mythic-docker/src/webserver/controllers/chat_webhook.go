@@ -20,11 +20,22 @@ import (
 )
 
 const (
-	chatContextMessageLimit = 40
-	chatGeneralChannelName  = "general"
+	chatContextMessageLimit                = 40
+	chatGeneralChannelName                 = "general"
+	chatSpecialTypeMCPToolConfirmation     = "mcp_tool_confirmation"
+	chatMCPToolConfirmationStatusPending   = "pending"
+	chatMCPToolConfirmationStatusConfirmed = "confirmed"
+	chatMCPToolConfirmationStatusRejected  = "rejected"
+	chatMCPToolConfirmationStatusResponded = "responded"
 )
 
 var chatSlugInvalidCharacters = regexp.MustCompile(`[^a-z0-9]+`)
+
+type aiChatRequestOptions struct {
+	RetryOfID              *int
+	RequestMessageMetadata map[string]interface{}
+	ConfirmedToolCall      map[string]interface{}
+}
 
 type ChatActionResponse struct {
 	Status            string             `json:"status"`
@@ -233,6 +244,10 @@ func CreateChatMessageWebhook(c *gin.Context) {
 }
 
 func createAIChatMessage(c *gin.Context, operatorOperation *databaseStructs.Operatoroperation, channel databaseStructs.ChatChannel, message string, retryOfID *int) {
+	createAIChatMessageWithOptions(c, operatorOperation, channel, message, aiChatRequestOptions{RetryOfID: retryOfID})
+}
+
+func createAIChatMessageWithOptions(c *gin.Context, operatorOperation *databaseStructs.Operatoroperation, channel databaseStructs.ChatChannel, message string, options aiChatRequestOptions) {
 	container, err := getChatContainer(int(channel.ChatContainerID.Int64))
 	if err != nil {
 		logging.LogError(err, "Failed to find AI chat container")
@@ -259,7 +274,7 @@ func createAIChatMessage(c *gin.Context, operatorOperation *databaseStructs.Oper
 		return
 	}
 	operatorAuthContext := authentication.RabbitMQAuthContextFromGin(c)
-	requestMessageID, err := insertOperatorChatMessage(operatorOperation, channel, message, operatorAuthContext)
+	requestMessageID, err := insertOperatorChatMessageWithMetadata(operatorOperation, channel, message, operatorAuthContext, options.RequestMessageMetadata)
 	if err != nil {
 		logging.LogError(err, "Failed to create AI prompt message")
 		chatRespondError(c, err.Error())
@@ -281,8 +296,8 @@ func createAIChatMessage(c *gin.Context, operatorOperation *databaseStructs.Oper
 		return
 	}
 	var retryOf interface{}
-	if retryOfID != nil {
-		retryOf = *retryOfID
+	if options.RetryOfID != nil {
+		retryOf = *options.RetryOfID
 	}
 	var requestID int
 	if err = database.DB.Get(&requestID, `INSERT INTO chat_request
@@ -315,6 +330,7 @@ func createAIChatMessage(c *gin.Context, operatorOperation *databaseStructs.Oper
 		responseMessageID,
 		message,
 		retryOf,
+		options.ConfirmedToolCall,
 		chatAuthContext,
 	)
 
@@ -338,6 +354,7 @@ func dispatchAIChatRequest(
 	responseMessageID int,
 	prompt string,
 	retryOf interface{},
+	confirmedToolCall map[string]interface{},
 	chatAuthContext rabbitmq.RabbitMQAuthContext,
 ) {
 	contextMessages, err := getChatContextMessages(operationID, channel.ID, requestMessageID)
@@ -356,6 +373,7 @@ func dispatchAIChatRequest(
 		"request_message_id":    requestMessageID,
 		"response_message_id":   responseMessageID,
 		"retry_of_id":           retryOf,
+		"confirmed_tool_call":   confirmedToolCall,
 		"context_message_limit": chatContextMessageLimit,
 		"config":                chatConfig,
 	})
@@ -377,6 +395,7 @@ func dispatchAIChatRequest(
 		Config:            chatConfig,
 		Context:           contextMessages,
 		Secrets:           rabbitmq.GetSecrets(operatorID, 0),
+		ConfirmedToolCall: confirmedToolCall,
 	}, chatAuthContext)
 	if err != nil {
 		logging.LogError(err, "Failed to send AI chat request", "request_id", requestID, "response_message_id", responseMessageID)
@@ -511,6 +530,26 @@ func chatMetadataInt(metadata map[string]interface{}, key string) (int, bool) {
 	}
 }
 
+func chatCopyMetadataMap(metadata map[string]interface{}) map[string]interface{} {
+	copied := make(map[string]interface{}, len(metadata))
+	for key, value := range metadata {
+		copied[key] = value
+	}
+	return copied
+}
+
+func chatMCPToolDisplayName(confirmation map[string]interface{}) string {
+	toolName, _ := confirmation["tool_name"].(string)
+	serverName, _ := confirmation["server_name"].(string)
+	if serverName != "" && toolName != "" {
+		return fmt.Sprintf("%s.%s", serverName, toolName)
+	}
+	if toolName != "" {
+		return toolName
+	}
+	return "requested tool"
+}
+
 func getChatChannelConfig(channel databaseStructs.ChatChannel) map[string]interface{} {
 	metadata := channel.AIMetadata.StructValue()
 	for _, key := range []string{"config", "configuration"} {
@@ -613,14 +652,22 @@ func getChatRequestAndChannel(requestID int, operationID int) (databaseStructs.C
 }
 
 func insertOperatorChatMessage(operatorOperation *databaseStructs.Operatoroperation, channel databaseStructs.ChatChannel, message string, authContext rabbitmq.RabbitMQAuthContext) (int, error) {
+	return insertOperatorChatMessageWithMetadata(operatorOperation, channel, message, authContext, nil)
+}
+
+func insertOperatorChatMessageWithMetadata(operatorOperation *databaseStructs.Operatoroperation, channel databaseStructs.ChatChannel, message string, authContext rabbitmq.RabbitMQAuthContext, metadata map[string]interface{}) (int, error) {
 	var apiTokenID interface{}
 	if authContext.APITokensID > 0 {
 		apiTokenID = authContext.APITokensID
 	}
+	if metadata == nil {
+		metadata = map[string]interface{}{}
+	}
+	metadataText := rabbitmq.GetMythicJSONTextFromStruct(metadata)
 	var messageID int
 	err := database.DB.Get(&messageID, `INSERT INTO chat_message
-		(operation_id, channel_id, operator_id, apitokens_id, author_type, sender_display_name, message, status)
-		VALUES ($1, $2, $3, $4, 'operator', $5, $6, 'complete')
+		(operation_id, channel_id, operator_id, apitokens_id, author_type, sender_display_name, message, status, metadata)
+		VALUES ($1, $2, $3, $4, 'operator', $5, $6, 'complete', $7::jsonb)
 		RETURNING id`,
 		operatorOperation.CurrentOperation.ID,
 		channel.ID,
@@ -628,6 +675,7 @@ func insertOperatorChatMessage(operatorOperation *databaseStructs.Operatoroperat
 		apiTokenID,
 		operatorOperation.CurrentOperator.Username,
 		message,
+		metadataText.String(),
 	)
 	return messageID, err
 }
@@ -742,6 +790,7 @@ func getChatContextMessages(operationID int, channelID int, lastMessageID int) (
 			author_type,
 			sender_display_name,
 			message,
+			metadata,
 			created_at
 		FROM chat_message
 		WHERE operation_id=$1

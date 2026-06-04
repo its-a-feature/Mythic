@@ -22,8 +22,8 @@ import {updateCredentialDeleted} from "../Search/CredentialTable";
 import CloudUploadTwoToneIcon from '@mui/icons-material/CloudUploadTwoTone';
 
 export const getDynamicQueryParamsString = `
-mutation getDynamicParamsMutation($callback: Int!, $command: String!, $payload_type: String!, $parameter_name: String!, $other_parameters: jsonb){
-    dynamicQueryFunction(callback: $callback, command: $command, payload_type: $payload_type, parameter_name: $parameter_name, other_parameters: $other_parameters){
+mutation getDynamicParamsMutation($callback_display_id: Int!, $command: String!, $payload_type: String!, $parameter_name: String!, $other_parameters: jsonb){
+    dynamicQueryFunction(callback_display_id: $callback_display_id, command: $command, payload_type: $payload_type, parameter_name: $parameter_name, other_parameters: $other_parameters){
         status
         error
         choices
@@ -35,8 +35,8 @@ export const getDynamicQueryParams = gql`
 ${getDynamicQueryParamsString}
 `;
 const parseTypedArrayMutation = gql`
-mutation parseTypedArrayMutation($callback: Int!, $command: String!, $payload_type: String!, $parameter_name: String!, $input_array: [String!]!){
-    typedarrayParseFunction(callback: $callback, command: $command, payload_type: $payload_type, parameter_name: $parameter_name, input_array: $input_array){
+mutation parseTypedArrayMutation($callback_display_id: Int!, $command: String!, $payload_type: String!, $parameter_name: String!, $input_array: [String!]!){
+    typedarrayParseFunction(callback_display_id: $callback_display_id, command: $command, payload_type: $payload_type, parameter_name: $parameter_name, input_array: $input_array){
         status
         error
         typed_array
@@ -340,7 +340,7 @@ export function TaskParametersDialogRow(props){
         setBackdropOpen(true);
         snackActions.info("Querying payload type container for options...",  {autoClose: 1000});
         getDynamicParams({variables:{
-                callback: props.callback_id,
+                callback_display_id: props.callback_display_id,
                 parameter_name: props.name,
                 command: props.commandInfo.cmd,
                 payload_type: props.commandInfo.payloadtype.name,
@@ -354,7 +354,7 @@ export function TaskParametersDialogRow(props){
                 setBackdropOpen(true);
                 snackActions.info("Querying payload type container for options...",  {autoClose: 1000});
                 getDynamicParams({variables:{
-                    callback: props.callback_id,
+                    callback_display_id: props.callback_display_id,
                     parameter_name: props.name,
                     command: props.commandInfo.cmd,
                     payload_type: props.commandInfo.payloadtype.name,
@@ -382,7 +382,7 @@ export function TaskParametersDialogRow(props){
                    setBackdropOpen(true);
                    snackActions.info("PayloadType Container parsing TypedArray values...",  {autoClose: 1000});
                    parseTypedArray({variables:{
-                           callback: props.callback_id,
+                           callback_display_id: props.callback_display_id,
                            parameter_name: props.name,
                            command: props.commandInfo.cmd,
                            payload_type: props.commandInfo.payloadtype.name,

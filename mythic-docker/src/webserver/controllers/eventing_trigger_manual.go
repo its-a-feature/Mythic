@@ -81,7 +81,12 @@ type EventingManualTriggerBulkMessageResponse struct {
 }
 
 var validTriggerContextTypes = []string{
-	"callback_id", "payload_id", "task_id", "filemeta_id", "response_id",
+	"callback_display_id", "payload_id", "task_display_id", "filemeta_id", "response_id",
+}
+
+type resolvedTriggerContext struct {
+	key string
+	id  int
 }
 
 func EventingTriggerManualBulkWebhook(c *gin.Context) {
@@ -114,13 +119,42 @@ func EventingTriggerManualBulkWebhook(c *gin.Context) {
 		})
 		return
 	}
+	resolvedContexts := make([]resolvedTriggerContext, 0, len(input.Input.TriggerContextIDs))
+	for _, id := range input.Input.TriggerContextIDs {
+		switch input.Input.TriggerContextType {
+		case "callback_display_id":
+			callback, err := getCallbackByDisplayIDForOperation(id, operatorOperation.CurrentOperation.ID)
+			if err != nil {
+				logging.LogError(err, "Failed to resolve callback display id for manual eventing trigger")
+				c.JSON(http.StatusOK, EventingManualTriggerMessageResponse{
+					Status: "error",
+					Error:  "Failed to find callback in current operation",
+				})
+				return
+			}
+			resolvedContexts = append(resolvedContexts, resolvedTriggerContext{key: "callback_id", id: callback.ID})
+		case "task_display_id":
+			task, err := getTaskByDisplayIDForOperation(id, operatorOperation.CurrentOperation.ID)
+			if err != nil {
+				logging.LogError(err, "Failed to resolve task display id for manual eventing trigger")
+				c.JSON(http.StatusOK, EventingManualTriggerMessageResponse{
+					Status: "error",
+					Error:  "Failed to find task in current operation",
+				})
+				return
+			}
+			resolvedContexts = append(resolvedContexts, resolvedTriggerContext{key: "task_id", id: task.ID})
+		default:
+			resolvedContexts = append(resolvedContexts, resolvedTriggerContext{key: input.Input.TriggerContextType, id: id})
+		}
+	}
 	go func() {
-		for _, id := range input.Input.TriggerContextIDs {
+		for _, context := range resolvedContexts {
 			localKeywordEnvData := make(map[string]interface{}, len(input.Input.KeywordEnvData))
 			for key, value := range input.Input.KeywordEnvData {
 				localKeywordEnvData[key] = value
 			}
-			localKeywordEnvData[input.Input.TriggerContextType] = id
+			localKeywordEnvData[context.key] = context.id
 			rabbitmq.EventingChannel <- rabbitmq.EventNotification{
 				EventGroupID:   input.Input.EventGroupID,
 				OperationID:    operatorOperation.CurrentOperation.ID,

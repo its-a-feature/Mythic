@@ -292,6 +292,7 @@ const isSelectedFileObject = (value) => {
     return value !== undefined && value !== null && typeof value !== "string" && value.name !== undefined && value.name !== "";
 }
 export function TaskParametersDialog(props) {
+    const callbackDisplayID = props.callback_display_id || props.callback?.display_id;
     const [backdropOpen, setBackdropOpen] = React.useState(false);
     const [commandInfo, setCommandInfo] = useState({});
     const [parameterGroups, setParameterGroups] = useState([]);
@@ -1105,6 +1106,7 @@ export function TaskParametersDialog(props) {
                         onChange={onChange} commandInfo={commandInfo} {...op}
                         parameterGroupName={selectedParameterGroup}
                         callback_id={props.callback_id}
+                        callback_display_id={callbackDisplayID}
                         onAgentConnectAddNewPayloadOnHost={onAgentConnectAddNewPayloadOnHost}
                         onAgentConnectRemovePayloadOnHost={onAgentConnectRemovePayloadOnHost}
                         addedCredential={addedCredential} removedCredential={removedCredential}

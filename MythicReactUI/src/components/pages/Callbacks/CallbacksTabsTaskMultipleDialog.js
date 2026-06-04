@@ -214,7 +214,7 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback}) {
                                          changeSelectedToken={changeSelectedToken}
                                          payloadtype_name={callback.payload.payloadtype.name}
                                          hide_context={true}
-                                         filterOptions={{}} callback_id={callback.id} callback_os={callback.payload.os} parentMountedRef={mountedRef} />
+                                         filterOptions={{}} callback_id={callback.id} callback_display_id={callback.display_id} callback_os={callback.payload.os} parentMountedRef={mountedRef} />
           </Grid>
           {openTaskingButton && 
               <TaskFromUIButton cmd={taskingData.current?.cmd} 

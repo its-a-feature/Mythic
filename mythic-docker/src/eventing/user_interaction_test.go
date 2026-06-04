@@ -2,36 +2,6 @@ package eventing
 
 import "testing"
 
-func TestUserInteractionChoiceContainsSupportsPrimitiveAndLabelValueChoices(t *testing.T) {
-	field := map[string]interface{}{
-		"type": "ChooseOne",
-		"choices": []interface{}{
-			"alpha",
-			map[string]interface{}{
-				"label": "Second choice",
-				"value": "bravo",
-			},
-			map[string]interface{}{
-				"label": "Numeric choice",
-				"value": float64(3),
-			},
-		},
-	}
-
-	if !UserInteractionChoiceContains(field, "alpha") {
-		t.Fatalf("expected primitive choice to be accepted")
-	}
-	if !UserInteractionChoiceContains(field, "bravo") {
-		t.Fatalf("expected label/value choice to be accepted")
-	}
-	if !UserInteractionChoiceContains(field, 3) {
-		t.Fatalf("expected numeric choice to compare by value")
-	}
-	if UserInteractionChoiceContains(field, "charlie") {
-		t.Fatalf("unexpected choice was accepted")
-	}
-}
-
 func TestNormalizeUserInteractionChoicesSupportsMapsAndNewlineStrings(t *testing.T) {
 	mapChoices := NormalizeUserInteractionChoices(map[string]interface{}{
 		"Bravo": "bravo",

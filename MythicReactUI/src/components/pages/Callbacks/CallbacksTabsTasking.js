@@ -414,12 +414,14 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
                                        filterOptions={filterOptions}
                                        focus={index === value}
                                        callback_id={tabInfo.callbackID}
+                                       callback_display_id={tabInfo.displayID}
                                        payloadtype_name={tabInfo.payloadtype}
                                        callback_os={tabInfo.os} parentMountedRef={mountedRef} />
         {openParametersDialog && 
             <MythicDialog fullWidth={true} maxWidth="lg" open={openParametersDialog} 
                 onClose={()=>{setOpenParametersDialog(false);}} 
-                innerDialog={<TaskParametersDialog command={commandInfo} callback_id={tabInfo.callbackID} 
+                innerDialog={<TaskParametersDialog command={commandInfo} callback_id={tabInfo.callbackID}
+                    callback_display_id={tabInfo.displayID}
                     payloadtype_id={tabInfo.payloadtype_id} operation_id={tabInfo.operation_id} 
                     onSubmit={submitParametersDialog} onClose={()=>{setOpenParametersDialog(false);}} 
                     />}

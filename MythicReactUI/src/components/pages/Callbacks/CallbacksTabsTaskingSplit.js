@@ -467,11 +467,13 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
                                        payloadtype_name={tabInfo.payloadtype} focus={index === value}
                                        onSubmitCommandLine={onSubmitCommandLine} changeSelectedToken={changeSelectedToken}
                                        filterOptions={filterOptions} callback_id={tabInfo.callbackID}
+                                       callback_display_id={tabInfo.displayID}
                                        callback_os={tabInfo.os} parentMountedRef={mountedRef} />
         {openParametersDialog && 
             <MythicDialog fullWidth={true} maxWidth="lg" open={openParametersDialog} 
                 onClose={()=>{setOpenParametersDialog(false);}} 
-                innerDialog={<TaskParametersDialog command={commandInfo} callback_id={tabInfo.callbackID} 
+                innerDialog={<TaskParametersDialog command={commandInfo} callback_id={tabInfo.callbackID}
+                    callback_display_id={tabInfo.displayID}
                     payloadtype_id={tabInfo.payloadtype_id} operation_id={tabInfo.operation_id} 
                     onSubmit={submitParametersDialog} onClose={()=>{setOpenParametersDialog(false);}} 
                     />}

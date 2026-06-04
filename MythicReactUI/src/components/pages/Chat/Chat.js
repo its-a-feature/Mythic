@@ -386,6 +386,18 @@ mutation RefreshSpecialMessage($message_id: Int!) {
 }
 `;
 
+const MCP_TOOL_CONFIRMATION = gql`
+mutation MCPToolConfirmation($message_id: Int!, $decision: String!, $response: String) {
+  chatMCPToolConfirmation(message_id: $message_id, decision: $decision, response: $response) {
+    status
+    error
+    message_id
+    request_id
+    response_message_id
+  }
+}
+`;
+
 const CHAT_SEARCH = gql`
 query ChatSearch($query: String!, $channel_id: Int, $limit: Int, $offset: Int) {
   chatSearch(query: $query, channel_id: $channel_id, limit: $limit, offset: $offset) {
@@ -608,223 +620,6 @@ const mergeReadStateRows = (current, incoming) => {
     }, current);
 };
 
-const markdownTableAlignments = ["left", "right", "center"];
-const getMarkdownTableAlign = (align) => markdownTableAlignments.includes(align) ? align : "left";
-
-const MarkdownHeading = ({level, children}) => (
-    <Typography component={`h${level}`} className={`mythic-chat-heading mythic-chat-heading-${level}`}>
-        {children}
-    </Typography>
-);
-
-export const markdownComponents = {
-    p: ({children}) => <Typography component="p" className="mythic-chat-paragraph">{children}</Typography>,
-    h1: ({children}) => <MarkdownHeading level={1}>{children}</MarkdownHeading>,
-    h2: ({children}) => <MarkdownHeading level={2}>{children}</MarkdownHeading>,
-    h3: ({children}) => <MarkdownHeading level={3}>{children}</MarkdownHeading>,
-    h4: ({children}) => <MarkdownHeading level={4}>{children}</MarkdownHeading>,
-    h5: ({children}) => <MarkdownHeading level={5}>{children}</MarkdownHeading>,
-    h6: ({children}) => <MarkdownHeading level={6}>{children}</MarkdownHeading>,
-    ul: ({children}) => <ul className="mythic-chat-list">{children}</ul>,
-    ol: ({children}) => <ol className="mythic-chat-list">{children}</ol>,
-    blockquote: ({children}) => <Box component="blockquote" className="mythic-chat-blockquote">{children}</Box>,
-    hr: () => <hr className="mythic-chat-rule" />,
-    table: ({children}) => (
-        <TableContainer className="mythicElement mythic-chat-table-wrap">
-            <Table className="mythic-chat-table" size="small">{children}</Table>
-        </TableContainer>
-    ),
-    thead: ({children}) => <TableHead>{children}</TableHead>,
-    tbody: ({children}) => <TableBody>{children}</TableBody>,
-    tr: ({children}) => <TableRow hover>{children}</TableRow>,
-    th: ({children, align}) => <TableCell component="th" scope="col" align={getMarkdownTableAlign(align)}>{children}</TableCell>,
-    td: ({children, align}) => <TableCell align={getMarkdownTableAlign(align)}>{children}</TableCell>,
-    pre: ({children}) => {
-        let language = "";
-        React.Children.forEach(children, (child) => {
-            const className = child?.props?.className || "";
-            const match = className.match(/language-([^ ]+)/);
-            if(match){
-                language = match[1];
-            }
-        });
-        return (
-            <Box className="mythic-chat-code-block">
-                {language && <span className="mythic-chat-code-language">{language}</span>}
-                <pre>{children}</pre>
-            </Box>
-        );
-    },
-    code: ({className, children}) => (
-        <code className={className || "mythic-chat-inline-code"}>{children}</code>
-    ),
-    a: ({href, children}) => {
-        if(!isAllowedMarkdownLink(href)){
-            return children;
-        }
-        return <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
-    },
-};
-
-const MarkdownMessage = ({message}) => {
-    if(!message){
-        return null;
-    }
-    return (
-        <Box className="mythic-chat-markdown">
-            <ReactMarkdown remarkPlugins={markdownPlugins} components={markdownComponents} skipHtml>
-                {message}
-            </ReactMarkdown>
-        </Box>
-    );
-};
-
-const CHAT_SPECIAL_TYPE_EVENTING_USER_INTERACTION = "eventing_user_interaction";
-
-const getChatMessageMetadata = (message) => {
-    const metadata = message?.metadata || {};
-    return metadata && typeof metadata === "object" && !Array.isArray(metadata) ? metadata : {};
-};
-
-const getEventingInteractionSnapshot = (message) => {
-    const metadata = getChatMessageMetadata(message);
-    if(metadata.special_type !== CHAT_SPECIAL_TYPE_EVENTING_USER_INTERACTION){
-        return null;
-    }
-    const snapshot = metadata.eventing_user_interaction || {};
-    return snapshot && typeof snapshot === "object" && !Array.isArray(snapshot) ? snapshot : {};
-};
-
-const getChatEventingPrompt = (snapshot) => {
-    if(snapshot.approval_required && snapshot.approval_prompt){
-        return snapshot.approval_prompt;
-    }
-    if(snapshot.input_required && snapshot.input_prompt){
-        return snapshot.input_prompt;
-    }
-    if(snapshot.approval_required && snapshot.input_required){
-        return "Approval and input are required before this step can continue.";
-    }
-    if(snapshot.approval_required){
-        return "Approval is required before this step can continue.";
-    }
-    return "Input is required before this step can continue.";
-};
-
-const chatEventingStatusLabels = {
-    awaiting_approval: "Awaiting approval",
-    input_needed: "Input needed",
-    queued: "Queued",
-    running: "Running",
-    success: "Success",
-    error: "Error",
-    cancelled: "Cancelled",
-    skipped: "Skipped",
-};
-
-const getChatEventingStatusText = (snapshot) => {
-    if(snapshot.status === "awaiting_approval"){
-        return "Awaiting approval";
-    }
-    if(snapshot.status === "input_needed"){
-        return "Input needed";
-    }
-    return chatEventingStatusLabels[snapshot.status] || snapshot.status || "Unknown";
-};
-
-const getChatEventingStateClass = (snapshot) => {
-    switch(snapshot.status){
-        case "success":
-            return "success";
-        case "error":
-        case "cancelled":
-            return "error";
-        case "running":
-            return "running";
-        case "queued":
-            return "queued";
-        case "awaiting_approval":
-        case "input_needed":
-            return "waiting";
-        default:
-            return snapshot.waiting ? "waiting" : "neutral";
-    }
-};
-
-const ChatEventingUserInteractionCard = ({message, me, onRefresh, onReview, refreshing}) => {
-    const metadata = getChatMessageMetadata(message);
-    const snapshot = getEventingInteractionSnapshot(message) || {};
-    const waiting = Boolean(snapshot.waiting);
-    const statusText = getChatEventingStatusText(snapshot);
-    const stateClass = getChatEventingStateClass(snapshot);
-    const stepName = snapshot.step_name || `Step ${snapshot.eventstepinstance_id || ""}`.trim();
-    const requirementText = [
-        snapshot.approval_required ? "approval" : null,
-        snapshot.input_required ? `${snapshot.input_count || 0} input${snapshot.input_count === 1 ? "" : "s"}` : null,
-    ].filter(Boolean).join(" + ");
-    const refreshedAt = metadata.refreshed_at || snapshot.user_interaction_updated_at;
-    const detailItems = [
-        snapshot.step_action ? {label: "Action", value: snapshot.step_action} : null,
-        requirementText ? {label: "Needs", value: requirementText} : null,
-        snapshot.run_operator_username ? {label: "Run as", value: snapshot.run_operator_username} : null,
-        snapshot.resolved_by_username ? {label: "Resolved by", value: snapshot.resolved_by_username} : null,
-    ].filter(Boolean);
-    return (
-        <Box className={`mythic-chat-special-card mythic-chat-eventing-card mythic-chat-eventing-card-${stateClass}`.trim()}>
-            <Box className="mythic-chat-special-card-header">
-                <Box className="mythic-chat-special-card-title-wrap">
-                    <Typography className="mythic-chat-special-card-title" variant="subtitle2">{stepName}</Typography>
-                    <Typography className="mythic-chat-special-card-subtitle" variant="caption">Eventing user interaction</Typography>
-                </Box>
-                <Chip
-                    size="small"
-                    className={`mythic-chat-special-status mythic-chat-special-status-${stateClass}`.trim()}
-                    label={statusText}
-                    variant="outlined"
-                />
-            </Box>
-            <Box className="mythic-chat-special-card-prompt">{getChatEventingPrompt(snapshot)}</Box>
-            <Box className="mythic-chat-special-card-details">
-                {detailItems.map((item) => (
-                    <span className="mythic-chat-special-card-detail" key={`${message.id}-${item.label}`}>
-                        <span className="mythic-chat-special-card-detail-label">{item.label}</span>
-                        <span className="mythic-chat-special-card-detail-value">{item.value}</span>
-                    </span>
-                ))}
-            </Box>
-            <Box className="mythic-chat-special-card-footer">
-                <Typography className="mythic-chat-special-card-refresh-time" variant="caption">
-                    {refreshedAt ? `Refreshed ${formatTimestamp(refreshedAt, me?.user?.view_utc_time)}` : ""}
-                </Typography>
-                <Box className="mythic-chat-special-card-actions">
-                    <MythicStyledTooltip title="Refresh">
-                        <span>
-                            <IconButton
-                                aria-label="Refresh eventing interaction"
-                                className="mythic-chat-special-refresh-button"
-                                disabled={refreshing}
-                                onClick={() => onRefresh(message)}
-                                size="small"
-                            >
-                                <RestartAltIcon fontSize="small" />
-                            </IconButton>
-                        </span>
-                    </MythicStyledTooltip>
-                    <Button
-                        size="small"
-                        variant="contained"
-                        className="mythic-table-row-action mythic-table-row-action-hover-success"
-                        disabled={!waiting}
-                        onClick={() => onReview(message)}
-                    >
-                        Review
-                    </Button>
-                </Box>
-            </Box>
-        </Box>
-    );
-};
-
 const channelDisplayName = (channel) => `# ${channel?.name || ""}`;
 
 const parseChatContainerModels = (container) => {
@@ -917,11 +712,54 @@ const getModelConfigOptions = (model) => {
             required: Boolean(option.required || option.Required),
             defaultValue: option.default_value ?? option.defaultValue ?? option.DefaultValue ?? option.default ?? option.Default ?? "",
             choices,
+            jsonSchema: option.json_schema || option.jsonSchema || option.JsonSchema || option.JSONSchema || null,
+            examples: Array.isArray(option.examples || option.Examples) ? (option.examples || option.Examples) : [],
+            helpText: option.help_text || option.helpText || option.HelpText || "",
+            minRows: Number(option.min_rows || option.minRows || option.MinRows || 6),
         };
     }).filter((option) => option.name);
 };
 
-const configValueForField = (value) => {
+const parseBooleanConfigValue = (value) => {
+    if(typeof value === "boolean"){
+        return value;
+    }
+    if(typeof value === "number"){
+        return value !== 0;
+    }
+    const text = `${value ?? ""}`.trim().toLowerCase();
+    return ["1", "true", "yes", "y", "on"].includes(text);
+};
+
+const jsonTextForConfigValue = (value) => {
+    if(value === undefined || value === null){
+        return "";
+    }
+    if(typeof value === "string"){
+        const trimmed = value.trim();
+        if(trimmed === ""){
+            return "";
+        }
+        try{
+            return JSON.stringify(JSON.parse(trimmed), null, 2);
+        }catch(error){
+            return value;
+        }
+    }
+    try{
+        return JSON.stringify(value, null, 2);
+    }catch(error){
+        return `${value}`;
+    }
+};
+
+const configValueForField = (value, option = {}) => {
+    if(option.type === "boolean"){
+        return parseBooleanConfigValue(value);
+    }
+    if(option.type === "json"){
+        return typeof value === "string" ? value : jsonTextForConfigValue(value);
+    }
     if(value === undefined || value === null){
         return "";
     }
@@ -931,14 +769,34 @@ const configValueForField = (value) => {
 const buildDefaultConfigValues = (options, existing = {}) => {
     return options.reduce((prev, option) => {
         const existingValue = existing[option.name];
-        prev[option.name] = configValueForField(existingValue !== undefined ? existingValue : option.defaultValue);
+        prev[option.name] = configValueForField(existingValue !== undefined ? existingValue : option.defaultValue, option);
         return prev;
     }, {});
+};
+
+const parseJSONConfigValue = (rawValue) => {
+    if(rawValue === undefined || rawValue === null || rawValue === ""){
+        return {empty: true, value: null, error: ""};
+    }
+    if(typeof rawValue !== "string"){
+        return {empty: false, value: rawValue, error: ""};
+    }
+    try{
+        return {empty: false, value: JSON.parse(rawValue), error: ""};
+    }catch(error){
+        return {empty: false, value: null, error: error.message};
+    }
 };
 
 const normalizeConfigForSubmit = (values, options) => {
     return options.reduce((prev, option) => {
         const rawValue = values[option.name];
+        if(option.type === "boolean"){
+            if(rawValue !== undefined && rawValue !== null){
+                prev[option.name] = parseBooleanConfigValue(rawValue);
+            }
+            return prev;
+        }
         if(rawValue === undefined || rawValue === null || `${rawValue}`.trim() === ""){
             return prev;
         }
@@ -949,14 +807,186 @@ const normalizeConfigForSubmit = (values, options) => {
             }
             return prev;
         }
+        if(option.type === "json"){
+            const parsed = parseJSONConfigValue(rawValue);
+            if(!parsed.empty && !parsed.error){
+                prev[option.name] = parsed.value;
+            }
+            return prev;
+        }
         prev[option.name] = rawValue;
         return prev;
     }, {});
 };
 
 const configHasMissingRequiredValues = (values, options) => options.some((option) => (
-    option.required && `${values[option.name] ?? ""}`.trim() === ""
+    option.required && option.type !== "boolean" && `${values[option.name] ?? ""}`.trim() === ""
 ));
+
+const configHasInvalidValues = (values, options) => options.some((option) => {
+    const rawValue = values[option.name];
+    if(rawValue === undefined || rawValue === null || `${rawValue}`.trim() === ""){
+        return false;
+    }
+    if(option.type === "number"){
+        return Number.isNaN(Number(rawValue));
+    }
+    if(option.type === "json"){
+        return Boolean(parseJSONConfigValue(rawValue).error);
+    }
+    return false;
+});
+
+const jsonSchemaVariants = (schema) => {
+    if(!schema || typeof schema !== "object"){
+        return [];
+    }
+    return schema.oneOf || schema.anyOf || schema.allOf || [];
+};
+
+const jsonSchemaTypeLabel = (schema) => {
+    if(!schema || typeof schema !== "object"){
+        return "value";
+    }
+    if(Array.isArray(schema.enum)){
+        return schema.enum.join(" | ");
+    }
+    const variants = jsonSchemaVariants(schema);
+    if(variants.length > 0){
+        return variants.map((variant) => jsonSchemaTypeLabel(variant)).filter(Boolean).join(" | ");
+    }
+    if(Array.isArray(schema.type)){
+        return schema.type.join(" | ");
+    }
+    if(schema.type === "array"){
+        return "array";
+    }
+    if(schema.type === "object" && schema.additionalProperties){
+        return "object map";
+    }
+    return schema.type || "value";
+};
+
+const jsonSchemaDescriptionLabel = (schema) => {
+    if(!schema || typeof schema !== "object"){
+        return "";
+    }
+    if(schema.description){
+        return schema.description;
+    }
+    return jsonSchemaVariants(schema)
+        .map((variant) => variant?.description)
+        .filter(Boolean)
+        .join(" ");
+};
+
+const jsonSchemaReferenceRows = (schema, path = "", required = false, includeSelf = false) => {
+    if(!schema || typeof schema !== "object"){
+        return [];
+    }
+    const rows = [];
+    if(includeSelf && path){
+        rows.push({
+            path,
+            type: jsonSchemaTypeLabel(schema),
+            required,
+            description: jsonSchemaDescriptionLabel(schema),
+        });
+    }
+    const properties = schema.properties && typeof schema.properties === "object" ? schema.properties : {};
+    const requiredFields = new Set(Array.isArray(schema.required) ? schema.required : []);
+    Object.entries(properties).forEach(([name, propertySchema]) => {
+        const nextPath = path ? `${path}.${name}` : name;
+        rows.push(...jsonSchemaReferenceRows(propertySchema, nextPath, requiredFields.has(name), true));
+        if(propertySchema?.type === "array" && propertySchema?.items){
+            rows.push(...jsonSchemaReferenceRows(propertySchema.items, `${nextPath}[]`, false, true));
+        }
+    });
+    if(schema.additionalProperties && path){
+        const keyLabel = schema["x-key_label"] || "<key>";
+        const additionalPath = `${path}.${keyLabel}`;
+        rows.push(...jsonSchemaReferenceRows(schema.additionalProperties, additionalPath, false, true));
+    }
+    jsonSchemaVariants(schema).forEach((variant) => {
+        rows.push(...jsonSchemaReferenceRows(variant, path, required, false));
+    });
+    return rows;
+};
+
+const ChatJSONFieldReference = ({option, examples, setValues}) => {
+    const fieldRows = jsonSchemaReferenceRows(option.jsonSchema);
+    if(!option.helpText && fieldRows.length === 0 && examples.length === 0){
+        return null;
+    }
+    return (
+        <Box
+            sx={{
+                border: (theme) => `1px solid ${theme.palette.divider}`,
+                borderRadius: 1,
+                display: "flex",
+                flexDirection: "column",
+                gap: 1,
+                maxHeight: {md: 520},
+                overflow: "auto",
+                p: 1.25,
+            }}
+        >
+            {option.helpText &&
+                <Typography variant="caption" color="text.secondary">
+                    {option.helpText}
+                </Typography>
+            }
+            {fieldRows.length > 0 &&
+                <Box sx={{display: "flex", flexDirection: "column", gap: 0.75}}>
+                    <Typography variant="subtitle2">Fields</Typography>
+                    {fieldRows.map((field, index) => (
+                        <Box
+                            key={`${field.path}-${index}`}
+                            sx={{
+                                borderTop: index === 0 ? 0 : (theme) => `1px solid ${theme.palette.divider}`,
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 0.25,
+                                pt: index === 0 ? 0 : 0.75,
+                            }}
+                        >
+                            <Box sx={{alignItems: "center", display: "flex", gap: 0.5, minWidth: 0}}>
+                                <Typography component="code" variant="caption" sx={{fontFamily: "monospace", fontWeight: 700, overflowWrap: "anywhere"}}>
+                                    {field.path}
+                                </Typography>
+                                {field.required && <Chip size="small" variant="outlined" color="warning" label="required" />}
+                            </Box>
+                            <Typography variant="caption" color="text.secondary" sx={{fontFamily: "monospace"}}>
+                                {field.type}
+                            </Typography>
+                            {field.description &&
+                                <Typography variant="caption" color="text.secondary">
+                                    {field.description}
+                                </Typography>
+                            }
+                        </Box>
+                    ))}
+                </Box>
+            }
+            {examples.length > 0 &&
+                <Box sx={{display: "flex", flexDirection: "column", gap: 0.75}}>
+                    <Typography variant="subtitle2">Examples</Typography>
+                    {examples.map((example) => (
+                        <Button
+                            size="small"
+                            variant="outlined"
+                            key={`${option.name}-${example.label}`}
+                            onClick={() => setValues((prev) => ({...prev, [option.name]: jsonTextForConfigValue(example.value)}))}
+                            sx={{justifyContent: "flex-start"}}
+                        >
+                            {example.label}
+                        </Button>
+                    ))}
+                </Box>
+            }
+        </Box>
+    );
+};
 
 const AI_CHAT_REQUIRED_TOKEN_SCOPES = ["apitoken.write", "chat-ai.write"];
 
@@ -1029,6 +1059,77 @@ const ChatConfigurationFields = ({options, values, setValues}) => {
                         </FormControl>
                     );
                 }
+                if(option.type === "boolean"){
+                    return (
+                        <Box key={option.name}>
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={Boolean(values[option.name])}
+                                        onChange={(e) => setValues((prev) => ({...prev, [option.name]: e.target.checked}))}
+                                    />
+                                }
+                                label={option.displayName}
+                            />
+                            {option.description &&
+                                <Typography variant="caption" color="text.secondary" sx={{display: "block", mt: -0.75}}>
+                                    {option.description}
+                                </Typography>
+                            }
+                        </Box>
+                    );
+                }
+                if(option.type === "json"){
+                    const parsed = parseJSONConfigValue(values[option.name]);
+                    const examples = option.examples.map((example, index) => {
+                        if(example && typeof example === "object" && !Array.isArray(example)){
+                            return {
+                                label: example.name || example.label || example.Label || `Example ${index + 1}`,
+                                value: example.value ?? example.Value ?? example.config ?? example.Config ?? example,
+                            };
+                        }
+                        return {label: `Example ${index + 1}`, value: example};
+                    });
+                    const formatValue = () => {
+                        if(parsed.error || parsed.empty){
+                            return;
+                        }
+                        setValues((prev) => ({...prev, [option.name]: JSON.stringify(parsed.value, null, 2)}));
+                    };
+                    return (
+                        <Box
+                            key={option.name}
+                            sx={{
+                                alignItems: "start",
+                                display: "grid",
+                                gap: 1.25,
+                                gridTemplateColumns: {xs: "1fr", md: "minmax(0, 1.25fr) minmax(18rem, 0.75fr)"},
+                            }}
+                        >
+                            <Box sx={{display: "flex", flexDirection: "column", gap: 0.75, minWidth: 0}}>
+                                <TextField
+                                    fullWidth
+                                    multiline
+                                    minRows={Math.max(8, option.minRows || 6)}
+                                    size="small"
+                                    label={option.displayName}
+                                    required={option.required}
+                                    value={configValueForField(values[option.name], option)}
+                                    error={Boolean(parsed.error)}
+                                    helperText={parsed.error || option.description}
+                                    onChange={(e) => setValues((prev) => ({...prev, [option.name]: e.target.value}))}
+                                    inputProps={{spellCheck: "false"}}
+                                />
+                                <Box sx={{display: "flex", flexWrap: "wrap", alignItems: "center", gap: 0.75}}>
+                                    <Button size="small" variant="outlined" onClick={formatValue} disabled={parsed.empty || Boolean(parsed.error)}>
+                                        Format JSON
+                                    </Button>
+                                </Box>
+                            </Box>
+                            <ChatJSONFieldReference option={option} examples={examples} setValues={setValues} />
+                        </Box>
+                    );
+                }
                 return (
                     <TextField
                         key={option.name}
@@ -1037,7 +1138,7 @@ const ChatConfigurationFields = ({options, values, setValues}) => {
                         type={option.type === "number" ? "number" : "text"}
                         label={option.displayName}
                         required={option.required}
-                        value={configValueForField(values[option.name])}
+                        value={configValueForField(values[option.name], option)}
                         helperText={option.description}
                         onChange={(e) => setValues((prev) => ({...prev, [option.name]: e.target.value}))}
                     />
@@ -1285,108 +1386,7 @@ const ChannelButton = ({channel, selected, unread, onSelect}) => {
     );
 };
 
-const MessageBubble = ({message, request, me, onEdit, onDelete, onCancel, onRetry, onRefreshSpecial, onReviewSpecial, refreshingSpecialMessageID, editing, editText, setEditText, saveEdit, cancelEdit}) => {
-    const theme = useTheme();
-    const isMine = message.operator_id === me?.user?.user_id;
-    const isAI = message.author_type === "ai";
-    const isSystem = message.author_type === "system";
-    const eventingInteractionSnapshot = getEventingInteractionSnapshot(message);
-    const eventingInteractionStateClass = eventingInteractionSnapshot ? getChatEventingStateClass(eventingInteractionSnapshot) : "";
-    const canEdit = isMine && message.author_type === "operator" && !message.deleted;
-    const canDelete = !message.deleted && (isMine || message.author_type !== "operator");
-    const streaming = message.status === "pending" || message.status === "streaming";
-    const softBorderColor = theme.table?.borderSoft || theme.borderColor || theme.palette.divider;
-    const chatMessageColors = theme.chat?.message || {};
-    const markdownSurface = chatMessageColors.markdownSurface || (theme.palette.mode === "dark" ? alpha(theme.palette.common.black, 0.24) : alpha(theme.palette.common.black, 0.045));
-    const markdownSurfaceStrong = chatMessageColors.markdownSurfaceStrong || (theme.palette.mode === "dark" ? alpha(theme.palette.common.white, 0.08) : alpha(theme.palette.common.black, 0.06));
-    const messageBackgroundColor = isSystem ? chatMessageColors.systemBackground :
-        isAI ? chatMessageColors.aiBackground :
-            isMine ? chatMessageColors.selfBackground : chatMessageColors.operatorBackground;
-    return (
-        <Box className={`mythic-chat-message-row ${isMine ? "mythic-chat-message-row-mine" : ""}`}>
-            <Box
-                className={`mythic-chat-message ${isAI ? "mythic-chat-message-ai" : ""} ${isSystem ? "mythic-chat-message-system" : ""} ${eventingInteractionSnapshot ? `mythic-chat-message-special-eventing mythic-chat-message-special-eventing-${eventingInteractionStateClass}` : ""}`.trim()}
-                sx={{
-                    "--mythic-chat-markdown-border": softBorderColor,
-                    "--mythic-chat-markdown-surface": markdownSurface,
-                    "--mythic-chat-markdown-surface-strong": markdownSurfaceStrong,
-                    borderColor: softBorderColor,
-                    backgroundColor: messageBackgroundColor || theme.palette.background.paper,
-                    boxShadow: theme.palette.mode === "dark" ? `inset 0 1px 0 ${alpha(theme.palette.common.white, 0.05)}` : `0 1px 2px ${alpha(theme.palette.common.black, 0.06)}`,
-                }}
-            >
-                <Box className="mythic-chat-message-header">
-                    <Box className="mythic-chat-author">
-                        {isAI && <SmartToyTwoToneIcon fontSize="small" color="info" />}
-                        <span>{message.sender_display_name || message.operator?.username || "unknown"}</span>
-                        {message.edited && !message.deleted && <Chip size="small" variant="outlined" label="edited" />}
-                        {streaming && <Chip size="small" color="warning" variant="outlined" label={message.status} />}
-                    </Box>
-                    <Box className="mythic-chat-message-actions">
-                        <Typography variant="caption" color="text.secondary">{formatTimestamp(message.created_at, me?.user?.view_utc_time)}</Typography>
-                        {request && streaming &&
-                            <MythicStyledTooltip title="Cancel request">
-                                <IconButton size="small" onClick={() => onCancel(request.id)}>
-                                    <StopCircleIcon fontSize="small" />
-                                </IconButton>
-                            </MythicStyledTooltip>
-                        }
-                        {request && (message.status === "error" || message.status === "cancelled") &&
-                            <MythicStyledTooltip title="Retry request">
-                                <IconButton size="small" onClick={() => onRetry(request.id)}>
-                                    <RestartAltIcon fontSize="small" />
-                                </IconButton>
-                            </MythicStyledTooltip>
-                        }
-                        {canEdit &&
-                            <MythicStyledTooltip title="Edit message">
-                                <IconButton size="small" onClick={() => onEdit(message)}>
-                                    <EditIcon fontSize="small" />
-                                </IconButton>
-                            </MythicStyledTooltip>
-                        }
-                        {canDelete &&
-                            <MythicStyledTooltip title="Delete message">
-                                <IconButton size="small" onClick={() => onDelete(message.id)}>
-                                    <DeleteIcon fontSize="small" />
-                                </IconButton>
-                            </MythicStyledTooltip>
-                        }
-                    </Box>
-                </Box>
-                {editing ? (
-                    <Box className="mythic-chat-edit-box">
-                        <TextField
-                            fullWidth
-                            multiline
-                            minRows={2}
-                            value={editText}
-                            onChange={(e) => setEditText(e.target.value)}
-                            size="small"
-                        />
-                        <Box className="mythic-chat-edit-actions">
-                            <Button size="small" onClick={cancelEdit}>Cancel</Button>
-                            <Button size="small" variant="contained" onClick={saveEdit}>Save</Button>
-                        </Box>
-                    </Box>
-                ) : eventingInteractionSnapshot ? (
-                    <ChatEventingUserInteractionCard
-                        message={message}
-                        me={me}
-                        onRefresh={onRefreshSpecial}
-                        onReview={onReviewSpecial}
-                        refreshing={refreshingSpecialMessageID === message.id}
-                    />
-                ) : (
-                    <MarkdownMessage message={message.message} />
-                )}
-                {request?.error &&
-                    <Typography variant="caption" color="error" sx={{display: "block", mt: 0.5}}>{request.error}</Typography>
-                }
-            </Box>
-        </Box>
-    );
-};
+
 
 const ChatCreateDialog = ({open, onClose, onCreate, chatContainers, currentUser, operationBot}) => {
     const theme = useTheme();
@@ -1458,7 +1458,14 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers, currentUser,
         setConfigValues({});
     };
     const createDisabled = name.trim() === "" ||
-        (channelType === "ai" && (!containerID || selectedContainerModels.length === 0 || model === "" || !apiTokenID || configHasMissingRequiredValues(configValues, configOptions)));
+        (channelType === "ai" && (
+            !containerID ||
+            selectedContainerModels.length === 0 ||
+            model === "" ||
+            !apiTokenID ||
+            configHasMissingRequiredValues(configValues, configOptions) ||
+            configHasInvalidValues(configValues, configOptions)
+        ));
     const submit = () => {
         const aiConfig = channelType === "ai" ? normalizeConfigForSubmit(configValues, configOptions) : {};
         onCreate({
@@ -1473,7 +1480,7 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers, currentUser,
         });
     };
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+        <Dialog open={open} onClose={onClose} maxWidth={channelType === "ai" ? "lg" : "sm"} fullWidth>
             <DialogTitle>{channelType === "ai" ? "New AI Chat" : "New Channel"}</DialogTitle>
             <DialogContent className="mythic-chat-dialog-content" sx={{display: "flex", flexDirection: "column", gap: 1.75, pt: "20px !important", px: 3}}>
                 <FormControl size="small" fullWidth>
@@ -1679,9 +1686,9 @@ const ChatEditChannelDialog = ({open, channel, onClose, onSave, chatContainers =
         onSave(update);
     };
     const saveDisabled = (!isGeneralChannel && name.trim() === "") ||
-        (isAIChannel && (!apiTokenID || configHasMissingRequiredValues(configValues, configOptions)));
+        (isAIChannel && (!apiTokenID || configHasMissingRequiredValues(configValues, configOptions) || configHasInvalidValues(configValues, configOptions)));
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+        <Dialog open={open} onClose={onClose} maxWidth={isAIChannel ? "lg" : "sm"} fullWidth>
             <DialogTitle>{isAIChannel ? "Edit AI Chat" : "Edit Channel"}</DialogTitle>
             <DialogContent className="mythic-chat-dialog-content" sx={{display: "flex", flexDirection: "column", gap: 1.75, pt: "20px !important", px: 3}}>
                 <TextField
@@ -1828,7 +1835,10 @@ export function Chat({me}) {
     const [editingID, setEditingID] = React.useState(null);
     const [editText, setEditText] = React.useState("");
     const [reviewMessage, setReviewMessage] = React.useState(null);
+    const [mcpResponseTarget, setMCPResponseTarget] = React.useState(null);
+    const [mcpResponseText, setMCPResponseText] = React.useState("");
     const [refreshingSpecialMessageID, setRefreshingSpecialMessageID] = React.useState(null);
+    const [submittingMCPConfirmationID, setSubmittingMCPConfirmationID] = React.useState(null);
     const [chatSplitSizes, setChatSplitSizes] = React.useState(getStoredChatSplitSizes);
     const messagesContainerRef = React.useRef(null);
     const messagesEndRef = React.useRef(null);
@@ -2146,6 +2156,45 @@ export function Chat({me}) {
         },
         onError: (error) => snackActions.error(error.message),
     });
+    const [submitMCPToolConfirmation] = useMutation(MCP_TOOL_CONFIRMATION, {
+        onCompleted: (data) => {
+            setSubmittingMCPConfirmationID(null);
+            if(data.chatMCPToolConfirmation.status === "success"){
+                setMCPResponseTarget(null);
+                setMCPResponseText("");
+            }
+            if(data.chatMCPToolConfirmation.status !== "success"){
+                snackActions.error(data.chatMCPToolConfirmation.error);
+            }
+        },
+        onError: (error) => {
+            setSubmittingMCPConfirmationID(null);
+            snackActions.error(error.message);
+        },
+    });
+    const submitMCPConfirmationDecision = React.useCallback((message, decision, response = "") => {
+        if(!message?.id){
+            return;
+        }
+        setSubmittingMCPConfirmationID(message.id);
+        submitMCPToolConfirmation({
+            variables: {
+                message_id: message.id,
+                decision,
+                response,
+            },
+        }).catch(() => {
+            setSubmittingMCPConfirmationID(null);
+        });
+    }, [submitMCPToolConfirmation]);
+    const handleMCPConfirmationAction = React.useCallback((message, decision) => {
+        if(decision === "respond"){
+            setMCPResponseTarget(message);
+            setMCPResponseText("");
+            return;
+        }
+        submitMCPConfirmationDecision(message, decision);
+    }, [submitMCPConfirmationDecision]);
     const [runSearch, {data: searchData, loading: searchLoading}] = useLazyQuery(CHAT_SEARCH, {
         fetchPolicy: "no-cache",
         onCompleted: (data) => {
@@ -2478,7 +2527,9 @@ export function Chat({me}) {
                                     onRetry={(requestID) => retryRequest({variables: {request_id: requestID}})}
                                     onRefreshSpecial={refreshChatSpecialMessage}
                                     onReviewSpecial={reviewChatSpecialMessage}
+                                    onSubmitMCPConfirmation={handleMCPConfirmationAction}
                                     refreshingSpecialMessageID={refreshingSpecialMessageID}
+                                    submittingMCPConfirmationID={submittingMCPConfirmationID}
                                     editing={editingID === message.id}
                                     editText={editText}
                                     setEditText={setEditText}
@@ -2547,30 +2598,36 @@ export function Chat({me}) {
                     </Box>
                 </Box>
             </Split>
-            <ChatCreateDialog
-                open={createOpen}
-                onClose={() => setCreateOpen(false)}
-                onCreate={onCreateChannel}
-                chatContainers={chatContainers}
-                currentUser={currentUser}
-                operationBot={operationBot}
-            />
-            <ChatEditChannelDialog
-                open={editChannelOpen}
-                channel={selectedChannel}
-                chatContainers={chatContainers}
-                onClose={() => setEditChannelOpen(false)}
-                onSave={saveChannelDetails}
-                currentUser={currentUser}
-                operationBot={operationBot}
-            />
-            <ChatSystemMessageDialog
-                open={systemMessageOpen}
-                selectedChannel={selectedChannel}
-                isMythicAdmin={isMythicAdmin}
-                onClose={() => setSystemMessageOpen(false)}
-                onSend={submitSystemMessage}
-            />
+            {createOpen &&
+                <ChatCreateDialog
+                    open={createOpen}
+                    onClose={() => setCreateOpen(false)}
+                    onCreate={onCreateChannel}
+                    chatContainers={chatContainers}
+                    currentUser={currentUser}
+                    operationBot={operationBot}
+                />
+            }
+            {editChannelOpen &&
+                <ChatEditChannelDialog
+                    open={editChannelOpen}
+                    channel={selectedChannel}
+                    chatContainers={chatContainers}
+                    onClose={() => setEditChannelOpen(false)}
+                    onSave={saveChannelDetails}
+                    currentUser={currentUser}
+                    operationBot={operationBot}
+                />
+            }
+            {systemMessageOpen &&
+                <ChatSystemMessageDialog
+                    open={systemMessageOpen}
+                    selectedChannel={selectedChannel}
+                    isMythicAdmin={isMythicAdmin}
+                    onClose={() => setSystemMessageOpen(false)}
+                    onSend={submitSystemMessage}
+                />
+            }
             {archiveTarget &&
                 <MythicConfirmDialog
                     open={Boolean(archiveTarget)}
@@ -2582,19 +2639,48 @@ export function Chat({me}) {
                     onSubmit={confirmArchiveChannel}
                 />
             }
-            <ChatSearchDialog
-                open={searchOpen}
-                onClose={() => setSearchOpen(false)}
-                onSearch={runChatSearch}
-                searchText={searchText}
-                setSearchText={setSearchText}
-                searchQuery={searchQuery}
-                results={searchData?.chatSearch?.results || []}
-                loading={searchLoading}
-                hasSearched={searchQuery !== ""}
-                onSelectResult={selectSearchResult}
-                viewUTCTime={currentMe?.user?.view_utc_time}
-            />
+            {searchOpen &&
+                <ChatSearchDialog
+                    open={searchOpen}
+                    onClose={() => setSearchOpen(false)}
+                    onSearch={runChatSearch}
+                    searchText={searchText}
+                    setSearchText={setSearchText}
+                    searchQuery={searchQuery}
+                    results={searchData?.chatSearch?.results || []}
+                    loading={searchLoading}
+                    hasSearched={searchQuery !== ""}
+                    onSelectResult={selectSearchResult}
+                    viewUTCTime={currentMe?.user?.view_utc_time}
+                />
+            }
+            {mcpResponseTarget &&
+                <Dialog open={Boolean(mcpResponseTarget)} onClose={() => {setMCPResponseTarget(null); setMCPResponseText("");}} maxWidth="sm" fullWidth>
+                    <DialogTitle>Respond To MCP Request</DialogTitle>
+                    <DialogContent className="mythic-chat-dialog-content" sx={{display: "flex", flexDirection: "column", gap: 1.75, pt: "20px !important", px: 3}}>
+                        <TextField
+                            autoFocus
+                            fullWidth
+                            multiline
+                            minRows={4}
+                            size="small"
+                            label="Response"
+                            value={mcpResponseText}
+                            onChange={(e) => setMCPResponseText(e.target.value)}
+                        />
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => {setMCPResponseTarget(null); setMCPResponseText("");}}>Cancel</Button>
+                        <Button
+                            variant="contained"
+                            disabled={mcpResponseText.trim() === "" || submittingMCPConfirmationID === mcpResponseTarget?.id}
+                            onClick={() => submitMCPConfirmationDecision(mcpResponseTarget, "respond", mcpResponseText.trim())}
+                        >
+                            Send
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+            }
             {reviewMessage && reviewSnapshot &&
                 <MythicDialog
                     fullWidth={true}
@@ -2619,3 +2705,465 @@ export function Chat({me}) {
         </MythicPageBody>
     );
 }
+
+const markdownTableAlignments = ["left", "right", "center"];
+const getMarkdownTableAlign = (align) => markdownTableAlignments.includes(align) ? align : "left";
+
+const MarkdownHeading = ({level, children}) => (
+    <Typography component={`h${level}`} className={`mythic-chat-heading mythic-chat-heading-${level}`}>
+        {children}
+    </Typography>
+);
+
+export const markdownComponents = {
+    p: ({children}) => <Typography component="p" className="mythic-chat-paragraph">{children}</Typography>,
+    h1: ({children}) => <MarkdownHeading level={1}>{children}</MarkdownHeading>,
+    h2: ({children}) => <MarkdownHeading level={2}>{children}</MarkdownHeading>,
+    h3: ({children}) => <MarkdownHeading level={3}>{children}</MarkdownHeading>,
+    h4: ({children}) => <MarkdownHeading level={4}>{children}</MarkdownHeading>,
+    h5: ({children}) => <MarkdownHeading level={5}>{children}</MarkdownHeading>,
+    h6: ({children}) => <MarkdownHeading level={6}>{children}</MarkdownHeading>,
+    ul: ({children}) => <ul className="mythic-chat-list">{children}</ul>,
+    ol: ({children}) => <ol className="mythic-chat-list">{children}</ol>,
+    blockquote: ({children}) => <Box component="blockquote" className="mythic-chat-blockquote">{children}</Box>,
+    hr: () => <hr className="mythic-chat-rule" />,
+    table: ({children}) => (
+        <TableContainer className="mythicElement mythic-chat-table-wrap">
+            <Table className="mythic-chat-table" size="small">{children}</Table>
+        </TableContainer>
+    ),
+    thead: ({children}) => <TableHead>{children}</TableHead>,
+    tbody: ({children}) => <TableBody>{children}</TableBody>,
+    tr: ({children}) => <TableRow hover>{children}</TableRow>,
+    th: ({children, align}) => <TableCell component="th" scope="col" align={getMarkdownTableAlign(align)}>{children}</TableCell>,
+    td: ({children, align}) => <TableCell align={getMarkdownTableAlign(align)}>{children}</TableCell>,
+    pre: ({children}) => {
+        let language = "";
+        React.Children.forEach(children, (child) => {
+            const className = child?.props?.className || "";
+            const match = className.match(/language-([^ ]+)/);
+            if(match){
+                language = match[1];
+            }
+        });
+        return (
+            <Box className="mythic-chat-code-block">
+                {language && <span className="mythic-chat-code-language">{language}</span>}
+                <pre>{children}</pre>
+            </Box>
+        );
+    },
+    code: ({className, children}) => (
+        <code className={className || "mythic-chat-inline-code"}>{children}</code>
+    ),
+    a: ({href, children}) => {
+        if(!isAllowedMarkdownLink(href)){
+            return children;
+        }
+        return <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
+    },
+};
+
+const MarkdownMessage = ({message}) => {
+    if(!message){
+        return null;
+    }
+    return (
+        <Box className="mythic-chat-markdown">
+            <ReactMarkdown remarkPlugins={markdownPlugins} components={markdownComponents} skipHtml>
+                {message}
+            </ReactMarkdown>
+        </Box>
+    );
+};
+
+const CHAT_SPECIAL_TYPE_EVENTING_USER_INTERACTION = "eventing_user_interaction";
+const CHAT_SPECIAL_TYPE_MCP_TOOL_CONFIRMATION = "mcp_tool_confirmation";
+
+const getChatMessageMetadata = (message) => {
+    const metadata = message?.metadata || {};
+    if(typeof metadata === "string"){
+        try{
+            const parsed = JSON.parse(metadata);
+            return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+        }catch(error){
+            return {};
+        }
+    }
+    return metadata && typeof metadata === "object" && !Array.isArray(metadata) ? metadata : {};
+};
+
+const getEventingInteractionSnapshot = (message) => {
+    const metadata = getChatMessageMetadata(message);
+    if(metadata.special_type !== CHAT_SPECIAL_TYPE_EVENTING_USER_INTERACTION){
+        return null;
+    }
+    const snapshot = metadata.eventing_user_interaction || {};
+    return snapshot && typeof snapshot === "object" && !Array.isArray(snapshot) ? snapshot : {};
+};
+
+const getMCPToolConfirmationSnapshot = (message) => {
+    const metadata = getChatMessageMetadata(message);
+    if(metadata.special_type !== CHAT_SPECIAL_TYPE_MCP_TOOL_CONFIRMATION){
+        return null;
+    }
+    const snapshot = metadata.mcp_tool_confirmation || {};
+    return snapshot && typeof snapshot === "object" && !Array.isArray(snapshot) ? snapshot : {};
+};
+
+const getChatEventingPrompt = (snapshot) => {
+    if(snapshot.approval_required && snapshot.approval_prompt){
+        return snapshot.approval_prompt;
+    }
+    if(snapshot.input_required && snapshot.input_prompt){
+        return snapshot.input_prompt;
+    }
+    if(snapshot.approval_required && snapshot.input_required){
+        return "Approval and input are required before this step can continue.";
+    }
+    if(snapshot.approval_required){
+        return "Approval is required before this step can continue.";
+    }
+    return "Input is required before this step can continue.";
+};
+
+const chatEventingStatusLabels = {
+    awaiting_approval: "Awaiting approval",
+    input_needed: "Input needed",
+    queued: "Queued",
+    running: "Running",
+    success: "Success",
+    error: "Error",
+    cancelled: "Cancelled",
+    skipped: "Skipped",
+};
+
+const getChatEventingStatusText = (snapshot) => {
+    if(snapshot.status === "awaiting_approval"){
+        return "Awaiting approval";
+    }
+    if(snapshot.status === "input_needed"){
+        return "Input needed";
+    }
+    return chatEventingStatusLabels[snapshot.status] || snapshot.status || "Unknown";
+};
+
+const getChatEventingStateClass = (snapshot) => {
+    switch(snapshot.status){
+        case "success":
+            return "success";
+        case "error":
+        case "cancelled":
+            return "error";
+        case "running":
+            return "running";
+        case "queued":
+            return "queued";
+        case "awaiting_approval":
+        case "input_needed":
+            return "waiting";
+        default:
+            return snapshot.waiting ? "waiting" : "neutral";
+    }
+};
+
+const ChatEventingUserInteractionCard = ({message, me, onRefresh, onReview, refreshing}) => {
+    const metadata = getChatMessageMetadata(message);
+    const snapshot = getEventingInteractionSnapshot(message) || {};
+    const waiting = Boolean(snapshot.waiting);
+    const statusText = getChatEventingStatusText(snapshot);
+    const stateClass = getChatEventingStateClass(snapshot);
+    const stepName = snapshot.step_name || `Step ${snapshot.eventstepinstance_id || ""}`.trim();
+    const requirementText = [
+        snapshot.approval_required ? "approval" : null,
+        snapshot.input_required ? `${snapshot.input_count || 0} input${snapshot.input_count === 1 ? "" : "s"}` : null,
+    ].filter(Boolean).join(" + ");
+    const refreshedAt = metadata.refreshed_at || snapshot.user_interaction_updated_at;
+    const detailItems = [
+        snapshot.step_action ? {label: "Action", value: snapshot.step_action} : null,
+        requirementText ? {label: "Needs", value: requirementText} : null,
+        snapshot.run_operator_username ? {label: "Run as", value: snapshot.run_operator_username} : null,
+        snapshot.resolved_by_username ? {label: "Resolved by", value: snapshot.resolved_by_username} : null,
+    ].filter(Boolean);
+    return (
+        <Box className={`mythic-chat-special-card mythic-chat-eventing-card mythic-chat-eventing-card-${stateClass}`.trim()}>
+            <Box className="mythic-chat-special-card-header">
+                <Box className="mythic-chat-special-card-title-wrap">
+                    <Typography className="mythic-chat-special-card-title" variant="subtitle2">{stepName}</Typography>
+                    <Typography className="mythic-chat-special-card-subtitle" variant="caption">Eventing user interaction</Typography>
+                </Box>
+                <Chip
+                    size="small"
+                    className={`mythic-chat-special-status mythic-chat-special-status-${stateClass}`.trim()}
+                    label={statusText}
+                    variant="outlined"
+                />
+            </Box>
+            <Box className="mythic-chat-special-card-prompt">{getChatEventingPrompt(snapshot)}</Box>
+            <Box className="mythic-chat-special-card-details">
+                {detailItems.map((item) => (
+                    <span className="mythic-chat-special-card-detail" key={`${message.id}-${item.label}`}>
+                        <span className="mythic-chat-special-card-detail-label">{item.label}</span>
+                        <span className="mythic-chat-special-card-detail-value">{item.value}</span>
+                    </span>
+                ))}
+            </Box>
+            <Box className="mythic-chat-special-card-footer">
+                <Typography className="mythic-chat-special-card-refresh-time" variant="caption">
+                    {refreshedAt ? `Refreshed ${formatTimestamp(refreshedAt, me?.user?.view_utc_time)}` : ""}
+                </Typography>
+                <Box className="mythic-chat-special-card-actions">
+                    <MythicStyledTooltip title="Refresh">
+                        <span>
+                            <IconButton
+                                aria-label="Refresh eventing interaction"
+                                className="mythic-chat-special-refresh-button"
+                                disabled={refreshing}
+                                onClick={() => onRefresh(message)}
+                                size="small"
+                            >
+                                <RestartAltIcon fontSize="small" />
+                            </IconButton>
+                        </span>
+                    </MythicStyledTooltip>
+                    <Button
+                        size="small"
+                        variant="contained"
+                        className="mythic-table-row-action mythic-table-row-action-hover-success"
+                        disabled={!waiting}
+                        onClick={() => onReview(message)}
+                    >
+                        Review
+                    </Button>
+                </Box>
+            </Box>
+        </Box>
+    );
+};
+
+const getMCPConfirmationStatusText = (snapshot) => {
+    const status = snapshot.status || "pending";
+    if(status === "pending"){
+        return "Needs confirmation";
+    }
+    if(status === "confirmed"){
+        return "Confirmed";
+    }
+    if(status === "rejected"){
+        return "Rejected";
+    }
+    if(status === "responded"){
+        return "Responded";
+    }
+    return status;
+};
+
+const getMCPConfirmationStateClass = (snapshot) => {
+    switch(snapshot.status || "pending"){
+        case "confirmed":
+            return "success";
+        case "rejected":
+            return "error";
+        case "responded":
+            return "queued";
+        case "pending":
+            return "waiting";
+        default:
+            return "neutral";
+    }
+};
+
+const ChatMCPToolConfirmationCard = ({message, onSubmit, submitting}) => {
+    const snapshot = getMCPToolConfirmationSnapshot(message) || {};
+    const pending = (snapshot.status || "pending") === "pending";
+    const stateClass = getMCPConfirmationStateClass(snapshot);
+    const statusText = getMCPConfirmationStatusText(snapshot);
+    const toolName = snapshot.tool_name || snapshot.server_tool_name || "MCP tool";
+    const serverName = snapshot.server_name || "unknown";
+    const argumentText = jsonTextForConfigValue(snapshot.arguments || {});
+    const detailItems = [
+        {label: "Server", value: serverName},
+        {label: "Tool", value: toolName},
+        snapshot.server_tool_name && snapshot.server_tool_name !== toolName ? {label: "MCP name", value: snapshot.server_tool_name} : null,
+        snapshot.read_only === true ? {label: "Configured access", value: "Read-only"} : {label: "Configured access", value: "Confirmation required"},
+        snapshot.resolved_by ? {label: "Resolved by", value: snapshot.resolved_by} : null,
+    ].filter(Boolean);
+    return (
+        <Box className={`mythic-chat-special-card mythic-chat-mcp-card mythic-chat-eventing-card-${stateClass}`.trim()}>
+            <Box className="mythic-chat-special-card-header">
+                <Box className="mythic-chat-special-card-title-wrap">
+                    <Typography className="mythic-chat-special-card-title" variant="subtitle2">{toolName}</Typography>
+                    <Typography className="mythic-chat-special-card-subtitle" variant="caption">MCP tool execution</Typography>
+                </Box>
+                <Chip
+                    size="small"
+                    className={`mythic-chat-special-status mythic-chat-special-status-${stateClass}`.trim()}
+                    label={statusText}
+                    variant="outlined"
+                />
+            </Box>
+            <Box className="mythic-chat-special-card-prompt">
+                {snapshot.description || "This MCP tool is write-capable unless explicitly configured as read-only."}
+            </Box>
+            <Box className="mythic-chat-special-card-details">
+                {detailItems.map((item) => (
+                    <span className="mythic-chat-special-card-detail" key={`${message.id}-${item.label}`}>
+                        <span className="mythic-chat-special-card-detail-label">{item.label}</span>
+                        <span className="mythic-chat-special-card-detail-value">{item.value}</span>
+                    </span>
+                ))}
+            </Box>
+            <Typography component="pre" variant="caption" className="mythic-chat-mcp-arguments">
+                {argumentText}
+            </Typography>
+            {snapshot.annotations && Object.keys(snapshot.annotations).length > 0 &&
+                <Typography component="pre" variant="caption" className="mythic-chat-mcp-annotations">
+                    {jsonTextForConfigValue(snapshot.annotations)}
+                </Typography>
+            }
+            <Box className="mythic-chat-special-card-footer">
+                <Typography className="mythic-chat-special-card-refresh-time" variant="caption">
+                    {snapshot.resolved_at ? `Resolved ${formatTimestamp(snapshot.resolved_at)}` : ""}
+                </Typography>
+                <Box className="mythic-chat-special-card-actions">
+                    <Button
+                        size="small"
+                        variant="contained"
+                        className="mythic-table-row-action mythic-table-row-action-hover-success"
+                        disabled={!pending || submitting}
+                        onClick={() => onSubmit(message, "confirm")}
+                    >
+                        Confirm
+                    </Button>
+                    <Button
+                        size="small"
+                        variant="outlined"
+                        disabled={!pending || submitting}
+                        onClick={() => onSubmit(message, "reject")}
+                    >
+                        Reject
+                    </Button>
+                    <Button
+                        size="small"
+                        variant="text"
+                        disabled={!pending || submitting}
+                        onClick={() => onSubmit(message, "respond")}
+                    >
+                        Respond
+                    </Button>
+                </Box>
+            </Box>
+        </Box>
+    );
+};
+
+export const MessageBubble = ({message, request, me, onEdit, onDelete, onCancel, onRetry, onRefreshSpecial, onReviewSpecial, onSubmitMCPConfirmation, refreshingSpecialMessageID, submittingMCPConfirmationID, editing, editText, setEditText, saveEdit, cancelEdit}) => {
+    const theme = useTheme();
+    const isMine = message.operator_id === me?.user?.user_id;
+    const isAI = message.author_type === "ai";
+    const isSystem = message.author_type === "system";
+    const eventingInteractionSnapshot = getEventingInteractionSnapshot(message);
+    const mcpConfirmationSnapshot = getMCPToolConfirmationSnapshot(message);
+    const eventingInteractionStateClass = eventingInteractionSnapshot ? getChatEventingStateClass(eventingInteractionSnapshot) : "";
+    const mcpConfirmationStateClass = mcpConfirmationSnapshot ? getMCPConfirmationStateClass(mcpConfirmationSnapshot) : "";
+    const canEdit = isMine && message.author_type === "operator" && !message.deleted;
+    const canDelete = !message.deleted && (isMine || message.author_type !== "operator");
+    const streaming = message.status === "pending" || message.status === "streaming";
+    const softBorderColor = theme.table?.borderSoft || theme.borderColor || theme.palette.divider;
+    const chatMessageColors = theme.chat?.message || {};
+    const markdownSurface = chatMessageColors.markdownSurface || (theme.palette.mode === "dark" ? alpha(theme.palette.common.black, 0.24) : alpha(theme.palette.common.black, 0.045));
+    const markdownSurfaceStrong = chatMessageColors.markdownSurfaceStrong || (theme.palette.mode === "dark" ? alpha(theme.palette.common.white, 0.08) : alpha(theme.palette.common.black, 0.06));
+    const messageBackgroundColor = isSystem ? chatMessageColors.systemBackground :
+        isAI ? chatMessageColors.aiBackground :
+            isMine ? chatMessageColors.selfBackground : chatMessageColors.operatorBackground;
+    return (
+        <Box className={`mythic-chat-message-row ${isMine ? "mythic-chat-message-row-mine" : ""}`}>
+            <Box
+                className={`mythic-chat-message ${isAI ? "mythic-chat-message-ai" : ""} ${isSystem ? "mythic-chat-message-system" : ""} ${eventingInteractionSnapshot ? `mythic-chat-message-special-eventing mythic-chat-message-special-eventing-${eventingInteractionStateClass}` : ""} ${mcpConfirmationSnapshot ? `mythic-chat-message-special-mcp mythic-chat-message-special-mcp-${mcpConfirmationStateClass}` : ""}`.trim()}
+                sx={{
+                    "--mythic-chat-markdown-border": softBorderColor,
+                    "--mythic-chat-markdown-surface": markdownSurface,
+                    "--mythic-chat-markdown-surface-strong": markdownSurfaceStrong,
+                    borderColor: softBorderColor,
+                    backgroundColor: messageBackgroundColor || theme.palette.background.paper,
+                    boxShadow: theme.palette.mode === "dark" ? `inset 0 1px 0 ${alpha(theme.palette.common.white, 0.05)}` : `0 1px 2px ${alpha(theme.palette.common.black, 0.06)}`,
+                }}
+            >
+                <Box className="mythic-chat-message-header">
+                    <Box className="mythic-chat-author">
+                        {isAI && <SmartToyTwoToneIcon fontSize="small" color="info" />}
+                        <span>{message.sender_display_name || message.operator?.username || "unknown"}</span>
+                        {message.edited && !message.deleted && <Chip size="small" variant="outlined" label="edited" />}
+                        {streaming && <Chip size="small" color="warning" variant="outlined" label={message.status} />}
+                    </Box>
+                    <Box className="mythic-chat-message-actions">
+                        <Typography variant="caption" color="text.secondary">{formatTimestamp(message.created_at, me?.user?.view_utc_time)}</Typography>
+                        {request && streaming &&
+                            <MythicStyledTooltip title="Cancel request">
+                                <IconButton size="small" onClick={() => onCancel(request.id)}>
+                                    <StopCircleIcon fontSize="small" />
+                                </IconButton>
+                            </MythicStyledTooltip>
+                        }
+                        {request && (message.status === "error" || message.status === "cancelled") &&
+                            <MythicStyledTooltip title="Retry request">
+                                <IconButton size="small" onClick={() => onRetry(request.id)}>
+                                    <RestartAltIcon fontSize="small" />
+                                </IconButton>
+                            </MythicStyledTooltip>
+                        }
+                        {canEdit &&
+                            <MythicStyledTooltip title="Edit message">
+                                <IconButton size="small" onClick={() => onEdit(message)}>
+                                    <EditIcon fontSize="small" />
+                                </IconButton>
+                            </MythicStyledTooltip>
+                        }
+                        {canDelete &&
+                            <MythicStyledTooltip title="Delete message">
+                                <IconButton size="small" onClick={() => onDelete(message.id)}>
+                                    <DeleteIcon fontSize="small" />
+                                </IconButton>
+                            </MythicStyledTooltip>
+                        }
+                    </Box>
+                </Box>
+                {editing ? (
+                    <Box className="mythic-chat-edit-box">
+                        <TextField
+                            fullWidth
+                            multiline
+                            minRows={2}
+                            value={editText}
+                            onChange={(e) => setEditText(e.target.value)}
+                            size="small"
+                        />
+                        <Box className="mythic-chat-edit-actions">
+                            <Button size="small" onClick={cancelEdit}>Cancel</Button>
+                            <Button size="small" variant="contained" onClick={saveEdit}>Save</Button>
+                        </Box>
+                    </Box>
+                ) : eventingInteractionSnapshot ? (
+                    <ChatEventingUserInteractionCard
+                        message={message}
+                        me={me}
+                        onRefresh={onRefreshSpecial}
+                        onReview={onReviewSpecial}
+                        refreshing={refreshingSpecialMessageID === message.id}
+                    />
+                ) : mcpConfirmationSnapshot ? (
+                    <ChatMCPToolConfirmationCard
+                        message={message}
+                        onSubmit={onSubmitMCPConfirmation}
+                        submitting={submittingMCPConfirmationID === message.id}
+                    />
+                ) : (
+                    <MarkdownMessage message={message.message} />
+                )}
+                {request?.error &&
+                    <Typography variant="caption" color="error" sx={{display: "block", mt: 0.5}}>{request.error}</Typography>
+                }
+            </Box>
+        </Box>
+    );
+};

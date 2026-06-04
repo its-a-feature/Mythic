@@ -45,16 +45,16 @@ import {EventTriggerContextSelectDialog} from "../Eventing/EventTriggerContextSe
 import PlayCircleFilledTwoToneIcon from '@mui/icons-material/PlayCircleFilledTwoTone';
 
 const ReissueTaskMutationGQL = gql`
-mutation reissueTaskMutation($task_id: Int!){
-  reissueTask(task_id: $task_id){
+mutation reissueTaskMutation($task_display_id: Int!){
+  reissueTask(task_display_id: $task_display_id){
     status
     error
   }
 }
 `;
 const ReissueTaskHandlerMutationGQL = gql`
-mutation reissueTaskHandlerMutation($task_id: Int!){
-  reissueTaskHandler(task_id: $task_id){
+mutation reissueTaskHandlerMutation($task_display_id: Int!){
+  reissueTaskHandler(task_display_id: $task_display_id){
     status
     error
   }
@@ -285,15 +285,15 @@ const SideDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput,
         })();
     };
     const onReissueTask = () => {
-        reissueTask({variables: {task_id: task.id}});
+        reissueTask({variables: {task_display_id: task.display_id}});
     }
     const onReissueTaskHandler = () => {
-        reissueTaskHandler({variables: {task_id: task.id}});
+        reissueTaskHandler({variables: {task_display_id: task.display_id}});
     }
     const onTriggerEventing = () => {
         eventingDataRef.current = {
-            name: "task_id",
-            value: task.id
+            name: "task_display_id",
+            value: task.display_id
         };
         setOpenEventingDialog(true);
     }
@@ -301,7 +301,7 @@ const SideDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput,
         <div style={{height: "100%"}}>
             {openTaskTagDialog && <MythicDialog fullWidth={true} maxWidth="lg" open={openTaskTagDialog}
                                onClose={()=>{setOpenTaskTagDialog(false);}}
-                               innerDialog={<ViewEditTagsDialog me={me} target_object={"task_id"} target_object_id={task.id} onClose={()=>{setOpenTaskTagDialog(false);}} />}
+                               innerDialog={<ViewEditTagsDialog me={me} target_object={"task_id"} target_object_id={task.id} target_object_display_id={task.display_id} onClose={()=>{setOpenTaskTagDialog(false);}} />}
                 />
             }
             {openCommentDialog && <MythicDialog fullWidth={true} maxWidth="md" open={openCommentDialog}
@@ -321,7 +321,7 @@ const SideDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput,
             }
             {openOpsecDialog.open && <MythicDialog fullWidth={true} maxWidth="lg" open={openOpsecDialog.open}
                                onClose={()=>{setOpenOpsecDialog({...openOpsecDialog, open: false});}}
-                               innerDialog={<TaskOpsecDialog task_id={task.id} view={openOpsecDialog.view} onClose={()=>{setOpenOpsecDialog({...openOpsecDialog, open: false});}} />}
+                               innerDialog={<TaskOpsecDialog task_id={task.id} task_display_id={task.display_id} view={openOpsecDialog.view} onClose={()=>{setOpenOpsecDialog({...openOpsecDialog, open: false});}} />}
                 />
             }
 
@@ -560,17 +560,17 @@ const TaskActionsToolbarGeneric = ({toggleViewBrowserScript, toggleSelectAllOutp
     closeActionsMenu();
   };
   const onReissueTask = () => {
-    reissueTask({variables: {task_id: task.id}});
+    reissueTask({variables: {task_display_id: task.display_id}});
     closeActionsMenu();
   }
   const onReissueTaskHandler = () => {
-    reissueTaskHandler({variables: {task_id: task.id}});
+    reissueTaskHandler({variables: {task_display_id: task.display_id}});
     closeActionsMenu();
   }
   const onTriggerEventing = () => {
       eventingDataRef.current = {
-          name: "task_id",
-          value: task.id
+          name: "task_display_id",
+          value: task.display_id
       };
       setOpenEventingDialog(true);
       closeActionsMenu();
@@ -579,7 +579,7 @@ const TaskActionsToolbarGeneric = ({toggleViewBrowserScript, toggleSelectAllOutp
       <React.Fragment>
         {openTaskTagDialog && <MythicDialog fullWidth={true} maxWidth="lg" open={openTaskTagDialog}
                            onClose={()=>{setOpenTaskTagDialog(false);}}
-                           innerDialog={<ViewEditTagsDialog me={me} target_object={"task_id"} target_object_id={task.id} onClose={()=>{setOpenTaskTagDialog(false);}} />}
+                           innerDialog={<ViewEditTagsDialog me={me} target_object={"task_id"} target_object_id={task.id} target_object_display_id={task.display_id} onClose={()=>{setOpenTaskTagDialog(false);}} />}
             />
         }
         {openCommentDialog && <MythicDialog fullWidth={true} maxWidth="md" open={openCommentDialog}
@@ -599,7 +599,7 @@ const TaskActionsToolbarGeneric = ({toggleViewBrowserScript, toggleSelectAllOutp
         }
         {openOpsecDialog.open && <MythicDialog fullWidth={true} maxWidth="lg" open={openOpsecDialog.open}
                            onClose={()=>{setOpenOpsecDialog({...openOpsecDialog, open: false});}}
-                           innerDialog={<TaskOpsecDialog task_id={task.id} view={openOpsecDialog.view} onClose={()=>{setOpenOpsecDialog({...openOpsecDialog, open: false});}} />}
+                           innerDialog={<TaskOpsecDialog task_id={task.id} task_display_id={task.display_id} view={openOpsecDialog.view} onClose={()=>{setOpenOpsecDialog({...openOpsecDialog, open: false});}} />}
             />
         }
 

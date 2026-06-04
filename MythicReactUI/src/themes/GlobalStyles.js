@@ -11851,7 +11851,8 @@ tspan {
     padding: 0.72rem 0.78rem;
 }
 .mythic-chat-eventing-card-waiting,
-.mythic-chat-message-special-eventing-waiting {
+.mythic-chat-message-special-eventing-waiting,
+.mythic-chat-message-special-mcp-waiting {
     --mythic-chat-special-accent-text: var(--mythic-global-038);
     --mythic-chat-special-accent-border: var(--mythic-global-037);
     --mythic-chat-special-accent-strong: var(--mythic-global-037);
@@ -11859,7 +11860,8 @@ tspan {
     --mythic-chat-special-chip-bg: var(--mythic-global-036);
 }
 .mythic-chat-eventing-card-success,
-.mythic-chat-message-special-eventing-success {
+.mythic-chat-message-special-eventing-success,
+.mythic-chat-message-special-mcp-success {
     --mythic-chat-special-accent-text: var(--mythic-global-035);
     --mythic-chat-special-accent-border: var(--mythic-global-034);
     --mythic-chat-special-accent-strong: var(--mythic-global-034);
@@ -11867,7 +11869,8 @@ tspan {
     --mythic-chat-special-chip-bg: var(--mythic-global-033);
 }
 .mythic-chat-eventing-card-error,
-.mythic-chat-message-special-eventing-error {
+.mythic-chat-message-special-eventing-error,
+.mythic-chat-message-special-mcp-error {
     --mythic-chat-special-accent-text: var(--mythic-global-048);
     --mythic-chat-special-accent-border: var(--mythic-global-058);
     --mythic-chat-special-accent-strong: var(--mythic-global-058);
@@ -11875,7 +11878,8 @@ tspan {
     --mythic-chat-special-chip-bg: var(--mythic-global-047);
 }
 .mythic-chat-eventing-card-running,
-.mythic-chat-message-special-eventing-running {
+.mythic-chat-message-special-eventing-running,
+.mythic-chat-message-special-mcp-running {
     --mythic-chat-special-accent-text: var(--mythic-global-023);
     --mythic-chat-special-accent-border: var(--mythic-global-022);
     --mythic-chat-special-accent-strong: var(--mythic-global-022);
@@ -11885,18 +11889,22 @@ tspan {
 .mythic-chat-eventing-card-queued,
 .mythic-chat-eventing-card-neutral,
 .mythic-chat-message-special-eventing-queued,
-.mythic-chat-message-special-eventing-neutral {
+.mythic-chat-message-special-eventing-neutral,
+.mythic-chat-message-special-mcp-queued,
+.mythic-chat-message-special-mcp-neutral {
     --mythic-chat-special-accent-text: var(--mythic-global-027);
     --mythic-chat-special-accent-border: var(--mythic-global-030);
     --mythic-chat-special-accent-strong: var(--mythic-global-030);
     --mythic-chat-special-accent-soft: var(--mythic-global-026);
     --mythic-chat-special-chip-bg: var(--mythic-global-026);
 }
-.mythic-chat-message-special-eventing .mythic-chat-message-header {
+.mythic-chat-message-special-eventing .mythic-chat-message-header,
+.mythic-chat-message-special-mcp .mythic-chat-message-header {
     background: linear-gradient(90deg, var(--mythic-chat-special-accent-soft), transparent 72%);
     border-bottom-color: var(--mythic-chat-special-accent-border);
 }
-.mythic-chat-message-special-eventing .mythic-chat-author > span {
+.mythic-chat-message-special-eventing .mythic-chat-author > span,
+.mythic-chat-message-special-mcp .mythic-chat-author > span {
     color: var(--mythic-chat-special-accent-text);
 }
 .mythic-chat-special-card-header {
@@ -12007,6 +12015,25 @@ tspan {
     flex: 0 0 auto;
     gap: 0.38rem;
     justify-content: flex-end;
+}
+.mythic-chat-mcp-arguments,
+.mythic-chat-mcp-annotations {
+    background-color: var(--mythic-chat-markdown-surface-strong);
+    border: 1px solid var(--mythic-chat-markdown-border);
+    border-radius: var(--mythic-global-008);
+    color: var(--mythic-global-002);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace !important;
+    font-size: 0.72rem !important;
+    line-height: 1.35 !important;
+    margin: 0 !important;
+    max-height: 14rem;
+    overflow: auto;
+    padding: 0.55rem 0.62rem;
+    white-space: pre-wrap;
+}
+.mythic-chat-mcp-annotations {
+    color: var(--mythic-global-025);
+    max-height: 8rem;
 }
 .mythic-chat-special-refresh-button.MuiIconButton-root {
     border: 1px solid var(--mythic-chat-markdown-border);
