@@ -387,6 +387,11 @@ func setRoutes(r *gin.Engine) {
 					webcontroller.CancelChatRequestWebhook)
 				noSpectators.POST("chat_retry_request_webhook",
 					webcontroller.RetryChatRequestWebhook)
+				noSpectators.POST("chat_mcp_tool_confirmation_webhook",
+					authentication.TokenScopeMiddleware([]string{
+						mythicjwt.SCOPE_CHAT_AI_WRITE,
+					}),
+					webcontroller.SubmitChatMCPToolConfirmationWebhook)
 				// creating a payload
 				noSpectators.POST("createpayload_webhook",
 					authentication.TokenScopeMiddleware([]string{

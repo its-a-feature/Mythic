@@ -27,7 +27,7 @@ type CreateTask struct {
 	TaskingLocation     *string  `json:"tasking_location,omitempty"`
 	OriginalParams      *string  `json:"original_params,omitempty"`
 	ParameterGroupName  *string  `json:"parameter_group_name,omitempty"`
-	ParentTaskId        *int     `json:"parent_task_id,omitempty"`
+	ParentTaskDisplayID *int     `json:"parent_task_display_id,omitempty"`
 	IsInteractiveTask   bool     `json:"is_interactive_task"`
 	InteractiveTaskType *int     `json:"interactive_task_type,omitempty"`
 	PayloadType         *string  `json:"payload_type,omitempty"`
@@ -78,6 +78,19 @@ func CreateTaskWebhook(c *gin.Context) {
 		rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Starting to task %d callbacks with \"%s\"", len(callbacks), input.Input.Command),
 			operatorOperation.CurrentOperation.ID, "mass_tasking", database.MESSAGE_LEVEL_INFO, false)
 	}
+	var parentTaskID *int
+	if input.Input.ParentTaskDisplayID != nil {
+		parentTask, err := getTaskByDisplayIDForOperation(*input.Input.ParentTaskDisplayID, operatorOperation.CurrentOperation.ID)
+		if err != nil {
+			logging.LogError(err, "Failed to resolve parent task display id when creating a task")
+			c.JSON(http.StatusOK, rabbitmq.CreateTaskResponse{
+				Status: "error",
+				Error:  "Failed to find parent task in current operation",
+			})
+			return
+		}
+		parentTaskID = &parentTask.ID
+	}
 	eventStepInstanceID := 0
 	apitokensID := 0
 	if claims != nil {
@@ -97,7 +110,7 @@ func CreateTaskWebhook(c *gin.Context) {
 		ParameterGroupName:  input.Input.ParameterGroupName,
 		FileIDs:             input.Input.Files,
 		Token:               input.Input.Token,
-		ParentTaskID:        input.Input.ParentTaskId,
+		ParentTaskID:        parentTaskID,
 		IsInteractiveTask:   input.Input.IsInteractiveTask,
 		InteractiveTaskType: input.Input.InteractiveTaskType,
 		EventStepInstanceID: eventStepInstanceID,
@@ -112,12 +125,12 @@ func CreateTaskWebhook(c *gin.Context) {
 	logging.LogDebug("got creating tasking from web", "createTasking", createTaskInput)
 	c.JSON(http.StatusOK, rabbitmq.CreateTask(createTaskInput))
 	if len(callbacks) > 1 {
-		go issueMassTasking(input, callbacks[1:], operatorOperation, eventStepInstanceID, apitokensID, authContext)
+		go issueMassTasking(input, callbacks[1:], parentTaskID, operatorOperation, eventStepInstanceID, apitokensID, authContext)
 	}
 	return
 
 }
-func issueMassTasking(input CreateTaskInput, callbacks []int, operatorOperation *databaseStructs.Operatoroperation,
+func issueMassTasking(input CreateTaskInput, callbacks []int, parentTaskID *int, operatorOperation *databaseStructs.Operatoroperation,
 	eventStepInstanceID int, apitokensID int, authContext rabbitmq.RabbitMQAuthContext) {
 	for indx, callbackDisplayID := range callbacks {
 		logging.LogInfo("Creating mass tasking", "task num", indx+2, "total tasks", len(callbacks))
@@ -133,7 +146,7 @@ func issueMassTasking(input CreateTaskInput, callbacks []int, operatorOperation 
 			ParameterGroupName:  input.Input.ParameterGroupName,
 			FileIDs:             input.Input.Files,
 			Token:               input.Input.Token,
-			ParentTaskID:        input.Input.ParentTaskId,
+			ParentTaskID:        parentTaskID,
 			IsInteractiveTask:   input.Input.IsInteractiveTask,
 			InteractiveTaskType: input.Input.InteractiveTaskType,
 			EventStepInstanceID: eventStepInstanceID,

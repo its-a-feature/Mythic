@@ -15,12 +15,12 @@ type ArtifactCreateInput struct {
 }
 
 type ArtifactCreate struct {
-	TaskID       int    `json:"task_id"`
-	BaseArtifact string `json:"base_artifact" binding:"required"`
-	Artifact     string `json:"artifact" binding:"required"`
-	NeedsCleanup bool   `json:"needs_cleanup"`
-	Resolved     bool   `json:"resolved"`
-	Host         string `json:"host"`
+	TaskDisplayID int    `json:"task_display_id"`
+	BaseArtifact  string `json:"base_artifact" binding:"required"`
+	Artifact      string `json:"artifact" binding:"required"`
+	NeedsCleanup  bool   `json:"needs_cleanup"`
+	Resolved      bool   `json:"resolved"`
+	Host          string `json:"host"`
 }
 
 type ArtifactCreateResponse struct {
@@ -66,10 +66,8 @@ func ArtifactCreateWebhook(c *gin.Context) {
 		NeedsCleanup: input.Input.NeedsCleanup,
 		Resolved:     input.Input.Resolved,
 	}
-	if input.Input.TaskID > 0 {
-		task := databaseStructs.Task{}
-		err = database.DB.Get(&task, `SELECT id, callback_id FROM task WHERE id=$1 AND operation_id=$2`,
-			input.Input.TaskID, operatorOperation.CurrentOperation.ID)
+	if input.Input.TaskDisplayID > 0 {
+		task, err := getTaskByDisplayIDForOperation(input.Input.TaskDisplayID, operatorOperation.CurrentOperation.ID)
 		if err != nil {
 			logging.LogError(err, "Failed to find task")
 			c.JSON(http.StatusOK, ArtifactCreateResponse{

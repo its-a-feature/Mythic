@@ -391,7 +391,7 @@ export function CallbacksGraph({onOpenTab}){
             {openParametersDialog &&
                 <MythicDialog fullWidth={true} maxWidth="lg" open={openParametersDialog} 
                     onClose={()=>{setOpenParametersDialog(false);}} 
-                    innerDialog={<TaskParametersDialog command={selectedLinkCommand} callback={selectedCallback} onSubmit={submitParametersDialog} onClose={()=>{setOpenParametersDialog(false);}} />}
+                    innerDialog={<TaskParametersDialog command={selectedLinkCommand} callback={selectedCallback} callback_display_id={selectedCallback?.display_id} onSubmit={submitParametersDialog} onClose={()=>{setOpenParametersDialog(false);}} />}
                 />
             }
             {openSelectLinkCommandDialog &&

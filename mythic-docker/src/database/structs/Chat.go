@@ -13,6 +13,7 @@ const (
 
 	ChatMessageAuthorOperator = "operator"
 	ChatMessageAuthorSystem   = "system"
+	ChatMessageAuthorAI       = "ai"
 
 	ChatMessageStatusStreaming = "streaming"
 	ChatMessageStatusComplete  = "complete"

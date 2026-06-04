@@ -516,7 +516,7 @@ export const CallbacksTableSleepCell = React.memo( ({rowData, cellData, updateSl
 export const CallbacksTableTagsCell = React.memo(({rowData, cellData}) => {
     return (
         <div className="mythic-tag-cell mythic-tag-cell-fill">
-            <ViewEditTags target_object={"callback_id"} target_object_id={rowData.id} />
+            <ViewEditTags target_object={"callback_id"} target_object_id={rowData.id} target_object_display_id={rowData.display_id} />
             <div className="mythic-tag-list mythic-callback-tag-list">
                 {cellData?.length > 0 ?
                     <TagsDisplay tags={cellData} expand={false} /> :

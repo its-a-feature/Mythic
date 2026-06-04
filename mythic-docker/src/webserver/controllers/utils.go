@@ -23,6 +23,26 @@ func GetUserIDFromGin(c *gin.Context) (int, error) {
 	return customClaims.UserID, nil
 }
 
+func getTaskByDisplayIDForOperation(taskDisplayID int, operationID int) (databaseStructs.Task, error) {
+	task := databaseStructs.Task{}
+	err := database.DB.Get(&task, `SELECT * FROM task WHERE display_id=$1 AND operation_id=$2`,
+		taskDisplayID, operationID)
+	if err != nil {
+		return task, fmt.Errorf("failed to find task with display_id %d in current operation: %w", taskDisplayID, err)
+	}
+	return task, nil
+}
+
+func getCallbackByDisplayIDForOperation(callbackDisplayID int, operationID int) (databaseStructs.Callback, error) {
+	callback := databaseStructs.Callback{}
+	err := database.DB.Get(&callback, `SELECT * FROM callback WHERE display_id=$1 AND operation_id=$2`,
+		callbackDisplayID, operationID)
+	if err != nil {
+		return callback, fmt.Errorf("failed to find callback with display_id %d in current operation: %w", callbackDisplayID, err)
+	}
+	return callback, nil
+}
+
 const (
 	tagTypePreview               = "FilePreviewed"
 	tagTypePreviewDescription    = "The file was previewed in the UI by an operator"

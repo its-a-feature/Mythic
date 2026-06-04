@@ -2,6 +2,7 @@ package webcontroller
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -63,6 +64,16 @@ type RefreshChatSpecialMessageInput struct {
 
 type RefreshChatSpecialMessage struct {
 	MessageID int `json:"message_id" binding:"required"`
+}
+
+type SubmitChatMCPToolConfirmationInput struct {
+	Input SubmitChatMCPToolConfirmation `json:"input" binding:"required"`
+}
+
+type SubmitChatMCPToolConfirmation struct {
+	MessageID int    `json:"message_id" binding:"required"`
+	Decision  string `json:"decision" binding:"required"`
+	Response  string `json:"response"`
 }
 
 type ChatSearchInput struct {
@@ -457,6 +468,161 @@ func RefreshChatSpecialMessageWebhook(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", ID: chatMessage.ID, MessageID: chatMessage.ID, ChannelID: channel.ID})
+}
+
+func SubmitChatMCPToolConfirmationWebhook(c *gin.Context) {
+	var input SubmitChatMCPToolConfirmationInput
+	if !bindChatInput(c, &input) {
+		return
+	}
+	operatorOperation, ok := chatOperatorOperation(c)
+	if !ok {
+		return
+	}
+	decision := strings.ToLower(strings.TrimSpace(input.Input.Decision))
+	if decision != "confirm" && decision != "reject" && decision != "respond" {
+		chatRespondError(c, "decision must be confirm, reject, or respond")
+		return
+	}
+	response := strings.TrimSpace(input.Input.Response)
+	if decision == "respond" && response == "" {
+		chatRespondError(c, "response is required")
+		return
+	}
+	chatMessage, channel, err := getChatMessageAndChannel(input.Input.MessageID, operatorOperation.CurrentOperation.ID)
+	if err != nil {
+		logging.LogError(err, "Failed to find MCP tool confirmation message")
+		chatRespondError(c, "failed to find chat message")
+		return
+	}
+	if !chatRequireScope(c, chatScopeForChannel(channel, true)) {
+		return
+	}
+	if channel.ChannelType != databaseStructs.ChatChannelTypeAI {
+		chatRespondError(c, "MCP tool confirmations are only valid in AI chat channels")
+		return
+	}
+	if channel.Archived {
+		chatRespondError(c, "cannot respond in an archived chat channel")
+		return
+	}
+	if !chatCanPostToAIChannel(operatorOperation, channel) {
+		chatRespondError(c, "this AI chat is locked to another operator")
+		return
+	}
+	if chatMessage.Deleted {
+		chatRespondError(c, "cannot respond to a deleted chat message")
+		return
+	}
+	if chatMessage.AuthorType != databaseStructs.ChatMessageAuthorAI {
+		chatRespondError(c, "MCP tool confirmations must come from AI messages")
+		return
+	}
+	metadata := chatMessage.Metadata.StructValue()
+	if metadata["special_type"] != chatSpecialTypeMCPToolConfirmation {
+		chatRespondError(c, "chat message is not an MCP tool confirmation")
+		return
+	}
+	confirmation, ok := metadata[chatSpecialTypeMCPToolConfirmation].(map[string]interface{})
+	if !ok {
+		chatRespondError(c, "MCP tool confirmation metadata is missing")
+		return
+	}
+	status, _ := confirmation["status"].(string)
+	if status != chatMCPToolConfirmationStatusPending {
+		chatRespondError(c, "MCP tool confirmation is no longer pending")
+		return
+	}
+	if decision == "confirm" || decision == "respond" {
+		activeRequestID, err := getActiveAIChatRequest(operatorOperation.CurrentOperation.ID, channel.ID)
+		if err != nil {
+			logging.LogError(err, "Failed to check active AI chat request before MCP confirmation")
+			chatRespondError(c, err.Error())
+			return
+		}
+		if activeRequestID > 0 {
+			chatRespondError(c, fmt.Sprintf("AI chat request %d is still in progress; wait for it to finish or cancel it before responding", activeRequestID))
+			return
+		}
+	}
+
+	updatedConfirmation := chatCopyMetadataMap(confirmation)
+	switch decision {
+	case "confirm":
+		updatedConfirmation["status"] = chatMCPToolConfirmationStatusConfirmed
+	case "reject":
+		updatedConfirmation["status"] = chatMCPToolConfirmationStatusRejected
+	case "respond":
+		updatedConfirmation["status"] = chatMCPToolConfirmationStatusResponded
+		updatedConfirmation["response"] = response
+	}
+	updatedConfirmation["resolved_by_operator_id"] = operatorOperation.CurrentOperator.ID
+	updatedConfirmation["resolved_by"] = operatorOperation.CurrentOperator.Username
+	updatedConfirmation["resolved_at"] = time.Now().UTC().Format(time.RFC3339)
+	metadata[chatSpecialTypeMCPToolConfirmation] = updatedConfirmation
+	metadata["updated_by_operator_id"] = operatorOperation.CurrentOperator.ID
+	metadata["updated_by"] = operatorOperation.CurrentOperator.Username
+	metadata["updated_at"] = time.Now().UTC().Format(time.RFC3339)
+	metadataText := rabbitmq.GetMythicJSONTextFromStruct(metadata)
+	result, err := database.DB.Exec(`UPDATE chat_message
+		SET metadata=$3::jsonb, updated_at=now()
+		WHERE id=$1
+			AND operation_id=$2
+			AND deleted=false
+			AND metadata->>'special_type'=$4
+			AND metadata->'mcp_tool_confirmation'->>'status'=$5`,
+		chatMessage.ID,
+		operatorOperation.CurrentOperation.ID,
+		metadataText.String(),
+		chatSpecialTypeMCPToolConfirmation,
+		chatMCPToolConfirmationStatusPending,
+	)
+	if err != nil {
+		logging.LogError(err, "Failed to update MCP tool confirmation message")
+		chatRespondError(c, err.Error())
+		return
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		logging.LogError(err, "Failed to check MCP confirmation rows affected")
+		rowsAffected = 0
+	}
+	if rowsAffected == 0 {
+		chatRespondError(c, "MCP tool confirmation is no longer pending")
+		return
+	}
+
+	actionMetadata := map[string]interface{}{
+		"mcp_tool_confirmation_action": map[string]interface{}{
+			"decision":                decision,
+			"confirmation_message_id": chatMessage.ID,
+			"tool_name":               updatedConfirmation["tool_name"],
+			"server_name":             updatedConfirmation["server_name"],
+		},
+	}
+	switch decision {
+	case "confirm":
+		toolCall := chatCopyMetadataMap(updatedConfirmation)
+		toolCall["confirmation_message_id"] = chatMessage.ID
+		delete(toolCall, "status")
+		delete(toolCall, "resolved_by_operator_id")
+		delete(toolCall, "resolved_by")
+		delete(toolCall, "resolved_at")
+		prompt := fmt.Sprintf("Approved MCP tool call %s.", chatMCPToolDisplayName(updatedConfirmation))
+		createAIChatMessageWithOptions(c, operatorOperation, channel, prompt, aiChatRequestOptions{
+			RequestMessageMetadata: actionMetadata,
+			ConfirmedToolCall:      toolCall,
+		})
+		return
+	case "respond":
+		actionMetadata["mcp_tool_confirmation_action"].(map[string]interface{})["response"] = response
+		createAIChatMessageWithOptions(c, operatorOperation, channel, response, aiChatRequestOptions{
+			RequestMessageMetadata: actionMetadata,
+		})
+		return
+	default:
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "success", ID: chatMessage.ID, MessageID: chatMessage.ID, ChannelID: channel.ID})
+	}
 }
 
 func ChatSearchWebhook(c *gin.Context) {

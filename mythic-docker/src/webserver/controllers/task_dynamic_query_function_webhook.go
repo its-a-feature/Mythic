@@ -17,11 +17,11 @@ type PayloadTypeDynamicQueryFunctionInput struct {
 }
 
 type PayloadTypeDynamicQueryFunction struct {
-	Command         string                 `json:"command" binding:"required"`
-	ParameterName   string                 `json:"parameter_name" binding:"required"`
-	PayloadType     string                 `json:"payload_type" binding:"required"`
-	Callback        int                    `json:"callback" binding:"required"`
-	OtherParameters map[string]interface{} `json:"other_parameters"`
+	Command           string                 `json:"command" binding:"required"`
+	ParameterName     string                 `json:"parameter_name" binding:"required"`
+	PayloadType       string                 `json:"payload_type" binding:"required"`
+	CallbackDisplayID int                    `json:"callback_display_id" binding:"required"`
+	OtherParameters   map[string]interface{} `json:"other_parameters"`
 }
 
 type PayloadTypeDynamicQueryFunctionResponse struct {
@@ -64,6 +64,16 @@ func PayloadTypeDynamicQueryFunctionWebhook(c *gin.Context) {
 		})
 		return
 	}
+	callback, err := getCallbackByDisplayIDForOperation(input.Input.CallbackDisplayID, int(user.CurrentOperationID.Int64))
+	if err != nil {
+		logging.LogError(err, "Failed to resolve callback display id for dynamic query")
+		c.JSON(http.StatusOK, PayloadTypeDynamicQueryFunctionResponse{
+			Status:        rabbitmq.PT_DYNAMIC_QUERY_FUNCTION_STATUS_ERROR,
+			Error:         "Failed to find callback in current operation",
+			ParameterName: input.Input.ParameterName,
+		})
+		return
+	}
 	loadedCommand := databaseStructs.Loadedcommands{}
 	err = database.DB.Get(&loadedCommand, `SELECT
     payloadtype.name "command.payloadtype.name"
@@ -72,7 +82,7 @@ func PayloadTypeDynamicQueryFunctionWebhook(c *gin.Context) {
     JOIN payloadtype ON command.payload_type_id = payloadtype.id
     JOIN callback ON loadedcommands.callback_id = callback.id
     WHERE callback_id = $1 AND command.cmd=$2 AND payloadtype.name=$3 AND callback.operation_id=$4`,
-		input.Input.Callback, input.Input.Command, input.Input.PayloadType, user.CurrentOperationID.Int64)
+		callback.ID, input.Input.Command, input.Input.PayloadType, user.CurrentOperationID.Int64)
 	if err != nil {
 		logging.LogError(err, "Failed to get command from loaded commands")
 		c.JSON(http.StatusOK, PayloadTypeDynamicQueryFunctionResponse{
@@ -86,7 +96,7 @@ func PayloadTypeDynamicQueryFunctionWebhook(c *gin.Context) {
 		Command:            input.Input.Command,
 		CommandPayloadType: loadedCommand.Command.Payloadtype.Name,
 		ParameterName:      input.Input.ParameterName,
-		Callback:           input.Input.Callback,
+		Callback:           callback.ID,
 		Secrets:            user.Secrets.StructValue(),
 		OtherParameters:    input.Input.OtherParameters,
 	}, authentication.RabbitMQAuthContextFromGin(c))

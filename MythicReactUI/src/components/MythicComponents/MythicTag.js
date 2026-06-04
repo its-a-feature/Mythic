@@ -33,12 +33,22 @@ import {
   MythicFormNote
 } from "./MythicDialogLayout";
 
+const getCreateTagTargetObject = (target_object) => {
+  if(target_object === "task_id"){
+    return "task_display_id";
+  } else if(target_object === "callback_id"){
+    return "callback_display_id";
+  }
+  return target_object;
+}
+
 const createNewTagMutationTemplate = ({target_object}) => {
+  const createTagTargetObject = getCreateTagTargetObject(target_object);
   // target_object should be something like "task_id"
   // target_object_id should be something like "89"
   return gql`
-  mutation createNewTag($url: String!, $data: jsonb!, $source: String!, $${target_object}: Int!, $tagtype_id: Int!){
-    createTag(url: $url, data: $data, source: $source, ${target_object}: $${target_object}, tagtype_id: $tagtype_id){
+  mutation createNewTag($url: String!, $data: jsonb!, $source: String!, $${createTagTargetObject}: Int!, $tagtype_id: Int!){
+    createTag(url: $url, data: $data, source: $source, ${createTagTargetObject}: $${createTagTargetObject}, tagtype_id: $tagtype_id){
       id
       status
       error
@@ -536,7 +546,8 @@ return (
           onClose={()=>{setOpenNewDialog(false);}} 
           innerDialog={<NewTagDialog me={props.me} 
             target_object={props.target_object} 
-            target_object_id={props.target_object_id} 
+            target_object_id={props.target_object_id}
+            target_object_display_id={props.target_object_display_id}
             onClose={()=>{setOpenNewDialog(false);}} 
             onSubmit={handleNewTagCreate} />}
       />}
@@ -698,7 +709,7 @@ export function NewTagDialog(props) {
     newTag({variables: 
       {source:newSource, url:newURL, data:newData, 
       tagtype_id:selectedTagType.id, 
-      [props.target_object]: props.target_object_id
+      [getCreateTagTargetObject(props.target_object)]: props.target_object_display_id || props.target_object_id
     }})
   }
   const onChangeSource = (name, value, error) => {
@@ -813,7 +824,7 @@ export function NewTagDialog(props) {
   </React.Fragment>
   );
 }
-export const ViewEditTags = ({target_object, target_object_id}) => {
+export const ViewEditTags = ({target_object, target_object_id, target_object_display_id}) => {
   const me = useReactiveVar(meState);
   const [openTagDialog, setOpenTagDialog] = React.useState(false);
   const toggleTagDialog = (event, open) => {
@@ -832,7 +843,7 @@ export const ViewEditTags = ({target_object, target_object_id}) => {
     {openTagDialog &&
       <MythicDialog fullWidth={true} maxWidth="xl" open={openTagDialog}
         onClose={(e)=>{toggleTagDialog(e, false)}}
-        innerDialog={<ViewEditTagsDialog me={me} target_object={target_object} target_object_id={target_object_id} onClose={(e)=>{toggleTagDialog(e, false)}} />}
+        innerDialog={<ViewEditTagsDialog me={me} target_object={target_object} target_object_id={target_object_id} target_object_display_id={target_object_display_id} onClose={(e)=>{toggleTagDialog(e, false)}} />}
     />}
     </React.Fragment>
   )

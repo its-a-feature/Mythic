@@ -595,8 +595,8 @@ function CallbacksTablePreMemo(props){
                         name: "Start Eventing Workflow", icon: callbackMenuIcon(<PlayCircleFilledTwoToneIcon fontSize="small" />), className: "mythic-callback-action-menu-item",
                         click: ({event}) => {
                             eventingDataRef.current = {
-                                name: "callback_id",
-                                value: rowDataStatic.id
+                                name: "callback_display_id",
+                                value: rowDataStatic.display_id
                             };
                             setOpenEventingDialog(true);
                         }
@@ -681,7 +681,7 @@ function CallbacksTablePreMemo(props){
                     {
                         name: "Export Callback", icon: callbackMenuIcon(<ImportExportIcon fontSize="small" />), className: "mythic-callback-action-menu-item", click: ({event}) => {
                             event.stopPropagation();
-                            exportConfig({variables: {agent_callback_id: rowDataStatic.agent_callback_id}});
+                            exportConfig({variables: {callback_display_id: rowDataStatic.display_id}});
                         }
                     },
                     {
@@ -1099,8 +1099,8 @@ function CallbacksTablePreMemo(props){
     }
     const onSubmitSelectMultiple = (callbacks) => {
         eventingDataRef.current = {
-            trigger_context_type: "callback_id",
-            trigger_context_ids: callbacks.map(c => c.id)
+            trigger_context_type: "callback_display_id",
+            trigger_context_ids: callbacks.map(c => c.display_id)
         };
         setOpenEventingDialog(true);
     }

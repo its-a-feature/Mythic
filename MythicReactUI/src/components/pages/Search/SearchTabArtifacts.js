@@ -133,8 +133,8 @@ query taskQuery($callback_id: Int!, $offset: Int!, $fetchLimit: Int!, $needs_cle
 }
 `;
 const createArtifactMutation = gql`
-mutation createNewArtifact($task_id: Int, $base_artifact: String!, $artifact: String!, $needs_cleanup: Boolean, $resolved: Boolean, $host: String){
-    createArtifact(task_id: $task_id, base_artifact: $base_artifact, artifact: $artifact, needs_cleanup: $needs_cleanup, resolved: $resolved, host: $host){
+mutation createNewArtifact($task_display_id: Int, $base_artifact: String!, $artifact: String!, $needs_cleanup: Boolean, $resolved: Boolean, $host: String){
+    createArtifact(task_display_id: $task_display_id, base_artifact: $base_artifact, artifact: $artifact, needs_cleanup: $needs_cleanup, resolved: $resolved, host: $host){
         id
         status
         error

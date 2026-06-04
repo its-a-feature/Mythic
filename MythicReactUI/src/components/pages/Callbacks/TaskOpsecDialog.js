@@ -9,8 +9,8 @@ import { snackActions } from '../../utilities/Snackbar';
 import {MythicModifyStringDialog} from "../../MythicComponents/MythicDialog";
 
 const updateOpsecRequestMutation = gql`
-mutation requestOpsecBypass ($task_id: Int!) {
-    requestOpsecBypass(task_id: $task_id){
+mutation requestOpsecBypass ($task_display_id: Int!) {
+    requestOpsecBypass(task_display_id: $task_display_id){
         status
         error
     }
@@ -87,7 +87,7 @@ export function TaskOpsecDialog(props) {
     const requestAvailable = (opsecData.opsec_pre_blocked === true && !opsecData.opsec_pre_bypassed) || (opsecData.opsec_post_blocked === true && !opsecData.opsec_post_bypassed);
     const onRequestSubmit = () => {
        //console.log(props.task_id);
-        updateOpsecRequest({variables: {task_id: props.task_id}});
+        updateOpsecRequest({variables: {task_display_id: props.task_display_id}});
         props.onClose();
     }
   
@@ -105,4 +105,3 @@ export function TaskOpsecDialog(props) {
   </React.Fragment>
   );
 }
-

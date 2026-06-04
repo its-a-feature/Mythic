@@ -3,15 +3,17 @@ package rabbitmq
 import (
 	"time"
 
+	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
 )
 
 type ChatContainerContextMessage struct {
-	ID                int       `db:"id" json:"id" mapstructure:"id"`
-	AuthorType        string    `db:"author_type" json:"author_type" mapstructure:"author_type"`
-	SenderDisplayName string    `db:"sender_display_name" json:"sender_display_name" mapstructure:"sender_display_name"`
-	Message           string    `db:"message" json:"message" mapstructure:"message"`
-	CreatedAt         time.Time `db:"created_at" json:"created_at" mapstructure:"created_at"`
+	ID                int                            `db:"id" json:"id" mapstructure:"id"`
+	AuthorType        string                         `db:"author_type" json:"author_type" mapstructure:"author_type"`
+	SenderDisplayName string                         `db:"sender_display_name" json:"sender_display_name" mapstructure:"sender_display_name"`
+	Message           string                         `db:"message" json:"message" mapstructure:"message"`
+	Metadata          databaseStructs.MythicJSONText `db:"metadata" json:"metadata" mapstructure:"metadata"`
+	CreatedAt         time.Time                      `db:"created_at" json:"created_at" mapstructure:"created_at"`
 }
 
 type ChatContainerRequestMessage struct {
@@ -29,6 +31,7 @@ type ChatContainerRequestMessage struct {
 	Config            map[string]interface{}        `json:"config" mapstructure:"config"`
 	Context           []ChatContainerContextMessage `json:"context" mapstructure:"context"`
 	Secrets           map[string]interface{}        `json:"secrets" mapstructure:"secrets"`
+	ConfirmedToolCall map[string]interface{}        `json:"confirmed_tool_call,omitempty" mapstructure:"confirmed_tool_call"`
 }
 
 type ChatContainerCancelRequestMessage struct {

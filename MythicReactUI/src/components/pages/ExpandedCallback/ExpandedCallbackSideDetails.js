@@ -209,7 +209,7 @@ export function ExpandedCallbackSideDetailsTable(props){
                 <TableRow>
                     <TableCell>Tags</TableCell>
                     <TableCell>
-                        <ViewEditTags target_object={"callback_id"} target_object_id={props.id} />
+                        <ViewEditTags target_object={"callback_id"} target_object_id={props.id} target_object_display_id={props.display_id} />
                         <TagsDisplay tags={props.tags} />
                     </TableCell>
                 </TableRow>

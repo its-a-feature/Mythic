@@ -16,7 +16,7 @@ type RequestOpsecBypassInput struct {
 	Input RequestOpsecBypass `json:"input" binding:"required"`
 }
 type RequestOpsecBypass struct {
-	TaskID int `json:"task_id" binding:"required"`
+	TaskDisplayID int `json:"task_display_id" binding:"required"`
 }
 
 // this function called from webhook_endpoint through the UI or scripting
@@ -35,8 +35,14 @@ func RequestOpsecBypassWebhook(c *gin.Context) {
 		return
 	}
 	operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
+	task, err := getTaskByDisplayIDForOperation(input.Input.TaskDisplayID, operatorOperation.CurrentOperation.ID)
+	if err != nil {
+		logging.LogError(err, "Failed to resolve task display id for RequestOpsecBypassWebhook")
+		c.JSON(http.StatusOK, gin.H{"status": "error", "error": "Failed to find task in current operation"})
+		return
+	}
 	c.JSON(http.StatusOK, rabbitmq.RequestOpsecBypass(rabbitmq.RequestOpsecBypassMessage{
-		TaskID:            input.Input.TaskID,
+		TaskID:            task.ID,
 		OperatorOperation: operatorOperation,
 		AuthContext:       authentication.RabbitMQAuthContextFromGin(c),
 	}))

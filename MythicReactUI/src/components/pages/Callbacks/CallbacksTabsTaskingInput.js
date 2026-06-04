@@ -818,7 +818,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                                 setBackdropOpen(true);
                                 //snackActions.info("Querying payload type container for options...",   snackMessageStyles);
                                 getDynamicParams({variables:{
-                                        callback: props.callback_id,
+                                        callback_display_id: props.callback_display_id,
                                         parameter_name: lastSuppliedParameter.name,
                                         command: cmd.cmd,
                                         payload_type: cmd.payloadtype.name
@@ -973,7 +973,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                                     setBackdropOpen(true);
                                     //snackActions.info("Querying payload type container for options...",   snackMessageStyles);
                                     getDynamicParams({variables:{
-                                            callback: props.callback_id,
+                                            callback_display_id: props.callback_display_id,
                                             parameter_name: lastSuppliedParameter.name,
                                             command: cmd.cmd,
                                             payload_type: cmd.payloadtype.name

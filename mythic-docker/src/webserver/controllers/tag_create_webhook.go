@@ -23,15 +23,15 @@ type TagCreate struct {
 	URL       string      `json:"url"`
 	Source    string      `json:"source"`
 	// what is this tag tagging
-	MythicTreeID   *int `json:"mythictree_id"`
-	FileMetaID     *int `json:"filemeta_id"`
-	CredentialID   *int `json:"credential_id"`
-	TaskID         *int `json:"task_id"`
-	TaskArtifactID *int `json:"taskartifact_id"`
-	KeylogID       *int `json:"keylog_id"`
-	ResponseID     *int `json:"response_id"`
-	PayloadID      *int `json:"payload_id"`
-	CallbackID     *int `json:"callback_id"`
+	MythicTreeID      *int `json:"mythictree_id"`
+	FileMetaID        *int `json:"filemeta_id"`
+	CredentialID      *int `json:"credential_id"`
+	TaskDisplayID     *int `json:"task_display_id"`
+	TaskArtifactID    *int `json:"taskartifact_id"`
+	KeylogID          *int `json:"keylog_id"`
+	ResponseID        *int `json:"response_id"`
+	PayloadID         *int `json:"payload_id"`
+	CallbackDisplayID *int `json:"callback_display_id"`
 }
 type TagCreateResponse struct {
 	Status string `json:"status"`
@@ -127,10 +127,8 @@ func TagCreateWebhook(c *gin.Context) {
 		databaseObj.FileMeta.Int64 = int64(fileMeta.ID)
 		associatedWithValidObject = true
 	}
-	if input.Input.TaskID != nil {
-		task := databaseStructs.Task{}
-		err = database.DB.Get(&task, `SELECT id FROM task WHERE id=$1 AND operation_id=$2`,
-			*input.Input.TaskID, operatorOperation.CurrentOperation.ID)
+	if input.Input.TaskDisplayID != nil {
+		task, err := getTaskByDisplayIDForOperation(*input.Input.TaskDisplayID, operatorOperation.CurrentOperation.ID)
 		if err != nil {
 			logging.LogError(nil, "Failed to get task info")
 			c.JSON(http.StatusOK, gin.H{
@@ -223,10 +221,8 @@ func TagCreateWebhook(c *gin.Context) {
 		databaseObj.Payload.Int64 = int64(payload.ID)
 		associatedWithValidObject = true
 	}
-	if input.Input.CallbackID != nil {
-		callback := databaseStructs.Callback{}
-		err = database.DB.Get(&callback, `SELECT id FROM callback WHERE id=$1 AND operation_id=$2`,
-			*input.Input.CallbackID, operatorOperation.CurrentOperation.ID)
+	if input.Input.CallbackDisplayID != nil {
+		callback, err := getCallbackByDisplayIDForOperation(*input.Input.CallbackDisplayID, operatorOperation.CurrentOperation.ID)
 		if err != nil {
 			logging.LogError(nil, "Failed to get callback info")
 			c.JSON(http.StatusOK, gin.H{

@@ -803,12 +803,12 @@ export const ResponseDisplayInteractive = (props) =>{
                 tasking_location: "command_line",
                 original_params: originalParams !== undefined ? originalParams : params,
                 parameter_group_name: "default",
-                parent_task_id: props.task.id,
+                parent_task_display_id: props.task.display_id,
                 is_interactive_task: true,
                 interactive_task_type: interactiveTaskType,
             }});
         addPendingInputEvent(pendingLabel || getTerminalInputLabel(originalParams !== undefined ? originalParams : params));
-    }, [addPendingInputEvent, canSendTerminalInput, createTask, props.task.callback.display_id, props.task.command.cmd, props.task.id]);
+    }, [addPendingInputEvent, canSendTerminalInput, createTask, props.task.callback.display_id, props.task.command.cmd, props.task.display_id]);
     const sendTerminalData = React.useCallback( (terminalData) => {
         const controlInput = CONTROL_INPUTS_BY_DATA[terminalData];
         if(controlInput){

@@ -148,7 +148,7 @@ func CreateEventGroupApprovalEntry(operatorId int, operationId int, eventgroupId
 	}
 	return err
 }
-func getTriggerData(triggerMetadata map[string]interface{}) map[string]interface{} {
+func getTriggerData(triggerMetadata map[string]interface{}, operationID int) map[string]interface{} {
 	triggerData := make(map[string]interface{})
 	for key, value := range triggerMetadata {
 		switch key {
@@ -170,7 +170,23 @@ func getTriggerData(triggerMetadata map[string]interface{}) map[string]interface
 			}
 		case "callback_id":
 			payload := databaseStructs.Callback{}
-			err := database.DB.Get(&payload, `SELECT * FROM callback WHERE id=$1`, value)
+			err := database.DB.Get(&payload, `SELECT * FROM callback WHERE id=$1 AND operation_id=$2`, value, operationID)
+			if err != nil {
+				logging.LogError(err, "Failed to get callback")
+				return triggerData
+			}
+			triggerBytes, err := json.Marshal(payload)
+			if err != nil {
+				logging.LogError(err, "failed to marshal callback into bytes for saving trigger metadata")
+				return triggerData
+			}
+			err = json.Unmarshal(triggerBytes, &triggerData)
+			if err != nil {
+				logging.LogError(err, "failed to decode callback into struct")
+			}
+		case "callback_display_id":
+			payload := databaseStructs.Callback{}
+			err := database.DB.Get(&payload, `SELECT * FROM callback WHERE display_id=$1 AND operation_id=$2`, value, operationID)
 			if err != nil {
 				logging.LogError(err, "Failed to get callback")
 				return triggerData
@@ -186,7 +202,23 @@ func getTriggerData(triggerMetadata map[string]interface{}) map[string]interface
 			}
 		case "task_id":
 			payload := databaseStructs.Task{}
-			err := database.DB.Get(&payload, `SELECT * FROM task WHERE id=$1`, value)
+			err := database.DB.Get(&payload, `SELECT * FROM task WHERE id=$1 AND operation_id=$2`, value, operationID)
+			if err != nil {
+				logging.LogError(err, "Failed to get task")
+				return triggerData
+			}
+			triggerBytes, err := json.Marshal(payload)
+			if err != nil {
+				logging.LogError(err, "failed to marshal task into bytes for saving trigger metadata")
+				return triggerData
+			}
+			err = json.Unmarshal(triggerBytes, &triggerData)
+			if err != nil {
+				logging.LogError(err, "failed to decode task into struct")
+			}
+		case "task_display_id":
+			payload := databaseStructs.Task{}
+			err := database.DB.Get(&payload, `SELECT * FROM task WHERE display_id=$1 AND operation_id=$2`, value, operationID)
 			if err != nil {
 				logging.LogError(err, "Failed to get task")
 				return triggerData
@@ -313,7 +345,7 @@ func CreateEventGroupInstance(eventGroupId int, trigger string, triggeringOperat
 		TriggerMetadata: GetMythicJSONTextFromStruct(triggerMetadata),
 	}
 	eventGroupEnvironment := eventGroup.Environment.StructValue()
-	triggeringData := getTriggerData(triggerMetadata)
+	triggeringData := getTriggerData(triggerMetadata, eventGroup.OperationID)
 	for key, value := range triggeringData {
 		eventGroupEnvironment[key] = value
 	}

@@ -168,6 +168,17 @@ actions:
       - role: operation_admin
       - role: mythic_admin
     comment: Refresh a chat special message from its source object
+  - name: chatMCPToolConfirmation
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/chat_mcp_tool_confirmation_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
+    comment: Confirm, reject, or respond to a pending MCP tool execution request in an AI chat
   - name: chatRetryRequest
     definition:
       kind: synchronous
@@ -291,7 +302,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
-    comment: Generate an artifact and optionally associate it with a specific task by its task ID
+    comment: Generate an artifact and optionally associate it with a specific task by its task display ID
   - name: createC2Instance
     definition:
       kind: synchronous
@@ -598,7 +609,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
-    comment: Trigger multiple eventing workflow manually by eventgroup id and JSON dictionary data for specified contexts. Context type can be callback_id or task_id and those IDs should be in the context ids array
+    comment: Trigger multiple eventing workflow manually by eventgroup id and JSON dictionary data for specified contexts. Context type can be callback_display_id or task_display_id and those IDs should be in the context ids array
   - name: eventingTriggerRetry
     definition:
       kind: synchronous
