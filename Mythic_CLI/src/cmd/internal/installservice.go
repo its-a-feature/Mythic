@@ -39,6 +39,9 @@ func InstallFolder(installPath string, overWrite bool, keepVolume bool, installU
 		}
 	}
 	latestVersion := installConfig.GetStringMapString("remote_images")
+	if mirror := config.GetMythicEnv().GetString("mythic_docker_image_mirror"); mirror != "" {
+		log.Printf("[*] mythic_docker_image_mirror is set to %q; this service's image(s) will be pulled from there instead of their upstream registry\n", mirror)
+	}
 	for key, val := range latestVersion {
 		config.SetNewConfigStrings(fmt.Sprintf("%s_remote_image", key), val)
 		if !config.GetMythicEnv().InConfig(fmt.Sprintf("%s_use_volume", key)) {
