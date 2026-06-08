@@ -131,6 +131,7 @@ func Initialize() {
 			go processAgentMessageFromPushC2()
 			go interceptProxyDataToAgentForPushC2()
 			go checkIfActiveCallbacksAreAliveForever()
+			go ResyncAllHostedFilesOnStartup()
 			go func() {
 				// wait 20s for things to stabilize a bit, then send a startup message
 				time.Sleep(time.Second * 30)

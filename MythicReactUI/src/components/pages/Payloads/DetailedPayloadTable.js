@@ -22,7 +22,7 @@ import { snackActions } from '../../utilities/Snackbar';
 import Box from '@mui/material/Box';
 import Dialog from '@mui/material/Dialog';
 import PublicIcon from '@mui/icons-material/Public';
-import {HostFileDialog} from "./HostFileDialog";
+import {HostFileDialog, HostedFileLocationsTable} from "./HostFileDialog";
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {MythicFileContext} from "../../MythicComponents/MythicFileContext";
 import MenuBookIcon from '@mui/icons-material/MenuBook';
@@ -82,6 +82,17 @@ query GetPayloadDetails($payload_id: Int!) {
       md5
       sha1
       size
+      c2profile_file_hosts {
+        id
+        host_url
+        alert_on_download
+        status
+        error
+        c2profile {
+            id
+            name
+        }
+      }
     }
     payload_build_steps(order_by: {step_number: asc}) {
       step_name
@@ -615,6 +626,14 @@ function DetailedPayloadInnerTable(props){
                         <TableCell>Agent File ID</TableCell>
                         <TableCell>{data.payload[0].filemetum.agent_file_id}</TableCell>
                     </TableRow>
+                    {data.payload[0].filemetum.c2profile_file_hosts?.length > 0 ? (
+                        <TableRow hover>
+                            <TableCell>Hosted Locations</TableCell>
+                            <TableCell>
+                                <HostedFileLocationsTable hostedFiles={data.payload[0].filemetum.c2profile_file_hosts} />
+                            </TableCell>
+                        </TableRow>
+                    ) : null}
                     <TableRow hover>
                         <TableCell>SHA1</TableCell>
                         <TableCell>{data.payload[0].filemetum.sha1}</TableCell>

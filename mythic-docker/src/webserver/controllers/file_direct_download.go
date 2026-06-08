@@ -35,21 +35,30 @@ func FileDirectDownloadWebhook(c *gin.Context) {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
+	claims, err := authentication.GetClaims(c)
+	if err != nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	operationID := int(user.CurrentOperationID.Int64)
+	if claims.OperationID > 0 {
+		operationID = claims.OperationID
+	}
 	err = database.DB.Get(&filemeta, `SELECT
 			"path", filename, id, operation_id
 			FROM filemeta 
 			WHERE
 			filemeta.agent_file_id=$1 and deleted=false and filemeta.operation_id=$2
-			`, agentFileID, user.CurrentOperationID.Int64)
+			`, agentFileID, operationID)
 	if err != nil {
 		err = database.DB.Get(&payload, `SELECT
-    			filemeta.path "filemeta.path",
-    			filemeta.filename "filemeta.filename",
-    			filemeta.id "filemeta.id",
-    			filemeta.operation_id "filemeta.operation_id"
-    			FROM payload
-    			JOIN filemeta ON payload.file_id = filemeta.id 
-    			WHERE payload.uuid=$1 and payload.operation_id=$2`, agentFileID, user.CurrentOperationID.Int64)
+			filemeta.path "filemeta.path",
+			filemeta.filename "filemeta.filename",
+			filemeta.id "filemeta.id",
+			filemeta.operation_id "filemeta.operation_id"
+			FROM payload
+			JOIN filemeta ON payload.file_id = filemeta.id
+			WHERE payload.uuid=$1 and payload.operation_id=$2`, agentFileID, operationID)
 		if err != nil {
 			logging.LogError(err, "Failed to get file data from database")
 			message := fmt.Sprintf("Attempt to download unknown file: %s", agentFileID)

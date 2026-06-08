@@ -143,6 +143,36 @@ func GetClaims(c *gin.Context) (*mythicjwt.CustomClaims, error) {
 		logging.LogError(errors.New("failed to get claims from validated apitoken"), "failed to get claims from validated apitoken")
 		return nil, errors.New("failed to get claims from validated apitoken")
 	}
+	if rabbitmq.IsRabbitMQAuthContextToken(tokenString) {
+		authContext, err := rabbitmq.ValidateRabbitMQAuthContextToken(tokenString)
+		if err != nil {
+			logging.LogError(err, "failed to validate rabbitmq auth context token")
+			return nil, err
+		}
+		if authContext.FileUUID == "" {
+			err = errors.New("rabbitmq auth context token missing file uuid")
+			logging.LogError(err, "invalid rabbitmq auth context token for direct file download")
+			return nil, err
+		}
+		if c.FullPath() != "/direct/download/:file_uuid" ||
+			c.Param("file_uuid") != authContext.FileUUID {
+			err = errors.New("rabbitmq auth context token is only valid for the matching direct file download path")
+			logging.LogError(err, "invalid rabbitmq auth context token path")
+			return nil, err
+		}
+		claims := mythicjwt.CustomClaims{
+			UserID:              authContext.OperatorID,
+			AuthMethod:          mythicjwt.AUTH_METHOD_CALLBACK,
+			EventStepInstanceID: authContext.EventStepInstanceID,
+			APITokensID:         authContext.APITokensID,
+			OperationID:         authContext.OperationID,
+			Scopes:              append([]string{}, authContext.SourceScopes...),
+			FileUUID:            authContext.FileUUID,
+		}
+		c.Set(ContextKeyUserID, claims.UserID)
+		c.Set(ContextKeyClaims, &claims)
+		return &claims, nil
+	}
 	claims := mythicjwt.CustomClaims{}
 	_, err = jwt.ParseWithClaims(tokenString, &claims, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {

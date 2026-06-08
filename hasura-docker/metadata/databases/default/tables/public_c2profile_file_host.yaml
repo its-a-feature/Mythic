@@ -1,0 +1,111 @@
+table:
+  name: c2profile_file_host
+  schema: public
+object_relationships:
+  - name: apitoken
+    using:
+      foreign_key_constraint_on: apitokens_id
+  - name: c2profile
+    using:
+      foreign_key_constraint_on: c2_profile_id
+  - name: created_by_operator
+    using:
+      foreign_key_constraint_on: created_by
+  - name: eventstepinstance
+    using:
+      foreign_key_constraint_on: eventstepinstance_id
+  - name: filemetum
+    using:
+      foreign_key_constraint_on: filemeta_id
+  - name: operation
+    using:
+      foreign_key_constraint_on: operation_id
+select_permissions:
+  - role: mythic_admin
+    permission:
+      columns:
+        - alert_on_download
+        - apitokens_id
+        - c2_profile_id
+        - created_by
+        - error
+        - eventstepinstance_id
+        - filemeta_id
+        - host_url
+        - id
+        - operation_id
+        - status
+        - updated_at
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _lte: X-Hasura-Scope-file-read-operation
+      allow_aggregations: true
+  - role: operation_admin
+    permission:
+      columns:
+        - alert_on_download
+        - apitokens_id
+        - c2_profile_id
+        - created_by
+        - error
+        - eventstepinstance_id
+        - filemeta_id
+        - host_url
+        - id
+        - operation_id
+        - status
+        - updated_at
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _lte: X-Hasura-Scope-file-read-operation
+      allow_aggregations: true
+  - role: operator
+    permission:
+      columns:
+        - alert_on_download
+        - apitokens_id
+        - c2_profile_id
+        - created_by
+        - error
+        - eventstepinstance_id
+        - filemeta_id
+        - host_url
+        - id
+        - operation_id
+        - status
+        - updated_at
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _lte: X-Hasura-Scope-file-read-operation
+      allow_aggregations: true
+  - role: spectator
+    permission:
+      columns:
+        - alert_on_download
+        - apitokens_id
+        - c2_profile_id
+        - created_by
+        - error
+        - eventstepinstance_id
+        - filemeta_id
+        - host_url
+        - id
+        - operation_id
+        - status
+        - updated_at
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _lte: X-Hasura-Scope-file-read-operation
+      allow_aggregations: true

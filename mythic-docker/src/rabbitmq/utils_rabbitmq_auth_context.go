@@ -26,6 +26,7 @@ type RabbitMQAuthContext struct {
 	APITokensID         int      `json:"apitokens_id"`
 	EventStepInstanceID int      `json:"eventstepinstance_id"`
 	SourceScopes        []string `json:"source_scopes"`
+	FileUUID            string   `json:"file_uuid,omitempty"`
 }
 
 type rabbitMQAuthContextEntry struct {
@@ -39,12 +40,18 @@ type rabbitMQRPCScopePolicy struct {
 }
 
 var (
-	rabbitMQAuthContextStore = map[string]rabbitMQAuthContextEntry{}
-	rabbitMQAuthContextMutex sync.RWMutex
-	rabbitMQRPCScopePolicies = map[string]rabbitMQRPCScopePolicy{
+	rabbitMQAuthContextStore   = map[string]rabbitMQAuthContextEntry{}
+	rabbitMQAuthContextMutex   sync.RWMutex
+	hostedFileAuthTokenByRowID = map[int]string{}
+	hostedFileAuthRowIDByToken = map[string]int{}
+	rabbitMQRPCScopePolicies   = map[string]rabbitMQRPCScopePolicy{
 		MYTHIC_RPC_DIRECT_FILE_TOKEN_CREATE: {DynamicRequiredScopes: requiredScopesForDirectFileTokenCreate},
 	}
 )
+
+func IsRabbitMQAuthContextToken(token string) bool {
+	return strings.HasPrefix(token, rabbitMQAuthContextTokenPrefix)
+}
 
 func RegisterRabbitMQRPCScopePolicy(route string, requiredScopes []string) {
 	rabbitMQAuthContextMutex.Lock()
@@ -86,9 +93,40 @@ func ValidateRabbitMQAuthContextToken(token string) (RabbitMQAuthContext, error)
 	return contextCopy, nil
 }
 
+func invalidateRabbitMQAuthContextTokenLocked(token string) {
+	delete(rabbitMQAuthContextStore, token)
+	if rowID, ok := hostedFileAuthRowIDByToken[token]; ok {
+		delete(hostedFileAuthRowIDByToken, token)
+		delete(hostedFileAuthTokenByRowID, rowID)
+	}
+}
+
 func InvalidateRabbitMQAuthContextToken(token string) {
 	rabbitMQAuthContextMutex.Lock()
-	delete(rabbitMQAuthContextStore, token)
+	invalidateRabbitMQAuthContextTokenLocked(token)
+	rabbitMQAuthContextMutex.Unlock()
+}
+
+func RegisterHostedFileAuthContextToken(rowID int, authContext RabbitMQAuthContext) (string, error) {
+	token, err := GenerateRabbitMQAuthContextToken(authContext)
+	if err != nil {
+		return "", err
+	}
+	rabbitMQAuthContextMutex.Lock()
+	if oldToken, ok := hostedFileAuthTokenByRowID[rowID]; ok {
+		invalidateRabbitMQAuthContextTokenLocked(oldToken)
+	}
+	hostedFileAuthTokenByRowID[rowID] = token
+	hostedFileAuthRowIDByToken[token] = rowID
+	rabbitMQAuthContextMutex.Unlock()
+	return token, nil
+}
+
+func InvalidateHostedFileAuthContextToken(rowID int) {
+	rabbitMQAuthContextMutex.Lock()
+	if token, ok := hostedFileAuthTokenByRowID[rowID]; ok {
+		invalidateRabbitMQAuthContextTokenLocked(token)
+	}
 	rabbitMQAuthContextMutex.Unlock()
 }
 
@@ -97,7 +135,7 @@ func InvalidateRabbitMQAuthContextsForAPIToken(apitokenID int) {
 	defer rabbitMQAuthContextMutex.Unlock()
 	for token, entry := range rabbitMQAuthContextStore {
 		if entry.Context.APITokensID > 0 && entry.Context.APITokensID == apitokenID {
-			delete(rabbitMQAuthContextStore, token)
+			invalidateRabbitMQAuthContextTokenLocked(token)
 		}
 	}
 }
@@ -107,7 +145,7 @@ func InvalidateRabbitMQAuthContextsForEventStepInstance(eventStepInstanceID int)
 	defer rabbitMQAuthContextMutex.Unlock()
 	for token, entry := range rabbitMQAuthContextStore {
 		if entry.Context.EventStepInstanceID > 0 && entry.Context.EventStepInstanceID == eventStepInstanceID {
-			delete(rabbitMQAuthContextStore, token)
+			invalidateRabbitMQAuthContextTokenLocked(token)
 		}
 	}
 }
@@ -117,7 +155,7 @@ func InvalidateRabbitMQAuthContextsForOperation(operationID int) {
 	defer rabbitMQAuthContextMutex.Unlock()
 	for token, entry := range rabbitMQAuthContextStore {
 		if entry.Context.OperationID == operationID {
-			delete(rabbitMQAuthContextStore, token)
+			invalidateRabbitMQAuthContextTokenLocked(token)
 		}
 	}
 }
@@ -207,6 +245,7 @@ func (authContext RabbitMQAuthContext) IsEmpty() bool {
 		authContext.OperationID == 0 &&
 		authContext.APITokensID == 0 &&
 		authContext.EventStepInstanceID == 0 &&
+		authContext.FileUUID == "" &&
 		len(authContext.SourceScopes) == 0
 }
 

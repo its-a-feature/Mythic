@@ -27,6 +27,13 @@ object_relationships:
     using:
       foreign_key_constraint_on: task_id
 array_relationships:
+  - name: c2profile_file_hosts
+    using:
+      foreign_key_constraint_on:
+        column: filemeta_id
+        table:
+          name: c2profile_file_host
+          schema: public
   - name: copies_of_file
     using:
       foreign_key_constraint_on:

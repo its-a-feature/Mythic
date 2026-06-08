@@ -27,7 +27,7 @@ import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {TagsDisplay, ViewEditTags} from '../../MythicComponents/MythicTag';
 import {b64DecodeUnicode} from '../Callbacks/ResponseDisplay';
 import Checkbox from '@mui/material/Checkbox';
-import {HostFileDialog} from "../Payloads/HostFileDialog";
+import {HostFileDialog, HostedFileLocationsTable} from "../Payloads/HostFileDialog";
 import PublicIcon from '@mui/icons-material/Public';
 import {getStringSize} from '../Callbacks/ResponseDisplayTable';
 import {PreviewFileMediaDialog} from "../../MythicComponents/PreviewFileMedia";
@@ -75,6 +75,20 @@ mutation previewFile($file_id: String!){
     }
 }
 `;
+const updateHostedFileMutation = gql`
+mutation updateHostedFileMutation($c2profile_file_host_id: Int!, $host_url: String, $alert_on_download: Boolean, $stop: Boolean, $remove: Boolean) {
+  c2UpdateHostedFile(c2profile_file_host_id: $c2profile_file_host_id, host_url: $host_url, alert_on_download: $alert_on_download, stop: $stop, remove: $remove) {
+      status
+      error
+      id
+      filemeta_id
+      c2_profile_id
+      host_url
+      hosting_status
+      affected_count
+  }
+}
+`;
 export const SnackMessage = (props) => {
     return (
         <React.Fragment>                    
@@ -104,6 +118,110 @@ const MythicCallbackGroupsDisplay = ({groups}) => {
             <b>Groups: </b>{groups.join(", ")}
         </Typography>
     )
+}
+const C2HostedLocationsSummary = ({hostedFiles}) => {
+    if(!hostedFiles || hostedFiles.length === 0){
+        return null;
+    }
+    return (
+        <Box marginTop={1}>
+            <HostedFileLocationsTable hostedFiles={hostedFiles} />
+        </Box>
+    );
+}
+export function HostedFileTable(props){
+    const [hostedFiles, setHostedFiles] = React.useState([]);
+    const [editingHostedFile, setEditingHostedFile] = React.useState(null);
+    const pendingAction = React.useRef({id: 0, action: ""});
+    React.useEffect(() => {
+        setHostedFiles(props.hostedFiles || []);
+    }, [props.hostedFiles]);
+    const [updateHostedFile] = useMutation(updateHostedFileMutation, {
+        onCompleted: (data) => {
+            if(data.c2UpdateHostedFile.status === "success"){
+                snackActions.success("Updated hosted file state");
+                if(pendingAction.current.action === "remove"){
+                    setHostedFiles((prev) => prev.filter((hostedFile) => hostedFile.id !== pendingAction.current.id));
+                } else {
+                    setHostedFiles((prev) => prev.map((hostedFile) => hostedFile.id === pendingAction.current.id ? {
+                        ...hostedFile,
+                        status: data.c2UpdateHostedFile.hosting_status || hostedFile.status,
+                        error: "",
+                        host_url: data.c2UpdateHostedFile.host_url || hostedFile.host_url
+                    } : hostedFile));
+                }
+            } else {
+                snackActions.error(data.c2UpdateHostedFile.error);
+            }
+        },
+        onError: (data) => {
+            snackActions.error(data.message);
+        }
+    });
+    const retryHosting = (hostedFile) => {
+        pendingAction.current = {id: hostedFile.id, action: "retry"};
+        updateHostedFile({variables: {
+            c2profile_file_host_id: hostedFile.id
+        }});
+    }
+    const stopHosting = (hostedFile) => {
+        pendingAction.current = {id: hostedFile.id, action: "stop"};
+        updateHostedFile({variables: {
+            c2profile_file_host_id: hostedFile.id,
+            stop: true
+        }});
+    }
+    const removeHosting = (hostedFile) => {
+        pendingAction.current = {id: hostedFile.id, action: "remove"};
+        updateHostedFile({variables: {
+            c2profile_file_host_id: hostedFile.id,
+            remove: true
+        }});
+    }
+    const onHostedFileUpdated = (updatedHostedFile, action) => {
+        if(updatedHostedFile.status !== "success"){
+            return;
+        }
+        if(action?.action === "remove"){
+            setHostedFiles((prev) => prev.filter((hostedFile) => hostedFile.id !== updatedHostedFile.id));
+        } else {
+            setHostedFiles((prev) => prev.map((hostedFile) => hostedFile.id === updatedHostedFile.id ? {
+                ...hostedFile,
+                host_url: updatedHostedFile.host_url || hostedFile.host_url,
+                alert_on_download: action?.alert_on_download ?? hostedFile.alert_on_download,
+                status: updatedHostedFile.hosting_status || hostedFile.status,
+                error: ""
+            } : hostedFile));
+        }
+        setEditingHostedFile(null);
+    }
+    return (
+        <React.Fragment>
+            {editingHostedFile &&
+                <MythicDialog fullWidth={true} maxWidth="md" open={Boolean(editingHostedFile)}
+                              onClose={() => setEditingHostedFile(null)}
+                              innerDialog={<HostFileDialog
+                                  file_uuid={editingHostedFile.filemetum?.agent_file_id}
+                                  file_name={editingHostedFile.filemetum?.full_remote_path_text ? b64DecodeUnicode(editingHostedFile.filemetum.full_remote_path_text) : b64DecodeUnicode(editingHostedFile.filemetum?.filename_text || "")}
+                                  hostedFile={editingHostedFile}
+                                  onUpdated={onHostedFileUpdated}
+                                  onClose={() => setEditingHostedFile(null)}
+                              />} />
+            }
+            <HostedFileLocationsTable
+                hostedFiles={hostedFiles}
+                renderFile={(hostedFile) => (
+                    <FileDownloadLinkWithAuth style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + hostedFile.filemetum?.agent_file_id}>
+                        {hostedFile.filemetum?.full_remote_path_text ? b64DecodeUnicode(hostedFile.filemetum.full_remote_path_text) : b64DecodeUnicode(hostedFile.filemetum?.filename_text || "")}
+                    </FileDownloadLinkWithAuth>
+                )}
+                onEdit={(hostedFile) => setEditingHostedFile(hostedFile)}
+                onRetry={retryHosting}
+                onStop={stopHosting}
+                onRemove={removeHosting}
+            />
+        </React.Fragment>
+    );
 }
 export function FileMetaDownloadTable(props){
     const [selected, setSelected] = React.useState({});
@@ -503,6 +621,7 @@ function FileMetaDownloadTableRow(props){
                                         </TableBody>
                                     </Table>
                                 </TableContainer>
+                                <C2HostedLocationsSummary hostedFiles={props.c2profile_file_hosts} />
                                 </Box>
                             </Collapse>
                         </MythicStyledTableCell>
@@ -918,6 +1037,7 @@ function FileMetaUploadTableRow(props){
                                         </TableBody>
                                     </Table>
                                 </TableContainer>
+                                    <C2HostedLocationsSummary hostedFiles={props.c2profile_file_hosts} />
                                     {props.copy_of_file &&
                                         <Box margin={1} style={{border: `2px dashed ${theme.palette.info.main}`}}>
                                             <Typography variant="body2" style={{wordBreak: "break-all", fontWeight: "600", textAlign: "center"}}>
@@ -1182,6 +1302,7 @@ function FileMetaScreenshotTableRow(props){
                                         </TableBody>
                                     </Table>
                                 </TableContainer>
+                                <C2HostedLocationsSummary hostedFiles={props.c2profile_file_hosts} />
                                 </Box>
                             </Collapse>
                         </MythicStyledTableCell>
@@ -1532,6 +1653,7 @@ function FileMetaEventingWorkflowsTableRow(props){
                                         </TableBody>
                                     </Table>
                                 </TableContainer>
+                                <C2HostedLocationsSummary hostedFiles={props.c2profile_file_hosts} />
                             </Box>
                         </Collapse>
                     </MythicStyledTableCell>
