@@ -6,6 +6,7 @@ import {snackActions} from '../../utilities/Snackbar';
 import {
     FileMetaDownloadTable,
     FileMetaEventingWorkflowsTable,
+    HostedFileTable,
     FileMetaScreenshotTable,
     FileMetaUploadTable
 } from './FileMetaTable';
@@ -51,6 +52,19 @@ fragment filemetaData on filemeta{
             id
           }
         id
+    }
+    c2profile_file_hosts {
+        id
+        c2_profile_id
+        host_url
+        alert_on_download
+        status
+        error
+        updated_at
+        c2profile {
+            id
+            name
+        }
     }
     task {
         id
@@ -424,6 +438,32 @@ query uuidFileMetaEventingWorkflowQuery($operation_id: Int!, $agent_file_id: Str
     }
   }
 `;
+const hostedFileSearch = gql`
+${fileMetaFragment}
+query hostedFileQuery($operation_id: Int!, $search: String!, $host: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
+    c2profile_file_host_aggregate(where: {operation_id: {_eq: $operation_id}, filemetum: {host: {_ilike: $host}, deleted: {_eq: $deleted}}, _or: [{host_url: {_ilike: $search}}, {c2profile: {name: {_ilike: $search}}}, {filemetum: {filename_utf8: {_ilike: $search}}}, {filemetum: {full_remote_path_utf8: {_ilike: $search}}}, {filemetum: {agent_file_id: {_ilike: $search}}}, {filemetum: {md5: {_ilike: $search}}}, {filemetum: {sha1: {_ilike: $search}}}, {filemetum: {comment: {_ilike: $search}}}]}) {
+      aggregate {
+        count
+      }
+    }
+    c2profile_file_host(limit: $fetchLimit, offset: $offset, order_by: {id: desc}, where: {operation_id: {_eq: $operation_id}, filemetum: {host: {_ilike: $host}, deleted: {_eq: $deleted}}, _or: [{host_url: {_ilike: $search}}, {c2profile: {name: {_ilike: $search}}}, {filemetum: {filename_utf8: {_ilike: $search}}}, {filemetum: {full_remote_path_utf8: {_ilike: $search}}}, {filemetum: {agent_file_id: {_ilike: $search}}}, {filemetum: {md5: {_ilike: $search}}}, {filemetum: {sha1: {_ilike: $search}}}, {filemetum: {comment: {_ilike: $search}}}]}) {
+        id
+        c2_profile_id
+        host_url
+        alert_on_download
+        status
+        error
+        updated_at
+        c2profile {
+            id
+            name
+        }
+        filemetum {
+            ...filemetaData
+        }
+    }
+}
+`;
 
 export function SearchTabFilesLabel(props) {
     return (
@@ -437,7 +477,7 @@ const SearchTabFilesSearchPanel = (props) => {
     const [searchField, setSearchField] = React.useState("Filename");
     const searchFieldOptions = ["Filename", "Hash", "Comment", "Tag", "UUID"];
     const [searchLocation, setSearchLocation] = React.useState("Downloads");
-    const searchLocationOptions = ["Uploads", "Downloads", "FileBrowser", "Screenshots", "Eventing Workflows"];
+    const searchLocationOptions = ["Uploads", "Downloads", "Hosted", "FileBrowser", "Screenshots", "Eventing Workflows"];
     const [showDeleted, setShowDeleted] = React.useState(false);
     const handleToggleShowDeleted = (event) => {
         setShowDeleted(!showDeleted);
@@ -605,6 +645,7 @@ export const SearchTabFilesPanel = (props) => {
     const [fileMetaUploadData, setFileMetaUploadData] = React.useState([]);
     const [fileMetaDownloadData, setFileMetaDownloadData] = React.useState([]);
     const [fileMetaScreenshotData, setFileMetaScreenshotData] = React.useState([]);
+    const [hostedFileData, setHostedFileData] = React.useState([]);
     const [fileBrowserData, setFileBrowserData] = React.useState([]);
     const [totalCount, setTotalCount] = React.useState(0);
     const [search, setSearch] = React.useState("");
@@ -628,7 +669,7 @@ export const SearchTabFilesPanel = (props) => {
             case "Hash":
                 onHashSearch({search, searchHost, offset: 0, adjustedSearchLocation: searchLocation});
                 break;
-            case "Comments":
+            case "Comment":
                 onCommentSearch({search, searchHost, offset: 0, adjustedSearchLocation: searchLocation});
                 break;
             case "Tag":
@@ -650,7 +691,7 @@ export const SearchTabFilesPanel = (props) => {
             case "Hash":
                 onHashSearch({search, searchHost, offset: 0, adjustedSearchLocation: field});
                 break;
-            case "Comments":
+            case "Comment":
                 onCommentSearch({search, searchHost, offset: 0, adjustedSearchLocation: field});
                 break;
             case "Tag":
@@ -676,6 +717,7 @@ export const SearchTabFilesPanel = (props) => {
         setFileBrowserData([]);
         setFileMetaUploadData([]);
         setFileMetaScreenshotData([]);
+        setHostedFileData([]);
     }
     const handleFileMetaUploadSearchResults = (data) => {
         snackActions.dismiss();
@@ -691,6 +733,7 @@ export const SearchTabFilesPanel = (props) => {
         setFileBrowserData([]);
         setFileMetaDownloadData([]);
         setFileMetaScreenshotData([]);
+        setHostedFileData([]);
 
     }
     const handleFileMetaScreenshotSearchResults = (data) => {
@@ -706,6 +749,7 @@ export const SearchTabFilesPanel = (props) => {
         setFileBrowserData([]);
         setFileMetaDownloadData([]);
         setFileMetaUploadData([]);
+        setHostedFileData([]);
     }
     const handleFileBrowserSearchResults = (data) => {
         snackActions.dismiss();
@@ -717,6 +761,16 @@ export const SearchTabFilesPanel = (props) => {
             setFileBrowserData(data.mythictree);
         }
 
+        setFileMetaUploadData([]);
+        setFileMetaDownloadData([]);
+        setFileMetaScreenshotData([]);
+        setHostedFileData([]);
+    }
+    const handleHostedFileSearchResults = (data) => {
+        snackActions.dismiss();
+        setTotalCount(data.c2profile_file_host_aggregate.aggregate.count);
+        setHostedFileData(data.c2profile_file_host);
+        setFileBrowserData([]);
         setFileMetaUploadData([]);
         setFileMetaDownloadData([]);
         setFileMetaScreenshotData([]);
@@ -786,11 +840,30 @@ export const SearchTabFilesPanel = (props) => {
     const getUUIDFileMetaEventingWorkflowSearch = useMythicLazyQuery(uuidFileMetaEventingWorkflowSearch, {
         fetchPolicy: "no-cache"
     })
+    const getHostedFileSearch = useMythicLazyQuery(hostedFileSearch, {
+        fetchPolicy: "no-cache"
+    })
+    const onHostedSearch = ({search, searchHost, offset}) => {
+        setSearch(search);
+        setSearchHost(searchHost);
+        getHostedFileSearch({
+            variables: {
+                operation_id: me?.user?.current_operation_id || 0,
+                offset: offset,
+                fetchLimit: fetchLimit,
+                search: "%" + search + "%",
+                host: "%" + searchHost + "%",
+                deleted: showDeleted.current
+            }
+        }).then(({data}) => handleHostedFileSearchResults(data)).catch((data) => handleCallbackSearchFailure(data))
+    }
     const onFilenameSearch = ({search, searchHost, offset, adjustedSearchLocation}) => {
         //snackActions.info("Searching...", {persist:true});
         setSearch(search);
         setSearchHost(searchHost);
-        if (adjustedSearchLocation === "FileBrowser") {
+        if (adjustedSearchLocation === "Hosted") {
+            onHostedSearch({search, searchHost, offset});
+        } else if (adjustedSearchLocation === "FileBrowser") {
             getfilenameFileBrowserSearch({
                 variables: {
                     operation_id: me?.user?.current_operation_id || 0,
@@ -849,7 +922,9 @@ export const SearchTabFilesPanel = (props) => {
         //snackActions.info("Searching...", {persist:true});
         setSearch(search);
         setSearchHost(searchHost);
-        if (adjustedSearchLocation === "FileBrowser") {
+        if (adjustedSearchLocation === "Hosted") {
+            onHostedSearch({search, searchHost, offset});
+        } else if (adjustedSearchLocation === "FileBrowser") {
             snackActions.dismiss();
             snackActions.warning("FileBrowser doesn't currently track file hashes");
             setTotalCount(0);
@@ -857,6 +932,7 @@ export const SearchTabFilesPanel = (props) => {
             setFileMetaUploadData([]);
             setFileMetaScreenshotData([]);
             setFileMetaDownloadData([]);
+            setHostedFileData([]);
         } else if (adjustedSearchLocation === "Uploads") {
             gethashFileMetaUploadSearch({
                 variables: {
@@ -900,7 +976,9 @@ export const SearchTabFilesPanel = (props) => {
         }
         setSearch(new_search);
         setSearchHost(searchHost);
-        if (adjustedSearchLocation === "FileBrowser") {
+        if (adjustedSearchLocation === "Hosted") {
+            onHostedSearch({search: new_search, searchHost, offset});
+        } else if (adjustedSearchLocation === "FileBrowser") {
             getcommentFileBrowserSearch({
                 variables: {
                     operation_id: me?.user?.current_operation_id || 0,
@@ -954,7 +1032,9 @@ export const SearchTabFilesPanel = (props) => {
         }
         setSearch(new_search);
         setSearchHost(searchHost);
-        if (adjustedSearchLocation === "FileBrowser") {
+        if (adjustedSearchLocation === "Hosted") {
+            onHostedSearch({search: new_search, searchHost, offset});
+        } else if (adjustedSearchLocation === "FileBrowser") {
             gettagFileBrowserSearch({
                 variables: {
                     offset: offset,
@@ -1000,7 +1080,9 @@ export const SearchTabFilesPanel = (props) => {
         //snackActions.info("Searching...", {persist:true});
         setSearch(search);
         setSearchHost(searchHost);
-        if (adjustedSearchLocation === "FileBrowser") {
+        if (adjustedSearchLocation === "Hosted") {
+            onHostedSearch({search, searchHost, offset});
+        } else if (adjustedSearchLocation === "FileBrowser") {
             snackActions.dismiss();
             snackActions.warning("FileBrowser doesn't currently track file UUIDs");
             setTotalCount(0);
@@ -1008,6 +1090,7 @@ export const SearchTabFilesPanel = (props) => {
             setFileMetaUploadData([]);
             setFileMetaScreenshotData([]);
             setFileMetaDownloadData([]);
+            setHostedFileData([]);
         } else if (adjustedSearchLocation === "Uploads") {
             getUUIDFileMetaUploadSearch({
                 variables: {
@@ -1073,7 +1156,7 @@ export const SearchTabFilesPanel = (props) => {
                     adjustedSearchLocation: searchLocation
                 });
                 break;
-            case "Comments":
+            case "Comment":
                 onCommentSearch({
                     search: search,
                     searchHost: searchHost,
@@ -1103,6 +1186,7 @@ export const SearchTabFilesPanel = (props) => {
     }
     const currentResultCount = searchLocation === "Uploads" ? fileMetaUploadData.length :
         searchLocation === "Downloads" ? fileMetaDownloadData.length :
+        searchLocation === "Hosted" ? hostedFileData.length :
         searchLocation === "Screenshots" ? fileMetaScreenshotData.length :
         searchLocation === "FileBrowser" ? fileBrowserData.length :
         fileMetaUploadData.length;
@@ -1120,6 +1204,7 @@ export const SearchTabFilesPanel = (props) => {
                     <>
                         {searchLocation === "Uploads" && <FileMetaUploadTable me={me} files={fileMetaUploadData}/>}
                         {searchLocation === "Downloads" && <FileMetaDownloadTable me={me} files={fileMetaDownloadData}/>}
+                        {searchLocation === "Hosted" && <HostedFileTable me={me} hostedFiles={hostedFileData}/>}
                         {searchLocation === "Screenshots" && <FileMetaScreenshotTable me={me} files={fileMetaScreenshotData}/>}
                         {searchLocation === "FileBrowser" && <FileBrowserTable me={me} files={fileBrowserData} />}
                         {searchLocation === "Eventing Workflows" && <FileMetaEventingWorkflowsTable me={me} files={fileMetaUploadData} />}

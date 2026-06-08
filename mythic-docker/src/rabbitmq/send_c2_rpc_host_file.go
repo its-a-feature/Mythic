@@ -2,32 +2,47 @@ package rabbitmq
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/its-a-feature/Mythic/logging"
 )
 
-// C2_GET_UI_FUNCTIONS STRUCTS
-
-type C2_HOST_FILE_STATUS = string
-
 type C2HostFileMessage struct {
-	Name     string `json:"c2_profile_name"`
-	FileUUID string `json:"file_uuid"`
-	HostURL  string `json:"host_url"`
-	Remove   bool   `json:"remove"`
+	AgentFileID   string `json:"agent_file_id"`
+	HostURL       string `json:"host_url"`
+	Remove        bool   `json:"remove"`
+	DownloadToken string `json:"download_token,omitempty"`
+	Filename      string `json:"filename,omitempty"`
 }
 
-type C2HostFileMessageResponse struct {
-	Success bool   `json:"success"`
-	Error   string `json:"error"`
+type C2HostFilesMessage struct {
+	Name  string              `json:"c2_profile_name"`
+	Files []C2HostFileMessage `json:"files"`
 }
 
-func (r *rabbitMQConnection) SendC2RPCHostFile(hostFile C2HostFileMessage, authContext RabbitMQAuthContext) (*C2HostFileMessageResponse, error) {
-	c2HostFileMessageResponse := C2HostFileMessageResponse{}
+type C2HostFileResult struct {
+	Success     bool   `json:"success"`
+	Error       string `json:"error"`
+	AgentFileID string `json:"agent_file_id"`
+	HostURL     string `json:"host_url"`
+}
+
+type C2HostFilesMessageResponse struct {
+	Success bool               `json:"success"`
+	Error   string             `json:"error"`
+	Results []C2HostFileResult `json:"results,omitempty"`
+}
+
+func GetC2HostFileResultKey(agentFileID string, hostURL string) string {
+	return fmt.Sprintf("%s:%s", agentFileID, hostURL)
+}
+
+func (r *rabbitMQConnection) SendC2RPCHostFiles(hostFiles C2HostFilesMessage, authContext RabbitMQAuthContext) (*C2HostFilesMessageResponse, error) {
+	c2HostFileMessageResponse := C2HostFilesMessageResponse{}
 	exclusiveQueue := true
-	opsecBytes, err := json.Marshal(hostFile)
+	hostFileBytes, err := json.Marshal(hostFiles)
 	if err != nil {
-		logging.LogError(err, "Failed to convert hostFile to JSON", "hostFile", hostFile)
+		logging.LogError(err, "Failed to convert hostFiles to JSON", "hostFiles", hostFiles)
 		return nil, err
 	}
 	headers, err := GenerateRabbitMQAuthTokenHeader(authContext)
@@ -37,8 +52,8 @@ func (r *rabbitMQConnection) SendC2RPCHostFile(hostFile C2HostFileMessage, authC
 	}
 	response, err := r.SendRPCMessage(
 		MYTHIC_EXCHANGE,
-		GetC2RPCHostFileRoutingKey(hostFile.Name),
-		opsecBytes,
+		GetC2RPCHostFileRoutingKey(hostFiles.Name),
+		hostFileBytes,
 		exclusiveQueue,
 		RPC_RETRY_POLICY_CUSTOM_TIMEOUT,
 		headers,
@@ -49,7 +64,7 @@ func (r *rabbitMQConnection) SendC2RPCHostFile(hostFile C2HostFileMessage, authC
 	}
 	err = json.Unmarshal(response, &c2HostFileMessageResponse)
 	if err != nil {
-		logging.LogError(err, "Failed to parse c2 host file response back to struct", "response", response)
+		logging.LogError(err, "Failed to parse c2 host files response back to struct", "response", response)
 		return nil, err
 	}
 	return &c2HostFileMessageResponse, nil

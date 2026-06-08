@@ -44,7 +44,18 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
-    comment: Using the file specified by its UUID, asks the C2 Profile specified by its ID to either host or stop hosting at a specific URL
+    comment: Using the file specified by its UUID, asks the C2 Profile specified by its ID to host it at a specific URL
+  - name: c2UpdateHostedFile
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/c2profile_update_hosted_file_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
+    comment: Updates, retries, stops, or removes an existing C2 hosted file entry
   - name: c2SampleMessage
     definition:
       kind: ""

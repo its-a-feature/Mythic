@@ -6,10 +6,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -384,61 +382,10 @@ func autoStartC2Profile(c2Profile databaseStructs.C2profile, startC2Only bool, a
 			if !c2StartResp.InternalServerRunning {
 				go SendAllOperationsMessage(fmt.Sprintf("Failed to start c2 profile %s:\n%s", c2Profile.Name, c2StartResp.Error), 0, "", database.MESSAGE_LEVEL_INFO, true)
 			} else if !startC2Only {
-				autoReHostFiles(c2Profile)
+				logging.LogInfo("Starting C2 hosted file resync", "c2_profile", c2Profile.Name)
+				go ResyncHostedFilesForC2Profile(c2Profile)
 			}
 		}
 	}
 	return c2StartResp
-}
-
-func autoReHostFiles(c2Profile databaseStructs.C2profile) {
-	logging.LogInfo("Starting rehost files")
-	fileHostedTagType := databaseStructs.TagType{
-		Name: "FileHosted",
-	}
-	err := database.DB.Get(&fileHostedTagType, `SELECT id FROM tagtype WHERE name=$1`, fileHostedTagType.Name)
-	if err != nil {
-		logging.LogError(err, "failed to get existing tag types")
-		return
-	}
-	currentTags := []databaseStructs.Tag{}
-	err = database.DB.Select(&currentTags, `SELECT * FROM tag WHERE tagtype_id=$1`, fileHostedTagType.ID)
-	if err != nil {
-		logging.LogError(err, "failed to get existing tags for FileHosted tagtype")
-		return
-	}
-	for _, tag := range currentTags {
-		dataStruct := tag.Data.StructValue()
-		for key, _ := range dataStruct {
-			if strings.HasPrefix(key, fmt.Sprintf("%s; ", c2Profile.Name)) {
-				newTagMap := dataStruct[key].(map[string]interface{})
-				logging.LogInfo("sending host file", "c2", newTagMap["c2_profile"].(string), "url", newTagMap["host_url"].(string))
-				c2HostFileResponse, err := RabbitMQConnection.SendC2RPCHostFile(C2HostFileMessage{
-					Name:     newTagMap["c2_profile"].(string),
-					FileUUID: newTagMap["agent_file_id"].(string),
-					HostURL:  newTagMap["host_url"].(string),
-					Remove:   false,
-				}, RabbitMQAuthContext{
-					SourceScopes: []string{mythicjwt.SCOPE_FILE_READ},
-				})
-				logging.LogInfo("got response from sending host file", "c2", newTagMap["c2_profile"].(string), "url", newTagMap["host_url"].(string))
-				// sleep for 3 seconds to allow the internal c2 binary to start up before we send anything else
-				time.Sleep(12 * time.Second)
-				if err != nil {
-					logging.LogError(err, "failed to send host file message to c2 profile")
-					go SendAllOperationsMessage(fmt.Sprintf(
-						"%s failed to start hosting file:\n%s", newTagMap["c2_profile"].(string),
-						err.Error()), tag.Operation, "", database.MESSAGE_LEVEL_INFO, true)
-					continue
-				}
-				if !c2HostFileResponse.Success {
-					logging.LogError(err, "c2 profile failed to start hosting file")
-					go SendAllOperationsMessage(fmt.Sprintf(
-						"%s failed to start hosting file:\n%s", newTagMap["c2_profile"].(string),
-						c2HostFileResponse.Error), tag.Operation, "", database.MESSAGE_LEVEL_INFO, true)
-					continue
-				}
-			}
-		}
-	}
 }

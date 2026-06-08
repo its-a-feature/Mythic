@@ -21,6 +21,15 @@ type Mutation {
     file_uuid: String!
     host_url: String!
     alert_on_download: Boolean
+  ): c2HostFileOutput
+}
+
+type Mutation {
+  c2UpdateHostedFile(
+    c2profile_file_host_id: Int!
+    host_url: String
+    alert_on_download: Boolean
+    stop: Boolean
     remove: Boolean
   ): c2HostFileOutput
 }
@@ -1192,6 +1201,12 @@ type consumingServicesListOutput {
 type c2HostFileOutput {
   status: String!
   error: String
+  id: Int
+  filemeta_id: Int
+  c2_profile_id: Int
+  host_url: String
+  hosting_status: String
+  affected_count: Int
 }
 
 type typedarrayParseOutput {

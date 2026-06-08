@@ -464,8 +464,15 @@ func setRoutes(r *gin.Engine) {
 				noSpectators.POST("c2profile_host_file_webhook",
 					authentication.TokenScopeMiddleware([]string{
 						mythicjwt.SCOPE_C2_WRITE,
+						mythicjwt.SCOPE_FILE_READ,
 					}),
 					webcontroller.C2HostFileMessageWebhook)
+				noSpectators.POST("c2profile_update_hosted_file_webhook",
+					authentication.TokenScopeMiddleware([]string{
+						mythicjwt.SCOPE_C2_WRITE,
+						mythicjwt.SCOPE_FILE_READ,
+					}),
+					webcontroller.C2UpdateHostedFileMessageWebhook)
 				// payload
 				noSpectators.POST("rebuild_webhook",
 					authentication.TokenScopeMiddleware([]string{

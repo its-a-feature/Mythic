@@ -95,6 +95,7 @@ func DeleteFilesHelper(fileIDsToProcess []int, operatorOperation *databaseStruct
 			return err, deletedFileIDs, deletedPayloadIDs
 		}
 		deletedFileIDs = append(deletedFileIDs, filemeta.ID)
+		hostedFileMetaIDs := []int{filemeta.ID}
 		if filemeta.IsPayload {
 			payload := databaseStructs.Payload{}
 			if err := database.DB.Get(&payload, `SELECT id, uuid FROM payload WHERE file_id=$1`, filemeta.ID); err != nil {
@@ -129,6 +130,7 @@ func DeleteFilesHelper(fileIDsToProcess []int, operatorOperation *databaseStruct
 		} else {
 			for _, file := range linkedFiles {
 				deletedFileIDs = append(deletedFileIDs, file.ID)
+				hostedFileMetaIDs = append(hostedFileMetaIDs, file.ID)
 				if file.IsPayload {
 					payload := databaseStructs.Payload{}
 					if err := database.DB.Get(&payload, `SELECT id, uuid FROM payload WHERE file_id=$1`, file.ID); err != nil {
@@ -147,6 +149,7 @@ func DeleteFilesHelper(fileIDsToProcess []int, operatorOperation *databaseStruct
 				}
 			}
 		}
+		rabbitmq.DeleteC2HostedFilesForFileMetaIDs(hostedFileMetaIDs)
 	}
 	return nil, deletedFileIDs, deletedPayloadIDs
 }
