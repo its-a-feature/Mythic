@@ -181,17 +181,18 @@ Behavior:
   "type": "enum",
   "label": "Method",
   "choices": ["GET", "POST"],
-  "choiceLabels": { "GET": "HTTP GET", "POST": "HTTP POST" }
+  "choices_display_names": { "GET": "HTTP GET", "POST": "HTTP POST" }
 }
 ```
 
 | Key | Type | Required | Notes |
 |-----|------|----------|-------|
 | `choices` | array | yes | The selectable values. Each is used as both the stored value and the option key, so use **unique primitives** (strings recommended). |
-| `choiceLabels` | object | no | Map of `value → display text`. A value with no entry shows its raw value. |
+| `choices_display_names` | object | no | Map of `value → display text`. A value with no entry shows its raw value. |
 
-> The display-label key here is **`choiceLabels`** (camelCase), distinct from the
-> `choices_display_names` field used by Mythic's native parameter types. Don't confuse them.
+> This is the same `choices_display_names` key Mythic uses for the display labels of its
+> native `ChooseOne` / `ChooseMultiple` parameters — same name, same meaning, so authors only
+> learn one convention.
 
 Empty value defaults to the first choice (or `""` if `choices` is empty).
 
@@ -229,15 +230,15 @@ Renders a toggle switch. Value is coerced with `!!`; empty value default is `fal
 {
   "type": "string_map",
   "label": "Headers",
-  "keyLabel": "Header",
-  "valueLabel": "Contents"
+  "key_label": "Header",
+  "value_label": "Contents"
 }
 ```
 
 | Key | Type | Required | Default | Notes |
 |-----|------|----------|---------|-------|
-| `keyLabel` | string | no | `"Key"` | Column label for keys. |
-| `valueLabel` | string | no | `"Value"` | Column label for values. |
+| `key_label` | string | no | `"Key"` | Column label for keys. |
+| `value_label` | string | no | `"Value"` | Column label for values. |
 
 Renders an editable table of string→string entries:
 
@@ -364,8 +365,8 @@ conditional fields, conditional placeholders, and a string map:
           "name": "headers",
           "type": "string_map",
           "label": "Headers",
-          "keyLabel": "Header",
-          "valueLabel": "Value"
+          "key_label": "Header",
+          "value_label": "Value"
         }
       ]
     },
@@ -381,7 +382,7 @@ conditional fields, conditional placeholders, and a string map:
             "type": "enum",
             "label": "Action",
             "choices": ["base64", "xor", "prepend"],
-            "choiceLabels": { "base64": "Base64", "xor": "XOR", "prepend": "Prepend" }
+            "choices_display_names": { "base64": "Base64", "xor": "XOR", "prepend": "Prepend" }
           },
           {
             "name": "value",
@@ -428,11 +429,11 @@ node            := { "type": <T>, "label"?, "description"?, ...type-specific }
 object          := { type:"object", fields: [ field, ... ] }
 field           := node + { name: <string>, show_when?, placeholder_when? }
 array           := { type:"array", items: node }
-enum            := { type:"enum", choices: [<v>,...], choiceLabels?: { <v>: <label> } }
+enum            := { type:"enum", choices: [<v>,...], choices_display_names?: { <v>: <label> } }
 string          := { type:"string", placeholder? }
 number          := { type:"number" }
 boolean         := { type:"boolean" }
-string_map      := { type:"string_map", keyLabel?, valueLabel? }
+string_map      := { type:"string_map", key_label?, value_label? }
 
 show_when       := { field: <siblingName>, in: [<v>, ...] }
 placeholder_when:= { field: <siblingName>, map: { <siblingValue>: <placeholder> } }

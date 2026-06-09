@@ -68,11 +68,11 @@ const CollapsibleSection = ({label, summary, description, defaultCollapsed, chil
 // A schema descriptor is a JSON object. Supported `type` values:
 //   object      { type: "object", fields: [ {name, type, label, description, show_when?, ...}, ... ] }
 //   array       { type: "array", items: <schema>, label }
-//   enum        { type: "enum", choices: [..], choiceLabels: {value: display}?, label }
+//   enum        { type: "enum", choices: [..], choices_display_names: {value: display}?, label }
 //   string      { type: "string", label, placeholder? }
 //   number      { type: "number", label }
 //   boolean     { type: "boolean", label }
-//   string_map  { type: "string_map", label, keyLabel?, valueLabel? }
+//   string_map  { type: "string_map", label, key_label?, value_label? }
 //
 // Conditional rendering: any field in an object's fields[] may carry
 //   show_when: {field: "<siblingName>", in: [<values>]}
@@ -306,8 +306,8 @@ const ArrayOfObjectField = ({schema, value, onChange, depth}) => {
 const StringMapField = ({schema, value, onChange}) => {
     const obj = (value && typeof value === "object" && !Array.isArray(value)) ? value : {};
     const entries = Object.entries(obj);
-    const keyLabel = schema.keyLabel || "Key";
-    const valueLabel = schema.valueLabel || "Value";
+    const keyLabel = schema.key_label || "Key";
+    const valueLabel = schema.value_label || "Value";
     const renameKey = (oldKey, newKey) => {
         if(newKey === oldKey) return;
         const next = {};
@@ -376,7 +376,7 @@ const StringMapField = ({schema, value, onChange}) => {
 
 const EnumField = ({schema, value, onChange}) => {
     const choices = schema.choices || [];
-    const labels = schema.choiceLabels || {};
+    const labels = schema.choices_display_names || {};
     return (
         <FormControl size="small" fullWidth style={{marginTop: "8px", marginBottom: "4px"}}>
             {schema.label && <InputLabel>{schema.label}</InputLabel>}
