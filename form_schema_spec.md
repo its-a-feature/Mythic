@@ -322,9 +322,81 @@ first Visual entry), the renderer seeds it from the schema via `emptyValueForSch
 | `string_map` | `{}` |
 | anything else | `null` |
 
+> These are the **only** defaults `form_schema` provides — type-based zero values. There is no
+> per-node `default` key, and no per-node randomization. For author-supplied default *content*
+> and for randomized values, see §7.
+
 ---
 
-## 7. Authoring notes & constraints
+## 7. Defaults and randomization (parameter-level, not schema-level)
+
+`form_schema` describes **structure only**. The renderer reads no `default`, `randomize`, or
+`format_string` keys on any node — set them and they are silently ignored. Both "default data"
+and "random data" are governed one level up, by **peer fields on the C2 profile parameter**
+that carries the schema, not by the schema itself.
+
+### Where a form_schema field's initial content comes from
+
+When the operator opens the Visual editor, the form is populated in this order of precedence:
+
+1. **The parameter's current value / `default_value`** — a raw config **string**. The Visual tab
+   runs `JSON.parse` on it and edits the resulting tree (`parseSourceForVisual` in
+   `CreatePayloadParameter.js`). This is the real way to ship a non-trivial default: set the
+   parameter's `default_value` to a JSON string. (It must be JSON-parseable for Visual to seed
+   from it — see §2's round-trip rule.)
+2. **A preset** the operator picks from `presets_fn` — also a raw config string, parsed the same
+   way.
+3. **Type-based seeding** from §6 (`emptyValueForSchema`) when the source is empty — `""`, `0`,
+   `[]`, etc.
+
+So if you want the Visual form to open with meaningful values, put them in the parameter's
+`default_value` or ship presets; you cannot express them inside the schema.
+
+### Randomization is parameter-level — and mutually exclusive with the Visual editor
+
+A parameter gets a randomly-generated value via two peer fields:
+
+| Parameter field | Wire key | Effect |
+|-----------------|----------|--------|
+| `DefaultValue` | `default_value` | Static default value (any type matching the parameter type). |
+| `Randomize` | `randomize` | When `true`, generate the value from `FormatString` **as a regex**. |
+| `FormatString` | `format_string` | Dual-purpose: a randomize **regex**, *or* a `ui:config_editor:…` directive. Never both. |
+
+When `Randomize` is `true`, Mythic generates the value at build/instance time by feeding
+`FormatString` through its `reggen` regex generator (`mythic-docker/src/rabbitmq/utils.go:415`,
+`utils.Generate(formatString, 10)`), and `DefaultValue` is ignored.
+
+Because `FormatString` is dual-purpose, **a `form_schema`-backed field can never be randomized**:
+the Visual editor only exists for `ui:config_editor` String parameters, and `getConfigEditorMode`
+(`CreatePayloadParameter.js:67`) disables the config editor entirely whenever `randomize` is
+`true`. Put randomized values (keys, URIs, tokens) in their **own** parameters, separate from any
+config-editor/`form_schema` field.
+
+```go
+// A randomized value — its own parameter, NOT a form_schema field.
+{
+    Name:          "xor_key",
+    ParameterType: c2structs.C2_PARAMETER_TYPE_STRING,
+    Randomize:     true,
+    FormatString:  "[A-Fa-f0-9]{32}", // regex → fresh 16-byte hex key per build
+},
+// Default *content* for a form_schema-backed config field — set on the parameter as a
+// raw JSON string; the Visual tab parses it into the form when opened.
+{
+    Name:          "raw_c2_config",
+    ParameterType: c2structs.C2_PARAMETER_TYPE_STRING,
+    DefaultValue:  `{"get":{"uris":["/index"]}}`,
+    FormatString:  "ui:config_editor:json_toml:presets_fn=list_raw_c2_config_presets",
+},
+```
+
+> `reggen` caps **unbounded** quantifiers (`+`, `*`, `{n,}`) at 10 repetitions, so prefer an
+> explicit length (`{32}`) for keys. Anchors (`^`/`$`) aren't needed — it generates the whole
+> string from the pattern.
+
+---
+
+## 8. Authoring notes & constraints
 
 - **Root type.** Because the Visual editor is a view over `JSON.parse(value)`, the root
   `form_schema` should describe a JSON document — normally `{"type": "object", ...}`.
@@ -341,7 +413,7 @@ first Visual entry), the renderer seeds it from the schema via `emptyValueForSch
 
 ---
 
-## 8. Worked example
+## 9. Worked example
 
 A complete schema for an HTTP-style C2 config, exercising nesting, arrays of objects,
 conditional fields, conditional placeholders, and a string map:
@@ -421,7 +493,7 @@ This serializes to / parses from a JSON document like:
 
 ---
 
-## 9. Quick reference
+## 10. Quick reference
 
 ```
 node            := { "type": <T>, "label"?, "description"?, ...type-specific }
