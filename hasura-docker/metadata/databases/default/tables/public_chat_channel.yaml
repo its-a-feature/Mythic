@@ -2,12 +2,12 @@ table:
   name: chat_channel
   schema: public
 object_relationships:
-  - name: archived_operator
-    using:
-      foreign_key_constraint_on: archived_by
   - name: apitoken
     using:
       foreign_key_constraint_on: apitokens_id
+  - name: archived_operator
+    using:
+      foreign_key_constraint_on: archived_by
   - name: chat_container
     using:
       foreign_key_constraint_on: chat_container_id
@@ -21,6 +21,13 @@ object_relationships:
     using:
       foreign_key_constraint_on: operation_id
 array_relationships:
+  - name: apitokens
+    using:
+      foreign_key_constraint_on:
+        column: chat_channel_id
+        table:
+          name: apitokens
+          schema: public
   - name: messages
     using:
       foreign_key_constraint_on:

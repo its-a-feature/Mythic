@@ -105,7 +105,7 @@ func Initialize() {
 	invalidateAllNonUserAPITokens()
 	go startShortLivedAPITokenCleanup()
 	InvalidateOperationEventLogCacheMap()
-	go listenForOperationsMessages()
+	go listenForOperationsEventLogMessages()
 	go listenForWriteDownloadChunkToLocalDisk()
 	go listenForMythicTreeData()
 	go listenForAsyncAgentMessagePostResponseContent()

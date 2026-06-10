@@ -25,6 +25,7 @@ export function CreatePayloadBuildParametersTable(props){
                                 key={"buildparamtablerow" + op.id}
                                 payload_type={props.payload_type}
                                 instance_name={props.instance_name}
+                                returnAllDictValues={props.returnAllDictValues}
                                 onChange={props.onChange}
                                 {...op}
                             />
@@ -35,4 +36,4 @@ export function CreatePayloadBuildParametersTable(props){
         </div>
 
     );
-} 
+}

@@ -65,6 +65,8 @@ query getPayloadTypesBuildParametersQuery($payload_id: Int!) {
             group_name
             supported_os
             hide_conditions
+            ui_position
+            dynamic_query_function
         }
     }
   }

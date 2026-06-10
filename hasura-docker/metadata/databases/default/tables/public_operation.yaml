@@ -9,6 +9,20 @@ object_relationships:
     using:
       foreign_key_constraint_on: apitokens_id
 array_relationships:
+  - name: buildparameterinstances
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: buildparameterinstance
+          schema: public
+  - name: c2profile_file_hosts
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: c2profile_file_host
+          schema: public
   - name: c2profileparametersinstances
     using:
       foreign_key_constraint_on:
@@ -36,6 +50,34 @@ array_relationships:
         column: operation_id
         table:
           name: callback
+          schema: public
+  - name: chat_channels
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: chat_channel
+          schema: public
+  - name: chat_messages
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: chat_message
+          schema: public
+  - name: chat_read_states
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: chat_read_state
+          schema: public
+  - name: chat_requests
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: chat_request
           schema: public
   - name: credentials
     using:
@@ -92,6 +134,13 @@ array_relationships:
         column: operation_id
         table:
           name: filemeta
+          schema: public
+  - name: invite_links
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: invite_link
           schema: public
   - name: keylogs
     using:

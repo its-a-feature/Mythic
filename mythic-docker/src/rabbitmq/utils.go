@@ -1576,7 +1576,7 @@ type operationMessage struct {
 
 var operationMessageChannel = make(chan operationMessage, 1000)
 
-func listenForOperationsMessages() {
+func listenForOperationsEventLogMessages() {
 	timer := time.NewTimer(time.Second * 10)
 	for {
 		select {

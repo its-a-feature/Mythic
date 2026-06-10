@@ -1,5 +1,5 @@
 import React from 'react';
-import { CreatePayloadParameter } from './CreatePayloadParameter';
+import {CreatePayloadBuildParametersTable} from './CreatePayloadBuildParametersTable';
 
 
 export function CreatePayloadC2ProfileParametersTable(props){
@@ -8,16 +8,14 @@ export function CreatePayloadC2ProfileParametersTable(props){
         props.onChange(props.name, paramName, value, error);
     }
     return (
-        <div className="mythic-column-stack">
-            {props.c2profileparameters.map( (op) => (
-                <CreatePayloadParameter
-                    displayMode="card"
-                    key={"c2paramtablerow" + op.id}
-                    returnAllDictValues={props.returnAllDictValues}
-                    onChange={onChange}
-                    {...op}
-                />
-            ))}
-        </div>
+        <CreatePayloadBuildParametersTable
+            buildParameters={props.c2profileparameters}
+            os={props.os}
+            c2_name={props.c2_name || props.name}
+            payload_type={props.payload_type}
+            instance_name={props.instance_name}
+            returnAllDictValues={props.returnAllDictValues}
+            onChange={onChange}
+        />
     );
-} 
+}

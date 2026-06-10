@@ -30,6 +30,13 @@ array_relationships:
         table:
           name: browserscript
           schema: public
+  - name: c2profile_file_hosts
+    using:
+      foreign_key_constraint_on:
+        column: created_by
+        table:
+          name: c2profile_file_host
+          schema: public
   - name: callbacks
     using:
       foreign_key_constraint_on:
@@ -43,6 +50,55 @@ array_relationships:
         column: locked_operator_id
         table:
           name: callback
+          schema: public
+  - name: chatChannelsByCreatedBy
+    using:
+      foreign_key_constraint_on:
+        column: created_by
+        table:
+          name: chat_channel
+          schema: public
+  - name: chatChannelsByLockedBy
+    using:
+      foreign_key_constraint_on:
+        column: locked_by
+        table:
+          name: chat_channel
+          schema: public
+  - name: chatMessagesByOperatorId
+    using:
+      foreign_key_constraint_on:
+        column: operator_id
+        table:
+          name: chat_message
+          schema: public
+  - name: chat_channels
+    using:
+      foreign_key_constraint_on:
+        column: archived_by
+        table:
+          name: chat_channel
+          schema: public
+  - name: chat_messages
+    using:
+      foreign_key_constraint_on:
+        column: deleted_by
+        table:
+          name: chat_message
+          schema: public
+  - name: chat_read_states
+    using:
+      foreign_key_constraint_on:
+        column: operator_id
+        table:
+          name: chat_read_state
+          schema: public
+  - name: chat_requests
+    using:
+      foreign_key_constraint_on:
+        column: created_by
+        table:
+          name: chat_request
           schema: public
   - name: credentials
     using:
@@ -86,6 +142,13 @@ array_relationships:
         table:
           name: eventstepinstance
           schema: public
+  - name: eventstepinstancesByUserInteractionResolvedBy
+    using:
+      foreign_key_constraint_on:
+        column: user_interaction_resolved_by
+        table:
+          name: eventstepinstance
+          schema: public
   - name: eventsteps
     using:
       foreign_key_constraint_on:
@@ -106,6 +169,13 @@ array_relationships:
         column: operator_id
         table:
           name: global_setting
+          schema: public
+  - name: invite_links
+    using:
+      foreign_key_constraint_on:
+        column: operator_id
+        table:
+          name: invite_link
           schema: public
   - name: loadedcommands
     using:

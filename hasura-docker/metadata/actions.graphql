@@ -24,6 +24,12 @@ type Mutation {
   ): c2HostFileOutput
 }
 
+type Query {
+  c2SampleMessage(
+    uuid: String!
+  ): C2SampleMessageOutput
+}
+
 type Mutation {
   c2UpdateHostedFile(
     c2profile_file_host_id: Int!
@@ -32,12 +38,6 @@ type Mutation {
     stop: Boolean
     remove: Boolean
   ): c2HostFileOutput
-}
-
-type Query {
-  c2SampleMessage(
-    uuid: String!
-  ): C2SampleMessageOutput
 }
 
 type Mutation {
@@ -52,12 +52,6 @@ type Mutation {
   callbackgraphedgeRemove(
     edge_id: Int!
   ): CallbackgraphedgeRemoveOutput
-}
-
-type Query {
-  configCheck(
-    uuid: String!
-  ): ConfigCheckOutput
 }
 
 type Mutation {
@@ -102,6 +96,14 @@ type Mutation {
 }
 
 type Mutation {
+  chatMCPToolConfirmation(
+    message_id: Int!
+    decision: String!
+    response: String
+  ): ChatActionOutput
+}
+
+type Mutation {
   chatMarkRead(
     channel_id: Int!
     last_read_message_id: Int
@@ -111,14 +113,6 @@ type Mutation {
 type Mutation {
   chatRefreshSpecialMessage(
     message_id: Int!
-  ): ChatActionOutput
-}
-
-type Mutation {
-  chatMCPToolConfirmation(
-    message_id: Int!
-    decision: String!
-    response: String
   ): ChatActionOutput
 }
 
@@ -148,6 +142,12 @@ type Mutation {
     ai_metadata: jsonb
     apitokens_id: Int
   ): ChatActionOutput
+}
+
+type Query {
+  configCheck(
+    uuid: String!
+  ): ConfigCheckOutput
 }
 
 type Mutation {
@@ -208,6 +208,14 @@ type Mutation {
     resolved: Boolean
     host: String
   ): createArtifactOutput
+}
+
+type Mutation {
+  createBuildParameterInstance(
+    build_parameter_instance: String!
+    instance_name: String!
+    payload_type_id: Int!
+  ): createc2instanceOutput
 }
 
 type Mutation {
@@ -403,6 +411,15 @@ type Mutation {
   ): eventingImportContainerWorkflowOutput
 }
 
+type Mutation {
+  eventingStepUserInteractionSubmit(
+    approved: Boolean
+    comment: String
+    eventstepinstance_id: Int!
+    inputs: jsonb
+  ): eventingStepUserInteractionSubmitOutput
+}
+
 type Query {
   eventingTestFile(
     file_contents: String!
@@ -450,15 +467,6 @@ type Mutation {
     eventstepinstance_id: Int!
     retry_all_groups: Boolean
   ): eventingTriggerRetryFromStepOutput
-}
-
-type Mutation {
-  eventingStepUserInteractionSubmit(
-    approved: Boolean
-    comment: String
-    eventstepinstance_id: Int!
-    inputs: jsonb
-  ): eventingStepUserInteractionSubmitOutput
 }
 
 type Mutation {
@@ -525,6 +533,14 @@ type Query {
 }
 
 type Mutation {
+  importBuildParameterInstance(
+    build_parameter_instance: jsonb!
+    instance_name: String!
+    payload_type_name: String!
+  ): createc2instanceOutput
+}
+
+type Mutation {
   importC2Instance(
     c2_instance: jsonb!
     instance_name: String!
@@ -542,10 +558,6 @@ type Mutation {
   importTagtypes(
     tagtypes: String!
   ): importTagtypesOutput
-}
-
-type Query {
-  whoami: whoamiOutput
 }
 
 type Mutation {
@@ -726,6 +738,10 @@ type Mutation {
     description: String
     deleted: Boolean
   ): updatePayloadOutput
+}
+
+type Query {
+  whoami: whoamiOutput
 }
 
 input OperatorInput {
@@ -1489,3 +1505,4 @@ type ChatSearchResult {
   created_at: String!
   rank: Float!
 }
+

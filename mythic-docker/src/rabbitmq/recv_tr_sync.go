@@ -97,7 +97,7 @@ func trSync(in TrSyncMessage) error {
 		return err
 	}
 	checkContainerStatusAddTrChannel <- translationDatabase
-	go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(translationDatabase.Name)
+	go CreateAPITokenAndSendOnStartMessage(translationDatabase.Name)
 	go reSyncPayloadTypes()
 	return nil
 }

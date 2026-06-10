@@ -402,7 +402,6 @@ func setRoutes(r *gin.Engine) {
 				noSpectators.POST("task_upload_file_webhook",
 					authentication.TokenScopeMiddleware([]string{
 						mythicjwt.SCOPE_FILE_WRITE,
-						mythicjwt.SCOPE_TASK_WRITE,
 					}),
 					webcontroller.TaskUploadFileWebhook)
 				noSpectators.POST("create_task_webhook",
@@ -446,14 +445,24 @@ func setRoutes(r *gin.Engine) {
 					}),
 					webcontroller.RequestOpsecBypassWebhook)
 				// payloadtype / c2profile
+				noSpectators.POST("create_buildparameter_instance_webhook",
+					authentication.TokenScopeMiddleware([]string{
+						mythicjwt.SCOPE_PAYLOAD_WRITE,
+					}),
+					webcontroller.CreateBuildParameterInstanceWebhook)
+				noSpectators.POST("import_buildparameter_instance_webhook",
+					authentication.TokenScopeMiddleware([]string{
+						mythicjwt.SCOPE_PAYLOAD_WRITE,
+					}),
+					webcontroller.ImportBuildParameterInstanceWebhook)
 				noSpectators.POST("create_c2parameter_instance_webhook",
 					authentication.TokenScopeMiddleware([]string{
-						mythicjwt.SCOPE_TASK_WRITE,
+						mythicjwt.SCOPE_PAYLOAD_WRITE,
 					}),
 					webcontroller.CreateC2ParameterInstanceWebhook)
 				noSpectators.POST("import_c2parameter_instance_webhook",
 					authentication.TokenScopeMiddleware([]string{
-						mythicjwt.SCOPE_TASK_WRITE,
+						mythicjwt.SCOPE_PAYLOAD_WRITE,
 					}),
 					webcontroller.ImportC2ParameterInstanceWebhook)
 				noSpectators.POST("start_stop_profile_webhook",

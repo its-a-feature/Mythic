@@ -45,17 +45,6 @@ actions:
       - role: mythic_admin
       - role: developer
     comment: Using the file specified by its UUID, asks the C2 Profile specified by its ID to host it at a specific URL
-  - name: c2UpdateHostedFile
-    definition:
-      kind: synchronous
-      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/c2profile_update_hosted_file_webhook'
-      forward_client_headers: true
-    permissions:
-      - role: operator
-      - role: operation_admin
-      - role: mythic_admin
-      - role: developer
-    comment: Updates, retries, stops, or removes an existing C2 hosted file entry
   - name: c2SampleMessage
     definition:
       kind: ""
@@ -68,6 +57,17 @@ actions:
       - role: mythic_admin
       - role: developer
     comment: Using the UUID of a payload, ask's that payload's C2 Profiles to generate a sample message of what traffic would look like
+  - name: c2UpdateHostedFile
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/c2profile_update_hosted_file_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
+    comment: Updates, retries, stops, or removes an existing C2 hosted file entry
   - name: callbackgraphedgeAdd
     definition:
       kind: synchronous
@@ -90,18 +90,6 @@ actions:
       - role: mythic_admin
       - role: developer
     comment: Removes an active graph edge specified by its ID
-  - name: configCheck
-    definition:
-      kind: ""
-      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/config_check_webhook'
-      forward_client_headers: true
-    permissions:
-      - role: spectator
-      - role: operator
-      - role: operation_admin
-      - role: mythic_admin
-      - role: developer
-    comment: Using the UUID of a payload, ask's that payload's C2 Profiles to check if the Payload's configuration matches with the configuration for the profile itself.
   - name: chatCancelRequest
     definition:
       kind: synchronous
@@ -157,6 +145,17 @@ actions:
       - role: mythic_admin
       - role: developer
     comment: Edit an operator-authored chat message
+  - name: chatMCPToolConfirmation
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/chat_mcp_tool_confirmation_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
+    comment: Confirm, reject, or respond to a pending MCP tool execution request in an AI chat
   - name: chatMarkRead
     definition:
       kind: synchronous
@@ -179,17 +178,6 @@ actions:
       - role: operation_admin
       - role: mythic_admin
     comment: Refresh a chat special message from its source object
-  - name: chatMCPToolConfirmation
-    definition:
-      kind: synchronous
-      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/chat_mcp_tool_confirmation_webhook'
-      forward_client_headers: true
-    permissions:
-      - role: operator
-      - role: operation_admin
-      - role: mythic_admin
-      - role: developer
-    comment: Confirm, reject, or respond to a pending MCP tool execution request in an AI chat
   - name: chatRetryRequest
     definition:
       kind: synchronous
@@ -224,6 +212,18 @@ actions:
       - role: mythic_admin
       - role: developer
     comment: Update, archive, or lock a chat channel
+  - name: configCheck
+    definition:
+      kind: ""
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/config_check_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: spectator
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
+    comment: Using the UUID of a payload, ask's that payload's C2 Profiles to check if the Payload's configuration matches with the configuration for the profile itself.
   - name: consumingServicesTestLog
     definition:
       kind: synchronous
@@ -314,6 +314,17 @@ actions:
       - role: mythic_admin
       - role: developer
     comment: Generate an artifact and optionally associate it with a specific task by its task display ID
+  - name: createBuildParameterInstance
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/create_buildparameter_instance_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
+    comment: Creates a new saved instance of a Payload Type's build parameters with a given name
   - name: createC2Instance
     definition:
       kind: synchronous
@@ -566,6 +577,17 @@ actions:
       - role: mythic_admin
       - role: developer
     comment: Import a workflow from a container automatically
+  - name: eventingStepUserInteractionSubmit
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/eventing_step_user_interaction_submit_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
+    comment: Submit approval or runtime input for an eventing step instance waiting on user interaction
   - name: eventingTestFile
     definition:
       kind: ""
@@ -643,17 +665,6 @@ actions:
       - role: mythic_admin
       - role: developer
     comment: Manually retry an eventgroup instance from a specific instance step by ID
-  - name: eventingStepUserInteractionSubmit
-    definition:
-      kind: synchronous
-      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/eventing_step_user_interaction_submit_webhook'
-      forward_client_headers: true
-    permissions:
-      - role: operator
-      - role: operation_admin
-      - role: mythic_admin
-      - role: developer
-    comment: Submit approval or runtime input for an eventing step instance waiting on user interaction
   - name: eventingTriggerRunAgain
     definition:
       kind: synchronous
@@ -757,6 +768,16 @@ actions:
       - role: mythic_admin
       - role: operation_admin
       - role: operator
+  - name: importBuildParameterInstance
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/import_buildparameter_instance_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: importC2Instance
     definition:
       kind: synchronous
@@ -783,17 +804,6 @@ actions:
       handler: '{{MYTHIC_ACTIONS_URL_BASE}}/tagtype_import_webhook'
       forward_client_headers: true
     permissions:
-      - role: operator
-      - role: operation_admin
-      - role: mythic_admin
-      - role: developer
-  - name: whoami
-    definition:
-      kind: ""
-      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/whoami_webhook'
-      forward_client_headers: true
-    permissions:
-      - role: spectator
       - role: operator
       - role: operation_admin
       - role: mythic_admin
@@ -1038,6 +1048,17 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: whoami
+    definition:
+      kind: ""
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/whoami_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: spectator
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
 custom_types:
   enums: []
   input_objects:
@@ -1183,4 +1204,6 @@ custom_types:
     - name: eventingTriggerManualBulkOutput
     - name: dynamicQueryBuildParameterOutput
     - name: custombrowserExportFunctionOutput
+    - name: ChatActionOutput
+    - name: ChatSearchResult
   scalars: []

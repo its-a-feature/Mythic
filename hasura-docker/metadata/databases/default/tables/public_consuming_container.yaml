@@ -2,6 +2,27 @@ table:
   name: consuming_container
   schema: public
 array_relationships:
+  - name: chat_channels
+    using:
+      foreign_key_constraint_on:
+        column: chat_container_id
+        table:
+          name: chat_channel
+          schema: public
+  - name: chat_messages
+    using:
+      foreign_key_constraint_on:
+        column: chat_container_id
+        table:
+          name: chat_message
+          schema: public
+  - name: chat_requests
+    using:
+      foreign_key_constraint_on:
+        column: chat_container_id
+        table:
+          name: chat_request
+          schema: public
   - name: eventgroupconsumingcontainers
     using:
       foreign_key_constraint_on:

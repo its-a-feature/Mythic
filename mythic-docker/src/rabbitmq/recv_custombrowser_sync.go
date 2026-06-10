@@ -194,7 +194,7 @@ func customBrowserSync(in CustomBrowserSyncMessage) error {
 	go ResolveAllOperationsMessageBySource(getDownContainerSource(customSyncBrowser.Name), 0)
 
 	checkContainerStatusAddCustomBrowserChannel <- customSyncBrowser
-	go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(customSyncBrowser.Name)
+	go CreateAPITokenAndSendOnStartMessage(customSyncBrowser.Name)
 	go updateCustomBrowserCache()
 	return nil
 }

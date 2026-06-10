@@ -1227,10 +1227,15 @@ func resolveUserInteractionConfigValueSources(config map[string]interface{}, all
 			logging.LogError(nil, "failed to get type", "input", inputs[i])
 			continue
 		}
-		if source.(string) != "custom" {
-			resolvedValue, ok := resolveUserInteractionStepOutputReference(source.(string), allEventSteps)
+		sourceString, ok := source.(string)
+		if !ok {
+			logging.LogError(nil, "failed to get default_value_source string for user interaction", "source", source, "input", inputs[i])
+			continue
+		}
+		if sourceString != eventing.UserInteractionInputSourceCustom {
+			resolvedValue, ok := resolveUserInteractionStepOutputReference(sourceString, allEventSteps)
 			if !ok {
-				logging.LogError(nil, "failed to resolve user interaction step output reference", "source", source, "all_event_steps", allEventSteps)
+				logging.LogError(nil, "failed to resolve user interaction step output reference", "source", sourceString, "all_event_steps", allEventSteps)
 				continue
 			}
 			if inputType == eventing.UserInteractionInputTypeChooseOne {

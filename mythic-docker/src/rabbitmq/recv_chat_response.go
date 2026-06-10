@@ -216,7 +216,7 @@ func (m *ChatContainerResponseMetadata) StructValue() map[string]interface{} {
 	values["source_id"] = m.SourceID
 	values["special_message_version"] = m.SpecialMessageVersion
 	values["refresh"] = m.Refresh
-	values["mcp_confirmation_required"] = m.MCPConfirmationRequired
+	values["mcp_confirmation_required"] = chatMetadataBoolValue(m.MCPConfirmationRequired)
 	if m.MCPToolConfirmation != nil {
 		values[ChatMessageSpecialTypeMCPToolConfirmation] = m.MCPToolConfirmation.StructValue()
 	}
@@ -279,7 +279,7 @@ func (m *ChatMCPToolConfirmationMetadata) StructValue() map[string]interface{} {
 	values["description"] = m.Description
 	values["parameters"] = m.Parameters
 	values["annotations"] = m.Annotations
-	values["read_only"] = m.ReadOnly
+	values["read_only"] = chatMetadataBoolValue(m.ReadOnly)
 	values["response"] = m.Response
 	values["resolved_by_operator_id"] = m.ResolvedByOperatorID
 	values["resolved_by"] = m.ResolvedBy
@@ -333,6 +333,13 @@ func chatMetadataTakeBool(values map[string]interface{}, key string) *bool {
 		return &typed
 	}
 	return nil
+}
+
+func chatMetadataBoolValue(value *bool) interface{} {
+	if value == nil {
+		return nil
+	}
+	return *value
 }
 
 func chatMetadataTakeObject(values map[string]interface{}, key string) map[string]interface{} {

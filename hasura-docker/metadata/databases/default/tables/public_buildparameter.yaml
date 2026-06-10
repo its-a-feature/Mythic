@@ -25,10 +25,13 @@ select_permissions:
         - payload_type_id
         - ui_position
         - choices
+        - choices_display_names
         - hide_conditions
+        - json_string_schema
         - supported_os
         - default_value
         - description
+        - display_name
         - dynamic_query_function
         - format_string
         - group_name
@@ -47,10 +50,13 @@ select_permissions:
         - payload_type_id
         - ui_position
         - choices
+        - choices_display_names
         - hide_conditions
+        - json_string_schema
         - supported_os
         - default_value
         - description
+        - display_name
         - dynamic_query_function
         - format_string
         - group_name
@@ -69,10 +75,13 @@ select_permissions:
         - payload_type_id
         - ui_position
         - choices
+        - choices_display_names
         - hide_conditions
+        - json_string_schema
         - supported_os
         - default_value
         - description
+        - display_name
         - dynamic_query_function
         - format_string
         - group_name
@@ -91,10 +100,13 @@ select_permissions:
         - payload_type_id
         - ui_position
         - choices
+        - choices_display_names
         - hide_conditions
+        - json_string_schema
         - supported_os
         - default_value
         - description
+        - display_name
         - dynamic_query_function
         - format_string
         - group_name

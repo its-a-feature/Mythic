@@ -77,9 +77,10 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                     choicesInUse = [...data.dynamicQueryBuildParameterFunction.choices];
                     if(parameter_type === "ChooseOne"){
                         if(choicesInUse.length > 0){
-                            if(value !== "") {
-                                setValue(value);
-                                onChange(name, value, false);
+                            const currentValue = trackedValue !== undefined && trackedValue !== "" ? trackedValue : value;
+                            if(currentValue !== "") {
+                                setValue(currentValue);
+                                onChange(name, currentValue, false);
                             } else if(choicesInUse.includes(default_value)) {
                                 setValue(default_value);
                                 onChange(name, default_value, false);
@@ -89,16 +90,17 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                             }
                         }
                     } else if(parameter_type === "ChooseOneCustom"){
+                        const currentValue = trackedValue !== undefined && trackedValue !== "" ? trackedValue : value;
                         let newStandardValue = default_value;
-                        if(choicesInUse.includes(default_value) && value !== "") {
+                        if(choicesInUse.includes(default_value) && currentValue !== "") {
                             setValue(default_value);
                         } else {
                             setValue(choicesInUse[0]);
                             newStandardValue = choicesInUse[0];
                         }
-                        if(!choicesInUse.includes(value) && value !== "" ){
-                            setChooseOneCustomValue(value);
-                            newStandardValue = value;
+                        if(!choicesInUse.includes(currentValue) && currentValue !== "" ){
+                            setChooseOneCustomValue(currentValue);
+                            newStandardValue = currentValue;
                         }
                         onChange(name, newStandardValue, false);
                     } else if(parameter_type === "ChooseMultiple"){
@@ -791,7 +793,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
             case "Number":
                 return (valueNum*1) !== (initialValue *1);
             case "Boolean":
-                return Boolean(value) !== Boolean(initialValue);
+                return isTrue(value) !== isTrue(initialValue);
             default:
                 return true;
         }

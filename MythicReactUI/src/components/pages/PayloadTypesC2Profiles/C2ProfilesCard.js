@@ -16,7 +16,7 @@ import {C2ProfileOutputDialog} from './C2ProfileOutputDialog';
 import {C2ProfileConfigDialog} from './C2ProfileConfigDialog';
 import {C2ProfileStartStopOutputDialog} from './C2ProfileStartStopOutputDialog';
 import {snackActions} from '../../utilities/Snackbar';
-import {C2ProfileSavedInstancesDialog} from './C2ProfileSavedInstancesDialog';
+import {C2ProfileSavedInstancesDialog} from './SavedParameterInstancesDialog';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import { faLink } from '@fortawesome/free-solid-svg-icons';
 import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
