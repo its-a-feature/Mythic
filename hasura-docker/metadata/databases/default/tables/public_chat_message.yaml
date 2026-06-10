@@ -21,6 +21,13 @@ object_relationships:
     using:
       foreign_key_constraint_on: operator_id
 array_relationships:
+  - name: read_states
+    using:
+      foreign_key_constraint_on:
+        column: last_read_message_id
+        table:
+          name: chat_read_state
+          schema: public
   - name: requests_as_prompt
     using:
       foreign_key_constraint_on:
@@ -34,13 +41,6 @@ array_relationships:
         column: response_message_id
         table:
           name: chat_request
-          schema: public
-  - name: read_states
-    using:
-      foreign_key_constraint_on:
-        column: last_read_message_id
-        table:
-          name: chat_read_state
           schema: public
 select_permissions:
   - role: mythic_admin

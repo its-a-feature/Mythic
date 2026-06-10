@@ -10,7 +10,7 @@ import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 import {PayloadSelect} from "../CreateWrapper/Step3SelectPayload";
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import AddCircleIcon from '@mui/icons-material/AddCircle';
-import {getDefaultChoices, getDefaultValueForType, getSavedToType} from "./Step2SelectPayloadType";
+import {getDefaultChoices, getDefaultValueForType} from "./Step2SelectPayloadType";
 import {CreatePayloadBuildParametersTable} from "./CreatePayloadBuildParametersTable";
 import {ParseForDisplay} from "../Payloads/DetailedPayloadTable";
 import {getModifiedC2Params} from "./Step4C2Profiles";
@@ -94,6 +94,35 @@ query getPayloadTypesBuildParametersQuery($payloadtype: String!) {
         dynamic_query_function
     }
   }
+  buildparameterinstance(where: {instance_name: {_is_null: false}, buildparameter: {deleted: {_eq: false}, payloadtype: {name: {_eq: $payloadtype}}}}, distinct_on: instance_name, order_by: {instance_name: asc}) {
+    instance_name
+    id
+  }
+}
+ `;
+const GetBuildParameterInstanceQuery = gql`
+query getBuildParameterInstanceQuery($name: String!, $payloadtype: String!) {
+  buildparameterinstance(where: {instance_name: {_eq: $name}, buildparameter: {deleted: {_eq: false}, payloadtype: {name: {_eq: $payloadtype}}}}) {
+    buildparameter {
+      default_value
+      description
+      format_string
+      id
+      name
+      parameter_type
+      randomize
+      required
+      verifier_regex
+      choices
+      group_name
+      supported_os
+      hide_conditions
+      ui_position
+      dynamic_query_function
+    }
+    id
+    value
+  }
 }
  `;
 const GetPayloadBuildQuery = gql`
@@ -167,6 +196,93 @@ query getPayloadTypesBuildParametersQuery($payload_id: Int!) {
     }
 }
  `;
+
+const parseJSONValue = (value, fallback) => {
+    try {
+        return JSON.parse(value);
+    } catch (error) {
+        return fallback;
+    }
+};
+
+const parseBooleanValue = (value) => {
+    if(typeof value === "boolean"){
+        return value;
+    }
+    if(typeof value === "string"){
+        return value.toLowerCase() === "true" || value.toLowerCase() === "t";
+    }
+    return Boolean(value);
+};
+
+const prepareDefaultBuildParameter = (param) => {
+    const initialValue = getDefaultValueForType(param);
+    return {
+        ...param,
+        error: false,
+        default_value: initialValue,
+        value: initialValue,
+        trackedValue: initialValue,
+        initialValue: initialValue,
+        choices: getDefaultChoices(param)
+    };
+};
+
+const getSavedBuildParameterValue = (param, savedValue) => {
+    switch(param.parameter_type){
+        case "Array":
+        case "TypedArray":
+        case "ChooseMultiple":
+        case "FileMultiple":
+            return parseJSONValue(savedValue, savedValue);
+        case "Dictionary":
+            return parseJSONValue(savedValue, {});
+        case "File":
+            return savedValue;
+        case "Boolean":
+            return parseBooleanValue(savedValue);
+        case "Number":
+            return savedValue * 1;
+        default:
+            return savedValue;
+    }
+};
+
+const prepareSavedBuildParameter = (param, savedValue, useSavedValueAsInitial=false) => {
+    const choices = getDefaultChoices(param);
+    const initialValue = useSavedValueAsInitial ? getSavedBuildParameterValue(param, savedValue) : getDefaultValueForType(param);
+    if(param.parameter_type === "Dictionary"){
+        const finalDict = getSavedBuildParameterValue(param, savedValue);
+        const finalArray = Object.keys(finalDict).map(key => {
+            const choice = choices.find(c => c.name === key);
+            return {
+                name: key,
+                value: finalDict[key],
+                default_show: true,
+                default_value: choice?.default_value,
+            };
+        });
+        const preparedChoices = choices.map(c => ({...c, default_show: false}));
+        return {
+            ...param,
+            error: false,
+            value: finalArray,
+            trackedValue: finalArray,
+            initialValue: useSavedValueAsInitial ? finalArray : getDefaultValueForType(param),
+            default_value: getDefaultValueForType(param),
+            choices: preparedChoices,
+        };
+    }
+    const value = getSavedBuildParameterValue(param, savedValue);
+    return {
+        ...param,
+        error: false,
+        value,
+        trackedValue: param.parameter_type === "File" ? {name: value, legacy: true} : value,
+        initialValue,
+        choices,
+    };
+};
 
 export function Step1SelectOS(props){
     const [os, setOS] = React.useState('');
@@ -291,31 +407,14 @@ export function Step1SelectOS(props){
                 const params = data.payload_by_pk.payloadtype.buildparameters.map((param) => {
                     for (let p = 0; p < data.payload_by_pk.buildparameterinstances.length; p++) {
                         if (data.payload_by_pk.buildparameterinstances[p]["build_parameter_id"] === param.id) {
-                            let value = {
-                                ...param, error: false,
-                                value: data.payload_by_pk.buildparameterinstances[p]["value"],
-                                trackedValue: data.payload_by_pk.buildparameterinstances[p]["value"],
-                                initialValue:  data.payload_by_pk.buildparameterinstances[p]["value"],
-                                choices: getDefaultChoices(param)
-                            };
-                            let newValue = getSavedToType(value);
-                            return {
-                                ...param, error: false,
-                                value: newValue,
-                                trackedValue: newValue,
-                                initialValue: newValue,
-                                choices: getDefaultChoices(param)
-                            }
+                            return prepareSavedBuildParameter(
+                                param,
+                                data.payload_by_pk.buildparameterinstances[p]["value"],
+                                true
+                            );
                         }
                     }
-                    const initialValue = getDefaultValueForType(param);
-                    return {
-                        ...param, error: false,
-                        value: initialValue,
-                        trackedValue: initialValue,
-                        initialValue: initialValue,
-                        choices: getDefaultChoices(param)
-                    }
+                    return prepareDefaultBuildParameter(param);
                 });
                 //params.sort((a, b) => -b.description.localeCompare(a.description));
                 params.sort(sortByUiPositionThenName);
@@ -581,28 +680,46 @@ export const ConfigureBuildParameters = (
 ) => {
     const [payloadTypeConfigPieces, setPayloadTypeConfigPieces] = React.useState({});
     const [payloadTypeParameters, setSelectedPayloadTypeParameters] = React.useState([]);
+    const [basePayloadTypeParameters, setBasePayloadTypeParameters] = React.useState([]);
+    const [buildParameterInstances, setBuildParameterInstances] = React.useState([]);
+    const [selectedBuildParameterInstance, setSelectedBuildParameterInstance] = React.useState(prevData?.selected_build_parameter_instance || "None");
     const getPayloadTypeBuildParameters = useMythicLazyQuery(GetBuildParametersQuery, {fetchPolicy: "network-only"});
+    const getBuildParameterInstance = useMythicLazyQuery(GetBuildParameterInstanceQuery, {fetchPolicy: "no-cache"});
+    const updatePayloadConfig = (parameters, extraConfig, instanceName) => {
+        onUpdatePayloadConfig({
+            "payload_type": selectedPayloadType,
+            "parameters": parameters,
+            ...extraConfig,
+            "os": os,
+            "selected_build_parameter_instance": instanceName,
+        });
+    }
     const onChange = (name, value, error) => {
         const newParams = payloadTypeParameters.map( (param) => {
             if(param.name === name){
-                return {...param, value, error}
+                return {...param, value, trackedValue: value, error}
             }
             return {...param};
         });
         setSelectedPayloadTypeParameters(newParams);
-        onUpdatePayloadConfig({
-            "payload_type": selectedPayloadType,
-            "parameters": newParams,
-            ...payloadTypeConfigPieces,
-            "os": os});
+        updatePayloadConfig(newParams, payloadTypeConfigPieces, selectedBuildParameterInstance);
     }
     React.useEffect( () => {
         if(selectedPayloadType === ""){return}
+        setBuildParameterInstances([]);
+        setBasePayloadTypeParameters([]);
+        setSelectedPayloadTypeParameters([]);
         getPayloadTypeBuildParameters({variables: {payloadtype: selectedPayloadType}})
             .then(({data}) => {
                 if(data.payloadtype.length === 0){
                     return
                 }
+                const savedInstances = data.buildparameterinstance || [];
+                const requestedInstance = prevData?.selected_build_parameter_instance || "None";
+                const selectedInstance = requestedInstance === "None" ||
+                    savedInstances.some(instance => instance.instance_name === requestedInstance) ? requestedInstance : "None";
+                setBuildParameterInstances(savedInstances);
+                setSelectedBuildParameterInstance(selectedInstance);
                 let extraConfig = {
                     "file_extension": data.payloadtype[0].file_extension,
                     "agent_type": data.payloadtype[0].agent_type,
@@ -615,6 +732,9 @@ export const ConfigureBuildParameters = (
                     "payload_type_id": data.payloadtype[0].id,
                 }
                 setPayloadTypeConfigPieces(extraConfig);
+                const defaultParams = data.payloadtype[0].buildparameters.map(prepareDefaultBuildParameter);
+                defaultParams.sort(sortByUiPositionThenName);
+                setBasePayloadTypeParameters(defaultParams);
                 if (prevData) {
                     const params = data.payloadtype[0].buildparameters.map((param) => {
                         for (let p = 0; p < prevData.parameters.length; p++) {
@@ -640,37 +760,38 @@ export const ConfigureBuildParameters = (
                     //params.sort((a, b) => -b.description.localeCompare(a.description));
                     params.sort(sortByUiPositionThenName);
                     setSelectedPayloadTypeParameters(params);
-                    onUpdatePayloadConfig({
-                        "payload_type": selectedPayloadType,
-                        "parameters": prevData.parameters,
-                        ...extraConfig,
-                        "os": os
-                    });
+                    updatePayloadConfig(params, extraConfig, selectedInstance);
                     return;
                 }
-                const params = data.payloadtype[0].buildparameters.map((param) => {
-                    const initialValue = getDefaultValueForType(param);
-                    return {
-                        ...param,
-                        error: false,
-                        default_value:initialValue,
-                        value: initialValue,
-                        trackedValue: initialValue,
-                        initialValue: initialValue,
-                        choices: getDefaultChoices(param)
-                    }
-                });
-                //params.sort((a,b) => -b.description.localeCompare(a.description));
-                params.sort(sortByUiPositionThenName);
-                setSelectedPayloadTypeParameters(params);
-                onUpdatePayloadConfig({
-                    "payload_type": selectedPayloadType,
-                    "parameters": params,
-                    ...extraConfig,
-                    "os": os});
+                setSelectedPayloadTypeParameters(defaultParams);
+                updatePayloadConfig(defaultParams, extraConfig, "None");
             })
             .catch((data) => console.log(data));
     }, [selectedPayloadType, prevData?.payload]);
+    const onChangeBuildParameterInstance = (evt) => {
+        const instanceName = evt.target.value;
+        if(instanceName === "None"){
+            const resetParams = basePayloadTypeParameters.map(p => ({...p}));
+            setSelectedPayloadTypeParameters(resetParams);
+            setSelectedBuildParameterInstance(instanceName);
+            updatePayloadConfig(resetParams, payloadTypeConfigPieces, instanceName);
+            return;
+        }
+        getBuildParameterInstance({variables: {name: instanceName, payloadtype: selectedPayloadType}})
+            .then(({data}) => {
+                const updates = data.buildparameterinstance.map( (cur) => {
+                    return prepareSavedBuildParameter(cur.buildparameter, cur.value);
+                });
+                updates.sort(sortByUiPositionThenName);
+                setSelectedPayloadTypeParameters(updates);
+                setSelectedBuildParameterInstance(instanceName);
+                updatePayloadConfig(updates, payloadTypeConfigPieces, instanceName);
+            })
+            .catch((data) => {
+                snackActions.error("Failed to fetch build parameter instance data: " + data);
+                console.log("error fetching build parameter instance", data);
+            });
+    }
     return (
         <>
             <div className="mythic-create-section-header">
@@ -682,6 +803,23 @@ export const ConfigureBuildParameters = (
                         Review defaults, required fields, and any values changed from the payload type baseline.
                     </Typography>
                 </div>
+                {buildParameterInstances.length > 0 &&
+                    <div className="mythic-create-section-actions" style={{minWidth: "260px"}}>
+                        <Select
+                            className="mythic-create-select"
+                            value={selectedBuildParameterInstance}
+                            onChange={onChangeBuildParameterInstance}
+                        >
+                            <MenuItem key={"buildparaminstanceopt-none"} value={"None"}>None</MenuItem>
+                            {
+                                buildParameterInstances.map((opt, i) => (
+                                    <MenuItem key={"buildparaminstanceopt" + i}
+                                              value={opt.instance_name}>{opt.instance_name}</MenuItem>
+                                ))
+                            }
+                        </Select>
+                    </div>
+                }
             </div>
             <div className="mythic-create-builder-split">
                 <section className="mythic-create-section mythic-create-section-scroll">
@@ -692,7 +830,7 @@ export const ConfigureBuildParameters = (
                 </section>
                 <section className="mythic-create-section mythic-create-section-scroll">
                     <CreatePayloadBuildParametersTable onChange={onChange} buildParameters={payloadTypeParameters} os={os}
-                    payload_type={selectedPayloadType}/>
+                    payload_type={selectedPayloadType} instance_name={selectedBuildParameterInstance}/>
                 </section>
             </div>
         </>
@@ -721,54 +859,60 @@ const HideConditionOperationEndsWith                              = "ew"
 const HideConditionOperationContains                              = "co"
 const HideConditionOperationNotContains                           = "nco"
 export const GetGroupedParameters = ({buildParameters, os, c2_name}) => {
-    let groups = buildParameters?.reduce( (prev, cur) => {
-        if(prev.includes(cur?.group_name)){return [...prev]}
-        return [...prev, cur.group_name];
+    const parameters = [...(buildParameters || [])];
+    const hasExplicitGroups = parameters.some(cur => cur?.group_name !== undefined && cur?.group_name !== "");
+    const getGroupName = (param) => {
+        if(param?.group_name !== undefined && param.group_name !== ""){
+            return param.group_name;
+        }
+        return hasExplicitGroups ? "" : (c2_name || "");
+    };
+    let groups = parameters.reduce( (prev, cur) => {
+        const groupName = getGroupName(cur);
+        if(prev.includes(groupName)){return [...prev]}
+        return [...prev, groupName];
     }, []);
     let groupedData = groups.map(g => {
         return {name: g, parameters: []}
     });
-    if(c2_name){
-        buildParameters.sort(sortByUiPositionThenName);
-        return [{name: c2_name, parameters: buildParameters}];
-    }
-    for(let i = 0; i < buildParameters.length; i++){
+    parameters.sort(sortByUiPositionThenName);
+    for(let i = 0; i < parameters.length; i++){
         for(let j = 0; j < groupedData.length; j++){
-            if(buildParameters[i].group_name === groupedData[j].name){
+            if(getGroupName(parameters[i]) === groupedData[j].name){
                 // only add the parameter if it doesn't meet a hide_condition
                 let should_hide = false;
-                if((buildParameters[i]?.supported_os?.length || 0) > 0){
-                    if(!buildParameters[i]?.supported_os?.includes(os)){
+                if(os !== undefined && os !== "" && (parameters[i]?.supported_os?.length || 0) > 0){
+                    if(!parameters[i]?.supported_os?.includes(os)){
                         should_hide = true;
                     }
                 }
-                for(let k = 0; k < buildParameters[i]?.hide_conditions?.length || 0; k++){
-                    for(let l = 0; l < buildParameters.length; l++){
-                        if(buildParameters[l].name === buildParameters[i].hide_conditions[k].name){
-                            switch(buildParameters[i].hide_conditions[k].operand){
+                for(let k = 0; k < (parameters[i]?.hide_conditions?.length || 0); k++){
+                    for(let l = 0; l < parameters.length; l++){
+                        if(parameters[l].name === parameters[i].hide_conditions[k].name){
+                            switch(parameters[i].hide_conditions[k].operand){
                                 case HideConditionOperandEQ:
-                                    if(String(buildParameters[i].hide_conditions[k].value) === String(buildParameters[l].value)){
+                                    if(String(parameters[i].hide_conditions[k].value) === String(parameters[l].value)){
                                         should_hide = true;
                                     }
                                     break;
                                 case HideConditionOperandNotEQ:
-                                    if(String(buildParameters[i].hide_conditions[k].value) !== String(buildParameters[l].value)){
+                                    if(String(parameters[i].hide_conditions[k].value) !== String(parameters[l].value)){
                                         should_hide = true;
                                     }
                                     break;
                                 case HideConditionOperandIN:
-                                    if(buildParameters[i].hide_conditions[k].choices.includes(buildParameters[l].value)){
+                                    if(parameters[i].hide_conditions[k].choices.includes(parameters[l].value)){
                                         should_hide = true;
                                     }
                                     break;
                                 case HideConditionOperandNotIN:
-                                    if(!buildParameters[i].hide_conditions[k].choices.includes(buildParameters[l].value)){
+                                    if(!parameters[i].hide_conditions[k].choices.includes(parameters[l].value)){
                                         should_hide = true;
                                     }
                                     break;
                                 case HideConditionOperandLessThan:
                                     try{
-                                        if(parseInt(buildParameters[l].value) < parseInt(buildParameters[i].hide_conditions[k].value)){
+                                        if(parseInt(parameters[l].value) < parseInt(parameters[i].hide_conditions[k].value)){
                                             should_hide = true;
                                         }
                                     }catch(e){
@@ -778,7 +922,7 @@ export const GetGroupedParameters = ({buildParameters, os, c2_name}) => {
                                     break;
                                 case HideConditionOperandLessThanOrEqual:
                                     try{
-                                        if(parseInt(buildParameters[l].value) <= parseInt(buildParameters[i].hide_conditions[k].value)){
+                                        if(parseInt(parameters[l].value) <= parseInt(parameters[i].hide_conditions[k].value)){
                                             should_hide = true;
                                         }
                                     }catch(e){
@@ -787,7 +931,7 @@ export const GetGroupedParameters = ({buildParameters, os, c2_name}) => {
                                     break;
                                 case HideConditionOperandGreaterThan:
                                     try{
-                                        if(parseInt(buildParameters[l].value) > parseInt(buildParameters[i].hide_conditions[k].value) ){
+                                        if(parseInt(parameters[l].value) > parseInt(parameters[i].hide_conditions[k].value) ){
                                             should_hide = true;
                                         }
                                     }catch(e){
@@ -796,7 +940,7 @@ export const GetGroupedParameters = ({buildParameters, os, c2_name}) => {
                                     break;
                                 case HideConditionOperandGreaterThanOrEqual:
                                     try{
-                                        if(parseInt(buildParameters[l].value) >= parseInt(buildParameters[i].hide_conditions[k].value)){
+                                        if(parseInt(parameters[l].value) >= parseInt(parameters[i].hide_conditions[k].value)){
                                             should_hide = true;
                                         }
                                     }catch(e){
@@ -804,22 +948,22 @@ export const GetGroupedParameters = ({buildParameters, os, c2_name}) => {
                                     }
                                     break;
                                 case HideConditionOperationStartsWith:
-                                    if(String(buildParameters[l].value).startsWith(String(buildParameters[i].hide_conditions[k].value))){
+                                    if(String(parameters[l].value).startsWith(String(parameters[i].hide_conditions[k].value))){
                                         should_hide = true;
                                     }
                                     break;
                                 case HideConditionOperationEndsWith:
-                                    if(String(buildParameters[l].value).endsWith(String(buildParameters[i].hide_conditions[k].value))){
+                                    if(String(parameters[l].value).endsWith(String(parameters[i].hide_conditions[k].value))){
                                         should_hide = true;
                                     }
                                     break;
                                 case HideConditionOperationContains:
-                                    if(buildParameters[l].value.includes(buildParameters[i].hide_conditions[k].value)){
+                                    if(String(parameters[l].value).includes(String(parameters[i].hide_conditions[k].value))){
                                         should_hide = true;
                                     }
                                     break;
                                 case HideConditionOperationNotContains:
-                                    if(!buildParameters[l].value.includes(buildParameters[i].hide_conditions[k].value)){
+                                    if(!String(parameters[l].value).includes(String(parameters[i].hide_conditions[k].value))){
                                         should_hide = true;
                                     }
                                     break;
@@ -830,7 +974,7 @@ export const GetGroupedParameters = ({buildParameters, os, c2_name}) => {
                 if(should_hide){
                     break;
                 }
-                groupedData[j].parameters.push(buildParameters[i]);
+                groupedData[j].parameters.push(parameters[i]);
                 groupedData[j].parameters.sort(sortByUiPositionThenName);
                 break;
             }
@@ -845,7 +989,7 @@ export const ConfigurationSummary = ({buildParameters, os, c2_name}) => {
     React.useEffect( () => {
         // grouped should be array of groupName
         setGroupedParameters(GetGroupedParameters({buildParameters, os, c2_name}));
-    }, [buildParameters, c2_name]);
+    }, [buildParameters, c2_name, os]);
     return (
         groupedParameters?.map((b) => (
             <div className="mythic-create-summary-group" key={b.name || "default-configuration-group"} >

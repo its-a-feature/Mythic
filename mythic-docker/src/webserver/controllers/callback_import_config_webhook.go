@@ -3,6 +3,7 @@ package webcontroller
 import (
 	"database/sql"
 	"encoding/base64"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -57,7 +58,7 @@ func ImportCallbackConfigWebhook(c *gin.Context) {
 	if callbackConfig.PayloadType.TranslationContainerName != "" {
 		err = database.DB.Get(&translationContainer, `SELECT * FROM translationcontainer WHERE "name"=$1`, translationContainer.Name)
 		if err != nil {
-			if err == sql.ErrNoRows {
+			if errors.Is(err, sql.ErrNoRows) {
 				// payload type doesn't exist, so we need to create it
 				statement, err := database.DB.PrepareNamed(`INSERT INTO translationcontainer 
 					("name") 
@@ -77,6 +78,7 @@ func ImportCallbackConfigWebhook(c *gin.Context) {
 			} else {
 				logging.LogError(err, "Failed to query translation container information")
 				c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
+				return
 			}
 		}
 	}
@@ -92,7 +94,7 @@ func ImportCallbackConfigWebhook(c *gin.Context) {
 	}
 	err = database.DB.Get(&payloadtype, `SELECT * FROM payloadtype WHERE "name"=$1`, callbackConfig.PayloadType.Name)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			// payload type doesn't exist, so we need to create it
 			statement, err := database.DB.PrepareNamed(`INSERT INTO payloadtype 
 			("name",mythic_encrypts,supported_os,translation_container_id) 
@@ -174,7 +176,7 @@ VALUES (:total_chunks, :chunks_received, :complete, :is_payload, :filename, :ope
 	payload.FileID.Valid = true
 	payload.FileID.Int64 = int64(fileMeta.ID)
 	err = database.DB.Get(&payload, `SELECT * FROM payload WHERE uuid=$1`, payload.UuID)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		statement, err = database.DB.PrepareNamed(`INSERT INTO payload
 			(uuid,description,payload_type_id,operation_id,os,build_phase, build_container, build_message, build_stderr, build_stdout, operator_id, file_id, apitokens_id, eventstepinstance_id)
 			VALUES (:uuid, :description, :payload_type_id, :operation_id, :os, :build_phase, :build_container, :build_message, :build_stderr, :build_stdout, :operator_id, :file_id, :apitokens_id, :eventstepinstance_id)
@@ -243,7 +245,7 @@ VALUES (:total_chunks, :chunks_received, :complete, :is_payload, :filename, :ope
 			}
 			buildParameterInstance := databaseStructs.Buildparameterinstance{
 				BuildParameterID: buildParameter.ID,
-				PayloadID:        payload.ID,
+				PayloadID:        sql.NullInt64{Valid: true, Int64: int64(payload.ID)},
 			}
 			// need to create the build parameter
 			switch v := build.Value.(type) {
@@ -255,17 +257,17 @@ VALUES (:total_chunks, :chunks_received, :complete, :is_payload, :filename, :ope
 						logging.LogError(err, "Failed to decode encryption key")
 						c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
 						return
-					} else {
-						buildParameterInstance.EncKey = &encKey
 					}
+
+					buildParameterInstance.EncKey = &encKey
 					decKey, err := base64.StdEncoding.DecodeString(v["dec_key"].(string))
 					if err != nil {
 						logging.LogError(err, "Failed to decode decryption key")
 						c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
 						return
-					} else {
-						buildParameterInstance.DecKey = &decKey
 					}
+
+					buildParameterInstance.DecKey = &decKey
 				} else {
 					buildParameterInstance.Value, err = rabbitmq.GetFinalStringForDatabaseInstanceValueFromUserSuppliedValue(buildParameter.ParameterType, build.Value)
 					if err != nil {

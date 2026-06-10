@@ -76,8 +76,8 @@ func TestTokenValid(t *testing.T) {
 			req.Header = tt.args.header
 			c.Request = req
 			// engine.Header["Authorization"] = tt.args.authHeader
-			if err := TokenValid(c); (err != nil) != tt.wantErr {
-				t.Errorf("TokenValid() error = %v, wantErr %v", err, tt.wantErr)
+			if _, err := GetClaims(c); (err != nil) != tt.wantErr {
+				t.Errorf("GetClaims() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

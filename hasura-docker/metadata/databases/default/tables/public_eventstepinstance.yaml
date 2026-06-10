@@ -14,6 +14,9 @@ object_relationships:
   - name: operator
     using:
       foreign_key_constraint_on: operator_id
+  - name: user_interaction_resolver
+    using:
+      foreign_key_constraint_on: user_interaction_resolved_by
 array_relationships:
   - name: apitokens
     using:
@@ -21,6 +24,13 @@ array_relationships:
         column: eventstepinstance_id
         table:
           name: apitokens
+          schema: public
+  - name: c2profile_file_hosts
+    using:
+      foreign_key_constraint_on:
+        column: eventstepinstance_id
+        table:
+          name: c2profile_file_host
           schema: public
   - name: callbacks
     using:

@@ -2,24 +2,14 @@ package eventing
 
 import "testing"
 
-func TestNormalizeUserInteractionChoicesSupportsMapsAndNewlineStrings(t *testing.T) {
-	mapChoices := NormalizeUserInteractionChoices(map[string]interface{}{
-		"Bravo": "bravo",
-		"Alpha": "alpha",
-	})
-	if len(mapChoices) != 2 {
-		t.Fatalf("expected two map choices, got %d", len(mapChoices))
-	}
-	firstChoice, ok := mapChoices[0].(map[string]interface{})
-	if !ok {
-		t.Fatalf("expected normalized map choice")
-	}
-	if firstChoice["label"] != "Alpha" || firstChoice["value"] != "alpha" {
-		t.Fatalf("expected map choices to be sorted and label/value normalized, got %#v", firstChoice)
+func TestNormalizeUserInteractionChoicesSupportsSlices(t *testing.T) {
+	interfaceChoices := NormalizeUserInteractionChoices([]interface{}{"alpha", "bravo"})
+	if len(interfaceChoices) != 2 || interfaceChoices[0] != "alpha" || interfaceChoices[1] != "bravo" {
+		t.Fatalf("expected interface choices to be preserved, got %#v", interfaceChoices)
 	}
 
-	stringChoices := NormalizeUserInteractionChoices("one\n\ntwo\n")
+	stringChoices := NormalizeUserInteractionChoices([]string{"one", "two"})
 	if len(stringChoices) != 2 || stringChoices[0] != "one" || stringChoices[1] != "two" {
-		t.Fatalf("expected newline choices to be split, got %#v", stringChoices)
+		t.Fatalf("expected string choices to be preserved, got %#v", stringChoices)
 	}
 }

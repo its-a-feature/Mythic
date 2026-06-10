@@ -214,7 +214,7 @@ func associateBuildParametersWithPayload(databasePayload databaseStructs.Payload
 		}
 		// create a buildparameterinstance entry to link this specific value to this payload for future reference
 		databaseBuildParameterInstance := databaseStructs.Buildparameterinstance{
-			PayloadID:        databasePayload.ID,
+			PayloadID:        sql.NullInt64{Valid: true, Int64: int64(databasePayload.ID)},
 			BuildParameterID: databaseBuildParameter.ID,
 			Value:            finalBuildParameters[databaseBuildParameter.Name],
 		}

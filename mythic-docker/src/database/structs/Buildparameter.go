@@ -19,4 +19,7 @@ type Buildparameter struct {
 	HideConditions       MythicJSONArray `db:"hide_conditions"`
 	UiPosition           int             `db:"ui_position"`
 	DynamicQueryFunction string          `db:"dynamic_query_function"`
+	DisplayName          string          `db:"display_name"`
+	ChoicesDisplayNames  MythicJSONText  `db:"choices_display_names"`
+	JSONStringSchema     MythicJSONText  `db:"json_string_schema"`
 }

@@ -141,7 +141,7 @@ type rabbitmqAPIQuery struct {
 	TotalCount    int                      `json:"total_count" mapstructure:"total_count"`
 }
 
-func CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(containerName string) {
+func CreateAPITokenAndSendOnStartMessage(containerName string) {
 	if !claimContainerOnStart(containerName) {
 		logging.LogInfo("Skipping duplicate container on start run already in progress", "container", containerName)
 		return
@@ -201,12 +201,12 @@ func CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(containerName string) {
 		apiToken.TokenType = mythicjwt.AUTH_METHOD_ON_START
 		apiToken.Scopes = []string{
 			mythicjwt.SCOPE_EVENTING_WRITE,
-			mythicjwt.SCOPE_PAYLOAD_READ,
+			mythicjwt.SCOPE_PAYLOAD_WRITE,
 			mythicjwt.SCOPE_FILE_WRITE,
 			mythicjwt.SCOPE_TAG_WRITE,
 			mythicjwt.SCOPE_CALLBACK_WRITE,
-			mythicjwt.SCOPE_CHAT_AI_READ,
 			mythicjwt.SCOPE_CHAT_AI_WRITE,
+			mythicjwt.SCOPE_CHAT_WRITE,
 		}
 		statement, err := database.DB.PrepareNamed(`INSERT INTO apitokens
 		(token_value, operator_id, token_type, active, "name", created_by, task_id, callback_id, scopes)
@@ -331,7 +331,7 @@ func checkContainerStatus() {
 						go updateDownContainerBuildingPayloads(container)
 					} else {
 						go ResolveAllOperationsMessageBySource(getDownContainerSource(container), 0)
-						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
+						go CreateAPITokenAndSendOnStartMessage(container)
 					}
 				} else {
 					logging.LogError(nil, "Failed to get payload type from map for updating running status")
@@ -363,7 +363,7 @@ func checkContainerStatus() {
 							0, getDownContainerSource(container), database.MESSAGE_LEVEL_INFO, true)
 					} else {
 						go ResolveAllOperationsMessageBySource(getDownContainerSource(container), 0)
-						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
+						go CreateAPITokenAndSendOnStartMessage(container)
 					}
 				} else {
 					logging.LogError(nil, "Failed to get c2 profile from map for updating running status")
@@ -394,7 +394,7 @@ func checkContainerStatus() {
 							0, getDownContainerSource(container), database.MESSAGE_LEVEL_INFO, true)
 					} else {
 						go ResolveAllOperationsMessageBySource(getDownContainerSource(container), 0)
-						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
+						go CreateAPITokenAndSendOnStartMessage(container)
 					}
 				} else {
 					logging.LogError(nil, "Failed to get translation container from map for updating running status")
@@ -426,7 +426,7 @@ func checkContainerStatus() {
 							0, getDownContainerSource(container), database.MESSAGE_LEVEL_INFO, true)
 					} else {
 						go ResolveAllOperationsMessageBySource(getDownContainerSource(container), 0)
-						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
+						go CreateAPITokenAndSendOnStartMessage(container)
 					}
 				} else {
 					logging.LogError(nil, "Failed to get consuming container from map for updating running status")
@@ -457,7 +457,7 @@ func checkContainerStatus() {
 							0, getDownContainerSource(container), database.MESSAGE_LEVEL_INFO, true)
 					} else {
 						go ResolveAllOperationsMessageBySource(getDownContainerSource(container), 0)
-						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
+						go CreateAPITokenAndSendOnStartMessage(container)
 					}
 				} else {
 					logging.LogError(nil, "Failed to get custom browser from map for updating running status")

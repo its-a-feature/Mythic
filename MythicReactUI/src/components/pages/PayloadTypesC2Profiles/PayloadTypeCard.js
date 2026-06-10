@@ -7,6 +7,7 @@ import RestoreFromTrashOutlinedIcon from '@mui/icons-material/RestoreFromTrashOu
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import IconButton from '@mui/material/IconButton';
 import TuneIcon from '@mui/icons-material/Tune';
+import SaveIcon from '@mui/icons-material/Save';
 import TableRow from '@mui/material/TableRow';
 import MythicTableCell from "../../MythicComponents/MythicTableCell";
 import {gql, useMutation} from '@apollo/client';
@@ -22,6 +23,7 @@ import {
     InstalledServiceIdentity,
     InstalledServiceMetadataSummary
 } from "./InstalledServiceTableComponents";
+import {PayloadTypeBuildParameterInstancesDialog} from "./SavedParameterInstancesDialog";
 
 const toggleDeleteStatus = gql`
 mutation togglePayloadTypeDeleteStatus($payloadtype_id: Int!, $deleted: Boolean!){
@@ -33,6 +35,7 @@ mutation togglePayloadTypeDeleteStatus($payloadtype_id: Int!, $deleted: Boolean!
 
 export function PayloadTypeRow({service, showDeleted}){
     const [openBuildingDialog, setOpenBuildingDialog] = React.useState(false);
+    const [openBuildParameterInstancesDialog, setOpenBuildParameterInstancesDialog] = React.useState(false);
     const [openDelete, setOpenDeleteDialog] = React.useState(false);
     const [updateDeleted] = useMutation(toggleDeleteStatus, {
         onCompleted: data => {
@@ -113,6 +116,14 @@ export function PayloadTypeRow({service, showDeleted}){
                             <TuneIcon fontSize="small" />
                         </IconButton>
                     </MythicStyledTooltip>
+                    <MythicStyledTooltip title={"Save/Edit Build Parameter Instances"}>
+                        <IconButton
+                            className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                            onClick={()=>{setOpenBuildParameterInstancesDialog(true);}}
+                            size="small">
+                            <SaveIcon fontSize="small" />
+                        </IconButton>
+                    </MythicStyledTooltip>
                     <MythicStyledTooltip title={"Commands"}>
                         <IconButton
                             className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
@@ -144,6 +155,12 @@ export function PayloadTypeRow({service, showDeleted}){
                               onClose={()=>{setOpenBuildingDialog(false);}}
                               innerDialog={<PayloadTypeBuildDialog {...service} onClose={()=>{setOpenBuildingDialog(false);}}
                                                                    payload_name={service.name} />}
+                />}
+            {openBuildParameterInstancesDialog &&
+                <MythicDialog fullWidth={true} maxWidth="xl" open={openBuildParameterInstancesDialog}
+                              onClose={()=>{setOpenBuildParameterInstancesDialog(false);}}
+                              innerDialog={<PayloadTypeBuildParameterInstancesDialog {...service}
+                                  onClose={()=>{setOpenBuildParameterInstancesDialog(false);}} />}
                 />}
             {openCommandsDialog &&
                 <MythicDialog fullWidth={true} maxWidth="lg" open={openCommandsDialog}

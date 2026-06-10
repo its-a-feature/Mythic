@@ -24,12 +24,12 @@ object_relationships:
     using:
       foreign_key_constraint_on: task_id
 array_relationships:
-  - name: chat_channels
+  - name: c2profile_file_hosts
     using:
       foreign_key_constraint_on:
         column: apitokens_id
         table:
-          name: chat_channel
+          name: c2profile_file_host
           schema: public
   - name: callbackgraphedges
     using:
@@ -37,6 +37,20 @@ array_relationships:
         column: apitokens_id
         table:
           name: callbackgraphedge
+          schema: public
+  - name: chat_channels
+    using:
+      foreign_key_constraint_on:
+        column: apitokens_id
+        table:
+          name: chat_channel
+          schema: public
+  - name: chat_messages
+    using:
+      foreign_key_constraint_on:
+        column: apitokens_id
+        table:
+          name: chat_message
           schema: public
   - name: credentials
     using:

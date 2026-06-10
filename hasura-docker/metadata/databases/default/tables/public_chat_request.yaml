@@ -23,6 +23,14 @@ object_relationships:
   - name: retry_of
     using:
       foreign_key_constraint_on: retry_of_id
+array_relationships:
+  - name: chat_requests
+    using:
+      foreign_key_constraint_on:
+        column: retry_of_id
+        table:
+          name: chat_request
+          schema: public
 select_permissions:
   - role: mythic_admin
     permission:

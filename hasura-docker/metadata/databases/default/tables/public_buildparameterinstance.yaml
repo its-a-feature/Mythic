@@ -5,6 +5,9 @@ object_relationships:
   - name: buildparameter
     using:
       foreign_key_constraint_on: build_parameter_id
+  - name: operation
+    using:
+      foreign_key_constraint_on: operation_id
   - name: payload
     using:
       foreign_key_constraint_on: payload_id
@@ -27,19 +30,27 @@ select_permissions:
         - enc_key
         - build_parameter_id
         - id
+        - operation_id
         - payload_id
+        - instance_name
         - value
       computed_fields:
         - dec_key_base64
         - enc_key_base64
       filter:
-        _and:
-          - payload:
-              operation_id:
-                _eq: X-Hasura-current-operation-id
-          - payload:
-              operation_id:
-                _lte: X-Hasura-Scope-payload-read-operation
+        _or:
+          - _and:
+              - operation_id:
+                  _eq: x-hasura-current-operation-id
+              - operation_id:
+                  _lte: X-Hasura-Scope-payload-read-operation
+          - _and:
+              - payload:
+                  operation_id:
+                    _eq: x-hasura-current-operation-id
+              - payload:
+                  operation_id:
+                    _lte: X-Hasura-Scope-payload-read-operation
   - role: operation_admin
     permission:
       columns:
@@ -47,19 +58,27 @@ select_permissions:
         - enc_key
         - build_parameter_id
         - id
+        - operation_id
         - payload_id
+        - instance_name
         - value
       computed_fields:
         - dec_key_base64
         - enc_key_base64
       filter:
-        _and:
-          - payload:
-              operation_id:
-                _eq: X-Hasura-current-operation-id
-          - payload:
-              operation_id:
-                _lte: X-Hasura-Scope-payload-read-operation
+        _or:
+          - _and:
+              - operation_id:
+                  _eq: x-hasura-current-operation-id
+              - operation_id:
+                  _lte: X-Hasura-Scope-payload-read-operation
+          - _and:
+              - payload:
+                  operation_id:
+                    _eq: x-hasura-current-operation-id
+              - payload:
+                  operation_id:
+                    _lte: X-Hasura-Scope-payload-read-operation
   - role: operator
     permission:
       columns:
@@ -67,19 +86,27 @@ select_permissions:
         - enc_key
         - build_parameter_id
         - id
+        - operation_id
         - payload_id
+        - instance_name
         - value
       computed_fields:
         - dec_key_base64
         - enc_key_base64
       filter:
-        _and:
-          - payload:
-              operation_id:
-                _eq: X-Hasura-current-operation-id
-          - payload:
-              operation_id:
-                _lte: X-Hasura-Scope-payload-read-operation
+        _or:
+          - _and:
+              - operation_id:
+                  _eq: x-hasura-current-operation-id
+              - operation_id:
+                  _lte: X-Hasura-Scope-payload-read-operation
+          - _and:
+              - payload:
+                  operation_id:
+                    _eq: x-hasura-current-operation-id
+              - payload:
+                  operation_id:
+                    _lte: X-Hasura-Scope-payload-read-operation
   - role: spectator
     permission:
       columns:
@@ -87,16 +114,179 @@ select_permissions:
         - enc_key
         - build_parameter_id
         - id
+        - operation_id
         - payload_id
+        - instance_name
         - value
       computed_fields:
         - dec_key_base64
         - enc_key_base64
       filter:
-        _and:
-          - payload:
-              operation_id:
-                _eq: X-Hasura-current-operation-id
-          - payload:
-              operation_id:
-                _lte: X-Hasura-Scope-payload-read-operation
+        _or:
+          - _and:
+              - operation_id:
+                  _eq: x-hasura-current-operation-id
+              - operation_id:
+                  _lte: X-Hasura-Scope-payload-read-operation
+          - _and:
+              - payload:
+                  operation_id:
+                    _eq: x-hasura-current-operation-id
+              - payload:
+                  operation_id:
+                    _lte: X-Hasura-Scope-payload-read-operation
+update_permissions:
+  - role: mythic_admin
+    permission:
+      columns:
+        - instance_name
+        - value
+      filter:
+        _or:
+          - _and:
+              - operation_id:
+                  _eq: x-hasura-current-operation-id
+              - operation_id:
+                  _lte: X-Hasura-Scope-payload-read-operation
+          - _and:
+              - payload:
+                  operation_id:
+                    _eq: x-hasura-current-operation-id
+              - payload:
+                  operation_id:
+                    _lte: X-Hasura-Scope-payload-read-operation
+      check:
+        _or:
+          - _and:
+              - operation_id:
+                  _eq: x-hasura-current-operation-id
+              - operation_id:
+                  _lte: X-Hasura-Scope-payload-read-operation
+          - _and:
+              - payload:
+                  operation_id:
+                    _eq: x-hasura-current-operation-id
+              - payload:
+                  operation_id:
+                    _lte: X-Hasura-Scope-payload-read-operation
+    comment: ""
+  - role: operation_admin
+    permission:
+      columns:
+        - instance_name
+        - value
+      filter:
+        _or:
+          - _and:
+              - operation_id:
+                  _eq: x-hasura-current-operation-id
+              - operation_id:
+                  _lte: X-Hasura-Scope-payload-read-operation
+          - _and:
+              - payload:
+                  operation_id:
+                    _eq: x-hasura-current-operation-id
+              - payload:
+                  operation_id:
+                    _lte: X-Hasura-Scope-payload-read-operation
+      check:
+        _or:
+          - _and:
+              - operation_id:
+                  _eq: x-hasura-current-operation-id
+              - operation_id:
+                  _lte: X-Hasura-Scope-payload-read-operation
+          - _and:
+              - payload:
+                  operation_id:
+                    _eq: x-hasura-current-operation-id
+              - payload:
+                  operation_id:
+                    _lte: X-Hasura-Scope-payload-read-operation
+    comment: ""
+  - role: operator
+    permission:
+      columns:
+        - instance_name
+        - value
+      filter:
+        _or:
+          - _and:
+              - operation_id:
+                  _eq: x-hasura-current-operation-id
+              - operation_id:
+                  _lte: X-Hasura-Scope-payload-read-operation
+          - _and:
+              - payload:
+                  operation_id:
+                    _eq: x-hasura-current-operation-id
+              - payload:
+                  operation_id:
+                    _lte: X-Hasura-Scope-payload-read-operation
+      check:
+        _or:
+          - _and:
+              - operation_id:
+                  _eq: x-hasura-current-operation-id
+              - operation_id:
+                  _lte: X-Hasura-Scope-payload-read-operation
+          - _and:
+              - payload:
+                  operation_id:
+                    _eq: x-hasura-current-operation-id
+              - payload:
+                  operation_id:
+                    _lte: X-Hasura-Scope-payload-read-operation
+    comment: ""
+delete_permissions:
+  - role: mythic_admin
+    permission:
+      filter:
+        _or:
+          - _and:
+              - operation_id:
+                  _eq: x-hasura-current-operation-id
+              - operation_id:
+                  _lte: X-Hasura-Scope-payload-read-operation
+          - _and:
+              - payload:
+                  operation_id:
+                    _eq: x-hasura-current-operation-id
+              - payload:
+                  operation_id:
+                    _lte: X-Hasura-Scope-payload-read-operation
+    comment: ""
+  - role: operation_admin
+    permission:
+      filter:
+        _or:
+          - _and:
+              - operation_id:
+                  _eq: x-hasura-current-operation-id
+              - operation_id:
+                  _lte: X-Hasura-Scope-payload-read-operation
+          - _and:
+              - payload:
+                  operation_id:
+                    _eq: x-hasura-current-operation-id
+              - payload:
+                  operation_id:
+                    _lte: X-Hasura-Scope-payload-read-operation
+    comment: ""
+  - role: operator
+    permission:
+      filter:
+        _or:
+          - _and:
+              - operation_id:
+                  _eq: x-hasura-current-operation-id
+              - operation_id:
+                  _lte: X-Hasura-Scope-payload-read-operation
+          - _and:
+              - payload:
+                  operation_id:
+                    _eq: x-hasura-current-operation-id
+              - payload:
+                  operation_id:
+                    _lte: X-Hasura-Scope-payload-read-operation
+    comment: ""

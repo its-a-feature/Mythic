@@ -104,6 +104,21 @@ where tagtype.name = 'FileHosted'
   and hosted.value ->> 'host_url' <> ''
 on conflict (c2_profile_id, host_url) do nothing;
 
+alter table "public"."c2profileparameters" add column IF NOT EXISTS "display_name" text not null default ''::text;
+alter table "public"."c2profileparameters" add column IF NOT EXISTS "choices_display_names" jsonb not null default '{}'::jsonb;
+alter table "public"."c2profileparameters" add column IF NOT EXISTS "group_name" text not null default ''::text;
+alter table "public"."c2profileparameters" add column IF NOT EXISTS "json_string_schema" jsonb not null default '{}'::jsonb;
+alter table "public"."c2profileparameters" add column IF NOT EXISTS "dynamic_query_function" text not null default ''::text;
+alter table "public"."c2profileparameters" add column IF NOT EXISTS "hide_conditions" jsonb not null default jsonb_build_array();
+
+alter table "public"."buildparameter" add column IF NOT EXISTS "display_name" text not null default ''::text;
+alter table "public"."buildparameter" add column IF NOT EXISTS "choices_display_names" jsonb not null default '{}'::jsonb;
+alter table "public"."buildparameter" add column IF NOT EXISTS "json_string_schema" jsonb not null default '{}'::jsonb;
+
+alter table "public"."buildparameterinstance" add column IF NOT EXISTS "instance_name" text;
+alter table "public"."buildparameterinstance" add column IF NOT EXISTS "operation_id" integer references "public"."operation"(id) on delete cascade;
+alter table "public"."buildparameterinstance" alter column "payload_id" DROP NOT NULL;
+
 -- +migrate Down
 -- SQL section 'Down' is executed when this migration is rolled back
 
