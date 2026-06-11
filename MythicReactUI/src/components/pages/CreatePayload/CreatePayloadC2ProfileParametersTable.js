@@ -11,7 +11,7 @@ export function CreatePayloadC2ProfileParametersTable(props){
         <CreatePayloadBuildParametersTable
             buildParameters={props.c2profileparameters}
             os={props.os}
-            c2_name={props.c2_name || props.name}
+            c2_name={props.c2_name}
             payload_type={props.payload_type}
             instance_name={props.instance_name}
             returnAllDictValues={props.returnAllDictValues}

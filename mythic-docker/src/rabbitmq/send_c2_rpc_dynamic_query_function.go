@@ -6,31 +6,29 @@ import (
 	"github.com/its-a-feature/Mythic/logging"
 )
 
-// PAYLOAD_DYNAMIC_QUERY_FUNCTION structs
-
-type PT_DYNAMIC_QUERY_BUILD_PARAMETER_FUNCTION_STATUS = string
+type C2_DYNAMIC_QUERY_FUNCTION_STATUS = string
 
 const (
-	PT_DYNAMIC_QUERY_BUILD_PARAMETER_FUNCTION_STATUS_SUCCESS PT_DYNAMIC_QUERY_BUILD_PARAMETER_FUNCTION_STATUS = "success"
-	PT_DYNAMIC_QUERY_BUILD_PARAMETER_FUNCTION_STATUS_ERROR                                                    = "error"
+	C2_DYNAMIC_QUERY_FUNCTION_STATUS_SUCCESS C2_DYNAMIC_QUERY_FUNCTION_STATUS = "success"
+	C2_DYNAMIC_QUERY_FUNCTION_STATUS_ERROR                                    = "error"
 )
 
-type PTRPCDynamicQueryBuildParameterFunctionMessage struct {
+type C2DynamicQueryFunctionMessage struct {
+	Name            string                 `json:"c2_profile_name" binding:"required"`
 	ParameterName   string                 `json:"parameter_name" binding:"required"`
-	PayloadType     string                 `json:"payload_type" binding:"required"`
-	SelectedOS      string                 `json:"selected_os"`
 	Secrets         map[string]interface{} `json:"secrets"`
 	OtherParameters map[string]interface{} `json:"other_parameters"`
 }
-type PTRPCDynamicQueryBuildParameterFunctionMessageResponse struct {
+
+type C2DynamicQueryFunctionMessageResponse struct {
 	Success        bool                                           `json:"success"`
 	Error          string                                         `json:"error"`
 	Choices        []string                                       `json:"choices"`
 	ComplexChoices []PayloadTypeDynamicQueryFunctionComplexChoice `json:"complex_choices"`
 }
 
-func (r *rabbitMQConnection) SendPtRPCDynamicQueryBuildParameterFunction(dynamicQuery PTRPCDynamicQueryBuildParameterFunctionMessage, authContext RabbitMQAuthContext) (*PTRPCDynamicQueryBuildParameterFunctionMessageResponse, error) {
-	dynamicQueryResponse := PTRPCDynamicQueryBuildParameterFunctionMessageResponse{}
+func (r *rabbitMQConnection) SendC2RPCDynamicQueryFunction(dynamicQuery C2DynamicQueryFunctionMessage, authContext RabbitMQAuthContext) (*C2DynamicQueryFunctionMessageResponse, error) {
+	dynamicQueryResponse := C2DynamicQueryFunctionMessageResponse{}
 	exclusiveQueue := true
 	configBytes, err := json.Marshal(dynamicQuery)
 	if err != nil {
@@ -44,7 +42,7 @@ func (r *rabbitMQConnection) SendPtRPCDynamicQueryBuildParameterFunction(dynamic
 	}
 	response, err := r.SendRPCMessage(
 		MYTHIC_EXCHANGE,
-		GetPtRPCDynamicQueryBuildParameterFunctionRoutingKey(dynamicQuery.PayloadType),
+		GetC2RPCDynamicQueryFunctionRoutingKey(dynamicQuery.Name),
 		configBytes,
 		exclusiveQueue,
 		RPC_RETRY_POLICY_CUSTOM_TIMEOUT,
@@ -60,5 +58,4 @@ func (r *rabbitMQConnection) SendPtRPCDynamicQueryBuildParameterFunction(dynamic
 		return nil, err
 	}
 	return &dynamicQueryResponse, nil
-
 }

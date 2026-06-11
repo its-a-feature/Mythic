@@ -37,6 +37,7 @@ query getProfileParameters($id: Int!) {
       group_name
       hide_conditions
       ui_position
+      dynamic_query_function
     }
     c2profileparametersinstances(where: {instance_name: {_is_null: false}}, distinct_on: instance_name, order_by: {instance_name: asc}){
       instance_name
@@ -90,6 +91,7 @@ query getProfileInstanceQuery($name: String!, $c2_profile_id: Int!) {
       group_name
       hide_conditions
       ui_position
+      dynamic_query_function
     }
     id
     value

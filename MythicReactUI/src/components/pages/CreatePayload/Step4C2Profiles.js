@@ -42,6 +42,7 @@ query getPayloadTypesC2ProfilesQuery($payloadType: String!, $operation_id: Int!)
       ui_position
       group_name
       hide_conditions
+      dynamic_query_function
     }
     c2profileparametersinstances(where: {instance_name: {_is_null: false}, operation_id: {_eq: $operation_id}}, distinct_on: instance_name, order_by: {instance_name: asc}){
         instance_name
@@ -67,6 +68,7 @@ query getProfileInstanceQuery($name: String!, $operation_id: Int!, $c2_profile_i
       ui_position
       group_name
       hide_conditions
+      dynamic_query_function
       c2profile {
           name
       }
@@ -95,6 +97,7 @@ query getDefaultC2ProfileParameters($c2profile_id: Int!) {
         ui_position
         group_name
         hide_conditions
+        dynamic_query_function
       }
     }
   }
@@ -655,6 +658,7 @@ const C2ProfileTabs = ({includedC2Profiles, onChange, os, onCloseTab, onChangeCr
                     <CreatePayloadBuildParametersTable instance_name={c.selected_instance} onChange={(n,v,e) => onChange(index, n, v, e)}
                                                        buildParameters={c.c2profileparameters} os={os}
                                                        c2_name={c.name}
+                                                       c2_profile_name={c.name}
                     />
                 </CustomTabPanel>
             ))}

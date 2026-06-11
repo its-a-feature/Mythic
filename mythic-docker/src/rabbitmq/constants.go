@@ -142,6 +142,8 @@ const (
 	//
 	C2_RPC_CONFIG_CHECK_ROUTING_KEY = "c2_rpc_config_check"
 	//
+	C2_RPC_DYNAMIC_QUERY_FUNCTION = "c2_rpc_parameter_dynamic_query_function"
+	//
 	C2_RPC_GET_IOC_ROUTING_KEY = "c2_rpc_get_ioc"
 	//
 	C2_RPC_SAMPLE_MESSAGE_ROUTING_KEY = "c2_rpc_sample_message"

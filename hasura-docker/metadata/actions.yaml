@@ -542,6 +542,16 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: dynamicQueryC2ProfileParameterFunction
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/dynamic_query_c2_profile_parameter_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: dynamicQueryFunction
     definition:
       kind: synchronous
@@ -1203,6 +1213,7 @@ custom_types:
     - name: updatePayloadOutput
     - name: eventingTriggerManualBulkOutput
     - name: dynamicQueryBuildParameterOutput
+    - name: dynamicQueryC2ProfileParameterOutput
     - name: custombrowserExportFunctionOutput
     - name: ChatActionOutput
     - name: ChatSearchResult

@@ -17,7 +17,6 @@ import Switch from '@mui/material/Switch';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {Typography} from '@mui/material';
-import {MythicFileContext} from "../../MythicComponents/MythicFileContext";
 import {snackActions} from "../../utilities/Snackbar";
 import {useTheme} from '@mui/material/styles';
 import {gql, useMutation} from '@apollo/client';
@@ -28,11 +27,29 @@ import InputLabel from '@mui/material/InputLabel';
 import {DragAndDropFileUpload} from "../Callbacks/TaskParametersDialogRow";
 
 export const getDynamicQueryBuildParameterParams = gql`
-mutation getDynamicBuildParamsMutation($payload_type: String!, $parameter_name: String!, $selected_os: String!){
-    dynamicQueryBuildParameterFunction(payload_type: $payload_type, parameter_name: $parameter_name, selected_os: $selected_os){
+mutation getDynamicBuildParamsMutation($payload_type: String!, $parameter_name: String!, $selected_os: String!, $other_parameters: jsonb){
+    dynamicQueryBuildParameterFunction(payload_type: $payload_type, parameter_name: $parameter_name, selected_os: $selected_os, other_parameters: $other_parameters){
         status
         error
         choices
+        complex_choices {
+            display_value
+            value
+        }
+        parameter_name
+    }
+}
+`;
+export const getDynamicQueryC2ProfileParameterParams = gql`
+mutation getDynamicC2ProfileParamsMutation($c2_profile_name: String!, $parameter_name: String!, $other_parameters: jsonb){
+    dynamicQueryC2ProfileParameterFunction(c2_profile_name: $c2_profile_name, parameter_name: $parameter_name, other_parameters: $other_parameters){
+        status
+        error
+        choices
+        complex_choices {
+            display_value
+            value
+        }
         parameter_name
     }
 }
@@ -48,7 +65,8 @@ function isTrue(value){
 }
 export function CreatePayloadParameter({onChange, parameter_type, default_value, name, required, verifier_regex, id,
                                            description, initialValue, choices, trackedValue, instance_name,
-                                           payload_type, selected_os, dynamic_query_function, displayMode = "table"}){
+                                           payload_type, selected_os, c2_profile_name, dynamic_query_function, displayMode = "table",
+                                       getOtherParameters}){
     const theme = useTheme();
     const [value, setValue] = React.useState("");
     const [valueNum, setValueNum] = React.useState(0);
@@ -67,80 +85,104 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
     const [mapArray, setMapArray] = React.useState([]);
     const [backdropOpen, setBackdropOpen] = React.useState(false);
     const usingDynamicParamChoices = React.useRef(false);
-    const [getDynamicParams] = useMutation(getDynamicQueryBuildParameterParams, {
-        onCompleted: (data) => {
-            if(data.dynamicQueryBuildParameterFunction.status === "success"){
-                try{
-                    let choicesInUse = [];
-                    usingDynamicParamChoices.current = true;
-                    setChoiceOptions([...data.dynamicQueryBuildParameterFunction.choices]);
-                    choicesInUse = [...data.dynamicQueryBuildParameterFunction.choices];
-                    if(parameter_type === "ChooseOne"){
-                        if(choicesInUse.length > 0){
-                            const currentValue = trackedValue !== undefined && trackedValue !== "" ? trackedValue : value;
-                            if(currentValue !== "") {
-                                setValue(currentValue);
-                                onChange(name, currentValue, false);
-                            } else if(choicesInUse.includes(default_value)) {
-                                setValue(default_value);
-                                onChange(name, default_value, false);
-                            } else {
-                                setValue(choicesInUse[0]);
-                                onChange(name, choicesInUse[0], false);
-                            }
-                        }
-                    } else if(parameter_type === "ChooseOneCustom"){
+    const handleDynamicQueryCompleted = (data) => {
+        const dynamicQueryResponse = data.dynamicQueryBuildParameterFunction || data.dynamicQueryC2ProfileParameterFunction;
+        if(dynamicQueryResponse === undefined){
+            snackActions.warning("Failed to parse dynamic parameter results");
+            setBackdropOpen(false);
+            return;
+        }
+        if(dynamicQueryResponse.status === "success"){
+            try{
+                let choicesInUse = [];
+                usingDynamicParamChoices.current = true;
+                setChoiceOptions([...dynamicQueryResponse.choices]);
+                choicesInUse = [...dynamicQueryResponse.choices];
+                if(parameter_type === "ChooseOne"){
+                    if(choicesInUse.length > 0){
                         const currentValue = trackedValue !== undefined && trackedValue !== "" ? trackedValue : value;
-                        let newStandardValue = default_value;
-                        if(choicesInUse.includes(default_value) && currentValue !== "") {
+                        if(currentValue !== "") {
+                            setValue(currentValue);
+                            onChange(name, currentValue, false);
+                        } else if(choicesInUse.includes(default_value)) {
                             setValue(default_value);
+                            onChange(name, default_value, false);
                         } else {
                             setValue(choicesInUse[0]);
-                            newStandardValue = choicesInUse[0];
-                        }
-                        if(!choicesInUse.includes(currentValue) && currentValue !== "" ){
-                            setChooseOneCustomValue(currentValue);
-                            newStandardValue = currentValue;
-                        }
-                        onChange(name, newStandardValue, false);
-                    } else if(parameter_type === "ChooseMultiple"){
-                        if(choicesInUse.length > 0){
-                            if(multiValue.length > 0) {
-                                setMultiValue(multiValue);
-                                onChange(name, multiValue, false);
-                            } else if(choicesInUse.includes(default_value)) {
-                                setMultiValue(default_value);
-                                onChange(name, default_value, false);
-                            } else {
-                                setMultiValue([choicesInUse[0]]);
-                                onChange(name, [choicesInUse[0]], false);
-                            }
+                            onChange(name, choicesInUse[0], false);
                         }
                     }
-                }catch(error){
-                    setBackdropOpen(false);
-                    snackActions.warning("Failed to parse dynamic parameter results");
+                } else if(parameter_type === "ChooseOneCustom"){
+                    const currentValue = trackedValue !== undefined && trackedValue !== "" ? trackedValue : value;
+                    let newStandardValue = default_value;
+                    if(choicesInUse.includes(default_value) && currentValue !== "") {
+                        setValue(default_value);
+                    } else {
+                        setValue(choicesInUse[0]);
+                        newStandardValue = choicesInUse[0];
+                    }
+                    if(!choicesInUse.includes(currentValue) && currentValue !== "" ){
+                        setChooseOneCustomValue(currentValue);
+                        newStandardValue = currentValue;
+                    }
+                    onChange(name, newStandardValue, false);
+                } else if(parameter_type === "ChooseMultiple"){
+                    if(choicesInUse.length > 0){
+                        if(multiValue.length > 0) {
+                            setMultiValue(multiValue);
+                            onChange(name, multiValue, false);
+                        } else if(choicesInUse.includes(default_value)) {
+                            setMultiValue(default_value);
+                            onChange(name, default_value, false);
+                        } else {
+                            setMultiValue([choicesInUse[0]]);
+                            onChange(name, [choicesInUse[0]], false);
+                        }
+                    }
                 }
-
-            }else{
-                snackActions.warning(data.dynamicQueryBuildParameterFunction.error);
+            }catch(error){
+                setBackdropOpen(false);
+                snackActions.warning("Failed to parse dynamic parameter results");
             }
-            setBackdropOpen(false);
-        },
-        onError: (data) => {
-            snackActions.warning("Failed to perform dynamic parameter query");
-            console.log(data);
-            setBackdropOpen(false);
+
+        }else{
+            snackActions.warning(dynamicQueryResponse.error);
         }
+        setBackdropOpen(false);
+    };
+    const handleDynamicQueryError = (data) => {
+        snackActions.warning("Failed to perform dynamic parameter query");
+        console.log(data);
+        setBackdropOpen(false);
+    };
+    const [getDynamicBuildParams] = useMutation(getDynamicQueryBuildParameterParams, {
+        onCompleted: handleDynamicQueryCompleted,
+        onError: handleDynamicQueryError
     });
+    const [getDynamicC2Params] = useMutation(getDynamicQueryC2ProfileParameterParams, {
+        onCompleted: handleDynamicQueryCompleted,
+        onError: handleDynamicQueryError
+    });
+    const submitDynamicQueryFunction = () => {
+        if(c2_profile_name !== undefined && c2_profile_name !== ""){
+            getDynamicC2Params({variables:{
+                    parameter_name: name,
+                    c2_profile_name: c2_profile_name,
+                    other_params: getOtherParameters()
+                }})
+        } else {
+            getDynamicBuildParams({variables:{
+                    parameter_name: name,
+                    selected_os: selected_os,
+                    payload_type: payload_type,
+                    other_params: getOtherParameters()
+                }})
+        }
+    }
     const reIssueDynamicQueryFunction = () => {
         setBackdropOpen(true);
-        snackActions.info("Querying payload type container for options...",  {autoClose: 1000});
-        getDynamicParams({variables:{
-                parameter_name: name,
-                selected_os: selected_os,
-                payload_type: payload_type,
-            }})
+        snackActions.info(`Querying ${c2_profile_name ? "C2 profile" : "payload type"} container for options...`,  {autoClose: 1000});
+        submitDynamicQueryFunction();
         usingDynamicParamChoices.current = true;
     }
     const arrayMapToMap = (val) => {
@@ -266,25 +308,25 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
             setTypedArrayValue(trackedValue);
         }else if(parameter_type === "MapArray") {
             let initial = [];
-            for(const [key, val] of Object.entries(trackedValue)){
+            for (const [key, val] of Object.entries(trackedValue)) {
                 initial.push([key, val]);
             }
             setMapArray(initial);
+        }else if(parameter_type === "JSONString"){
+            setValue(trackedValue);
         }else{
             console.log("hit an unknown parameter type")
         }
         if(dynamic_query_function !== "" && dynamic_query_function !== undefined){
             if(!usingDynamicParamChoices.current){
                 setBackdropOpen(true);
-                snackActions.info("Querying payload type container for options...",  {autoClose: 1000});
-                getDynamicParams({variables:{
-                        parameter_name: name,
-                        payload_type: payload_type,
-                        selected_os: selected_os
-                    }})
+                snackActions.info(`Querying ${c2_profile_name ? "C2 profile" : "payload type"} container for options...`,  {autoClose: 1000});
+                submitDynamicQueryFunction();
             }
             usingDynamicParamChoices.current = true;
         }
+        // Reinitialize only when the parameter identity or selected saved instance changes.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [default_value, parameter_type, name, instance_name]);
     const onChangeTextChooseOneCustom = (name, newValue, error) => {
         setChooseOneCustomValue(newValue);
