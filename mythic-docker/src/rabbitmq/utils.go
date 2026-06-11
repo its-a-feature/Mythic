@@ -49,6 +49,8 @@ func getSyncToDatabaseValueForChoices(parameterType string, choices []string, di
 		fallthrough
 	case BUILD_PARAMETER_TYPE_FILE_MULTIPLE:
 		fallthrough
+	case BUILD_PARAMETER_TYPE_JSON_STRING:
+		fallthrough
 	case BUILD_PARAMETER_TYPE_DATE:
 		return databaseStructs.MythicJSONArray{}, nil
 	default:
@@ -75,6 +77,17 @@ func getSyncToDatabaseValueForDefaultValue(parameterType string, defaultValue in
 		default:
 			tmpErr := errors.New(fmt.Sprintf("bad type for *_PARAMETER_TYPE_TYPED_ARRAY: %T", v))
 			logging.LogError(tmpErr, "bad type of default value for parameter type *_PARAMETER_TYPE_STRING", "value", v, "defaultValue", defaultValue)
+			return "", tmpErr
+		}
+	case BUILD_PARAMETER_TYPE_JSON_STRING:
+		switch v := defaultValue.(type) {
+		case string:
+			return v, nil
+		case nil:
+			return "", nil
+		default:
+			tmpErr := errors.New(fmt.Sprintf("bad type for *_PARAMETER_TYPE_JSON_STRING: %T", v))
+			logging.LogError(tmpErr, "bad type of default value for parameter type *_PARAMETER_TYPE_JSON_STRING", "value", v, "defaultValue", defaultValue)
 			return "", tmpErr
 		}
 	case BUILD_PARAMETER_TYPE_STRING:
@@ -235,6 +248,8 @@ func GetFinalStringForDatabaseInstanceValueFromUserSuppliedValue(parameterType s
 	case BUILD_PARAMETER_TYPE_CHOOSE_ONE:
 		fallthrough
 	case BUILD_PARAMETER_TYPE_CHOOSE_ONE_CUSTOM:
+		fallthrough
+	case BUILD_PARAMETER_TYPE_JSON_STRING:
 		fallthrough
 	case BUILD_PARAMETER_TYPE_STRING:
 		switch v := userSuppliedValue.(type) {
@@ -447,6 +462,8 @@ func getFinalStringForDatabaseInstanceValueFromDefaultDatabaseString(parameterTy
 		return strings.TrimSpace(defaultValue), nil
 	case BUILD_PARAMETER_TYPE_FILE:
 		fallthrough
+	case BUILD_PARAMETER_TYPE_JSON_STRING:
+		fallthrough
 	case BUILD_PARAMETER_TYPE_STRING:
 		return strings.TrimSpace(defaultValue), nil
 	case BUILD_PARAMETER_TYPE_CHOOSE_MULTIPLE:
@@ -519,6 +536,8 @@ func GetInterfaceValueForContainer(parameterType string, finalString string, enc
 		return strings.TrimSpace(finalString), nil
 
 	case BUILD_PARAMETER_TYPE_CHOOSE_ONE_CUSTOM:
+		fallthrough
+	case BUILD_PARAMETER_TYPE_JSON_STRING:
 		fallthrough
 	case BUILD_PARAMETER_TYPE_STRING:
 		return strings.TrimSpace(finalString), nil
