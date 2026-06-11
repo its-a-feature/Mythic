@@ -7,7 +7,7 @@ import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import DeleteIcon from '@mui/icons-material/Delete';
-import {IconButton, Input, Button, MenuItem, Grid} from '@mui/material';
+import {IconButton, Input, Button, MenuItem, Grid, Chip, Tabs, Tab} from '@mui/material';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -25,6 +25,21 @@ import {CircularProgress} from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import InputLabel from '@mui/material/InputLabel';
 import {DragAndDropFileUpload} from "../Callbacks/TaskParametersDialogRow";
+import DialogContent from '@mui/material/DialogContent';
+import AceEditor from 'react-ace';
+import 'ace-builds/src-noconflict/mode-json';
+import 'ace-builds/src-noconflict/theme-github';
+import 'ace-builds/src-noconflict/theme-monokai';
+import 'ace-builds/src-noconflict/ext-searchbox';
+import {SchemaFormRenderer, emptyValueForSchema} from './SchemaFormRenderer';
+import {MythicDialog} from '../../MythicComponents/MythicDialog';
+import {MythicDraggableDialogTitle} from '../../MythicComponents/MythicDraggableDialogTitle';
+import {
+    MythicDialogBody,
+    MythicDialogButton,
+    MythicDialogFooter,
+    MythicDialogSection,
+} from '../../MythicComponents/MythicDialogLayout';
 
 export const getDynamicQueryBuildParameterParams = gql`
 mutation getDynamicBuildParamsMutation($payload_type: String!, $parameter_name: String!, $selected_os: String!, $other_parameters: jsonb){
@@ -63,12 +78,49 @@ function isTrue(value){
     }
     console.log("unknown boolean value", value);
 }
+function hasUsableJSONStringSchema(schema){
+    return !!(
+        schema &&
+        typeof schema === "object" &&
+        !Array.isArray(schema) &&
+        typeof schema.type === "string" &&
+        schema.type.length > 0
+    );
+}
+function getJSONStringStatus(rawValue){
+    const raw = rawValue === undefined || rawValue === null ? "" : String(rawValue);
+    const trimmed = raw.trim();
+    if(trimmed === ""){
+        return {kind: "empty", label: "Empty"};
+    }
+    try{
+        JSON.parse(trimmed);
+    }catch{
+        return {kind: "invalid", label: "Invalid JSON"};
+    }
+    const lineCount = raw.split(/\r?\n/).length;
+    return {
+        kind: "set",
+        label: `Valid JSON (${lineCount} line${lineCount === 1 ? "" : "s"})`,
+    };
+}
+function getJSONEditorPlaceholder(schema){
+    if(hasUsableJSONStringSchema(schema)){
+        return JSON.stringify(emptyValueForSchema(schema), null, 2);
+    }
+    return "{\n  \"name\": \"example\"\n}";
+}
 export function CreatePayloadParameter({onChange, parameter_type, default_value, name, required, verifier_regex, id,
                                            description, initialValue, choices, trackedValue, instance_name, choices_display_names,
                                             display_name, json_string_schema,
                                            payload_type, selected_os, c2_profile_name, dynamic_query_function, displayMode = "table",
                                        getOtherParameters}){
     const theme = useTheme();
+    const hasJSONStringSchema = parameter_type === "JSONString" && hasUsableJSONStringSchema(json_string_schema);
+    const [configEditorOpen, setConfigEditorOpen] = React.useState(false);
+    const [editorTab, setEditorTab] = React.useState("source");
+    const [visualParseError, setVisualParseError] = React.useState("");
+    const aceEditorRef = React.useRef(null);
     const [value, setValue] = React.useState("");
     const [valueNum, setValueNum] = React.useState(0);
     const [multiValue, setMultiValue] = React.useState([]);
@@ -98,6 +150,17 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
         }
         if(dynamicQueryResponse.status === "success"){
             try{
+                if(parameter_type === "JSONString"){
+                    const complexChoices = Array.isArray(dynamicQueryResponse.complex_choices) ? dynamicQueryResponse.complex_choices : [];
+                    setChoiceOptions({
+                        choices: complexChoices.map((choice) => choice.value),
+                        display_value_map: complexChoices.reduce((prev, cur) => {
+                            return {...prev, [cur.value]: cur.display_value}
+                        }, {})
+                    });
+                    setBackdropOpen(false);
+                    return;
+                }
                 let choicesInUse = [];
                 usingDynamicParamChoices.current = true;
                 if(dynamicQueryResponse.complex_choices !== undefined && dynamicQueryResponse.complex_choices.length > 0){
@@ -192,14 +255,14 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
             getDynamicC2Params({variables:{
                     parameter_name: name,
                     c2_profile_name: c2_profile_name,
-                    other_params: getOtherParameters()
+                    other_parameters: typeof getOtherParameters === "function" ? getOtherParameters() : {}
                 }})
         } else {
             getDynamicBuildParams({variables:{
                     parameter_name: name,
                     selected_os: selected_os,
                     payload_type: payload_type,
-                    other_params: getOtherParameters()
+                    other_parameters: typeof getOtherParameters === "function" ? getOtherParameters() : {}
                 }})
         }
     }
@@ -415,6 +478,135 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
             return false;
         }
     }
+    const onChangeJSONStringSource = (newValue) => {
+        setVisualParseError("");
+        onChangeText(name, newValue, testParameterValues(newValue));
+    }
+    const showUndoSnackbar = (label, previousValue) => {
+        snackActions.info(
+            <span style={{display: "inline-flex", alignItems: "center", gap: "8px"}}>
+                {label}
+                <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        onChangeJSONStringSource(previousValue);
+                    }}
+                >
+                    Undo
+                </Button>
+            </span>,
+            {autoClose: 8000}
+        );
+    }
+    const onSelectJSONStringPreset = (presetValue) => {
+        if(presetValue === ""){
+            return;
+        }
+        const previousValue = value ?? "";
+        const presetLabel = ChoiceOptions.display_value_map[presetValue] || "preset";
+        onChangeJSONStringSource(presetValue);
+        if(previousValue !== "" && previousValue !== presetValue){
+            showUndoSnackbar(`Loaded preset "${presetLabel}".`, previousValue);
+        }
+    }
+    const onConfigEditorUpload = async (evt) => {
+        const file = evt.target.files?.[0];
+        if(!file){
+            return;
+        }
+        try{
+            const uploadedValue = await file.text();
+            onChangeJSONStringSource(uploadedValue);
+        }catch(error){
+            snackActions.warning("Failed to read uploaded configuration file");
+            console.error(error);
+        }finally{
+            evt.target.value = "";
+        }
+    }
+    const onFormatConfigEditorJson = () => {
+        if((value ?? "").trim() === ""){
+            return;
+        }
+        try{
+            onChangeJSONStringSource(JSON.stringify(JSON.parse(value), null, 2));
+        }catch{
+            snackActions.warning("Source is not valid JSON");
+        }
+    }
+    const parseSourceForVisual = () => {
+        const raw = value === undefined || value === null ? "" : String(value);
+        if(raw.trim() === ""){
+            return hasJSONStringSchema ? emptyValueForSchema(json_string_schema) : {};
+        }
+        return JSON.parse(raw);
+    }
+    const visualValue = React.useMemo(() => {
+        if(editorTab !== "visual"){
+            return null;
+        }
+        try{
+            return parseSourceForVisual();
+        }catch{
+            return null;
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editorTab, value, json_string_schema]);
+    const onVisualChange = (newValue) => {
+        try{
+            const serialized = JSON.stringify(newValue, null, 2);
+            onChangeJSONStringSource(serialized);
+        }catch(error){
+            snackActions.warning("Failed to serialize visual form state");
+            console.error(error);
+        }
+    }
+    const onSwitchToVisual = () => {
+        try{
+            parseSourceForVisual();
+            setVisualParseError("");
+            setEditorTab("visual");
+        }catch(error){
+            setVisualParseError(error.message || String(error));
+            setEditorTab("source");
+        }
+    }
+    const onClearConfigEditor = () => {
+        const previousValue = value ?? "";
+        onChangeJSONStringSource("");
+        if(previousValue !== ""){
+            showUndoSnackbar("Config cleared.", previousValue);
+        }
+    }
+    const onCopyConfigToClipboard = async () => {
+        const raw = value ?? "";
+        if(raw === ""){
+            snackActions.info("Nothing to copy");
+            return;
+        }
+        try{
+            await navigator.clipboard.writeText(raw);
+            snackActions.success("Copied to clipboard");
+        }catch(error){
+            snackActions.warning("Clipboard unavailable");
+            console.error(error);
+        }
+    }
+    React.useEffect(() => {
+        if(!configEditorOpen){
+            return undefined;
+        }
+        const focusTimer = setTimeout(() => {
+            try{
+                aceEditorRef.current?.focus();
+            }catch{
+                // The editor may not be mounted when the visual tab is selected.
+            }
+        }, 200);
+        return () => clearTimeout(focusTimer);
+    }, [configEditorOpen]);
     const onChangeDictVal = (evt, opt) => {
         const updated = dictValue.map( (op, i) => {
             if(i === opt){
@@ -786,6 +978,189 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                         validate={testParameterValues} errorText={"Must match: " + verifier_regex}
                     />
                 );
+            case "JSONString": {
+                const status = getJSONStringStatus(value);
+                const chipColor = status.kind === "invalid" ? "error" : status.kind === "set" ? "success" : "default";
+                const hasPresets = ChoiceOptions.choices.length > 0;
+                const matchingPresetValue = ChoiceOptions.choices.includes(value) ? value : "";
+                const editorTitle = display_name ? display_name : name;
+                const openEditor = () => {
+                    if(!hasJSONStringSchema){
+                        setEditorTab("source");
+                    }
+                    setConfigEditorOpen(true);
+                };
+                return (
+                    <React.Fragment>
+                        <div style={{display: "flex", flexDirection: "column", gap: "0.5rem", minWidth: 0, position: "relative"}}>
+                            <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
+                                <CircularProgress color="inherit" />
+                            </Backdrop>
+                            <div className="mythic-create-inline-control" style={{alignItems: "center", flexWrap: "wrap"}}>
+                                <Button
+                                    className="mythic-table-row-action mythic-table-row-action-hover-info"
+                                    component="label"
+                                    size="small"
+                                    variant="contained"
+                                >
+                                    Upload
+                                    <input onChange={onConfigEditorUpload} type="file" hidden accept=".json,application/json,text/plain" />
+                                </Button>
+                                {hasPresets &&
+                                    <FormControl size="small" style={{flex: "1 1 14rem", minWidth: "12rem"}}>
+                                        <Select
+                                            displayEmpty
+                                            value={matchingPresetValue}
+                                            renderValue={(selected) => {
+                                                if(selected === ""){
+                                                    return <em style={{opacity: 0.65}}>Choose preset</em>;
+                                                }
+                                                return ChoiceOptions.display_value_map[selected] || selected;
+                                            }}
+                                            onChange={(event) => onSelectJSONStringPreset(event.target.value)}
+                                        >
+                                            {ChoiceOptions.choices.map((presetValue, index) => (
+                                                <MenuItem key={"jsonstringpreset" + index} value={presetValue}>
+                                                    {ChoiceOptions.display_value_map[presetValue] || presetValue}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                }
+                                <Button
+                                    className="mythic-table-row-action mythic-table-row-action-hover-warning"
+                                    size="small"
+                                    variant="contained"
+                                    onClick={onClearConfigEditor}
+                                >
+                                    Clear
+                                </Button>
+                                <Button
+                                    className="mythic-table-row-action mythic-table-row-action-hover-success"
+                                    size="small"
+                                    variant="contained"
+                                    onClick={openEditor}
+                                >
+                                    Edit
+                                </Button>
+                                <div style={{alignItems: "center", display: "flex", gap: "0.35rem", marginLeft: "auto", minWidth: 0}}>
+                                    <Chip size="small" label={status.label} color={chipColor} />
+                                    {dynamic_query_function !== "" && dynamic_query_function !== undefined &&
+                                        <MythicStyledTooltip title={"ReIssue Dynamic Query Function"} tooltipStyle={{display: "inline-block"}}>
+                                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={reIssueDynamicQueryFunction}>
+                                                <RefreshIcon fontSize="small" />
+                                            </IconButton>
+                                        </MythicStyledTooltip>
+                                    }
+                                </div>
+                            </div>
+                            {visualParseError !== "" &&
+                                <Typography component="div" color="error" className="mythic-form-field-description">
+                                    Visual tab unavailable: {visualParseError}
+                                </Typography>
+                            }
+                        </div>
+                        <MythicDialog
+                            open={configEditorOpen}
+                            maxWidth="lg"
+                            onClose={() => setConfigEditorOpen(false)}
+                            innerDialog={
+                                <React.Fragment>
+                                    <MythicDraggableDialogTitle>
+                                        <div style={{display: "flex", flexDirection: "column", gap: "0.35rem", minWidth: 0}}>
+                                            <Typography component="div" className="mythic-dialog-section-title">
+                                                {editorTitle}
+                                            </Typography>
+                                            {hasJSONStringSchema &&
+                                                <Tabs
+                                                    value={editorTab}
+                                                    onMouseDown={(event) => event.stopPropagation()}
+                                                    onChange={(event, nextTab) => {
+                                                        if(nextTab === "visual"){
+                                                            onSwitchToVisual();
+                                                        }else{
+                                                            setEditorTab("source");
+                                                        }
+                                                    }}
+                                                    style={{minHeight: "32px"}}
+                                                    TabIndicatorProps={{style: {height: "2px"}}}
+                                                >
+                                                    <Tab value="visual" label="Visual" style={{minHeight: "32px", textTransform: "none"}} />
+                                                    <Tab value="source" label="Source" style={{minHeight: "32px", textTransform: "none"}} />
+                                                </Tabs>
+                                            }
+                                        </div>
+                                    </MythicDraggableDialogTitle>
+                                    <DialogContent
+                                        dividers={true}
+                                        className="mythic-json-dialog-body"
+                                        style={{display: "flex", flexDirection: "column"}}
+                                    >
+                                        <MythicDialogBody compact>
+                                            {(!hasJSONStringSchema || editorTab === "source") &&
+                                                <MythicDialogSection
+                                                    title="Source"
+                                                    description="Edit the raw JSON string stored for this parameter."
+                                                    actions={
+                                                        <React.Fragment>
+                                                            <Button size="small" variant="contained" onClick={onFormatConfigEditorJson}>
+                                                                Format
+                                                            </Button>
+                                                            <Button size="small" variant="contained" onClick={onCopyConfigToClipboard}>
+                                                                Copy
+                                                            </Button>
+                                                        </React.Fragment>
+                                                    }
+                                                >
+                                                    {visualParseError !== "" &&
+                                                        <Typography component="div" color="error" className="mythic-form-field-description" style={{marginBottom: "0.5rem"}}>
+                                                            Visual tab unavailable: {visualParseError}
+                                                        </Typography>
+                                                    }
+                                                    <AceEditor
+                                                        mode="json"
+                                                        theme={theme.palette.mode === 'dark' ? 'monokai' : 'github'}
+                                                        width="100%"
+                                                        minLines={20}
+                                                        maxLines={40}
+                                                        fontSize={13}
+                                                        showPrintMargin={false}
+                                                        wrapEnabled={true}
+                                                        value={value ?? ""}
+                                                        placeholder={getJSONEditorPlaceholder(json_string_schema)}
+                                                        onChange={onChangeJSONStringSource}
+                                                        setOptions={{useWorker: false, tabSize: 2, useSoftTabs: true}}
+                                                        name={"ace_json_string_editor_" + id}
+                                                        onLoad={(editor) => { aceEditorRef.current = editor; }}
+                                                        editorProps={{$blockScrolling: true}}
+                                                    />
+                                                </MythicDialogSection>
+                                            }
+                                            {hasJSONStringSchema && editorTab === "visual" && visualValue !== null &&
+                                                <MythicDialogSection
+                                                    title="Visual"
+                                                    description="Edit the JSON document through this parameter's schema."
+                                                >
+                                                    <SchemaFormRenderer
+                                                        schema={json_string_schema}
+                                                        value={visualValue}
+                                                        onChange={onVisualChange}
+                                                    />
+                                                </MythicDialogSection>
+                                            }
+                                        </MythicDialogBody>
+                                    </DialogContent>
+                                    <MythicDialogFooter>
+                                        <MythicDialogButton onClick={() => setConfigEditorOpen(false)}>
+                                            Close
+                                        </MythicDialogButton>
+                                    </MythicDialogFooter>
+                                </React.Fragment>
+                            }
+                        />
+                    </React.Fragment>
+                );
+            }
             case "Number":
                 return (
                     <MythicTextField requiredValue={required} value={valueNum} type={"number"}

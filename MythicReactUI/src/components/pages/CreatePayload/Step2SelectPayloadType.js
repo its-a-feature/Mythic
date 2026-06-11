@@ -1,12 +1,4 @@
-import React, {  } from 'react';
-import {useQuery, gql} from '@apollo/client';
-import CircularProgress from '@mui/material/CircularProgress';
-import Select from '@mui/material/Select';
-import { CreatePayloadNavigationButtons} from './CreatePayloadNavigationButtons';
-import {CreatePayloadBuildParametersTable} from './CreatePayloadBuildParametersTable';
-import Typography from '@mui/material/Typography';
 import * as RandExp from 'randexp';
-import MenuItem from '@mui/material/MenuItem';
 
 export const getSavedToType = (parameter) => {
     let temp = {...parameter};
@@ -25,6 +17,8 @@ export const getDefaultValueForType = (parameter) => {
     }
     switch (parameter.parameter_type) {
         case "String":
+            return parameter.default_value;
+        case "JSONString":
             return parameter.default_value;
         case "Number":
             // automatic casting to number for multiplication
@@ -74,4 +68,3 @@ export const getDefaultChoices = (parameter) => {
         return parameter.choices;
     }
 }
-
