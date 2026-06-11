@@ -73,6 +73,9 @@ func GetC2RPCOpsecChecksRoutingKey(container string) string {
 func GetC2RPCConfigChecksRoutingKey(container string) string {
 	return fmt.Sprintf("%s_%s", container, C2_RPC_CONFIG_CHECK_ROUTING_KEY)
 }
+func GetC2RPCDynamicQueryFunctionRoutingKey(container string) string {
+	return fmt.Sprintf("%s_%s", container, C2_RPC_DYNAMIC_QUERY_FUNCTION)
+}
 func GetC2RPCGetIOCRoutingKey(container string) string {
 	return fmt.Sprintf("%s_%s", container, C2_RPC_GET_IOC_ROUTING_KEY)
 }

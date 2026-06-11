@@ -963,7 +963,7 @@ const CreateEventingStep1 = ({finished, back, first, last, cancel, prevData}) =>
                             {triggerOptionsData[trigger]?.trigger_data?.length > 0 ?
                                 (<div className="mythic-eventing-trigger-parameter-list mythic-column-stack">
                                     {triggerData?.map( t => (
-                                        <CreatePayloadParameter key={t.name} onChange={onChangeTriggerData} displayMode="card" {...t} />
+                                        <CreatePayloadParameter key={t.name} onChange={onChangeTriggerData} displayMode="card" {...t} getOtherParameters={() => {}} />
                                     ))}
                                 </div>) :
                                 (<div className="mythic-eventing-metadata-empty">None</div>)

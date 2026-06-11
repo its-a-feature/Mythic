@@ -419,6 +419,11 @@ func setRoutes(r *gin.Engine) {
 						mythicjwt.SCOPE_PAYLOAD_WRITE,
 					}),
 					webcontroller.PayloadTypeDynamicQueryBuildParameterFunctionWebhook)
+				noSpectators.POST("dynamic_query_c2_profile_parameter_webhook",
+					authentication.TokenScopeMiddleware([]string{
+						mythicjwt.SCOPE_PAYLOAD_WRITE,
+					}),
+					webcontroller.C2ProfileDynamicQueryFunctionWebhook)
 				noSpectators.POST("typedarray_parse_webhook",
 					authentication.TokenScopeMiddleware([]string{
 						mythicjwt.SCOPE_TASK_WRITE,

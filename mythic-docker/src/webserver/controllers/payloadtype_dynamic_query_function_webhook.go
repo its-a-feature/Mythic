@@ -15,16 +15,18 @@ type PayloadTypeDynamicQueryBuildParameterFunctionInput struct {
 }
 
 type PayloadTypeDynamicQueryBuildParameterFunction struct {
-	ParameterName string `json:"parameter_name" binding:"required"`
-	PayloadType   string `json:"payload_type" binding:"required"`
-	SelectedOS    string `json:"selected_os" binding:"required"`
+	ParameterName   string                 `json:"parameter_name" binding:"required"`
+	PayloadType     string                 `json:"payload_type" binding:"required"`
+	SelectedOS      string                 `json:"selected_os" binding:"required"`
+	OtherParameters map[string]interface{} `json:"other_parameters"`
 }
 
 type PayloadTypeDynamicQueryBuildParameterFunctionResponse struct {
-	Status        string   `json:"status"`
-	ParameterName string   `json:"parameter_name"`
-	Error         string   `json:"error"`
-	Choices       []string `json:"choices"`
+	Status         string                                                  `json:"status"`
+	ParameterName  string                                                  `json:"parameter_name"`
+	Error          string                                                  `json:"error"`
+	Choices        []string                                                `json:"choices"`
+	ComplexChoices []rabbitmq.PayloadTypeDynamicQueryFunctionComplexChoice `json:"complex_choices"`
 }
 
 func PayloadTypeDynamicQueryBuildParameterFunctionWebhook(c *gin.Context) {
@@ -61,10 +63,11 @@ func PayloadTypeDynamicQueryBuildParameterFunctionWebhook(c *gin.Context) {
 	}
 
 	payloadtypeDynamicQueryResponse, err := rabbitmq.RabbitMQConnection.SendPtRPCDynamicQueryBuildParameterFunction(rabbitmq.PTRPCDynamicQueryBuildParameterFunctionMessage{
-		PayloadType:   input.Input.PayloadType,
-		ParameterName: input.Input.ParameterName,
-		SelectedOS:    input.Input.SelectedOS,
-		Secrets:       user.Secrets.StructValue(),
+		PayloadType:     input.Input.PayloadType,
+		ParameterName:   input.Input.ParameterName,
+		SelectedOS:      input.Input.SelectedOS,
+		Secrets:         user.Secrets.StructValue(),
+		OtherParameters: input.Input.OtherParameters,
 	}, authentication.RabbitMQAuthContextFromGin(c))
 	if err != nil {
 		logging.LogError(err, "Failed to send SendPtRPCDynamicQueryBuildParameterFunction to payload type", "payload_type", input.Input.PayloadType)
@@ -86,9 +89,10 @@ func PayloadTypeDynamicQueryBuildParameterFunctionWebhook(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, PayloadTypeDynamicQueryBuildParameterFunctionResponse{
-		Status:        rabbitmq.PT_DYNAMIC_QUERY_BUILD_PARAMETER_FUNCTION_STATUS_SUCCESS,
-		Choices:       payloadtypeDynamicQueryResponse.Choices,
-		ParameterName: input.Input.ParameterName,
+		Status:         rabbitmq.PT_DYNAMIC_QUERY_BUILD_PARAMETER_FUNCTION_STATUS_SUCCESS,
+		Choices:        payloadtypeDynamicQueryResponse.Choices,
+		ComplexChoices: payloadtypeDynamicQueryResponse.ComplexChoices,
+		ParameterName:  input.Input.ParameterName,
 	})
 	return
 }

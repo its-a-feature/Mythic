@@ -1,5 +1,5 @@
 import React from 'react';
-import { CreatePayloadParameter } from './CreatePayloadParameter';
+import {CreatePayloadParameter} from './CreatePayloadParameter';
 import {GetGroupedParameters} from "./Step1SelectOS";
 
 
@@ -9,6 +9,14 @@ export function CreatePayloadBuildParametersTable(props){
         os: props.os,
         c2_name: props.c2_name,
     });
+    const getOtherParameters = () => {
+        return buildParameters.reduce((prev, cur) => {
+            const nestedParameters = cur.parameters.reduce((prev2, cur2) => {
+                return {...prev2, [cur2.name]: cur2.value}
+            }, {});
+            return {...prev, ...nestedParameters};
+        }, {});
+    }
     return (
         <div className="mythic-create-parameter-scroll">
             {buildParameters.map(b => (
@@ -24,9 +32,11 @@ export function CreatePayloadBuildParametersTable(props){
                                 selected_os={props.os}
                                 key={"buildparamtablerow" + op.id}
                                 payload_type={props.payload_type}
+                                c2_profile_name={props.c2_name}
                                 instance_name={props.instance_name}
                                 returnAllDictValues={props.returnAllDictValues}
                                 onChange={props.onChange}
+                                getOtherParameters={getOtherParameters}
                                 {...op}
                             />
                         ))}

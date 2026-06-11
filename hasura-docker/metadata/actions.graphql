@@ -381,7 +381,16 @@ type Mutation {
     parameter_name: String!
     payload_type: String!
     selected_os: String!
+    other_parameters: jsonb
   ): dynamicQueryBuildParameterOutput
+}
+
+type Mutation {
+  dynamicQueryC2ProfileParameterFunction(
+    c2_profile_name: String!
+    parameter_name: String!
+    other_parameters: jsonb
+  ): dynamicQueryC2ProfileParameterOutput
 }
 
 type Mutation {
@@ -1473,6 +1482,15 @@ type dynamicQueryBuildParameterOutput {
   error: String
   parameter_name: String!
   choices: [String]
+  complex_choices: [dynamicQueryOutputChoice]
+}
+
+type dynamicQueryC2ProfileParameterOutput {
+  status: String!
+  error: String
+  parameter_name: String!
+  choices: [String]
+  complex_choices: [dynamicQueryOutputChoice]
 }
 
 type custombrowserExportFunctionOutput {
@@ -1505,4 +1523,3 @@ type ChatSearchResult {
   created_at: String!
   rank: Float!
 }
-
