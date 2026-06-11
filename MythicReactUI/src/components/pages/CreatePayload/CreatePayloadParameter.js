@@ -64,14 +64,18 @@ function isTrue(value){
     console.log("unknown boolean value", value);
 }
 export function CreatePayloadParameter({onChange, parameter_type, default_value, name, required, verifier_regex, id,
-                                           description, initialValue, choices, trackedValue, instance_name,
+                                           description, initialValue, choices, trackedValue, instance_name, choices_display_names,
+                                            display_name, json_string_schema,
                                            payload_type, selected_os, c2_profile_name, dynamic_query_function, displayMode = "table",
                                        getOtherParameters}){
     const theme = useTheme();
     const [value, setValue] = React.useState("");
     const [valueNum, setValueNum] = React.useState(0);
     const [multiValue, setMultiValue] = React.useState([]);
-    const [ChoiceOptions, setChoiceOptions] = React.useState([]);
+    const [ChoiceOptions, setChoiceOptions] = React.useState({
+        choices: [],
+        display_value_map: {}
+    });
     const [chooseOneCustomValue, setChooseOneCustomValue] = React.useState("");
     const [dictValue, setDictValue] = React.useState([]);
     const [dictOptions, setDictOptions] = React.useState([]);
@@ -96,8 +100,28 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
             try{
                 let choicesInUse = [];
                 usingDynamicParamChoices.current = true;
-                setChoiceOptions([...dynamicQueryResponse.choices]);
-                choicesInUse = [...dynamicQueryResponse.choices];
+                if(dynamicQueryResponse.complex_choices !== undefined && dynamicQueryResponse.complex_choices.length > 0){
+                    setChoiceOptions({
+                        choices: dynamicQueryResponse.complex_choices.map( (choice) => {
+                            return choice.value;
+                        }),
+                        display_value_map: dynamicQueryResponse.complex_choices.reduce( (prev, cur) => {
+                            return {...prev, [cur.value]: cur.display_value}
+                        }, {})
+                    })
+                    choicesInUse = dynamicQueryResponse.complex_choices.map( (choice) => {
+                        return choice.value;
+                    });
+                } else {
+                    setChoiceOptions({
+                        choices: dynamicQueryResponse.choices,
+                        display_value_map: dynamicQueryResponse.choices.reduce( (prev, cur) => {
+                            return {...prev, [cur]: cur}
+                        }, {})
+                    })
+                    choicesInUse = [...dynamicQueryResponse.choices];
+                }
+
                 if(parameter_type === "ChooseOne"){
                     if(choicesInUse.length > 0){
                         const currentValue = trackedValue !== undefined && trackedValue !== "" ? trackedValue : value;
@@ -237,7 +261,21 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
     }
     useEffect( () => {
         if( parameter_type === "ChooseOne" || parameter_type === "ChooseOneCustom" ){
-            setChoiceOptions(choices);
+            let currentChoices = [];
+            let currentChoiceMap = {};
+            if(choices_display_names !== null && choices_display_names !== undefined && Object.keys(choices_display_names).length > 0){
+                currentChoices = choices;
+                currentChoiceMap = choices_display_names;
+            } else {
+                currentChoices = choices;
+                currentChoiceMap = choices.reduce( (prev, cur) => {
+                    return {...prev, [cur]: cur}
+                })
+            }
+            setChoiceOptions({
+                choices: currentChoices,
+                display_value_map: currentChoiceMap
+            })
             if(!choices.includes(trackedValue)){
                 setChooseOneCustomValue(trackedValue);
                 if(dynamic_query_function !== ""){
@@ -255,7 +293,21 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
             setValue(trackedValue);
         }else if(parameter_type === "ChooseMultiple") {
             setMultiValue(trackedValue);
-            setChoiceOptions(choices);
+            let currentChoices = [];
+            let currentChoiceMap = {};
+            if(choices_display_names !== null && choices_display_names !== undefined && Object.keys(choices_display_names).length > 0){
+                currentChoices = choices;
+                currentChoiceMap = choices_display_names;
+            } else {
+                currentChoices = choices;
+                currentChoiceMap = choices.reduce( (prev, cur) => {
+                    return {...prev, [cur]: cur}
+                })
+            }
+            setChoiceOptions({
+                choices: currentChoices,
+                display_value_map: currentChoiceMap
+            })
         }else if(parameter_type === "File") {
             if (typeof trackedValue === "string") {
                 setFileValue({name: trackedValue, legacy: trackedValue !== ""});
@@ -536,7 +588,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                             <CircularProgress color="inherit" />
                         </Backdrop>
                         <FormControl>
-                            {ChoiceOptions.length === 0 &&
+                            {ChoiceOptions.choices.length === 0 &&
                                 <InputLabel>{"No Options Available"}</InputLabel>
                             }
                             <Select
@@ -544,8 +596,8 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                               onChange={onChangeValue}
                             >
                             {
-                                ChoiceOptions.map((opt, i) => (
-                                    <MenuItem key={"buildparamopt" + i} value={opt}>{opt}</MenuItem>
+                                ChoiceOptions.choices.map((opt, i) => (
+                                    <MenuItem key={"buildparamopt" + i} value={opt}>{ChoiceOptions.display_value_map[opt]}</MenuItem>
                                 ))
                             }
                             </Select>
@@ -575,8 +627,8 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                                     input={<Input />}
                                 >
                                     {
-                                        ChoiceOptions.map((opt, i) => (
-                                            <MenuItem key={name + i} value={opt}>{opt}</MenuItem>
+                                        ChoiceOptions.choices.map((opt, i) => (
+                                            <MenuItem key={name + i} value={opt}>{ChoiceOptions.display_value_map[opt]}</MenuItem>
                                         ))
                                     }
                                 </Select>
@@ -604,7 +656,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                         </Backdrop>
                         <FormControl>
                             <InputLabel id={name + "select"} style={{paddingTop: "15px"}}>{"Select Multiple"}</InputLabel>
-                            {ChoiceOptions.length === 0 &&
+                            {ChoiceOptions.choices.length === 0 &&
                                 <InputLabel>{"No Options Available"}</InputLabel>
                             }
                             <Select
@@ -613,8 +665,8 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                                 onChange={onChangeMultValue}
                             >
                             {
-                                ChoiceOptions.map((opt, i) => (
-                                    <MenuItem key={"buildparamopt" + i} value={opt}>{opt}</MenuItem>
+                                ChoiceOptions.choices.map((opt, i) => (
+                                    <MenuItem key={"buildparamopt" + i} value={opt}>{ChoiceOptions.display_value_map[opt]}</MenuItem>
                                 ))
                             }
                             </Select>
@@ -828,6 +880,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                     if(JSON.stringify(dictValue[i], Object.keys(dictValue[i]).sort()) !== JSON.stringify(initialValueShow[i], Object.keys(initialValueShow[i]).sort())){return true}
                 }
                 return false;
+            case "JSONString":
             case "String":
                 return value !== initialValue;
             case "File":
@@ -847,7 +900,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 <div className="mythic-create-parameter-copy">
                     <div className="mythic-create-parameter-title-row">
                         <Typography component="div" className="mythic-create-parameter-title">
-                            {name}
+                            {display_name ? display_name : name}
                         </Typography>
                     </div>
                     <div className="mythic-create-parameter-chips">
@@ -872,7 +925,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 <MythicStyledTableCell>
                     <MythicStyledTooltip title={name.length > 0 ? name : "No Description"}>
                         <Typography style={{fontWeight: "600"}} >
-                            {name}
+                            {display_name ? display_name : name}
                         </Typography>
                         <Typography style={{fontSize: theme.typography.pxToRem(15), marginLeft: "10px"}}>
                             {description}

@@ -86,7 +86,7 @@ func UpdateHasuraClaims(c *gin.Context, invalidateAllOthers bool) error {
 		if mythicjwt.AllowsScope(claims.Scopes, requirement.Scope) {
 			claimValue = hasuraScopeAllowedID
 		}
-		logging.LogInfo("hasura claims", "claim", hasuraClaims)
+		//logging.LogInfo("hasura claims", "claim", hasuraClaims)
 		hasuraClaims[requirement.SessionClaim] = claimValue
 	}
 	hasuraClaimsCacheLock.Lock()

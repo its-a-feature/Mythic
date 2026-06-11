@@ -43,6 +43,9 @@ query getPayloadTypesC2ProfilesQuery($payloadType: String!, $operation_id: Int!)
       group_name
       hide_conditions
       dynamic_query_function
+      display_name
+      choices_display_names
+      json_string_schema
     }
     c2profileparametersinstances(where: {instance_name: {_is_null: false}, operation_id: {_eq: $operation_id}}, distinct_on: instance_name, order_by: {instance_name: asc}){
         instance_name
@@ -69,6 +72,9 @@ query getProfileInstanceQuery($name: String!, $operation_id: Int!, $c2_profile_i
       group_name
       hide_conditions
       dynamic_query_function
+      display_name
+      choices_display_names
+      json_string_schema
       c2profile {
           name
       }
@@ -98,6 +104,9 @@ query getDefaultC2ProfileParameters($c2profile_id: Int!) {
         group_name
         hide_conditions
         dynamic_query_function
+        display_name
+        choices_display_names
+        json_string_schema
       }
     }
   }
