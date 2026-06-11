@@ -92,6 +92,9 @@ query getPayloadTypesBuildParametersQuery($payloadtype: String!) {
         hide_conditions
         ui_position
         dynamic_query_function
+        choices_display_names
+        display_name
+        json_string_schema
     }
   }
   buildparameterinstance(where: {instance_name: {_is_null: false}, buildparameter: {deleted: {_eq: false}, payloadtype: {name: {_eq: $payloadtype}}}}, distinct_on: instance_name, order_by: {instance_name: asc}) {
@@ -119,6 +122,9 @@ query getBuildParameterInstanceQuery($name: String!, $payloadtype: String!) {
       hide_conditions
       ui_position
       dynamic_query_function
+      choices_display_names
+      display_name
+      json_string_schema
     }
     id
     value
@@ -164,6 +170,9 @@ query getPayloadTypesBuildParametersQuery($payload_id: Int!) {
             hide_conditions
             ui_position
             dynamic_query_function
+            choices_display_names
+            display_name
+            json_string_schema
         }
     }
     c2profileparametersinstances{
@@ -179,6 +188,11 @@ query getPayloadTypesBuildParametersQuery($payload_id: Int!) {
           verifier_regex
           choices
           ui_position
+          choices_display_names
+          display_name
+          json_string_schema
+          hide_conditions
+          group_name
           c2profile {
               name
               id

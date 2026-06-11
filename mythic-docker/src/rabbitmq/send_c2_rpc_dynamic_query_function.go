@@ -14,7 +14,7 @@ const (
 )
 
 type C2DynamicQueryFunctionMessage struct {
-	Name            string                 `json:"c2_profile_name" binding:"required"`
+	Name            string                 `json:"c2_profile" binding:"required"`
 	ParameterName   string                 `json:"parameter_name" binding:"required"`
 	Secrets         map[string]interface{} `json:"secrets"`
 	OtherParameters map[string]interface{} `json:"other_parameters"`
