@@ -1,9 +1,11 @@
 package rabbitmq
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -26,9 +28,11 @@ type ChatContainerResponseMessage struct {
 	OperationID       int                           `json:"operation_id" mapstructure:"operation_id"`
 	RequestID         int                           `json:"request_id" mapstructure:"request_id"`
 	ResponseMessageID int                           `json:"response_message_id" mapstructure:"response_message_id"`
+	ResponseKey       string                        `json:"response_key" mapstructure:"response_key"`
 	Content           string                        `json:"content" mapstructure:"content"`
 	IsDelta           bool                          `json:"is_delta" mapstructure:"is_delta"`
 	Complete          bool                          `json:"complete" mapstructure:"complete"`
+	CompleteRequest   bool                          `json:"complete_request" mapstructure:"complete_request"`
 	Status            string                        `json:"status" mapstructure:"status"`
 	Error             string                        `json:"error" mapstructure:"error"`
 	Metadata          ChatContainerResponseMetadata `json:"metadata" mapstructure:"metadata"`
@@ -375,7 +379,10 @@ func chatMetadataTakeMCPToolConfirmation(values map[string]interface{}, key stri
 type chatResponseRequest struct {
 	ID                int    `db:"id"`
 	OperationID       int    `db:"operation_id"`
+	ChannelID         int    `db:"channel_id"`
 	ResponseMessageID int    `db:"response_message_id"`
+	ChatContainerID   int    `db:"chat_container_id"`
+	ChatContainerName string `db:"chat_container_name"`
 	Status            string `db:"status"`
 }
 
@@ -440,7 +447,11 @@ func applyChatContainerResponse(incomingMessage ChatContainerResponseMessage, au
 			incomingMessage.ResponseMessageID, request.ResponseMessageID)
 	}
 
-	chatResponseLock := getChatResponseLock(request.ResponseMessageID)
+	targetMessageID, targetIsPrimary, err := getChatResponseTargetMessageID(request, incomingMessage)
+	if err != nil {
+		return err
+	}
+	chatResponseLock := getChatResponseLock(targetMessageID)
 	chatResponseLock.Lock()
 	defer chatResponseLock.Unlock()
 
@@ -450,18 +461,24 @@ func applyChatContainerResponse(incomingMessage ChatContainerResponseMessage, au
 	if isTerminalChatResponseStatus(request.Status) {
 		return nil
 	}
+	if !targetIsPrimary {
+		targetMessageID, _, err = getChatResponseTargetMessageID(request, incomingMessage)
+		if err != nil {
+			return err
+		}
+	}
 
 	status := normalizeChatContainerResponseStatus(incomingMessage)
 	if incomingMessage.Content != "" {
 		if incomingMessage.IsDelta {
-			if err = queueChatResponseDelta(request.ResponseMessageID, request.OperationID, incomingMessage.Content); err != nil {
+			if err = queueChatResponseDelta(targetMessageID, request.OperationID, incomingMessage.Content); err != nil {
 				return err
 			}
 		} else {
-			if err = flushChatResponseMessageLocked(request.ResponseMessageID, request.OperationID, false); err != nil {
+			if err = flushChatResponseMessageLocked(targetMessageID, request.OperationID, false); err != nil {
 				return err
 			}
-			if err = setChatResponseMessageContent(request.ResponseMessageID, request.OperationID, incomingMessage.Content); err != nil {
+			if err = setChatResponseMessageContent(targetMessageID, request.OperationID, incomingMessage.Content); err != nil {
 				return err
 			}
 		}
@@ -473,7 +490,7 @@ func applyChatContainerResponse(incomingMessage ChatContainerResponseMessage, au
 	if status == databaseStructs.ChatMessageStatusComplete ||
 		status == databaseStructs.ChatMessageStatusError ||
 		status == databaseStructs.ChatMessageStatusCancelled {
-		if err = flushChatResponseMessageLocked(request.ResponseMessageID, request.OperationID, true); err != nil {
+		if err = flushChatResponseMessageLocked(targetMessageID, request.OperationID, true); err != nil {
 			return err
 		}
 	}
@@ -481,11 +498,25 @@ func applyChatContainerResponse(incomingMessage ChatContainerResponseMessage, au
 		status = request.Status
 	}
 	if status != "" {
-		if err = setChatResponseStatus(request, status, incomingMessage.Error, incomingMessage.Metadata); err != nil {
+		if err = setChatResponseMessageStatus(targetMessageID, request.OperationID, status, incomingMessage.Error, incomingMessage.Metadata); err != nil {
 			return err
 		}
+		completeRequestFromSecondary := !targetIsPrimary && incomingMessage.CompleteRequest && isTerminalChatResponseStatus(status)
+		if completeRequestFromSecondary {
+			if err = finalizePrimaryResponseFromSecondary(request, status); err != nil {
+				return err
+			}
+		}
+		if targetIsPrimary || completeRequestFromSecondary || status == databaseStructs.ChatMessageStatusStreaming {
+			if err = setChatRequestStatus(request, status, incomingMessage.Error); err != nil {
+				return err
+			}
+		}
 		if isTerminalChatResponseStatus(status) {
-			chatResponseLocks.Delete(request.ResponseMessageID)
+			chatResponseLocks.Delete(targetMessageID)
+			if completeRequestFromSecondary {
+				chatResponseLocks.Delete(request.ResponseMessageID)
+			}
 		}
 	}
 	return nil
@@ -496,24 +527,80 @@ func getChatResponseRequest(incomingMessage ChatContainerResponseMessage, operat
 	if incomingMessage.RequestID <= 0 && incomingMessage.ResponseMessageID <= 0 {
 		return request, errors.New("chat response requires request_id or response_message_id")
 	}
-	whereClause := "id=$1"
+	whereClause := "chat_request.id=$1"
 	arg := incomingMessage.RequestID
 	if incomingMessage.RequestID <= 0 {
-		whereClause = "response_message_id=$1"
+		whereClause = "chat_request.response_message_id=$1"
 		arg = incomingMessage.ResponseMessageID
 	}
-	sqlStatement := fmt.Sprintf(`SELECT id, operation_id, response_message_id, status
+	sqlStatement := fmt.Sprintf(`SELECT chat_request.id,
+			chat_request.operation_id,
+			chat_request.channel_id,
+			chat_request.response_message_id,
+			chat_request.chat_container_id,
+			chat_request.status,
+			COALESCE(consuming_container.name, '') "chat_container_name"
 		FROM chat_request
+		LEFT JOIN consuming_container ON consuming_container.id = chat_request.chat_container_id
 		WHERE %s`, whereClause)
 	args := []interface{}{arg}
 	if operationID > 0 {
-		sqlStatement += " AND operation_id=$2"
+		sqlStatement += " AND chat_request.operation_id=$2"
 		args = append(args, operationID)
 	}
 	if err := database.DB.Get(&request, sqlStatement, args...); err != nil {
 		return request, err
 	}
 	return request, nil
+}
+
+func getChatResponseTargetMessageID(request chatResponseRequest, incomingMessage ChatContainerResponseMessage) (int, bool, error) {
+	responseKey := strings.TrimSpace(incomingMessage.ResponseKey)
+	if responseKey == "" {
+		return request.ResponseMessageID, true, nil
+	}
+	messageID, err := getOrCreateChatResponseKeyMessage(request, responseKey)
+	return messageID, false, err
+}
+
+func getOrCreateChatResponseKeyMessage(request chatResponseRequest, responseKey string) (int, error) {
+	var messageID int
+	err := database.DB.Get(&messageID, `SELECT id
+		FROM chat_message
+		WHERE operation_id=$1
+			AND channel_id=$2
+			AND author_type='ai'
+			AND deleted=false
+			AND metadata->>'chat_request_id'=$3
+			AND metadata->>'chat_response_key'=$4
+		ORDER BY id ASC
+		LIMIT 1`,
+		request.OperationID,
+		request.ChannelID,
+		strconv.Itoa(request.ID),
+		responseKey,
+	)
+	if err == nil {
+		return messageID, nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return 0, err
+	}
+	metadata := GetMythicJSONTextFromStruct(map[string]interface{}{
+		"chat_request_id":   request.ID,
+		"chat_response_key": responseKey,
+	})
+	err = database.DB.Get(&messageID, `INSERT INTO chat_message
+		(operation_id, channel_id, author_type, chat_container_id, sender_display_name, status, metadata)
+		VALUES ($1, $2, 'ai', $3, $4, 'pending', $5::jsonb)
+		RETURNING id`,
+		request.OperationID,
+		request.ChannelID,
+		request.ChatContainerID,
+		request.ChatContainerName,
+		metadata.String(),
+	)
+	return messageID, err
 }
 
 func normalizeChatContainerResponseStatus(incomingMessage ChatContainerResponseMessage) string {
@@ -619,7 +706,7 @@ func setChatResponseMessageContent(responseMessageID int, operationID int, conte
 	return err
 }
 
-func setChatResponseStatus(request chatResponseRequest, status string, responseError string, metadata ChatContainerResponseMetadata) error {
+func setChatResponseMessageStatus(responseMessageID int, operationID int, status string, responseError string, metadata ChatContainerResponseMetadata) error {
 	metadataJSON := GetMythicJSONTextFromStruct(metadata.StructValue())
 	if responseError != "" {
 		metadataJSON = GetMythicJSONTextFromStruct(map[string]interface{}{
@@ -630,15 +717,33 @@ func setChatResponseStatus(request chatResponseRequest, status string, responseE
 	_, err := database.DB.Exec(`UPDATE chat_message
 		SET status=$3,
 			metadata = metadata || $4::jsonb
-		WHERE id=$1 AND operation_id=$2 AND deleted=false AND status <> 'cancelled'`, request.ResponseMessageID, request.OperationID, status, metadataJSON.String())
-	if err != nil {
-		return err
-	}
-	_, err = database.DB.Exec(`UPDATE chat_request
+		WHERE id=$1 AND operation_id=$2 AND deleted=false AND status <> 'cancelled'`, responseMessageID, operationID, status, metadataJSON.String())
+	return err
+}
+
+func setChatRequestStatus(request chatResponseRequest, status string, responseError string) error {
+	_, err := database.DB.Exec(`UPDATE chat_request
 		SET status=$2,
 			error=$3,
 			completed_at=CASE WHEN $2='complete' THEN now() ELSE completed_at END,
 			cancelled_at=CASE WHEN $2='cancelled' THEN now() ELSE cancelled_at END
 		WHERE id=$1 AND operation_id=$4 AND status <> 'cancelled'`, request.ID, status, responseError, request.OperationID)
+	return err
+}
+
+func finalizePrimaryResponseFromSecondary(request chatResponseRequest, status string) error {
+	if err := flushChatResponseMessageLocked(request.ResponseMessageID, request.OperationID, true); err != nil {
+		return err
+	}
+	_, err := database.DB.Exec(`UPDATE chat_message
+		SET status=$3
+		WHERE id=$1
+			AND operation_id=$2
+			AND deleted=false
+			AND status IN ('pending', 'streaming')`,
+		request.ResponseMessageID,
+		request.OperationID,
+		status,
+	)
 	return err
 }

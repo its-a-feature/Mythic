@@ -333,7 +333,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 currentChoices = choices;
                 currentChoiceMap = choices.reduce( (prev, cur) => {
                     return {...prev, [cur]: cur}
-                })
+                }, {})
             }
             setChoiceOptions({
                 choices: currentChoices,
@@ -365,7 +365,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 currentChoices = choices;
                 currentChoiceMap = choices.reduce( (prev, cur) => {
                     return {...prev, [cur]: cur}
-                })
+                }, {})
             }
             setChoiceOptions({
                 choices: currentChoices,
