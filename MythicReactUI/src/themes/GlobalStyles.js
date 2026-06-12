@@ -6917,13 +6917,34 @@ tspan {
     width: 100%;
 }
 .mythic-create-parameter-group-header {
+    align-items: center;
     background-image: var(--mythic-global-069);
     border: 1px solid var(--mythic-global-010);
     border-radius: var(--mythic-global-008);
     color: var(--mythic-global-070);
+    display: flex;
     font-size: 0.82rem;
     font-weight: 800;
+    gap: 0.25rem;
+    line-height: 1.25;
+    min-width: 0;
     padding: 0.45rem 0.65rem;
+}
+.mythic-create-parameter-group-header-collapsible {
+    cursor: pointer;
+    user-select: none;
+}
+.mythic-create-parameter-group-header-collapsible:focus-visible {
+    outline: 2px solid var(--mythic-global-023);
+    outline-offset: 2px;
+}
+.mythic-create-parameter-group-header-icon {
+    flex: 0 0 auto;
+    margin-left: -0.2rem;
+}
+.mythic-create-parameter-group-header-title {
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 .mythic-create-summary-group {
     display: flex;

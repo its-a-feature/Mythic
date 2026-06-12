@@ -52,3 +52,37 @@ func TestChatContainerResponseMetadataPreservesKnownAndUnknownKeys(t *testing.T)
 		t.Fatalf("unknown top-level key missing from serialized metadata: %#v", serialized)
 	}
 }
+
+func TestChatContainerResponseKeyFieldsRoundTrip(t *testing.T) {
+	message := ChatContainerResponseMessage{}
+	err := json.Unmarshal([]byte(`{
+		"request_id": 10,
+		"response_message_id": 20,
+		"response_key": "mcp_confirmation:abc",
+		"complete_request": true,
+		"content": "confirmation required"
+	}`), &message)
+	if err != nil {
+		t.Fatalf("failed to unmarshal response key fields: %v", err)
+	}
+	if message.ResponseKey != "mcp_confirmation:abc" {
+		t.Fatalf("response_key was not parsed: %q", message.ResponseKey)
+	}
+	if !message.CompleteRequest {
+		t.Fatal("complete_request was not parsed")
+	}
+	serialized, err := json.Marshal(message)
+	if err != nil {
+		t.Fatalf("failed to marshal response key fields: %v", err)
+	}
+	values := map[string]interface{}{}
+	if err = json.Unmarshal(serialized, &values); err != nil {
+		t.Fatalf("failed to unmarshal serialized response key fields: %v", err)
+	}
+	if values["response_key"] != "mcp_confirmation:abc" {
+		t.Fatalf("response_key missing from serialized message: %#v", values)
+	}
+	if values["complete_request"] != true {
+		t.Fatalf("complete_request missing from serialized message: %#v", values)
+	}
+}

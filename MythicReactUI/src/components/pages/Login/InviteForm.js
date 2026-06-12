@@ -1,11 +1,11 @@
 import React from 'react';
 import {Button} from '@mui/material';
 import MythicTextField from '../../MythicComponents/MythicTextField';
-import logo from '../../../assets/mythic-red.png';
 import { Navigate } from 'react-router-dom';
 import {restartWebsockets} from '../../../index';
 import { snackActions } from '../../utilities/Snackbar';
-import CardContent from '@mui/material/CardContent';
+import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
+import {AuthFormStack, LoginLayout} from './LoginLayout';
 
 export function InviteForm(props){
     const [username, setUsername] = React.useState("");
@@ -77,36 +77,41 @@ export function InviteForm(props){
     }
 
     return (
-        <div style={{justifyContent: "center", display: "flex"}}>
+        <>
             {
                 props.me.loggedIn ?
                     (
                         <Navigate replace to={"/"}/>
                     )
                     : (
-                        <div style={{backgroundColor: "transparent"}}>
-                            <CardContent>
-                                <img src={logo} height="400px" alt="Mythic logo"/>
-
-                                    <MythicTextField name='code' value={inviteCode} debounceDelay={0}
-                                                     onChange={onChangeText} width={31} required={true} showLabel={true}/>
-                                    <MythicTextField name='username' value={username} onChange={onChangeText}
-                                                     width={31} debounceDelay={0} showLabel={true}/>
-                                    <MythicTextField name='password' type="password" onEnter={submit} value={password}
-                                                     onChange={onChangeText} width={31} debounceDelay={0} requiredValue={true} showLabel={true}/>
-                                    <MythicTextField name='passwordAgain'  type="password" onEnter={submit} value={passwordAgain}
-                                                     onChange={onChangeText} width={31} debounceDelay={0} requiredValue={true} showLabel={true}
-                                                     validate={checkPasswordsMatch} errorText={"Passwords do not match"}/>
-                                    <MythicTextField name='email' value={email} onChange={onChangeText}
-                                                     width={31} debounceDelay={0} showLabel={true} />
-                                    <Button type="submit" color="primary" onClick={submit} variant="contained"
-                                            style={{}}>Register</Button>
-
-                            </CardContent>
-                        </div>
+                        <LoginLayout>
+                            <AuthFormStack component="form" noValidate onSubmit={submit}>
+                                <MythicTextField name='code' value={inviteCode} debounceDelay={0}
+                                                 onChange={onChangeText} requiredValue={true} showLabel={true}
+                                                 autoComplete={"one-time-code"} autoFocus={true}
+                                                 marginTop={0} marginBottom={0}/>
+                                <MythicTextField name='username' value={username} onChange={onChangeText}
+                                                 debounceDelay={0} showLabel={true} autoComplete={"username"}
+                                                 marginTop={0} marginBottom={0}/>
+                                <MythicTextField name='password' type="password" onEnter={submit} value={password}
+                                                 onChange={onChangeText} debounceDelay={0} requiredValue={true}
+                                                 showLabel={true} autoComplete={"new-password"}
+                                                 marginTop={0} marginBottom={0}/>
+                                <MythicTextField name='passwordAgain'  type="password" onEnter={submit} value={passwordAgain}
+                                                 onChange={onChangeText} debounceDelay={0} requiredValue={true}
+                                                 showLabel={true} autoComplete={"new-password"}
+                                                 validate={checkPasswordsMatch} errorText={"Passwords do not match"}
+                                                 marginTop={0} marginBottom={0}/>
+                                <MythicTextField name='email' value={email} onChange={onChangeText}
+                                                 debounceDelay={0} showLabel={true} autoComplete={"email"}
+                                                 marginTop={0} marginBottom={0}/>
+                                <Button type="submit" color="primary" startIcon={<PersonAddAlt1Icon />} variant="contained" fullWidth>
+                                    Register
+                                </Button>
+                            </AuthFormStack>
+                        </LoginLayout>
                     )
             }
-        </div>
+        </>
     )
 }
-

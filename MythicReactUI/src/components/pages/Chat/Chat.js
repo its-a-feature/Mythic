@@ -24,6 +24,8 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import AddIcon from '@mui/icons-material/Add';
@@ -53,6 +55,7 @@ import {getSkewedNow} from "../../utilities/Time";
 import {isAllowedMarkdownLink, markdownPlugins} from "../../utilities/Markdown";
 import {EventStepUserInteractionDialog} from "../Eventing/EventStepRender";
 import {SettingsAPITokenDialog} from "../Settings/SettingsOperatorDialog";
+import {SchemaFormRenderer, emptyValueForSchema} from "../CreatePayload/SchemaFormRenderer";
 
 const CHAT_MESSAGE_LIMIT = 250;
 const CHAT_REQUEST_LIMIT = 50;
@@ -703,7 +706,9 @@ const getModelConfigOptions = (model) => {
             }
             return {value: choice, label: `${choice}`, description: ""};
         }) : [];
-        const type = `${option.type || option.Type || (choices.length > 0 ? "choice" : "string")}`.toLowerCase();
+        const jsonStringSchema = option.json_string_schema || null;
+        const rawType = `${option.type || option.Type || (jsonStringSchema ? "json" : (choices.length > 0 ? "choice" : "string"))}`.toLowerCase();
+        const type = rawType === "jsonstring" || rawType === "json_string" ? "json" : rawType;
         return {
             name: `${name}`,
             displayName: option.display_name || option.displayName || option.DisplayName || option.label || option.Label || `${name}`,
@@ -712,9 +717,7 @@ const getModelConfigOptions = (model) => {
             required: Boolean(option.required || option.Required),
             defaultValue: option.default_value ?? option.defaultValue ?? option.DefaultValue ?? option.default ?? option.Default ?? "",
             choices,
-            jsonSchema: option.json_schema || option.jsonSchema || option.JsonSchema || option.JSONSchema || null,
-            examples: Array.isArray(option.examples || option.Examples) ? (option.examples || option.Examples) : [],
-            helpText: option.help_text || option.helpText || option.HelpText || "",
+            jsonStringSchema,
             minRows: Number(option.min_rows || option.minRows || option.MinRows || 6),
         };
     }).filter((option) => option.name);
@@ -837,151 +840,162 @@ const configHasInvalidValues = (values, options) => options.some((option) => {
     return false;
 });
 
-const jsonSchemaVariants = (schema) => {
-    if(!schema || typeof schema !== "object"){
-        return [];
-    }
-    return schema.oneOf || schema.anyOf || schema.allOf || [];
-};
+const hasUsableJSONStringSchema = (schema) => (
+    schema && typeof schema === "object" && !Array.isArray(schema) &&
+    typeof schema.type === "string" && schema.type.length > 0
+);
 
-const jsonSchemaTypeLabel = (schema) => {
-    if(!schema || typeof schema !== "object"){
-        return "value";
-    }
-    if(Array.isArray(schema.enum)){
-        return schema.enum.join(" | ");
-    }
-    const variants = jsonSchemaVariants(schema);
-    if(variants.length > 0){
-        return variants.map((variant) => jsonSchemaTypeLabel(variant)).filter(Boolean).join(" | ");
-    }
-    if(Array.isArray(schema.type)){
-        return schema.type.join(" | ");
-    }
-    if(schema.type === "array"){
-        return "array";
-    }
-    if(schema.type === "object" && schema.additionalProperties){
-        return "object map";
-    }
-    return schema.type || "value";
-};
-
-const jsonSchemaDescriptionLabel = (schema) => {
-    if(!schema || typeof schema !== "object"){
-        return "";
-    }
-    if(schema.description){
-        return schema.description;
-    }
-    return jsonSchemaVariants(schema)
-        .map((variant) => variant?.description)
-        .filter(Boolean)
-        .join(" ");
-};
-
-const jsonSchemaReferenceRows = (schema, path = "", required = false, includeSelf = false) => {
-    if(!schema || typeof schema !== "object"){
-        return [];
-    }
-    const rows = [];
-    if(includeSelf && path){
-        rows.push({
-            path,
-            type: jsonSchemaTypeLabel(schema),
-            required,
-            description: jsonSchemaDescriptionLabel(schema),
-        });
-    }
-    const properties = schema.properties && typeof schema.properties === "object" ? schema.properties : {};
-    const requiredFields = new Set(Array.isArray(schema.required) ? schema.required : []);
-    Object.entries(properties).forEach(([name, propertySchema]) => {
-        const nextPath = path ? `${path}.${name}` : name;
-        rows.push(...jsonSchemaReferenceRows(propertySchema, nextPath, requiredFields.has(name), true));
-        if(propertySchema?.type === "array" && propertySchema?.items){
-            rows.push(...jsonSchemaReferenceRows(propertySchema.items, `${nextPath}[]`, false, true));
+const ChatJSONConfigurationField = ({option, values, setValues}) => {
+    const parsed = parseJSONConfigValue(values[option.name]);
+    const rendererSchema = hasUsableJSONStringSchema(option.jsonStringSchema) ? option.jsonStringSchema : null;
+    const hasVisualEditor = Boolean(rendererSchema);
+    const [editorTab, setEditorTab] = React.useState(() => hasVisualEditor && !parsed.error ? "visual" : "source");
+    const [visualParseError, setVisualParseError] = React.useState("");
+    const sourceValue = configValueForField(values[option.name], option);
+    const visualValue = hasVisualEditor && editorTab === "visual" && !parsed.error ?
+        (parsed.empty ? emptyValueForSchema(rendererSchema) : parsed.value) :
+        null;
+    React.useEffect(() => {
+        if(!hasVisualEditor && editorTab !== "source"){
+            setEditorTab("source");
         }
-    });
-    if(schema.additionalProperties && path){
-        const keyLabel = schema["x-key_label"] || "<key>";
-        const additionalPath = `${path}.${keyLabel}`;
-        rows.push(...jsonSchemaReferenceRows(schema.additionalProperties, additionalPath, false, true));
+        if(hasVisualEditor && editorTab === "visual" && parsed.error){
+            setVisualParseError(parsed.error);
+            setEditorTab("source");
+        }
+        if(!parsed.error && visualParseError !== ""){
+            setVisualParseError("");
+        }
+    }, [editorTab, hasVisualEditor, parsed.error, visualParseError]);
+    const setSourceValue = (nextValue) => {
+        setValues((prev) => ({...prev, [option.name]: nextValue}));
+    };
+    const formatValue = () => {
+        if(parsed.error || parsed.empty){
+            return;
+        }
+        setSourceValue(JSON.stringify(parsed.value, null, 2));
+    };
+    const onVisualChange = (newValue) => {
+        setSourceValue(JSON.stringify(newValue, null, 2));
+    };
+    const onSwitchToVisual = () => {
+        if(!hasVisualEditor){
+            return;
+        }
+        if(parsed.error){
+            setVisualParseError(parsed.error);
+            setEditorTab("source");
+            return;
+        }
+        setVisualParseError("");
+        setEditorTab("visual");
+    };
+    if(!hasVisualEditor){
+        return (
+            <Box key={option.name} sx={{display: "flex", flexDirection: "column", gap: 0.75, minWidth: 0}}>
+                <TextField
+                    fullWidth
+                    multiline
+                    minRows={Math.max(8, option.minRows || 6)}
+                    size="small"
+                    label={option.displayName}
+                    required={option.required}
+                    value={sourceValue}
+                    error={Boolean(parsed.error)}
+                    helperText={parsed.error || option.description}
+                    onChange={(e) => setSourceValue(e.target.value)}
+                    inputProps={{spellCheck: "false"}}
+                />
+                <Box sx={{display: "flex", flexWrap: "wrap", alignItems: "center", gap: 0.75}}>
+                    <Button size="small" variant="outlined" onClick={formatValue} disabled={parsed.empty || Boolean(parsed.error)}>
+                        Format JSON
+                    </Button>
+                </Box>
+            </Box>
+        );
     }
-    jsonSchemaVariants(schema).forEach((variant) => {
-        rows.push(...jsonSchemaReferenceRows(variant, path, required, false));
-    });
-    return rows;
-};
 
-const ChatJSONFieldReference = ({option, examples, setValues}) => {
-    const fieldRows = jsonSchemaReferenceRows(option.jsonSchema);
-    if(!option.helpText && fieldRows.length === 0 && examples.length === 0){
-        return null;
-    }
     return (
         <Box
+            key={option.name}
+            className="mythic-dialog-section"
             sx={{
-                border: (theme) => `1px solid ${theme.palette.divider}`,
-                borderRadius: 1,
                 display: "flex",
                 flexDirection: "column",
-                gap: 1,
-                maxHeight: {md: 520},
-                overflow: "auto",
-                p: 1.25,
+                gap: 0.75,
+                minWidth: 0,
+                p: 1,
             }}
         >
-            {option.helpText &&
-                <Typography variant="caption" color="text.secondary">
-                    {option.helpText}
-                </Typography>
-            }
-            {fieldRows.length > 0 &&
-                <Box sx={{display: "flex", flexDirection: "column", gap: 0.75}}>
-                    <Typography variant="subtitle2">Fields</Typography>
-                    {fieldRows.map((field, index) => (
-                        <Box
-                            key={`${field.path}-${index}`}
-                            sx={{
-                                borderTop: index === 0 ? 0 : (theme) => `1px solid ${theme.palette.divider}`,
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: 0.25,
-                                pt: index === 0 ? 0 : 0.75,
-                            }}
-                        >
-                            <Box sx={{alignItems: "center", display: "flex", gap: 0.5, minWidth: 0}}>
-                                <Typography component="code" variant="caption" sx={{fontFamily: "monospace", fontWeight: 700, overflowWrap: "anywhere"}}>
-                                    {field.path}
-                                </Typography>
-                                {field.required && <Chip size="small" variant="outlined" color="warning" label="required" />}
-                            </Box>
-                            <Typography variant="caption" color="text.secondary" sx={{fontFamily: "monospace"}}>
-                                {field.type}
-                            </Typography>
-                            {field.description &&
-                                <Typography variant="caption" color="text.secondary">
-                                    {field.description}
-                                </Typography>
-                            }
-                        </Box>
-                    ))}
+            <Box sx={{alignItems: "flex-start", display: "flex", flexWrap: "wrap", gap: 0.75, justifyContent: "space-between", minWidth: 0}}>
+                <Box sx={{display: "flex", flexDirection: "column", gap: 0.25, minWidth: 0}}>
+                    <Typography component="div" className="mythic-dialog-section-title">
+                        {option.displayName}
+                    </Typography>
+                    {option.description &&
+                        <Typography component="div" className="mythic-dialog-section-description">
+                            {option.description}
+                        </Typography>
+                    }
+                </Box>
+                <Tabs
+                    value={editorTab}
+                    onChange={(event, nextTab) => {
+                        if(nextTab === "visual"){
+                            onSwitchToVisual();
+                        }else{
+                            setEditorTab("source");
+                        }
+                    }}
+                    style={{minHeight: "32px"}}
+                    TabIndicatorProps={{style: {height: "2px"}}}
+                >
+                    <Tab value="visual" label="Visual" style={{minHeight: "32px", textTransform: "none"}} />
+                    <Tab value="source" label="Source" style={{minHeight: "32px", textTransform: "none"}} />
+                </Tabs>
+            </Box>
+            {editorTab === "visual" && visualValue !== null &&
+                <Box
+                    sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 0.75,
+                        minWidth: 0,
+                    }}
+                >
+                    <SchemaFormRenderer
+                        schema={rendererSchema}
+                        value={visualValue}
+                        onChange={onVisualChange}
+                    />
                 </Box>
             }
-            {examples.length > 0 &&
-                <Box sx={{display: "flex", flexDirection: "column", gap: 0.75}}>
-                    <Typography variant="subtitle2">Examples</Typography>
-                    {examples.map((example) => (
-                        <Button
-                            size="small"
-                            variant="outlined"
-                            key={`${option.name}-${example.label}`}
-                            onClick={() => setValues((prev) => ({...prev, [option.name]: jsonTextForConfigValue(example.value)}))}
-                            sx={{justifyContent: "flex-start"}}
-                        >
-                            {example.label}
+            {editorTab === "source" &&
+                <Box sx={{display: "flex", flexDirection: "column", gap: 0.75, minWidth: 0}}>
+                    {visualParseError !== "" &&
+                        <Typography component="div" color="error" className="mythic-form-field-description">
+                            Visual tab unavailable: {visualParseError}
+                        </Typography>
+                    }
+                    <TextField
+                        fullWidth
+                        multiline
+                        minRows={Math.max(8, option.minRows || 6)}
+                        size="small"
+                        label="Source"
+                        required={option.required}
+                        value={sourceValue}
+                        error={Boolean(parsed.error)}
+                        helperText={parsed.error || ""}
+                        onChange={(e) => setSourceValue(e.target.value)}
+                        inputProps={{spellCheck: "false"}}
+                    />
+                    <Box sx={{display: "flex", flexWrap: "wrap", alignItems: "center", gap: 0.75}}>
+                        <Button size="small" variant="outlined" onClick={formatValue} disabled={parsed.empty || Boolean(parsed.error)}>
+                            Format JSON
                         </Button>
-                    ))}
+                    </Box>
                 </Box>
             }
         </Box>
@@ -1080,55 +1094,7 @@ const ChatConfigurationFields = ({options, values, setValues}) => {
                     );
                 }
                 if(option.type === "json"){
-                    const parsed = parseJSONConfigValue(values[option.name]);
-                    const examples = option.examples.map((example, index) => {
-                        if(example && typeof example === "object" && !Array.isArray(example)){
-                            return {
-                                label: example.name || example.label || example.Label || `Example ${index + 1}`,
-                                value: example.value ?? example.Value ?? example.config ?? example.Config ?? example,
-                            };
-                        }
-                        return {label: `Example ${index + 1}`, value: example};
-                    });
-                    const formatValue = () => {
-                        if(parsed.error || parsed.empty){
-                            return;
-                        }
-                        setValues((prev) => ({...prev, [option.name]: JSON.stringify(parsed.value, null, 2)}));
-                    };
-                    return (
-                        <Box
-                            key={option.name}
-                            sx={{
-                                alignItems: "start",
-                                display: "grid",
-                                gap: 1.25,
-                                gridTemplateColumns: {xs: "1fr", md: "minmax(0, 1.25fr) minmax(18rem, 0.75fr)"},
-                            }}
-                        >
-                            <Box sx={{display: "flex", flexDirection: "column", gap: 0.75, minWidth: 0}}>
-                                <TextField
-                                    fullWidth
-                                    multiline
-                                    minRows={Math.max(8, option.minRows || 6)}
-                                    size="small"
-                                    label={option.displayName}
-                                    required={option.required}
-                                    value={configValueForField(values[option.name], option)}
-                                    error={Boolean(parsed.error)}
-                                    helperText={parsed.error || option.description}
-                                    onChange={(e) => setValues((prev) => ({...prev, [option.name]: e.target.value}))}
-                                    inputProps={{spellCheck: "false"}}
-                                />
-                                <Box sx={{display: "flex", flexWrap: "wrap", alignItems: "center", gap: 0.75}}>
-                                    <Button size="small" variant="outlined" onClick={formatValue} disabled={parsed.empty || Boolean(parsed.error)}>
-                                        Format JSON
-                                    </Button>
-                                </Box>
-                            </Box>
-                            <ChatJSONFieldReference option={option} examples={examples} setValues={setValues} />
-                        </Box>
-                    );
+                    return <ChatJSONConfigurationField key={option.name} option={option} values={values} setValues={setValues} />;
                 }
                 return (
                     <TextField

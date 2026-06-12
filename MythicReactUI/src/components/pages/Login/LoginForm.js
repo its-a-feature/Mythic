@@ -1,18 +1,20 @@
 import React, { useEffect } from 'react';
-import {Button, Paper} from '@mui/material';
+import {Button, Divider} from '@mui/material';
 import MythicTextField from '../../MythicComponents/MythicTextField';
-import logo from '../../../assets/mythic-red.png';
 import { Navigate } from 'react-router-dom';
 import {meState, successfulLogin, FailedRefresh} from '../../../cache';
 import { useReactiveVar } from '@apollo/client';
 import {isJWTValid} from '../../../index';
 import { snackActions } from '../../utilities/Snackbar';
-import CardContent from '@mui/material/CardContent';
 import Grow from '@mui/material/Grow';
 import Popper from '@mui/material/Popper';
 import MenuItem from '@mui/material/MenuItem';
 import MenuList from '@mui/material/MenuList';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import KeyIcon from '@mui/icons-material/Key';
+import LoginIcon from '@mui/icons-material/Login';
+import {AuthFormStack, AuthMenuPaper, AuthMethodNote, LoginLayout} from './LoginLayout';
 
 export function LoginForm(props){
     const me = useReactiveVar(meState);
@@ -148,6 +150,7 @@ export function LoginForm(props){
     }
     const resetLoginOption = () => {
         setRequestFields([]);
+        setOpenUpdateDialog(false);
     }
     const handleMenuItemClick = (event, index) => {
         setOpenUpdateDialog(false);
@@ -194,59 +197,73 @@ export function LoginForm(props){
         }
         setOpenUpdateDialog(false);
     };
+    const selectedIdp = selectedAuthOptionRef.current.idp || "Custom provider";
     return (
-        <div style={{justifyContent: "center", display: "flex"}}>
+        <LoginLayout>
         {
             me.loggedIn && (<Navigate replace to={redirectPath.current}/>)
         }
-
-        <div style={{backgroundColor: "transparent"}}>
-            <CardContent >
-                <div style={{height: "400px"}}>
-                    <img src={logo} height="400px" alt="Mythic logo"/>
-                </div>
-
+            <AuthFormStack
+                component="form"
+                noValidate
+                onSubmit={requestField.length === 0 ? submit : submitNonIDP}
+            >
                 {requestField.length === 0 &&
                     <>
                         <MythicTextField name='username' value={username} onChange={onUsernameChange}
-                                         width={31} debounceDelay={0} showLabel={true} autoComplete={true}/>
-                        <MythicTextField name='password' type="password" onEnter={submit} value={password} autoComplete={true}
-                                         onChange={onPasswordChange} width={31} debounceDelay={0} showLabel={true}/>
-                        <Button type="submit" color="primary" onClick={submit} variant="contained"
-                                style={{}}>Login</Button>
+                                         debounceDelay={0} showLabel={true} autoComplete={"username"}
+                                         autoFocus={true} marginTop={0} marginBottom={0}/>
+                        <MythicTextField name='password' type="password" onEnter={submit} value={password} autoComplete={"current-password"}
+                                         onChange={onPasswordChange} debounceDelay={0} showLabel={true}
+                                         marginTop={0} marginBottom={0}/>
+                        <Button type="submit" color="primary" startIcon={<LoginIcon />} variant="contained" fullWidth>
+                            Login
+                        </Button>
                     </>
                 }
                 {requestField.length > 0 &&
                     <>
+                        <AuthMethodNote>
+                            <KeyIcon fontSize="small" />
+                            {selectedIdp}
+                        </AuthMethodNote>
                         {requestField.map(r => (
                             <MythicTextField key={r.name} name={r.name} value={r.value} onChange={onUpdateText}
                                              type={r.name === "password" ? "password" : ""}
-                                             width={31} debounceDelay={0} showLabel={true}/>
+                                             debounceDelay={0} showLabel={true}
+                                             autoComplete={r.name === "password" ? "current-password" : "off"}
+                                             marginTop={0} marginBottom={0}/>
                         ))}
-                        <Button type="submit" color="primary" onClick={submitNonIDP} variant="contained"
-                                style={{}}>Login via {selectedAuthOptionRef.current.idp}</Button>
+                        <Button type="submit" color="primary" startIcon={<LoginIcon />} variant="contained" fullWidth>
+                            Login via {selectedAuthOptionRef.current.idp}
+                        </Button>
                     </>
                 }
                 {authOptions.length > 0 &&
                     <>
-                        <Button ref={dropdownAnchorRef} style={{float: "right"}}
+                        <Divider>Custom auth</Divider>
+                        <Button ref={dropdownAnchorRef}
+                                type="button"
                                 variant={"outlined"}
+                                fullWidth
+                                startIcon={<KeyIcon />}
+                                endIcon={<ExpandMoreIcon />}
                                 onClick={() => {
-                                    setOpenUpdateDialog(true);
-                                }} color="success"
+                                    setOpenUpdateDialog(!openUpdate);
+                                }} color="info"
                         >
-                            Login via Custom Auth Providers
+                            Providers
                         </Button>
                         <Popper open={openUpdate} anchorEl={dropdownAnchorRef.current}
-                                role={undefined} transition disablePortal style={{zIndex: 4}}>
+                                role={undefined} transition disablePortal placement="bottom-end" style={{zIndex: 4}}>
                             {({TransitionProps, placement}) => (
                                 <Grow
                                     {...TransitionProps}
                                     style={{
-                                        transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
+                                        transformOrigin: placement.startsWith('bottom') ? 'right top' : 'right bottom',
                                     }}
                                 >
-                                    <Paper className={"dropdownMenuColored"}>
+                                    <AuthMenuPaper className={"dropdownMenuColored"}>
                                         <ClickAwayListener onClickAway={handleClose}
                                                            mouseEvent={"onMouseDown"}>
                                             <MenuList id="split-button-menu">
@@ -261,16 +278,13 @@ export function LoginForm(props){
                                                 <MenuItem onClick={resetLoginOption}>Mythic Local Login</MenuItem>
                                             </MenuList>
                                         </ClickAwayListener>
-                                    </Paper>
+                                    </AuthMenuPaper>
                                 </Grow>
                             )}
                         </Popper>
                     </>
                 }
-            </CardContent>
-        </div>
-
-        </div>
+            </AuthFormStack>
+        </LoginLayout>
     )
 }
-
