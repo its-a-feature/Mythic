@@ -301,6 +301,16 @@ type Mutation {
   ): OperatorAliasActionOutput!
 }
 
+type Query {
+  exportOperatorAliases: OperatorAliasExportOutput!
+}
+
+type Mutation {
+  importOperatorAliases(
+    config: String!
+  ): OperatorAliasImportOutput!
+}
+
 type Mutation {
   createPayload(
     payloadDefinition: String!
@@ -1291,6 +1301,23 @@ type OperatorAliasActionOutput {
   status: String!
   error: String
   id: Int
+}
+
+type OperatorAliasExportOutput {
+  status: String!
+  error: String
+  config: String
+}
+
+type OperatorAliasImportOutput {
+  status: String!
+  error: String
+  imported_count: Int
+  skipped_count: Int
+  skipped_duplicate_count: Int
+  skipped_missing_count: Int
+  skipped_invalid_count: Int
+  skipped: jsonb
 }
 
 type updateGlobalSettingsOutput {
