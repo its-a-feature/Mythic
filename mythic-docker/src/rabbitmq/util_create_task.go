@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -50,7 +52,7 @@ type CreateTaskInput struct {
 	EventStepInstanceID     int
 	APITokensID             int
 	PayloadType             *string
-	IsAlias                 *bool
+	AliasResolution         *OperatorAliasResolution
 	AuthContext             RabbitMQAuthContext
 }
 
@@ -477,6 +479,14 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 		return response
 		// if we're not looking at help/clear, fetch the command info and check for block lists
 	}
+	if strings.HasPrefix(strings.TrimSpace(createTaskInput.CommandName), "/") {
+		// we're looking at some sort of alias, so try to resolve that first
+		err = resolveCallbackTaskAlias(&createTaskInput, callback)
+		if err != nil {
+			response.Error = err.Error()
+			return response
+		}
+	}
 	if !utils.SliceContains(NonPayloadCommands, createTaskInput.CommandName) {
 		loadedCommands := []databaseStructs.Loadedcommands{}
 		err = database.DB.Select(&loadedCommands, `SELECT
@@ -559,6 +569,34 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 				return response
 			}
 		}
+	}
+	if createTaskInput.AliasResolution != nil && task.Command.ID > 0 {
+		commandParameters := []databaseStructs.Commandparameters{}
+		err = database.DB.Select(&commandParameters, `SELECT
+			id, name, display_name, cli_name, type, parameter_group_name, required, ui_position
+			FROM commandparameters
+			WHERE command_id=$1
+			ORDER BY parameter_group_name, ui_position, id`,
+			task.Command.ID)
+		if err != nil {
+			logging.LogError(err, "Failed to get command parameters for alias-expanded task")
+			response.Error = "Failed to get command parameters for alias-expanded task"
+			return response
+		}
+		commandName, params, err := SplitOperatorAliasExpandedTaskLine(createTaskInput.AliasResolution.Expanded, commandParameters)
+		if err != nil {
+			logging.LogError(err, "Failed to parse callback tasking alias-expanded parameters", "expanded", createTaskInput.AliasResolution.Expanded)
+			response.Error = err.Error()
+			return response
+		}
+		if commandName != "" {
+			createTaskInput.CommandName = commandName
+		}
+		if createTaskInput.OriginalParams == nil {
+			originalParams := createTaskInput.Params
+			createTaskInput.OriginalParams = &originalParams
+		}
+		createTaskInput.Params = params
 	}
 	if createTaskInput.OriginalParams == nil {
 		createTaskInput.OriginalParams = &createTaskInput.Params
@@ -672,6 +710,13 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 	if utils.SliceContains(supportedUIFeatures, PT_TASK_SUPPORTED_UI_FEATURE_TASK_PROCESS_INTERACTIVE_TASKS) {
 		task.Status = PT_TASK_CREATE_TASKING
 	}
+	if createTaskInput.AliasResolution != nil {
+		resolution, err := json.MarshalIndent(createTaskInput.AliasResolution, "", "\t")
+		if err != nil {
+			logging.LogError(err, "Failed to marshal alias resolution")
+		}
+		task.AliasResolution = string(resolution)
+	}
 	err = addTaskToDatabase(&task)
 	if err != nil {
 		response.Error = "Failed to create task in database"
@@ -698,6 +743,576 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 		TaskID:        task.ID,
 		TaskDisplayID: task.DisplayID,
 	}
+}
+
+func resolveCallbackTaskAlias(createTaskInput *CreateTaskInput, callback databaseStructs.Callback) error {
+	payloadTypeID := callback.Payload.PayloadTypeID
+	if createTaskInput.PayloadType != nil && strings.TrimSpace(*createTaskInput.PayloadType) != "" {
+		// trying to resolve this for a different payload type
+		payloadType := databaseStructs.Payloadtype{}
+		err := database.DB.Get(&payloadType,
+			`SELECT id FROM payloadtype WHERE name=$1 AND deleted=false`,
+			strings.TrimSpace(*createTaskInput.PayloadType))
+		if err != nil {
+			logging.LogError(err, "Failed to fetch payload type for callback alias", "payload_type", *createTaskInput.PayloadType)
+			return fmt.Errorf("failed to find payload type for alias scope")
+		}
+		payloadTypeID = payloadType.ID
+	}
+	line := strings.TrimSpace(createTaskInput.CommandName)
+	if strings.TrimSpace(createTaskInput.Params) != "" {
+		line = strings.TrimSpace(line + " " + strings.TrimSpace(createTaskInput.Params))
+	}
+	// set nil for terminal commands since payload types have no built in alias terminal commands
+	resolution, err := ResolveOperatorAliasLineWithProvidedSlashCommands(createTaskInput.OperatorID, OperatorAliasScope{PayloadTypeID: payloadTypeID}, line, nil)
+	if err != nil {
+		logging.LogError(err, "Failed to resolve callback task alias", "command", createTaskInput.CommandName)
+		return err
+	}
+	if !resolution.AliasMatched {
+		return fmt.Errorf("unknown callback tasking alias /%s", createTaskInput.CommandName)
+	}
+	if resolution.FinalIsSlash {
+		return fmt.Errorf("callback tasking alias expansion ended with unresolved slash command /%s", resolution.FinalCommand)
+	}
+	commandName, params, err := SplitOperatorAliasExpandedTaskLine(resolution.Expanded)
+	if err != nil {
+		return err
+	}
+	if commandName == "" {
+		return fmt.Errorf("callback tasking alias expanded to an empty command")
+	}
+	createTaskInput.CommandName = commandName
+	createTaskInput.Params = params
+	createTaskInput.AliasResolution = &resolution
+	return nil
+}
+
+func SplitOperatorAliasExpandedTaskLine(line string, commandParameterSets ...[]databaseStructs.Commandparameters) (string, string, error) {
+	trimmed := strings.TrimSpace(line)
+	if trimmed == "" {
+		return "", "", nil
+	}
+	parts := strings.Fields(trimmed)
+	if len(parts) == 0 {
+		return "", "", nil
+	}
+	command := strings.TrimPrefix(parts[0], "/")
+	params := ""
+	if len(trimmed) > len(parts[0]) {
+		params = strings.TrimSpace(trimmed[len(parts[0]):])
+	}
+	logging.LogDebug("SplitOperatorAliasExpandedTaskLine", "command", command, "params", params)
+	if len(commandParameterSets) == 0 || strings.TrimSpace(params) == "" {
+		return command, params, nil
+	}
+	commandParameters := commandParameterSets[0]
+	if len(commandParameters) == 0 {
+		return command, params, nil
+	}
+
+	var decodedParams interface{}
+	if err := json.Unmarshal([]byte(params), &decodedParams); err == nil {
+		switch decodedParams.(type) {
+		case map[string]interface{}, []interface{}:
+			return command, params, nil
+		}
+	} else if strings.HasPrefix(params, "{") {
+		return command, params, fmt.Errorf("failed to parse alias-expanded parameters for %s as JSON: %w", command, err)
+	}
+
+	getDefaultValueForType := func(parameterType string) (interface{}, bool) {
+		switch parameterType {
+		case "string":
+			return "", true
+		case "typedArray", "array":
+			return []interface{}{}, true
+		case "number":
+			return 0, true
+		case "boolean":
+			return true, true
+		default:
+			return nil, false
+		}
+	}
+	parseNumber := func(value string) (float64, bool) {
+		number, err := strconv.ParseFloat(value, 64)
+		if err != nil || math.IsNaN(number) {
+			return 0, false
+		}
+		return number, true
+	}
+	parameterGroupName := func(parameter databaseStructs.Commandparameters) string {
+		if strings.TrimSpace(parameter.ParameterGroupName) == "" {
+			return "Default"
+		}
+		return parameter.ParameterGroupName
+	}
+	appendUnique := func(values []string, value string) []string {
+		for _, existing := range values {
+			if existing == value {
+				return values
+			}
+		}
+		return append(values, value)
+	}
+	appendInterfaceValue := func(current interface{}, value interface{}) []interface{} {
+		if current == nil {
+			return []interface{}{value}
+		}
+		switch typed := current.(type) {
+		case []interface{}:
+			return append(typed, value)
+		case []string:
+			output := make([]interface{}, 0, len(typed)+1)
+			for _, item := range typed {
+				output = append(output, item)
+			}
+			return append(output, value)
+		default:
+			return []interface{}{typed, value}
+		}
+	}
+	parseToArgv := func(input string) ([]string, error) {
+		argv := []string{}
+		if input == "" {
+			return argv, nil
+		}
+		singleQuoted := false
+		doubleQuoted := false
+		backslash := false
+		buffer := ""
+		pushBuffer := func() {
+			if len(buffer) == 0 {
+				return
+			}
+			if len(buffer) >= 2 {
+				first := buffer[0]
+				last := buffer[len(buffer)-1]
+				if first == last && (first == '\'' || first == '"') {
+					argv = append(argv, buffer[1:len(buffer)-1])
+					buffer = ""
+					return
+				}
+			}
+			argv = append(argv, buffer)
+			buffer = ""
+		}
+		for _, value := range input {
+			if (singleQuoted || doubleQuoted) && value == '\\' {
+				if !backslash {
+					backslash = true
+					continue
+				}
+				backslash = false
+				buffer += "\\"
+				continue
+			}
+			if !singleQuoted && !doubleQuoted {
+				if value == '\'' {
+					if backslash {
+						backslash = false
+						buffer += "'"
+						continue
+					}
+					singleQuoted = true
+					buffer += string(value)
+					continue
+				}
+				if value == '"' {
+					if backslash {
+						backslash = false
+						buffer += "\""
+						continue
+					}
+					doubleQuoted = true
+					buffer += string(value)
+					continue
+				}
+				if value == ' ' {
+					if backslash {
+						backslash = false
+						buffer += "\\"
+					}
+					pushBuffer()
+					continue
+				}
+			}
+			if singleQuoted && value == '\'' {
+				if backslash {
+					buffer += "'"
+					backslash = false
+					continue
+				}
+				singleQuoted = false
+				if len(buffer) > 0 {
+					buffer += string(value)
+				} else {
+					buffer += string(value) + string(value)
+				}
+				continue
+			}
+			if doubleQuoted && value == '"' {
+				if backslash {
+					buffer += "\""
+					backslash = false
+					continue
+				}
+				doubleQuoted = false
+				if len(buffer) > 0 {
+					buffer += string(value)
+				} else {
+					buffer += string(value) + string(value)
+				}
+				continue
+			}
+			if backslash {
+				buffer += "\\" + string(value)
+				backslash = false
+			} else {
+				buffer += string(value)
+			}
+		}
+		if backslash {
+			buffer += "\\"
+		}
+		pushBuffer()
+		if doubleQuoted {
+			logging.LogError(nil, "unexpected end of string while looking for matching double quote in alias resolution")
+			return nil, fmt.Errorf("unexpected end of string while looking for matching double quote")
+		}
+		if singleQuoted {
+			logging.LogError(nil, "unexpected end of string while looking for matching single quote in alias resolution")
+			return nil, fmt.Errorf("unexpected end of string while looking for matching single quote")
+		}
+		return argv, nil
+	}
+	type aliasTaskPositionalMetadata struct {
+		Value string
+		Index int
+	}
+	parameterTypeForFlag := map[string]string{}
+	parameterByFlag := map[string]databaseStructs.Commandparameters{}
+	allFlags := map[string]bool{}
+	for _, parameter := range commandParameters {
+		if strings.TrimSpace(parameter.CliName) == "" {
+			continue
+		}
+		flag := "-" + parameter.CliName
+		allFlags[flag] = true
+		parameterByFlag[flag] = parameter
+		switch parameter.Type {
+		case COMMAND_PARAMETER_TYPE_CHOOSE_ONE, COMMAND_PARAMETER_TYPE_CHOOSE_ONE_CUSTOM, COMMAND_PARAMETER_TYPE_STRING:
+			parameterTypeForFlag[flag] = "string"
+		case COMMAND_PARAMETER_TYPE_NUMBER:
+			parameterTypeForFlag[flag] = "number"
+		case COMMAND_PARAMETER_TYPE_BOOLEAN:
+			parameterTypeForFlag[flag] = "boolean"
+		case COMMAND_PARAMETER_TYPE_ARRAY, COMMAND_PARAMETER_TYPE_CHOOSE_MULTIPLE:
+			parameterTypeForFlag[flag] = "array"
+		case COMMAND_PARAMETER_TYPE_TYPED_ARRAY:
+			parameterTypeForFlag[flag] = "typedArray"
+		case COMMAND_PARAMETER_TYPE_FILE:
+			parameterTypeForFlag[flag] = "file"
+		default:
+			parameterTypeForFlag[flag] = "complex"
+		}
+	}
+	argv, err := parseToArgv(params)
+	if err != nil {
+		return command, params, fmt.Errorf("failed to parse alias-expanded parameters for %s: %w", command, err)
+	}
+	logging.LogDebug("SplitOperatorAliasExpandedTaskLine", "argv", argv)
+	parsed := map[string]interface{}{
+		"_": []string{},
+	}
+	var lastProcessedParameter *databaseStructs.Commandparameters
+	lastProcessedValueIndex := -1
+	positionalsMetadata := []aliasTaskPositionalMetadata{}
+	recordProcessedParameter := func(parameter databaseStructs.Commandparameters, valueIndex int) {
+		lastProcessedParameter = &parameter
+		lastProcessedValueIndex = valueIndex
+	}
+	recordProcessedFlag := func(flag string, valueIndex int) {
+		if parameter, ok := parameterByFlag[flag]; ok {
+			recordProcessedParameter(parameter, valueIndex)
+		}
+	}
+	currentArgument := ""
+	currentArgumentType := ""
+	setDefaultIfMissing := func(flag string, argumentType string) {
+		key := strings.TrimPrefix(flag, "-")
+		if _, found := parsed[key]; found {
+			return
+		}
+		if defaultValue, ok := getDefaultValueForType(argumentType); ok {
+			parsed[key] = defaultValue
+		}
+	}
+	for index := 0; index < len(argv); index++ {
+		value := argv[index]
+		if currentArgument == "" {
+			if argumentType, ok := parameterTypeForFlag[value]; ok {
+				currentArgument = value
+				currentArgumentType = argumentType
+				if index == len(argv)-1 {
+					setDefaultIfMissing(currentArgument, currentArgumentType)
+				}
+				continue
+			}
+			positionals := parsed["_"].([]string)
+			parsed["_"] = append(positionals, value)
+			positionalsMetadata = append(positionalsMetadata, aliasTaskPositionalMetadata{Value: value, Index: index})
+			continue
+		}
+		if allFlags[value] {
+			setDefaultIfMissing(currentArgument, currentArgumentType)
+			currentArgument = ""
+			currentArgumentType = ""
+			index--
+			continue
+		}
+		key := strings.TrimPrefix(currentArgument, "-")
+		switch currentArgumentType {
+		case "string":
+			parsed[key] = value
+			recordProcessedFlag(currentArgument, index)
+			currentArgument = ""
+			currentArgumentType = ""
+		case "file":
+			if _, err := uuid.Parse(value); err != nil {
+				return command, params, fmt.Errorf("failed to parse alias-expanded parameters for %s: file parameter %s must be an uploaded file UUID", command, key)
+			}
+			parsed[key] = value
+			recordProcessedFlag(currentArgument, index)
+			currentArgument = ""
+			currentArgumentType = ""
+		case "boolean":
+			if strings.EqualFold(value, "false") {
+				parsed[key] = false
+			} else if strings.EqualFold(value, "true") {
+				parsed[key] = true
+			} else {
+				parsed[key] = true
+			}
+			recordProcessedFlag(currentArgument, index)
+			currentArgument = ""
+			currentArgumentType = ""
+		case "number":
+			number, ok := parseNumber(value)
+			if !ok {
+				return command, params, fmt.Errorf("failed to parse alias-expanded parameters for %s: failed to parse number for %s: %s", command, key, value)
+			}
+			parsed[key] = number
+			recordProcessedFlag(currentArgument, index)
+			currentArgument = ""
+			currentArgumentType = ""
+		case "typedArray":
+			parsed[key] = appendInterfaceValue(parsed[key], []interface{}{"", value})
+			recordProcessedFlag(currentArgument, index)
+		case "array":
+			parsed[key] = appendInterfaceValue(parsed[key], value)
+			recordProcessedFlag(currentArgument, index)
+		case "complex":
+			var complexValue interface{}
+			if err := json.Unmarshal([]byte(value), &complexValue); err != nil {
+				parsed[key] = value
+			} else {
+				parsed[key] = complexValue
+			}
+			recordProcessedFlag(currentArgument, index)
+			currentArgument = ""
+			currentArgumentType = ""
+		}
+	}
+	logging.LogDebug("SplitOperatorAliasExpandedTaskLine", "parsed", parsed)
+	groupOptions := []string{}
+	for _, parameter := range commandParameters {
+		groupOptions = appendUnique(groupOptions, parameterGroupName(parameter))
+	}
+	for key := range parsed {
+		if key == "_" {
+			continue
+		}
+		parameterGroups := []string{}
+		foundParameterGroup := false
+		for _, parameter := range commandParameters {
+			if parameter.CliName == key || parameter.DisplayName == key || parameter.Name == key {
+				foundParameterGroup = true
+				parameterGroups = append(parameterGroups, parameterGroupName(parameter))
+			}
+		}
+		intersection := []string{}
+		for _, option := range groupOptions {
+			for _, group := range parameterGroups {
+				if option == group {
+					intersection = appendUnique(intersection, option)
+				}
+			}
+		}
+		if len(intersection) == 0 {
+			if foundParameterGroup {
+				logging.LogError(nil, "invalid parameter groups", "groupOptions", groupOptions, "parameterGroups", parameterGroups)
+				return command, params, fmt.Errorf("failed to parse alias-expanded parameters for %s: two or more specified parameters cannot be used together", command)
+			}
+			continue
+		}
+		groupOptions = intersection
+	}
+	sort.Strings(groupOptions)
+	usedGroupName := ""
+	if len(groupOptions) == 1 {
+		usedGroupName = groupOptions[0]
+	} else if len(groupOptions) > 1 {
+		for _, groupName := range groupOptions {
+			if groupName == "Default" {
+				usedGroupName = "Default"
+				break
+			}
+		}
+		if usedGroupName == "" {
+			logging.LogDebug("SplitOperatorAliasExpandedTaskLine", "no default group found, using first group", "groupOptions", groupOptions)
+			return command, params, fmt.Errorf("failed to parse alias-expanded parameters for %s: parameter group is ambiguous", command)
+		}
+	}
+	groupParameters := []databaseStructs.Commandparameters{}
+	for _, parameter := range commandParameters {
+		if parameterGroupName(parameter) == usedGroupName {
+			groupParameters = append(groupParameters, parameter)
+		}
+	}
+	sort.SliceStable(groupParameters, func(i, j int) bool {
+		if groupParameters[i].UiPosition == groupParameters[j].UiPosition {
+			return groupParameters[i].ID < groupParameters[j].ID
+		}
+		return groupParameters[i].UiPosition < groupParameters[j].UiPosition
+	})
+	unsatisfiedArguments := []databaseStructs.Commandparameters{}
+	for _, parameter := range groupParameters {
+		if _, found := parsed[parameter.CliName]; !found {
+			unsatisfiedArguments = append(unsatisfiedArguments, parameter)
+		}
+	}
+	positionals := parsed["_"].([]string)
+	remainingPositionalsMetadata := positionalsMetadata
+	shiftPositionalMetadata := func() (aliasTaskPositionalMetadata, bool) {
+		if len(remainingPositionalsMetadata) == 0 {
+			return aliasTaskPositionalMetadata{}, false
+		}
+		currentMetadata := remainingPositionalsMetadata[0]
+		remainingPositionalsMetadata = remainingPositionalsMetadata[1:]
+		return currentMetadata, true
+	}
+	for index := 0; index < len(unsatisfiedArguments); index++ {
+		if len(positionals) == 0 {
+			break
+		}
+		temp := positionals[0]
+		positionals = positionals[1:]
+		positionalMetadata, hasPositionalMetadata := shiftPositionalMetadata()
+		parameter := unsatisfiedArguments[index]
+		switch parameter.Type {
+		case COMMAND_PARAMETER_TYPE_CHOOSE_ONE, COMMAND_PARAMETER_TYPE_CHOOSE_ONE_CUSTOM, COMMAND_PARAMETER_TYPE_STRING:
+			parsed[parameter.CliName] = temp
+			if hasPositionalMetadata {
+				recordProcessedParameter(parameter, positionalMetadata.Index)
+			}
+		case COMMAND_PARAMETER_TYPE_NUMBER:
+			number, ok := parseNumber(temp)
+			if !ok {
+				return command, params, fmt.Errorf("failed to parse alias-expanded parameters for %s: failed to parse number for %s: %s", command, parameter.CliName, temp)
+			}
+			parsed[parameter.CliName] = number
+			if hasPositionalMetadata {
+				recordProcessedParameter(parameter, positionalMetadata.Index)
+			}
+		case COMMAND_PARAMETER_TYPE_BOOLEAN:
+			if strings.EqualFold(temp, "false") {
+				parsed[parameter.CliName] = false
+				if hasPositionalMetadata {
+					recordProcessedParameter(parameter, positionalMetadata.Index)
+				}
+			} else if strings.EqualFold(temp, "true") {
+				parsed[parameter.CliName] = true
+				if hasPositionalMetadata {
+					recordProcessedParameter(parameter, positionalMetadata.Index)
+				}
+			} else {
+				return command, params, fmt.Errorf("failed to parse alias-expanded parameters for %s: failed to parse boolean for %s: %s", command, parameter.CliName, temp)
+			}
+		case COMMAND_PARAMETER_TYPE_ARRAY, COMMAND_PARAMETER_TYPE_TYPED_ARRAY, COMMAND_PARAMETER_TYPE_FILE_MULTIPLE, COMMAND_PARAMETER_TYPE_CHOOSE_MULTIPLE:
+			parsed[parameter.CliName] = appendInterfaceValue(parsed[parameter.CliName], temp)
+			if hasPositionalMetadata {
+				recordProcessedParameter(parameter, positionalMetadata.Index)
+			}
+			index--
+		default:
+			parsed[parameter.CliName] = temp
+			if hasPositionalMetadata {
+				recordProcessedParameter(parameter, positionalMetadata.Index)
+			}
+		}
+	}
+	parsed["_"] = positionals
+	positionalsMetadata = remainingPositionalsMetadata
+	coalesceTrailingPositionals := func() {
+		if len(positionals) == 0 {
+			return
+		}
+		if lastProcessedParameter == nil || lastProcessedValueIndex < 0 {
+			return
+		}
+		if len(positionalsMetadata) != len(positionals) {
+			return
+		}
+		for _, positionalMetadata := range positionalsMetadata {
+			if positionalMetadata.Index <= lastProcessedValueIndex {
+				return
+			}
+		}
+		coalesceParameter := *lastProcessedParameter
+		for _, groupParameter := range groupParameters {
+			if groupParameter.CliName == lastProcessedParameter.CliName {
+				coalesceParameter = groupParameter
+				break
+			}
+		}
+		switch coalesceParameter.Type {
+		case COMMAND_PARAMETER_TYPE_STRING:
+			existingValue, _ := parsed[coalesceParameter.CliName].(string)
+			values := make([]string, 0, len(positionals)+1)
+			if existingValue != "" {
+				values = append(values, existingValue)
+			}
+			values = append(values, positionals...)
+			parsed[coalesceParameter.CliName] = strings.Join(values, " ")
+		case COMMAND_PARAMETER_TYPE_ARRAY, COMMAND_PARAMETER_TYPE_CHOOSE_MULTIPLE, COMMAND_PARAMETER_TYPE_FILE_MULTIPLE:
+			for _, positional := range positionals {
+				parsed[coalesceParameter.CliName] = appendInterfaceValue(parsed[coalesceParameter.CliName], positional)
+			}
+		case COMMAND_PARAMETER_TYPE_TYPED_ARRAY:
+			for _, positional := range positionals {
+				parsed[coalesceParameter.CliName] = appendInterfaceValue(parsed[coalesceParameter.CliName], []interface{}{"", positional})
+			}
+		default:
+			return
+		}
+		positionals = []string{}
+		positionalsMetadata = []aliasTaskPositionalMetadata{}
+		parsed["_"] = positionals
+	}
+	coalesceTrailingPositionals()
+
+	if leftOverPositionals, ok := parsed["_"].([]string); ok && len(leftOverPositionals) > 0 {
+		return command, params, fmt.Errorf("failed to parse alias-expanded parameters for %s: too many positional arguments given; quote arguments containing spaces", command)
+	}
+	delete(parsed, "_")
+	marshaledParams, err := json.Marshal(parsed)
+	if err != nil {
+		logging.LogError(err, "Failed to marshal callback tasking alias expanded parameters")
+		return command, params, fmt.Errorf("failed to parse alias-expanded parameters for %s: %w", command, err)
+	}
+	return command, string(marshaledParams), nil
 }
 
 func associateUploadedFilesWithTask(task *databaseStructs.Task, files []string) {
@@ -728,12 +1343,12 @@ func addTaskToDatabase(task *databaseStructs.Task) error {
 		original_params,display_params,status,tasking_location,parameter_group_name,
 		parent_task_id,subtask_callback_function,group_callback_function,subtask_group_name,operation_id,
 	    is_interactive_task, interactive_task_type, eventstepinstance_id, status_timestamp_submitted,
-	 command_payload_type, mythic_parsed_params, apitokens_id)
+	 command_payload_type, mythic_parsed_params, apitokens_id, alias_resolution)
 		VALUES (:agent_task_id, :command_name, :callback_id, :operator_id, :command_id, :token_id, :params,
 			:original_params, :display_params, :status, :tasking_location, :parameter_group_name,
 			:parent_task_id, :subtask_callback_function, :group_callback_function, :subtask_group_name, :operation_id,
 		        :is_interactive_task, :interactive_task_type, :eventstepinstance_id, :status_timestamp_submitted,
-		        :command_payload_type, :mythic_parsed_params, :apitokens_id)
+		        :command_payload_type, :mythic_parsed_params, :apitokens_id, :alias_resolution)
 			RETURNING id, display_id`)
 	if err != nil {
 		logging.LogError(err, "Failed to make a prepared statement for new task creation")
@@ -770,14 +1385,15 @@ func handleClearCommand(createTaskInput CreateTaskInput, callback databaseStruct
 	task.StatusTimestampProcessing.Time = time.Now().UTC()
 	task.StatusTimestampProcessed.Valid = true
 	task.StatusTimestampProcessed.Time = time.Now().UTC()
-	if err := addTaskToDatabase(&task); err != nil {
+	err := addTaskToDatabase(&task)
+	if err != nil {
 		logging.LogError(err, "Failed to add task to database")
 		output.Error = err.Error()
 		return output
 	}
-	_, err := database.DB.NamedExec(`UPDATE task SET 
-                status_timestamp_processing=:status_timestamp_processing, 
-                status_timestamp_processed=:status_timestamp_processed 
+	_, err = database.DB.NamedExec(`UPDATE task SET
+                status_timestamp_processing=:status_timestamp_processing,
+                status_timestamp_processed=:status_timestamp_processed
             where id=:id`, task)
 	if err != nil {
 		logging.LogError(err, "Failed to update task in database")

@@ -402,6 +402,42 @@ actions:
       - role: operation_admin
       - role: mythic_admin
     comment: Create a new operator account
+  - name: operatorAliasCreate
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/operator_alias_create_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: developer
+      - role: mythic_admin
+      - role: operation_admin
+      - role: operator
+      - role: spectator
+    comment: Create an operator-owned slash alias
+  - name: operatorAliasDelete
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/operator_alias_delete_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: developer
+      - role: mythic_admin
+      - role: operation_admin
+      - role: operator
+      - role: spectator
+    comment: Delete an operator-owned slash alias
+  - name: operatorAliasUpdate
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/operator_alias_update_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: developer
+      - role: mythic_admin
+      - role: operation_admin
+      - role: operator
+      - role: spectator
+    comment: Update an operator-owned slash alias
   - name: createPayload
     definition:
       kind: synchronous
@@ -1167,6 +1203,7 @@ custom_types:
     - name: ToggleProxyOutput
     - name: toggleProxyOutput
     - name: updateOperatorStatusOutput
+    - name: OperatorAliasActionOutput
     - name: updateGlobalSettingsOutput
     - name: globalSettingsOutput
     - name: exportCallbackConfigOutput

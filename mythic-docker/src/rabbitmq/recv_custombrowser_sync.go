@@ -52,6 +52,7 @@ type CustomBrowserExtraTableTaskingInput struct {
 }
 type CustomBrowser struct {
 	Name                   string                                `json:"name"`
+	DisplayName            string                                `json:"display_name"`
 	Type                   string                                `json:"type"`
 	Separator              string                                `json:"separator"`
 	ExportFunction         string                                `json:"export_function"`
@@ -126,6 +127,7 @@ func customBrowserSync(in CustomBrowserSyncMessage) error {
 		customSyncBrowser.SemVer = in.CustomBrowser.SemVer
 		customSyncBrowser.Type = in.CustomBrowser.Type
 		customSyncBrowser.Separator = in.CustomBrowser.Separator
+		customSyncBrowser.DisplayName = in.CustomBrowser.DisplayName
 		if !slices.Contains(validCustomBrowserTypes, in.CustomBrowser.Type) {
 			logging.LogError(nil, "Bad type in custom browser", "type", in.CustomBrowser.Type)
 			return errors.New("Bad \"type\" in custom browser")
@@ -139,9 +141,9 @@ func customBrowserSync(in CustomBrowserSyncMessage) error {
 		customSyncBrowser.RowActions = GetMythicJSONArrayFromStruct(in.CustomBrowser.RowActions)
 		statement, err := database.DB.PrepareNamed(`INSERT INTO custombrowser 
 			("name",author,container_running,description, deleted, semver, "type", "columns", default_visible_columns,
-			 export_function, extra_table_inputs, indicate_partial_listing, show_current_path, row_actions, separator) 
+			 export_function, extra_table_inputs, indicate_partial_listing, show_current_path, row_actions, separator, display_name) 
 			VALUES (:name, :author, :container_running, :description, :deleted, :semver, :type, :columns, :default_visible_columns,
-			        :export_function, :extra_table_inputs, :indicate_partial_listing, :show_current_path, :row_actions, :separator) 
+			        :export_function, :extra_table_inputs, :indicate_partial_listing, :show_current_path, :row_actions, :separator, :display_name) 
 			RETURNING id`,
 		)
 		if err != nil {
@@ -164,6 +166,7 @@ func customBrowserSync(in CustomBrowserSyncMessage) error {
 		customSyncBrowser.SemVer = in.CustomBrowser.SemVer
 		customSyncBrowser.Type = in.CustomBrowser.Type
 		customSyncBrowser.Separator = in.CustomBrowser.Separator
+		customSyncBrowser.DisplayName = in.CustomBrowser.DisplayName
 		if !slices.Contains(validCustomBrowserTypes, in.CustomBrowser.Type) {
 			logging.LogError(nil, "Bad type in custom browser", "type", in.CustomBrowser.Type)
 			return errors.New("Bad \"type\" in custom browser")
@@ -179,7 +182,7 @@ func customBrowserSync(in CustomBrowserSyncMessage) error {
 			author=:author, container_running=:container_running, description=:description,deleted=:deleted, semver=:semver,
 			"type"=:type, columns=:columns, default_visible_columns=:default_visible_columns, export_function=:export_function,
 			extra_table_inputs=:extra_table_inputs, indicate_partial_listing=:indicate_partial_listing,
-			show_current_path=:show_current_path, row_actions=:row_actions, separator=:separator
+			show_current_path=:show_current_path, row_actions=:row_actions, separator=:separator, display_name=:display_name
 			WHERE id=:id`, customSyncBrowser,
 		)
 		if err != nil {

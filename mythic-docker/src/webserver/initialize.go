@@ -225,6 +225,21 @@ func setRoutes(r *gin.Engine) {
 					mythicjwt.SCOPE_OPERATOR_WRITE,
 				}),
 				webcontroller.UpdatePreferencesWebhook)
+			protected.POST("/operator_alias_create_webhook",
+				authentication.TokenScopeMiddleware([]string{
+					mythicjwt.SCOPE_OPERATOR_WRITE,
+				}),
+				webcontroller.OperatorAliasCreateWebhook)
+			protected.POST("/operator_alias_update_webhook",
+				authentication.TokenScopeMiddleware([]string{
+					mythicjwt.SCOPE_OPERATOR_WRITE,
+				}),
+				webcontroller.OperatorAliasUpdateWebhook)
+			protected.POST("/operator_alias_delete_webhook",
+				authentication.TokenScopeMiddleware([]string{
+					mythicjwt.SCOPE_OPERATOR_WRITE,
+				}),
+				webcontroller.OperatorAliasDeleteWebhook)
 			// operation
 			protected.POST("/create_operation_webhook",
 				authentication.TokenScopeMiddleware([]string{

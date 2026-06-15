@@ -69,6 +69,7 @@ query getCustomBrowsersQuery{
     custombrowser(where: {deleted: {_eq: false}}, order_by: {name: asc}){
         id
         name
+        display_name
         type
         separator
         columns
@@ -447,7 +448,7 @@ function CallbacksTablePreMemo(props){
         let customBrowsers = await getCustomBrowsersForContextMenu();
         customBrowsers = customBrowsers.map(b => {
             return {
-                name: b.name,
+                name: b.display_name === "" ? b.name : b.display_name,
                 icon: callbackMenuIcon(b.type === 'file' ? <FontAwesomeIcon icon={faFolderOpen} /> : <AccountTreeIcon fontSize="small" />),
                 className: "mythic-callback-action-menu-item",
                 click: ({event}) => {

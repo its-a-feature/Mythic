@@ -344,9 +344,22 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
                     parameter_group_name: cmdGroupNames[0],
                     payload_type: cmd.payloadtype?.name,
                 });
-            }            
+            }
         }
     }
+    const onSubmitAliasCommandLine = (message, alias) => {
+        const trimmed = message.trim();
+        const command = trimmed.split(/\s+/)[0];
+        const params = trimmed.length > command.length ? trimmed.slice(command.length).trim() : "";
+        onCreateTask({
+            callback_display_id: tabInfo.displayID,
+            command,
+            params,
+            parameter_group_name: "Default",
+            tasking_location: "alias",
+            payload_type: alias?.payloadtype?.name || tabInfo.payloadtype,
+        });
+    };
     const submitParametersDialog = (cmd, parameters, files, selectedParameterGroup, payload_type) => {
         setOpenParametersDialog(false);
         onCreateTask({callback_display_id: tabInfo.displayID,
@@ -410,6 +423,7 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
             <CallbacksTabsTaskingInput filterTasks={true} me={me}
                                        onSubmitFilter={onSubmitFilter}
                                        onSubmitCommandLine={onSubmitCommandLine}
+                                       onSubmitAliasCommandLine={onSubmitAliasCommandLine}
                                        changeSelectedToken={changeSelectedToken}
                                        filterOptions={filterOptions}
                                        focus={index === value}

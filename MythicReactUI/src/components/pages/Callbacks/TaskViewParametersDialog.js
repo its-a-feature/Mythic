@@ -20,6 +20,7 @@ query getParametersQuery ($task_id: Int!) {
     status_timestamp_preprocessing
     status_timestamp_processing
     status_timestamp_processed
+    alias_resolution
     command {
       cmd
       id
@@ -38,6 +39,9 @@ export function TaskViewParametersDialog(props) {
         variables: {task_id: props.task_id},
         onCompleted: data => {
             let workingComment = "Original Parameters:\n" + data.task_by_pk.original_params;
+            if (data.task_by_pk.alias_resolution !== "") {
+                workingComment += "\n\nAlias resolution: \n" + data.task_by_pk.alias_resolution;
+            }
             workingComment += "\n\nMythic Parsed Parameters: \n\tUse this for eventing (create_task->action_data->params_dictionary) and scripting (mythic.issue_task->parameters)\n"
             workingComment += data.task_by_pk.mythic_parsed_params;
             workingComment += "\n\nAgent Parameters:\n" + data.task_by_pk.params;

@@ -185,6 +185,25 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback}) {
             }
         }
     }
+    const onSubmitAliasCommandLine = (message) => {
+        if(selectedData.current.length === 0){
+            snackActions.warning("No callbacks selected");
+            return;
+        }
+        const trimmed = message.trim();
+        const command = trimmed.split(/\s+/)[0];
+        const params = trimmed.length > command.length ? trimmed.slice(command.length).trim() : "";
+        finalTaskedParameters.current = params;
+        taskingData.current = {
+            cmd: command,
+            callback_id: callback.id,
+            openDialog: false,
+            parameters: params,
+            tasking_location: "alias",
+            dontShowSuccessDialog: false,
+        };
+        submitTasking();
+    };
     const changeSelectedToken = (token) => {
         if(token === "Default Token"){
             setSelectedToken("Default Token");
@@ -210,7 +229,7 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback}) {
               tableLabel={`Task multiple ${callback.payload.payloadtype.name} callbacks`}
           />
           <Grid size={12}>
-              <CallbacksTabsTaskingInput filterTasks={false} onSubmitFilter={()=>{}} onSubmitCommandLine={onSubmitCommandLine}
+              <CallbacksTabsTaskingInput filterTasks={false} onSubmitFilter={()=>{}} onSubmitCommandLine={onSubmitCommandLine} onSubmitAliasCommandLine={onSubmitAliasCommandLine}
                                          changeSelectedToken={changeSelectedToken}
                                          payloadtype_name={callback.payload.payloadtype.name}
                                          hide_context={true}

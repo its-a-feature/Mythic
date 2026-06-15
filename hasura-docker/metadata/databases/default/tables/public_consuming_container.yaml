@@ -30,6 +30,13 @@ array_relationships:
         table:
           name: eventgroupconsumingcontainer
           schema: public
+  - name: operator_aliases
+    using:
+      foreign_key_constraint_on:
+        column: consuming_container_id
+        table:
+          name: operator_alias
+          schema: public
 select_permissions:
   - role: mythic_admin
     permission:
