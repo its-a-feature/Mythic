@@ -426,6 +426,30 @@ actions:
       - role: operator
       - role: spectator
     comment: Delete an operator-owned slash alias
+  - name: exportOperatorAliases
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/operator_alias_export_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: developer
+      - role: mythic_admin
+      - role: operation_admin
+      - role: operator
+      - role: spectator
+    comment: Export operator-owned slash aliases using portable scope names
+  - name: importOperatorAliases
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/operator_alias_import_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: developer
+      - role: mythic_admin
+      - role: operation_admin
+      - role: operator
+      - role: spectator
+    comment: Import operator-owned slash aliases from a portable JSON config
   - name: operatorAliasUpdate
     definition:
       kind: synchronous
@@ -1204,6 +1228,8 @@ custom_types:
     - name: toggleProxyOutput
     - name: updateOperatorStatusOutput
     - name: OperatorAliasActionOutput
+    - name: OperatorAliasExportOutput
+    - name: OperatorAliasImportOutput
     - name: updateGlobalSettingsOutput
     - name: globalSettingsOutput
     - name: exportCallbackConfigOutput

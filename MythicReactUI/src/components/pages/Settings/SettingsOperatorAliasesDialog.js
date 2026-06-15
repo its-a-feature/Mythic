@@ -1,5 +1,5 @@
 import React from 'react';
-import {gql, useMutation, useQuery} from '@apollo/client';
+import {gql, useLazyQuery, useMutation, useQuery} from '@apollo/client';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
@@ -23,13 +23,16 @@ import Typography from '@mui/material/Typography';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import {snackActions} from '../../utilities/Snackbar';
 import {MythicStyledTooltip} from '../../MythicComponents/MythicStyledTooltip';
 import {MythicEmptyState, MythicLoadingState} from '../../MythicComponents/MythicStateDisplay';
+import {downloadFileFromMemory} from '../../utilities/Clipboard';
 
 const OPERATOR_ALIAS_QUERY = gql`
 query OperatorAliasSettingsQuery($operator_id: Int!) {
-  operator_alias(where: {operator_id: {_eq: $operator_id}}, order_by: [{consuming_container_id: asc_nulls_last}, {payloadtype_id: asc_nulls_last}, {slash_command: asc}]) {
+  operator_alias(where: {operator_id: {_eq: $operator_id}}, order_by: [{consuming_container_id: asc_nulls_last}, {payloadtype_id: asc_nulls_last}, {slash_command: asc}, {active: desc}, {actual_command: asc}]) {
     id
     operator_id
     slash_command
@@ -54,6 +57,31 @@ query OperatorAliasSettingsQuery($operator_id: Int!) {
     id
     name
     container_running
+  }
+}
+`;
+
+const EXPORT_OPERATOR_ALIASES = gql`
+query ExportOperatorAliases {
+  exportOperatorAliases {
+    status
+    error
+    config
+  }
+}
+`;
+
+const IMPORT_OPERATOR_ALIASES = gql`
+mutation ImportOperatorAliases($config: String!) {
+  importOperatorAliases(config: $config) {
+    status
+    error
+    imported_count
+    skipped_count
+    skipped_duplicate_count
+    skipped_missing_count
+    skipped_invalid_count
+    skipped
   }
 }
 `;
@@ -92,6 +120,7 @@ const normalizeSlashCommand = (value) => value.trim().replace(/^\/+/, '').toLowe
 
 export function SettingsOperatorAliasesDialog(props) {
     const operatorID = props.id || props.me?.user?.id;
+    const fileInputRef = React.useRef(null);
     const [editingID, setEditingID] = React.useState(null);
     const [slashCommand, setSlashCommand] = React.useState("");
     const [actualCommand, setActualCommand] = React.useState("");
@@ -107,6 +136,8 @@ export function SettingsOperatorAliasesDialog(props) {
     const [createAlias] = useMutation(CREATE_OPERATOR_ALIAS);
     const [updateAlias] = useMutation(UPDATE_OPERATOR_ALIAS);
     const [deleteAlias] = useMutation(DELETE_OPERATOR_ALIAS);
+    const [exportAliases] = useLazyQuery(EXPORT_OPERATOR_ALIASES, {fetchPolicy: "no-cache"});
+    const [importAliases] = useMutation(IMPORT_OPERATOR_ALIASES);
     const aliases = React.useMemo(() => data?.operator_alias || [], [data]);
     const payloadTypes = React.useMemo(() => data?.payloadtype || [], [data]);
     const chatContainers = React.useMemo(() => data?.consuming_container || [], [data]);
@@ -189,13 +220,81 @@ export function SettingsOperatorAliasesDialog(props) {
             }
         }).catch((error) => snackActions.error(error.message));
     };
+    const toggleAliasActive = (alias, nextActive) => {
+        updateAlias({variables: {
+            id: alias.id,
+            slash_command: alias.slash_command,
+            actual_command: alias.actual_command,
+            payloadtype_id: alias.payloadtype_id || null,
+            consuming_container_id: alias.consuming_container_id || null,
+            active: nextActive,
+        }}).then(({data: mutationData}) => {
+            const result = mutationData?.operatorAliasUpdate;
+            if(result?.status === "success"){
+                snackActions.success(nextActive ? "Alias activated" : "Alias deactivated");
+                if(editingID === alias.id){
+                    setActive(nextActive);
+                }
+                refetch();
+            } else {
+                snackActions.error(result?.error || "Failed to update alias");
+            }
+        }).catch((error) => snackActions.error(error.message));
+    };
+    const exportOperatorAliases = () => {
+        exportAliases().then(({data: exportData}) => {
+            const result = exportData?.exportOperatorAliases;
+            if(result?.status === "success"){
+                downloadFileFromMemory(result.config || JSON.stringify({version: 1, aliases: []}, null, 2), "operator_aliases.json");
+            } else {
+                snackActions.error(result?.error || "Failed to export aliases");
+            }
+        }).catch((error) => snackActions.error(error.message));
+    };
+    const importOperatorAliases = (evt) => {
+        const file = evt.target.files?.[0];
+        if(!file){
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            importAliases({variables: {config: String(e.target.result)}}).then(({data: importData}) => {
+                const result = importData?.importOperatorAliases;
+                if(result?.status === "success"){
+                    snackActions.success(`Imported ${result.imported_count || 0} aliases; skipped ${result.skipped_count || 0}`);
+                    refetch();
+                } else {
+                    snackActions.error(result?.error || "Failed to import aliases");
+                }
+            }).catch((error) => snackActions.error(error.message));
+        };
+        reader.readAsText(file);
+        evt.target.value = "";
+    };
     const formDisabled = normalizeSlashCommand(slashCommand) === "" ||
         actualCommand.trim() === "" ||
         (scopeType === "chat" && containerID === "") ||
         (scopeType === "callback" && payloadTypeID === "");
     return (
         <>
-            <DialogTitle>Aliases / Slash Commands</DialogTitle>
+            <DialogTitle>
+                <Box sx={{display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1}}>
+                    <Typography component="div" variant="h6">Aliases / Slash Commands</Typography>
+                    <Box sx={{display: "flex", gap: 1}}>
+                        <MythicStyledTooltip title="Export aliases">
+                            <Button size="small" variant="outlined" startIcon={<CloudDownloadIcon fontSize="small" />} onClick={exportOperatorAliases}>
+                                Export
+                            </Button>
+                        </MythicStyledTooltip>
+                        <MythicStyledTooltip title="Import aliases">
+                            <Button size="small" variant="outlined" startIcon={<CloudUploadIcon fontSize="small" />} onClick={() => fileInputRef.current?.click()}>
+                                Import
+                                <input ref={fileInputRef} onChange={importOperatorAliases} type="file" accept="application/json,.json" hidden />
+                            </Button>
+                        </MythicStyledTooltip>
+                    </Box>
+                </Box>
+            </DialogTitle>
             <DialogContent dividers sx={{display: "flex", flexDirection: "column", gap: 2}}>
                 <Box sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "1fr 1fr"}, gap: 1.5}}>
                     <TextField
@@ -279,7 +378,15 @@ export function SettingsOperatorAliasesDialog(props) {
                                     <TableCell>
                                         {alias.consuming_container_id ? `AI: ${alias.consuming_container?.name || alias.consuming_container_id}` : `Callback: ${alias.payloadtype?.name || alias.payloadtype_id}`}
                                     </TableCell>
-                                    <TableCell>{alias.active ? "Active" : "Inactive"}</TableCell>
+                                    <TableCell>
+                                        <Box sx={{display: "flex", alignItems: "center", gap: 1}}>
+                                            <Switch
+                                                checked={Boolean(alias.active)}
+                                                onChange={(e) => toggleAliasActive(alias, e.target.checked)}
+                                                inputProps={{'aria-label': 'Toggle alias active state'}}
+                                            />
+                                        </Box>
+                                    </TableCell>
                                     <TableCell align="right">
                                         <MythicStyledTooltip title="Edit alias">
                                             <IconButton size="small" onClick={() => editAlias(alias)}>

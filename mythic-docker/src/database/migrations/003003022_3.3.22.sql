@@ -18,9 +18,17 @@ create table if not exists "public"."operator_alias" (
 
 create unique index if not exists operator_alias_operator_container_command_unique
 on "public"."operator_alias" using btree (operator_id, consuming_container_id, slash_command)
-where consuming_container_id is not null;
+where consuming_container_id is not null and active=true;
 
 create unique index if not exists operator_alias_operator_payloadtype_command_unique
+on "public"."operator_alias" using btree (operator_id, payloadtype_id, slash_command)
+where payloadtype_id is not null and active=true;
+
+create index if not exists operator_alias_operator_container_command_idx
+on "public"."operator_alias" using btree (operator_id, consuming_container_id, slash_command)
+where consuming_container_id is not null;
+
+create index if not exists operator_alias_operator_payloadtype_command_idx
 on "public"."operator_alias" using btree (operator_id, payloadtype_id, slash_command)
 where payloadtype_id is not null;
 
@@ -47,6 +55,8 @@ drop trigger if exists set_public_operator_alias_updated_at on "public"."operato
 drop index if exists "public"."operator_alias_payloadtype_id_idx";
 drop index if exists "public"."operator_alias_consuming_container_id_idx";
 drop index if exists "public"."operator_alias_operator_id_idx";
+drop index if exists "public"."operator_alias_operator_payloadtype_command_idx";
+drop index if exists "public"."operator_alias_operator_container_command_idx";
 drop index if exists "public"."operator_alias_operator_payloadtype_command_unique";
 drop index if exists "public"."operator_alias_operator_container_command_unique";
 drop table if exists "public"."operator_alias";
