@@ -348,6 +348,19 @@ export const CallbacksTabsTaskingConsolePanel = ({tabInfo, index, value, onClose
             }
         }
     }
+    const onSubmitAliasCommandLine = (message, alias) => {
+        const trimmed = message.trim();
+        const command = trimmed.split(/\s+/)[0];
+        const params = trimmed.length > command.length ? trimmed.slice(command.length).trim() : "";
+        onCreateTask({
+            callback_display_id: tabInfo.displayID,
+            command,
+            params,
+            parameter_group_name: "Default",
+            tasking_location: "alias",
+            payload_type: alias?.payloadtype?.name || tabInfo.payloadtype,
+        });
+    };
     const submitParametersDialog = (cmd, parameters, files, selectedParameterGroup, payload_type) => {
         setOpenParametersDialog(false);
         onCreateTask({callback_display_id: tabInfo.displayID,
@@ -403,7 +416,7 @@ export const CallbacksTabsTaskingConsolePanel = ({tabInfo, index, value, onClose
                 <div ref={messagesEndRef}/>
             </div>
 
-            <CallbacksTabsTaskingInput filterTasks={true} me={me} onSubmitFilter={onSubmitFilter} onSubmitCommandLine={onSubmitCommandLine} changeSelectedToken={changeSelectedToken}
+            <CallbacksTabsTaskingInput filterTasks={true} me={me} onSubmitFilter={onSubmitFilter} onSubmitCommandLine={onSubmitCommandLine} onSubmitAliasCommandLine={onSubmitAliasCommandLine} changeSelectedToken={changeSelectedToken}
                                        filterOptions={filterOptions} callback_id={tabInfo.callbackID}
                                        callback_display_id={tabInfo.displayID}
                                        payloadtype_name={tabInfo.payloadtype} focus={index === value}

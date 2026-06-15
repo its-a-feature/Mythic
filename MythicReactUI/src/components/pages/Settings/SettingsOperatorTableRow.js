@@ -35,6 +35,7 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import {gql, useMutation} from '@apollo/client';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import TerminalIcon from '@mui/icons-material/Terminal';
 import {copyStringToClipboard} from "../../utilities/Clipboard";
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 import {MythicTableEmptyState, MythicTableErrorState, MythicTableLoadingState} from "../../MythicComponents/MythicStateDisplay";
@@ -49,6 +50,7 @@ import {
     MythicFormNote
 } from "../../MythicComponents/MythicDialogLayout";
 import {MythicStateChip} from "../../MythicComponents/MythicStateChip";
+import {SettingsOperatorAliasesDialog} from "./SettingsOperatorAliasesDialog";
 
 const createAPITokenMutation = gql`
 mutation createAPITokenMutation($operator_id: Int, $name: String, $scopes: [String!]){
@@ -125,6 +127,7 @@ export function SettingsOperatorTableRow(props){
     const [newAPITokenValue, setNewAPITokenValue] = React.useState("");
     const [openExperimentalUIConfig, setOpenExperimentalUIConfig] = React.useState(false);
     const [openSecretsConfig, setOpenSecretsConfig] = React.useState(false);
+    const [openAliasesConfig, setOpenAliasesConfig] = React.useState(false);
     const [showDeleted, setShowDeleted] = React.useState(false);
     const [apiTokens, setAPITokens] = React.useState([]);
     const [apiTokensLoading, setAPITokensLoading] = React.useState(false);
@@ -333,6 +336,18 @@ export function SettingsOperatorTableRow(props){
                           {openSecretsConfig &&
                               <MythicDialog open={openSecretsConfig} onClose={()=>{setOpenSecretsConfig(false)}} maxWidth={"xl"} fullWidth
                                             innerDialog={<SettingsOperatorSecretsConfigDialog  onClose={()=>{setOpenSecretsConfig(false);}} {...props} />}
+                              />
+                          }
+                          <MythicStyledTooltip title={"Aliases / Slash Commands"} >
+                              <IconButton size="medium" onClick={()=>{setOpenAliasesConfig(true);}}
+                                          color="info" variant='contained'
+                                          disabled={props.account_type === "bot"}>
+                                  <TerminalIcon />
+                              </IconButton>
+                          </MythicStyledTooltip>
+                          {openAliasesConfig &&
+                              <MythicDialog open={openAliasesConfig} onClose={()=>{setOpenAliasesConfig(false)}} maxWidth={"lg"} fullWidth
+                                            innerDialog={<SettingsOperatorAliasesDialog  onClose={()=>{setOpenAliasesConfig(false);}} {...props} />}
                               />
                           }
                         <MythicStyledTooltip title={"Experimental UI Settings"} >

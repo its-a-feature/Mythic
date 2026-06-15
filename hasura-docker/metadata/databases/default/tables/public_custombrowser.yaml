@@ -21,6 +21,7 @@ select_permissions:
         - semver
         - separator
         - type
+        - display_name
       filter: {}
     comment: ""
   - role: operation_admin
@@ -42,6 +43,7 @@ select_permissions:
         - semver
         - separator
         - type
+        - display_name
       filter: {}
     comment: ""
   - role: operator
@@ -63,6 +65,7 @@ select_permissions:
         - semver
         - separator
         - type
+        - display_name
       filter: {}
     comment: ""
   - role: spectator
@@ -84,6 +87,7 @@ select_permissions:
         - semver
         - separator
         - type
+        - display_name
       filter: {}
     comment: ""
 update_permissions:

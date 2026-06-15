@@ -17,6 +17,7 @@ import (
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/rabbitmq"
+	"github.com/mitchellh/mapstructure"
 )
 
 const (
@@ -35,6 +36,9 @@ type aiChatRequestOptions struct {
 	RetryOfID              *int
 	RequestMessageMetadata map[string]interface{}
 	ConfirmedToolCall      map[string]interface{}
+	SlashCommand           *rabbitmq.ChatSlashCommandInvocation
+	AliasResolution        *rabbitmq.OperatorAliasResolution
+	SlashMetadata          map[string]interface{}
 }
 
 type ChatActionResponse struct {
@@ -248,16 +252,6 @@ func createAIChatMessage(c *gin.Context, operatorOperation *databaseStructs.Oper
 }
 
 func createAIChatMessageWithOptions(c *gin.Context, operatorOperation *databaseStructs.Operatoroperation, channel databaseStructs.ChatChannel, message string, options aiChatRequestOptions) {
-	container, err := getChatContainer(int(channel.ChatContainerID.Int64))
-	if err != nil {
-		logging.LogError(err, "Failed to find AI chat container")
-		chatRespondError(c, "failed to find AI chat container")
-		return
-	}
-	if !container.ContainerRunning {
-		chatRespondError(c, fmt.Sprintf("chat container %s is not running", container.Name))
-		return
-	}
 	activeRequestID, err := getActiveAIChatRequest(operatorOperation.CurrentOperation.ID, channel.ID)
 	if err != nil {
 		logging.LogError(err, "Failed to check active AI chat request")
@@ -268,6 +262,30 @@ func createAIChatMessageWithOptions(c *gin.Context, operatorOperation *databaseS
 		chatRespondError(c, fmt.Sprintf("AI chat request %d is still in progress; wait for it to finish or cancel it before sending another prompt", activeRequestID))
 		return
 	}
+	container, err := getChatContainer(int(channel.ChatContainerID.Int64))
+	if err != nil {
+		logging.LogError(err, "Failed to find AI chat container")
+		chatRespondError(c, "failed to find AI chat container")
+		return
+	}
+	if !container.ContainerRunning {
+		chatRespondError(c, fmt.Sprintf("chat container %s is not running", container.Name))
+		return
+	}
+	finalPrompt, slashMetadata, slashCommand, aliasResolution, err := processAIChatSlashInput(
+		operatorOperation.CurrentOperator.ID,
+		channel,
+		container,
+		message,
+	)
+	if err != nil {
+		chatRespondError(c, err.Error())
+		return
+	}
+	options.RequestMessageMetadata = mergeChatMetadata(options.RequestMessageMetadata, slashMetadata)
+	options.SlashCommand = slashCommand
+	options.AliasResolution = aliasResolution
+	options.SlashMetadata = slashMetadata
 	chatAuthContext, err := chatChannelAuthContext(channel)
 	if err != nil {
 		chatRespondError(c, err.Error())
@@ -281,7 +299,7 @@ func createAIChatMessageWithOptions(c *gin.Context, operatorOperation *databaseS
 		return
 	}
 	var responseMessageID int
-	if err = database.DB.Get(&responseMessageID, `INSERT INTO chat_message
+	err = database.DB.Get(&responseMessageID, `INSERT INTO chat_message
 		(operation_id, channel_id, author_type, chat_container_id, sender_display_name, status, metadata)
 		VALUES ($1, $2, 'ai', $3, $4, 'pending', $5::jsonb)
 		RETURNING id`,
@@ -290,7 +308,8 @@ func createAIChatMessageWithOptions(c *gin.Context, operatorOperation *databaseS
 		container.ID,
 		container.Name,
 		rabbitmq.GetMythicJSONTextFromStruct(map[string]interface{}{"model": channel.ChatModel}).String(),
-	); err != nil {
+	)
+	if err != nil {
 		logging.LogError(err, "Failed to create AI response placeholder")
 		chatRespondError(c, err.Error())
 		return
@@ -300,7 +319,7 @@ func createAIChatMessageWithOptions(c *gin.Context, operatorOperation *databaseS
 		retryOf = *options.RetryOfID
 	}
 	var requestID int
-	if err = database.DB.Get(&requestID, `INSERT INTO chat_request
+	err = database.DB.Get(&requestID, `INSERT INTO chat_request
 		(operation_id, channel_id, request_message_id, response_message_id, chat_container_id,
 		 model, status, context_snapshot, retry_of_id, created_by)
 		VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7::jsonb, $8, $9)
@@ -314,7 +333,8 @@ func createAIChatMessageWithOptions(c *gin.Context, operatorOperation *databaseS
 		rabbitmq.GetMythicJSONTextFromStruct(map[string]interface{}{}).String(),
 		retryOf,
 		operatorOperation.CurrentOperator.ID,
-	); err != nil {
+	)
+	if err != nil {
 		logging.LogError(err, "Failed to create AI chat request")
 		chatRespondError(c, err.Error())
 		return
@@ -328,8 +348,11 @@ func createAIChatMessageWithOptions(c *gin.Context, operatorOperation *databaseS
 		requestID,
 		requestMessageID,
 		responseMessageID,
-		message,
+		finalPrompt,
 		retryOf,
+		options.SlashCommand,
+		options.AliasResolution,
+		options.SlashMetadata,
 		options.ConfirmedToolCall,
 		chatAuthContext,
 	)
@@ -354,6 +377,9 @@ func dispatchAIChatRequest(
 	responseMessageID int,
 	prompt string,
 	retryOf interface{},
+	slashCommand *rabbitmq.ChatSlashCommandInvocation,
+	aliasResolution *rabbitmq.OperatorAliasResolution,
+	slashMetadata map[string]interface{},
 	confirmedToolCall map[string]interface{},
 	chatAuthContext rabbitmq.RabbitMQAuthContext,
 ) {
@@ -368,7 +394,7 @@ func dispatchAIChatRequest(
 	for i := range contextMessages {
 		contextIDs[i] = contextMessages[i].ID
 	}
-	contextSnapshot := rabbitmq.GetMythicJSONTextFromStruct(map[string]interface{}{
+	contextSnapshotMap := map[string]interface{}{
 		"context_message_ids":   contextIDs,
 		"request_message_id":    requestMessageID,
 		"response_message_id":   responseMessageID,
@@ -376,7 +402,18 @@ func dispatchAIChatRequest(
 		"confirmed_tool_call":   confirmedToolCall,
 		"context_message_limit": chatContextMessageLimit,
 		"config":                chatConfig,
-	})
+		"final_prompt":          prompt,
+	}
+	if slashCommand != nil {
+		contextSnapshotMap["slash_command"] = slashCommand
+	}
+	if aliasResolution != nil {
+		contextSnapshotMap["alias_expansion"] = aliasResolution
+	}
+	if len(slashMetadata) > 0 {
+		contextSnapshotMap["slash_metadata"] = slashMetadata
+	}
+	contextSnapshot := rabbitmq.GetMythicJSONTextFromStruct(contextSnapshotMap)
 	_, _ = database.DB.Exec(`UPDATE chat_request
 		SET context_snapshot=$3::jsonb
 		WHERE id=$1 AND operation_id=$2`, requestID, operationID, contextSnapshot.String())
@@ -395,6 +432,7 @@ func dispatchAIChatRequest(
 		Config:            chatConfig,
 		Context:           contextMessages,
 		Secrets:           rabbitmq.GetSecrets(operatorID, 0),
+		SlashCommand:      slashCommand,
 		ConfirmedToolCall: confirmedToolCall,
 	}, chatAuthContext)
 	if err != nil {
@@ -548,6 +586,115 @@ func chatMCPToolDisplayName(confirmation map[string]interface{}) string {
 		return toolName
 	}
 	return "requested tool"
+}
+
+func processAIChatSlashInput(operatorID int, channel databaseStructs.ChatChannel, container databaseStructs.ConsumingContainer, message string) (string, map[string]interface{}, *rabbitmq.ChatSlashCommandInvocation, *rabbitmq.OperatorAliasResolution, error) {
+	trimmedMessage := strings.TrimSpace(message)
+	if !strings.HasPrefix(trimmedMessage, "/") {
+		return message, nil, nil, nil, nil
+	}
+	initialCommand, _, ok := rabbitmq.ParseSlashCommandLine(trimmedMessage)
+	if !ok {
+		return message, nil, nil, nil, fmt.Errorf("slash command is required")
+	}
+	modelCommands := getAIModelSlashCommands(container, channel.ChatModel)
+	scope := rabbitmq.OperatorAliasScope{ConsumingContainerID: int(channel.ChatContainerID.Int64)}
+	_, aliasFound, err := rabbitmq.GetActiveOperatorAlias(operatorID, scope, initialCommand)
+	if err != nil {
+		return message, nil, nil, nil, err
+	}
+	if _, modelFound := modelCommands[initialCommand]; modelFound && aliasFound {
+		return message, nil, nil, nil, fmt.Errorf("slash command /%s is both a model command and an alias for this chat container", initialCommand)
+	}
+	terminalCommands := make(map[string]bool, len(modelCommands))
+	for commandName := range modelCommands {
+		terminalCommands[commandName] = true
+	}
+	resolution, err := rabbitmq.ResolveOperatorAliasLineWithProvidedSlashCommands(operatorID, scope, trimmedMessage, terminalCommands)
+	if err != nil {
+		return message, nil, nil, nil, err
+	}
+	finalPrompt := resolution.Expanded
+	metadata := map[string]interface{}{
+		"slash_input": map[string]interface{}{
+			"original_input": trimmedMessage,
+			"final_prompt":   finalPrompt,
+		},
+	}
+	var aliasResolution *rabbitmq.OperatorAliasResolution
+	if resolution.AliasMatched {
+		aliasCopy := resolution
+		aliasResolution = &aliasCopy
+		metadata["alias_expansion"] = aliasCopy
+	}
+	finalCommand, finalArgument, finalIsSlash := rabbitmq.ParseSlashCommandLine(finalPrompt)
+	if !finalIsSlash {
+		return finalPrompt, metadata, nil, aliasResolution, nil
+	}
+	if _, ok = modelCommands[finalCommand]; !ok {
+		if resolution.AliasMatched {
+			return message, nil, nil, nil, fmt.Errorf("alias expansion ended with unknown AI slash command /%s", finalCommand)
+		}
+		return message, nil, nil, nil, fmt.Errorf("unknown AI slash command /%s", finalCommand)
+	}
+	slashCommand := &rabbitmq.ChatSlashCommandInvocation{
+		Name:     finalCommand,
+		Argument: finalArgument,
+		Raw:      finalPrompt,
+		Source:   "model",
+	}
+	metadata["slash_command"] = slashCommand
+	return finalPrompt, metadata, slashCommand, aliasResolution, nil
+}
+
+type aiChatSlashCommandDefinition struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+type aiChatModelMetadata struct {
+	SlashCommands []aiChatSlashCommandDefinition `json:"slash_commands" mapstructure:"slash_commands"`
+}
+type aiChatModelDefinition struct {
+	Name        string              `json:"name" mapstructure:"name"`
+	Description string              `json:"description" mapstructure:"description"`
+	Metadata    aiChatModelMetadata `json:"metadata" mapstructure:"metadata"`
+}
+
+func getAIModelSlashCommands(container databaseStructs.ConsumingContainer, modelName string) map[string]aiChatSlashCommandDefinition {
+	modelCommands := map[string]aiChatSlashCommandDefinition{}
+	for _, subscription := range container.Subscriptions {
+		var modelDefinition aiChatModelDefinition
+		err := mapstructure.Decode(subscription, &modelDefinition)
+		if err != nil {
+			logging.LogError(err, "failed to decode subscription in getAIModelSlashCommands")
+			continue
+		}
+		if modelDefinition.Name != modelName {
+			continue
+		}
+		for _, rawCommand := range modelDefinition.Metadata.SlashCommands {
+			modelCommands[rawCommand.Name] = aiChatSlashCommandDefinition{
+				Name:        rawCommand.Name,
+				Description: rawCommand.Description,
+			}
+		}
+		return modelCommands
+	}
+	return modelCommands
+}
+
+func mergeChatMetadata(base map[string]interface{}, extra map[string]interface{}) map[string]interface{} {
+	if len(base) == 0 && len(extra) == 0 {
+		return nil
+	}
+	merged := map[string]interface{}{}
+	for key, value := range base {
+		merged[key] = value
+	}
+	for key, value := range extra {
+		merged[key] = value
+	}
+	return merged
 }
 
 func getChatChannelConfig(channel databaseStructs.ChatChannel) map[string]interface{} {

@@ -31,11 +31,10 @@ import Typography from '@mui/material/Typography';
 import AddIcon from '@mui/icons-material/Add';
 import ArchiveIcon from '@mui/icons-material/Archive';
 import CampaignTwoToneIcon from '@mui/icons-material/CampaignTwoTone';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import ForumTwoToneIcon from '@mui/icons-material/ForumTwoTone';
-import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft';
-import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArrowRight';
 import LockIcon from '@mui/icons-material/Lock';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
@@ -200,6 +199,17 @@ ${CHAT_CONTAINER_FIELDS}
 subscription ChatContainersStream($now: timestamptz!) {
   consuming_container_stream(batch_size: 50, cursor: {initial_value: {updated_at: $now}, ordering: ASC}, where: {type: {_eq: "chat"}}) {
     ...ChatContainerFields
+  }
+}
+`;
+
+const CHAT_OPERATOR_ALIASES_QUERY = gql`
+query ChatOperatorAliases {
+  operator_alias(where: {active: {_eq: true}, consuming_container_id: {_is_null: false}}, order_by: {slash_command: asc}) {
+    id
+    slash_command
+    actual_command
+    consuming_container_id
   }
 }
 `;
@@ -681,6 +691,94 @@ const modelForChannel = (channel, chatContainers) => {
     }
     const container = chatContainers.find((item) => item.id === channel.chat_container_id) || channel.chat_container;
     return parseChatContainerModels(container).find((model) => model.name === channel.chat_model) || null;
+};
+
+const normalizeSlashCommandName = (value) => `${value || ""}`.trim().replace(/^\/+/, "").toLowerCase();
+
+const getModelSlashCommands = (model) => {
+    const metadata = model?.metadata || {};
+    const rawCommands = metadata.slash_commands || metadata.slashCommands || metadata.slashcommands || [];
+    if(!Array.isArray(rawCommands)){
+        return [];
+    }
+    return rawCommands.reduce((prev, command) => {
+        if(typeof command === "string"){
+            const name = normalizeSlashCommandName(command);
+            return name ? [...prev, {name, description: "", source: "model"}] : prev;
+        }
+        if(command && typeof command === "object"){
+            const name = normalizeSlashCommandName(command.name || command.Name || command.command || command.Command || command.slash_command || command.slashCommand);
+            if(!name){
+                return prev;
+            }
+            return [...prev, {
+                name,
+                description: command.description || command.Description || "",
+                source: "model",
+            }];
+        }
+        return prev;
+    }, []);
+};
+
+const getAIChatSlashOptions = (channel, chatContainers, aliases) => {
+    if(!channel || channel.channel_type !== "ai"){
+        return [];
+    }
+    const modelCommands = getModelSlashCommands(modelForChannel(channel, chatContainers));
+    const aliasCommands = (aliases || [])
+        .filter((alias) => alias.consuming_container_id === channel.chat_container_id)
+        .reduce((prev, alias) => {
+            if(!alias.slash_command){
+                return prev;
+            }
+            return [...prev, {
+                name: alias.slash_command,
+                description: alias.actual_command,
+                source: "alias",
+                actualCommand: alias.actual_command,
+            }];
+        }, []);
+    const options = [...modelCommands, ...aliasCommands];
+    return options.sort((a, b) => a.name.localeCompare(b.name));
+};
+
+const parseComposerSlashCommand = (message) => {
+    const trimmed = message.trim();
+    if(!trimmed.startsWith("/")){
+        return {isSlash: false, name: "", argument: ""};
+    }
+    const withoutSlash = trimmed.replace(/^\/+/, "");
+    const [first = ""] = withoutSlash.split(/\s+/, 1);
+    const name = normalizeSlashCommandName(first);
+    const argument = withoutSlash.length > first.length ? withoutSlash.slice(first.length).trim() : "";
+    return {isSlash: true, name, argument};
+};
+
+const getMatchingSlashOptions = (composerSlash, slashOptions) => {
+    if(!composerSlash.isSlash){
+        return [];
+    }
+    const normalizedName = composerSlash.name;
+    if(normalizedName === ""){
+        return slashOptions.slice(0, 8);
+    }
+    const startsWith = slashOptions.filter((option) => option.name.startsWith(normalizedName));
+    const includes = slashOptions.filter((option) => !option.name.startsWith(normalizedName) && option.name.includes(normalizedName));
+    return [...startsWith, ...includes].slice(0, 8);
+};
+
+const isKnownSlashCommand = (selectedChannel, composerSlash, slashOptions) => {
+    if(selectedChannel?.channel_type !== "ai"){
+        return true;
+    }
+    if(!composerSlash.isSlash){
+        return true;
+    }
+    if(composerSlash.name === ""){
+        return false;
+    }
+    return slashOptions.some((option) => option.name === composerSlash.name);
 };
 
 const getModelConfigOptions = (model) => {
@@ -1354,7 +1452,7 @@ const ChannelButton = ({channel, selected, unread, onSelect}) => {
 
 
 
-const ChatCreateDialog = ({open, onClose, onCreate, chatContainers, currentUser, operationBot}) => {
+const ChatCreateDialog = ({open, onClose, onCreate, chatContainers, currentUser, operationBot, initialChannel}) => {
     const theme = useTheme();
     const [name, setName] = React.useState("");
     const [description, setDescription] = React.useState("");
@@ -1366,16 +1464,17 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers, currentUser,
     const [apiTokenID, setAPITokenID] = React.useState("");
     React.useEffect(() => {
         if(open){
-            setName("");
-            setDescription("");
-            setChannelType("standard");
-            setContainerID("");
-            setModel("");
+            const cloningAI = initialChannel?.channel_type === "ai";
+            setName(initialChannel?.name ? `${initialChannel.name} copy` : "");
+            setDescription(initialChannel?.description || "");
+            setChannelType(cloningAI ? "ai" : "standard");
+            setContainerID(cloningAI && initialChannel?.chat_container_id ? `${initialChannel.chat_container_id}` : "");
+            setModel(cloningAI ? initialChannel?.chat_model || "" : "");
             setConfigValues({});
-            setLocked(true);
-            setAPITokenID("");
+            setLocked(cloningAI ? Boolean(initialChannel.locked) : true);
+            setAPITokenID(cloningAI && initialChannel?.apitokens_id ? `${initialChannel.apitokens_id}` : "");
         }
-    }, [open]);
+    }, [open, initialChannel]);
     const selectedContainer = React.useMemo(() => (
         chatContainers.find((container) => `${container.id}` === `${containerID}`)
     ), [chatContainers, containerID]);
@@ -1400,11 +1499,14 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers, currentUser,
     }, [channelType, containerID, model, selectedContainerModels]);
     React.useEffect(() => {
         if(channelType === "ai" && model){
-            setConfigValues(buildDefaultConfigValues(configOptions));
+            const cloningSameModel = initialChannel?.channel_type === "ai" &&
+                `${initialChannel.chat_container_id}` === `${containerID}` &&
+                initialChannel.chat_model === model;
+            setConfigValues(buildDefaultConfigValues(configOptions, cloningSameModel ? getChannelAIConfig(initialChannel) : {}));
         } else {
             setConfigValues({});
         }
-    }, [channelType, containerID, model, configOptions]);
+    }, [channelType, containerID, model, configOptions, initialChannel]);
     const changeChannelType = (event) => {
         const nextType = event.target.value;
         setChannelType(nextType);
@@ -1447,7 +1549,7 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers, currentUser,
     };
     return (
         <Dialog open={open} onClose={onClose} maxWidth={channelType === "ai" ? "lg" : "sm"} fullWidth>
-            <DialogTitle>{channelType === "ai" ? "New AI Chat" : "New Channel"}</DialogTitle>
+            <DialogTitle>{initialChannel?.channel_type === "ai" ? "Clone AI Chat" : (channelType === "ai" ? "New AI Chat" : "New Channel")}</DialogTitle>
             <DialogContent className="mythic-chat-dialog-content" sx={{display: "flex", flexDirection: "column", gap: 1.75, pt: "20px !important", px: 3}}>
                 <FormControl size="small" fullWidth>
                     <InputLabel>Type</InputLabel>
@@ -1784,14 +1886,172 @@ const ChatSystemMessageDialog = ({open, selectedChannel, isMythicAdmin, onClose,
     );
 };
 
+const ChatComposer = React.memo(({
+    selectedChannel,
+    slashOptions,
+    disabledReason,
+    canCreateSystemMessage,
+    isMythicAdmin,
+    onOpenSystemMessage,
+    onSendMessage,
+}) => {
+    const theme = useTheme();
+    const inputRef = React.useRef(null);
+    const [composer, setComposer] = React.useState("");
+    const composerSlash = React.useMemo(() => parseComposerSlashCommand(composer), [composer]);
+    const slashCommandIsKnown = React.useMemo(() => (
+        isKnownSlashCommand(selectedChannel, composerSlash, slashOptions)
+    ), [selectedChannel, composerSlash, slashOptions]);
+    const matchingSlashOptions = React.useMemo(() => (
+        getMatchingSlashOptions(composerSlash, slashOptions)
+    ), [composerSlash, slashOptions]);
+    const composerDisabled = disabledReason !== "";
+    const sendDisabled = composerDisabled || composer.trim() === "" || !slashCommandIsKnown;
+    const showSlashOptions = selectedChannel?.channel_type === "ai" && composerSlash.isSlash && !slashCommandIsKnown;
+
+    const focusComposer = () => {
+        if(typeof window !== "undefined" && window.requestAnimationFrame){
+            window.requestAnimationFrame(() => inputRef.current?.focus());
+            return;
+        }
+        inputRef.current?.focus();
+    };
+    const selectSlashOption = (option) => {
+        setComposer(`/${option.name}${composerSlash.argument ? ` ${composerSlash.argument}` : " "}`);
+        focusComposer();
+    };
+    const submitMessage = () => {
+        const message = composer.trim();
+        if(sendDisabled || message === ""){
+            return;
+        }
+        if(onSendMessage(message)){
+            setComposer("");
+        }
+    };
+
+    return (
+        <Box className="mythic-chat-composer" sx={{backgroundColor: theme.palette.background.paper}}>
+            <Box sx={{display: "flex", flexDirection: "column", gap: 0.75, flex: "1 1 auto", minWidth: 0}}>
+                {showSlashOptions &&
+                    <Box sx={{
+                        border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+                        borderRadius: `${theme.shape.borderRadius}px`,
+                        display: "flex",
+                        flexDirection: "column",
+                        maxHeight: 210,
+                        overflow: "auto",
+                    }}>
+                        {matchingSlashOptions.length === 0 ? (
+                            <Box sx={{px: 1.25, py: 1, color: "text.secondary", fontSize: "0.82rem"}}>No matching slash commands</Box>
+                        ) : matchingSlashOptions.map((option) => (
+                            <button
+                                type="button"
+                                key={`${option.source}-${option.name}`}
+                                onClick={() => selectSlashOption(option)}
+                                style={{
+                                    alignItems: "center",
+                                    background: "transparent",
+                                    border: 0,
+                                    color: "inherit",
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    gap: "10px",
+                                    justifyContent: "space-between",
+                                    padding: "7px 10px",
+                                    textAlign: "left",
+                                    width: "100%",
+                                }}
+                            >
+                                <Box sx={{display: "flex", flexDirection: "column", minWidth: 0}}>
+                                    <Typography variant="body2" sx={{fontFamily: "monospace"}}>/{option.name}</Typography>
+                                    {option.source === "alias" &&
+                                        <Typography variant="caption" color="text.secondary" noWrap>/{option.name} -&gt; {option.actualCommand}</Typography>
+                                    }
+                                    {option.source === "model" && option.description &&
+                                        <Typography variant="caption" color="text.secondary" noWrap>{option.description}</Typography>
+                                    }
+                                </Box>
+                                <Chip size="small" label={option.source === "alias" ? "alias" : "model"} />
+                            </button>
+                        ))}
+                    </Box>
+                }
+                <TextField
+                    fullWidth
+                    multiline
+                    minRows={2}
+                    maxRows={8}
+                    value={composer}
+                    disabled={composerDisabled}
+                    placeholder={composerDisabled ? disabledReason : "Message"}
+                    error={composerSlash.isSlash && !slashCommandIsKnown}
+                    helperText={composerSlash.isSlash && !slashCommandIsKnown ? "Unknown slash command" : ""}
+                    inputRef={inputRef}
+                    onChange={(e) => setComposer(e.target.value)}
+                    onKeyDown={(e) => {
+                        if(e.nativeEvent?.isComposing){
+                            return;
+                        }
+                        if(e.key === "Tab" && showSlashOptions && matchingSlashOptions.length > 0){
+                            e.preventDefault();
+                            selectSlashOption(matchingSlashOptions[0]);
+                            return;
+                        }
+                        if(e.key === "Enter" && !e.shiftKey){
+                            e.preventDefault();
+                            submitMessage();
+                        }
+                    }}
+                    size="small"
+                />
+            </Box>
+            {canCreateSystemMessage &&
+                <MythicStyledTooltip title="System message">
+                    <span>
+                        <IconButton
+                            color="secondary"
+                            className="mythic-chat-system-button"
+                            disabled={!selectedChannel || (selectedChannel.archived && !isMythicAdmin)}
+                            onClick={onOpenSystemMessage}
+                        >
+                            <CampaignTwoToneIcon />
+                        </IconButton>
+                    </span>
+                </MythicStyledTooltip>
+            }
+            <IconButton
+                color="primary"
+                className="mythic-chat-send-button"
+                disabled={sendDisabled}
+                onClick={submitMessage}
+                sx={{
+                    alignSelf: "center",
+                    backgroundColor: alpha(theme.palette.primary.main, 0.12),
+                    border: `1px solid ${alpha(theme.palette.primary.main, 0.22)}`,
+                    borderRadius: `${theme.shape.borderRadius}px`,
+                    flex: "0 0 auto",
+                    height: 38,
+                    width: 38,
+                    "&:hover": {
+                        backgroundColor: alpha(theme.palette.primary.main, 0.2),
+                    },
+                }}
+            >
+                <SendIcon />
+            </IconButton>
+        </Box>
+    );
+});
+
 export function Chat({me}) {
     const theme = useTheme();
     const meContext = React.useContext(MeContext);
     const currentMe = me || meContext;
     const [selectedChannelID, setSelectedChannelID] = React.useState(null);
     const [showArchived, setShowArchived] = React.useState(false);
-    const [composer, setComposer] = React.useState("");
     const [createOpen, setCreateOpen] = React.useState(false);
+    const [createInitialChannel, setCreateInitialChannel] = React.useState(null);
     const [editChannelOpen, setEditChannelOpen] = React.useState(false);
     const [systemMessageOpen, setSystemMessageOpen] = React.useState(false);
     const [archiveTarget, setArchiveTarget] = React.useState(null);
@@ -1824,17 +2084,22 @@ export function Chat({me}) {
     const streamStart = React.useRef(getSkewedNow().toISOString());
     const [baseChannels, setBaseChannels] = React.useState([]);
     const [allChatContainers, setAllChatContainers] = React.useState([]);
+    const [operatorAliases, setOperatorAliases] = React.useState([]);
     const [readState, setReadState] = React.useState({});
     const [messages, setMessages] = React.useState([]);
     const [requests, setRequests] = React.useState([]);
     const selectedChannelIDRef = React.useRef(selectedChannelID);
-    const selectedChannelStreamStart = React.useMemo(() => getSkewedNow().toISOString(), [selectedChannelID]);
+    const selectedChannelStreamCursor = React.useMemo(() => ({
+        channelID: selectedChannelID,
+        now: getSkewedNow().toISOString(),
+    }), [selectedChannelID]);
     selectedChannelIDRef.current = selectedChannelID;
     readStateRef.current = readState;
 
     const {data: channelData} = useQuery(CHAT_CHANNELS_QUERY, {fetchPolicy: "no-cache"});
     const {data: readStateData} = useQuery(CHAT_READ_STATE_QUERY, {fetchPolicy: "no-cache"});
     const {data: containerData} = useQuery(CHAT_CONTAINERS_QUERY, {fetchPolicy: "no-cache"});
+    const {data: aliasData} = useQuery(CHAT_OPERATOR_ALIASES_QUERY, {fetchPolicy: "no-cache"});
     const {data: currentOperatorData} = useQuery(CHAT_CURRENT_OPERATOR_QUERY, {
         variables: {
             operator_id: currentMe?.user?.user_id || 0,
@@ -1860,6 +2125,11 @@ export function Chat({me}) {
             setAllChatContainers((prev) => mergeRowsByID(prev, containerData.consuming_container, sortContainers));
         }
     }, [containerData]);
+    React.useEffect(() => {
+        if(aliasData?.operator_alias){
+            setOperatorAliases(aliasData.operator_alias);
+        }
+    }, [aliasData]);
 
     useSubscription(CHAT_CHANNELS_STREAM_SUBSCRIPTION, {
         variables: {now: streamStart.current},
@@ -1968,7 +2238,7 @@ export function Chat({me}) {
         }
     }, [requestData, selectedChannelID]);
     useSubscription(CHAT_MESSAGES_STREAM_SUBSCRIPTION, {
-        variables: {channel_id: selectedChannelID || 0, now: selectedChannelStreamStart},
+        variables: {channel_id: selectedChannelID || 0, now: selectedChannelStreamCursor.now},
         skip: !selectedChannelID,
         fetchPolicy: "no-cache",
         onData: ({data}) => {
@@ -1981,7 +2251,7 @@ export function Chat({me}) {
         onError: (error) => console.log(error),
     });
     useSubscription(CHAT_REQUESTS_STREAM_SUBSCRIPTION, {
-        variables: {channel_id: selectedChannelID || 0, now: selectedChannelStreamStart},
+        variables: {channel_id: selectedChannelID || 0, now: selectedChannelStreamCursor.now},
         skip: !selectedChannelID,
         fetchPolicy: "no-cache",
         onData: ({data}) => {
@@ -2005,6 +2275,7 @@ export function Chat({me}) {
             if(data.chatCreateChannel.status === "success"){
                 setSelectedChannelID(data.chatCreateChannel.channel_id);
                 setCreateOpen(false);
+                setCreateInitialChannel(null);
             } else {
                 snackActions.error(data.chatCreateChannel.error);
             }
@@ -2238,15 +2509,17 @@ export function Chat({me}) {
         }
         return requests.find((request) => request.channel_id === selectedChannel.id && ["pending", "streaming"].includes(request.status)) || null;
     }, [requests, selectedChannel]);
-
-    const submitMessage = () => {
-        const message = composer.trim();
+    const slashOptions = React.useMemo(() => (
+        getAIChatSlashOptions(selectedChannel, chatContainers, operatorAliases)
+    ), [selectedChannel, chatContainers, operatorAliases]);
+    const submitMessage = React.useCallback((messageText) => {
+        const message = messageText.trim();
         if(!message || !selectedChannel){
-            return;
+            return false;
         }
         createMessage({variables: {channel_id: selectedChannel.id, message}});
-        setComposer("");
-    };
+        return true;
+    }, [createMessage, selectedChannel]);
     const submitSystemMessage = ({message, all_operations}) => {
         if(!selectedChannel){
             return Promise.resolve({data: {chatCreateMessage: {status: "error", error: "No channel selected"}}});
@@ -2282,8 +2555,8 @@ export function Chat({me}) {
         }
         return "";
     }, [selectedChannel, currentMe, activeAIRequest]);
-    const composerDisabled = disabledReason !== "";
     const onCreateChannel = (variables) => createChannel({variables});
+    const openSystemMessageDialog = React.useCallback(() => setSystemMessageOpen(true), []);
     const toggleArchive = () => {
         if(!selectedChannel || isGeneralChatChannel(selectedChannel)){
             return;
@@ -2310,6 +2583,16 @@ export function Chat({me}) {
                 setEditChannelOpen(false);
             }
         }).catch(() => {});
+    };
+    const openNewChannelDialog = () => {
+        setCreateInitialChannel(null);
+        setCreateOpen(true);
+    };
+    const openCloneChannelDialog = () => {
+        if(selectedChannel?.channel_type === "ai"){
+            setCreateInitialChannel(selectedChannel);
+            setCreateOpen(true);
+        }
     };
     const beginEdit = (message) => {
         setEditingID(message.id);
@@ -2360,7 +2643,7 @@ export function Chat({me}) {
                 actions={
                     <Box sx={{display: "flex", gap: 1}}>
                         <Button size="small" className="mythic-table-row-action-hover-info" startIcon={<SearchIcon />} onClick={() => setSearchOpen(true)}>Search</Button>
-                        <Button size="small" className="mythic-table-row-action-hover-success" variant="contained" startIcon={<AddIcon />} onClick={() => setCreateOpen(true)}>New channel</Button>
+                        <Button size="small" className="mythic-table-row-action-hover-success" variant="contained" startIcon={<AddIcon />} onClick={openNewChannelDialog}>New channel</Button>
                     </Box>
                 }
             />
@@ -2451,6 +2734,13 @@ export function Chat({me}) {
                                 </MythicStyledTooltip>
                             }
                             {selectedChannel?.channel_type === "ai" &&
+                                <MythicStyledTooltip title="Clone AI chat">
+                                    <IconButton size="small" onClick={openCloneChannelDialog}>
+                                        <ContentCopyIcon fontSize="small" />
+                                    </IconButton>
+                                </MythicStyledTooltip>
+                            }
+                            {selectedChannel?.channel_type === "ai" &&
                                 <MythicStyledTooltip title={selectedChannel.locked ? "Unlock AI chat" : "Lock AI chat"}>
                                     <IconButton size="small" onClick={toggleLock}>
                                         {selectedChannel.locked ? <LockIcon fontSize="small" /> : <LockOpenIcon fontSize="small" />}
@@ -2506,72 +2796,26 @@ export function Chat({me}) {
                         )}
                         <div ref={messagesEndRef} />
                     </Box>
-                    <Box className="mythic-chat-composer" sx={{backgroundColor: theme.palette.background.paper}}>
-                        <TextField
-                            fullWidth
-                            multiline
-                            minRows={2}
-                            maxRows={8}
-                            value={composer}
-                            disabled={composerDisabled}
-                            placeholder={composerDisabled ? disabledReason : "Message"}
-                            onChange={(e) => setComposer(e.target.value)}
-                            onKeyDown={(e) => {
-                                if(e.nativeEvent?.isComposing){
-                                    return;
-                                }
-                                if(e.key === "Enter" && !e.shiftKey){
-                                    e.preventDefault();
-                                    submitMessage();
-                                }
-                            }}
-                            size="small"
-                        />
-                        {canCreateSystemMessage &&
-                            <MythicStyledTooltip title="System message">
-                                <span>
-                                    <IconButton
-                                        color="secondary"
-                                        className="mythic-chat-system-button"
-                                        disabled={!selectedChannel || (selectedChannel.archived && !isMythicAdmin)}
-                                        onClick={() => setSystemMessageOpen(true)}
-                                    >
-                                        <CampaignTwoToneIcon />
-                                    </IconButton>
-                                </span>
-                            </MythicStyledTooltip>
-                        }
-                        <IconButton
-                            color="primary"
-                            className="mythic-chat-send-button"
-                            disabled={composerDisabled || composer.trim() === ""}
-                            onClick={submitMessage}
-                            sx={{
-                                alignSelf: "center",
-                                backgroundColor: alpha(theme.palette.primary.main, 0.12),
-                                border: `1px solid ${alpha(theme.palette.primary.main, 0.22)}`,
-                                borderRadius: `${theme.shape.borderRadius}px`,
-                                flex: "0 0 auto",
-                                height: 38,
-                                width: 38,
-                                "&:hover": {
-                                    backgroundColor: alpha(theme.palette.primary.main, 0.2),
-                                },
-                            }}
-                        >
-                            <SendIcon />
-                        </IconButton>
-                    </Box>
+                    <ChatComposer
+                        selectedChannel={selectedChannel}
+                        slashOptions={slashOptions}
+                        disabledReason={disabledReason}
+                        canCreateSystemMessage={canCreateSystemMessage}
+                        isMythicAdmin={isMythicAdmin}
+                        onOpenSystemMessage={openSystemMessageDialog}
+                        onSendMessage={submitMessage}
+                    />
                 </Box>
             </Split>
             {createOpen &&
                 <ChatCreateDialog
                     open={createOpen}
-                    onClose={() => setCreateOpen(false)}
+                    onClose={() => {setCreateOpen(false); setCreateInitialChannel(null);}}
                     onCreate={onCreateChannel}
                     chatContainers={chatContainers}
                     currentUser={currentUser}
                     operationBot={operationBot}
+                    initialChannel={createInitialChannel}
                 />
             }
             {editChannelOpen &&

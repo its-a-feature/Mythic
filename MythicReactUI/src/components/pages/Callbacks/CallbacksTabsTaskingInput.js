@@ -7,7 +7,7 @@ import TerminalIcon from '@mui/icons-material/Terminal';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {CallbacksTabsTaskingFilterDialog} from './CallbacksTabsTaskingFilterDialog';
 import {CallbacksTabsTaskingInputTokenSelect} from './CallbacksTabsTaskingInputTokenSelect';
-import { gql, useSubscription, useMutation } from '@apollo/client';
+import { gql, useSubscription, useMutation, useQuery } from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
 import {meState, operatorSettingDefaults} from '../../../cache';
 import {useReactiveVar} from '@apollo/client';
@@ -50,6 +50,20 @@ subscription GetLoadedCommandsSubscription($callback_id: Int!){
                 cli_name
                 display_name
             }
+        }
+    }
+}
+`;
+const GetOperatorPayloadAliases = gql`
+query GetOperatorPayloadAliases {
+    operator_alias(where: {active: {_eq: true}, payloadtype_id: {_is_null: false}}, order_by: {slash_command: asc}) {
+        id
+        slash_command
+        actual_command
+        payloadtype_id
+        payloadtype {
+            id
+            name
         }
     }
 }
@@ -419,8 +433,8 @@ export function CallbacksTabsTaskingInputPreMemo(props){
     const theme = useTheme();
     const inputRef = React.useRef(null);
     const pendingCursorPosition = React.useRef(null);
-    const snackMessageStyles = {position:"bottom-left", autoClose: 1000, toastId: toastId, style: {marginBottom: "30px"}};
-    const snackReverseSearchMessageStyles = {position:"bottom-left", autoClose: 1000,  toastId: toastId, style: {marginBottom: "70px"}};
+    const snackMessageStyles = {position:"bottom-left", autoClose: 1000, toastId: toastId, style: {marginBottom: "100px"}};
+    const snackReverseSearchMessageStyles = {position:"bottom-left", autoClose: 1000,  toastId: toastId, style: {marginBottom: "120px"}};
     const [commandPayloadType, setCommandPayloadType] = React.useState("");
     const [callbackContext, setCallbackContext] = React.useState({
         cwd: "",
@@ -507,6 +521,11 @@ export function CallbacksTabsTaskingInputPreMemo(props){
     const commandOptionsForcePopup = React.useRef(false);
     const [openSelectCommandDialog, setOpenSelectCommandDialog] = React.useState(false);
     const me = useReactiveVar(meState);
+    const {data: payloadAliasData} = useQuery(GetOperatorPayloadAliases, {fetchPolicy: "no-cache"});
+    const payloadAliasOptions = React.useMemo(() => {
+        const aliases = payloadAliasData?.operator_alias || [];
+        return aliases.filter((alias) => alias.payloadtype?.name === props.payloadtype_name);
+    }, [payloadAliasData, props.payloadtype_name]);
     const useDisplayParamsForCLIHistoryUserSetting = React.useRef(GetMythicSetting({setting_name: "useDisplayParamsForCLIHistory", default_value: operatorSettingDefaults.useDisplayParamsForCLIHistory}));
     const hideTaskingContext = React.useRef(GetMythicSetting({setting_name: "hideTaskingContext", default_value: operatorSettingDefaults.hideTaskingContext}));
     hideTaskingContext.current = props.hide_context | hideTaskingContext.current;
@@ -522,6 +541,54 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             return (currentIndex + 1) % options.length;
         }
     }
+    const parseSlashAliasMessage = (value) => {
+        const trimmed = value.trim();
+        if(!trimmed.startsWith("/")){
+            return {isAlias: false, name: "", argument: ""};
+        }
+        const withoutSlash = trimmed.replace(/^\/+/, "");
+        const [first = ""] = withoutSlash.split(/\s+/, 1);
+        const name = first.toLowerCase();
+        const argument = withoutSlash.length > first.length ? withoutSlash.slice(first.length).trim() : "";
+        return {isAlias: true, name, argument};
+    };
+    const getMatchingPayloadAliases = (value) => {
+        const parsedAlias = parseSlashAliasMessage(value);
+        if(!parsedAlias.isAlias){
+            return [];
+        }
+        if(parsedAlias.name === ""){
+            return payloadAliasOptions.slice(0, 20);
+        }
+        const startsWith = payloadAliasOptions.filter((alias) => alias.slash_command.startsWith(parsedAlias.name));
+        const includes = payloadAliasOptions.filter((alias) => !alias.slash_command.startsWith(parsedAlias.name) && alias.slash_command.includes(parsedAlias.name));
+        return [...startsWith, ...includes].slice(0, 20);
+    };
+    const submitSlashAliasCommandLine = (evt) => {
+        if(evt){
+            evt.preventDefault();
+            evt.stopPropagation();
+        }
+        const parsedAlias = parseSlashAliasMessage(message);
+        if(!parsedAlias.isAlias || parsedAlias.name === ""){
+            snackActions.warning("Unknown alias", snackMessageStyles);
+            return;
+        }
+        const matchingAlias = payloadAliasOptions.find((alias) => alias.slash_command === parsedAlias.name);
+        if(!matchingAlias){
+            snackActions.warning("Unknown alias", snackMessageStyles);
+            return;
+        }
+        if(props.onSubmitAliasCommandLine){
+            props.onSubmitAliasCommandLine(message.trim(), matchingAlias);
+            setMessage("");
+            setCommandPayloadType("");
+            taskOptionsIndex.current = -1;
+            reverseSearchIndex.current = -1;
+            setReverseSearching(false);
+            setUnmodifiedHistoryValue("parsed_cli");
+        }
+    };
     useSubscription(subscriptionCallbackTokens, {
         variables: {callback_id: props.callback_id}, fetchPolicy: "network-only",
         shouldResubscribe: true,
@@ -732,6 +799,25 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             event.stopPropagation();
             event.preventDefault();
             setUnmodifiedHistoryValue("parsed_cli");
+            if(message.trim().startsWith("/")){
+                const aliasOptions = getMatchingPayloadAliases(message);
+                if(aliasOptions.length === 0){
+                    snackActions.warning("No matching aliases", snackMessageStyles);
+                    return;
+                }
+                if(tabOptions.current.length === 0 || tabOptionsType.current !== "alias"){
+                    tabOptions.current = aliasOptions;
+                    tabOptionsIndex.current = 0;
+                    tabOptionsType.current = "alias";
+                }else{
+                    tabOptionsIndex.current = forwardOrBackwardTabIndex(event, tabOptionsIndex.current, tabOptions.current);
+                }
+                const parsedAlias = parseSlashAliasMessage(message);
+                const selectedAlias = tabOptions.current[tabOptionsIndex.current];
+                setMessage(`/${selectedAlias.slash_command}${parsedAlias.argument ? ` ${parsedAlias.argument}` : " "}`);
+                setCommandPayloadType(props.payloadtype_name);
+                return;
+            }
             if(message.includes(" ")){
                 // this means we're not trying to help with the initial command since there's already a space in what the user typed
                 // first find the command in question
@@ -1020,6 +1106,10 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 }
             }
         }else if(event.key === "Enter"){
+            if(message.trim().startsWith("/")){
+                submitSlashAliasCommandLine(event);
+                return;
+            }
             if(event.shiftKey){
                 onSubmitCommandLine(event, true);
             }else{
@@ -1192,6 +1282,34 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         if(sQuoted) throw new SyntaxError('unexpected end of string while looking for matching single quote');
         return res;
     }
+    const cliParseMetadataKey = "__mythic_cli_parse_metadata";
+    const setCLIParseMetadata = (parsed, metadata) => {
+        Object.defineProperty(parsed, cliParseMetadataKey, {
+            configurable: true,
+            enumerable: false,
+            writable: true,
+            value: metadata,
+        });
+        return parsed;
+    }
+    const getCLIParseMetadata = (parsed) => parsed?.[cliParseMetadataKey];
+    const cloneCLIParseMetadata = (metadata) => {
+        if(!metadata){
+            return undefined;
+        }
+        return {
+            ...metadata,
+            positionals: [...(metadata.positionals || [])],
+        };
+    }
+    const cloneParsedCLIResult = (parsed) => {
+        const cloned = {...parsed, "_": Array.isArray(parsed?.["_"]) ? [...parsed["_"]] : []};
+        const metadata = cloneCLIParseMetadata(getCLIParseMetadata(parsed));
+        if(metadata){
+            setCLIParseMetadata(cloned, metadata);
+        }
+        return cloned;
+    }
     const parseArgvToDict = (argv, cmd) => {
         let stringArgs = [];
         let booleanArgs = [];
@@ -1201,8 +1319,10 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         let fileArgs = [];
         let complexArgs = [];
         let allCLINames = [];
+        let parameterByFlag = {};
         for(let i = 0; i < cmd.commandparameters.length; i++){
             allCLINames.push("-" + cmd.commandparameters[i].cli_name);
+            parameterByFlag["-" + cmd.commandparameters[i].cli_name] = cmd.commandparameters[i];
             switch(cmd.commandparameters[i].parameter_type){
                 case "ChooseOne":
                 case "ChooseOneCustom":
@@ -1230,6 +1350,19 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             }
         }
         let result = {"_": []};
+        const metadata = {
+            lastProcessedParameter: undefined,
+            lastProcessedValueIndex: -1,
+            positionals: [],
+        };
+        const recordProcessedParameter = (flag, valueIndex) => {
+            const parameter = parameterByFlag[flag];
+            if(parameter === undefined){
+                return;
+            }
+            metadata.lastProcessedParameter = parameter;
+            metadata.lastProcessedValueIndex = valueIndex;
+        };
         let current_argument = "";
         let current_argument_type = "";
         for(let i = 0; i < argv.length; i++){
@@ -1290,6 +1423,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 } else {
                     // we don't have this as a named argument, so we'll process it as a positional one
                     result["_"].push(value);
+                    metadata.positionals.push({value, index: i});
                     current_argument = "";
                     current_argument_type = "";
                 }
@@ -1307,12 +1441,14 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 switch(current_argument_type){
                     case "string":
                         result[current_argument.slice(1)] = value;
+                        recordProcessedParameter(current_argument, i);
                         current_argument = "";
                         current_argument_type = "";
                         break;
                     case "file":
                         if(uuidValidate(value)){
                             result[current_argument.slice(1)] = value;
+                            recordProcessedParameter(current_argument, i);
                             current_argument = "";
                             current_argument_type = "";
                             break;
@@ -1330,6 +1466,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                             // we see something like `-flag bob`, so interpret this as `-flag true bob`
                             result[current_argument.slice(1)] = true;
                         }
+                        recordProcessedParameter(current_argument, i);
                         current_argument = "";
                         current_argument_type = "";
                         break;
@@ -1338,9 +1475,10 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                             let num = Number(value);
                             if(isNaN(num)){
                                 snackActions.warning("Failed to parse number: " + value, snackMessageStyles);
-                                return undefined;
-                            }
-                            result[current_argument.slice(1)] = num;
+                            return undefined;
+                        }
+                        result[current_argument.slice(1)] = num;
+                        recordProcessedParameter(current_argument, i);
                         }catch(error){
                             snackActions.warning("Failed to parse number: " + error, snackMessageStyles);
                             return undefined;
@@ -1369,6 +1507,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                             } else {
                                 result[current_argument.slice(1)].push( ["", value]);
                             }
+                            recordProcessedParameter(current_argument, i);
                         }
                         break;
                     case "array":
@@ -1392,6 +1531,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                             } else {
                                 result[current_argument.slice(1)].push(value);
                             }
+                            recordProcessedParameter(current_argument, i);
                         }
                         break;
                     case "complex":
@@ -1400,6 +1540,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                         }catch(error){
                             result[current_argument.slice(1)] = value;
                         }
+                        recordProcessedParameter(current_argument, i);
                         current_argument = "";
                         current_argument_type = "";
                         break;
@@ -1408,7 +1549,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 }
             }
         };
-        return result;
+        return setCLIParseMetadata(result, metadata);
     }
     const getLastSuppliedArgument = (cmd, command_line, yargs) => {
         let new_command_line = command_line;
@@ -1535,7 +1676,62 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         return cmdGroupOptions;
     }
     const fillOutPositionalArguments = (cmd, parsed, groupNames) => {
-        let parsedCopy = {...parsed};
+        let parsedCopy = cloneParsedCLIResult(parsed);
+        const metadata = getCLIParseMetadata(parsedCopy);
+        const shiftPositionalMetadata = () => {
+            if(metadata?.positionals?.length > 0){
+                return metadata.positionals.shift();
+            }
+            return undefined;
+        };
+        const recordPositionalParameter = (parameter, positionalMetadata) => {
+            if(metadata === undefined || positionalMetadata === undefined){
+                return;
+            }
+            metadata.lastProcessedParameter = parameter;
+            metadata.lastProcessedValueIndex = positionalMetadata.index;
+        };
+        const coalesceTrailingPositionals = () => {
+            if(parsedCopy["_"].length === 0){
+                return true;
+            }
+            if(metadata?.lastProcessedParameter === undefined || metadata.lastProcessedValueIndex < 0){
+                return false;
+            }
+            if(!Array.isArray(metadata.positionals) || metadata.positionals.length !== parsedCopy["_"].length){
+                return false;
+            }
+            if(metadata.positionals.some((positional) => positional.index <= metadata.lastProcessedValueIndex)){
+                return false;
+            }
+            const parameter = groupParameters.find((candidate) => candidate.cli_name === metadata.lastProcessedParameter.cli_name) || metadata.lastProcessedParameter;
+            switch(parameter.parameter_type){
+                case "String":
+                    parsedCopy[parameter.cli_name] = [parsedCopy[parameter.cli_name] || "", ...parsedCopy["_"]]
+                        .filter((value) => value !== "")
+                        .join(" ");
+                    break;
+                case "Array":
+                case "ChooseMultiple":
+                case "FileMultiple":
+                    parsedCopy[parameter.cli_name] = [
+                        ...(Array.isArray(parsedCopy[parameter.cli_name]) ? parsedCopy[parameter.cli_name] : []),
+                        ...parsedCopy["_"],
+                    ];
+                    break;
+                case "TypedArray":
+                    parsedCopy[parameter.cli_name] = [
+                        ...(Array.isArray(parsedCopy[parameter.cli_name]) ? parsedCopy[parameter.cli_name] : []),
+                        ...parsedCopy["_"].map((value) => ["", value]),
+                    ];
+                    break;
+                default:
+                    return false;
+            }
+            parsedCopy["_"] = [];
+            metadata.positionals = [];
+            return true;
+        };
         parsedCopy["_"].shift(); // get rid of the command name from this list of arguments.
         if(cmd.commandparameters.length === 0){
             return parsedCopy;
@@ -1566,11 +1762,13 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             // this parameter hasn't been supplied yet, check if we have any positional parameters in parsedCopy["_"]
             if(parsedCopy["_"].length > 0){
                 let temp = parsedCopy["_"].shift();
+                const positionalMetadata = shiftPositionalMetadata();
                 switch(unSatisfiedArguments[i]["parameter_type"]){
                     case "ChooseOne":
                     case "ChooseOneCustom":
                     case "String":
                         parsedCopy[unSatisfiedArguments[i]["cli_name"]] = temp;
+                        recordPositionalParameter(unSatisfiedArguments[i], positionalMetadata);
                         break;
                     case "Number":
                         try{
@@ -1580,6 +1778,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                                 return undefined;
                             }
                             parsedCopy[unSatisfiedArguments[i]["cli_name"]] = temp;
+                            recordPositionalParameter(unSatisfiedArguments[i], positionalMetadata);
                         }catch(error){
                             snackActions.warning("Failed to parse number: " + error, snackMessageStyles);
                             return undefined;
@@ -1588,8 +1787,10 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                     case "Boolean":
                         if(temp.toLowerCase() === "false"){
                             parsedCopy[unSatisfiedArguments[i]["cli_name"]] = false;
+                            recordPositionalParameter(unSatisfiedArguments[i], positionalMetadata);
                         } else if(temp.toLowerCase() === "true"){
                             parsedCopy[unSatisfiedArguments[i]["cli_name"]] = true;
+                            recordPositionalParameter(unSatisfiedArguments[i], positionalMetadata);
                         } else {
                             snackActions.warning("Failed to parse boolean: " + temp, snackMessageStyles);
                             return undefined;
@@ -1604,89 +1805,19 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                         } else {
                             parsedCopy[unSatisfiedArguments[i]["cli_name"]] = [temp];
                         }
+                        recordPositionalParameter(unSatisfiedArguments[i], positionalMetadata);
                         i -= 1;
                         break;
                     default:
                         parsedCopy[unSatisfiedArguments[i]["cli_name"]] = temp;
+                        recordPositionalParameter(unSatisfiedArguments[i], positionalMetadata);
                         break;
                 }
             } else {
                 break;
             }
         }
-        //console.log("unsatisfied filled, but still some args", JSON.parse(JSON.stringify(parsedCopy)))
-        if(unSatisfiedArguments.length > 0 && parsedCopy["_"].length > 0){
-            //parsedCopy["_"] = parsedCopy["_"].map( c => typeof(c) === "string" && c.includes(" ") ? "\"" + c + "\"" : c);
-            let temp = ""; //parsedCopy["_"].join(" ");
-            // we need to keep inner quotes if they existed as we re-join things together
-            let negativeIndex = message.length;
-            for(let pci = parsedCopy["_"].length -1; pci >= 0; pci--){
-                let startIndex = message.lastIndexOf(parsedCopy["_"][pci], negativeIndex);
-                // now check if startIndex -1 == ' or " and startIndex + parsedCopy["_"][pci].length + 1 == ' or "
-                negativeIndex = startIndex - 1; // update the negative index to move further 
-                if(message[startIndex-1] === "'"){
-                    if(startIndex + parsedCopy["_"][pci].length + 1 < message.length){
-                        if(message[startIndex + parsedCopy["_"][pci].length + 1] === "'"){
-                            temp = "'" + parsedCopy["_"][pci] + "' " + temp;
-                        }
-                    }else{
-                        console.log("mismatched quotes?", message[startIndex-1], message[startIndex + parsedCopy["_"][pci].length + 1])
-                    }
-                }else if(message[startIndex -1] === '"'){
-                    if(startIndex + parsedCopy["_"][pci].length  < message.length){
-                        if(message[startIndex + parsedCopy["_"][pci].length ] === '"'){
-                            temp = '"' + parsedCopy["_"][pci] + '" ' + temp;
-                        }
-                    }else{
-                        console.log("mismatched quotes?", message[startIndex-1], message[startIndex + parsedCopy["_"][pci].length ])
-                    }
-                }else{
-                    temp = parsedCopy["_"][pci] + " " + temp;
-                }
-                temp = temp.trim();
-            }
-            switch(unSatisfiedArguments[unSatisfiedArguments.length -1]["parameter_type"]){
-                case "ChooseOne":
-                case "ChooseOneCustom":
-                case "String":
-                    parsedCopy[unSatisfiedArguments[unSatisfiedArguments.length -1]["cli_name"]] += " " + temp;
-                    break;
-                case "Number":
-                    try{
-                        temp = Number(temp);
-                        if(isNaN(temp)){
-                            snackActions.warning("Failed to parse number: " + temp, snackMessageStyles);
-                            return undefined;
-                        }
-                        parsedCopy[unSatisfiedArguments[unSatisfiedArguments.length -1]["cli_name"]] = temp;
-                    }catch(error){
-                        snackActions.warning("Failed to parse number: " + error, snackMessageStyles);
-                        return undefined;
-                    }
-                    break;
-                case "Boolean":
-                    if(temp.toLowerCase() === "false"){
-                        parsedCopy[unSatisfiedArguments[unSatisfiedArguments.length -1]["cli_name"]] = false;
-                    } else if(temp.toLowerCase() === "true"){
-                        parsedCopy[unSatisfiedArguments[unSatisfiedArguments.length -1]["cli_name"]] = true;
-                    } else {
-                        snackActions.warning("Failed to parse boolean: " + temp, snackMessageStyles);
-                        return undefined;
-                    }
-                    break;
-                case "Array":
-                case "TypedArray":
-                case "FileMultiple":
-                case "ChooseMultiple":
-                    parsedCopy[unSatisfiedArguments[unSatisfiedArguments.length -1]["cli_name"]] =
-                        [parsedCopy[unSatisfiedArguments[unSatisfiedArguments.length -1]["cli_name"]], ...parsedCopy["_"]];
-                    break;
-                default:
-                    parsedCopy[unSatisfiedArguments[unSatisfiedArguments.length -1]["cli_name"]] = temp;
-                    break;
-            }
-            parsedCopy["_"] = [];
-        }
+        coalesceTrailingPositionals();
         
         return parsedCopy;
 
@@ -1725,7 +1856,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             if(parsed === undefined){
                 return;
             }
-            parsed = {...parsed};
+            parsed = cloneParsedCLIResult(parsed);
             //console.log(message, parsed);
             cmdGroupName = determineCommandGroupName(cmd, parsed);
             if(cmdGroupName !== undefined){
@@ -1791,6 +1922,10 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         evt.preventDefault();
         evt.stopPropagation();
         //console.log("onSubmitCommandLine", evt, message);
+        if(message.trim().startsWith("/")){
+            submitSlashAliasCommandLine(evt);
+            return;
+        }
         let splitMessage = message.trim().split(" ");
         let cmd = loadedOptions.current.filter( l => l.cmd === splitMessage[0]);
         if(cmd === undefined || cmd.length === 0){
@@ -1903,6 +2038,18 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         const trimmedMessage = message.trim();
         if(trimmedMessage === ""){
             return {state: "empty", message: "Type a loaded command to preview CLI parameters"};
+        }
+        if(trimmedMessage.startsWith("/")){
+            const parsedAlias = parseSlashAliasMessage(trimmedMessage);
+            const matchingAlias = payloadAliasOptions.find((alias) => alias.slash_command === parsedAlias.name);
+            if(matchingAlias){
+                return {state: "empty", message: `/${matchingAlias.slash_command} -> ${matchingAlias.actual_command}`};
+            }
+            const matchingAliases = getMatchingPayloadAliases(trimmedMessage);
+            if(matchingAliases.length > 0){
+                return {state: "empty", message: matchingAliases.map((alias) => `/${alias.slash_command}`).join(", ")};
+            }
+            return {state: "empty", message: "No matching aliases"};
         }
         const commandName = trimmedMessage.split(/\s+/)[0];
         const matchingCommands = loadedOptions.current.filter((command) => {

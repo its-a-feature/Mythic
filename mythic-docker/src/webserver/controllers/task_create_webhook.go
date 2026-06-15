@@ -31,7 +31,6 @@ type CreateTask struct {
 	IsInteractiveTask   bool     `json:"is_interactive_task"`
 	InteractiveTaskType *int     `json:"interactive_task_type,omitempty"`
 	PayloadType         *string  `json:"payload_type,omitempty"`
-	IsAlias             *bool    `json:"is_alias,omitempty"`
 }
 
 func CreateTaskWebhook(c *gin.Context) {

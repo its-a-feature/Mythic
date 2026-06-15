@@ -41,6 +41,7 @@
 - "!include public_operation.yaml"
 - "!include public_operationeventlog.yaml"
 - "!include public_operator.yaml"
+- "!include public_operator_alias.yaml"
 - "!include public_operatoroperation.yaml"
 - "!include public_payload.yaml"
 - "!include public_payload_build_step.yaml"

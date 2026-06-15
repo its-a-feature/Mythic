@@ -4,6 +4,7 @@ package databaseStructs
 type CustomBrowser struct {
 	ID                     int             `db:"id"`
 	Name                   string          `db:"name"`
+	DisplayName            string          `db:"display_name"`
 	Description            string          `db:"description"`
 	ContainerRunning       bool            `db:"container_running"`
 	Author                 string          `db:"author"`

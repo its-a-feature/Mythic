@@ -275,6 +275,33 @@ type Mutation {
 }
 
 type Mutation {
+  operatorAliasCreate(
+    slash_command: String!
+    actual_command: String!
+    payloadtype_id: Int
+    consuming_container_id: Int
+    active: Boolean
+  ): OperatorAliasActionOutput!
+}
+
+type Mutation {
+  operatorAliasUpdate(
+    id: Int!
+    slash_command: String!
+    actual_command: String!
+    payloadtype_id: Int
+    consuming_container_id: Int
+    active: Boolean!
+  ): OperatorAliasActionOutput!
+}
+
+type Mutation {
+  operatorAliasDelete(
+    id: Int!
+  ): OperatorAliasActionOutput!
+}
+
+type Mutation {
   createPayload(
     payloadDefinition: String!
   ): createPayloadOutput!
@@ -1258,6 +1285,12 @@ type updateOperatorStatusOutput {
   admin: Boolean
   active: Boolean
   deleted: Boolean
+}
+
+type OperatorAliasActionOutput {
+  status: String!
+  error: String
+  id: Int
 }
 
 type updateGlobalSettingsOutput {

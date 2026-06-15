@@ -31,6 +31,7 @@ type ChatContainerRequestMessage struct {
 	Config            map[string]interface{}        `json:"config" mapstructure:"config"`
 	Context           []ChatContainerContextMessage `json:"context" mapstructure:"context"`
 	Secrets           map[string]interface{}        `json:"secrets" mapstructure:"secrets"`
+	SlashCommand      *ChatSlashCommandInvocation   `json:"slash_command,omitempty" mapstructure:"slash_command"`
 	ConfirmedToolCall map[string]interface{}        `json:"confirmed_tool_call,omitempty" mapstructure:"confirmed_tool_call"`
 }
 
