@@ -7477,6 +7477,31 @@ tspan {
     text-overflow: clip;
     white-space: normal !important;
 }
+.mythic-dashboard-credentials-table {
+    table-layout: fixed;
+}
+.mythic-dashboard-credentials-table .MuiTableCell-root {
+    height: auto;
+    line-height: 1.3;
+    overflow: visible;
+    padding-bottom: 0.5rem !important;
+    padding-top: 0.5rem !important;
+    vertical-align: top;
+}
+.mythic-dashboard-credentials-table .mythic-dashboard-table-cell-account {
+    display: table-cell !important;
+    width: 42%;
+}
+.mythic-dashboard-credential-account {
+    align-items: flex-start;
+    display: flex;
+    gap: 0.45rem;
+    min-width: 0;
+}
+.mythic-dashboard-credentials-table .mythic-dashboard-table-comment {
+    display: block;
+    line-height: 1.35 !important;
+}
 .mythic-dashboard-table-icon-action {
     color: var(--mythic-global-025);
     cursor: pointer;

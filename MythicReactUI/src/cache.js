@@ -99,15 +99,15 @@ export const operatorSettingDefaults =  {
     sideShortcuts: defaultShortcuts,
     palette: {
         primary: {
-            dark: "#8ab4f8",
+            dark: "#7dd3fc",
             light: "#2563eb",
         },
         error: {
-            dark: '#f87171',
+            dark: '#fb7185',
             light: '#dc2626'
         },
         success: {
-            dark: '#4ade80',
+            dark: '#34d399',
             light: '#15803d',
         },
         secondary: {
@@ -115,216 +115,216 @@ export const operatorSettingDefaults =  {
             light: '#64748b'
         },
         info: {
-            dark: '#38bdf8',
-            light: '#0284c7'
+            dark: '#22d3ee',
+            light: '#0891b2'
         },
         warning: {
             dark: "#fbbf24",
-            light: "#d97706",
+            light: "#b45309",
         },
         background: {
-            dark: '#0f141b',
-            light: '#f4f6f8'
+            dark: '#0b0f14',
+            light: '#f6f8fb'
         },
         paper: {
-            dark: '#161b22',
+            dark: '#111820',
             light: '#ffffff'
         },
         surfaceRaised: {
-            dark: '#1b222c',
+            dark: '#16212b',
             light: '#ffffff'
         },
         surfaceMuted: {
-            dark: '#121820',
-            light: '#eef2f6'
+            dark: '#0f1720',
+            light: '#fafbfc'
         },
         tableHeader: {
-            dark: '#484848',
-            light: '#c4c4c4'
+            dark: '#17212c',
+            light: '#e8eef5'
         },
         tableHover: {
-            dark: "#3c3c3c",
-            light: "#e8e8e8",
+            dark: "#1e2a36",
+            light: "#eaf1f8",
         },
         pageHeader: {
-            dark: '#171d25',
+            dark: '#111a23',
             light: '#ffffff'
         },
         pageHeaderText: {
-            dark: "#e5e7eb",
-            light: "#111827",
+            dark: "#e7edf5",
+            light: "#0f172a",
         },
         chatMessageOperatorBackground: {
-            dark: "#18191c",
+            dark: "#111820",
             light: "#ffffff",
         },
         chatMessageSelfBackground: {
-            dark: "#202123",
-            light: "#f2f3f2",
+            dark: "#142033",
+            light: "#eef5ff",
         },
         chatMessageAIBackground: {
-            dark: "#232220",
-            light: "#f3f2ef",
+            dark: "#14272b",
+            light: "#edf8f5",
         },
         chatMessageSystemBackground: {
-            dark: "#252320",
-            light: "#f7f3eb",
+            dark: "#2a2116",
+            light: "#fff7ed",
         },
         chatMarkdownSurfaceBackground: {
-            dark: "#17181a",
-            light: "#f3f4f5",
+            dark: "#0b1118",
+            light: "#f1f5f9",
         },
         chatMarkdownSurfaceStrongBackground: {
-            dark: "#2b2c2f",
-            light: "#e8e9eb",
+            dark: "#1f2a37",
+            light: "#e2e8f0",
         },
         sectionHeaderAccent: {
-            dark: "#8ab4f8",
-            light: "#2563eb",
+            dark: "#7dd3fc",
+            light: "#b3cbff",
         },
         sectionHeaderGradientStart: {
-            dark: "#374760",
-            light: "#d8e3fb",
+            dark: "#153049",
+            light: "#dbeafe",
         },
         sectionHeaderGradientMiddle: {
-            dark: "#253040",
-            light: "#edf3fe",
+            dark: "#111f2e",
+            light: "#eef6ff",
         },
         sectionHeaderGradientEnd: {
-            dark: "#242a31",
-            light: "#f5f6f7",
+            dark: "#111820",
+            light: "#ffffff",
         },
         subtleAccentGradientStart: {
-            dark: "#1d2b3f",
-            light: "#edf4ff",
+            dark: "#132338",
+            light: "#eef6ff",
         },
         subtleAccentGradientEnd: {
-            dark: "#161b22",
+            dark: "#111820",
             light: "#ffffff",
         },
         graphGroupColor: {
-            dark: "#394c5d",
-            light: "#d3d7e8",
+            dark: "#24384a",
+            light: "#d9e6f2",
         },
         chartSeries1: {
-            dark: "#09bdff",
-            light: "#09bdff",
+            dark: "#38bdf8",
+            light: "#0284c7",
         },
         chartSeries2: {
-            dark: "#39b86f",
-            light: "#39b86f",
+            dark: "#34d399",
+            light: "#16a34a",
         },
         chartSeries3: {
-            dark: "#d69d2d",
-            light: "#d69d2d",
+            dark: "#fbbf24",
+            light: "#ca8a04",
         },
         chartSeries4: {
-            dark: "#d65c6b",
-            light: "#d65c6b",
+            dark: "#fb7185",
+            light: "#e11d48",
         },
         chartSeries5: {
-            dark: "#7b6fd6",
-            light: "#7b6fd6",
+            dark: "#a78bfa",
+            light: "#7c3aed",
         },
         chartSeries6: {
-            dark: "#24a3a3",
-            light: "#24a3a3",
+            dark: "#2dd4bf",
+            light: "#0d9488",
         },
         chartSeries7: {
-            dark: "#9c6ade",
-            light: "#9c6ade",
+            dark: "#f472b6",
+            light: "#db2777",
         },
         chartSeries8: {
-            dark: "#d47f38",
-            light: "#d47f38",
+            dark: "#f97316",
+            light: "#ea580c",
         },
         chartSeries9: {
-            dark: "#4e7ad7",
-            light: "#4e7ad7",
+            dark: "#818cf8",
+            light: "#4f46e5",
         },
         chartSeries10: {
-            dark: "#90a955",
-            light: "#90a955",
+            dark: "#a3e635",
+            light: "#65a30d",
         },
         text: {
-            dark: "#e5e7eb",
+            dark: "#e6edf3",
             light: "#111827",
         },
         textSecondary: {
-            dark: "#9ca3af",
-            light: "#475569",
+            dark: "#a7b2c2",
+            light: "#526174",
         },
         textDisabled: {
-            dark: "#6b7280",
-            light: "#94a3b8",
+            dark: "#6f7c8d",
+            light: "#93a1b2",
         },
         selectedCallbackColor: {
-            dark: '#1e3a5f',
+            dark: '#123a5a',
             light: '#dbeafe',
         },
         selectedCallbackHierarchyColor: {
-            dark: '#22324c',
-            light: '#eef4ff',
+            dark: '#172d49',
+            light: '#edf6ff',
         },
         backgroundImage: {
             dark: null,
             light: null
         },
         navBarIcons: {
-            dark: '#ffffff',
+            dark: '#dce8f8',
             light: '#ffffff'
         },
         navBarText: {
-            dark: '#ffffff',
+            dark: '#dce8f8',
             light: '#ffffff'
         },
         navBarColor: {
-            dark: "#111827",
-            light: "#111827",
+            dark: "#1a283d",
+            light: "#5c73a5",
         },
         navBarBottomColor: {
-            dark: "#1f2937",
+            dark: "#0c131c",
             light: "#1f2937",
         },
         taskPromptTextColor: {
-            dark: '#9ca3af',
+            dark: '#9fb3c8',
             light: '#64748b'
         },
         taskPromptCommandTextColor: {
             dark: "#f8fafc",
-            light: "#111827",
+            light: "#0f172a",
         },
         taskContextColor: {
-            dark: "#14253d",
+            dark: "#14324f",
             light: "#dbeafe",
         },
         taskContextImpersonationColor: {
-            dark: "#4c1d20",
+            dark: "#4a1824",
             light: "#fee2e2",
         },
         taskContextExtraColor: {
-            dark: "#123d39",
+            dark: "#123a35",
             light: "#dcfce7",
         },
         emptyFolderColor: {
-            dark: '#94a3b8',
+            dark: '#8997aa',
             light: '#64748b'
         },
         folderColor: {
-            dark: '#f1d592',
-            light: '#f1d592'
+            dark: '#f2c86b',
+            light: '#d6a23f'
         },
         outputBackgroundColor: {
-            dark: '#0b1017',
+            dark: '#070b10',
             light: '#f8fafc'
         },
         outputTextColor: {
-            dark: '#e5e7eb',
+            dark: '#e6edf3',
             light: '#111827',
         },
         borderColor: {
-            dark: "#2f3742",
-            light: "#d9dee7"
+            dark: "#263241",
+            light: "#d5dee9"
         }
     },
 }
