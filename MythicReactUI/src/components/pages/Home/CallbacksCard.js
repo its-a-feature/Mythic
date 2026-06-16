@@ -521,7 +521,7 @@ const ProxyUsageDashboardElement = ({me, data, editing, removeElement}) => {
                            <TableHead>
                                <TableRow>
                                    <MythicTableCell>{"Proxy"}</MythicTableCell>
-                                   <MythicTableCell>{"Traffic"}</MythicTableCell>
+                                   <MythicTableCell align="right">{"Traffic"}</MythicTableCell>
                                </TableRow>
                            </TableHead>
                        }
@@ -612,7 +612,7 @@ const Top10UserContextsDashboardElement = ({me, data, editing, removeElement}) =
                            <TableHead>
                                <TableRow>
                                    <MythicTableCell>{"User"}</MythicTableCell>
-                                   <MythicTableCell>{"Tasks"}</MythicTableCell>
+                                   <MythicTableCell align="right">{"Tasks"}</MythicTableCell>
                                </TableRow>
                            </TableHead>
                        }
@@ -699,7 +699,7 @@ const Top10HostContextsDashboardElement = ({me, data, editing, removeElement}) =
                            <TableHead>
                                <TableRow>
                                    <MythicTableCell>{"Host"}</MythicTableCell>
-                                   <MythicTableCell>{"Tasks"}</MythicTableCell>
+                                   <MythicTableCell align="right">{"Tasks"}</MythicTableCell>
                                </TableRow>
                            </TableHead>
                        }
@@ -780,7 +780,7 @@ const Top10RecentPayloadsDashboardElement = ({me, data, editing, removeElement})
                                <TableHead>
                                    <TableRow>
                                        <MythicTableCell>{"Payload"}</MythicTableCell>
-                                       <MythicTableCell>{"Actions"}</MythicTableCell>
+                                       <MythicTableCell align="right">{"Actions"}</MythicTableCell>
                                    </TableRow>
                                </TableHead>
                            }
@@ -896,7 +896,7 @@ const Top10RecentWorkflowsDashboardElement = ({me, data, editing, removeElement}
                                <TableHead>
                                    <TableRow>
                                        <MythicTableCell>{"Workflow"}</MythicTableCell>
-                                       <MythicTableCell>{"Status"}</MythicTableCell>
+                                       <MythicTableCell align="right">{"Status"}</MythicTableCell>
                                    </TableRow>
                                </TableHead>
                            }
@@ -1106,9 +1106,9 @@ const MyOperationsDashboardElement = ({me, data, reloadDashboard, editing, remov
                                <TableHead>
                                    <TableRow>
                                        <MythicTableCell>{"Operation"}</MythicTableCell>
-                                       <MythicTableCell>{"Configure"}</MythicTableCell>
-                                       <MythicTableCell>{"Operators"}</MythicTableCell>
-                                       <MythicTableCell>{"Status"}</MythicTableCell>
+                                       <MythicTableCell align="right">{"Configure"}</MythicTableCell>
+                                       <MythicTableCell align="right">{"Operators"}</MythicTableCell>
+                                       <MythicTableCell align="right">{"Status"}</MythicTableCell>
                                    </TableRow>
                                </TableHead>
                            }
@@ -1689,7 +1689,7 @@ const Top10RecentCredentialsDashboardElement = ({me, data, editing, removeElemen
                            tableHead={
                                <TableHead>
                                    <TableRow>
-                                       <MythicTableCell>Account</MythicTableCell>
+                                       <MythicTableCell className="mythic-dashboard-table-cell-account">Account</MythicTableCell>
                                        <MythicTableCell>Comment</MythicTableCell>
                                    </TableRow>
                                </TableHead>
@@ -1699,16 +1699,18 @@ const Top10RecentCredentialsDashboardElement = ({me, data, editing, removeElemen
                                    {credentials.map(c => (
                                        <TableRow key={c.id} hover>
                                            <MythicStyledTableCell className="mythic-dashboard-table-cell-wrap mythic-dashboard-table-cell-account">
-                                               <MythicStyledTooltip title={"Copy Credential to clipboard"}>
-                                                   <IconButton className="mythic-dashboard-icon-button" onClick={() => onCopyToClipboard(c.credential_text)} size="small">
-                                                       <FontAwesomeIcon icon={faCopy}/>
-                                                   </IconButton>
-                                               </MythicStyledTooltip>
-                                               <span className="mythic-dashboard-table-stack">
-                                                    <Typography className="mythic-dashboard-table-primary-text" variant="body2"><b>Account: </b>{c.account}</Typography>
-                                                    <Typography className="mythic-dashboard-table-secondary" variant="body2"><b>Realm: </b>{c.realm}</Typography>
-                                                    <Typography className="mythic-dashboard-table-secondary" variant="body2"><b>Type: </b>{c.type}</Typography>
-                                               </span>
+                                               <div className="mythic-dashboard-credential-account">
+                                                   <MythicStyledTooltip title={"Copy Credential to clipboard"}>
+                                                       <IconButton className="mythic-dashboard-icon-button" onClick={() => onCopyToClipboard(c.credential_text)} size="small">
+                                                           <FontAwesomeIcon icon={faCopy}/>
+                                                       </IconButton>
+                                                   </MythicStyledTooltip>
+                                                   <span className="mythic-dashboard-table-stack">
+                                                        <Typography className="mythic-dashboard-table-primary-text" variant="body2"><b>Account: </b>{c.account}</Typography>
+                                                        <Typography className="mythic-dashboard-table-secondary" variant="body2"><b>Realm: </b>{c.realm}</Typography>
+                                                        <Typography className="mythic-dashboard-table-secondary" variant="body2"><b>Type: </b>{c.type}</Typography>
+                                                   </span>
+                                               </div>
                                            </MythicStyledTableCell>
                                            <MythicTableCell className="mythic-dashboard-table-cell-wrap">
                                                <Typography className="mythic-dashboard-table-comment" variant="body2">{c.comment}</Typography>
@@ -1726,6 +1728,8 @@ const Top10RecentCredentialsDashboardElement = ({me, data, editing, removeElemen
                            empty={credentials.length === 0}
                            emptyTitle="No recent credentials"
                            emptyDescription="Captured credentials will appear here once credentials are created."
+                           summary={false}
+                           tableClassName="mythic-dashboard-credentials-table"
             />
         </>
 
