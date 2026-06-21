@@ -240,6 +240,7 @@ type Mutation {
     credential: String
     comment: String
     credential_type: String
+    metadata: jsonb
   ): createCredentialOutput
 }
 
@@ -272,43 +273,6 @@ type Mutation {
   createOperator(
     input: OperatorInput!
   ): OperatorOutput!
-}
-
-type Mutation {
-  operatorAliasCreate(
-    slash_command: String!
-    actual_command: String!
-    payloadtype_id: Int
-    consuming_container_id: Int
-    active: Boolean
-  ): OperatorAliasActionOutput!
-}
-
-type Mutation {
-  operatorAliasUpdate(
-    id: Int!
-    slash_command: String!
-    actual_command: String!
-    payloadtype_id: Int
-    consuming_container_id: Int
-    active: Boolean!
-  ): OperatorAliasActionOutput!
-}
-
-type Mutation {
-  operatorAliasDelete(
-    id: Int!
-  ): OperatorAliasActionOutput!
-}
-
-type Query {
-  exportOperatorAliases: OperatorAliasExportOutput!
-}
-
-type Mutation {
-  importOperatorAliases(
-    config: String!
-  ): OperatorAliasImportOutput!
 }
 
 type Mutation {
@@ -537,6 +501,10 @@ type Query {
 }
 
 type Query {
+  exportOperatorAliases: OperatorAliasExportOutput!
+}
+
+type Query {
   exportPayloadConfig(
     uuid: String!
   ): PayloadConfig
@@ -601,9 +569,42 @@ type Mutation {
 }
 
 type Mutation {
+  importOperatorAliases(
+    config: String!
+  ): OperatorAliasImportOutput!
+}
+
+type Mutation {
   importTagtypes(
     tagtypes: String!
   ): importTagtypesOutput
+}
+
+type Mutation {
+  operatorAliasCreate(
+    slash_command: String!
+    actual_command: String!
+    payloadtype_id: Int
+    consuming_container_id: Int
+    active: Boolean
+  ): OperatorAliasActionOutput!
+}
+
+type Mutation {
+  operatorAliasDelete(
+    id: Int!
+  ): OperatorAliasActionOutput!
+}
+
+type Mutation {
+  operatorAliasUpdate(
+    id: Int!
+    slash_command: String!
+    actual_command: String!
+    payloadtype_id: Int
+    consuming_container_id: Int
+    active: Boolean!
+  ): OperatorAliasActionOutput!
 }
 
 type Mutation {
@@ -1583,3 +1584,4 @@ type ChatSearchResult {
   created_at: String!
   rank: Float!
 }
+

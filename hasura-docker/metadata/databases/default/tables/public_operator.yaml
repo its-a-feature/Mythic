@@ -184,13 +184,6 @@ array_relationships:
         table:
           name: loadedcommands
           schema: public
-  - name: operator_aliases
-    using:
-      foreign_key_constraint_on:
-        column: operator_id
-        table:
-          name: operator_alias
-          schema: public
   - name: operationeventlogs
     using:
       foreign_key_constraint_on:
@@ -204,6 +197,13 @@ array_relationships:
         column: admin_id
         table:
           name: operation
+          schema: public
+  - name: operator_aliases
+    using:
+      foreign_key_constraint_on:
+        column: operator_id
+        table:
+          name: operator_alias
           schema: public
   - name: operatoroperations
     using:

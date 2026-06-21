@@ -54,14 +54,15 @@ fragment credentialData on credential{
     task_id
     timestamp
     deleted
+    metadata
     operator {
         username
     }
 }
 `;
 const createCredentialMutation = gql`
-mutation createCredential($comment: String!, $account: String!, $realm: String!, $type: String!, $credential: String!) {
-    createCredential(account: $account, credential: $credential, comment: $comment, realm: $realm, credential_type: $type) {
+mutation createCredential($comment: String!, $account: String!, $realm: String!, $type: String!, $credential: String!, $metadata: jsonb) {
+    createCredential(account: $account, credential: $credential, comment: $comment, realm: $realm, credential_type: $type, metadata: $metadata) {
       id
       status
       error
@@ -123,6 +124,12 @@ const ParameterEmptyInline = ({children}) => (
 const getCredentialChoiceIndex = (choices, credential) => {
     if(!credential || choices.length === 0){
         return -1;
+    }
+    if(typeof credential === "number"){
+        return choices.findIndex((choice) => choice.id === credential);
+    }
+    if(typeof credential === "string" && credential.trim() !== "" && !Number.isNaN(Number(credential))){
+        return choices.findIndex((choice) => choice.id === Number(credential));
     }
     if(credential.id !== undefined && credential.id !== null){
         return choices.findIndex((choice) => choice.id === credential.id);
@@ -513,7 +520,7 @@ export function TaskParametersDialogRow(props){
                if(updateToLatestCredential.current){
                    if(credentialChoices.length > 0){
                        setValue(0);
-                       props.onChange(props.name, {...credentialChoices[0]}, false);
+                       props.onChange(props.name, credentialChoices[0].id, false);
                    }else{
                        setValue("");
                    }
@@ -524,7 +531,7 @@ export function TaskParametersDialogRow(props){
                        setValue(selectedCredentialIndex);
                    }else if(credentialChoices.length > 0){
                        setValue(0);
-                       props.onChange(props.name, {...credentialChoices[0]}, false);
+                       props.onChange(props.name, credentialChoices[0].id, false);
                    }else{
                        setValue("");
                    }
@@ -579,7 +586,7 @@ export function TaskParametersDialogRow(props){
     }
     const onChangeCredentialJSONValue = (evt) => {
         setValue(evt.target.value);
-        props.onChange(props.name, {...ChoiceOptions[evt.target.value]}, false);
+        props.onChange(props.name, ChoiceOptions[evt.target.value].id, false);
     }
     const onChangeChooseMultiple = (event) => {
         const { value:options } = event.target;
@@ -756,8 +763,8 @@ export function TaskParametersDialogRow(props){
         setTypedArrayValue(values);
         props.onChange(props.name, values, false);
     }
-    const onCreateCredential = ({type, account, realm, comment, credential}) => {
-        createCredential({variables: {type, account, realm, comment, credential}})
+    const onCreateCredential = ({type, account, realm, comment, credential, metadata}) => {
+        createCredential({variables: {type, account, realm, comment, credential, metadata}})
     }
     const onDeleteCredential = () => {
         if(ChoiceOptions[value]?.id === undefined){

@@ -16,22 +16,55 @@ import {
 } from '../../MythicComponents/MythicDialogLayout';
 
 export function CredentialTableNewCredentialDialog(props) {
-  const [credentialType, setCredentialType] = React.useState("plaintext");
+  const initialValues = props.initialValues || {};
+  const stringifyMetadata = (metadata) => {
+    if(metadata === undefined || metadata === null){
+      return "{}";
+    }
+    if(typeof metadata === "string"){
+      try{
+        return JSON.stringify(JSON.parse(metadata), null, 2);
+      }catch(error){
+        return metadata;
+      }
+    }
+    return JSON.stringify(metadata, null, 2);
+  }
+  const [credentialType, setCredentialType] = React.useState(initialValues.type || "plaintext");
   const credentialOptions = [
-    "plaintext", "ticket", "hash", "certificate", "key", "hex"
+    "plaintext", "ticket", "hash", "certificate", "key", "hex", "cookie"
   ];
-  const [account, setAccount] = React.useState("");
-  const [realm, setRealm] = React.useState("");
-  const [credential, setCredential] = React.useState("");
-  const [comment, setComment] = React.useState("");
+  const [account, setAccount] = React.useState(initialValues.account || "");
+  const [realm, setRealm] = React.useState(initialValues.realm || "");
+  const [credential, setCredential] = React.useState(initialValues.credential || "");
+  const [comment, setComment] = React.useState(initialValues.comment || "");
+  const [metadata, setMetadata] = React.useState(stringifyMetadata(initialValues.metadata));
 
+  const validateMetadata = (value) => {
+    try{
+      const parsedMetadata = value.trim() === "" ? {} : JSON.parse(value);
+      return parsedMetadata === null || Array.isArray(parsedMetadata) || typeof parsedMetadata !== "object";
+    }catch(error){
+      return true;
+    }
+  }
 
   const onSubmit = () => {
+    let parsedMetadata = {};
+    try{
+      parsedMetadata = metadata.trim() === "" ? {} : JSON.parse(metadata);
+      if(parsedMetadata === null || Array.isArray(parsedMetadata) || typeof parsedMetadata !== "object"){
+        return;
+      }
+    }catch(error){
+      return;
+    }
     props.onSubmit({
       realm,
       account,
       comment,
       credential,
+      metadata: parsedMetadata,
       "type": credentialType
     });
     props.onClose();
@@ -47,6 +80,9 @@ export function CredentialTableNewCredentialDialog(props) {
   }
   const onCredentialChange = (name, value, error) => {
     setCredential(value);
+  }
+  const onMetadataChange = (name, value, error) => {
+    setMetadata(value);
   }
   const handleCredentialTypeChange = (event) => {
     setCredentialType(event.target.value);
@@ -81,6 +117,7 @@ export function CredentialTableNewCredentialDialog(props) {
               <MythicDialogSection title="Credential Material">
                 <MythicTextField multiline value={credential} onChange={onCredentialChange} name="Credential"/>
                 <MythicTextField value={comment} onChange={onCommentChange} name="Comment"/>
+                <MythicTextField multiline value={metadata} onChange={onMetadataChange} name="Metadata" validate={validateMetadata} errorText="Metadata must be a JSON object"/>
               </MythicDialogSection>
             </MythicDialogBody>
         </DialogContent>

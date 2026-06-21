@@ -27,6 +27,13 @@ array_relationships:
         table:
           name: command
           schema: public
+  - name: operator_aliases
+    using:
+      foreign_key_constraint_on:
+        column: payloadtype_id
+        table:
+          name: operator_alias
+          schema: public
   - name: payload_build_steps
     using:
       foreign_key_constraint_on:
@@ -47,13 +54,6 @@ array_relationships:
         column: payload_type_id
         table:
           name: payloadtypec2profile
-          schema: public
-  - name: operator_aliases
-    using:
-      foreign_key_constraint_on:
-        column: payloadtype_id
-        table:
-          name: operator_alias
           schema: public
   - name: wrap_these_payload_types
     using:

@@ -48,6 +48,16 @@ for each row execute function public.set_current_timestamp_updated_at();
 alter table "public"."task" add column if not exists "alias_resolution" text not null default ''::text;
 alter table "public"."custombrowser" add column if not exists "display_name" text not null default ''::text;
 
+alter table "public"."credential" alter column "metadata" drop default;
+
+alter table "public"."credential" alter column "metadata" type jsonb using jsonb_build_object();
+
+alter table "public"."credential"  alter column "metadata" set default jsonb_build_object();
+
+alter table "public"."credential"  alter column "metadata" set not null;
+
+create index if not exists credential_metadata_gin on "public"."credential" using gin ("metadata");
+
 -- +migrate Down
 -- SQL section 'Down' is executed when this migration is rolled back
 

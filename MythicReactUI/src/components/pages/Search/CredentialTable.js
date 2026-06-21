@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import {IconButton, Typography} from '@mui/material';
+import {Chip, IconButton, Typography} from '@mui/material';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -26,6 +26,146 @@ import MenuList from '@mui/material/MenuList';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {TagsDisplay, ViewEditTags} from '../../MythicComponents/MythicTag';
+
+const parseCredentialMetadata = (metadata) => {
+    if(metadata === undefined || metadata === null){
+        return {};
+    }
+    if(typeof metadata === "string"){
+        try{
+            const parsed = JSON.parse(metadata);
+            return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+        }catch(error){
+            return {};
+        }
+    }
+    return metadata && typeof metadata === "object" && !Array.isArray(metadata) ? metadata : {};
+}
+
+const compactMetadataValue = (value) => {
+    if(value === undefined || value === null){
+        return "";
+    }
+    if(typeof value === "object"){
+        return JSON.stringify(value);
+    }
+    return `${value}`;
+}
+
+const isPlainObject = (value) => value && typeof value === "object" && !Array.isArray(value);
+
+const metadataKeyStyle = {
+    fontFamily: "monospace",
+    fontSize: "0.72rem",
+    opacity: 0.78,
+    overflowWrap: "anywhere",
+};
+
+const metadataValueStyle = {
+    fontFamily: "monospace",
+    fontSize: "0.72rem",
+    overflowWrap: "anywhere",
+};
+
+function MetadataValue({value}){
+    if(Array.isArray(value)){
+        return <Chip size="small" variant="outlined" label={`array[${value.length}]`} style={{height: "18px", fontSize: "0.68rem"}} />
+    }
+    if(isPlainObject(value)){
+        const entries = Object.entries(value).slice(0, 3);
+        return (
+            <div style={{display: "grid", gap: "0.15rem", minWidth: 0}}>
+                {entries.map(([key, nestedValue]) => (
+                    <div key={key} style={{display: "grid", gridTemplateColumns: "minmax(4rem, auto) 1fr", gap: "0.3rem", minWidth: 0}}>
+                        <span style={metadataKeyStyle}>{key}</span>
+                        <span style={metadataValueStyle}>{compactMetadataValue(nestedValue)}</span>
+                    </div>
+                ))}
+                {Object.keys(value).length > entries.length &&
+                    <Chip size="small" variant="outlined" label={`+${Object.keys(value).length - entries.length} keys`} style={{height: "18px", fontSize: "0.68rem", width: "fit-content"}} />
+                }
+            </div>
+        )
+    }
+    return <span style={metadataValueStyle}>{compactMetadataValue(value)}</span>
+}
+
+function MetadataFieldRow({name, value, chip}){
+    return (
+        <div style={{
+            display: "grid",
+            gridTemplateColumns: "8rem minmax(0, 1fr)",
+            gap: "0.4rem",
+            alignItems: "start",
+            minWidth: 0,
+            padding: "0.15rem 0",
+            borderBottom: "1px solid rgba(127,127,127,0.15)",
+        }}>
+            <span style={metadataKeyStyle}>{name}</span>
+            <div style={{display: "flex", alignItems: "center", gap: "0.35rem", minWidth: 0, flexWrap: "wrap"}}>
+                <MetadataValue value={value} />
+                {chip &&
+                    <Chip size="small" color={chip.color} label={chip.label} style={{height: "18px", fontSize: "0.68rem"}} />
+                }
+            </div>
+        </div>
+    )
+}
+
+function CredentialMetadataSummary({metadata, onCopy}){
+    const parsedMetadata = parseCredentialMetadata(metadata);
+    const metadataEntries = Object.entries(parsedMetadata);
+    const validity = parsedMetadata.validity || {};
+    const promoted = [
+        {label: "client", value: parsedMetadata.client_principal},
+        {label: "service", value: parsedMetadata.service_principal},
+        {label: "start", value: parsedMetadata.not_before || parsedMetadata.start_time, chip: validity.not_yet_valid ? {label: "not yet valid", color: "warning"} : null},
+        {label: "end", value: parsedMetadata.expires_at || parsedMetadata.end_time, chip: validity.expired ? {label: "expired", color: "error"} : null},
+        {label: "renew", value: parsedMetadata.renew_until, chip: validity.renew_expired ? {label: "renew expired", color: "warning"} : null},
+    ].filter(({value, chip}) => (value !== undefined && value !== null && `${value}` !== "") || chip);
+    const summaryChips = [
+        parsedMetadata.parser ? {label: `parser:${parsedMetadata.parser}`} : null,
+        parsedMetadata.credential_format ? {label: `format:${parsedMetadata.credential_format}`} : null,
+        parsedMetadata.ticket_count !== undefined ? {label: `tickets:${parsedMetadata.ticket_count}`} : null,
+    ].filter(Boolean);
+    const warningValues = Array.isArray(parsedMetadata.parser_warnings) ? parsedMetadata.parser_warnings : [];
+    const ignoredKeys = new Set([
+        "tickets", "validity", "client_principal", "service_principal", "not_before", "start_time",
+        "expires_at", "end_time", "renew_until", "parser_warnings", "parser", "credential_format",
+        "ticket_count"
+    ]);
+    const extra = Object.entries(parsedMetadata)
+        .filter(([key, value]) => !ignoredKeys.has(key) && value !== undefined && value !== null)
+        .slice(0, 5);
+    if(metadataEntries.length === 0){
+        return <Typography variant="caption" style={{fontFamily: "monospace", opacity: 0.7}}>{"{}"}</Typography>;
+    }
+    return (
+        <div style={{display: "grid", gap: "0.35rem", minWidth: 0}}>
+            <div style={{display: "flex", alignItems: "center", gap: "0.25rem", flexWrap: "wrap"}}>
+                {summaryChips.map((chip) => (
+                    <Chip key={chip.label} size="small" variant="outlined" label={chip.label} style={{height: "18px", fontSize: "0.68rem"}} />
+                ))}
+                {onCopy &&
+                    <MythicStyledTooltip title={"Copy metadata JSON"}>
+                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-info" onClick={() => onCopy(JSON.stringify(parsedMetadata, null, 2))} size="small">
+                            <FontAwesomeIcon icon={faCopy}/>
+                        </IconButton>
+                    </MythicStyledTooltip>
+                }
+            </div>
+            {promoted.map(({label, value, chip}) => (
+                <MetadataFieldRow key={label} name={label} value={value || ""} chip={chip} />
+            ))}
+            {extra.map(([key, value]) => (
+                <MetadataFieldRow key={key} name={key} value={value} />
+            ))}
+            {warningValues.slice(0, 2).map((warning, index) => (
+                <Chip key={`warning-${index}`} size="small" color="warning" variant="outlined" label={compactMetadataValue(warning)} style={{height: "18px", fontSize: "0.68rem", maxWidth: "100%"}} />
+            ))}
+        </div>
+    )
+}
 
 const updateCredentialComment = gql`
 mutation updateCommentMutation($credential_id: Int!, $comment: String!){
@@ -167,11 +307,11 @@ export function CredentialTable(props){
                     <TableRow>
                         <TableCell style={{width: "2rem"}}></TableCell>
                         <TableCell style={{width: "5rem"}}>Edit</TableCell>
-                        <TableCell >Info</TableCell>
-                        <TableCell style={{width: "15rem"}}>Comment</TableCell>
-                        <TableCell >Task Info</TableCell>
-                        <TableCell style={{}}>Credential</TableCell>
-                        <TableCell style={{width: "15rem"}}>Tags</TableCell>
+                        <TableCell style={{}}>Info</TableCell>
+                        <TableCell style={{}}>Metadata</TableCell>
+                        <TableCell style={{width: "11rem"}}>Task Info</TableCell>
+                        <TableCell style={{width: "15rem"}}>Credential</TableCell>
+                        <TableCell style={{width: "11rem"}}>Tags</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -308,7 +448,7 @@ function CredentialTableRow(props){
         setOpenDropdownButton(false);
       };
     const credentialTypeOptions = [
-        "certificate", "hash","hex", "key", "plaintext",  "ticket",
+        "certificate", "cookie", "hash","hex", "key", "plaintext",  "ticket",
     ]
     return (
         <React.Fragment>
@@ -391,12 +531,22 @@ function CredentialTableRow(props){
                     </Popper>
                 </TableCell>
                 <MythicStyledTableCell style={{ whiteSpace: "pre-line",wordBreak: "break-all",}}>
+                    <div style={{display: "flex", alignItems: "center", gap: "0.25rem"}}>
+                        <Typography variant="body2" style={{wordBreak: "break-all"}}>
+                            <b>Tasking ID: </b>{props.id}
+                        </Typography>
+                        <MythicStyledTooltip title={"Copy credential ID for tasking"}>
+                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-info" onClick={() => onCopyToClipboard(String(props.id))} size="small">
+                                <FontAwesomeIcon icon={faCopy}/>
+                            </IconButton>
+                        </MythicStyledTooltip>
+                    </div>
                     <Typography variant="body2" style={{wordBreak: "break-all"}}><b>Account: </b>{props.account}</Typography>
                     <Typography variant="body2" style={{wordBreak: "break-all"}}><b>Realm: </b>{props.realm}</Typography>
                     <Typography variant="body2" style={{wordBreak: "break-all"}}><b>Type: </b>{props.type}</Typography>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <Typography variant="body2" style={{whiteSpace: "pre-line",wordBreak: "break-all",}}>{props.comment}</Typography>
+                    <CredentialMetadataSummary metadata={props.metadata} onCopy={onCopyToClipboard}/>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     {props.task !== null ? (
@@ -421,6 +571,11 @@ function CredentialTableRow(props){
                             display: "inline-block"
                         }}><b>Credential: </b>{displayCred}</Typography>
                     </div>
+                    {(props.comment || "").length > 0 &&
+                        <Typography variant="caption" style={{whiteSpace: "pre-line", wordBreak: "break-word", display: "block", marginTop: "0.25rem"}}>
+                            <b>Comment: </b>{props.comment}
+                        </Typography>
+                    }
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <ViewEditTags

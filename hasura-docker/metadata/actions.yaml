@@ -402,66 +402,6 @@ actions:
       - role: operation_admin
       - role: mythic_admin
     comment: Create a new operator account
-  - name: operatorAliasCreate
-    definition:
-      kind: synchronous
-      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/operator_alias_create_webhook'
-      forward_client_headers: true
-    permissions:
-      - role: developer
-      - role: mythic_admin
-      - role: operation_admin
-      - role: operator
-      - role: spectator
-    comment: Create an operator-owned slash alias
-  - name: operatorAliasDelete
-    definition:
-      kind: synchronous
-      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/operator_alias_delete_webhook'
-      forward_client_headers: true
-    permissions:
-      - role: developer
-      - role: mythic_admin
-      - role: operation_admin
-      - role: operator
-      - role: spectator
-    comment: Delete an operator-owned slash alias
-  - name: exportOperatorAliases
-    definition:
-      kind: synchronous
-      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/operator_alias_export_webhook'
-      forward_client_headers: true
-    permissions:
-      - role: developer
-      - role: mythic_admin
-      - role: operation_admin
-      - role: operator
-      - role: spectator
-    comment: Export operator-owned slash aliases using portable scope names
-  - name: importOperatorAliases
-    definition:
-      kind: synchronous
-      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/operator_alias_import_webhook'
-      forward_client_headers: true
-    permissions:
-      - role: developer
-      - role: mythic_admin
-      - role: operation_admin
-      - role: operator
-      - role: spectator
-    comment: Import operator-owned slash aliases from a portable JSON config
-  - name: operatorAliasUpdate
-    definition:
-      kind: synchronous
-      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/operator_alias_update_webhook'
-      forward_client_headers: true
-    permissions:
-      - role: developer
-      - role: mythic_admin
-      - role: operation_admin
-      - role: operator
-      - role: spectator
-    comment: Update an operator-owned slash alias
   - name: createPayload
     definition:
       kind: synchronous
@@ -767,6 +707,18 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: exportOperatorAliases
+    definition:
+      kind: ""
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/operator_alias_export_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: developer
+      - role: mythic_admin
+      - role: operation_admin
+      - role: operator
+      - role: spectator
+    comment: Export operator-owned slash aliases using portable scope names
   - name: exportPayloadConfig
     definition:
       kind: ""
@@ -868,6 +820,18 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: importOperatorAliases
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/operator_alias_import_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: developer
+      - role: mythic_admin
+      - role: operation_admin
+      - role: operator
+      - role: spectator
+    comment: Import operator-owned slash aliases from a portable JSON config
   - name: importTagtypes
     definition:
       kind: synchronous
@@ -878,6 +842,42 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: operatorAliasCreate
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/operator_alias_create_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: developer
+      - role: mythic_admin
+      - role: operation_admin
+      - role: operator
+      - role: spectator
+    comment: Create an operator-owned slash alias
+  - name: operatorAliasDelete
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/operator_alias_delete_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: developer
+      - role: mythic_admin
+      - role: operation_admin
+      - role: operator
+      - role: spectator
+    comment: Delete an operator-owned slash alias
+  - name: operatorAliasUpdate
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/operator_alias_update_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: developer
+      - role: mythic_admin
+      - role: operation_admin
+      - role: operator
+      - role: spectator
+    comment: Update an operator-owned slash alias
   - name: previewFile
     definition:
       kind: synchronous

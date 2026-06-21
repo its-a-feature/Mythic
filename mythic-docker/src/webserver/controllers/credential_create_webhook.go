@@ -20,11 +20,12 @@ type CreateCredentialInput struct {
 }
 
 type CreateCredential struct {
-	Realm          string `json:"realm"`
-	Account        string `json:"account"`
-	Credential     string `json:"credential"`
-	Comment        string `json:"comment"`
-	CredentialType string `json:"credential_type"`
+	Realm          string      `json:"realm"`
+	Account        string      `json:"account"`
+	Credential     string      `json:"credential"`
+	Comment        string      `json:"comment"`
+	CredentialType string      `json:"credential_type"`
+	Metadata       interface{} `json:"metadata"`
 }
 
 type CreateCredentialResponse struct {
@@ -67,6 +68,7 @@ func CreateCredentialWebhook(c *gin.Context) {
 	} else {
 		databaseCred.Type = "plaintext"
 	}
+	databaseCred.Metadata = rabbitmq.ParseCredentialMetadata(databaseCred.Type, databaseCred.Credential, input.Input.Metadata)
 	APITokenID, ok := c.Get(authentication.ContextKeyAPITokenID)
 	if ok {
 		if APITokenID.(int) > 0 {
@@ -109,6 +111,7 @@ func CreateCredentialWebhook(c *gin.Context) {
 			return
 		}
 		go rabbitmq.EmitCredentialLog(databaseCred.ID)
+		go rabbitmq.RefreshCredentialValidity(databaseCred.ID)
 		c.JSON(http.StatusOK, CreateCredentialResponse{
 			Status: "success",
 			ID:     databaseCred.ID,
@@ -126,9 +129,10 @@ func CreateCredentialWebhook(c *gin.Context) {
 	}
 	if databaseCred.Deleted {
 		// the credential exists, make sure it's marked as not deleted
-		if _, err := database.DB.Exec(`UPDATE credential SET deleted=false WHERE id=$1`, databaseCred.ID); err != nil {
+		if _, err := database.DB.Exec(`UPDATE credential SET deleted=false, metadata=$2 WHERE id=$1`, databaseCred.ID, rabbitmq.ParseCredentialMetadata(databaseCred.Type, databaseCred.Credential, input.Input.Metadata)); err != nil {
 			logging.LogError(err, "failed to update credential that already exists")
 		}
+		go rabbitmq.RefreshCredentialValidity(databaseCred.ID)
 		c.JSON(http.StatusOK, CreateCredentialResponse{
 			Status: "success",
 			ID:     databaseCred.ID,
@@ -139,4 +143,5 @@ func CreateCredentialWebhook(c *gin.Context) {
 		Status: "success",
 		ID:     databaseCred.ID,
 	})
+	go rabbitmq.RefreshCredentialValidity(databaseCred.ID)
 }

@@ -120,6 +120,7 @@ func Initialize() {
 			proxyPorts.Initialize()
 			// start tracking tasks wait to be fetched
 			submittedTasksAwaitingFetching.Initialize()
+			InitializeCredentialValidityManager()
 			updatePushC2CallbackTime()
 			// initialize gRPC
 			grpc.Initialize(pushC2StreamingConnectNotification, pushC2StreamingDisconnectNotification)
