@@ -22,6 +22,7 @@ fragment credentialSearchData on credential{
     id
     realm
     type
+    metadata
     task {
         display_id
         id
@@ -117,8 +118,8 @@ query tagQuery($tag: String!, $offset: Int!, $fetchLimit: Int!) {
 `;
 const createCredentialMutation = gql`
 ${credentialFragment}
-mutation createCredential($comment: String!, $account: String!, $realm: String!, $type: String!, $credential: String!) {
-    createCredential(account: $account, credential: $credential, comment: $comment, realm: $realm, credential_type: $type) {
+mutation createCredential($comment: String!, $account: String!, $realm: String!, $type: String!, $credential: String!, $metadata: jsonb) {
+    createCredential(account: $account, credential: $credential, comment: $comment, realm: $realm, credential_type: $type, metadata: $metadata) {
       status
       error
       id
@@ -191,8 +192,8 @@ const SearchTabCredentialsSearchPanel = (props) => {
         setShowDeleted(!showDeleted);
         props.onChangeDeletedField(!showDeleted);
     }
-    const onCreateCredential = ({type, account, realm, comment, credential}) => {
-        createCredential({variables: {type, account, realm, comment, credential}})
+    const onCreateCredential = ({type, account, realm, comment, credential, metadata}) => {
+        createCredential({variables: {type, account, realm, comment, credential, metadata}})
     }
     React.useEffect(() => {
         if(props.value === props.index){

@@ -7,12 +7,13 @@ import WrapTextIcon from '@mui/icons-material/WrapText';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
 import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
-import { useReactiveVar } from '@apollo/client';
+import { gql, useMutation, useReactiveVar } from '@apollo/client';
 import { meState } from '../../../cache';
 import CodeIcon from '@mui/icons-material/Code';
 import ArticleIcon from '@mui/icons-material/Article';
 import NotesIcon from '@mui/icons-material/Notes';
 import TerminalIcon from '@mui/icons-material/Terminal';
+import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import ReactMarkdown from 'react-markdown';
 import {Terminal} from '@xterm/xterm';
 import {FitAddon} from '@xterm/addon-fit';
@@ -24,6 +25,8 @@ import {
 } from "./ResponseDisplayInteractive";
 import {isAllowedMarkdownLink, markdownPlugins} from "../../utilities/Markdown";
 import {markdownComponents} from "../Chat/Chat";
+import {MythicDialog} from "../../MythicComponents/MythicDialog";
+import {CredentialTableNewCredentialDialog} from "../Search/CredentialTableNewCredentialDialog";
 
 const MaxRenderSize = 2000000;
 const RenderModes = {
@@ -36,6 +39,15 @@ const renderModeOptions = [
   {value: RenderModes.markdown, label: "Markdown", Icon: NotesIcon},
   {value: RenderModes.terminal, label: "Terminal", Icon: TerminalIcon},
 ];
+const createCredentialMutation = gql`
+mutation createCredential($comment: String!, $account: String!, $realm: String!, $type: String!, $credential: String!, $metadata: jsonb) {
+    createCredential(account: $account, credential: $credential, comment: $comment, realm: $realm, credential_type: $type, metadata: $metadata) {
+      status
+      error
+      id
+    }
+  }
+`;
 const normalizeRenderMode = (value) => {
   return Object.values(RenderModes).includes(value) ? value : RenderModes.plaintext;
 }
@@ -211,7 +223,23 @@ export const ResponseDisplayPlaintext = (props) =>{
   const [renderMode, setRenderMode] = React.useState(getInitialRenderMode(props));
   const [wrapText, setWrapText] = React.useState(props?.wrap_text === undefined ? true : props.wrap_text);
   const [showOptions, setShowOptions] = React.useState(false);
+  const [createCredentialDialogOpen, setCreateCredentialDialogOpen] = React.useState(false);
+  const [initialCredentialValues, setInitialCredentialValues] = React.useState({});
   const largeResponseWarningShown = React.useRef(false);
+  const [createCredential] = useMutation(createCredentialMutation, {
+      fetchPolicy: "no-cache",
+      onCompleted: (data) => {
+          if(data.createCredential.status === "success"){
+              snackActions.success("Successfully created new credential");
+          } else {
+              snackActions.error(data.createCredential.error);
+          }
+      },
+      onError: (data) => {
+          snackActions.error("Failed to create credential");
+          console.log(data);
+      }
+  });
   const onChangeText = (data) => {
       if(props.onChangeContent){
           props?.onChangeContent(data);
@@ -266,6 +294,31 @@ export const ResponseDisplayPlaintext = (props) =>{
     const onChangeShowOptions = () => {
         setShowOptions(!showOptions);
     }
+    const sourceTaskMetadata = () => ({
+        source: {
+            type: "task_output",
+            task_id: props?.task?.id,
+            task_display_id: props?.task?.display_id,
+            callback_id: props?.task?.callback_id,
+            command: props?.task?.command_name || props?.task?.command?.cmd,
+        }
+    });
+    const openCreateCredentialDialog = () => {
+        const selectedText = currentContentRef.current?.editor?.getSelectedText?.() || "";
+        const credentialText = selectedText.trim() === "" ? plaintextView : selectedText;
+        if(credentialText.trim() === ""){
+            snackActions.warning("No credential text selected");
+            return;
+        }
+        setInitialCredentialValues({
+            credential: credentialText,
+            metadata: sourceTaskMetadata(),
+        });
+        setCreateCredentialDialogOpen(true);
+    }
+    const onCreateCredential = ({type, account, realm, comment, credential, metadata}) => {
+        createCredential({variables: {type, account, realm, comment, credential, metadata}})
+    }
     const scrollContent = (node, isAppearing) => {
         // only auto-scroll if you issued the task
         if(props?.task?.operator?.username === (me?.user?.username || "")){
@@ -300,6 +353,12 @@ export const ResponseDisplayPlaintext = (props) =>{
     const displayWrapText = renderMode === RenderModes.plaintext ? wrapText : true;
   return (
       <div style={{display: "flex", height: "100%", flexDirection: "column"}}>
+          {createCredentialDialogOpen &&
+              <MythicDialog fullWidth={true} maxWidth="md" open={createCredentialDialogOpen}
+                            onClose={()=>{setCreateCredentialDialogOpen(false);}}
+                            innerDialog={<CredentialTableNewCredentialDialog initialValues={initialCredentialValues} onSubmit={onCreateCredential} onClose={()=>{setCreateCredentialDialogOpen(false);}} />}
+              />
+          }
           {props.displayType !== 'console' &&
               <div className={`mythic-response-render-toolbar${showOptions ? " is-open" : ""}`}>
                   <button className="mythic-response-render-toolbar-toggle"
@@ -347,6 +406,17 @@ export const ResponseDisplayPlaintext = (props) =>{
                                               <CodeIcon fontSize="small" />
                                           </button>
                                       </MythicStyledTooltip>
+                                      {props.task &&
+                                          <MythicStyledTooltip title={"Create Credential"} >
+                                              <button
+                                                  aria-label="Create Credential"
+                                                  className="mythic-response-render-action-button"
+                                                  onClick={openCreateCredentialDialog}
+                                                  type="button">
+                                                  <VpnKeyIcon fontSize="small" />
+                                              </button>
+                                          </MythicStyledTooltip>
+                                      }
                                   </div>
                                   <label className="mythic-response-syntax-group">
                                       <span>Syntax</span>

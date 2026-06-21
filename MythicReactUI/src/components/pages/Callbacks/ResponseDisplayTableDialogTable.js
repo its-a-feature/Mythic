@@ -6,13 +6,13 @@ import DialogTitle from '@mui/material/DialogTitle';
 import {ResponseDisplayTable} from './ResponseDisplayTable';
 
 
-export function ResponseDisplayTableDialogTable({table, callback_id, title, onClose}) {
+export function ResponseDisplayTableDialogTable({table, callback_id, title, onClose, task}) {
       
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">{title}</DialogTitle>
         <DialogContent dividers={true}>
-            <ResponseDisplayTable table={table} callback_id={callback_id} />
+            <ResponseDisplayTable table={table} callback_id={callback_id} task={task} />
         </DialogContent>
         <DialogActions>
           <Button variant="contained" onClick={onClose} color="primary">
@@ -22,4 +22,3 @@ export function ResponseDisplayTableDialogTable({table, callback_id, title, onCl
   </React.Fragment>
   );
 }
-

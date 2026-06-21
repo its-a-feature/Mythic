@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
@@ -20,12 +21,15 @@ type MythicRPCCredentialSearchMessageResponse struct {
 	Credentials []MythicRPCCredentialSearchCredentialData `json:"credentials"`
 }
 type MythicRPCCredentialSearchCredentialData struct {
-	Type       *string `json:"type" `      // optional
-	Account    *string `json:"account" `   // optional
-	Realm      *string `json:"realm" `     // optional
-	Credential *string `json:"credential"` // optional
-	Comment    *string `json:"comment"`    // optional
-	Metadata   *string `json:"metadata"`   // optional
+	ID         *int        `json:"id,omitempty"`
+	Type       *string     `json:"type,omitempty"`
+	Account    *string     `json:"account,omitempty"`
+	Realm      *string     `json:"realm,omitempty"`
+	Credential *string     `json:"credential,omitempty"`
+	Comment    *string     `json:"comment,omitempty"`
+	Metadata   interface{} `json:"metadata,omitempty"`
+	Deleted    *bool       `json:"deleted,omitempty"`
+	Timestamp  *time.Time  `json:"timestamp,omitempty"`
 }
 
 func init() {
@@ -46,32 +50,43 @@ func MythicRPCCredentialSearch(input MythicRPCCredentialSearchMessage, authConte
 	params := []interface{}{}
 	credentials := []databaseStructs.Credential{}
 	params = append(params, authContext.OperationID)
-	searchString := fmt.Sprintf(`SELECT * FROM credential WHERE operation_id=$%d `, len(params))
+	searchString := fmt.Sprintf(`SELECT c.* FROM credential c WHERE c.operation_id=$%d `, len(params))
 	if input.SearchCredentials.Type != nil {
 		params = append(params, "%"+*input.SearchCredentials.Type+"%")
-		searchString += fmt.Sprintf("AND \"type\" ILIKE $%d ", len(params))
+		searchString += fmt.Sprintf("AND c.\"type\" ILIKE $%d ", len(params))
 	}
 	if input.SearchCredentials.Credential != nil {
 		params = append(params, "%"+*input.SearchCredentials.Credential+"%")
-		searchString += fmt.Sprintf("AND credential LIKE $%d ", len(params))
+		searchString += fmt.Sprintf("AND credential_credentials(c) ILIKE $%d ", len(params))
 	}
 	if input.SearchCredentials.Account != nil {
 		params = append(params, "%"+*input.SearchCredentials.Account+"%")
-		searchString += fmt.Sprintf("AND account ILIKE $%d ", len(params))
+		searchString += fmt.Sprintf("AND c.account ILIKE $%d ", len(params))
 	}
 	if input.SearchCredentials.Realm != nil {
 		params = append(params, "%"+*input.SearchCredentials.Realm+"%")
-		searchString += fmt.Sprintf("AND realm ILIKE $%d ", len(params))
+		searchString += fmt.Sprintf("AND c.realm ILIKE $%d ", len(params))
 	}
 	if input.SearchCredentials.Comment != nil {
 		params = append(params, "%"+*input.SearchCredentials.Comment+"%")
-		searchString += fmt.Sprintf("AND comment ILIKE $%d ", len(params))
+		searchString += fmt.Sprintf("AND c.comment ILIKE $%d ", len(params))
 	}
 	if input.SearchCredentials.Metadata != nil {
-		params = append(params, "%"+*input.SearchCredentials.Metadata+"%")
-		searchString += fmt.Sprintf("AND metadata ILIKE $%d ", len(params))
+		switch metadataFilter := input.SearchCredentials.Metadata.(type) {
+		case string:
+			params = append(params, "%"+metadataFilter+"%")
+			searchString += fmt.Sprintf("AND c.metadata::text ILIKE $%d ", len(params))
+		default:
+			metadataBytes, err := json.Marshal(metadataFilter)
+			if err != nil {
+				response.Error = err.Error()
+				return response
+			}
+			params = append(params, string(metadataBytes))
+			searchString += fmt.Sprintf("AND c.metadata @> $%d::jsonb ", len(params))
+		}
 	}
-	searchString += " ORDER BY id DESC"
+	searchString += " ORDER BY c.id DESC"
 	err := database.DB.Select(&credentials, searchString, params...)
 	if err != nil {
 		logging.LogError(err, "Failed to search for credentials")

@@ -142,58 +142,62 @@ select_permissions:
   - role: mythic_admin
     permission:
       columns:
-        - agent_task_id
+        - completed
+        - completed_callback_function_completed
+        - completed_callback_function_started
+        - group_callback_function_completed
+        - group_callback_function_started
+        - has_intercepted_response
+        - is_interactive_task
+        - opsec_post_blocked
+        - opsec_post_bypassed
+        - opsec_pre_blocked
+        - opsec_pre_bypassed
+        - process_at_original_command
+        - subtask_callback_function_completed
+        - subtask_callback_function_started
         - apitokens_id
         - callback_id
         - command_id
+        - comment_operator_id
+        - display_id
+        - eventstepinstance_id
+        - id
+        - interactive_task_type
+        - operation_id
+        - operator_id
+        - opsec_post_bypass_user_id
+        - opsec_pre_bypass_user_id
+        - parent_task_id
+        - response_count
+        - token_id
+        - agent_task_id
+        - alias_resolution
         - command_name
         - command_payload_type
         - comment
-        - comment_operator_id
-        - completed
         - completed_callback_function
-        - completed_callback_function_completed
-        - display_id
         - display_params
-        - eventstepinstance_id
         - group_callback_function
-        - group_callback_function_completed
-        - has_intercepted_response
-        - id
-        - interactive_task_type
-        - is_interactive_task
         - mythic_parsed_params
-        - operation_id
-        - operator_id
-        - opsec_post_blocked
         - opsec_post_bypass_role
-        - opsec_post_bypass_user_id
-        - opsec_post_bypassed
         - opsec_post_message
-        - opsec_pre_blocked
         - opsec_pre_bypass_role
-        - opsec_pre_bypass_user_id
-        - opsec_pre_bypassed
         - opsec_pre_message
         - original_params
         - parameter_group_name
         - params
-        - parent_task_id
-        - process_at_original_command
-        - response_count
         - status
+        - stderr
+        - stdout
+        - subtask_callback_function
+        - subtask_group_name
+        - tasking_location
         - status_timestamp_preprocessing
         - status_timestamp_processed
         - status_timestamp_processing
         - status_timestamp_submitted
-        - stderr
-        - stdout
-        - subtask_callback_function
-        - subtask_callback_function_completed
-        - subtask_group_name
-        - tasking_location
         - timestamp
-        - token_id
       filter:
         _and:
           - operation_id:
@@ -204,58 +208,62 @@ select_permissions:
   - role: operation_admin
     permission:
       columns:
-        - agent_task_id
+        - completed
+        - completed_callback_function_completed
+        - completed_callback_function_started
+        - group_callback_function_completed
+        - group_callback_function_started
+        - has_intercepted_response
+        - is_interactive_task
+        - opsec_post_blocked
+        - opsec_post_bypassed
+        - opsec_pre_blocked
+        - opsec_pre_bypassed
+        - process_at_original_command
+        - subtask_callback_function_completed
+        - subtask_callback_function_started
         - apitokens_id
         - callback_id
         - command_id
+        - comment_operator_id
+        - display_id
+        - eventstepinstance_id
+        - id
+        - interactive_task_type
+        - operation_id
+        - operator_id
+        - opsec_post_bypass_user_id
+        - opsec_pre_bypass_user_id
+        - parent_task_id
+        - response_count
+        - token_id
+        - agent_task_id
+        - alias_resolution
         - command_name
         - command_payload_type
         - comment
-        - comment_operator_id
-        - completed
         - completed_callback_function
-        - completed_callback_function_completed
-        - display_id
         - display_params
-        - eventstepinstance_id
         - group_callback_function
-        - group_callback_function_completed
-        - has_intercepted_response
-        - id
-        - interactive_task_type
-        - is_interactive_task
         - mythic_parsed_params
-        - operation_id
-        - operator_id
-        - opsec_post_blocked
         - opsec_post_bypass_role
-        - opsec_post_bypass_user_id
-        - opsec_post_bypassed
         - opsec_post_message
-        - opsec_pre_blocked
         - opsec_pre_bypass_role
-        - opsec_pre_bypass_user_id
-        - opsec_pre_bypassed
         - opsec_pre_message
         - original_params
         - parameter_group_name
         - params
-        - parent_task_id
-        - process_at_original_command
-        - response_count
         - status
+        - stderr
+        - stdout
+        - subtask_callback_function
+        - subtask_group_name
+        - tasking_location
         - status_timestamp_preprocessing
         - status_timestamp_processed
         - status_timestamp_processing
         - status_timestamp_submitted
-        - stderr
-        - stdout
-        - subtask_callback_function
-        - subtask_callback_function_completed
-        - subtask_group_name
-        - tasking_location
         - timestamp
-        - token_id
       filter:
         _and:
           - operation_id:
@@ -266,58 +274,62 @@ select_permissions:
   - role: operator
     permission:
       columns:
-        - agent_task_id
+        - completed
+        - completed_callback_function_completed
+        - completed_callback_function_started
+        - group_callback_function_completed
+        - group_callback_function_started
+        - has_intercepted_response
+        - is_interactive_task
+        - opsec_post_blocked
+        - opsec_post_bypassed
+        - opsec_pre_blocked
+        - opsec_pre_bypassed
+        - process_at_original_command
+        - subtask_callback_function_completed
+        - subtask_callback_function_started
         - apitokens_id
         - callback_id
         - command_id
+        - comment_operator_id
+        - display_id
+        - eventstepinstance_id
+        - id
+        - interactive_task_type
+        - operation_id
+        - operator_id
+        - opsec_post_bypass_user_id
+        - opsec_pre_bypass_user_id
+        - parent_task_id
+        - response_count
+        - token_id
+        - agent_task_id
+        - alias_resolution
         - command_name
         - command_payload_type
         - comment
-        - comment_operator_id
-        - completed
         - completed_callback_function
-        - completed_callback_function_completed
-        - display_id
         - display_params
-        - eventstepinstance_id
         - group_callback_function
-        - group_callback_function_completed
-        - has_intercepted_response
-        - id
-        - interactive_task_type
-        - is_interactive_task
         - mythic_parsed_params
-        - operation_id
-        - operator_id
-        - opsec_post_blocked
         - opsec_post_bypass_role
-        - opsec_post_bypass_user_id
-        - opsec_post_bypassed
         - opsec_post_message
-        - opsec_pre_blocked
         - opsec_pre_bypass_role
-        - opsec_pre_bypass_user_id
-        - opsec_pre_bypassed
         - opsec_pre_message
         - original_params
         - parameter_group_name
         - params
-        - parent_task_id
-        - process_at_original_command
-        - response_count
         - status
+        - stderr
+        - stdout
+        - subtask_callback_function
+        - subtask_group_name
+        - tasking_location
         - status_timestamp_preprocessing
         - status_timestamp_processed
         - status_timestamp_processing
         - status_timestamp_submitted
-        - stderr
-        - stdout
-        - subtask_callback_function
-        - subtask_callback_function_completed
-        - subtask_group_name
-        - tasking_location
         - timestamp
-        - token_id
       filter:
         _and:
           - operation_id:
@@ -328,58 +340,62 @@ select_permissions:
   - role: spectator
     permission:
       columns:
-        - agent_task_id
+        - completed
+        - completed_callback_function_completed
+        - completed_callback_function_started
+        - group_callback_function_completed
+        - group_callback_function_started
+        - has_intercepted_response
+        - is_interactive_task
+        - opsec_post_blocked
+        - opsec_post_bypassed
+        - opsec_pre_blocked
+        - opsec_pre_bypassed
+        - process_at_original_command
+        - subtask_callback_function_completed
+        - subtask_callback_function_started
         - apitokens_id
         - callback_id
         - command_id
+        - comment_operator_id
+        - display_id
+        - eventstepinstance_id
+        - id
+        - interactive_task_type
+        - operation_id
+        - operator_id
+        - opsec_post_bypass_user_id
+        - opsec_pre_bypass_user_id
+        - parent_task_id
+        - response_count
+        - token_id
+        - agent_task_id
+        - alias_resolution
         - command_name
         - command_payload_type
         - comment
-        - comment_operator_id
-        - completed
         - completed_callback_function
-        - completed_callback_function_completed
-        - display_id
         - display_params
-        - eventstepinstance_id
         - group_callback_function
-        - group_callback_function_completed
-        - has_intercepted_response
-        - id
-        - interactive_task_type
-        - is_interactive_task
         - mythic_parsed_params
-        - operation_id
-        - operator_id
-        - opsec_post_blocked
         - opsec_post_bypass_role
-        - opsec_post_bypass_user_id
-        - opsec_post_bypassed
         - opsec_post_message
-        - opsec_pre_blocked
         - opsec_pre_bypass_role
-        - opsec_pre_bypass_user_id
-        - opsec_pre_bypassed
         - opsec_pre_message
         - original_params
         - parameter_group_name
         - params
-        - parent_task_id
-        - process_at_original_command
-        - response_count
         - status
+        - stderr
+        - stdout
+        - subtask_callback_function
+        - subtask_group_name
+        - tasking_location
         - status_timestamp_preprocessing
         - status_timestamp_processed
         - status_timestamp_processing
         - status_timestamp_submitted
-        - stderr
-        - stdout
-        - subtask_callback_function
-        - subtask_callback_function_completed
-        - subtask_group_name
-        - tasking_location
         - timestamp
-        - token_id
       filter:
         _and:
           - operation_id:

@@ -598,8 +598,26 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 		}
 		createTaskInput.Params = params
 	}
-	if createTaskInput.OriginalParams == nil {
-		createTaskInput.OriginalParams = &createTaskInput.Params
+	selectedParameterGroupName := "Default"
+	if createTaskInput.ParameterGroupName != nil {
+		selectedParameterGroupName = *createTaskInput.ParameterGroupName
+	}
+	displayParams := createTaskInput.Params
+	if task.Command.ID > 0 {
+		expandedParams, credentialParamsExpanded, err := expandCredentialJSONTaskingParameters(
+			task.Command.ID,
+			selectedParameterGroupName,
+			createTaskInput.CurrentOperationID,
+			createTaskInput.Params,
+		)
+		if err != nil {
+			response.Error = err.Error()
+			return response
+		}
+		if credentialParamsExpanded {
+			displayParams = createTaskInput.Params
+			createTaskInput.Params = expandedParams
+		}
 	}
 	commandAttributes := CommandAttribute{}
 	// set up the new task for the database
@@ -612,7 +630,7 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 	task.Params = createTaskInput.Params
 	task.MythicParsedParams = createTaskInput.Params
 	task.OriginalParams = *createTaskInput.OriginalParams
-	task.DisplayParams = createTaskInput.Params
+	task.DisplayParams = displayParams
 	task.IsInteractiveTask = createTaskInput.IsInteractiveTask
 	if createTaskInput.EventStepInstanceID > 0 {
 		task.EventStepInstanceID.Valid = true
@@ -682,11 +700,7 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 		task.TokenID.Int64 = int64(token.ID)
 		task.TokenID.Valid = true
 	}
-	if createTaskInput.ParameterGroupName == nil {
-		task.ParameterGroupName = "Default"
-	} else {
-		task.ParameterGroupName = *createTaskInput.ParameterGroupName
-	}
+	task.ParameterGroupName = selectedParameterGroupName
 	if createTaskInput.CommandName == "clear" {
 		return handleClearCommand(createTaskInput, callback, task)
 	}

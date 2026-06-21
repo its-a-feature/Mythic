@@ -26,6 +26,18 @@ import {
   gridValuePassesFilter,
   isGridColumnFilterActive
 } from "../../MythicComponents/MythicResizableGrid/GridColumnFilterDialog";
+import {gql, useMutation} from '@apollo/client';
+import {CredentialTableNewCredentialDialog} from "../Search/CredentialTableNewCredentialDialog";
+
+const createCredentialMutation = gql`
+mutation createCredential($comment: String!, $account: String!, $realm: String!, $type: String!, $credential: String!, $metadata: jsonb) {
+    createCredential(account: $account, credential: $credential, comment: $comment, realm: $realm, credential_type: $type, metadata: $metadata) {
+      status
+      error
+      id
+    }
+  }
+`;
 
 const onCopyToClipboard = (data) => {
   let result = copyStringToClipboard(data);
@@ -245,24 +257,65 @@ const actionCellButtonStyle = {paddingTop: 0, paddingBottom: 0};
 const getActionButtonClassName = (intent = "info") => {
   return `mythic-table-row-action mythic-table-row-action-hover-${intent}`;
 }
-const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
+const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData, task}) => {
   return (
     <div className="mythic-response-table-cell mythic-response-table-action-cell" style={{ height: "100%"}}>
       {cellData?.plaintext && cellData.plaintext}
-      {cellData?.button && <ResponseDisplayTableActionCellButton cellData={cellData} callback_id={callback_id} />}
+      {cellData?.button && <ResponseDisplayTableActionCellButton cellData={cellData} callback_id={callback_id} task={task} />}
     </div>
   );
 }
-const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
+const ResponseDisplayTableActionCellButton = ({cellData, callback_id, task}) => {
   const theme = useTheme();
   const [openButton, setOpenButton] = React.useState(false);
   const [openTaskingButton, setOpenTaskingButton] = React.useState(false);
   const [openDictionaryButton, setOpenDictionaryButton] = React.useState(false);
   const [openStringButton, setOpenStringButton] = React.useState(false);
   const [openTableButton, setOpenTableButton] = React.useState(false);
+  const [openCredentialButton, setOpenCredentialButton] = React.useState(false);
   const dropdownAnchorRef = useRef(null);
   const [openDropdownButton, setOpenDropdownButton] = React.useState(false);
   const [taskingData, setTaskingData] = React.useState({});
+  const [createCredential] = useMutation(createCredentialMutation, {
+    fetchPolicy: "no-cache",
+    onCompleted: (data) => {
+      if(data.createCredential.status === "success"){
+        snackActions.success("Successfully created new credential");
+        finishedViewingData();
+      } else {
+        snackActions.error(data.createCredential.error);
+      }
+    },
+    onError: (data) => {
+      snackActions.error("Failed to create credential");
+      console.log(data);
+    }
+  });
+  const getCredentialInitialValues = (value) => {
+    const credentialValue = typeof value === "object" && value !== null ? value : {credential: value || ""};
+    const credentialMetadata = credentialValue.metadata && typeof credentialValue.metadata === "object" && !Array.isArray(credentialValue.metadata) ? credentialValue.metadata : {};
+    return {
+      type: credentialValue.type || "plaintext",
+      account: credentialValue.account || "",
+      realm: credentialValue.realm || "",
+      credential: credentialValue.credential || "",
+      comment: credentialValue.comment || "",
+      metadata: {
+        ...credentialMetadata,
+        source: {
+          ...(credentialMetadata?.source || {}),
+          type: "task_table_action",
+          task_id: task?.id,
+          task_display_id: task?.display_id,
+          callback_id: task?.callback_id || callback_id,
+          command: task?.command_name || task?.command?.cmd,
+        }
+      }
+    }
+  };
+  const onCreateCredential = ({type, account, realm, comment, credential, metadata}) => {
+    createCredential({variables: {type, account, realm, comment, credential, metadata}})
+  }
   const handleClose = (event) => {
     if (dropdownAnchorRef.current && dropdownAnchorRef.current.contains(event.target)) {
       return;
@@ -287,6 +340,10 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
         setTaskingData(cellData.button.value[index]);
         setOpenTableButton(true);
         break;
+      case "credential":
+        setTaskingData(cellData.button.value[index]);
+        setOpenCredentialButton(true);
+        break;
     }
     setOpenDropdownButton(false);
   };
@@ -296,6 +353,7 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
     setOpenDictionaryButton(false);
     setOpenStringButton(false);
     setOpenTableButton(false);
+    setOpenCredentialButton(false);
     setTaskingData({});
   }
   const finishedViewingData = () => {
@@ -304,6 +362,7 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
     setOpenDictionaryButton(false);
     setOpenStringButton(false);
     setOpenTableButton(false);
+    setOpenCredentialButton(false);
     setTaskingData({});
   }
   switch(cellData.button.type.toLowerCase()){
@@ -360,7 +419,26 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
                   <MythicDialog fullWidth={true} maxWidth="xl" open={openButton}
                                 onClose={()=>{setOpenButton(false);}}
                                 innerDialog={<ResponseDisplayTableDialogTable title={cellData?.button?.title}
-                                                                              table={cellData?.button?.value || {}} callback_id={callback_id} onClose={()=>{setOpenButton(false);}} />}
+                                                                              table={cellData?.button?.value || {}} callback_id={callback_id} task={task} onClose={()=>{setOpenButton(false);}} />}
+                  />
+              }
+            </React.Fragment>
+        )
+      case "credential":
+        return (
+            <React.Fragment>
+              <MythicStyledTooltip title={cellData?.button?.hoverText || "Create Credential"} >
+                <Button size="small"
+                        className={getActionButtonClassName("success")}
+                        onClick={() => setOpenCredentialButton(true)} disabled={cellData?.button?.disabled || false}
+                        startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.disabled ? "unset" :  getIconColor(theme, cellData?.button?.startIconColor || "")}}/> : <FontAwesomeIcon icon={faKey}/>}
+                        style={{...actionCellButtonStyle}}
+                >{cellData?.button?.name || "Create Credential"}</Button>
+              </MythicStyledTooltip>
+              {openCredentialButton &&
+                  <MythicDialog fullWidth={true} maxWidth="md" open={openCredentialButton}
+                                onClose={()=>{setOpenCredentialButton(false);}}
+                                innerDialog={<CredentialTableNewCredentialDialog initialValues={getCredentialInitialValues(cellData?.button?.value)} onSubmit={onCreateCredential} onClose={()=>{setOpenCredentialButton(false);}} />}
                   />
               }
             </React.Fragment>
@@ -416,7 +494,13 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
                   <MythicDialog fullWidth={true} maxWidth="xl" open={openTableButton}
                                 onClose={finishedViewingData}
                                 innerDialog={<ResponseDisplayTableDialogTable title={taskingData?.title}
-                                                                              table={taskingData?.value || {}} callback_id={callback_id} onClose={finishedViewingData} />}
+                                                                              table={taskingData?.value || {}} callback_id={callback_id} task={task} onClose={finishedViewingData} />}
+                  />
+              }
+              {openCredentialButton &&
+                  <MythicDialog fullWidth={true} maxWidth="md" open={openCredentialButton}
+                                onClose={finishedViewingData}
+                                innerDialog={<CredentialTableNewCredentialDialog initialValues={getCredentialInitialValues(taskingData?.value)} onSubmit={onCreateCredential} onClose={finishedViewingData} />}
                   />
               }
               <Button size="small" ref={dropdownAnchorRef}
@@ -438,7 +522,7 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
                               disabled={option.disabled}
                               onClick={(event) => handleMenuItemClick(event, index)}
                           >
-                            <MythicStyledTooltip title={option?.hoverText || (option.type === "task" ? "Task an Agent" : "Display Data")}>
+                            <MythicStyledTooltip title={option?.hoverText || (option.type === "task" ? "Task an Agent" : option.type === "credential" ? "Create Credential" : "Display Data")}>
                               {option?.startIcon ? <FontAwesomeIcon icon={getIconName(option?.startIcon)} style={{color: getIconColor(theme, cellData?.button?.startIconColor || ""), marginRight: "5px"}}/> : null}
                               {option.name}
                             </MythicStyledTooltip>
@@ -452,7 +536,7 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
     }
 }
 
-const createRowCells = ({row, rowIndex, headers, callback_id}) => {
+const createRowCells = ({row, rowIndex, headers, callback_id, task}) => {
   return headers.map((header, colIndex) => {
     const cellData = row[header.plaintext];
     const key = `${rowIndex}-${colIndex}-${header.plaintext}`;
@@ -462,7 +546,7 @@ const createRowCells = ({row, rowIndex, headers, callback_id}) => {
       case "size":
         return <ResponseDisplayTableSizeCell key={key} cellData={cellData} rowData={row}/>
       case "button":
-        return <ResponseDisplayTableActionCell callback_id={callback_id} key={key} cellData={cellData} rowData={row}/>
+        return <ResponseDisplayTableActionCell callback_id={callback_id} key={key} cellData={cellData} rowData={row} task={task}/>
       case "number":
         return <ResponseDisplayTableNumberCell callback_id={callback_id} key={key} cellData={cellData} rowData={row} />
       default:
@@ -592,9 +676,9 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
   const gridData = React.useMemo(
     () => {
         return sortedData.map((row, rowIndex) => {
-          return createRowCells({row, headers: table.headers, callback_id, rowIndex});
+          return createRowCells({row, headers: table.headers, callback_id, rowIndex, task});
         });
-    }, [sortedData, table?.headers, callback_id]
+    }, [sortedData, table?.headers, callback_id, task]
   );
     const onSubmitFilterOptions = (value) => {
         setFilterOptions(getUpdatedGridFilterOptions(filterOptions, selectedColumn.key, value));

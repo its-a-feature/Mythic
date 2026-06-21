@@ -26,18 +26,12 @@ select_permissions:
         - step_success
       filter:
         _and:
-          - _or:
-              - payloadtype_id:
-                  _is_null: false
-              - payload:
-                  operation_id:
-                    _eq: X-Hasura-current-operation-id
-          - _or:
-              - payloadtype_id:
-                  _is_null: false
-              - payload:
-                  operation_id:
-                    _lte: X-Hasura-Scope-payload-read-operation
+            - payload:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+            - payload:
+                operation_id:
+                  _lte: X-Hasura-Scope-payload-read-operation
   - role: operation_admin
     permission:
       columns:
@@ -55,18 +49,12 @@ select_permissions:
         - step_success
       filter:
         _and:
-          - _or:
-              - payloadtype_id:
-                  _is_null: false
-              - payload:
-                  operation_id:
-                    _eq: X-Hasura-current-operation-id
-          - _or:
-              - payloadtype_id:
-                  _is_null: false
-              - payload:
-                  operation_id:
-                    _lte: X-Hasura-Scope-payload-read-operation
+          - payload:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - payload:
+              operation_id:
+                _lte: X-Hasura-Scope-payload-read-operation
   - role: operator
     permission:
       columns:
@@ -84,18 +72,12 @@ select_permissions:
         - step_success
       filter:
         _and:
-          - _or:
-              - payloadtype_id:
-                  _is_null: false
-              - payload:
-                  operation_id:
-                    _eq: X-Hasura-current-operation-id
-          - _or:
-              - payloadtype_id:
-                  _is_null: false
-              - payload:
-                  operation_id:
-                    _lte: X-Hasura-Scope-payload-read-operation
+          - payload:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - payload:
+              operation_id:
+                _lte: X-Hasura-Scope-payload-read-operation
   - role: spectator
     permission:
       columns:
@@ -113,15 +95,9 @@ select_permissions:
         - step_success
       filter:
         _and:
-          - _or:
-              - payloadtype_id:
-                  _is_null: false
-              - payload:
-                  operation_id:
-                    _eq: X-Hasura-current-operation-id
-          - _or:
-              - payloadtype_id:
-                  _is_null: false
-              - payload:
-                  operation_id:
-                    _lte: X-Hasura-Scope-payload-read-operation
+          - payload:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - payload:
+              operation_id:
+                _lte: X-Hasura-Scope-payload-read-operation

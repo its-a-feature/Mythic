@@ -268,9 +268,20 @@ query getCredentialsQuery($operation_id: Int!){
         id
         realm
         type
+        metadata
     }
 }
 `;
+
+const credentialJsonSubmissionValue = (value) => {
+    if(typeof value === "number"){
+        return value;
+    }
+    if(value && typeof value === "object" && value.id !== undefined && value.id !== null){
+        return value.id;
+    }
+    return value;
+}
 
 export const commandInParsedParameters = (cmd, parsedParameters) =>{
     if(cmd.name in parsedParameters){
@@ -605,7 +616,7 @@ export function TaskParametersDialog(props) {
                                 cmd.value = props.command.parsedParameters[parsedParameterName];
                             }
                             else if(cmd.value === "" || (typeof(cmd.value) === Object && Object.keys(cmd.value).length === 0) || cmd.value === undefined){
-                                cmd.value = credentialChoices[0];
+                                cmd.value = credentialChoices[0].id;
                             }
                             return [...prev, {...cmd, choices: credentialChoices}];
                         }else{
@@ -943,13 +954,7 @@ export function TaskParametersDialog(props) {
                     collapsedParameters[param.name] = fileIDs;
                     break;
                 case "CredentialJson":
-                    collapsedParameters[param.name] = {
-                        account: param.value["account"],
-                        comment: param.value["comment"],
-                        credential: param.value["credential_text"],
-                        realm: param.value["realm"],
-                        type: param.value["type"]
-                    };
+                    collapsedParameters[param.name] = credentialJsonSubmissionValue(param.value);
                     break;
                 default:
                     console.log("Unknown parameter type");
@@ -1013,13 +1018,7 @@ export function TaskParametersDialog(props) {
                 case "FileMultiple":
                     break
                 case "CredentialJson":
-                    collapsedParameters[param.name] = {
-                        account: param.value["account"],
-                        comment: param.value["comment"],
-                        credential: param.value["credential_text"],
-                        realm: param.value["realm"],
-                        type: param.value["type"]
-                    };
+                    collapsedParameters[param.name] = credentialJsonSubmissionValue(param.value);
                     break;
                 default:
                     console.log("Unknown parameter type");

@@ -157,12 +157,12 @@ type agentMessagePostResponseRemovedFiles struct {
 	Path string  `json:"path" mapstructure:"path" xml:"path"` // full path to file removed
 }
 type agentMessagePostResponseCredentials struct {
-	CredentialType string `json:"credential_type" mapstructure:"credential_type" xml:"credential_type"`
-	Realm          string `json:"realm" mapstructure:"realm" xml:"realm"`
-	Account        string `json:"account" mapstructure:"account" xml:"account"`
-	Credential     string `json:"credential" mapstructure:"credential" xml:"credential"`
-	Comment        string `json:"comment" mapstructure:"comment" xml:"comment"`
-	ExtraData      string `json:"metadata" mapstructure:"metadata" xml:"metadata"`
+	CredentialType string      `json:"credential_type" mapstructure:"credential_type" xml:"credential_type"`
+	Realm          string      `json:"realm" mapstructure:"realm" xml:"realm"`
+	Account        string      `json:"account" mapstructure:"account" xml:"account"`
+	Credential     string      `json:"credential" mapstructure:"credential" xml:"credential"`
+	Comment        string      `json:"comment" mapstructure:"comment" xml:"comment"`
+	ExtraData      interface{} `json:"metadata" mapstructure:"metadata" xml:"metadata"`
 }
 type agentMessagePostResponseArtifacts struct {
 	BaseArtifact string  `json:"base_artifact" mapstructure:"base_artifact" xml:"base_artifact"`
@@ -1126,7 +1126,6 @@ func handleAgentMessagePostResponseCredentials(task databaseStructs.Task, creden
 			Credential:  newCred.Credential,
 			Deleted:     false,
 			Comment:     newCred.Comment,
-			Metadata:    newCred.ExtraData,
 			OperatorID:  task.OperatorID,
 		}
 		databaseCred.TaskID.Valid = true
@@ -1139,31 +1138,42 @@ func handleAgentMessagePostResponseCredentials(task databaseStructs.Task, creden
 		} else {
 			databaseCred.Type = "plaintext"
 		}
+		databaseCred.Metadata = ParseCredentialMetadata(databaseCred.Type, databaseCred.Credential, newCred.ExtraData)
 		// check if the cred already exists. If it does, move on. If it doesn't, create it
-		if err := database.DB.Get(&databaseCred, `SELECT * FROM credential WHERE
+		err := database.DB.Get(&databaseCred, `SELECT * FROM credential WHERE
 			 account=$1 AND realm=$2 AND credential=$3 AND operation_id=$4`,
-			databaseCred.Account, databaseCred.Realm, databaseCred.Credential, databaseCred.OperationID); err == sql.ErrNoRows {
+			databaseCred.Account, databaseCred.Realm, databaseCred.Credential, databaseCred.OperationID)
+		if errors.Is(err, sql.ErrNoRows) {
 			// credential doesn't exist, so create it
-			if statement, err := database.DB.PrepareNamed(`INSERT INTO credential
+			statement, err := database.DB.PrepareNamed(`INSERT INTO credential
 				(realm, account, operation_id, credential, deleted, comment, metadata, task_id, "type", operator_id, apitokens_id)
 				VALUES (:realm, :account, :operation_id, :credential, :deleted, :comment, :metadata, :task_id, :type, :operator_id, :apitokens_id)
-				RETURNING id `); err != nil {
+				RETURNING id `)
+			if err != nil {
 				logging.LogError(err, "Failed to create new credential")
 				return err
-			} else if err = statement.Get(&databaseCred.ID, databaseCred); err != nil {
+			}
+			err = statement.Get(&databaseCred.ID, databaseCred)
+			if err != nil {
 				logging.LogError(err, "Failed to create new credential")
 				return err
 			}
 			go EmitCredentialLog(databaseCred.ID)
-		} else if err != nil {
+			go RefreshCredentialValidity(databaseCred.ID)
+			return nil
+		}
+		if err != nil {
 			// ran into an issue doing the query
 			logging.LogError(err, "Failed to query for credential")
 			return err
-		} else if databaseCred.Deleted || !databaseCred.TaskID.Valid {
+		}
+		if databaseCred.Deleted || !databaseCred.TaskID.Valid {
 			// the credential exists, make sure it's marked as not deleted
-			if _, err := database.DB.Exec(`UPDATE credential SET deleted=false WHERE id=$1`, databaseCred.ID); err != nil {
+			_, err := database.DB.Exec(`UPDATE credential SET deleted=false, metadata=$2 WHERE id=$1`, databaseCred.ID, ParseCredentialMetadata(databaseCred.Type, databaseCred.Credential, newCred.ExtraData))
+			if err != nil {
 				logging.LogError(err, "failed to update credential that already exists")
 			}
+			go RefreshCredentialValidity(databaseCred.ID)
 		}
 	}
 	return nil
