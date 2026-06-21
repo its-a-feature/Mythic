@@ -37,9 +37,16 @@ func C2ProfileGetIOCWebhook(c *gin.Context) {
 		})
 		return
 	}
+	ginOperatorOperation, ok := c.Get("operatorOperation")
+	if !ok {
+		logging.LogError(nil, "Failed to get operatorOperation information for CreateC2ParameterInstanceWebhook")
+		c.JSON(http.StatusOK, gin.H{"status": "error", "error": "Failed to get current operation. Is it set?"})
+		return
+	}
+	operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
 	// get the associated database information
 	payload := databaseStructs.Payload{}
-	if err := database.DB.Get(&payload, `SELECT id FROM payload WHERE uuid=$1`, input.Input.PayloadUUID); err != nil {
+	if err := database.DB.Get(&payload, `SELECT id FROM payload WHERE uuid=$1 AND operation_id=$2`, input.Input.PayloadUUID, operatorOperation.CurrentOperation.ID); err != nil {
 		logging.LogError(err, "Failed to find payload when doing a C2ProfileConfigCheckWebhook")
 	}
 	c2profileParameterInstances := []databaseStructs.C2profileparametersinstance{}

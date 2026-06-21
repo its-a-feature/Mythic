@@ -218,7 +218,7 @@ func setRoutes(r *gin.Engine) {
 			allOperationMembers.Use(authentication.RBACMiddlewareAll())
 			{
 				// generic all installed services
-				allOperationMembers.POST("eventing_import_automatic_webhook", webcontroller.EventingImportAutomaticWebhook)
+
 				// payloadtype / c2profile
 				allOperationMembers.POST("c2profile_status_webhook", webcontroller.C2ProfileStatusWebhook)
 				// payload
@@ -298,6 +298,7 @@ func setRoutes(r *gin.Engine) {
 				noSpectators.POST("send_external_webhook", webcontroller.SendExternalWebhookWebhook)
 				noSpectators.POST("create_operation_event_log", webcontroller.CreateOperationEventLog)
 				// eventing webhooks
+				noSpectators.POST("eventing_import_automatic_webhook", webcontroller.EventingImportAutomaticWebhook)
 				noSpectators.POST("eventing_import_webhook", webcontroller.EventingImportWebhook)
 				noSpectators.POST("eventing_trigger_manual_webhook", webcontroller.EventingTriggerManualWebhook)
 				noSpectators.POST("eventing_trigger_keyword_webhook", webcontroller.EventingTriggerKeywordWebhook)

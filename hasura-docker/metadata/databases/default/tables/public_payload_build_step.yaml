@@ -24,12 +24,9 @@ select_permissions:
         - end_time
         - start_time
       filter:
-        _or:
-          - payloadtype_id:
-              _is_null: false
-          - payload:
-              operation_id:
-                _in: X-Hasura-operations
+        - payload:
+            operation_id:
+              _eq: X-Hasura-current-operation-id
   - role: mythic_admin
     permission:
       columns:
@@ -45,12 +42,9 @@ select_permissions:
         - end_time
         - start_time
       filter:
-        _or:
-          - payloadtype_id:
-              _is_null: false
-          - payload:
-              operation_id:
-                _in: X-Hasura-operations
+        - payload:
+            operation_id:
+              _eq: X-Hasura-current-operation-id
   - role: operation_admin
     permission:
       columns:
@@ -66,12 +60,9 @@ select_permissions:
         - end_time
         - start_time
       filter:
-        _or:
-          - payloadtype_id:
-              _is_null: false
-          - payload:
-              operation_id:
-                _in: X-Hasura-operations
+        - payload:
+            operation_id:
+              _eq: X-Hasura-current-operation-id
   - role: operator
     permission:
       columns:
@@ -87,12 +78,9 @@ select_permissions:
         - end_time
         - start_time
       filter:
-        _or:
-          - payloadtype_id:
-              _is_null: false
-          - payload:
-              operation_id:
-                _in: X-Hasura-operations
+        - payload:
+            operation_id:
+              _eq: X-Hasura-current-operation-id
   - role: spectator
     permission:
       columns:
@@ -108,9 +96,6 @@ select_permissions:
         - end_time
         - start_time
       filter:
-        _or:
-          - payloadtype_id:
-              _is_null: false
-          - payload:
-              operation_id:
-                _in: X-Hasura-operations
+        - payload:
+            operation_id:
+              _eq: X-Hasura-current-operation-id
