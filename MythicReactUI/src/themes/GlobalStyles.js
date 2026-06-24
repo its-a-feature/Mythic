@@ -1261,6 +1261,401 @@ tspan {
     white-space: pre-wrap;
     word-break: break-word;
 }
+.mythic-credential-search {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: row;
+    height: 100%;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+}
+.mythic-credential-search-results,
+.mythic-credential-search-inspector {
+    background-color: var(--mythic-global-061);
+    border: 1px solid var(--mythic-global-010);
+    border-radius: var(--mythic-global-008);
+    height: 100%;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+}
+.mythic-credential-search > .gutter.gutter-horizontal {
+    flex: 0 0 8px;
+}
+.mythic-credential-search-table-wrap {
+    height: 100%;
+    overflow: auto;
+}
+.mythic-credential-search-table {
+    table-layout: fixed;
+    width: 100%;
+}
+.mythic-credential-search-row {
+    cursor: pointer;
+}
+.mythic-credential-search-row .MuiTableCell-root {
+    border-bottom-color: var(--mythic-global-010);
+    height: 3.45rem;
+    max-height: 3.45rem;
+    overflow: hidden;
+    padding-bottom: 0.28rem;
+    padding-top: 0.28rem;
+    vertical-align: middle;
+}
+.mythic-credential-search-row-selected .MuiTableCell-root,
+.mythic-credential-search-row.Mui-selected .MuiTableCell-root,
+.mythic-credential-search-row.Mui-selected:hover .MuiTableCell-root {
+    background-color: var(--mythic-global-063);
+}
+.mythic-credential-search-id-cell,
+.mythic-credential-search-chip-list,
+.mythic-credential-search-tag-summary {
+    align-items: center;
+    display: flex;
+    gap: 0.25rem;
+    min-width: 0;
+}
+.mythic-credential-search-id-cell,
+.mythic-credential-search-chip-list {
+    flex-wrap: wrap;
+}
+.mythic-credential-search-tag-summary {
+    overflow: hidden;
+}
+.mythic-credential-search-tag-summary .mythic-tag-list {
+    flex: 1 1 auto;
+    max-width: 100%;
+}
+.mythic-credential-search-id {
+    color: var(--mythic-global-002);
+    font-family: var(--mythic-global-065);
+    font-size: 0.78rem;
+    font-weight: 850;
+}
+.mythic-credential-search-primary-cell {
+    display: grid;
+    gap: 0.14rem;
+    min-width: 0;
+}
+.mythic-credential-search-primary-cell > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-credential-search-primary-cell > span:first-child {
+    color: var(--mythic-global-002);
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+.mythic-credential-search-primary-cell > span:nth-child(2),
+.mythic-credential-search-muted,
+.mythic-credential-search-source {
+    color: var(--mythic-global-025);
+    font-size: 0.72rem;
+}
+.mythic-credential-search-row-flags {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem;
+}
+.mythic-credential-search-source {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-credential-search-mini-chip,
+.mythic-credential-search-type-chip,
+.mythic-credential-search-inline-chip {
+    height: 19px !important;
+    max-width: 100%;
+}
+.mythic-credential-search-mini-chip .MuiChip-label,
+.mythic-credential-search-type-chip .MuiChip-label,
+.mythic-credential-search-inline-chip .MuiChip-label {
+    font-size: 0.66rem;
+    font-weight: 750;
+    line-height: 1;
+    overflow: hidden;
+    padding-left: 0.34rem;
+    padding-right: 0.34rem;
+    text-overflow: ellipsis;
+}
+.mythic-credential-search-inspector {
+    display: flex;
+    flex-direction: column;
+}
+.mythic-credential-search-inspector-empty {
+    align-items: center;
+    color: var(--mythic-global-025);
+    gap: 0.45rem;
+    justify-content: center;
+    min-height: 14rem;
+}
+.mythic-credential-search-inspector-header {
+    align-items: flex-start;
+    border-bottom: 1px solid var(--mythic-global-010);
+    display: flex;
+    gap: 0.75rem;
+    justify-content: space-between;
+    min-width: 0;
+    padding: 0.65rem 0.75rem;
+}
+.mythic-credential-search-inspector-title {
+    align-items: center;
+    color: var(--mythic-global-002);
+    display: flex;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    font-size: 0.92rem;
+    font-weight: 850;
+    gap: 0.35rem;
+    min-width: 0;
+}
+.mythic-credential-search-inspector-title svg {
+    color: var(--mythic-global-025);
+}
+.mythic-credential-search-inspector-title > span:first-of-type {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-credential-search-inspector-actions {
+    align-items: center;
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    justify-content: flex-end;
+}
+.mythic-credential-search-inspector-body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 0.55rem;
+    min-height: 0;
+    overflow: auto;
+    padding: 0.65rem;
+}
+.mythic-credential-search-section {
+    border-bottom: 1px solid var(--mythic-global-010);
+    min-width: 0;
+    padding-bottom: 0.55rem;
+}
+.mythic-credential-search-section:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+}
+.mythic-credential-search-section-header {
+    align-items: center;
+    color: var(--mythic-global-025);
+    display: flex;
+    font-size: 0.69rem;
+    font-weight: 850;
+    gap: 0.5rem;
+    justify-content: space-between;
+    letter-spacing: 0;
+    margin-bottom: 0.38rem;
+    min-width: 0;
+    text-transform: uppercase;
+}
+.mythic-credential-search-section-actions {
+    align-items: center;
+    display: flex;
+    flex: 0 0 auto;
+    gap: 0.25rem;
+}
+.mythic-credential-search-section-body {
+    display: grid;
+    gap: 0.35rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-width: 0;
+}
+.mythic-credential-search-section-chips,
+.mythic-credential-search-empty-value,
+.mythic-credential-search-metadata-grid,
+.mythic-credential-search-warning-list,
+.mythic-credential-search-secret-row,
+.mythic-credential-search-comment,
+.mythic-credential-search-tags {
+    grid-column: 1 / -1;
+}
+.mythic-credential-search-detail,
+.mythic-credential-search-metadata-pair {
+    background-color: var(--mythic-global-009);
+    border: 1px solid var(--mythic-global-010);
+    border-radius: var(--mythic-global-008);
+    min-width: 0;
+    padding: 0.38rem 0.48rem;
+}
+.mythic-credential-search-detail-wide {
+    grid-column: 1 / -1;
+}
+.mythic-credential-search-detail > span,
+.mythic-credential-search-metadata-pair > span {
+    color: var(--mythic-global-025);
+    display: block;
+    font-size: 0.66rem;
+    font-weight: 800;
+    line-height: 1.1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-credential-search-detail strong,
+.mythic-credential-search-metadata-pair strong {
+    color: var(--mythic-global-002);
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.25;
+    margin-top: 0.18rem;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-credential-search-detail-value-row {
+    align-items: center;
+    display: grid;
+    gap: 0.35rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+    margin-top: 0.18rem;
+    min-width: 0;
+}
+.mythic-credential-search-detail-value-row strong {
+    margin-top: 0;
+}
+.mythic-credential-search-detail-action {
+    align-items: center;
+    display: flex;
+    flex: 0 0 auto;
+}
+.mythic-credential-search-detail .mythic-credential-search-inline-chip {
+    margin-top: 0.28rem;
+}
+.mythic-credential-search-code,
+.mythic-credential-search-secret,
+.mythic-credential-search-metadata-pair strong,
+.mythic-credential-search-nested-metadata {
+    font-family: var(--mythic-global-065);
+}
+.mythic-credential-search-metadata-grid {
+    display: grid;
+    gap: 0.35rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-width: 0;
+}
+.mythic-credential-search-nested-metadata {
+    display: grid;
+    gap: 0.16rem;
+    min-width: 0;
+    white-space: normal;
+}
+.mythic-credential-search-nested-metadata > div {
+    display: grid;
+    gap: 0.25rem;
+    grid-template-columns: minmax(4rem, auto) minmax(0, 1fr);
+    min-width: 0;
+}
+.mythic-credential-search-nested-metadata span {
+    color: var(--mythic-global-025);
+    font-size: 0.66rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-credential-search-nested-metadata strong {
+    font-size: 0.66rem;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-credential-search-warning-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    min-width: 0;
+}
+.mythic-credential-search-warning-chip {
+    height: 20px !important;
+    max-width: 100%;
+}
+.mythic-credential-search-warning-chip .MuiChip-label {
+    font-size: 0.66rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.mythic-credential-search-secret,
+.mythic-credential-search-comment {
+    background-color: var(--mythic-global-009);
+    border: 1px solid var(--mythic-global-010);
+    border-radius: var(--mythic-global-008);
+    color: var(--mythic-global-002);
+    font-size: 0.74rem;
+    line-height: 1.35;
+    max-height: 8rem;
+    min-height: 2rem;
+    min-width: 0;
+    overflow: auto;
+    padding: 0.45rem 0.55rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.mythic-credential-search-secret-row {
+    align-items: flex-start;
+    display: grid;
+    gap: 0.35rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-width: 0;
+}
+.mythic-credential-search-field-action.MuiIconButton-root,
+.mythic-credential-search-secret-copy.MuiIconButton-root {
+    flex: 0 0 auto;
+    height: 22px !important;
+    margin-top: 0;
+    width: 22px !important;
+}
+.mythic-credential-search-comment {
+    color: var(--mythic-global-025);
+    font-family: inherit;
+}
+.mythic-credential-search-tags {
+    align-items: center;
+    background-color: var(--mythic-global-009);
+    border: 1px solid var(--mythic-global-010);
+    border-radius: var(--mythic-global-008);
+    display: flex;
+    gap: 0.35rem;
+    min-height: 34px;
+    min-width: 0;
+    overflow: hidden;
+    padding: 0.3rem 0.4rem;
+}
+.mythic-credential-search-tags .MuiIconButton-root {
+    align-items: center !important;
+    background-color: var(--mythic-global-063) !important;
+    border: 1px solid var(--mythic-global-010);
+    border-radius: var(--mythic-global-008);
+    color: var(--mythic-global-025) !important;
+    display: inline-flex !important;
+    flex: 0 0 auto;
+    height: 22px;
+    justify-content: center !important;
+    padding: 0 !important;
+    width: 22px;
+}
+.mythic-credential-search-tags .MuiIconButton-root:hover {
+    background-color: var(--mythic-global-064) !important;
+    color: var(--mythic-global-027) !important;
+}
 .mythic-process-name-cell,
 .mythic-process-string-cell {
     align-items: center;
@@ -1424,6 +1819,39 @@ tspan {
     }
     .mythic-process-inspector-details {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .mythic-credential-search {
+        flex-direction: column;
+        overflow: hidden;
+    }
+    .mythic-credential-search > .gutter.gutter-horizontal {
+        display: none;
+    }
+    .mythic-credential-search > .mythic-credential-search-results,
+    .mythic-credential-search > .mythic-credential-search-inspector {
+        flex: 1 1 0 !important;
+        height: auto !important;
+        min-height: 0;
+        width: 100% !important;
+    }
+}
+@media (max-width: 760px) {
+    .mythic-credential-search {
+        gap: 0.55rem;
+    }
+    .mythic-credential-search-table {
+        min-width: 45rem;
+    }
+    .mythic-credential-search-inspector-header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+    .mythic-credential-search-inspector-actions {
+        justify-content: flex-start;
+    }
+    .mythic-credential-search-section-body,
+    .mythic-credential-search-metadata-grid {
+        grid-template-columns: 1fr;
     }
 }
 .mythic-tree-groups-title.MuiDialogTitle-root {

@@ -435,7 +435,15 @@ export const SearchTabCredentialsPanel = (props) =>{
         onChangePage(null, 1);
     }
     return (
-        <MythicTabPanel {...props} >
+        <MythicTabPanel {...props} style={{
+            display: props.value === props.index ? 'flex' : 'none',
+            flexDirection: 'column',
+            flexGrow: 1,
+            minHeight: 0,
+            width: '100%',
+            maxWidth: '100%',
+            overflow: 'hidden',
+        }}>
             <SearchTabCredentialsSearchPanel me={me} onChangeSearchField={onChangeSearchField}
                                              onAccountSearch={onAccountSearch} value={props.value} index={props.index}
                                              onRealmSearch={onRealmSearch} onCredentialSearch={onCredentialSearch}
@@ -443,7 +451,7 @@ export const SearchTabCredentialsPanel = (props) =>{
                                              onTagSearch={onTagSearch} onNewCredential={onNewCredential}
                                              onChangeDeletedField={onChangeDeletedField}
                 />
-            <div style={{overflowY: "auto", flexGrow: 1}}>
+            <div style={{display: "flex", flexDirection: "column", flexGrow: 1, minHeight: 0, overflow: "hidden"}}>
                 {credentialaData.length > 0 ? (
                     <CredentialTable me={me} credentials={credentialaData} />) : (
                     <MythicSearchEmptyState

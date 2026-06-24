@@ -85,3 +85,36 @@ func TestSubmittedTasksForAgentsBatchRemoveUpdatesIndexes(t *testing.T) {
 		t.Fatalf("expected task start events for task IDs 1 and 4, got %#v", taskStartEvents)
 	}
 }
+
+func TestEnsureCreateTaskOriginalParamsDefaultsToParams(t *testing.T) {
+	createTaskInput := CreateTaskInput{
+		Params: `{"cred": 123}`,
+	}
+
+	ensureCreateTaskOriginalParams(&createTaskInput)
+	createTaskInput.Params = `{"cred":{"credential_id":123}}`
+
+	if createTaskInput.OriginalParams == nil {
+		t.Fatal("expected original params to be set")
+	}
+	if *createTaskInput.OriginalParams != `{"cred": 123}` {
+		t.Fatalf("expected original params snapshot to be preserved, got %q", *createTaskInput.OriginalParams)
+	}
+}
+
+func TestEnsureCreateTaskOriginalParamsPreservesProvidedValue(t *testing.T) {
+	originalParams := `{"already":"set"}`
+	createTaskInput := CreateTaskInput{
+		Params:         `{"cred": 123}`,
+		OriginalParams: &originalParams,
+	}
+
+	ensureCreateTaskOriginalParams(&createTaskInput)
+
+	if createTaskInput.OriginalParams == nil {
+		t.Fatal("expected original params to remain set")
+	}
+	if *createTaskInput.OriginalParams != originalParams {
+		t.Fatalf("expected provided original params to be preserved, got %q", *createTaskInput.OriginalParams)
+	}
+}

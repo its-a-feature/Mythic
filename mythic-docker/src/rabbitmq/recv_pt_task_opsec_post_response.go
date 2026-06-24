@@ -158,6 +158,11 @@ func processPtTaskOPSECPostMessages(msg amqp.Delivery) {
 			logging.LogError(err, "Failed to update task status")
 			return
 		}
+		_, err = database.DB.Exec(`INSERT INTO response (task_id, operation_id, response, eventstepinstance_id, apitokens_id)
+				VALUES ($1, $2, $3, $4, $5)`, task.ID, task.OperationID, task.Stderr, task.EventStepInstanceID, task.APITokensID)
+		if err != nil {
+			logging.LogError(err, "failed to add error to responses")
+		}
 		go CheckAndProcessTaskCompletionHandlers(task.ID, authContext)
 		EventingChannel <- EventNotification{
 			Trigger:             eventing.TriggerTaskFinish,

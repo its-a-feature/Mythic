@@ -18,7 +18,6 @@ import {CircularProgress} from '@mui/material';
 import {getDynamicQueryParams} from "./TaskParametersDialogRow";
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import {GetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
-import {getSkewedNow} from "../../utilities/Time";
 import { useTheme } from '@mui/material/styles';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {getReadableTextColor, isValidHexColor} from "../../MythicComponents/MythicColorInput";
@@ -186,6 +185,7 @@ const IsCLIPossibleParameterType = (parameter_type) => {
         case "TypedArray":
         case "ChooseMultiple":
         case "String":
+        case "CredentialJson":
             return true;
         default:
             return false;
@@ -519,6 +519,8 @@ export function CallbacksTabsTaskingInputPreMemo(props){
     const mountedRef = React.useRef(true);
     const commandOptions = React.useRef([]);
     const commandOptionsForcePopup = React.useRef(false);
+    const commandOptionsCommandLine = React.useRef("");
+    const commandOptionsTaskingLocation = React.useRef("parsed_cli");
     const [openSelectCommandDialog, setOpenSelectCommandDialog] = React.useState(false);
     const me = useReactiveVar(meState);
     const {data: payloadAliasData} = useQuery(GetOperatorPayloadAliases, {fetchPolicy: "no-cache"});
@@ -564,12 +566,38 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         const includes = payloadAliasOptions.filter((alias) => !alias.slash_command.startsWith(parsedAlias.name) && alias.slash_command.includes(parsedAlias.name));
         return [...startsWith, ...includes].slice(0, 20);
     };
-    const submitSlashAliasCommandLine = (evt) => {
+    const resolveSlashAliasCommandLine = (value) => {
+        let resolvedCommandLine = value.trim();
+        let matchingAlias = undefined;
+        const seenAliasIDs = new Set();
+        const maxAliasResolutionDepth = 5;
+        for(let i = 0; i < maxAliasResolutionDepth; i++){
+            const parsedAlias = parseSlashAliasMessage(resolvedCommandLine);
+            if(!parsedAlias.isAlias || parsedAlias.name === ""){
+                return {resolvedCommandLine, matchingAlias};
+            }
+            matchingAlias = payloadAliasOptions.find((alias) => alias.slash_command === parsedAlias.name);
+            if(!matchingAlias){
+                return {resolvedCommandLine, matchingAlias: undefined, error: `Unknown alias /${parsedAlias.name}`};
+            }
+            if(seenAliasIDs.has(matchingAlias.id)){
+                return {resolvedCommandLine, matchingAlias, error: `Alias loop detected for /${matchingAlias.slash_command}`};
+            }
+            seenAliasIDs.add(matchingAlias.id);
+            resolvedCommandLine = `${matchingAlias.actual_command || ""}${parsedAlias.argument ? ` ${parsedAlias.argument}` : ""}`.trim();
+        }
+        const parsedAlias = parseSlashAliasMessage(resolvedCommandLine);
+        if(parsedAlias.isAlias){
+            return {resolvedCommandLine, matchingAlias, error: `Alias expansion exceeded maximum depth of ${maxAliasResolutionDepth}`};
+        }
+        return {resolvedCommandLine, matchingAlias};
+    };
+    const submitSlashAliasCommandLine = (evt, commandLine=message) => {
         if(evt){
             evt.preventDefault();
             evt.stopPropagation();
         }
-        const parsedAlias = parseSlashAliasMessage(message);
+        const parsedAlias = parseSlashAliasMessage(commandLine);
         if(!parsedAlias.isAlias || parsedAlias.name === ""){
             snackActions.warning("Unknown alias", snackMessageStyles);
             return;
@@ -580,7 +608,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             return;
         }
         if(props.onSubmitAliasCommandLine){
-            props.onSubmitAliasCommandLine(message.trim(), matchingAlias);
+            props.onSubmitAliasCommandLine(commandLine.trim(), matchingAlias);
             setMessage("");
             setCommandPayloadType("");
             taskOptionsIndex.current = -1;
@@ -1107,7 +1135,19 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             }
         }else if(event.key === "Enter"){
             if(message.trim().startsWith("/")){
-                submitSlashAliasCommandLine(event);
+                if(event.shiftKey){
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const aliasResolution = resolveSlashAliasCommandLine(message);
+                    if(aliasResolution.error){
+                        snackActions.warning(aliasResolution.error, snackMessageStyles);
+                        return;
+                    }
+                    setMessage(aliasResolution.resolvedCommandLine);
+                    onSubmitCommandLine(event, true, aliasResolution.resolvedCommandLine, "parsed_cli");
+                }else{
+                    submitSlashAliasCommandLine(event);
+                }
                 return;
             }
             if(event.shiftKey){
@@ -1329,6 +1369,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 case "String":
                     stringArgs.push("-" + cmd.commandparameters[i].cli_name);
                     break;
+                case "CredentialJson":
                 case "Number":
                     numberArgs.push("-" + cmd.commandparameters[i].cli_name);
                     break;
@@ -1770,6 +1811,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                         parsedCopy[unSatisfiedArguments[i]["cli_name"]] = temp;
                         recordPositionalParameter(unSatisfiedArguments[i], positionalMetadata);
                         break;
+                    case "CredentialJson":
                     case "Number":
                         try{
                             temp = Number(temp);
@@ -1822,13 +1864,13 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         return parsedCopy;
 
     }
-    const processCommandAndCommandLine = (cmd) => {
+    const processCommandAndCommandLine = (cmd, commandLine=message, taskingLocation=unmodifiedHistoryValue) => {
         if(commandOptionsForcePopup.current && cmd.commandparameters.length === 0){
             snackActions.info("No defined parameters for " +
                 cmd?.cmd + "( " + cmd?.payloadtype?.name + "), so no modal available", snackMessageStyles);
             return;
         }
-        let splitMessage = message.trim().split(" ");
+        let splitMessage = commandLine.trim().split(" ");
         let cmdGroupName = ["Default"];
         let parsedWithPositionalParameters = {};
         let params = splitMessage.slice(1).join(" ");
@@ -1886,16 +1928,16 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             return;
         }else if(cmdGroupName.length > 1){
             if(Boolean(commandOptionsForcePopup.current)){
-                props.onSubmitCommandLine(message, cmd, parsedWithPositionalParameters, Boolean(commandOptionsForcePopup.current), cmdGroupName, unmodifiedHistoryValue);
+                props.onSubmitCommandLine(commandLine, cmd, parsedWithPositionalParameters, Boolean(commandOptionsForcePopup.current), cmdGroupName, taskingLocation);
             }else{
                 if(cmdGroupName.includes("Default")){
-                    props.onSubmitCommandLine(message, cmd, parsedWithPositionalParameters, Boolean(commandOptionsForcePopup.current), ["Default"], unmodifiedHistoryValue);
+                    props.onSubmitCommandLine(commandLine, cmd, parsedWithPositionalParameters, Boolean(commandOptionsForcePopup.current), ["Default"], taskingLocation);
                 }else{
                     let simplifiedGroupName = simplifyGroupNameChoices(cmdGroupName, cmd, parsedWithPositionalParameters)
                     if(simplifiedGroupName === "" ){
-                        props.onSubmitCommandLine(message, cmd, parsedWithPositionalParameters, true, cmdGroupName, unmodifiedHistoryValue)
+                        props.onSubmitCommandLine(commandLine, cmd, parsedWithPositionalParameters, true, cmdGroupName, taskingLocation)
                     } else {
-                        props.onSubmitCommandLine(message, cmd, parsedWithPositionalParameters, Boolean(commandOptionsForcePopup.current), [simplifiedGroupName], unmodifiedHistoryValue);
+                        props.onSubmitCommandLine(commandLine, cmd, parsedWithPositionalParameters, Boolean(commandOptionsForcePopup.current), [simplifiedGroupName], taskingLocation);
                     }
                 }
             }
@@ -1910,7 +1952,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         console.log("positional args added in:", parsedWithPositionalParameters);
         console.log("about to call onSubmitCommandLine", cmd);
         console.log("commandOptionsForcePopup", Boolean(commandOptionsForcePopup.current), "group name", cmdGroupName)
-        props.onSubmitCommandLine(message, cmd, parsedWithPositionalParameters, Boolean(commandOptionsForcePopup.current), cmdGroupName, unmodifiedHistoryValue);
+        props.onSubmitCommandLine(commandLine, cmd, parsedWithPositionalParameters, Boolean(commandOptionsForcePopup.current), cmdGroupName, taskingLocation);
         setMessage("");
         setCommandPayloadType("");
         taskOptionsIndex.current = -1;
@@ -1918,15 +1960,15 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         setReverseSearching(false);
         setUnmodifiedHistoryValue("parsed_cli");
     }
-    const onSubmitCommandLine = (evt, force_parsed_popup) => {
+    const onSubmitCommandLine = (evt, force_parsed_popup=false, commandLine=message, taskingLocation=unmodifiedHistoryValue) => {
         evt.preventDefault();
         evt.stopPropagation();
         //console.log("onSubmitCommandLine", evt, message);
-        if(message.trim().startsWith("/")){
-            submitSlashAliasCommandLine(evt);
+        if(commandLine.trim().startsWith("/")){
+            submitSlashAliasCommandLine(evt, commandLine);
             return;
         }
-        let splitMessage = message.trim().split(" ");
+        let splitMessage = commandLine.trim().split(" ");
         let cmd = loadedOptions.current.filter( l => l.cmd === splitMessage[0]);
         if(cmd === undefined || cmd.length === 0){
             snackActions.warning("Unknown (or not loaded) command", snackMessageStyles);
@@ -1934,7 +1976,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         }
         commandOptionsForcePopup.current = force_parsed_popup;
         if(cmd.length === 1){
-            processCommandAndCommandLine(cmd[0], force_parsed_popup)
+            processCommandAndCommandLine(cmd[0], commandLine, taskingLocation)
             return;
         }
         if(commandPayloadType !== ""){
@@ -1943,12 +1985,15 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 snackActions.warning("Unknown (or not loaded) command", snackMessageStyles);
                 return;
             }
-            processCommandAndCommandLine(cmd, force_parsed_popup)
+            processCommandAndCommandLine(cmd, commandLine, taskingLocation)
             return;
         }
         // two or more commands share the same name, we need to disambiguate between them
         cmd = cmd.map( c => {return {...c, display: `${c.cmd} (${c.payloadtype.name})`}});
         commandOptions.current = cmd;
+        commandOptionsCommandLine.current = commandLine;
+        commandOptionsTaskingLocation.current = taskingLocation;
+        setMessage(commandLine);
         setOpenSelectCommandDialog(true);
     }
     const onClickFilter = () => {
@@ -2376,7 +2421,11 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                               innerDialog={<MythicSelectFromListDialog onClose={() => {
                                   setOpenSelectCommandDialog(false);
                               }}
-                           onSubmit={processCommandAndCommandLine}
+                           onSubmit={(cmd) => processCommandAndCommandLine(
+                               cmd,
+                               commandOptionsCommandLine.current || message,
+                               commandOptionsTaskingLocation.current || unmodifiedHistoryValue
+                           )}
                            options={commandOptions.current}
                            title={"Select Command"}
                            action={"select"} identifier={"id"}

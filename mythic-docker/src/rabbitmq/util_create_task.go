@@ -63,6 +63,14 @@ type CreateTaskResponse struct {
 	TaskDisplayID int    `json:"display_id"`
 }
 
+func ensureCreateTaskOriginalParams(createTaskInput *CreateTaskInput) {
+	if createTaskInput.OriginalParams != nil {
+		return
+	}
+	originalParams := createTaskInput.Params
+	createTaskInput.OriginalParams = &originalParams
+}
+
 type submittedTask struct {
 	TaskID              int
 	IsInteractiveTask   bool
@@ -592,21 +600,19 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 		if commandName != "" {
 			createTaskInput.CommandName = commandName
 		}
-		if createTaskInput.OriginalParams == nil {
-			originalParams := createTaskInput.Params
-			createTaskInput.OriginalParams = &originalParams
-		}
+		ensureCreateTaskOriginalParams(&createTaskInput)
 		createTaskInput.Params = params
 	}
+	ensureCreateTaskOriginalParams(&createTaskInput)
 	selectedParameterGroupName := "Default"
 	if createTaskInput.ParameterGroupName != nil {
 		selectedParameterGroupName = *createTaskInput.ParameterGroupName
 	}
+	task.MythicParsedParams = createTaskInput.Params
 	displayParams := createTaskInput.Params
 	if task.Command.ID > 0 {
 		expandedParams, credentialParamsExpanded, err := expandCredentialJSONTaskingParameters(
 			task.Command.ID,
-			selectedParameterGroupName,
 			createTaskInput.CurrentOperationID,
 			createTaskInput.Params,
 		)
@@ -628,7 +634,6 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 	task.OperatorID = createTaskInput.OperatorID
 	task.OperationID = createTaskInput.CurrentOperationID
 	task.Params = createTaskInput.Params
-	task.MythicParsedParams = createTaskInput.Params
 	task.OriginalParams = *createTaskInput.OriginalParams
 	task.DisplayParams = displayParams
 	task.IsInteractiveTask = createTaskInput.IsInteractiveTask
@@ -1020,6 +1025,8 @@ func SplitOperatorAliasExpandedTaskLine(line string, commandParameterSets ...[]d
 			parameterTypeForFlag[flag] = "string"
 		case COMMAND_PARAMETER_TYPE_NUMBER:
 			parameterTypeForFlag[flag] = "number"
+		case COMMAND_PARAMETER_TYPE_CREDENTIAL:
+			parameterTypeForFlag[flag] = "number"
 		case COMMAND_PARAMETER_TYPE_BOOLEAN:
 			parameterTypeForFlag[flag] = "boolean"
 		case COMMAND_PARAMETER_TYPE_ARRAY, COMMAND_PARAMETER_TYPE_CHOOSE_MULTIPLE:
@@ -1231,6 +1238,8 @@ func SplitOperatorAliasExpandedTaskLine(line string, commandParameterSets ...[]d
 			if hasPositionalMetadata {
 				recordProcessedParameter(parameter, positionalMetadata.Index)
 			}
+		case COMMAND_PARAMETER_TYPE_CREDENTIAL:
+			fallthrough
 		case COMMAND_PARAMETER_TYPE_NUMBER:
 			number, ok := parseNumber(temp)
 			if !ok {
@@ -1326,6 +1335,7 @@ func SplitOperatorAliasExpandedTaskLine(line string, commandParameterSets ...[]d
 		logging.LogError(err, "Failed to marshal callback tasking alias expanded parameters")
 		return command, params, fmt.Errorf("failed to parse alias-expanded parameters for %s: %w", command, err)
 	}
+	logging.LogDebug("SplitOperatorAliasExpandedTaskLine", "marshaledParams", string(marshaledParams))
 	return command, string(marshaledParams), nil
 }
 
