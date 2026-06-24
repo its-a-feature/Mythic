@@ -20,12 +20,12 @@ type CreateCredentialInput struct {
 }
 
 type CreateCredential struct {
-	Realm          string      `json:"realm"`
-	Account        string      `json:"account"`
-	Credential     string      `json:"credential"`
-	Comment        string      `json:"comment"`
-	CredentialType string      `json:"credential_type"`
-	Metadata       interface{} `json:"metadata"`
+	Realm          string                 `json:"realm"`
+	Account        string                 `json:"account"`
+	Credential     string                 `json:"credential"`
+	Comment        string                 `json:"comment"`
+	CredentialType string                 `json:"credential_type"`
+	Metadata       map[string]interface{} `json:"metadata"`
 }
 
 type CreateCredentialResponse struct {
@@ -48,7 +48,7 @@ func CreateCredentialWebhook(c *gin.Context) {
 	}
 	ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct)
 	if !ok {
-		logging.LogError(err, "Failed to get operatorOperation information for CreatePayloadWebhook")
+		logging.LogError(err, "Failed to get operatorOperation information for create credential webhook")
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": "Failed to get current operation. Is it set?"})
 		return
 	}
@@ -68,7 +68,12 @@ func CreateCredentialWebhook(c *gin.Context) {
 	} else {
 		databaseCred.Type = "plaintext"
 	}
-	databaseCred.Metadata = rabbitmq.ParseCredentialMetadata(databaseCred.Type, databaseCred.Credential, input.Input.Metadata)
+	parsedCredential, errorsList := rabbitmq.ParseCredential(databaseCred.Type, databaseCred.Credential, input.Input.Metadata)
+	if errorsList != nil {
+		logging.LogInfo("unable to parse credential metadata", "errors", errorsList)
+	}
+	databaseCred.Account, databaseCred.Realm = rabbitmq.PopulateCredentialAccountRealmFromMetadata(databaseCred.Account, databaseCred.Realm, parsedCredential)
+	databaseCred.Metadata = rabbitmq.GetMythicJSONTextFromStruct(parsedCredential)
 	APITokenID, ok := c.Get(authentication.ContextKeyAPITokenID)
 	if ok {
 		if APITokenID.(int) > 0 {
@@ -76,7 +81,7 @@ func CreateCredentialWebhook(c *gin.Context) {
 			databaseCred.APITokensID.Int64 = int64(APITokenID.(int))
 		}
 	}
-	if input.Input.Realm == "" && input.Input.Account == "" {
+	if databaseCred.Realm == "" && databaseCred.Account == "" {
 		c.JSON(http.StatusOK, CreateCredentialResponse{
 			Status: "error",
 			Error:  "Must supply an account name or a realm",
@@ -127,21 +132,17 @@ func CreateCredentialWebhook(c *gin.Context) {
 		})
 		return
 	}
-	if databaseCred.Deleted {
-		// the credential exists, make sure it's marked as not deleted
-		if _, err := database.DB.Exec(`UPDATE credential SET deleted=false, metadata=$2 WHERE id=$1`, databaseCred.ID, rabbitmq.ParseCredentialMetadata(databaseCred.Type, databaseCred.Credential, input.Input.Metadata)); err != nil {
-			logging.LogError(err, "failed to update credential that already exists")
-		}
-		go rabbitmq.RefreshCredentialValidity(databaseCred.ID)
-		c.JSON(http.StatusOK, CreateCredentialResponse{
-			Status: "success",
-			ID:     databaseCred.ID,
-		})
-		return
+
+	// the credential exists, make sure it's marked as not deleted
+	mergedMetadata := rabbitmq.MergeCredentialMetadata(databaseCred.Type, databaseCred.Credential, parsedCredential, input.Input.Metadata)
+	_, err = database.DB.Exec(`UPDATE credential SET deleted=false, metadata=$2 WHERE id=$1`, databaseCred.ID, mergedMetadata)
+	if err != nil {
+		logging.LogError(err, "failed to update credential that already exists")
 	}
+	go rabbitmq.RefreshCredentialValidity(databaseCred.ID)
 	c.JSON(http.StatusOK, CreateCredentialResponse{
 		Status: "success",
 		ID:     databaseCred.ID,
 	})
-	go rabbitmq.RefreshCredentialValidity(databaseCred.ID)
+	return
 }

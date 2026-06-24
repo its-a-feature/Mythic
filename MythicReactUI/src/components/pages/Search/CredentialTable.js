@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import {Chip, IconButton, Typography} from '@mui/material';
+import React from 'react';
+import {Button, Chip, IconButton, Link, Typography} from '@mui/material';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -13,19 +13,20 @@ import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
 import { gql, useMutation } from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
 import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 import RestoreFromTrashIcon from '@mui/icons-material/RestoreFromTrash';
+import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import { copyStringToClipboard } from '../../utilities/Clipboard';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faCopy} from '@fortawesome/free-solid-svg-icons';
-import {Button, Link} from '@mui/material';
 import Grow from '@mui/material/Grow';
 import Popper from '@mui/material/Popper';
 import MenuItem from '@mui/material/MenuItem';
 import MenuList from '@mui/material/MenuList';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
-import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {TagsDisplay, ViewEditTags} from '../../MythicComponents/MythicTag';
+import Split from 'react-split';
 
 const parseCredentialMetadata = (metadata) => {
     if(metadata === undefined || metadata === null){
@@ -54,117 +55,62 @@ const compactMetadataValue = (value) => {
 
 const isPlainObject = (value) => value && typeof value === "object" && !Array.isArray(value);
 
-const metadataKeyStyle = {
-    fontFamily: "monospace",
-    fontSize: "0.72rem",
-    opacity: 0.78,
-    overflowWrap: "anywhere",
-};
-
-const metadataValueStyle = {
-    fontFamily: "monospace",
-    fontSize: "0.72rem",
-    overflowWrap: "anywhere",
-};
-
-function MetadataValue({value}){
-    if(Array.isArray(value)){
-        return <Chip size="small" variant="outlined" label={`array[${value.length}]`} style={{height: "18px", fontSize: "0.68rem"}} />
-    }
-    if(isPlainObject(value)){
-        const entries = Object.entries(value).slice(0, 3);
-        return (
-            <div style={{display: "grid", gap: "0.15rem", minWidth: 0}}>
-                {entries.map(([key, nestedValue]) => (
-                    <div key={key} style={{display: "grid", gridTemplateColumns: "minmax(4rem, auto) 1fr", gap: "0.3rem", minWidth: 0}}>
-                        <span style={metadataKeyStyle}>{key}</span>
-                        <span style={metadataValueStyle}>{compactMetadataValue(nestedValue)}</span>
-                    </div>
-                ))}
-                {Object.keys(value).length > entries.length &&
-                    <Chip size="small" variant="outlined" label={`+${Object.keys(value).length - entries.length} keys`} style={{height: "18px", fontSize: "0.68rem", width: "fit-content"}} />
-                }
-            </div>
-        )
-    }
-    return <span style={metadataValueStyle}>{compactMetadataValue(value)}</span>
-}
-
-function MetadataFieldRow({name, value, chip}){
-    return (
-        <div style={{
-            display: "grid",
-            gridTemplateColumns: "8rem minmax(0, 1fr)",
-            gap: "0.4rem",
-            alignItems: "start",
-            minWidth: 0,
-            padding: "0.15rem 0",
-            borderBottom: "1px solid rgba(127,127,127,0.15)",
-        }}>
-            <span style={metadataKeyStyle}>{name}</span>
-            <div style={{display: "flex", alignItems: "center", gap: "0.35rem", minWidth: 0, flexWrap: "wrap"}}>
-                <MetadataValue value={value} />
-                {chip &&
-                    <Chip size="small" color={chip.color} label={chip.label} style={{height: "18px", fontSize: "0.68rem"}} />
-                }
-            </div>
-        </div>
-    )
-}
-
-function CredentialMetadataSummary({metadata, onCopy}){
+const getCredentialValidityChips = (metadata) => {
     const parsedMetadata = parseCredentialMetadata(metadata);
-    const metadataEntries = Object.entries(parsedMetadata);
     const validity = parsedMetadata.validity || {};
-    const promoted = [
-        {label: "client", value: parsedMetadata.client_principal},
-        {label: "service", value: parsedMetadata.service_principal},
-        {label: "start", value: parsedMetadata.not_before || parsedMetadata.start_time, chip: validity.not_yet_valid ? {label: "not yet valid", color: "warning"} : null},
-        {label: "end", value: parsedMetadata.expires_at || parsedMetadata.end_time, chip: validity.expired ? {label: "expired", color: "error"} : null},
-        {label: "renew", value: parsedMetadata.renew_until, chip: validity.renew_expired ? {label: "renew expired", color: "warning"} : null},
-    ].filter(({value, chip}) => (value !== undefined && value !== null && `${value}` !== "") || chip);
-    const summaryChips = [
-        parsedMetadata.parser ? {label: `parser:${parsedMetadata.parser}`} : null,
-        parsedMetadata.credential_format ? {label: `format:${parsedMetadata.credential_format}`} : null,
-        parsedMetadata.ticket_count !== undefined ? {label: `tickets:${parsedMetadata.ticket_count}`} : null,
-    ].filter(Boolean);
-    const warningValues = Array.isArray(parsedMetadata.parser_warnings) ? parsedMetadata.parser_warnings : [];
-    const ignoredKeys = new Set([
-        "tickets", "validity", "client_principal", "service_principal", "not_before", "start_time",
-        "expires_at", "end_time", "renew_until", "parser_warnings", "parser", "credential_format",
-        "ticket_count"
-    ]);
-    const extra = Object.entries(parsedMetadata)
-        .filter(([key, value]) => !ignoredKeys.has(key) && value !== undefined && value !== null)
-        .slice(0, 5);
-    if(metadataEntries.length === 0){
-        return <Typography variant="caption" style={{fontFamily: "monospace", opacity: 0.7}}>{"{}"}</Typography>;
+    const chips = [];
+    if(validity.not_yet_valid){
+        chips.push({label: "not yet valid", color: "warning"});
     }
-    return (
-        <div style={{display: "grid", gap: "0.35rem", minWidth: 0}}>
-            <div style={{display: "flex", alignItems: "center", gap: "0.25rem", flexWrap: "wrap"}}>
-                {summaryChips.map((chip) => (
-                    <Chip key={chip.label} size="small" variant="outlined" label={chip.label} style={{height: "18px", fontSize: "0.68rem"}} />
-                ))}
-                {onCopy &&
-                    <MythicStyledTooltip title={"Copy metadata JSON"}>
-                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-info" onClick={() => onCopy(JSON.stringify(parsedMetadata, null, 2))} size="small">
-                            <FontAwesomeIcon icon={faCopy}/>
-                        </IconButton>
-                    </MythicStyledTooltip>
-                }
-            </div>
-            {promoted.map(({label, value, chip}) => (
-                <MetadataFieldRow key={label} name={label} value={value || ""} chip={chip} />
-            ))}
-            {extra.map(([key, value]) => (
-                <MetadataFieldRow key={key} name={key} value={value} />
-            ))}
-            {warningValues.slice(0, 2).map((warning, index) => (
-                <Chip key={`warning-${index}`} size="small" color="warning" variant="outlined" label={compactMetadataValue(warning)} style={{height: "18px", fontSize: "0.68rem", maxWidth: "100%"}} />
-            ))}
-        </div>
-    )
+    if(validity.expired){
+        chips.push({label: "expired", color: "error"});
+    }
+    if(validity.renew_expired){
+        chips.push({label: "renew expired", color: "warning"});
+    }
+    if(chips.length === 0 && validity.has_lifecycle && validity.valid){
+        chips.push({label: "valid", color: "success"});
+    }
+    return chips;
+}
+
+const getSourceLabel = (credential) => {
+    if(credential?.task){
+        return `C-${credential.task.callback?.display_id || "?"} / T-${credential.task.display_id || "?"}`;
+    }
+    return credential?.operator?.username || "manual";
+}
+
+const credentialTypeOptions = [
+    "certificate", "cookie", "hash","hex", "key", "plaintext",  "ticket",
+];
+
+const credentialSearchSplitStorageKey = "credentialSearchSplitSizes";
+const defaultCredentialSearchSplitSizes = [60, 40];
+
+const getStoredCredentialSearchSplitSizes = () => {
+    try {
+        const storedValue = localStorage.getItem(credentialSearchSplitStorageKey);
+        const parsedValue = JSON.parse(storedValue);
+        if(Array.isArray(parsedValue) &&
+            parsedValue.length === 2 &&
+            parsedValue.every((value) => Number.isFinite(value) && value > 10 && value < 90)){
+            return parsedValue;
+        }
+    } catch(error) {
+        console.log("failed to parse credential search split sizes");
+    }
+    return defaultCredentialSearchSplitSizes;
+}
+
+const metadataSystemKeys = new Set([
+    "kerberos", "not_before", "expires_at", "renew_until", "parsed_at", "parser",
+    "parser_warnings", "validity"
+]);
+
+const getNestedMetadataObject = (metadata, key) => {
+    const value = metadata?.[key];
+    return isPlainObject(value) ? value : {};
 }
 
 const updateCredentialComment = gql`
@@ -236,107 +182,170 @@ mutation updateAccountMutation($credential_id: Int!, $deleted: Boolean!){
 
 export function CredentialTable(props){
     const [credentials, setCredentials] = React.useState([]);
-    useEffect( () => {
-        setCredentials([...props.credentials]);
-    }, [props.credentials]);
-    const onEditComment = ({id, comment, operator}) => {
-        const updates = credentials.map( (cred) => {
-            if(cred.id === id){
-                return {...cred, comment, operator}
-            }else{
-                return {...cred}
+    const [selectedCredentialID, setSelectedCredentialID] = React.useState(null);
+    const [credentialSearchSplitSizes, setCredentialSearchSplitSizes] = React.useState(getStoredCredentialSearchSplitSizes);
+
+    React.useEffect( () => {
+        const nextCredentials = [...props.credentials];
+        setCredentials(nextCredentials);
+        setSelectedCredentialID((currentSelectedID) => {
+            if(nextCredentials.length === 0){
+                return null;
             }
+            if(currentSelectedID !== null && nextCredentials.some((credential) => credential.id === currentSelectedID)){
+                return currentSelectedID;
+            }
+            return nextCredentials[0].id;
         });
-        setCredentials(updates);
+    }, [props.credentials]);
+
+    const updateCredentialInState = (id, updates) => {
+        setCredentials((currentCredentials) => currentCredentials.map((cred) => {
+            if(cred.id === id){
+                return {...cred, ...updates};
+            }
+            return {...cred};
+        }));
+    }
+    const onEditComment = ({id, comment, operator}) => {
+        updateCredentialInState(id, {comment, operator});
     }
     const onEditAccount = ({id, account, operator}) => {
-        const updates = credentials.map( (cred) => {
-            if(cred.id === id){
-                return {...cred, account, operator}
-            }else{
-                return {...cred}
-            }
-        });
-        setCredentials(updates);
+        updateCredentialInState(id, {account, operator});
     }
     const onEditRealm = ({id, realm, operator}) => {
-        const updates = credentials.map( (cred) => {
-            if(cred.id === id){
-                return {...cred, realm, operator}
-            }else{
-                return {...cred}
-            }
-        });
-        setCredentials(updates);
+        updateCredentialInState(id, {realm, operator});
     }
     const onEditType = ({id, type, operator}) => {
-        const updates = credentials.map( (cred) => {
-            if(cred.id === id){
-                return {...cred, type, operator}
-            }else{
-                return {...cred}
-            }
-        });
-        setCredentials(updates);
+        updateCredentialInState(id, {type, operator});
     }
     const onEditCredential = ({id, credential_text, operator}) => {
-        const updates = credentials.map( (cred) => {
-            if(cred.id === id){
-                return {...cred, credential_text, operator}
-            }else{
-                return {...cred}
-            }
-        });
-        setCredentials(updates);
+        updateCredentialInState(id, {credential_text, operator});
     }
     const onEditDeleted = ({id, deleted, operator}) => {
-        const updates = credentials.map( (cred) => {
-            if(cred.id === id){
-                return {...cred, deleted, operator}
-            }else{
-                return {...cred}
-            }
-        });
-        setCredentials(updates);
+        updateCredentialInState(id, {deleted, operator});
     }
+    const onCredentialSearchSplitDragEnd = React.useCallback((sizes) => {
+        setCredentialSearchSplitSizes(sizes);
+        localStorage.setItem(credentialSearchSplitStorageKey, JSON.stringify(sizes));
+    }, []);
+    const selectedCredential = credentials.find((credential) => credential.id === selectedCredentialID) || null;
 
     return (
-        <TableContainer className="mythicElement">
-            <Table stickyHeader size="small" style={{height: "100%", tableLayout: "fixed"}}>
-                <TableHead>
-                    <TableRow>
-                        <TableCell style={{width: "2rem"}}></TableCell>
-                        <TableCell style={{width: "5rem"}}>Edit</TableCell>
-                        <TableCell style={{}}>Info</TableCell>
-                        <TableCell style={{}}>Metadata</TableCell>
-                        <TableCell style={{width: "11rem"}}>Task Info</TableCell>
-                        <TableCell style={{width: "15rem"}}>Credential</TableCell>
-                        <TableCell style={{width: "11rem"}}>Tags</TableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                
-                {credentials.map( (op) => (
-                    <CredentialTableRow
-                        me={props.me}
-                        key={"cred" + op.id}
-                        onEditComment={onEditComment}
-                        onEditAccount={onEditAccount}
-                        onEditRealm={onEditRealm}
-                        onEditCredential={onEditCredential}
-                        onEditDeleted={onEditDeleted}
-                        onEditType={onEditType}
-                        {...op}
-                    />
-                ))}
-                </TableBody>
-            </Table>
-        </TableContainer>
+        <Split
+            direction="horizontal"
+            className={`mythic-chat-layout`}
+            sizes={credentialSearchSplitSizes}
+            minSize={[420, 360]}
+            gutterSize={8}
+            snapOffset={0}
+            onDragEnd={onCredentialSearchSplitDragEnd}>
+            <div className="mythic-credential-search-results">
+                <TableContainer className="mythic-credential-search-table-wrap">
+                    <Table stickyHeader size="small" className="mythic-credential-search-table">
+                        <TableHead>
+                            <TableRow>
+                                <TableCell style={{width: "5.25rem"}}>ID</TableCell>
+                                <TableCell>Account / Realm</TableCell>
+                                <TableCell style={{width: "7rem"}}>Type</TableCell>
+                                <TableCell style={{width: "10rem"}}>Validity</TableCell>
+                                <TableCell style={{width: "9rem"}}>Source</TableCell>
+                                <TableCell style={{width: "9rem"}}>Tags</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {credentials.map((credential) => (
+                                <CredentialSearchRow
+                                    key={"cred" + credential.id}
+                                    credential={credential}
+                                    selected={selectedCredentialID === credential.id}
+                                    onSelect={() => setSelectedCredentialID(credential.id)}
+                                />
+                            ))}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            </div>
+            <CredentialInspector
+                credential={selectedCredential}
+                me={props.me}
+                onEditComment={onEditComment}
+                onEditAccount={onEditAccount}
+                onEditRealm={onEditRealm}
+                onEditCredential={onEditCredential}
+                onEditDeleted={onEditDeleted}
+                onEditType={onEditType}
+            />
+        </Split>
     )
 }
 
-function CredentialTableRow(props){
-    const me = props.me;
+function CredentialSearchRow({credential, selected, onSelect}){
+    const parsedMetadata = parseCredentialMetadata(credential.metadata);
+    const validityChips = getCredentialValidityChips(credential.metadata);
+    const sourceLabel = getSourceLabel(credential);
+    const tagCount = credential.tags?.length || 0;
+    const hasComment = (credential.comment || "").trim().length > 0;
+    const hasMetadata = Object.keys(parsedMetadata).length > 0;
+
+    return (
+        <TableRow
+            hover
+            selected={selected}
+            className={`mythic-credential-search-row ${selected ? "mythic-credential-search-row-selected" : ""}`}
+            onClick={onSelect}>
+            <TableCell>
+                <div className="mythic-credential-search-id-cell">
+                    <span className="mythic-credential-search-id">#{credential.id}</span>
+                    {credential.deleted &&
+                        <Chip size="small" color="warning" variant="outlined" label="deleted" className="mythic-credential-search-mini-chip" />
+                    }
+                </div>
+            </TableCell>
+            <TableCell>
+                <div className="mythic-credential-search-primary-cell">
+                    <span title={credential.account || ""}>{credential.account || "-"}</span>
+                    <span title={credential.realm || ""}>{credential.realm || "-"}</span>
+                    <span className="mythic-credential-search-row-flags">
+                        {hasComment && <Chip size="small" variant="outlined" label="comment" className="mythic-credential-search-mini-chip" />}
+                        {hasMetadata && <Chip size="small" variant="outlined" label="metadata" className="mythic-credential-search-mini-chip" />}
+                    </span>
+                </div>
+            </TableCell>
+            <TableCell>
+                <Chip size="small" variant="outlined" label={credential.type || "unknown"} className="mythic-credential-search-type-chip" />
+            </TableCell>
+            <TableCell>
+                <div className="mythic-credential-search-chip-list">
+                    {validityChips.length > 0 ? (
+                        validityChips.slice(0, 2).map((chip) => (
+                            <Chip key={chip.label} size="small" color={chip.color} variant="outlined" label={chip.label} className="mythic-credential-search-mini-chip" />
+                        ))
+                    ) : (
+                        <span className="mythic-credential-search-muted">-</span>
+                    )}
+                </div>
+            </TableCell>
+            <TableCell>
+                <span className="mythic-credential-search-source" title={sourceLabel}>{sourceLabel}</span>
+            </TableCell>
+            <TableCell>
+                <div className="mythic-credential-search-tag-summary">
+                    {tagCount > 0 ? (
+                        <div className="mythic-tag-list mythic-tag-list-truncate">
+                            <TagsDisplay tags={credential.tags || []}/>
+                        </div>
+                    ) : (
+                        <span className="mythic-credential-search-muted">-</span>
+                    )}
+                </div>
+            </TableCell>
+        </TableRow>
+    )
+}
+
+function CredentialInspector(props){
+    const credential = props.credential;
     const [openDeleteDialog, setOpenDeleteDialog] = React.useState(false);
     const [editCommentDialogOpen, setEditCommentDialogOpen] = React.useState(false);
     const [editAccountDialogOpen, setEditAccountDialogOpen] = React.useState(false);
@@ -345,8 +354,7 @@ function CredentialTableRow(props){
     const [editTypeDialogOpen, setEditTypeDialogOpen] = React.useState(false);
     const dropdownAnchorRef = React.useRef(null);
     const [openDropdownButton, setOpenDropdownButton] = React.useState(false);
-    const maxDisplayLength = 100;
-    const displayCred = props.credential_text.length > maxDisplayLength ? props.credential_text.slice(0, maxDisplayLength) + "..." : props.credential_text;
+
     const [updateComment] = useMutation(updateCredentialComment, {
         onCompleted: (data) => {
             snackActions.success("updated comment");
@@ -383,208 +391,361 @@ function CredentialTableRow(props){
             props.onEditDeleted(data.update_credential_by_pk);
         }
     });
-    const onSubmitUpdatedComment = (comment) => {
-        updateComment({variables: {credential_id: props.id, comment: comment}})
+
+    React.useEffect(() => {
+        setOpenDropdownButton(false);
+        setOpenDeleteDialog(false);
+        setEditCommentDialogOpen(false);
+        setEditAccountDialogOpen(false);
+        setEditRealmDialogOpen(false);
+        setEditCredentialDialogOpen(false);
+        setEditTypeDialogOpen(false);
+    }, [credential?.id]);
+
+    if(credential === null){
+        return (
+            <aside className="mythic-credential-search-inspector mythic-credential-search-inspector-empty">
+                <VpnKeyIcon fontSize="small" />
+                <Typography variant="body2">No credential selected</Typography>
+            </aside>
+        )
     }
-    const onSubmitUpdatedAccount = (account) => {
-        updateAccount({variables: {credential_id: props.id, account: account}})
-    }
-    const onSubmitUpdatedType = (type) => {
-        updateType({variables: {credential_id: props.id, type: type}})
-    }
-    const onSubmitUpdatedRealm = (realm) => {
-        updateRealm({variables: {credential_id: props.id, realm: realm}})
-    }
-    const onSubmitUpdatedCredential = (credential) => {
-        updateCredential({variables: {credential_id: props.id, credential: credential}})
-    }
-    const onAcceptDelete = () => {
-        updateDeleted({variables: {credential_id: props.id, deleted: !props.deleted}})
-    }
+
+    const parsedMetadata = parseCredentialMetadata(credential.metadata);
+    const validity = parsedMetadata.validity || {};
+    const validityChips = getCredentialValidityChips(credential.metadata);
+    const kerberosMetadata = getNestedMetadataObject(parsedMetadata, "kerberos");
+    const kerberosValue = (key) => kerberosMetadata[key];
+    const hasKerberosMetadata = parsedMetadata.parser === "kerberos";
+    const warningValues = hasKerberosMetadata && Array.isArray(parsedMetadata.parser_warnings) ? parsedMetadata.parser_warnings : [];
+    const kerberosSummaryChips = [
+        hasKerberosMetadata ? {label: "parser:kerberos"} : null,
+        kerberosValue("credential_format") ? {label: `format:${kerberosValue("credential_format")}`} : null,
+        kerberosValue("ticket_count") !== undefined ? {label: `tickets:${kerberosValue("ticket_count")}`} : null,
+    ].filter(Boolean);
+    const kerberosFields = [
+        {label: "Client", value: kerberosValue("client_principal")},
+        {label: "Service", value: kerberosValue("service_principal")},
+        {label: "Auth Time", value: kerberosValue("auth_time")},
+        {label: "Start", value: kerberosValue("start_time"), chip: validity.not_yet_valid ? {label: "not yet valid", color: "warning"} : null},
+        {label: "End", value: kerberosValue("end_time"), chip: validity.expired ? {label: "expired", color: "error"} : null},
+        {label: "Renew Until", value: kerberosValue("renew_until"), chip: validity.renew_expired ? {label: "renew expired", color: "warning"} : null},
+        {label: "Client Realm", value: kerberosValue("client_realm")},
+        {label: "Service Realm", value: kerberosValue("service_realm")},
+        {label: "Key Type", value: kerberosValue("key_type")},
+        {label: "Flags", value: kerberosValue("flags"), code: true},
+    ].filter(({value, chip}) => (value !== undefined && value !== null && `${value}` !== "") || chip);
+    const showKerberosSection = hasKerberosMetadata;
+    const pureMetadataEntries = Object.entries(parsedMetadata)
+        .filter(([key, value]) => !metadataSystemKeys.has(key) && value !== undefined && value !== null);
+    const pureMetadata = Object.fromEntries(pureMetadataEntries);
+
     const onCopyToClipboard = (data) => {
         let result = copyStringToClipboard(data);
         if(result){
-          snackActions.success("Copied text!");
+            snackActions.success("Copied text!");
         }else{
-          snackActions.error("Failed to copy text");
+            snackActions.error("Failed to copy text");
         }
     }
+    const onSubmitUpdatedComment = (comment) => {
+        updateComment({variables: {credential_id: credential.id, comment: comment}})
+    }
+    const onSubmitUpdatedAccount = (account) => {
+        updateAccount({variables: {credential_id: credential.id, account: account}})
+    }
+    const onSubmitUpdatedType = (type) => {
+        updateType({variables: {credential_id: credential.id, type: type}})
+    }
+    const onSubmitUpdatedRealm = (realm) => {
+        updateRealm({variables: {credential_id: credential.id, realm: realm}})
+    }
+    const onSubmitUpdatedCredential = (credentialValue) => {
+        updateCredential({variables: {credential_id: credential.id, credential: credentialValue}})
+    }
+    const onAcceptDelete = () => {
+        updateDeleted({variables: {credential_id: credential.id, deleted: !credential.deleted}})
+    }
     const options =  [
-        {
-            name: 'Edit Account', click: (evt) => {
-                evt.stopPropagation();
-                setEditAccountDialogOpen(true);
-            }
-        },
-        {
-            name: "Edit Realm", click: (evt) => {
-                setEditRealmDialogOpen(true);
-            }
-        },
-        {
-            name: "Edit Credential", click: (evt) => {
-                setEditCredentialDialogOpen(true);
-            }
-        },
-        {   
-            name: 'Edit Comment', click: (evt) => {
-                setEditCommentDialogOpen(true);
-            }
-        },
-        {
-            name: 'Edit Type', click: (evt) => {
-                setEditTypeDialogOpen(true);
-            }
-        },
+        {name: 'Edit Account', click: () => setEditAccountDialogOpen(true)},
+        {name: "Edit Realm", click: () => setEditRealmDialogOpen(true)},
+        {name: "Edit Credential", click: () => setEditCredentialDialogOpen(true)},
+        {name: 'Edit Comment', click: () => setEditCommentDialogOpen(true)},
+        {name: 'Edit Type', click: () => setEditTypeDialogOpen(true)},
     ];
     const handleMenuItemClick = (event, index) => {
+        event.stopPropagation();
         options[index].click(event);
         setOpenDropdownButton(false);
     };
     const handleClose = (event) => {
         if (dropdownAnchorRef.current && dropdownAnchorRef.current.contains(event.target)) {
-          return;
+            return;
         }
         setOpenDropdownButton(false);
-      };
-    const credentialTypeOptions = [
-        "certificate", "cookie", "hash","hex", "key", "plaintext",  "ticket",
-    ]
-    return (
-        <React.Fragment>
-            <TableRow hover>
-                {openDeleteDialog &&
-                    <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} open={openDeleteDialog} acceptText={props.deleted ? "Restore" : "Remove" }/>
-                }
-                {editCommentDialogOpen &&
-                    <MythicDialog fullWidth={true} maxWidth="md" open={editCommentDialogOpen} 
-                        onClose={()=>{setEditCommentDialogOpen(false);}} 
-                        innerDialog={<MythicModifyStringDialog onEnter={()=>{}} title="Edit Credential Comment" onSubmit={onSubmitUpdatedComment} value={props.comment} onClose={()=>{setEditCommentDialogOpen(false);}} 
-                        multiline={true} maxRows={20}/>}
-                    />
-                }
-                {editAccountDialogOpen &&
-                    <MythicDialog fullWidth={true} maxWidth="md" open={editAccountDialogOpen} 
-                        onClose={()=>{setEditAccountDialogOpen(false);}} 
-                        innerDialog={<MythicModifyStringDialog title="Edit Credential Account" onSubmit={onSubmitUpdatedAccount} value={props.account} onClose={()=>{setEditAccountDialogOpen(false);}} />}
-                    />
-                }
-                {editTypeDialogOpen &&
-                    <MythicDialog fullWidth={true} maxWidth="sm" open={editTypeDialogOpen}
-                                  onClose={()=>{setEditTypeDialogOpen(false);}}
-                                  innerDialog={<MythicSelectFromRawListDialog title="Edit Credential Type" onSubmit={onSubmitUpdatedType}
-                                                                           options={credentialTypeOptions}
-                                                                           onClose={()=>{setEditTypeDialogOpen(false);}} />}
-                    />
-                }
-                {editRealmDialogOpen &&
-                    <MythicDialog fullWidth={true} maxWidth="md" open={editRealmDialogOpen} 
-                        onClose={()=>{setEditRealmDialogOpen(false);}} 
-                        innerDialog={<MythicModifyStringDialog title="Edit Credential Realm" onSubmit={onSubmitUpdatedRealm} value={props.realm} onClose={()=>{setEditRealmDialogOpen(false);}} />}
-                    />
-                }
-                {editCredentialDialogOpen &&
-                    <MythicDialog fullWidth={true} maxWidth="md" open={editCredentialDialogOpen} 
-                        onClose={()=>{setEditCredentialDialogOpen(false);}} 
-                        innerDialog={<MythicModifyStringDialog onEnter={()=>{}} title="Edit Credential Value" onSubmit={onSubmitUpdatedCredential} value={props.credential_text} onClose={()=>{setEditCredentialDialogOpen(false);}}
-                        multiline={true} maxRows={20}/>}
-                    />
-                }
-                
-                <MythicStyledTableCell>{props.deleted ? (
-                    <MythicStyledTooltip title="Restore Credential for use in Tasking">
-                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-success" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><RestoreFromTrashIcon fontSize="small" /></IconButton>
-                    </MythicStyledTooltip>
-                ) : (
-                    <MythicStyledTooltip title="Delete Credential so it can't be used in Tasking">
-                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><DeleteIcon fontSize="small" /></IconButton>
-                    </MythicStyledTooltip>
-                )} </MythicStyledTableCell>
-                <TableCell>
-                    <Button className="mythic-table-row-action" size="small" variant="outlined" ref={dropdownAnchorRef}
-                        onClick={() => setOpenDropdownButton(true)} >{"Edit"}
-                    </Button>
-                    <Popper open={openDropdownButton} anchorEl={dropdownAnchorRef.current} role={undefined} transition style={{zIndex: 4}}>
-                    {({ TransitionProps, placement }) => (
-                        <Grow
-                        {...TransitionProps}
-                        style={{
-                            transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
-                        }}
-                        >
-                        <Paper variant="outlined" className={"dropdownMenuColored"}>
-                            <ClickAwayListener onClickAway={handleClose}>
-                            <MenuList id="split-button-menu"  >
-                                {options.map((option, index) => (
-                                <MenuItem
-                                    key={option.name + index}
-                                    onClick={(event) => handleMenuItemClick(event, index)}
-                                >
-                                    {option.name}
-                                </MenuItem>
-                                ))}
-                            </MenuList>
-                            </ClickAwayListener>
-                        </Paper>
-                        </Grow>
-                    )}
-                    </Popper>
-                </TableCell>
-                <MythicStyledTableCell style={{ whiteSpace: "pre-line",wordBreak: "break-all",}}>
-                    <div style={{display: "flex", alignItems: "center", gap: "0.25rem"}}>
-                        <Typography variant="body2" style={{wordBreak: "break-all"}}>
-                            <b>Tasking ID: </b>{props.id}
-                        </Typography>
-                        <MythicStyledTooltip title={"Copy credential ID for tasking"}>
-                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-info" onClick={() => onCopyToClipboard(String(props.id))} size="small">
-                                <FontAwesomeIcon icon={faCopy}/>
-                            </IconButton>
-                        </MythicStyledTooltip>
-                    </div>
-                    <Typography variant="body2" style={{wordBreak: "break-all"}}><b>Account: </b>{props.account}</Typography>
-                    <Typography variant="body2" style={{wordBreak: "break-all"}}><b>Realm: </b>{props.realm}</Typography>
-                    <Typography variant="body2" style={{wordBreak: "break-all"}}><b>Type: </b>{props.type}</Typography>
-                </MythicStyledTableCell>
-                <MythicStyledTableCell>
-                    <CredentialMetadataSummary metadata={props.metadata} onCopy={onCopyToClipboard}/>
-                </MythicStyledTableCell>
-                <MythicStyledTableCell>
-                    {props.task !== null ? (
-                        <>
-                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>C-{props.task.callback.display_id}</Link>
-                            {" / "}<Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>T-{props.task.display_id}</Link><br/>
-                            Host: {props.task.callback.host}<br/>
-                            Groups: {props.task.callback.mythictree_groups.join(", ")}
-                        </>
+    };
 
-                    ): (props.operator.username)}
-                </MythicStyledTableCell>
-                <MythicStyledTableCell>
-                    <div style={{display: "flex"}}>
-                        <MythicStyledTooltip title={"Copy to clipboard"}>
-                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-info" onClick={() => onCopyToClipboard(props.credential_text)} size="small">
+    return (
+        <aside className="mythic-credential-search-inspector">
+            {openDeleteDialog &&
+                <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} open={openDeleteDialog} acceptText={credential.deleted ? "Restore" : "Remove" }/>
+            }
+            {editCommentDialogOpen &&
+                <MythicDialog fullWidth={true} maxWidth="md" open={editCommentDialogOpen}
+                    onClose={()=>{setEditCommentDialogOpen(false);}}
+                    innerDialog={<MythicModifyStringDialog onEnter={()=>{}} title="Edit Credential Comment" onSubmit={onSubmitUpdatedComment} value={credential.comment || ""} onClose={()=>{setEditCommentDialogOpen(false);}}
+                    multiline={true} maxRows={20}/>}
+                />
+            }
+            {editAccountDialogOpen &&
+                <MythicDialog fullWidth={true} maxWidth="md" open={editAccountDialogOpen}
+                    onClose={()=>{setEditAccountDialogOpen(false);}}
+                    innerDialog={<MythicModifyStringDialog title="Edit Credential Account" onSubmit={onSubmitUpdatedAccount} value={credential.account || ""} onClose={()=>{setEditAccountDialogOpen(false);}} />}
+                />
+            }
+            {editTypeDialogOpen &&
+                <MythicDialog fullWidth={true} maxWidth="sm" open={editTypeDialogOpen}
+                    onClose={()=>{setEditTypeDialogOpen(false);}}
+                    innerDialog={<MythicSelectFromRawListDialog title="Edit Credential Type" onSubmit={onSubmitUpdatedType}
+                    options={credentialTypeOptions}
+                    onClose={()=>{setEditTypeDialogOpen(false);}} />}
+                />
+            }
+            {editRealmDialogOpen &&
+                <MythicDialog fullWidth={true} maxWidth="md" open={editRealmDialogOpen}
+                    onClose={()=>{setEditRealmDialogOpen(false);}}
+                    innerDialog={<MythicModifyStringDialog title="Edit Credential Realm" onSubmit={onSubmitUpdatedRealm} value={credential.realm || ""} onClose={()=>{setEditRealmDialogOpen(false);}} />}
+                />
+            }
+            {editCredentialDialogOpen &&
+                <MythicDialog fullWidth={true} maxWidth="md" open={editCredentialDialogOpen}
+                    onClose={()=>{setEditCredentialDialogOpen(false);}}
+                    innerDialog={<MythicModifyStringDialog onEnter={()=>{}} title="Edit Credential Value" onSubmit={onSubmitUpdatedCredential} value={credential.credential_text || ""} onClose={()=>{setEditCredentialDialogOpen(false);}}
+                    multiline={true} maxRows={20}/>}
+                />
+            }
+            <div className="mythic-credential-search-inspector-header">
+                <div className="mythic-credential-search-inspector-title">
+                    <VpnKeyIcon fontSize="small" />
+                    <span title={`Credential ${credential.id}`}>Credential {credential.id}</span>
+                    <Chip size="small" variant="outlined" label={credential.type || "unknown"} className="mythic-credential-search-mini-chip" />
+                    {credential.deleted &&
+                        <Chip size="small" color="warning" variant="outlined" label="deleted" className="mythic-credential-search-mini-chip" />
+                    }
+                    {validityChips.map((chip) => (
+                        <Chip key={chip.label} size="small" color={chip.color} variant="outlined" label={chip.label} className="mythic-credential-search-mini-chip" />
+                    ))}
+                </div>
+                <div className="mythic-credential-search-inspector-actions">
+                    <Button className="mythic-table-row-action" size="small" variant="outlined" ref={dropdownAnchorRef}
+                        startIcon={<EditIcon fontSize="small" />}
+                        onClick={() => setOpenDropdownButton(true)} >Edit</Button>
+                    <Popper open={openDropdownButton} anchorEl={dropdownAnchorRef.current} role={undefined} transition style={{zIndex: 4}}>
+                        {({ TransitionProps, placement }) => (
+                            <Grow
+                                {...TransitionProps}
+                                style={{
+                                    transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
+                                }}
+                            >
+                                <Paper variant="outlined" className={"dropdownMenuColored"}>
+                                    <ClickAwayListener onClickAway={handleClose}>
+                                        <MenuList id="credential-inspector-edit-menu">
+                                            {options.map((option, index) => (
+                                                <MenuItem
+                                                    key={option.name + index}
+                                                    onClick={(event) => handleMenuItemClick(event, index)}
+                                                >
+                                                    {option.name}
+                                                </MenuItem>
+                                            ))}
+                                        </MenuList>
+                                    </ClickAwayListener>
+                                </Paper>
+                            </Grow>
+                        )}
+                    </Popper>
+                    {credential.deleted ? (
+                        <MythicStyledTooltip title="Restore Credential for use in Tasking">
+                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-success" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><RestoreFromTrashIcon fontSize="small" /></IconButton>
+                        </MythicStyledTooltip>
+                    ) : (
+                        <MythicStyledTooltip title="Delete Credential so it can't be used in Tasking">
+                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><DeleteIcon fontSize="small" /></IconButton>
+                        </MythicStyledTooltip>
+                    )}
+                </div>
+            </div>
+            <div className="mythic-credential-search-inspector-body">
+                <CredentialInspectorSection title="Identity">
+                    <CredentialDetail label="Account" value={credential.account} />
+                    <CredentialDetail
+                        label="Tasking ID"
+                        value={credential.id}
+                        code
+                        action={
+                            <MythicStyledTooltip title={"Copy credential ID for tasking"}>
+                                <IconButton className="mythic-credential-search-field-action mythic-table-row-icon-action mythic-table-row-icon-action-info" onClick={() => onCopyToClipboard(String(credential.id))} size="small">
+                                    <FontAwesomeIcon icon={faCopy}/>
+                                </IconButton>
+                            </MythicStyledTooltip>
+                        }
+                    />
+                    <CredentialDetail label="Realm" value={credential.realm} />
+                    <CredentialDetail label="Type" value={credential.type} />
+                </CredentialInspectorSection>
+                {showKerberosSection &&
+                    <CredentialInspectorSection title="Kerberos">
+                        {kerberosSummaryChips.length > 0 &&
+                            <div className="mythic-credential-search-chip-list mythic-credential-search-section-chips">
+                                {kerberosSummaryChips.map((chip) => (
+                                    <Chip key={chip.label} size="small" variant="outlined" label={chip.label} className="mythic-credential-search-mini-chip" />
+                                ))}
+                            </div>
+                        }
+                        {kerberosFields.map((field) => (
+                            <CredentialDetail key={field.label} label={field.label} value={field.value} chip={field.chip} wide={field.label === "Client" || field.label === "Service"} code={field.code || field.label === "Client" || field.label === "Service"} />
+                        ))}
+                        {warningValues.length > 0 &&
+                            <div className="mythic-credential-search-warning-list">
+                                {warningValues.map((warning, index) => (
+                                    <Chip key={`warning-${index}`} size="small" color="warning" variant="outlined" label={compactMetadataValue(warning)} className="mythic-credential-search-warning-chip" />
+                                ))}
+                            </div>
+                        }
+                    </CredentialInspectorSection>
+                }
+                <CredentialInspectorSection
+                    title="Metadata"
+                    actions={
+                        <MythicStyledTooltip title={"Copy metadata JSON"}>
+                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-info" onClick={() => onCopyToClipboard(JSON.stringify(pureMetadata, null, 2))} size="small">
                                 <FontAwesomeIcon icon={faCopy}/>
                             </IconButton>
                         </MythicStyledTooltip>
-                        <Typography variant="body2" style={{
-                            wordBreak: "break-all",
-                            display: "inline-block"
-                        }}><b>Credential: </b>{displayCred}</Typography>
+                    }>
+                    {pureMetadataEntries.length === 0 ? (
+                        <div className="mythic-credential-search-empty-value">{"{}"}</div>
+                    ) : (
+                        <div className="mythic-credential-search-metadata-grid">
+                            {pureMetadataEntries.map(([key, value]) => (
+                                <CredentialMetadataPair key={key} name={key} value={value} />
+                            ))}
+                        </div>
+                    )}
+                </CredentialInspectorSection>
+                <CredentialInspectorSection title="Source">
+                    {credential.task ? (
+                        <>
+                            <CredentialDetail
+                                label="Task"
+                                wide
+                                value={
+                                    <span>
+                                        <Link color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + credential.task.callback?.display_id}>C-{credential.task.callback?.display_id || "?"}</Link>
+                                        {" / "}
+                                        <Link color="textPrimary" underline="always" target="_blank" href={"/new/task/" + credential.task.display_id}>T-{credential.task.display_id || "?"}</Link>
+                                    </span>
+                                }
+                            />
+                            <CredentialDetail label="Host" value={credential.task.callback?.host} />
+                            <CredentialDetail label="Groups" value={(credential.task.callback?.mythictree_groups || []).join(", ")} wide />
+                        </>
+                    ) : (
+                        <CredentialDetail label="Operator" value={credential.operator?.username} />
+                    )}
+                </CredentialInspectorSection>
+                <CredentialInspectorSection title="Credential">
+                    <div className="mythic-credential-search-secret-row">
+                        <div className="mythic-credential-search-secret" title={credential.credential_text || ""}>
+                            {credential.credential_text || "-"}
+                        </div>
+                        <MythicStyledTooltip title={"Copy credential value"}>
+                            <IconButton className="mythic-credential-search-secret-copy mythic-table-row-icon-action mythic-table-row-icon-action-info" onClick={() => onCopyToClipboard(credential.credential_text || "")} size="small">
+                                <FontAwesomeIcon icon={faCopy}/>
+                            </IconButton>
+                        </MythicStyledTooltip>
                     </div>
-                    {(props.comment || "").length > 0 &&
-                        <Typography variant="caption" style={{whiteSpace: "pre-line", wordBreak: "break-word", display: "block", marginTop: "0.25rem"}}>
-                            <b>Comment: </b>{props.comment}
-                        </Typography>
-                    }
-                </MythicStyledTableCell>
-                <MythicStyledTableCell>
-                    <ViewEditTags
-                        target_object={"credential_id"}
-                        target_object_id={props?.id || 0}
-                        me={me}/>
-                    <TagsDisplay tags={props.tags || []}/>
-                </MythicStyledTableCell>
-            </TableRow>
-        </React.Fragment>
+                </CredentialInspectorSection>
+                <CredentialInspectorSection title="Comment">
+                    <div className="mythic-credential-search-comment">
+                        {(credential.comment || "").trim().length > 0 ? credential.comment : "No comment."}
+                    </div>
+                </CredentialInspectorSection>
+                <CredentialInspectorSection title="Tags">
+                    <div className="mythic-credential-search-tags">
+                        <ViewEditTags
+                            target_object={"credential_id"}
+                            target_object_id={credential?.id || 0}
+                            me={props.me}/>
+                        <TagsDisplay tags={credential.tags || []}/>
+                    </div>
+                </CredentialInspectorSection>
+            </div>
+        </aside>
     )
+}
+
+function CredentialInspectorSection({title, actions, children}){
+    return (
+        <section className="mythic-credential-search-section">
+            <div className="mythic-credential-search-section-header">
+                <span>{title}</span>
+                {actions && <div className="mythic-credential-search-section-actions">{actions}</div>}
+            </div>
+            <div className="mythic-credential-search-section-body">
+                {children}
+            </div>
+        </section>
+    )
+}
+
+function CredentialDetail({label, value, chip, wide=false, code=false, action}){
+    const isReactValue = React.isValidElement(value);
+    const displayValue = value === undefined || value === null || value === "" ? "-" : value;
+    return (
+        <div className={`mythic-credential-search-detail ${wide ? "mythic-credential-search-detail-wide" : ""}`}>
+            <span>{label}</span>
+            <div className="mythic-credential-search-detail-value-row">
+                <strong className={code ? "mythic-credential-search-code" : ""} title={isReactValue ? undefined : `${displayValue}`}>
+                    {displayValue}
+                </strong>
+                {action && <div className="mythic-credential-search-detail-action">{action}</div>}
+            </div>
+            {chip &&
+                <Chip size="small" color={chip.color} variant="outlined" label={chip.label} className="mythic-credential-search-inline-chip" />
+            }
+        </div>
+    )
+}
+
+function CredentialMetadataPair({name, value}){
+    return (
+        <div className="mythic-credential-search-metadata-pair">
+            <span title={name}>{name}</span>
+            <strong title={compactMetadataValue(value)}>
+                <MetadataValue value={value} />
+            </strong>
+        </div>
+    )
+}
+
+function MetadataValue({value}){
+    if(Array.isArray(value)){
+        return <Chip size="small" variant="outlined" label={`array[${value.length}]`} className="mythic-credential-search-mini-chip" />
+    }
+    if(isPlainObject(value)){
+        const entries = Object.entries(value)
+        return (
+            <div className="mythic-credential-search-nested-metadata">
+                {entries.map(([key, nestedValue]) => (
+                    <div key={key}>
+                        <span>{key}</span>
+                        <strong>{compactMetadataValue(nestedValue)}</strong>
+                    </div>
+                ))}
+            </div>
+        )
+    }
+    return <span>{compactMetadataValue(value)}</span>
 }
