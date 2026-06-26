@@ -117,7 +117,7 @@ export const CallbacksTableIDCell = React.memo(({rowData, callbackDropdown, onOp
     } else if(interactType === "interactConsole"){
         defaultInteractIcon = <TerminalIcon fontSize="small" />;
     }
-    const highIntegrity = rowDataStatic.integrity_level > 3;
+    const highIntegrity = rowDataStatic.integrity_level >= 3;
     const lockOwner = rowDataStatic.locked_operator?.username || "unknown operator";
 
     return (

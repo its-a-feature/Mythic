@@ -6,6 +6,7 @@ import {MythicSelectFromListDialog} from '../../MythicComponents/MythicSelectFro
 import {createTaskingMutation} from './CallbackMutations';
 import {TaskParametersDialog} from './TaskParametersDialog';
 import { MythicConfirmDialog } from '../../MythicComponents/MythicConfirmDialog';
+import {useTaskReferenceSubmitter} from './taskingReferences';
 
 const getLoadedCommandsBasedOnInput = ({cmd, ui_feature}) => {
     let filter_string = "";
@@ -85,7 +86,7 @@ query getAvailableCallbacksWithUIFeature($ui_feature: jsonb!) {
 `;
 export const TaskFromUIButton = ({callback_id, callback_display_ids, cmd, ui_feature, parameters, onTasked, tasking_location,
                                      getConfirmation, openDialog, acceptText, dontShowSuccessDialog, token,
-                                    selectCallback
+                                    selectCallback, selected_task_references=[]
                                  }) =>{
     const [fileBrowserCommands, setFileBrowserCommands] = React.useState([]);
     const [openSelectCommandDialog, setOpenSelectCommandDialog] = React.useState(false);
@@ -205,6 +206,35 @@ export const TaskFromUIButton = ({callback_id, callback_display_ids, cmd, ui_fea
             onTasked({tasked: false});
         }
     });
+    const {submitTask, dialog: taskReferenceSubmitDialog} = useTaskReferenceSubmitter(createTask);
+    const getTaskReferenceEditParameters = (variables) => {
+        try{
+            const parsedParameters = JSON.parse(variables.params || "{}");
+            if(parsedParameters && typeof parsedParameters === "object" && !Array.isArray(parsedParameters)){
+                return parsedParameters;
+            }
+        }catch(error){
+            // fall through to an empty parameter object
+        }
+        return {};
+    }
+    const openTaskReferenceEditDialog = (variables) => {
+        if(!selectedCommand?.id){
+            return;
+        }
+        setSelectedCommand({
+            ...selectedCommand,
+            parsedParameters: getTaskReferenceEditParameters(variables),
+            groupName: variables.parameter_group_name || selectedCommand.groupName,
+        });
+        setOpenParametersDialog(true);
+    }
+    const submitTaskWithReferenceEdit = (variables) => {
+        submitTask({
+            variables,
+            onTaskReferenceReviewCancel: openTaskReferenceEditDialog,
+        });
+    }
     const onSubmitSelectedCommand = (cmd) => {
         setOpenSelectCommandDialog(false);
         setSelectedCommand(cmd);
@@ -225,13 +255,17 @@ export const TaskFromUIButton = ({callback_id, callback_display_ids, cmd, ui_fea
             }
 
         }else if(callback_display_ids){
-            createTask({variables: {...variables, callback_display_ids: callback_display_ids}})
+            submitTaskWithReferenceEdit({...variables, callback_display_ids: callback_display_ids})
         } else {
-            createTask({variables: {...variables, callback_display_id: callbackData.callback_by_pk.display_id}})
+            submitTaskWithReferenceEdit({...variables, callback_display_id: callbackData.callback_by_pk.display_id})
         }
     }
-    const submitParametersDialog = (cmd, new_parameters, files, selectedParameterGroup, payload_type) => {
+    const submitParametersDialog = (cmd, new_parameters, files, selectedParameterGroup, payload_type, metadata={}) => {
         setOpenParametersDialog(false);
+        const selectedTaskReferences = [
+            ...(selected_task_references || []),
+            ...(metadata.selectedTaskReferences || []),
+        ];
         try{
             savedFinalVariables.current = JSON.parse(new_parameters);
             if(typeof parameters !== "string"){
@@ -249,7 +283,8 @@ export const TaskFromUIButton = ({callback_id, callback_display_ids, cmd, ui_fea
                 files,
                 tasking_location: "modal",
                 payload_type: payload_type,
-                parameter_group_name: selectedParameterGroup
+                parameter_group_name: selectedParameterGroup,
+                selected_task_references: selectedTaskReferences,
             }});
     }
     const onSubmitSelectedToken = (token) => {
@@ -259,9 +294,9 @@ export const TaskFromUIButton = ({callback_id, callback_display_ids, cmd, ui_fea
         if(callbackTokenOptions.length > 0){
             setOpenCallbackTokenSelectDialog(true);
         }else if(callback_display_ids) {
-            createTask({variables: {...taskingVariables, callback_display_ids: callback_display_ids}})
+            submitTaskWithReferenceEdit({...taskingVariables, callback_display_ids: callback_display_ids})
         } else {
-            createTask({variables: {...taskingVariables, callback_display_id: callbackData.callback_by_pk.display_id}})
+            submitTaskWithReferenceEdit({...taskingVariables, callback_display_id: callbackData.callback_by_pk.display_id})
         }
         setOpenConfirmDialog(false);
     }
@@ -285,17 +320,17 @@ export const TaskFromUIButton = ({callback_id, callback_display_ids, cmd, ui_fea
         if(selectedCallbackToken === "" || selectedCallbackToken === "Default Token"){
             // we selected the default token to use
             if(callback_display_ids){
-                createTask({variables: {...taskingVariables, callback_display_ids: callback_display_ids}});
+                submitTaskWithReferenceEdit({...taskingVariables, callback_display_ids: callback_display_ids});
             } else {
-                createTask({variables: {...taskingVariables, callback_display_id: callbackData.callback_by_pk.display_id}});
+                submitTaskWithReferenceEdit({...taskingVariables, callback_display_id: callbackData.callback_by_pk.display_id});
             }
 
         }
         if(selectedCallbackToken.token_id){
             if(callback_display_ids){
-                createTask({variables: {...taskingVariables, callback_display_ids: callback_display_ids, token_id: selectedCallbackToken.token_id}});
+                submitTaskWithReferenceEdit({...taskingVariables, callback_display_ids: callback_display_ids, token_id: selectedCallbackToken.token_id});
             } else {
-                createTask({variables: {...taskingVariables, callback_display_id: callbackData.callback_by_pk.display_id, token_id: selectedCallbackToken.token_id}});
+                submitTaskWithReferenceEdit({...taskingVariables, callback_display_id: callbackData.callback_by_pk.display_id, token_id: selectedCallbackToken.token_id});
             }
 
         }
@@ -321,14 +356,18 @@ export const TaskFromUIButton = ({callback_id, callback_display_ids, cmd, ui_fea
                             command: selectedCommand.cmd,
                             params: parameters,
                             payload_type: selectedCommand?.payloadtype?.name,
-                            tasking_location: "command_line"}});
+                            tasking_location: "command_line",
+                            selected_task_references,
+                        }});
                 }else{
                     onSubmitTasking({variables: {
                         callback_display_id: callbackData.callback_by_pk.display_id,
                             command: selectedCommand.cmd,
                             params: JSON.stringify(parameters),
                             payload_type: selectedCommand?.payloadtype?.name,
-                            tasking_location: taskingLocation}});
+                            tasking_location: taskingLocation,
+                            selected_task_references,
+                        }});
                 }
                 
             }
@@ -339,7 +378,9 @@ export const TaskFromUIButton = ({callback_id, callback_display_ids, cmd, ui_fea
                     callback_display_id: callbackData.callback_by_pk.display_id,
                         command: selectedCommand.cmd,
                         payload_type: selectedCommand?.payloadtype?.name,
-                        params: ""}});
+                        params: "",
+                        selected_task_references,
+                    }});
             }else{
                 savedFinalVariables.current = parameters;
                 if(typeof(parameters) === "string"){
@@ -348,14 +389,18 @@ export const TaskFromUIButton = ({callback_id, callback_display_ids, cmd, ui_fea
                             command: selectedCommand.cmd,
                             payload_type: selectedCommand?.payloadtype?.name,
                             params: parameters,
-                            tasking_location: "command_line"}});
+                            tasking_location: "command_line",
+                            selected_task_references,
+                        }});
                 }else{
                     onSubmitTasking({variables: {
                         callback_display_id: callbackData.callback_by_pk.display_id,
                             command: selectedCommand.cmd,
                             payload_type: selectedCommand?.payloadtype?.name,
                             params: JSON.stringify(parameters),
-                            tasking_location: taskingLocation}});
+                            tasking_location: taskingLocation,
+                            selected_task_references,
+                        }});
                 }
             }
             
@@ -363,6 +408,7 @@ export const TaskFromUIButton = ({callback_id, callback_display_ids, cmd, ui_fea
     }, [selectedCommand])
     return (
         <div>
+            {taskReferenceSubmitDialog}
             {openSelectCommandDialog && 
                 <MythicDialog fullWidth={true} maxWidth="md" open={openSelectCommandDialog}
                         onClose={()=>{setOpenSelectCommandDialog(false);onTasked({tasked: false});}} 

@@ -38,6 +38,7 @@ import {ResponseDisplayTableDialogTable} from "./ResponseDisplayTableDialogTable
 import SendIcon from '@mui/icons-material/Send';
 import {getIconName} from "./ResponseDisplayTable";
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import {useTaskReferenceSubmitter} from "./taskingReferences";
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { MythicAgentSVGIconNoTooltip} from "../../MythicComponents/MythicAgentSVGIcon";
 import {ImageWithAuth} from "../../utilities/ImageWithAuth";
@@ -579,9 +580,10 @@ export function C2PathDialog({callback, callbackgraphedges, onClose, onOpenTab})
 
         }
     });
+    const {submitTask, dialog: taskReferenceSubmitDialog} = useTaskReferenceSubmitter(createTask);
     const submitParametersDialog = (cmd, parameters, files) => {
         setOpenParametersDialog(false);
-        createTask({variables: {callback_display_id: selectedCallback.display_id, command: cmd, params: parameters, files}});
+        submitTask({variables: {callback_display_id: selectedCallback.display_id, command: cmd, params: parameters, files}});
     }
     const [hideCallback] = useMutation(hideCallbackMutation, {
         update: (cache, {data}) => {
@@ -712,6 +714,7 @@ export function C2PathDialog({callback, callbackgraphedges, onClose, onOpenTab})
 
     return (
     <>
+        {taskReferenceSubmitDialog}
         <DialogTitle className="mythic-c2-path-title">
             <div className="mythic-c2-path-title-row">
                 <div className="mythic-c2-path-title-copy">

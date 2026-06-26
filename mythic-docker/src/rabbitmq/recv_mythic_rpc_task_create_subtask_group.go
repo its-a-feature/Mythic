@@ -25,6 +25,7 @@ type MythicRPCTaskCreateSubtaskGroupTasks struct {
 	Params                  string  `json:"params"`       // required
 	ParameterGroupName      *string `json:"parameter_group_name,omitempty"`
 	Token                   *int    `json:"token,omitempty"`
+	ResolveTaskReferences   *bool   `json:"resolve_task_references,omitempty"`
 }
 
 // Every mythicRPC function call must return a response that includes the following two values
@@ -96,6 +97,7 @@ func MythicRPCTaskCreateSubtaskGroup(input MythicRPCTaskCreateSubtaskGroupMessag
 			CurrentOperationID:      authContext.OperationID,
 			OperatorID:              authContext.OperatorID,
 			TaskingLocation:         &taskingLocation,
+			ResolveTaskReferences:   task.ResolveTaskReferences,
 			AuthContext:             authContext,
 		}
 		createTaskInput.APITokensID = authContext.APITokensID

@@ -11,13 +11,14 @@ import (
 )
 
 type MythicRPCTaskCreateMessage struct {
-	AgentCallbackID    *string `json:"agent_callback_id"`
-	CallbackID         *int    `json:"callback_id"`
-	CommandName        string  `json:"command_name"`
-	PayloadTypeName    *string `json:"payload_type_name"`
-	Params             string  `json:"params"`
-	ParameterGroupName *string `json:"parameter_group_name,omitempty"`
-	Token              *int    `json:"token,omitempty"`
+	AgentCallbackID       *string `json:"agent_callback_id"`
+	CallbackID            *int    `json:"callback_id"`
+	CommandName           string  `json:"command_name"`
+	PayloadTypeName       *string `json:"payload_type_name"`
+	Params                string  `json:"params"`
+	ParameterGroupName    *string `json:"parameter_group_name,omitempty"`
+	Token                 *int    `json:"token,omitempty"`
+	ResolveTaskReferences *bool   `json:"resolve_task_references,omitempty"`
 }
 
 // Every mythicRPC function call must return a response that includes the following two values
@@ -45,13 +46,14 @@ func MythicRPCTaskCreate(input MythicRPCTaskCreateMessage, authContext RabbitMQA
 	}
 	taskingLocation := "mythic_rpc"
 	createTaskInput := CreateTaskInput{
-		CommandName:        input.CommandName,
-		Params:             input.Params,
-		Token:              input.Token,
-		ParameterGroupName: input.ParameterGroupName,
-		TaskingLocation:    &taskingLocation,
-		PayloadType:        input.PayloadTypeName,
-		AuthContext:        authContext,
+		CommandName:           input.CommandName,
+		Params:                input.Params,
+		Token:                 input.Token,
+		ParameterGroupName:    input.ParameterGroupName,
+		TaskingLocation:       &taskingLocation,
+		PayloadType:           input.PayloadTypeName,
+		ResolveTaskReferences: input.ResolveTaskReferences,
+		AuthContext:           authContext,
 	}
 	createTaskInput.EventStepInstanceID = authContext.EventStepInstanceID
 	createTaskInput.APITokensID = authContext.APITokensID

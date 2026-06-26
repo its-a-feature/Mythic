@@ -12853,4 +12853,198 @@ tspan {
     background-color: black;
     color: white;
 }
+.mythic-reference-picker-dialog {
+    min-height: 520px;
+}
+.mythic-reference-picker-toolbar {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.mythic-reference-picker-body {
+    border: 1px solid var(--mythic-global-005);
+    border-radius: 6px;
+    height: min(560px, calc(100vh - 280px));
+    min-height: 360px;
+    overflow: hidden;
+}
+.mythic-reference-picker-body > .mythic-credential-search {
+    height: 100%;
+    width: 100%;
+}
+.mythic-tasking-reference-chip {
+    flex: 0 0 auto;
+}
+.mythic-tasking-reference-field-grid {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    min-width: min(520px, 80vw);
+}
+.mythic-tasking-reference-field-button.MuiButton-root {
+    justify-content: flex-start;
+    text-transform: none;
+}
+.mythic-tasking-reference-field-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    width: 100%;
+}
+.mythic-tasking-reference-field-row.MuiButton-root {
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 6px 8px;
+    text-align: left;
+    text-transform: none;
+}
+.mythic-tasking-reference-field-row-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    width: 100%;
+}
+.mythic-tasking-reference-field-row-header {
+    align-items: flex-start;
+    display: flex;
+    gap: 6px;
+    justify-content: space-between;
+    min-width: 0;
+}
+.mythic-tasking-reference-field-row-label {
+    color: var(--mythic-global-025);
+    flex: 0 0 auto;
+    font-size: 0.78rem;
+    font-weight: 800;
+    min-width: 0;
+}
+.mythic-tasking-reference-field-row-reference {
+    font-family: var(--mythic-global-065);
+    font-size: 0.72rem;
+    min-width: 0;
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+.mythic-tasking-reference-field-row-value {
+    color: var(--mythic-global-025);
+    font-family: var(--mythic-global-065);
+    font-size: 0.72rem;
+    line-height: 1.25;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    min-width: 0;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+.mythic-tasking-reference-review-context {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 10px;
+    min-width: 0;
+}
+.mythic-tasking-reference-review-command {
+    color: var(--mythic-global-025);
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+.mythic-tasking-reference-review-preview {
+    background-color: var(--mythic-global-013);
+    border: 1px solid var(--mythic-global-005);
+    border-radius: 6px;
+    font-family: var(--mythic-global-065);
+    font-size: 0.78rem;
+    line-height: 1.45;
+    margin: 0;
+    max-height: min(360px, 45vh);
+    overflow: auto;
+    padding: 8px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.mythic-tasking-reference-review-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.mythic-tasking-reference-review-row {
+    align-items: stretch;
+    border: 1px solid var(--mythic-global-005);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    padding: 8px;
+}
+.mythic-tasking-reference-review-row-header {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    justify-content: space-between;
+    min-width: 0;
+}
+.mythic-tasking-reference-review-row-meta {
+    align-items: flex-end;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.mythic-tasking-reference-review-label {
+    color: var(--mythic-global-025);
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+.mythic-tasking-reference-review-raw {
+    color: var(--mythic-global-025);
+    font-family: var(--mythic-global-065);
+    font-size: 0.72rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    text-align: right;
+}
+.mythic-tasking-reference-review-value {
+    color: var(--mythic-global-025);
+    display: -webkit-box;
+    font-family: var(--mythic-global-065);
+    font-size: 0.74rem;
+    line-height: 1.35;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    min-width: 0;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+.mythic-reference-display {
+    display: inline;
+}
+.mythic-reference-token {
+    align-items: center;
+    background-color: var(--mythic-global-199);
+    border: 1px solid var(--mythic-global-200);
+    border-radius: 5px;
+    cursor: pointer;
+    display: inline-flex;
+    font-family: var(--mythic-global-065);
+    font-size: 0.76rem;
+    font-weight: 700;
+    line-height: 1.4;
+    margin: 0 2px;
+    max-width: 100%;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    padding: 0 5px;
+    vertical-align: baseline;
+}
+.mythic-reference-token-warning {
+    background-color: var(--mythic-global-055);
+    border-color: var(--mythic-global-056);
+}
 `

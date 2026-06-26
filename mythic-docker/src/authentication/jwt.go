@@ -186,6 +186,12 @@ func GetClaims(c *gin.Context) (*mythicjwt.CustomClaims, error) {
 		return nil, err
 	}
 	c.Set(ContextKeyUserID, claims.UserID)
+	user, err := database.GetUserFromID(claims.UserID)
+	if err != nil {
+		logging.LogError(err, "failed to get user from id in GetClaims")
+		return nil, err
+	}
+	claims.OperationID = int(user.CurrentOperationID.Int64)
 	c.Set(ContextKeyClaims, &claims)
 	return &claims, nil
 }

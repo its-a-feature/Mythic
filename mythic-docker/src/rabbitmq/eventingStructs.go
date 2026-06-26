@@ -5,16 +5,17 @@ type EventActionDataCreatePayload struct {
 }
 
 type EventActionDataCreateTask struct {
-	CallbackDisplayID   int                    `json:"callback_display_id" mapstructure:"callback_display_id"`
-	CommandName         string                 `json:"command_name" mapstructure:"command_name"`
-	PayloadType         *string                `json:"payload_type,omitempty" mapstructure:"payload_type,omitempty"`
-	Params              string                 `json:"params" mapstructure:"params"`
-	ParamDictionary     map[string]interface{} `json:"params_dictionary,omitempty" mapstructure:"params_dictionary"`
-	ParameterGroupName  *string                `json:"parameter_group_name,omitempty" mapstructure:"parameter_group_name"`
-	Token               *int                   `json:"token,omitempty" mapstructure:"token"`
-	ParentTaskID        *int                   `json:"parent_task_id,omitempty" mapstructure:"parent_task_id"`
-	IsInteractiveTask   bool                   `json:"is_interactive_task" mapstructure:"is_interactive_task"`
-	InteractiveTaskType *int                   `json:"interactive_task_type,omitempty" mapstructure:"interactive_task_type"`
+	CallbackDisplayID     int                    `json:"callback_display_id" mapstructure:"callback_display_id"`
+	CommandName           string                 `json:"command_name" mapstructure:"command_name"`
+	PayloadType           *string                `json:"payload_type,omitempty" mapstructure:"payload_type,omitempty"`
+	Params                string                 `json:"params" mapstructure:"params"`
+	ParamDictionary       map[string]interface{} `json:"params_dictionary,omitempty" mapstructure:"params_dictionary"`
+	ParameterGroupName    *string                `json:"parameter_group_name,omitempty" mapstructure:"parameter_group_name"`
+	Token                 *int                   `json:"token,omitempty" mapstructure:"token"`
+	ParentTaskID          *int                   `json:"parent_task_id,omitempty" mapstructure:"parent_task_id"`
+	IsInteractiveTask     bool                   `json:"is_interactive_task" mapstructure:"is_interactive_task"`
+	InteractiveTaskType   *int                   `json:"interactive_task_type,omitempty" mapstructure:"interactive_task_type"`
+	ResolveTaskReferences *bool                  `json:"resolve_task_references,omitempty" mapstructure:"resolve_task_references"`
 }
 
 type TriggerDataFilterPayloadTypes struct {

@@ -30,10 +30,12 @@ export function CredentialTableNewCredentialDialog(props) {
     }
     return JSON.stringify(metadata, null, 2);
   }
-  const [credentialType, setCredentialType] = React.useState(initialValues.type || "plaintext");
-  const credentialOptions = [
+  const defaultCredentialOptions = [
     "plaintext", "ticket", "hash", "certificate", "key", "hex", "cookie"
   ];
+  const credentialOptions = Array.isArray(props.credentialOptions) && props.credentialOptions.length > 0 ? props.credentialOptions : defaultCredentialOptions;
+  const initialCredentialType = initialValues.type && credentialOptions.includes(initialValues.type) ? initialValues.type : credentialOptions[0];
+  const [credentialType, setCredentialType] = React.useState(initialCredentialType || "plaintext");
   const [account, setAccount] = React.useState(initialValues.account || "");
   const [realm, setRealm] = React.useState(initialValues.realm || "");
   const [credential, setCredential] = React.useState(initialValues.credential || "");

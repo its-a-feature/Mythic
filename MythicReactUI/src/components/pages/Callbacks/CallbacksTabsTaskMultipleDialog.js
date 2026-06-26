@@ -23,6 +23,7 @@ query callbacksAndFeatures($payloadtype_id: Int!) {
     integrity_level
     pid
     display_id
+    operation_id
     last_checkin
     ip
     dead
@@ -77,7 +78,7 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback}) {
         //onClose();
         setOpenTaskingButton(false);
     }
-    const onSubmitCommandLine = (message, cmd, parsed, force_parsed_popup, cmdGroupNames, previousTaskingLocation) => {
+    const onSubmitCommandLine = (message, cmd, parsed, force_parsed_popup, cmdGroupNames, previousTaskingLocation, taskReferenceOptions={}) => {
         //console.log(message, cmd, parsed);
         if(selectedData.current.length === 0){
             //onClose();
@@ -104,6 +105,7 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback}) {
                 tasking_location: newTaskingLocation,
                 dontShowSuccessDialog: false,
                 payload_type: cmd.payloadtype?.name,
+                selected_task_references: taskReferenceOptions.selected_task_references,
             };
             submitTasking();
             return;
@@ -150,6 +152,7 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback}) {
                         tasking_location: newTaskingLocation,
                         dontShowSuccessDialog: false,
                         payload_type: cmd.payloadtype?.name,
+                        selected_task_references: taskReferenceOptions.selected_task_references,
                     };
                 }else{
                     finalTaskedParameters.current = undefined;
@@ -162,6 +165,7 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback}) {
                         tasking_location: newTaskingLocation,
                         dontShowSuccessDialog: false,
                         payload_type: cmd.payloadtype?.name,
+                        selected_task_references: taskReferenceOptions.selected_task_references,
                     };
                 }
                 submitTasking();
@@ -180,6 +184,7 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback}) {
                     dontShowSuccessDialog: false,
                     parameter_group_name: cmdGroupNames[0],
                     payload_type: cmd.payloadtype?.name,
+                    selected_task_references: taskReferenceOptions.selected_task_references,
                 };
                 submitTasking();
             }
@@ -233,7 +238,9 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback}) {
                                          changeSelectedToken={changeSelectedToken}
                                          payloadtype_name={callback.payload.payloadtype.name}
                                          hide_context={true}
-                                         filterOptions={{}} callback_id={callback.id} callback_display_id={callback.display_id} callback_os={callback.payload.os} parentMountedRef={mountedRef} />
+                                         filterOptions={{}} callback_id={callback.id} callback_display_id={callback.display_id}
+                                         operation_id={callback.operation_id || initialData[0]?.operation_id}
+                                         callback_os={callback.payload.os} parentMountedRef={mountedRef} />
           </Grid>
           {openTaskingButton && 
               <TaskFromUIButton cmd={taskingData.current?.cmd} 
@@ -242,6 +249,7 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback}) {
                   parameters={taskingData.current?.parameters || ""}
                   openDialog={taskingData.current?.openDialog || false}
                   tasking_location={taskingData.current?.tasking_location || "command_line"}
+                  selected_task_references={taskingData.current?.selected_task_references || []}
                   dontShowSuccessDialog={taskingData.current?.dontShowSuccessDialog || false}
                   selectCallback={taskingData.current?.selectCallback || false}
                   onTasked={onTasked}/>

@@ -1174,7 +1174,7 @@ func handleAgentMessagePostResponseCredentials(task databaseStructs.Task, creden
 		}
 		// the credential exists, make sure it's marked as not deleted
 		mergedMetadata := MergeCredentialMetadata(databaseCred.Type, databaseCred.Credential, parsedCredential, newCred.ExtraData)
-		_, err = database.DB.Exec(`UPDATE credential SET deleted=false, metadata=$2 WHERE id=$1`, databaseCred.ID, mergedMetadata)
+		_, err = database.DB.Exec(`UPDATE credential SET deleted=false, metadata=$2 WHERE id=$1`, databaseCred.ID, GetMythicJSONTextFromStruct(mergedMetadata))
 		if err != nil {
 			logging.LogError(err, "failed to update credential that already exists")
 		}

@@ -320,6 +320,7 @@ type Mutation {
     parent_task_display_id: Int
     is_interactive_task: Boolean
     interactive_task_type: Int
+    resolve_task_references: Boolean
   ): createTaskOutput
 }
 
@@ -1584,4 +1585,3 @@ type ChatSearchResult {
   created_at: String!
   rank: Float!
 }
-

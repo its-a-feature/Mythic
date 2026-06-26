@@ -16,6 +16,7 @@ import Split from 'react-split';
 import {TaskDisplayContainerFlat} from "./TaskDisplayContainer";
 import { validate as uuidValidate } from 'uuid';
 import {getSkewedNow} from "../../utilities/Time";
+import {useTaskReferenceSubmitter} from "./taskingReferences";
 
 
 export function CallbacksTabsTaskingSplitLabel(props){
@@ -120,6 +121,7 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
             console.error(data);
         }
     });
+    const {submitTask, dialog: taskReferenceSubmitDialog} = useTaskReferenceSubmitter(createTask);
     const equalTaskTrees = (oldArray, newArray) => {
         if(oldArray.length !== newArray.length){
             return false;
@@ -277,7 +279,7 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
     const loadMoreTasks = () => {
         getInfiniteScrollTasking({variables: {callback_id: tabInfo.callbackID, offset: taskingData.task.length, fetchLimit}});
     }
-    const onSubmitCommandLine = (message, cmd, parsed, force_parsed_popup, cmdGroupNames, previousTaskingLocation) => {
+    const onSubmitCommandLine = (message, cmd, parsed, force_parsed_popup, cmdGroupNames, previousTaskingLocation, taskReferenceOptions={}) => {
         //console.log(message, cmd, parsed);
         let params = message.split(" ");
         delete params[0];
@@ -296,6 +298,7 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
                 parameter_group_name: "Default",
                 tasking_location: newTaskingLocation,
                 payload_type: cmd.payloadtype?.name,
+                selected_task_references: taskReferenceOptions.selected_task_references,
             });
         }else{
             // check if there's a "file" component that needs to be displayed
@@ -330,9 +333,9 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
             if(fileParamExists || force_parsed_popup || missingRequiredPrams){
                 //need to do a popup
                 if(cmdGroupNames.length > 0){
-                    setCommandInfo({...cmd, "parsedParameters": parsed, groupName: cmdGroupNames[0]});
+                    setCommandInfo({...cmd, "parsedParameters": parsed, groupName: cmdGroupNames[0], taskReferenceOptions});
                 }else{
-                    setCommandInfo({...cmd, "parsedParameters": parsed});
+                    setCommandInfo({...cmd, "parsedParameters": parsed, taskReferenceOptions});
                 }
                 setOpenParametersDialog(true);
 
@@ -345,6 +348,8 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
                     original_params: params,
                     parameter_group_name: cmdGroupNames[0],
                     payload_type: cmd.payloadtype?.name,
+                    selected_task_references: taskReferenceOptions.selected_task_references,
+                    taskReferenceEditCommandInfo: {...cmd, parsedParameters: parsed, groupName: cmdGroupNames[0], taskReferenceOptions},
                 });
             }
         }
@@ -362,23 +367,59 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
             payload_type: alias?.payloadtype?.name || tabInfo.payloadtype,
         });
     };
-    const submitParametersDialog = (cmd, parameters, files, selectedParameterGroup, payload_type) => {
+    const submitParametersDialog = (cmd, parameters, files, selectedParameterGroup, payload_type, metadata={}) => {
         setOpenParametersDialog(false);
+        const selectedTaskReferences = [
+            ...(commandInfo.taskReferenceOptions?.selected_task_references || []),
+            ...(metadata.selectedTaskReferences || []),
+        ];
         onCreateTask({callback_display_id: tabInfo.displayID,
             command: cmd,
             params: parameters,
             files: files,
             tasking_location: "modal",
             parameter_group_name: selectedParameterGroup,
-            payload_type: payload_type
+            payload_type: payload_type,
+            selected_task_references: selectedTaskReferences,
+            taskReferenceEditCommandInfo: commandInfo,
         });
     }
-    const onCreateTask = ({callback_display_id, command, params, files, tasking_location, original_params, parameter_group_name, payload_type}) => {
-        if(selectedToken.token_id !== undefined){
-            createTask({variables: {callback_display_id, command, params, files, token_id: selectedToken.token_id, tasking_location, original_params, parameter_group_name, payload_type}});
-        }else{
-            createTask({variables: {callback_display_id, command, params, files, tasking_location, original_params, parameter_group_name, payload_type}});
+    const getTaskReferenceEditParameters = (variables) => {
+        try{
+            const parsedParameters = JSON.parse(variables.params || "{}");
+            if(parsedParameters && typeof parsedParameters === "object" && !Array.isArray(parsedParameters)){
+                return parsedParameters;
+            }
+        }catch(error){
+            // fall through to an empty parameter object
         }
+        return {};
+    }
+    const openTaskReferenceEditDialog = (variables, commandContext) => {
+        if(!commandContext?.id){
+            return;
+        }
+        const selectedTaskReferences = variables.selected_task_references || commandContext.taskReferenceOptions?.selected_task_references || [];
+        setCommandInfo({
+            ...commandContext,
+            parsedParameters: getTaskReferenceEditParameters(variables),
+            groupName: variables.parameter_group_name || commandContext.groupName,
+            taskReferenceOptions: {
+                ...(commandContext.taskReferenceOptions || {}),
+                selected_task_references: selectedTaskReferences,
+            },
+        });
+        setOpenParametersDialog(true);
+    }
+    const onCreateTask = ({callback_display_id, command, params, files, tasking_location, original_params, parameter_group_name, payload_type, selected_task_references, taskReferenceEditCommandInfo}) => {
+        const variables = {callback_display_id, command, params, files, tasking_location, original_params, parameter_group_name, payload_type, selected_task_references};
+        if(selectedToken.token_id !== undefined){
+            variables.token_id = selectedToken.token_id;
+        }
+        submitTask({
+            variables,
+            onTaskReferenceReviewCancel: taskReferenceEditCommandInfo ? (pendingVariables) => openTaskReferenceEditDialog(pendingVariables, taskReferenceEditCommandInfo) : undefined,
+        });
     }
     const onSubmitFilter = (newFilter) => {
         setFilterOptions(newFilter);
@@ -430,6 +471,7 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
     }, [taskingData, newlyIssuedTasks]);
     return (
         <MythicTabPanel index={index} value={value} >
+            {taskReferenceSubmitDialog}
             <Split direction="horizontal" minSize={[0,0]} sizes={[30, 70]}
                    style={{width: "100%", height: "100%", minWidth: 0, overflow: "hidden", display: "flex"}} >
                 <div className="bg-gray-base" style={{display: "inline-flex", flexDirection: "column", minWidth: 0, overflow: "hidden"}} >
@@ -481,6 +523,7 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
                                        onSubmitCommandLine={onSubmitCommandLine} onSubmitAliasCommandLine={onSubmitAliasCommandLine} changeSelectedToken={changeSelectedToken}
                                        filterOptions={filterOptions} callback_id={tabInfo.callbackID}
                                        callback_display_id={tabInfo.displayID}
+                                       operation_id={tabInfo.operation_id}
                                        callback_os={tabInfo.os} parentMountedRef={mountedRef} />
         {openParametersDialog && 
             <MythicDialog fullWidth={true} maxWidth="lg" open={openParametersDialog} 
