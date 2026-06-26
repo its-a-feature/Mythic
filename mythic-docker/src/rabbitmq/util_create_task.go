@@ -52,6 +52,7 @@ type CreateTaskInput struct {
 	EventStepInstanceID     int
 	APITokensID             int
 	PayloadType             *string
+	ResolveTaskReferences   *bool
 	AliasResolution         *OperatorAliasResolution
 	AuthContext             RabbitMQAuthContext
 }
@@ -491,6 +492,7 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 		// we're looking at some sort of alias, so try to resolve that first
 		err = resolveCallbackTaskAlias(&createTaskInput, callback)
 		if err != nil {
+			logging.LogError(err, "failed to resolve task alias")
 			response.Error = err.Error()
 			return response
 		}
@@ -579,6 +581,7 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 		}
 	}
 	if createTaskInput.AliasResolution != nil && task.Command.ID > 0 {
+		// we resolved an alias, so we need to try to parse the parameters
 		commandParameters := []databaseStructs.Commandparameters{}
 		err = database.DB.Select(&commandParameters, `SELECT
 			id, name, display_name, cli_name, type, parameter_group_name, required, ui_position
@@ -591,6 +594,7 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 			response.Error = "Failed to get command parameters for alias-expanded task"
 			return response
 		}
+		// try to parse out the new alias expanded command line to command + params
 		commandName, params, err := SplitOperatorAliasExpandedTaskLine(createTaskInput.AliasResolution.Expanded, commandParameters)
 		if err != nil {
 			logging.LogError(err, "Failed to parse callback tasking alias-expanded parameters", "expanded", createTaskInput.AliasResolution.Expanded)
@@ -601,6 +605,7 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 			createTaskInput.CommandName = commandName
 		}
 		ensureCreateTaskOriginalParams(&createTaskInput)
+		// createTaskInput.Params should now be a string version of parsed parameters if possible
 		createTaskInput.Params = params
 	}
 	ensureCreateTaskOriginalParams(&createTaskInput)
@@ -610,18 +615,21 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 	}
 	task.MythicParsedParams = createTaskInput.Params
 	displayParams := createTaskInput.Params
-	if task.Command.ID > 0 {
-		expandedParams, credentialParamsExpanded, err := expandCredentialJSONTaskingParameters(
+	if createTaskInput.ResolveTaskReferences == nil || *createTaskInput.ResolveTaskReferences {
+		// try to expand the task references for things like @cred:12.credential
+		expandedParams, taskReferencesExpanded, err := expandTaskReferenceParameters(
 			task.Command.ID,
 			createTaskInput.CurrentOperationID,
 			createTaskInput.Params,
 		)
 		if err != nil {
+			logging.LogError(err, "Failed to expand task references")
 			response.Error = err.Error()
 			return response
 		}
-		if credentialParamsExpanded {
-			displayParams = createTaskInput.Params
+		if taskReferencesExpanded {
+			//displayParams = createTaskInput.Params
+			// update the params that the agent sees with the expanded values
 			createTaskInput.Params = expandedParams
 		}
 	}
@@ -1021,11 +1029,9 @@ func SplitOperatorAliasExpandedTaskLine(line string, commandParameterSets ...[]d
 		allFlags[flag] = true
 		parameterByFlag[flag] = parameter
 		switch parameter.Type {
-		case COMMAND_PARAMETER_TYPE_CHOOSE_ONE, COMMAND_PARAMETER_TYPE_CHOOSE_ONE_CUSTOM, COMMAND_PARAMETER_TYPE_STRING:
+		case COMMAND_PARAMETER_TYPE_CHOOSE_ONE, COMMAND_PARAMETER_TYPE_CHOOSE_ONE_CUSTOM, COMMAND_PARAMETER_TYPE_STRING, COMMAND_PARAMETER_TYPE_CREDENTIAL:
 			parameterTypeForFlag[flag] = "string"
 		case COMMAND_PARAMETER_TYPE_NUMBER:
-			parameterTypeForFlag[flag] = "number"
-		case COMMAND_PARAMETER_TYPE_CREDENTIAL:
 			parameterTypeForFlag[flag] = "number"
 		case COMMAND_PARAMETER_TYPE_BOOLEAN:
 			parameterTypeForFlag[flag] = "boolean"
@@ -1233,13 +1239,11 @@ func SplitOperatorAliasExpandedTaskLine(line string, commandParameterSets ...[]d
 		positionalMetadata, hasPositionalMetadata := shiftPositionalMetadata()
 		parameter := unsatisfiedArguments[index]
 		switch parameter.Type {
-		case COMMAND_PARAMETER_TYPE_CHOOSE_ONE, COMMAND_PARAMETER_TYPE_CHOOSE_ONE_CUSTOM, COMMAND_PARAMETER_TYPE_STRING:
+		case COMMAND_PARAMETER_TYPE_CHOOSE_ONE, COMMAND_PARAMETER_TYPE_CHOOSE_ONE_CUSTOM, COMMAND_PARAMETER_TYPE_STRING, COMMAND_PARAMETER_TYPE_CREDENTIAL:
 			parsed[parameter.CliName] = temp
 			if hasPositionalMetadata {
 				recordProcessedParameter(parameter, positionalMetadata.Index)
 			}
-		case COMMAND_PARAMETER_TYPE_CREDENTIAL:
-			fallthrough
 		case COMMAND_PARAMETER_TYPE_NUMBER:
 			number, ok := parseNumber(temp)
 			if !ok {

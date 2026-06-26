@@ -22,6 +22,14 @@ import { useTheme } from '@mui/material/styles';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {getReadableTextColor, isValidHexColor} from "../../MythicComponents/MythicColorInput";
 import {copyStringToClipboard} from "../../utilities/Clipboard";
+import {
+    CredentialReferenceFieldDialog,
+    CredentialReferencePickerDialog,
+    formatCredentialReference,
+    getTaskReferenceCaretContext,
+    parseTaskReferences,
+    replaceTextRange
+} from "./taskingReferences";
 
 const GetLoadedCommandsSubscription = gql`
 subscription GetLoadedCommandsSubscription($callback_id: Int!){
@@ -48,6 +56,7 @@ subscription GetLoadedCommandsSubscription($callback_id: Int!){
                 parameter_group_name
                 cli_name
                 display_name
+                limit_credentials_by_type
             }
         }
     }
@@ -169,6 +178,8 @@ const GetDefaultValueForType = (parameter_type) => {
             return [];
         case "number":
             return 0;
+        case "CredentialJson":
+            return "";
         case "boolean":
             return true;
         default:
@@ -521,6 +532,9 @@ export function CallbacksTabsTaskingInputPreMemo(props){
     const commandOptionsForcePopup = React.useRef(false);
     const commandOptionsCommandLine = React.useRef("");
     const commandOptionsTaskingLocation = React.useRef("parsed_cli");
+    const selectedTaskReferences = React.useRef([]);
+    const [credentialPickerContext, setCredentialPickerContext] = React.useState(null);
+    const [credentialFieldContext, setCredentialFieldContext] = React.useState(null);
     const [openSelectCommandDialog, setOpenSelectCommandDialog] = React.useState(false);
     const me = useReactiveVar(meState);
     const {data: payloadAliasData} = useQuery(GetOperatorPayloadAliases, {fetchPolicy: "no-cache"});
@@ -805,6 +819,131 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         pendingCursorPosition.current = before.length + insertText.length;
         setMessage(`${before}${insertText}${after}`);
     }
+    const updateMessageWithCursor = (newMessage, cursorPosition) => {
+        pendingCursorPosition.current = cursorPosition;
+        setMessage(newMessage);
+    }
+    const addSelectedTaskReference = (referenceText) => {
+        selectedTaskReferences.current = [...selectedTaskReferences.current, referenceText];
+    }
+    const getSelectedTaskReferencesForCommandLine = (commandLine) => {
+        const references = parseTaskReferences(commandLine || "").map((reference) => reference.raw);
+        if(references.length === 0 || selectedTaskReferences.current.length === 0){
+            return [];
+        }
+        const selectedCounts = selectedTaskReferences.current.reduce((previous, reference) => {
+            previous[reference] = (previous[reference] || 0) + 1;
+            return previous;
+        }, {});
+        return references.reduce((previous, reference) => {
+            const count = selectedCounts[reference] || 0;
+            if(count <= 0){
+                return previous;
+            }
+            selectedCounts[reference] = count - 1;
+            return [...previous, reference];
+        }, []);
+    }
+    const getTaskReferenceSubmitOptions = (commandLine) => {
+        const selectedReferences = getSelectedTaskReferencesForCommandLine(commandLine);
+        return selectedReferences.length > 0 ? {selected_task_references: selectedReferences} : {};
+    }
+    const clearSelectedTaskReferences = () => {
+        selectedTaskReferences.current = [];
+    }
+    const getCurrentCommandForReferenceCompletion = () => {
+        if(!message.includes(" ")){
+            return undefined;
+        }
+        const matchingCommands = loadedOptions.current.filter((option) => option.cmd === message.split(" ")[0]);
+        if(matchingCommands.length === 0){
+            return undefined;
+        }
+        if(commandPayloadType !== ""){
+            return matchingCommands.find((option) => option?.payloadtype?.name === commandPayloadType);
+        }
+        return matchingCommands.find((option) => option?.payloadtype?.name === props.payloadtype_name) || matchingCommands[0];
+    }
+    const getCredentialJsonCompletionContext = () => {
+        const input = inputRef.current;
+        const cursorPosition = typeof input?.selectionStart === "number" ? input.selectionStart : message.length;
+        const command = getCurrentCommandForReferenceCompletion();
+        if(!command){
+            return undefined;
+        }
+        const parsed = parseCommandLine(message, command, false);
+        if(parsed === undefined){
+            return undefined;
+        }
+        const [lastSuppliedParameter, lastSuppliedParameterHasValue] = getLastSuppliedArgument(command, message, parsed);
+        if(lastSuppliedParameter?.parameter_type !== "CredentialJson"){
+            return undefined;
+        }
+        const lastValue = String(lastSuppliedParameterHasValue || "");
+        if(lastValue !== "" && !lastValue.startsWith("@cred:")){
+            return undefined;
+        }
+        return {
+            mode: "credential-json",
+            start: lastValue.startsWith("@cred:") ? cursorPosition - lastValue.length : cursorPosition,
+            end: cursorPosition,
+            credentialTypes: lastSuppliedParameter.limit_credentials_by_type || [],
+        };
+    }
+    const openTaskReferenceHelper = () => {
+        const input = inputRef.current;
+        const cursorPosition = typeof input?.selectionStart === "number" ? input.selectionStart : message.length;
+        const credentialJsonContext = getCredentialJsonCompletionContext();
+        if(credentialJsonContext){
+            setCredentialPickerContext(credentialJsonContext);
+            return true;
+        }
+        const caretContext = getTaskReferenceCaretContext(message, cursorPosition);
+        if(caretContext?.type === "credential-field"){
+            setCredentialFieldContext(caretContext);
+            return true;
+        }
+        if(caretContext?.type === "credential-selector"){
+            setCredentialPickerContext({...caretContext, mode: "fielded"});
+            return true;
+        }
+        console.log("returning false in openTaskReferenceHelper");
+        return false;
+    }
+    const onSelectCredentialReference = (credential) => {
+        if(!credentialPickerContext){
+            return;
+        }
+        if(credentialPickerContext.mode === "credential-json"){
+            const referenceText = formatCredentialReference(credential.id);
+            const newMessage = replaceTextRange(message, credentialPickerContext.start, credentialPickerContext.end, referenceText);
+            addSelectedTaskReference(referenceText);
+            updateMessageWithCursor(newMessage, credentialPickerContext.start + referenceText.length);
+            setCredentialPickerContext(null);
+            return;
+        }
+        const referenceText = `${formatCredentialReference(credential.id)}.`;
+        const newMessage = replaceTextRange(message, credentialPickerContext.start, credentialPickerContext.end, referenceText);
+        updateMessageWithCursor(newMessage, credentialPickerContext.start + referenceText.length);
+        setCredentialPickerContext(null);
+        setCredentialFieldContext({
+            type: "credential-field",
+            credentialID: credential.id,
+            partialField: "",
+            start: credentialPickerContext.start,
+            end: credentialPickerContext.start + referenceText.length,
+        });
+    }
+    const onSelectCredentialReferenceField = (field) => {
+        if(!credentialFieldContext){
+            return;
+        }
+        const referenceText = formatCredentialReference(credentialFieldContext.credentialID, field);
+        const newMessage = replaceTextRange(message, credentialFieldContext.start, credentialFieldContext.end, referenceText);
+        addSelectedTaskReference(referenceText);
+        updateMessageWithCursor(newMessage, credentialFieldContext.start + referenceText.length);
+        setCredentialFieldContext(null);
+    }
     const onKeyDown = (event) => {
         if(event.key === "Enter" && (event.ctrlKey || event.metaKey)){
             setMessage(message + "\n");
@@ -827,6 +966,10 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             event.stopPropagation();
             event.preventDefault();
             setUnmodifiedHistoryValue("parsed_cli");
+            if(openTaskReferenceHelper()){
+                return;
+            }
+            console.log("tab or shift+space pressed and continuing to processing");
             if(message.trim().startsWith("/")){
                 const aliasOptions = getMatchingPayloadAliases(message);
                 if(aliasOptions.length === 0){
@@ -902,7 +1045,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 if(cmd.commandparameters.length > 0){
                     if(message[message.length -1] === " "){
                         // somebody hit tab after a parameter name or after a parameter value
-                        const parsed = parseCommandLine(message, cmd);
+                        const parsed = parseCommandLine(message, cmd, true);
                         if(parsed === undefined){
                             return;
                         }
@@ -1367,9 +1510,9 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 case "ChooseOne":
                 case "ChooseOneCustom":
                 case "String":
+                case "CredentialJson":
                     stringArgs.push("-" + cmd.commandparameters[i].cli_name);
                     break;
-                case "CredentialJson":
                 case "Number":
                     numberArgs.push("-" + cmd.commandparameters[i].cli_name);
                     break;
@@ -1608,7 +1751,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         }
         return [last_command_parameter, has_value ? argv[argv.length-1] : ""];
     }
-    const parseCommandLine = (command_line, cmd) => {
+    const parseCommandLine = (command_line, cmd, showAlert) => {
         // given a command line and the associated command
         
         if(command_line.length > 0 && command_line[0] === "{"){
@@ -1632,7 +1775,9 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             console.log("yargs_parsed", yargs_parsed);
             return yargs_parsed;
         }catch(error){
-            snackActions.warning("Failed to parse command line: " + error, snackMessageStyles);
+            if(showAlert){
+                snackActions.warning("Failed to parse command line: " + error, snackMessageStyles);
+            }
             return undefined;
         }
     }
@@ -1804,14 +1949,14 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             if(parsedCopy["_"].length > 0){
                 let temp = parsedCopy["_"].shift();
                 const positionalMetadata = shiftPositionalMetadata();
-                switch(unSatisfiedArguments[i]["parameter_type"]){
-                    case "ChooseOne":
-                    case "ChooseOneCustom":
-                    case "String":
-                        parsedCopy[unSatisfiedArguments[i]["cli_name"]] = temp;
-                        recordPositionalParameter(unSatisfiedArguments[i], positionalMetadata);
-                        break;
-                    case "CredentialJson":
+                    switch(unSatisfiedArguments[i]["parameter_type"]){
+                        case "ChooseOne":
+                        case "ChooseOneCustom":
+                        case "String":
+                        case "CredentialJson":
+                            parsedCopy[unSatisfiedArguments[i]["cli_name"]] = temp;
+                            recordPositionalParameter(unSatisfiedArguments[i], positionalMetadata);
+                            break;
                     case "Number":
                         try{
                             temp = Number(temp);
@@ -1928,19 +2073,20 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             return;
         }else if(cmdGroupName.length > 1){
             if(Boolean(commandOptionsForcePopup.current)){
-                props.onSubmitCommandLine(commandLine, cmd, parsedWithPositionalParameters, Boolean(commandOptionsForcePopup.current), cmdGroupName, taskingLocation);
+                props.onSubmitCommandLine(commandLine, cmd, parsedWithPositionalParameters, Boolean(commandOptionsForcePopup.current), cmdGroupName, taskingLocation, getTaskReferenceSubmitOptions(commandLine));
             }else{
                 if(cmdGroupName.includes("Default")){
-                    props.onSubmitCommandLine(commandLine, cmd, parsedWithPositionalParameters, Boolean(commandOptionsForcePopup.current), ["Default"], taskingLocation);
+                    props.onSubmitCommandLine(commandLine, cmd, parsedWithPositionalParameters, Boolean(commandOptionsForcePopup.current), ["Default"], taskingLocation, getTaskReferenceSubmitOptions(commandLine));
                 }else{
                     let simplifiedGroupName = simplifyGroupNameChoices(cmdGroupName, cmd, parsedWithPositionalParameters)
                     if(simplifiedGroupName === "" ){
-                        props.onSubmitCommandLine(commandLine, cmd, parsedWithPositionalParameters, true, cmdGroupName, taskingLocation)
+                        props.onSubmitCommandLine(commandLine, cmd, parsedWithPositionalParameters, true, cmdGroupName, taskingLocation, getTaskReferenceSubmitOptions(commandLine))
                     } else {
-                        props.onSubmitCommandLine(commandLine, cmd, parsedWithPositionalParameters, Boolean(commandOptionsForcePopup.current), [simplifiedGroupName], taskingLocation);
+                        props.onSubmitCommandLine(commandLine, cmd, parsedWithPositionalParameters, Boolean(commandOptionsForcePopup.current), [simplifiedGroupName], taskingLocation, getTaskReferenceSubmitOptions(commandLine));
                     }
                 }
             }
+            clearSelectedTaskReferences();
             setMessage("");
             setCommandPayloadType("");
             taskOptionsIndex.current = -1;
@@ -1952,7 +2098,8 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         console.log("positional args added in:", parsedWithPositionalParameters);
         console.log("about to call onSubmitCommandLine", cmd);
         console.log("commandOptionsForcePopup", Boolean(commandOptionsForcePopup.current), "group name", cmdGroupName)
-        props.onSubmitCommandLine(commandLine, cmd, parsedWithPositionalParameters, Boolean(commandOptionsForcePopup.current), cmdGroupName, taskingLocation);
+        props.onSubmitCommandLine(commandLine, cmd, parsedWithPositionalParameters, Boolean(commandOptionsForcePopup.current), cmdGroupName, taskingLocation, getTaskReferenceSubmitOptions(commandLine));
+        clearSelectedTaskReferences();
         setMessage("");
         setCommandPayloadType("");
         taskOptionsIndex.current = -1;
@@ -2411,6 +2558,28 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                                   filterOptions={props.filterOptions} onClose={() => {
                                   setOpenFilterOptionsDialog(false);
                               }}/>}
+                />
+            }
+            {credentialPickerContext &&
+                <MythicDialog fullWidth={true} maxWidth="lg" open={credentialPickerContext}
+                              onClose={() => setCredentialPickerContext(null)}
+                              innerDialog={<CredentialReferencePickerDialog
+                                  operation_id={props.operation_id}
+                                  credentialTypes={credentialPickerContext.credentialTypes || []}
+                                  onClose={() => setCredentialPickerContext(null)}
+                                  onSelect={onSelectCredentialReference}
+                              />}
+                />
+            }
+            {credentialFieldContext &&
+                <MythicDialog fullWidth={true} maxWidth="sm" open={credentialFieldContext}
+                              onClose={() => setCredentialFieldContext(null)}
+                              innerDialog={<CredentialReferenceFieldDialog
+                                  credentialID={credentialFieldContext.credentialID}
+                                  partialField={credentialFieldContext.partialField}
+                                  onClose={() => setCredentialFieldContext(null)}
+                                  onSelect={onSelectCredentialReferenceField}
+                              />}
                 />
             }
             {openSelectCommandDialog &&

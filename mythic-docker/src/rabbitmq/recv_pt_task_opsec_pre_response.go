@@ -43,7 +43,7 @@ func processPtTaskOPSECPreMessages(msg amqp.Delivery) {
 		return
 	}
 	err = database.DB.Get(&task, `SELECT 
-    		status, operation_id, operator_id, eventstepinstance_id, apitokens_id 
+    		status, operation_id, operator_id, eventstepinstance_id, apitokens_id, id 
 			FROM task 
 			WHERE id=$1 AND operation_id=$2`, task.ID, authContext.OperationID)
 	if err != nil {

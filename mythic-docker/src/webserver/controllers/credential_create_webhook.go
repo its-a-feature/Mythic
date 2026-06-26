@@ -68,12 +68,31 @@ func CreateCredentialWebhook(c *gin.Context) {
 	} else {
 		databaseCred.Type = "plaintext"
 	}
+	if taskID, ok := input.Input.Metadata["task_id"]; ok {
+		delete(input.Input.Metadata, "task_id")
+		task := databaseStructs.Task{ID: int(taskID.(float64))}
+		err = database.DB.Get(&task, `SELECT 
+    		id 
+    		FROM task 
+    		WHERE id=$1 AND operation_id=$2`, taskID, operatorOperation.CurrentOperation.ID)
+		if err != nil {
+			logging.LogError(err, "Failed to find task")
+			c.JSON(http.StatusOK, CreateCredentialResponse{
+				Status: "error",
+				Error:  "Failed to find task",
+			})
+			return
+		}
+		databaseCred.TaskID.Valid = true
+		databaseCred.TaskID.Int64 = int64(task.ID)
+	}
 	parsedCredential, errorsList := rabbitmq.ParseCredential(databaseCred.Type, databaseCred.Credential, input.Input.Metadata)
 	if errorsList != nil {
 		logging.LogInfo("unable to parse credential metadata", "errors", errorsList)
 	}
 	databaseCred.Account, databaseCred.Realm = rabbitmq.PopulateCredentialAccountRealmFromMetadata(databaseCred.Account, databaseCred.Realm, parsedCredential)
-	databaseCred.Metadata = rabbitmq.GetMythicJSONTextFromStruct(parsedCredential)
+	mergedMetadata := rabbitmq.MergeCredentialMetadata(databaseCred.Type, databaseCred.Credential, parsedCredential, input.Input.Metadata)
+	databaseCred.Metadata = rabbitmq.GetMythicJSONTextFromStruct(mergedMetadata)
 	APITokenID, ok := c.Get(authentication.ContextKeyAPITokenID)
 	if ok {
 		if APITokenID.(int) > 0 {
@@ -134,8 +153,8 @@ func CreateCredentialWebhook(c *gin.Context) {
 	}
 
 	// the credential exists, make sure it's marked as not deleted
-	mergedMetadata := rabbitmq.MergeCredentialMetadata(databaseCred.Type, databaseCred.Credential, parsedCredential, input.Input.Metadata)
-	_, err = database.DB.Exec(`UPDATE credential SET deleted=false, metadata=$2 WHERE id=$1`, databaseCred.ID, mergedMetadata)
+	mergedMetadata = rabbitmq.MergeCredentialMetadata(databaseCred.Type, databaseCred.Credential, mergedMetadata, input.Input.Metadata)
+	_, err = database.DB.Exec(`UPDATE credential SET deleted=false, metadata=$2 WHERE id=$1`, databaseCred.ID, rabbitmq.GetMythicJSONTextFromStruct(mergedMetadata))
 	if err != nil {
 		logging.LogError(err, "failed to update credential that already exists")
 	}

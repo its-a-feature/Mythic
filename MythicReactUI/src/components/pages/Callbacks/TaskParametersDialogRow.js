@@ -72,11 +72,13 @@ mutation createCredential($comment: String!, $account: String!, $realm: String!,
 const getCredentialQuery = gql`
 ${credentialFragment}
 query getCredential($id: Int!){
-    credential_by_pk(id: $id){
+    credential(limit: 1, where: {id: {_eq: $id}, deleted: {_eq: false}}){
         ...credentialData
     }
 }
 `;
+
+const getActiveCredentialFromResult = (data) => data?.credential?.[0];
 
 const arraysAreDifferent = (a, b) => {
     if(a.length !== b.length){
@@ -128,6 +130,12 @@ const getCredentialChoiceIndex = (choices, credential) => {
     if(typeof credential === "number"){
         return choices.findIndex((choice) => choice.id === credential);
     }
+    if(typeof credential === "string"){
+        const referenceMatch = credential.trim().match(/^@cred:(\d+)$/);
+        if(referenceMatch){
+            return choices.findIndex((choice) => choice.id === Number(referenceMatch[1]));
+        }
+    }
     if(typeof credential === "string" && credential.trim() !== "" && !Number.isNaN(Number(credential))){
         return choices.findIndex((choice) => choice.id === Number(credential));
     }
@@ -140,6 +148,12 @@ const getCredentialChoiceIndex = (choices, credential) => {
         choice.type === credential.type &&
         choice.credential_text === credential.credential_text
     );
+};
+const getCredentialReferenceValue = (credential) => {
+    if(!credential || credential.id === undefined || credential.id === null){
+        return "";
+    }
+    return `@cred:${credential.id}`;
 };
 export function TaskParametersDialogRow(props){
     const [value, setValue] = React.useState('');
@@ -306,8 +320,13 @@ export function TaskParametersDialogRow(props){
     });
     const [getCredential] = useLazyQuery(getCredentialQuery, {
         onCompleted: (data) => {
+            const credential = getActiveCredentialFromResult(data);
+            if(!credential){
+                snackActions.error("Failed to load active credential");
+                return;
+            }
             updateToLatestCredential.current = true;
-            props.addedCredential(data.credential_by_pk);
+            props.addedCredential(credential);
         },
         onError: (data) => {
             console.log(data);
@@ -333,7 +352,7 @@ export function TaskParametersDialogRow(props){
         onCompleted: (data) => {
             snackActions.success("removed credential!");
             updateToLatestCredential.current = true;
-            props.removedCredential(data.credential_by_pk);
+            props.removedCredential(data.update_credential_by_pk);
         },
         onError: (data) => {
             snackActions.error("Failed to delete credential");
@@ -515,12 +534,13 @@ export function TaskParametersDialogRow(props){
            }
            if(props.type === "CredentialJson"){
                //console.log("updating choiceOptions from useEffect in dialog row: ", [...props.choices])
-               const credentialChoices = [...props.choices];
+               const credentialChoices = (props.choices || []).filter((credential) => !credential.deleted);
                setChoiceOptions(credentialChoices);
                if(updateToLatestCredential.current){
                    if(credentialChoices.length > 0){
                        setValue(0);
-                       props.onChange(props.name, credentialChoices[0].id, false);
+                       const referenceValue = getCredentialReferenceValue(credentialChoices[0]);
+                       props.onChange(props.name, referenceValue, false, {selectedTaskReference: referenceValue});
                    }else{
                        setValue("");
                    }
@@ -531,7 +551,7 @@ export function TaskParametersDialogRow(props){
                        setValue(selectedCredentialIndex);
                    }else if(credentialChoices.length > 0){
                        setValue(0);
-                       props.onChange(props.name, credentialChoices[0].id, false);
+                       props.onChange(props.name, getCredentialReferenceValue(credentialChoices[0]), false);
                    }else{
                        setValue("");
                    }
@@ -586,7 +606,13 @@ export function TaskParametersDialogRow(props){
     }
     const onChangeCredentialJSONValue = (evt) => {
         setValue(evt.target.value);
-        props.onChange(props.name, ChoiceOptions[evt.target.value].id, false);
+        const credential = ChoiceOptions[evt.target.value];
+        if(!credential || credential.deleted){
+            props.onChange(props.name, "", true);
+            return;
+        }
+        const referenceValue = getCredentialReferenceValue(credential);
+        props.onChange(props.name, referenceValue, false, {selectedTaskReference: referenceValue});
     }
     const onChangeChooseMultiple = (event) => {
         const { value:options } = event.target;

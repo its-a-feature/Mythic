@@ -28,7 +28,42 @@ import ClickAwayListener from '@mui/material/ClickAwayListener';
 import {TagsDisplay, ViewEditTags} from '../../MythicComponents/MythicTag';
 import Split from 'react-split';
 
-const parseCredentialMetadata = (metadata) => {
+export const credentialSearchDataFragment = gql`
+fragment credentialSearchData on credential{
+    account
+    comment
+    credential_text
+    id
+    realm
+    type
+    metadata
+    task {
+        display_id
+        id
+        callback {
+            id
+            host
+            display_id
+            mythictree_groups
+        }
+    }
+    timestamp
+    deleted
+    operator {
+        username
+    }
+    tags {
+        tagtype {
+            name
+            color
+            id
+        }
+        id
+    }
+}
+`;
+
+export const parseCredentialMetadata = (metadata) => {
     if(metadata === undefined || metadata === null){
         return {};
     }
@@ -43,7 +78,7 @@ const parseCredentialMetadata = (metadata) => {
     return metadata && typeof metadata === "object" && !Array.isArray(metadata) ? metadata : {};
 }
 
-const compactMetadataValue = (value) => {
+export const compactMetadataValue = (value) => {
     if(value === undefined || value === null){
         return "";
     }
@@ -55,7 +90,7 @@ const compactMetadataValue = (value) => {
 
 const isPlainObject = (value) => value && typeof value === "object" && !Array.isArray(value);
 
-const getCredentialValidityChips = (metadata) => {
+export const getCredentialValidityChips = (metadata) => {
     const parsedMetadata = parseCredentialMetadata(metadata);
     const validity = parsedMetadata.validity || {};
     const chips = [];
@@ -74,7 +109,7 @@ const getCredentialValidityChips = (metadata) => {
     return chips;
 }
 
-const getSourceLabel = (credential) => {
+export const getCredentialSourceLabel = (credential) => {
     if(credential?.task){
         return `C-${credential.task.callback?.display_id || "?"} / T-${credential.task.display_id || "?"}`;
     }
@@ -234,7 +269,7 @@ export function CredentialTable(props){
     return (
         <Split
             direction="horizontal"
-            className={`mythic-chat-layout`}
+            className="mythic-credential-search"
             sizes={credentialSearchSplitSizes}
             minSize={[420, 360]}
             gutterSize={8}
@@ -259,7 +294,12 @@ export function CredentialTable(props){
                                     key={"cred" + credential.id}
                                     credential={credential}
                                     selected={selectedCredentialID === credential.id}
-                                    onSelect={() => setSelectedCredentialID(credential.id)}
+                                    onSelect={() => {
+                                        setSelectedCredentialID(credential.id);
+                                        if(props.onSelectCredential){
+                                            props.onSelectCredential(credential);
+                                        }
+                                    }}
                                 />
                             ))}
                         </TableBody>
@@ -275,15 +315,16 @@ export function CredentialTable(props){
                 onEditCredential={onEditCredential}
                 onEditDeleted={onEditDeleted}
                 onEditType={onEditType}
+                readOnly={props.readOnly}
             />
         </Split>
     )
 }
 
-function CredentialSearchRow({credential, selected, onSelect}){
+export function CredentialSearchRow({credential, selected, onSelect}){
     const parsedMetadata = parseCredentialMetadata(credential.metadata);
     const validityChips = getCredentialValidityChips(credential.metadata);
-    const sourceLabel = getSourceLabel(credential);
+    const sourceLabel = getCredentialSourceLabel(credential);
     const tagCount = credential.tags?.length || 0;
     const hasComment = (credential.comment || "").trim().length > 0;
     const hasMetadata = Object.keys(parsedMetadata).length > 0;
@@ -344,7 +385,7 @@ function CredentialSearchRow({credential, selected, onSelect}){
     )
 }
 
-function CredentialInspector(props){
+export function CredentialInspector(props){
     const credential = props.credential;
     const [openDeleteDialog, setOpenDeleteDialog] = React.useState(false);
     const [editCommentDialogOpen, setEditCommentDialogOpen] = React.useState(false);
@@ -358,37 +399,37 @@ function CredentialInspector(props){
     const [updateComment] = useMutation(updateCredentialComment, {
         onCompleted: (data) => {
             snackActions.success("updated comment");
-            props.onEditComment(data.update_credential_by_pk);
+            if(props.onEditComment){ props.onEditComment(data.update_credential_by_pk); }
         }
     });
     const [updateAccount] = useMutation(updateCredentialAccount, {
         onCompleted: (data) => {
             snackActions.success("updated account");
-            props.onEditAccount(data.update_credential_by_pk);
+            if(props.onEditAccount){ props.onEditAccount(data.update_credential_by_pk); }
         }
     });
     const [updateType] = useMutation(updateCredentialType, {
         onCompleted: (data) => {
             snackActions.success("updated credential type");
-            props.onEditType(data.update_credential_by_pk);
+            if(props.onEditType){ props.onEditType(data.update_credential_by_pk); }
         }
     });
     const [updateRealm] = useMutation(updateCredentialRealm, {
         onCompleted: (data) => {
             snackActions.success("updated realm");
-            props.onEditRealm(data.update_credential_by_pk);
+            if(props.onEditRealm){ props.onEditRealm(data.update_credential_by_pk); }
         }
     });
     const [updateCredential] = useMutation(updateCredentialCredential, {
         onCompleted: (data) => {
             snackActions.success("updated credential");
-            props.onEditCredential(data.update_credential_by_pk);
+            if(props.onEditCredential){ props.onEditCredential(data.update_credential_by_pk); }
         }
     });
     const [updateDeleted] = useMutation(updateCredentialDeleted, {
         onCompleted: (data) => {
             snackActions.success("updated deleted status");
-            props.onEditDeleted(data.update_credential_by_pk);
+            if(props.onEditDeleted){ props.onEditDeleted(data.update_credential_by_pk); }
         }
     });
 
@@ -536,6 +577,7 @@ function CredentialInspector(props){
                         <Chip key={chip.label} size="small" color={chip.color} variant="outlined" label={chip.label} className="mythic-credential-search-mini-chip" />
                     ))}
                 </div>
+                {!props.readOnly &&
                 <div className="mythic-credential-search-inspector-actions">
                     <Button className="mythic-table-row-action" size="small" variant="outlined" ref={dropdownAnchorRef}
                         startIcon={<EditIcon fontSize="small" />}
@@ -575,6 +617,7 @@ function CredentialInspector(props){
                         </MythicStyledTooltip>
                     )}
                 </div>
+                }
             </div>
             <div className="mythic-credential-search-inspector-body">
                 <CredentialInspectorSection title="Identity">

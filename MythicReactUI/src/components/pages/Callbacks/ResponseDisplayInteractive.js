@@ -806,6 +806,7 @@ export const ResponseDisplayInteractive = (props) =>{
                 parent_task_display_id: props.task.display_id,
                 is_interactive_task: true,
                 interactive_task_type: interactiveTaskType,
+                resolve_task_references: false,
             }});
         addPendingInputEvent(pendingLabel || getTerminalInputLabel(originalParams !== undefined ? originalParams : params));
     }, [addPendingInputEvent, canSendTerminalInput, createTask, props.task.callback.display_id, props.task.command.cmd, props.task.display_id]);

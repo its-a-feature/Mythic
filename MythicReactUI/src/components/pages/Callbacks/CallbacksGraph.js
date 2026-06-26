@@ -19,6 +19,7 @@ import Select from '@mui/material/Select';
 import {CallbackGraphEdgesContext, CallbacksContext} from './CallbacksTop';
 import {GetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import {operatorSettingDefaults} from "../../../cache";
+import {useTaskReferenceSubmitter} from './taskingReferences';
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 1;
@@ -227,9 +228,10 @@ export function CallbacksGraph({onOpenTab}){
             
         }
     });
+    const {submitTask, dialog: taskReferenceSubmitDialog} = useTaskReferenceSubmitter(createTask);
     const submitParametersDialog = (cmd, parameters, files) => {
         setOpenParametersDialog(false);
-        createTask({variables: {callback_display_id: selectedCallback.display_id, command: cmd, params: parameters, files}});
+        submitTask({variables: {callback_display_id: selectedCallback.display_id, command: cmd, params: parameters, files}});
     }
     const [viewConfig, setViewConfig] = React.useState({
         rankDir: "TB",
@@ -370,6 +372,7 @@ export function CallbacksGraph({onOpenTab}){
     }
     return (
         <div style={{maxWidth: "100%", "overflow": "hidden", height: "100%"}}>
+            {taskReferenceSubmitDialog}
 
             {manuallyRemoveEdgeDialogOpen &&
                 <MythicDialog fullWidth={true} maxWidth="sm" open={manuallyRemoveEdgeDialogOpen}

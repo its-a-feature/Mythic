@@ -275,10 +275,13 @@ query getCredentialsQuery($operation_id: Int!){
 
 const credentialJsonSubmissionValue = (value) => {
     if(typeof value === "number"){
+        return `@cred:${value}`;
+    }
+    if(typeof value === "string"){
         return value;
     }
     if(value && typeof value === "object" && value.id !== undefined && value.id !== null){
-        return value.id;
+        return `@cred:${value.id}`;
     }
     return value;
 }
@@ -603,6 +606,7 @@ export function TaskParametersDialog(props) {
                         if(credentialChoices === undefined || credentialChoices === null){
                             credentialChoices = [];
                         }
+                        credentialChoices = credentialChoices.filter((credential) => !credential.deleted);
                         if(cmd.limit_credentials_by_type?.length > 0){
                             credentialChoices = credentialChoices.reduce( (existingCreds, curCred) => {
                                 if(cmd.limit_credentials_by_type.includes(curCred.type)){
@@ -616,7 +620,7 @@ export function TaskParametersDialog(props) {
                                 cmd.value = props.command.parsedParameters[parsedParameterName];
                             }
                             else if(cmd.value === "" || (typeof(cmd.value) === Object && Object.keys(cmd.value).length === 0) || cmd.value === undefined){
-                                cmd.value = credentialChoices[0].id;
+                                cmd.value = credentialJsonSubmissionValue(credentialChoices[0]);
                             }
                             return [...prev, {...cmd, choices: credentialChoices}];
                         }else{
@@ -856,6 +860,7 @@ export function TaskParametersDialog(props) {
         let newFileUUIDs = [];
         let capturedFiles = [];
         let collapsedParameters = {};
+        let selectedTaskReferences = [];
         for(const param of parameters){
             switch(param.type){
                 case "String":
@@ -955,6 +960,9 @@ export function TaskParametersDialog(props) {
                     break;
                 case "CredentialJson":
                     collapsedParameters[param.name] = credentialJsonSubmissionValue(param.value);
+                    if(param.selectedTaskReference && collapsedParameters[param.name] === param.selectedTaskReference){
+                        selectedTaskReferences.push(param.selectedTaskReference);
+                    }
                     break;
                 default:
                     console.log("Unknown parameter type");
@@ -964,6 +972,7 @@ export function TaskParametersDialog(props) {
         props.onSubmit(commandInfo.cmd, JSON.stringify(collapsedParameters), props.captureOnly ? capturedFiles : newFileUUIDs, selectedParameterGroup, commandInfo?.payloadtype?.name, {
             capturedFiles,
             collapsedParameters,
+            selectedTaskReferences,
         });
         
     }
@@ -973,12 +982,18 @@ export function TaskParametersDialog(props) {
     const onAgentConnectRemovePayloadOnHost = ({payload, host}) => {
         RemovePayloadOnHost({variables: {host: host, payload_id: payload.id, operation_id: payload.operation_id}})
     }
-    const onChange = (name, value, error) => {
+    const onChange = (name, value, error, metadata={}) => {
         //console.log("called props.onChange to update a value for submission, have these parameters: ", [...parameters]);
         setParameters((previousState, currentProps) => {
             return previousState.map( (param) => {
                 if(param.name === name){
-                    return {...param, value: value};
+                    const updatedParam = {...param, value: value};
+                    if(metadata.selectedTaskReference){
+                        updatedParam.selectedTaskReference = metadata.selectedTaskReference;
+                    }else if(param.selectedTaskReference !== value){
+                        delete updatedParam.selectedTaskReference;
+                    }
+                    return updatedParam;
                 }else{
                     return {...param};
                 }

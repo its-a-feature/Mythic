@@ -295,13 +295,7 @@ export const ResponseDisplayPlaintext = (props) =>{
         setShowOptions(!showOptions);
     }
     const sourceTaskMetadata = () => ({
-        source: {
-            type: "task_output",
-            task_id: props?.task?.id,
-            task_display_id: props?.task?.display_id,
-            callback_id: props?.task?.callback_id,
-            command: props?.task?.command_name || props?.task?.command?.cmd,
-        }
+        task_id: props?.task?.id,
     });
     const openCreateCredentialDialog = () => {
         const selectedText = currentContentRef.current?.editor?.getSelectedText?.() || "";

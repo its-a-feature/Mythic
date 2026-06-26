@@ -31,6 +31,7 @@ import PublicIcon from '@mui/icons-material/Public';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import NumbersIcon from '@mui/icons-material/Numbers';
 import {getMythicStatusFromTaskStatus, MythicStatusChip} from '../../MythicComponents/MythicStatusChip';
+import {TaskReferenceDisplay} from './taskingReferences';
 
 
 const PREFIX = 'TaskDisplay';
@@ -669,7 +670,7 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
               <Typography className={compact ? `${classes.taskCommandText} ${classes.taskCommandTextCompact}` : classes.taskCommandText} component="div">
                 <span className={classes.taskCommandName}>{command}</span>
                 {task.display_params !== "" &&
-                  <span className={classes.taskCommandParams}> {task.display_params}</span>
+                  <span className={classes.taskCommandParams}> <TaskReferenceDisplay text={task.display_params}/></span>
                 }
               </Typography>
             </MythicStyledTooltip>
@@ -1296,7 +1297,7 @@ export const ColoredTaskLabelConsole = ({task, theme, me, taskDivID, onClick, di
                 <span style={{minWidth: 0}}>
                   <span className={classes.taskCommandName}>{command}</span>
                   {task.display_params !== "" &&
-                    <span className={classes.taskCommandParams}> {task.display_params}</span>
+                    <span className={classes.taskCommandParams}> <TaskReferenceDisplay text={task.display_params}/></span>
                   }
                 </span>
               </Typography>
