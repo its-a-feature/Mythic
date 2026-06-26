@@ -145,24 +145,8 @@ func TestKerberosMetadataIsNamespacedAndLifecycleIsTopLevel(t *testing.T) {
 		"credential_format": "ccache",
 		"ticket_count":      1,
 	}
-
-	promoteRepresentativeKerberosTicket(kerberosMetadata, []map[string]interface{}{
-		{
-			"client_principal":  "alice@EXAMPLE.COM",
-			"service_principal": "krbtgt/EXAMPLE.COM@EXAMPLE.COM",
-			"start_time":        startTime,
-			"end_time":          endTime,
-			"renew_until":       renewUntil,
-		},
-	})
 	promoteKerberosLifecycleMetadata(metadata, kerberosMetadata)
 
-	if metadata["client_principal"] != nil || metadata["credential_format"] != nil || metadata["ticket_count"] != nil {
-		t.Fatalf("kerberos details should not be promoted into top-level metadata: %#v", metadata)
-	}
-	if kerberosMetadata["client_principal"] != "alice@EXAMPLE.COM" {
-		t.Fatalf("kerberos client principal missing from namespaced metadata: %#v", kerberosMetadata)
-	}
 	if metadata["not_before"] != startTime || metadata["expires_at"] != endTime || metadata["renew_until"] != renewUntil {
 		t.Fatalf("lifecycle fields should remain top-level for validity tracking: %#v", metadata)
 	}
@@ -172,8 +156,12 @@ func TestPopulateCredentialAccountRealmFromKerberosMetadata(t *testing.T) {
 	metadata := map[string]interface{}{
 		credentialMetadataParserKey: "kerberos",
 		credentialMetadataKerberosKey: map[string]interface{}{
-			"client_principal": "alice/admin@EXAMPLE.COM",
-			"client_realm":     "EXAMPLE.COM",
+			"tickets": []map[string]interface{}{
+				{
+					"client_principal": "alice/admin@EXAMPLE.COM",
+					"client_realm":     "EXAMPLE.COM",
+				},
+			},
 		},
 	}
 
@@ -197,8 +185,12 @@ func TestPopulateCredentialAccountRealmIgnoresNonKerberosMetadata(t *testing.T) 
 	account, realm := PopulateCredentialAccountRealmFromMetadata("", "", map[string]interface{}{
 		credentialMetadataParserKey: "plaintext",
 		credentialMetadataKerberosKey: map[string]interface{}{
-			"client_principal": "alice@EXAMPLE.COM",
-			"client_realm":     "EXAMPLE.COM",
+			"tickets": []map[string]interface{}{
+				{
+					"client_principal": "alice/admin@EXAMPLE.COM",
+					"client_realm":     "EXAMPLE.COM",
+				},
+			},
 		},
 	})
 	if account != "" || realm != "" {

@@ -28,6 +28,7 @@ import {
 } from "../../MythicComponents/MythicResizableGrid/GridColumnFilterDialog";
 import {gql, useMutation} from '@apollo/client';
 import {CredentialTableNewCredentialDialog} from "../Search/CredentialTableNewCredentialDialog";
+import {getReadableTextColor, isValidHexColor} from "../../MythicComponents/MythicColorInput";
 
 const createCredentialMutation = gql`
 mutation createCredential($comment: String!, $account: String!, $realm: String!, $type: String!, $credential: String!, $metadata: jsonb) {
@@ -46,6 +47,44 @@ const onCopyToClipboard = (data) => {
   }else{
     snackActions.error("Failed to copy text");
   }
+}
+const getReadableBrowserScriptStyle = (style) => {
+  if(!style || typeof style !== "object" || Array.isArray(style)){
+    return style;
+  }
+  if(style.color !== undefined && style.color !== null && style.color !== ""){
+    return style;
+  }
+  const backgroundColor = style.backgroundColor || style.background;
+  if(!isValidHexColor(backgroundColor)){
+    return style;
+  }
+  return {
+    ...style,
+    color: getReadableTextColor(backgroundColor),
+  };
+}
+const getReadableBrowserScriptRow = (row) => {
+  if(!row || typeof row !== "object" || Array.isArray(row)){
+    return row;
+  }
+  let updated = false;
+  const readableRow = Object.entries(row).reduce((prev, [key, value]) => {
+    if(key === "rowStyle"){
+      const rowStyle = getReadableBrowserScriptStyle(value);
+      updated = updated || rowStyle !== value;
+      return {...prev, [key]: rowStyle};
+    }
+    if(value && typeof value === "object" && !Array.isArray(value) && value.cellStyle !== undefined){
+      const cellStyle = getReadableBrowserScriptStyle(value.cellStyle);
+      if(cellStyle !== value.cellStyle){
+        updated = true;
+        return {...prev, [key]: {...value, cellStyle}};
+      }
+    }
+    return {...prev, [key]: value};
+  }, {});
+  return updated ? readableRow : row;
 }
 export const getIconName = (iconName) => {
   switch(iconName.toLowerCase()){
@@ -889,7 +928,7 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
   ];
   
   useEffect( () => {
-    setAllData([...table.rows]);
+    setAllData(table.rows.map(getReadableBrowserScriptRow));
     setDataHeight(Math.min(maxHeight, (table.rows.length * rowHeight) + headerHeight));
   }, [table.rows])
   const sortColumn = table.headers.findIndex((column) => column.plaintext === sortData.sortKey);
