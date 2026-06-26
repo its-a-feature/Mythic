@@ -1493,6 +1493,10 @@ tspan {
     min-width: 0;
     padding: 0.38rem 0.48rem;
 }
+.mythic-credential-search-detail-emphasis {
+    border-color: var(--mythic-global-067);
+    box-shadow: inset 3px 0 0 var(--mythic-global-109);
+}
 .mythic-credential-search-detail-wide {
     grid-column: 1 / -1;
 }
@@ -1520,6 +1524,11 @@ tspan {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+.mythic-credential-search-detail-emphasis strong {
+    font-size: 0.86rem;
+    font-weight: 850;
+    letter-spacing: 0;
 }
 .mythic-credential-search-detail-value-row {
     align-items: center;
@@ -1608,6 +1617,12 @@ tspan {
     padding: 0.45rem 0.55rem;
     white-space: pre-wrap;
     word-break: break-word;
+}
+.mythic-credential-search-secret-emphasis {
+    border-color: var(--mythic-global-067);
+    box-shadow: inset 3px 0 0 var(--mythic-global-109);
+    font-size: 0.84rem;
+    font-weight: 750;
 }
 .mythic-credential-search-secret-row {
     align-items: flex-start;

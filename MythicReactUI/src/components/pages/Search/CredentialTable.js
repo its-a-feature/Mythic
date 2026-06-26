@@ -456,7 +456,7 @@ export function CredentialInspector(props){
     const validity = parsedMetadata.validity || {};
     const validityChips = getCredentialValidityChips(credential.metadata);
     const kerberosMetadata = getNestedMetadataObject(parsedMetadata, "kerberos");
-    const kerberosValue = (key) => kerberosMetadata[key];
+    const kerberosValue = (key) => kerberosMetadata?.tickets?.[0]?.[key];
     const hasKerberosMetadata = parsedMetadata.parser === "kerberos";
     const warningValues = hasKerberosMetadata && Array.isArray(parsedMetadata.parser_warnings) ? parsedMetadata.parser_warnings : [];
     const kerberosSummaryChips = [
@@ -474,8 +474,9 @@ export function CredentialInspector(props){
         {label: "Client Realm", value: kerberosValue("client_realm")},
         {label: "Service Realm", value: kerberosValue("service_realm")},
         {label: "Key Type", value: kerberosValue("key_type")},
+        {label: "Key", value: kerberosValue("key")},
         {label: "Flags", value: kerberosValue("flags"), code: true},
-    ].filter(({value, chip}) => (value !== undefined && value !== null && `${value}` !== "") || chip);
+    ];
     const showKerberosSection = hasKerberosMetadata;
     const pureMetadataEntries = Object.entries(parsedMetadata)
         .filter(([key, value]) => !metadataSystemKeys.has(key) && value !== undefined && value !== null);
@@ -621,7 +622,7 @@ export function CredentialInspector(props){
             </div>
             <div className="mythic-credential-search-inspector-body">
                 <CredentialInspectorSection title="Identity">
-                    <CredentialDetail label="Account" value={credential.account} />
+                    <CredentialDetail label="Account" value={credential.account} emphasis />
                     <CredentialDetail
                         label="Tasking ID"
                         value={credential.id}
@@ -634,7 +635,7 @@ export function CredentialInspector(props){
                             </MythicStyledTooltip>
                         }
                     />
-                    <CredentialDetail label="Realm" value={credential.realm} />
+                    <CredentialDetail label="Realm" value={credential.realm} emphasis />
                     <CredentialDetail label="Type" value={credential.type} />
                 </CredentialInspectorSection>
                 {showKerberosSection &&
@@ -658,25 +659,24 @@ export function CredentialInspector(props){
                         }
                     </CredentialInspectorSection>
                 }
-                <CredentialInspectorSection
-                    title="Metadata"
-                    actions={
-                        <MythicStyledTooltip title={"Copy metadata JSON"}>
-                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-info" onClick={() => onCopyToClipboard(JSON.stringify(pureMetadata, null, 2))} size="small">
-                                <FontAwesomeIcon icon={faCopy}/>
-                            </IconButton>
-                        </MythicStyledTooltip>
-                    }>
-                    {pureMetadataEntries.length === 0 ? (
-                        <div className="mythic-credential-search-empty-value">{"{}"}</div>
-                    ) : (
+                {pureMetadataEntries.length > 0 &&
+                    <CredentialInspectorSection
+                        title="Metadata"
+                        actions={
+                            <MythicStyledTooltip title={"Copy metadata JSON"}>
+                                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-info" onClick={() => onCopyToClipboard(JSON.stringify(pureMetadata, null, 2))} size="small">
+                                    <FontAwesomeIcon icon={faCopy}/>
+                                </IconButton>
+                            </MythicStyledTooltip>
+                        }>
                         <div className="mythic-credential-search-metadata-grid">
                             {pureMetadataEntries.map(([key, value]) => (
                                 <CredentialMetadataPair key={key} name={key} value={value} />
                             ))}
                         </div>
-                    )}
-                </CredentialInspectorSection>
+                    </CredentialInspectorSection>
+                }
+
                 <CredentialInspectorSection title="Source">
                     {credential.task ? (
                         <>
@@ -700,7 +700,7 @@ export function CredentialInspector(props){
                 </CredentialInspectorSection>
                 <CredentialInspectorSection title="Credential">
                     <div className="mythic-credential-search-secret-row">
-                        <div className="mythic-credential-search-secret" title={credential.credential_text || ""}>
+                        <div className="mythic-credential-search-secret mythic-credential-search-secret-emphasis" title={credential.credential_text || ""}>
                             {credential.credential_text || "-"}
                         </div>
                         <MythicStyledTooltip title={"Copy credential value"}>
@@ -743,11 +743,16 @@ function CredentialInspectorSection({title, actions, children}){
     )
 }
 
-function CredentialDetail({label, value, chip, wide=false, code=false, action}){
+function CredentialDetail({label, value, chip, wide=false, code=false, action, emphasis=false}){
     const isReactValue = React.isValidElement(value);
     const displayValue = value === undefined || value === null || value === "" ? "-" : value;
+    const detailClassName = [
+        "mythic-credential-search-detail",
+        wide ? "mythic-credential-search-detail-wide" : "",
+        emphasis ? "mythic-credential-search-detail-emphasis" : "",
+    ].filter(Boolean).join(" ");
     return (
-        <div className={`mythic-credential-search-detail ${wide ? "mythic-credential-search-detail-wide" : ""}`}>
+        <div className={detailClassName}>
             <span>{label}</span>
             <div className="mythic-credential-search-detail-value-row">
                 <strong className={code ? "mythic-credential-search-code" : ""} title={isReactValue ? undefined : `${displayValue}`}>

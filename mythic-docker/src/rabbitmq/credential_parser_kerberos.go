@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/its-a-feature/Mythic/logging"
 	"github.com/jcmturner/gofork/encoding/asn1"
 	"github.com/jcmturner/gokrb5/v8/credentials"
 	"github.com/jcmturner/gokrb5/v8/messages"
@@ -30,20 +31,29 @@ func parseKerberosAccountRealmFromMetadata(input CredentialParseAccountRealmInpu
 	}
 	kerberosMetadata, ok := input.Metadata[credentialMetadataKerberosKey].(map[string]interface{})
 	if !ok {
+		logging.LogDebug("kerberos metadata not map")
 		return result
 	}
-	clientPrincipal := strings.TrimSpace(fmt.Sprintf("%v", kerberosMetadata["client_principal"]))
-	clientRealm := strings.TrimSpace(fmt.Sprintf("%v", kerberosMetadata["client_realm"]))
-	principalAccount, principalRealm := splitKerberosPrincipal(clientPrincipal)
-	if strings.TrimSpace(input.Account) == "" {
-		result.Account = principalAccount
+	kerberosTickets, ok := kerberosMetadata["tickets"].([]map[string]interface{})
+	if !ok {
+		logging.LogDebug("tickets not array of map", "tickets", kerberosMetadata)
+		return result
 	}
-	if strings.TrimSpace(input.Realm) == "" {
-		if clientRealm != "" && clientRealm != "<nil>" {
-			result.Realm = clientRealm
-		} else {
-			result.Realm = principalRealm
+	for _, ticket := range kerberosTickets {
+		clientPrincipal := strings.TrimSpace(fmt.Sprintf("%v", ticket["client_principal"]))
+		clientRealm := strings.TrimSpace(fmt.Sprintf("%v", ticket["client_realm"]))
+		principalAccount, principalRealm := splitKerberosPrincipal(clientPrincipal)
+		if strings.TrimSpace(input.Account) == "" {
+			result.Account = principalAccount
 		}
+		if strings.TrimSpace(input.Realm) == "" {
+			if clientRealm != "" && clientRealm != "<nil>" {
+				result.Realm = clientRealm
+			} else {
+				result.Realm = principalRealm
+			}
+		}
+		return result
 	}
 	return result
 }
@@ -123,20 +133,20 @@ func parseKerberosCCache(raw []byte) (metadata map[string]interface{}, warnings 
 		if len(entry.TicketFlags.Bytes) > 0 {
 			ticket["flags"] = asn1BitStringHex(entry.TicketFlags)
 		}
+		if len(entry.Key.KeyValue) > 0 {
+			ticket["key"] = bytesStringHex(entry.Key.KeyValue)
+		}
 		tickets = append(tickets, ticket)
 	}
 	kerberosMetadata := map[string]interface{}{
 		"credential_format": "ccache",
 		"ticket_count":      len(tickets),
 		"tickets":           tickets,
-		"client_principal":  credentialPrincipalWithRealm(ccache.GetClientPrincipalName(), ccache.GetClientRealm()),
-		"client_realm":      ccache.GetClientRealm(),
 	}
 	metadata = map[string]interface{}{
 		credentialMetadataParserKey:   "kerberos",
 		credentialMetadataKerberosKey: kerberosMetadata,
 	}
-	promoteRepresentativeKerberosTicket(kerberosMetadata, tickets)
 	promoteKerberosLifecycleMetadata(metadata, kerberosMetadata)
 	return metadata, nil, true
 }
@@ -172,6 +182,9 @@ func parseKerberosKRBCred(raw []byte) (metadata map[string]interface{}, warnings
 				if len(ticketInfo.Flags.Bytes) > 0 {
 					ticket["flags"] = asn1BitStringHex(ticketInfo.Flags)
 				}
+				if len(ticketInfo.Key.KeyValue) > 0 {
+					ticket["key"] = bytesStringHex(ticketInfo.Key.KeyValue)
+				}
 				tickets = append(tickets, ticket)
 			}
 		} else {
@@ -195,30 +208,8 @@ func parseKerberosKRBCred(raw []byte) (metadata map[string]interface{}, warnings
 		credentialMetadataParserKey:   "kerberos",
 		credentialMetadataKerberosKey: kerberosMetadata,
 	}
-	promoteRepresentativeKerberosTicket(kerberosMetadata, tickets)
 	promoteKerberosLifecycleMetadata(metadata, kerberosMetadata)
 	return metadata, warnings, true
-}
-
-func promoteRepresentativeKerberosTicket(kerberosMetadata map[string]interface{}, tickets []map[string]interface{}) {
-	if len(tickets) == 0 {
-		return
-	}
-	representative := tickets[0]
-	for _, key := range []string{
-		"client_principal",
-		"client_realm",
-		"service_principal",
-		"service_realm",
-		"auth_time",
-		"start_time",
-		"end_time",
-		"renew_until",
-	} {
-		if value, ok := representative[key]; ok && fmt.Sprintf("%v", value) != "" {
-			kerberosMetadata[key] = value
-		}
-	}
 }
 
 func promoteKerberosLifecycleMetadata(metadata map[string]interface{}, kerberosMetadata map[string]interface{}) {
@@ -253,4 +244,7 @@ func credentialPrincipalWithRealm(principalName types.PrincipalName, realm strin
 
 func asn1BitStringHex(value asn1.BitString) string {
 	return fmt.Sprintf("%x", value.Bytes)
+}
+func bytesStringHex(value []byte) string {
+	return fmt.Sprintf("%x", value)
 }

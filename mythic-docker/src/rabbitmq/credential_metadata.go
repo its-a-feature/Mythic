@@ -173,12 +173,12 @@ func credentialByteCandidates(credentialText string) [][]byte {
 }
 
 func PopulateCredentialAccountRealmFromMetadata(account string, realm string, metadata map[string]interface{}) (string, string) {
-	parser, ok := metadata[credentialMetadataParserKey]
+	parserStringKeyword, ok := metadata[credentialMetadataParserKey]
 	if !ok {
 		return account, realm
 	}
 	credentialParseAccountRealmRegistry.RLock()
-	parserFunc, ok := credentialParseAccountRealmRegistry.parsers[parser.(string)]
+	parserFunc, ok := credentialParseAccountRealmRegistry.parsers[parserStringKeyword.(string)]
 	credentialParseAccountRealmRegistry.RUnlock()
 	if !ok {
 		return account, realm
