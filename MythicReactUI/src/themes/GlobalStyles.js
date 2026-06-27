@@ -1385,6 +1385,16 @@ tspan {
     padding-right: 0.34rem;
     text-overflow: ellipsis;
 }
+.mythic-credential-search-metadata-chip.MuiChip-root {
+    background-color: var(--mythic-global-116);
+    border-color: var(--mythic-global-119);
+    color: var(--mythic-global-118);
+}
+.mythic-credential-search-identity-chip.MuiChip-root {
+    background-color: var(--mythic-global-128);
+    border-color: var(--mythic-global-129);
+    color: var(--mythic-global-123);
+}
 .mythic-credential-search-inspector {
     display: flex;
     flex-direction: column;
@@ -1451,6 +1461,10 @@ tspan {
     border-bottom: 0;
     padding-bottom: 0;
 }
+.mythic-credential-search-section-metadata,
+.mythic-credential-search-section-identity {
+    border-bottom-color: var(--mythic-global-010);
+}
 .mythic-credential-search-section-header {
     align-items: center;
     color: var(--mythic-global-025);
@@ -1463,6 +1477,12 @@ tspan {
     margin-bottom: 0.38rem;
     min-width: 0;
     text-transform: uppercase;
+}
+.mythic-credential-search-section-metadata .mythic-credential-search-section-header {
+    color: var(--mythic-global-118);
+}
+.mythic-credential-search-section-identity .mythic-credential-search-section-header {
+    color: var(--mythic-global-123);
 }
 .mythic-credential-search-section-actions {
     align-items: center;
@@ -1487,7 +1507,6 @@ tspan {
 }
 .mythic-credential-search-detail,
 .mythic-credential-search-metadata-pair {
-    background-color: var(--mythic-global-009);
     border: 1px solid var(--mythic-global-010);
     border-radius: var(--mythic-global-008);
     min-width: 0;
@@ -1496,6 +1515,16 @@ tspan {
 .mythic-credential-search-detail-emphasis {
     border-color: var(--mythic-global-067);
     box-shadow: inset 3px 0 0 var(--mythic-global-109);
+}
+.mythic-credential-search-detail-metadata,
+.mythic-credential-search-metadata-pair-metadata {
+    border-color: var(--mythic-global-119);
+    box-shadow: inset 3px 0 0 var(--mythic-global-118);
+}
+.mythic-credential-search-detail-identity,
+.mythic-credential-search-metadata-pair-identity {
+    border-color: var(--mythic-global-129);
+    box-shadow: inset 3px 0 0 var(--mythic-global-123);
 }
 .mythic-credential-search-detail-wide {
     grid-column: 1 / -1;
@@ -1530,6 +1559,14 @@ tspan {
     font-weight: 850;
     letter-spacing: 0;
 }
+.mythic-credential-search-detail-metadata > span,
+.mythic-credential-search-metadata-pair-metadata > span {
+    color: var(--mythic-global-118);
+}
+.mythic-credential-search-detail-identity > span,
+.mythic-credential-search-metadata-pair-identity > span {
+    color: var(--mythic-global-123);
+}
 .mythic-credential-search-detail-value-row {
     align-items: center;
     display: grid;
@@ -1560,6 +1597,176 @@ tspan {
     gap: 0.35rem;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     min-width: 0;
+}
+.mythic-credential-search-metadata-grid-summary,
+.mythic-credential-search-metadata-grid-metadata,
+.mythic-credential-search-metadata-grid-identity {
+    grid-column: 1 / -1;
+}
+.mythic-credential-search-parser-card {
+    border: 1px solid var(--mythic-global-129);
+    border-radius: var(--mythic-global-008);
+    box-shadow: inset 3px 0 0 var(--mythic-global-123);
+    display: grid;
+    gap: 0.35rem;
+    grid-column: 1 / -1;
+    min-width: 0;
+    padding: 0.42rem 0.5rem;
+}
+.mythic-credential-search-parser-card-title {
+    color: var(--mythic-global-123);
+    font-size: 0.68rem;
+    font-weight: 850;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}
+.mythic-credential-search-parser-card-grid {
+    display: grid;
+    gap: 0.35rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-width: 0;
+}
+.mythic-credential-search-kerberos-ticket {
+    border: 1px solid var(--mythic-global-129);
+    border-radius: var(--mythic-global-008);
+    box-shadow: inset 3px 0 0 var(--mythic-global-123);
+    display: grid;
+    gap: 0.48rem;
+    grid-column: 1 / -1;
+    min-width: 0;
+    padding: 0.5rem 0.55rem;
+}
+.mythic-credential-search-kerberos-ticket-header {
+    align-items: flex-start;
+    display: flex;
+    gap: 0.45rem;
+    justify-content: space-between;
+    min-width: 0;
+}
+.mythic-credential-search-kerberos-ticket-header > div {
+    display: grid;
+    gap: 0.12rem;
+    min-width: 0;
+}
+.mythic-credential-search-kerberos-ticket-header span,
+.mythic-credential-search-kerberos-principal > span,
+.mythic-credential-search-kerberos-lifecycle-item > span,
+.mythic-credential-search-kerberos-technical-item > span,
+.mythic-credential-search-kerberos-key > span {
+    color: var(--mythic-global-123);
+    font-size: 0.66rem;
+    font-weight: 850;
+    line-height: 1.1;
+    text-transform: uppercase;
+}
+.mythic-credential-search-kerberos-ticket-header strong {
+    color: var(--mythic-global-002);
+    font-family: var(--mythic-global-065);
+    font-size: 0.8rem;
+    font-weight: 850;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-credential-search-kerberos-route {
+    align-items: stretch;
+    display: grid;
+    gap: 0.35rem;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    min-width: 0;
+}
+.mythic-credential-search-kerberos-route-single {
+    grid-template-columns: minmax(0, 1fr);
+}
+.mythic-credential-search-kerberos-principal {
+    background-color: var(--mythic-global-063);
+    border: 1px solid var(--mythic-global-010);
+    border-left: 3px solid var(--mythic-global-123);
+    border-radius: var(--mythic-global-008);
+    display: grid;
+    gap: 0.25rem;
+    min-width: 0;
+    padding: 0.42rem 0.48rem;
+}
+.mythic-credential-search-kerberos-principal-service {
+    border-left-color: var(--mythic-global-118);
+}
+.mythic-credential-search-kerberos-principal strong {
+    color: var(--mythic-global-002);
+    font-family: var(--mythic-global-065);
+    font-size: 0.78rem;
+    font-weight: 800;
+    line-height: 1.25;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-credential-search-kerberos-route-join {
+    align-self: center;
+    color: var(--mythic-global-025);
+    font-size: 0.66rem;
+    font-weight: 850;
+    text-transform: uppercase;
+}
+.mythic-credential-search-kerberos-lifecycle {
+    border-top: 1px solid var(--mythic-global-010);
+    display: grid;
+    gap: 0.35rem;
+    grid-template-columns: repeat(auto-fit, minmax(7.25rem, 1fr));
+    min-width: 0;
+    padding-top: 0.45rem;
+}
+.mythic-credential-search-kerberos-lifecycle-item {
+    display: grid;
+    gap: 0.16rem;
+    min-width: 0;
+}
+.mythic-credential-search-kerberos-lifecycle-item strong {
+    color: var(--mythic-global-002);
+    font-family: var(--mythic-global-065);
+    font-size: 0.68rem;
+    font-weight: 720;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-credential-search-kerberos-technical {
+    align-items: center;
+    border-top: 1px solid var(--mythic-global-010);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    min-width: 0;
+    padding-top: 0.45rem;
+}
+.mythic-credential-search-kerberos-technical-item,
+.mythic-credential-search-kerberos-key {
+    align-items: center;
+    background-color: var(--mythic-global-063);
+    border: 1px solid var(--mythic-global-010);
+    border-radius: var(--mythic-global-008);
+    display: inline-grid;
+    gap: 0.28rem;
+    grid-template-columns: auto minmax(0, 1fr);
+    min-width: 0;
+    padding: 0.28rem 0.38rem;
+}
+.mythic-credential-search-kerberos-key {
+    flex: 1 1 16rem;
+}
+.mythic-credential-search-kerberos-technical-item strong,
+.mythic-credential-search-kerberos-key strong {
+    color: var(--mythic-global-002);
+    font-family: var(--mythic-global-065);
+    font-size: 0.68rem;
+    font-weight: 720;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 .mythic-credential-search-nested-metadata {
     display: grid;
@@ -1865,8 +2072,14 @@ tspan {
         justify-content: flex-start;
     }
     .mythic-credential-search-section-body,
-    .mythic-credential-search-metadata-grid {
+    .mythic-credential-search-metadata-grid,
+    .mythic-credential-search-parser-card-grid,
+    .mythic-credential-search-kerberos-route,
+    .mythic-credential-search-kerberos-lifecycle {
         grid-template-columns: 1fr;
+    }
+    .mythic-credential-search-kerberos-route-join {
+        display: none;
     }
 }
 .mythic-tree-groups-title.MuiDialogTitle-root {

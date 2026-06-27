@@ -23,11 +23,14 @@ type MythicRPCCredentialSearchMessageResponse struct {
 type MythicRPCCredentialSearchCredentialData struct {
 	ID         *int        `json:"id,omitempty"`
 	Type       *string     `json:"type,omitempty"`
+	Subtype    *string     `json:"subtype,omitempty"`
 	Account    *string     `json:"account,omitempty"`
 	Realm      *string     `json:"realm,omitempty"`
 	Credential *string     `json:"credential,omitempty"`
 	Comment    *string     `json:"comment,omitempty"`
 	Metadata   interface{} `json:"metadata,omitempty"`
+	Identity   interface{} `json:"credential_identity,omitempty"`
+	Display    *string     `json:"custom_display,omitempty"`
 	Deleted    *bool       `json:"deleted,omitempty"`
 	Timestamp  *time.Time  `json:"timestamp,omitempty"`
 }
@@ -55,6 +58,10 @@ func MythicRPCCredentialSearch(input MythicRPCCredentialSearchMessage, authConte
 		params = append(params, "%"+*input.SearchCredentials.Type+"%")
 		searchString += fmt.Sprintf("AND c.\"type\" ILIKE $%d ", len(params))
 	}
+	if input.SearchCredentials.Subtype != nil {
+		params = append(params, "%"+*input.SearchCredentials.Subtype+"%")
+		searchString += fmt.Sprintf("AND c.subtype ILIKE $%d ", len(params))
+	}
 	if input.SearchCredentials.Credential != nil {
 		params = append(params, "%"+*input.SearchCredentials.Credential+"%")
 		searchString += fmt.Sprintf("AND credential_credentials(c) ILIKE $%d ", len(params))
@@ -71,6 +78,10 @@ func MythicRPCCredentialSearch(input MythicRPCCredentialSearchMessage, authConte
 		params = append(params, "%"+*input.SearchCredentials.Comment+"%")
 		searchString += fmt.Sprintf("AND c.comment ILIKE $%d ", len(params))
 	}
+	if input.SearchCredentials.Display != nil {
+		params = append(params, "%"+*input.SearchCredentials.Display+"%")
+		searchString += fmt.Sprintf("AND c.custom_display ILIKE $%d ", len(params))
+	}
 	if input.SearchCredentials.Metadata != nil {
 		switch metadataFilter := input.SearchCredentials.Metadata.(type) {
 		case string:
@@ -84,6 +95,21 @@ func MythicRPCCredentialSearch(input MythicRPCCredentialSearchMessage, authConte
 			}
 			params = append(params, string(metadataBytes))
 			searchString += fmt.Sprintf("AND c.metadata @> $%d::jsonb ", len(params))
+		}
+	}
+	if input.SearchCredentials.Identity != nil {
+		switch identityFilter := input.SearchCredentials.Identity.(type) {
+		case string:
+			params = append(params, "%"+identityFilter+"%")
+			searchString += fmt.Sprintf("AND c.credential_identity::text ILIKE $%d ", len(params))
+		default:
+			identityBytes, err := json.Marshal(identityFilter)
+			if err != nil {
+				response.Error = err.Error()
+				return response
+			}
+			params = append(params, string(identityBytes))
+			searchString += fmt.Sprintf("AND c.credential_identity @> $%d::jsonb ", len(params))
 		}
 	}
 	searchString += " ORDER BY c.id DESC"

@@ -37,10 +37,10 @@ func (credentialTaskReferenceProvider) ValidateSelector(selector string) error {
 
 func (credentialTaskReferenceProvider) ValidateField(field string) error {
 	switch field {
-	case "credential", "account", "realm", "type", "comment", "id":
+	case "credential", "account", "realm", "type", "subtype", "comment", "id", "custom_display", "credential_identity", "metadata":
 		return nil
 	default:
-		return fmt.Errorf("supported credential fields are credential, account, realm, type, comment, and id")
+		return fmt.Errorf("supported credential fields are credential, account, realm, type, subtype, comment, id, custom_display, credential_identity, and metadata")
 	}
 }
 
@@ -64,7 +64,7 @@ func (credentialTaskReferenceProvider) BatchResolveTaskReferences(operationID in
 
 	credentials := []databaseStructs.Credential{}
 	query, args, err := sqlx.In(`SELECT
-		c.id, c."type", c.account, c.realm, c.comment, credential_credentials(c) AS credential, c.metadata
+		c.id, c."type", c.subtype, c.account, c.realm, c.comment, c.custom_display, credential_credentials(c) AS credential, c.metadata, c.credential_identity
 		FROM credential c
 		WHERE c.operation_id=? AND c.deleted=false AND c.id IN (?)`,
 		operationID, credentialIDs)
@@ -113,13 +113,16 @@ func credentialReferenceSelectorID(selector string) (int, error) {
 
 func credentialTaskReferenceStructuredValue(credential databaseStructs.Credential) map[string]interface{} {
 	return map[string]interface{}{
-		"id":         credential.ID,
-		"account":    credential.Account,
-		"realm":      credential.Realm,
-		"type":       credential.Type,
-		"comment":    credential.Comment,
-		"credential": credential.Credential,
-		"metadata":   credential.Metadata.StructValue(),
+		"id":                  credential.ID,
+		"account":             credential.Account,
+		"realm":               credential.Realm,
+		"type":                credential.Type,
+		"subtype":             credential.Subtype,
+		"comment":             credential.Comment,
+		"credential":          credential.Credential,
+		"metadata":            credential.Metadata.StructValue(),
+		"credential_identity": credential.Identity.StructValue(),
+		"custom_display":      credential.CustomDisplay,
 	}
 }
 
@@ -133,8 +136,16 @@ func credentialTaskReferenceScalarValue(credential databaseStructs.Credential, f
 		return credential.Realm, nil
 	case "type":
 		return credential.Type, nil
+	case "subtype":
+		return credential.Subtype, nil
 	case "comment":
 		return credential.Comment, nil
+	case "custom_display":
+		return credential.CustomDisplay, nil
+	case "metadata":
+		return credential.Metadata.String(), nil
+	case "credential_identity":
+		return credential.Identity.String(), nil
 	case "id":
 		return strconv.Itoa(credential.ID), nil
 	default:

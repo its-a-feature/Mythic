@@ -358,6 +358,17 @@ actions:
       - role: mythic_admin
       - role: developer
     comment: Create a new credential within Mythic's credential store
+  - name: updateCredential
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/update_credential_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
+    comment: Update a credential within Mythic's credential store
   - name: createInviteLink
     definition:
       kind: synchronous
@@ -1135,6 +1146,7 @@ custom_types:
     - name: OperatorInput
     - name: CreatePayloadInput
     - name: updateCallbackInput
+    - name: updateCredentialInput
     - name: DictionaryEntry
     - name: tagtypeInput
     - name: NewCallbackConfig
@@ -1174,6 +1186,7 @@ custom_types:
           type: object
     - name: BypassOutput
     - name: updateCallbackOutput
+    - name: updateCredentialOutput
     - name: BulkDownloadOutput
     - name: dynamicQueryOutput
     - name: rebuildOutput

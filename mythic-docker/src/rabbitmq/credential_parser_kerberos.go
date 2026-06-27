@@ -29,14 +29,14 @@ func parseKerberosAccountRealmFromMetadata(input CredentialParseAccountRealmInpu
 	if input.Metadata[credentialMetadataParserKey] != "kerberos" {
 		return result
 	}
-	kerberosMetadata, ok := input.Metadata[credentialMetadataKerberosKey].(map[string]interface{})
+	kerberosIdentity, ok := input.Identity[credentialMetadataKerberosKey].(map[string]interface{})
 	if !ok {
-		logging.LogDebug("kerberos metadata not map")
+		logging.LogDebug("kerberos identity not map")
 		return result
 	}
-	kerberosTickets, ok := kerberosMetadata["tickets"].([]map[string]interface{})
+	kerberosTickets, ok := kerberosIdentity["tickets"].([]map[string]interface{})
 	if !ok {
-		logging.LogDebug("tickets not array of map", "tickets", kerberosMetadata)
+		logging.LogDebug("tickets not array of map", "tickets", kerberosIdentity)
 		return result
 	}
 	for _, ticket := range kerberosTickets {
@@ -74,47 +74,52 @@ func parseKerberosCredentialMetadata(input CredentialParseInput) CredentialParse
 	candidates := credentialByteCandidates(input.CredentialText)
 	allWarnings := make([]string, 0)
 	for _, candidate := range candidates {
-		metadata, warnings, ok := parseKerberosCCache(candidate)
+		metadata, identity, warnings, ok := parseKerberosCCache(candidate)
 		if ok {
 			return CredentialParseResult{
 				Metadata: metadata,
+				Identity: identity,
+				Subtype:  "kerberos",
 				Warnings: warnings,
+				Success:  true,
 			}
 		}
 		allWarnings = append(allWarnings, warnings...)
 	}
-	krbCredWarnings := make([]string, 0)
 	for _, candidate := range candidates {
-		metadata, warnings, ok := parseKerberosKRBCred(candidate)
+		metadata, identity, warnings, ok := parseKerberosKRBCred(candidate)
 		if ok {
 			return CredentialParseResult{
 				Metadata: metadata,
+				Identity: identity,
+				Subtype:  "kerberos",
 				Warnings: warnings,
+				Success:  true,
 			}
 		}
-		krbCredWarnings = append(krbCredWarnings, warnings...)
+		allWarnings = append(allWarnings, warnings...)
 	}
-	allWarnings = append(allWarnings, krbCredWarnings...)
-	allWarnings = append(allWarnings, "unable to parse ticket credential as ccache or KRB_CRED/kirbi")
+	allWarnings = append(allWarnings, "no valid kerberos credential format found")
 	return CredentialParseResult{
-		Metadata: map[string]interface{}{
-			credentialMetadataParserKey: "kerberos",
-		},
+		Metadata: map[string]interface{}{},
+		Identity: map[string]interface{}{},
 		Warnings: allWarnings,
+		Success:  false,
 	}
 }
 
-func parseKerberosCCache(raw []byte) (metadata map[string]interface{}, warnings []string, ok bool) {
+func parseKerberosCCache(raw []byte) (metadata map[string]interface{}, identity map[string]interface{}, warnings []string, ok bool) {
 	defer func() {
 		if r := recover(); r != nil {
 			metadata = nil
+			identity = nil
 			warnings = []string{fmt.Sprintf("ccache parser recovered from panic: %v", r)}
 			ok = false
 		}
 	}()
 	ccache := credentials.CCache{}
 	if err := ccache.Unmarshal(raw); err != nil {
-		return nil, []string{fmt.Sprintf("ccache parse failed: %s", err.Error())}, false
+		return nil, nil, []string{fmt.Sprintf("ccache parse failed: %s", err.Error())}, false
 	}
 	entries := ccache.GetEntries()
 	tickets := make([]map[string]interface{}, 0, len(entries))
@@ -139,29 +144,35 @@ func parseKerberosCCache(raw []byte) (metadata map[string]interface{}, warnings 
 		tickets = append(tickets, ticket)
 	}
 	kerberosMetadata := map[string]interface{}{
-		"credential_format": "ccache",
-		"ticket_count":      len(tickets),
-		"tickets":           tickets,
+		"format":       "ccache",
+		"ticket_count": len(tickets),
+	}
+	kerberosIdentity := map[string]interface{}{
+		"tickets": tickets,
 	}
 	metadata = map[string]interface{}{
 		credentialMetadataParserKey:   "kerberos",
 		credentialMetadataKerberosKey: kerberosMetadata,
 	}
-	promoteKerberosLifecycleMetadata(metadata, kerberosMetadata)
-	return metadata, nil, true
+	identity = map[string]interface{}{
+		credentialMetadataKerberosKey: kerberosIdentity,
+	}
+	promoteKerberosLifecycleMetadata(metadata, kerberosIdentity)
+	return metadata, identity, nil, true
 }
 
-func parseKerberosKRBCred(raw []byte) (metadata map[string]interface{}, warnings []string, ok bool) {
+func parseKerberosKRBCred(raw []byte) (metadata map[string]interface{}, identity map[string]interface{}, warnings []string, ok bool) {
 	defer func() {
 		if r := recover(); r != nil {
 			metadata = nil
+			identity = nil
 			warnings = []string{fmt.Sprintf("KRB_CRED parser recovered from panic: %v", r)}
 			ok = false
 		}
 	}()
 	krbCred := messages.KRBCred{}
 	if err := krbCred.Unmarshal(raw); err != nil {
-		return nil, []string{fmt.Sprintf("KRB_CRED parse failed: %s", err.Error())}, false
+		return nil, nil, []string{fmt.Sprintf("KRB_CRED parse failed: %s", err.Error())}, false
 	}
 	tickets := make([]map[string]interface{}, 0)
 	if len(krbCred.EncPart.Cipher) > 0 {
@@ -200,26 +211,36 @@ func parseKerberosKRBCred(raw []byte) (metadata map[string]interface{}, warnings
 		}
 	}
 	kerberosMetadata := map[string]interface{}{
-		"credential_format": "krb_cred",
-		"ticket_count":      len(tickets),
-		"tickets":           tickets,
+		"format":       "krb_cred",
+		"ticket_count": len(tickets),
+	}
+	kerberosIdentity := map[string]interface{}{
+		"tickets": tickets,
 	}
 	metadata = map[string]interface{}{
 		credentialMetadataParserKey:   "kerberos",
 		credentialMetadataKerberosKey: kerberosMetadata,
 	}
-	promoteKerberosLifecycleMetadata(metadata, kerberosMetadata)
-	return metadata, warnings, true
+	identity = map[string]interface{}{
+		credentialMetadataKerberosKey: kerberosIdentity,
+	}
+	promoteKerberosLifecycleMetadata(metadata, kerberosIdentity)
+	return metadata, identity, warnings, true
 }
 
-func promoteKerberosLifecycleMetadata(metadata map[string]interface{}, kerberosMetadata map[string]interface{}) {
-	if value, ok := kerberosMetadata["start_time"]; ok {
+func promoteKerberosLifecycleMetadata(metadata map[string]interface{}, kerberosIdentity map[string]interface{}) {
+	tickets, ok := kerberosIdentity["tickets"].([]map[string]interface{})
+	if !ok || len(tickets) == 0 {
+		return
+	}
+	representative := tickets[0]
+	if value, ok := representative["start_time"]; ok {
 		metadata["not_before"] = value
 	}
-	if value, ok := kerberosMetadata["end_time"]; ok {
+	if value, ok := representative["end_time"]; ok {
 		metadata["expires_at"] = value
 	}
-	if value, ok := kerberosMetadata["renew_until"]; ok {
+	if value, ok := representative["renew_until"]; ok {
 		metadata["renew_until"] = value
 	}
 }

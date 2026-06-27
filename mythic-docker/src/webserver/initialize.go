@@ -619,6 +619,11 @@ func setRoutes(r *gin.Engine) {
 						mythicjwt.SCOPE_CREDENTIAL_WRITE,
 					}),
 					webcontroller.CreateCredentialWebhook)
+				noSpectators.POST("update_credential_webhook",
+					authentication.TokenScopeMiddleware([]string{
+						mythicjwt.SCOPE_CREDENTIAL_WRITE,
+					}),
+					webcontroller.UpdateCredentialWebhook)
 				// user output response
 				noSpectators.POST("response_user_output_create_webhook",
 					authentication.TokenScopeMiddleware([]string{

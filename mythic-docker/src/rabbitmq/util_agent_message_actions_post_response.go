@@ -128,7 +128,7 @@ var agentMessagePostResponseConsumedKeys = map[string]struct{}{
 	"user_output":      {},
 }
 
-var ValidCredentialTypesList = []string{"plaintext", "certificate", "hash", "key", "ticket", "cookie", "hex", "ssh-key"}
+var ValidCredentialTypesList = []string{"plaintext", "certificate", "hash", "key", "ticket", "cookie", "hex", "jwt"}
 
 type agentMessagePostResponseFileBrowser struct {
 	Host            string                                         `json:"host" mapstructure:"host" xml:"host"`
@@ -157,12 +157,16 @@ type agentMessagePostResponseRemovedFiles struct {
 	Path string  `json:"path" mapstructure:"path" xml:"path"` // full path to file removed
 }
 type agentMessagePostResponseCredentials struct {
-	CredentialType string                 `json:"credential_type" mapstructure:"credential_type" xml:"credential_type"`
-	Realm          string                 `json:"realm" mapstructure:"realm" xml:"realm"`
-	Account        string                 `json:"account" mapstructure:"account" xml:"account"`
-	Credential     string                 `json:"credential" mapstructure:"credential" xml:"credential"`
-	Comment        string                 `json:"comment" mapstructure:"comment" xml:"comment"`
-	ExtraData      map[string]interface{} `json:"-" mapstructure:",remain" xml:"-"` // capture any 'other' keys that were passed in, so we can reply back with them
+	CredentialType     string                 `json:"credential_type" mapstructure:"credential_type" xml:"credential_type"`
+	CredentialSubtype  string                 `json:"credential_subtype" mapstructure:"credential_subtype" xml:"credential_subtype"`
+	Realm              string                 `json:"realm" mapstructure:"realm" xml:"realm"`
+	Account            string                 `json:"account" mapstructure:"account" xml:"account"`
+	Credential         string                 `json:"credential" mapstructure:"credential" xml:"credential"`
+	Comment            string                 `json:"comment" mapstructure:"comment" xml:"comment"`
+	CustomDisplay      string                 `json:"custom_display" mapstructure:"custom_display" xml:"custom_display"`
+	Metadata           map[string]interface{} `json:"metadata" mapstructure:"metadata" xml:"metadata"`
+	CredentialIdentity map[string]interface{} `json:"credential_identity" mapstructure:"credential_identity" xml:"credential_identity"`
+	ExtraData          map[string]interface{} `json:"-" mapstructure:",remain" xml:"-"` // capture any 'other' keys that were passed in, so we can reply back with them
 }
 type agentMessagePostResponseArtifacts struct {
 	BaseArtifact string  `json:"base_artifact" mapstructure:"base_artifact" xml:"base_artifact"`
@@ -1119,67 +1123,38 @@ func handleAgentMessagePostResponseRemovedFiles(task databaseStructs.Task, remov
 func handleAgentMessagePostResponseCredentials(task databaseStructs.Task, credentials *[]agentMessagePostResponseCredentials) error {
 	// mark the file / folder as removed and recursively mark all children as deleted too
 	for _, newCred := range *credentials {
-		databaseCred := databaseStructs.Credential{
-			Realm:       newCred.Realm,
-			Account:     newCred.Account,
-			OperationID: task.OperationID,
-			Credential:  newCred.Credential,
-			Deleted:     false,
-			Comment:     newCred.Comment,
-			OperatorID:  task.OperatorID,
+		metadata := make(map[string]interface{})
+		for key, value := range newCred.ExtraData {
+			metadata[key] = value
 		}
-		databaseCred.TaskID.Valid = true
-		databaseCred.TaskID.Int64 = int64(task.ID)
+		for key, value := range newCred.Metadata {
+			metadata[key] = value
+		}
+		taskID := task.ID
+		var apiTokenID *int
 		if task.APITokensID.Valid {
-			databaseCred.APITokensID = task.APITokensID
+			taskAPITokenID := int(task.APITokensID.Int64)
+			apiTokenID = &taskAPITokenID
 		}
-		if utils.SliceContains(ValidCredentialTypesList, newCred.CredentialType) {
-			databaseCred.Type = newCred.CredentialType
-		} else {
-			databaseCred.Type = "plaintext"
-		}
-		parsedCredential, errorsList := ParseCredential(databaseCred.Type, databaseCred.Credential, newCred.ExtraData)
-		if errorsList != nil {
-			logging.LogError(nil, "Failed to parse credential", "errors", errorsList)
-		}
-		databaseCred.Account, databaseCred.Realm = PopulateCredentialAccountRealmFromMetadata(databaseCred.Account, databaseCred.Realm, parsedCredential)
-		databaseCred.Metadata = GetMythicJSONTextFromStruct(parsedCredential)
-		// check if the cred already exists. If it does, move on. If it doesn't, create it
-		err := database.DB.Get(&databaseCred, `SELECT * FROM credential WHERE
-			 account=$1 AND realm=$2 AND credential=$3 AND operation_id=$4 AND "type"=$5`,
-			databaseCred.Account, databaseCred.Realm, databaseCred.Credential, databaseCred.OperationID, databaseCred.Type)
-		if errors.Is(err, sql.ErrNoRows) {
-			// credential doesn't exist, so create it
-			statement, err := database.DB.PrepareNamed(`INSERT INTO credential
-				(realm, account, operation_id, credential, deleted, comment, metadata, task_id, "type", operator_id, apitokens_id)
-				VALUES (:realm, :account, :operation_id, :credential, :deleted, :comment, :metadata, :task_id, :type, :operator_id, :apitokens_id)
-				RETURNING id `)
-			if err != nil {
-				logging.LogError(err, "Failed to create new credential")
-				return err
-			}
-			err = statement.Get(&databaseCred.ID, databaseCred)
-			if err != nil {
-				logging.LogError(err, "Failed to create new credential")
-				return err
-			}
-			go EmitCredentialLog(databaseCred.ID)
-			go RefreshCredentialValidity(databaseCred.ID)
-			return nil
-		}
+		_, err := UpsertCredential(CredentialUpsertInput{
+			Realm:              newCred.Realm,
+			Account:            newCred.Account,
+			Credential:         newCred.Credential,
+			Comment:            newCred.Comment,
+			CredentialType:     newCred.CredentialType,
+			CredentialSubtype:  newCred.CredentialSubtype,
+			CustomDisplay:      newCred.CustomDisplay,
+			Metadata:           metadata,
+			CredentialIdentity: newCred.CredentialIdentity,
+			OperationID:        task.OperationID,
+			OperatorID:         task.OperatorID,
+			TaskID:             &taskID,
+			APITokensID:        apiTokenID,
+		})
 		if err != nil {
-			// ran into an issue doing the query
-			logging.LogError(err, "Failed to query for credential")
+			logging.LogError(err, "Failed to create or refresh credential")
 			return err
 		}
-		// the credential exists, make sure it's marked as not deleted
-		mergedMetadata := MergeCredentialMetadata(databaseCred.Type, databaseCred.Credential, parsedCredential, newCred.ExtraData)
-		_, err = database.DB.Exec(`UPDATE credential SET deleted=false, metadata=$2 WHERE id=$1`, databaseCred.ID, GetMythicJSONTextFromStruct(mergedMetadata))
-		if err != nil {
-			logging.LogError(err, "failed to update credential that already exists")
-		}
-		go RefreshCredentialValidity(databaseCred.ID)
-
 	}
 	return nil
 }

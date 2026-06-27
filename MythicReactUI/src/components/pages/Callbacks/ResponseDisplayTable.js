@@ -31,8 +31,8 @@ import {CredentialTableNewCredentialDialog} from "../Search/CredentialTableNewCr
 import {getReadableTextColor, isValidHexColor} from "../../MythicComponents/MythicColorInput";
 
 const createCredentialMutation = gql`
-mutation createCredential($comment: String!, $account: String!, $realm: String!, $type: String!, $credential: String!, $metadata: jsonb) {
-    createCredential(account: $account, credential: $credential, comment: $comment, realm: $realm, credential_type: $type, metadata: $metadata) {
+mutation createCredential($comment: String!, $account: String!, $realm: String!, $type: String!, $subtype: String, $credential: String!, $metadata: jsonb, $custom_display: String) {
+    createCredential(account: $account, credential: $credential, comment: $comment, realm: $realm, credential_type: $type, credential_subtype: $subtype, metadata: $metadata, custom_display: $custom_display) {
       status
       error
       id
@@ -352,8 +352,8 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id, task}) => 
       }
     }
   };
-  const onCreateCredential = ({type, account, realm, comment, credential, metadata}) => {
-    createCredential({variables: {type, account, realm, comment, credential, metadata}})
+  const onCreateCredential = ({type, subtype, account, realm, comment, credential, metadata, custom_display}) => {
+    createCredential({variables: {type, subtype, account, realm, comment, credential, metadata, custom_display}})
   }
   const handleClose = (event) => {
     if (dropdownAnchorRef.current && dropdownAnchorRef.current.contains(event.target)) {

@@ -51,18 +51,21 @@ fragment credentialData on credential{
     id
     realm
     type
+    subtype
     task_id
     timestamp
     deleted
     metadata
+    credential_identity
+    custom_display
     operator {
         username
     }
 }
 `;
 const createCredentialMutation = gql`
-mutation createCredential($comment: String!, $account: String!, $realm: String!, $type: String!, $credential: String!, $metadata: jsonb) {
-    createCredential(account: $account, credential: $credential, comment: $comment, realm: $realm, credential_type: $type, metadata: $metadata) {
+mutation createCredential($comment: String!, $account: String!, $realm: String!, $type: String!, $subtype: String, $credential: String!, $metadata: jsonb, $custom_display: String) {
+    createCredential(account: $account, credential: $credential, comment: $comment, realm: $realm, credential_type: $type, credential_subtype: $subtype, metadata: $metadata, custom_display: $custom_display) {
       id
       status
       error
@@ -350,9 +353,13 @@ export function TaskParametersDialogRow(props){
     const [deleteCredential] = useMutation(updateCredentialDeleted, {
         fetchPolicy: "no-cache",
         onCompleted: (data) => {
-            snackActions.success("removed credential!");
-            updateToLatestCredential.current = true;
-            props.removedCredential(data.update_credential_by_pk);
+            if(data.updateCredential.status === "success"){
+                snackActions.success("removed credential!");
+                updateToLatestCredential.current = true;
+                props.removedCredential(data.updateCredential);
+            }else{
+                snackActions.error(data.updateCredential.error);
+            }
         },
         onError: (data) => {
             snackActions.error("Failed to delete credential");
@@ -789,8 +796,8 @@ export function TaskParametersDialogRow(props){
         setTypedArrayValue(values);
         props.onChange(props.name, values, false);
     }
-    const onCreateCredential = ({type, account, realm, comment, credential, metadata}) => {
-        createCredential({variables: {type, account, realm, comment, credential, metadata}})
+    const onCreateCredential = ({type, subtype, account, realm, comment, credential, metadata, custom_display}) => {
+        createCredential({variables: {type, subtype, account, realm, comment, credential, metadata, custom_display}})
     }
     const onDeleteCredential = () => {
         if(ChoiceOptions[value]?.id === undefined){
@@ -831,6 +838,9 @@ export function TaskParametersDialogRow(props){
     const getCredentialLabel = (credential) => {
         if(!credential){
             return "Select credential";
+        }
+        if((credential.custom_display || "").trim() !== ""){
+            return credential.custom_display;
         }
         const credentialText = credential.credential_text || "";
         const credentialRealm = credential.realm || "";

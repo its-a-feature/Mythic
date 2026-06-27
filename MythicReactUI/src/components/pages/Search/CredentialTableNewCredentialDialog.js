@@ -31,16 +31,21 @@ export function CredentialTableNewCredentialDialog(props) {
     return JSON.stringify(metadata, null, 2);
   }
   const defaultCredentialOptions = [
-    "plaintext", "ticket", "hash", "certificate", "key", "hex", "cookie"
+    "plaintext", "ticket", "hash", "certificate", "key", "hex", "cookie", "jwt"
   ];
-  const credentialOptions = Array.isArray(props.credentialOptions) && props.credentialOptions.length > 0 ? props.credentialOptions : defaultCredentialOptions;
+  const credentialOptionsBase = Array.isArray(props.credentialOptions) && props.credentialOptions.length > 0 ? props.credentialOptions : defaultCredentialOptions;
+  const credentialOptions = initialValues.type && !credentialOptionsBase.includes(initialValues.type) ? [...credentialOptionsBase, initialValues.type] : credentialOptionsBase;
   const initialCredentialType = initialValues.type && credentialOptions.includes(initialValues.type) ? initialValues.type : credentialOptions[0];
   const [credentialType, setCredentialType] = React.useState(initialCredentialType || "plaintext");
+  const [credentialSubtype, setCredentialSubtype] = React.useState(initialValues.subtype || "");
   const [account, setAccount] = React.useState(initialValues.account || "");
   const [realm, setRealm] = React.useState(initialValues.realm || "");
-  const [credential, setCredential] = React.useState(initialValues.credential || "");
+  const [credential, setCredential] = React.useState(initialValues.credential || initialValues.credential_text || "");
   const [comment, setComment] = React.useState(initialValues.comment || "");
+  const [customDisplay, setCustomDisplay] = React.useState(initialValues.custom_display || "");
   const [metadata, setMetadata] = React.useState(stringifyMetadata(initialValues.metadata));
+  const title = props.title || "Register New Credential";
+  const submitText = props.submitText || "Create";
 
   const validateMetadata = (value) => {
     try{
@@ -67,6 +72,8 @@ export function CredentialTableNewCredentialDialog(props) {
       comment,
       credential,
       metadata: parsedMetadata,
+      subtype: credentialSubtype,
+      custom_display: customDisplay,
       "type": credentialType
     });
     props.onClose();
@@ -83,6 +90,12 @@ export function CredentialTableNewCredentialDialog(props) {
   const onCredentialChange = (name, value, error) => {
     setCredential(value);
   }
+  const onCredentialSubtypeChange = (name, value, error) => {
+    setCredentialSubtype(value);
+  }
+  const onCustomDisplayChange = (name, value, error) => {
+    setCustomDisplay(value);
+  }
   const onMetadataChange = (name, value, error) => {
     setMetadata(value);
   }
@@ -91,7 +104,7 @@ export function CredentialTableNewCredentialDialog(props) {
   }
   return (
     <React.Fragment>
-        <DialogTitle id="form-dialog-title">Register New Credential</DialogTitle>
+        <DialogTitle id="form-dialog-title">{title}</DialogTitle>
         <DialogContent dividers={true}>
             <MythicDialogBody>
               <MythicDialogSection title="Credential Details">
@@ -112,8 +125,10 @@ export function CredentialTableNewCredentialDialog(props) {
                       ))}
                     </Select>
                   </FormControl>
+                  <MythicTextField value={credentialSubtype} onChange={onCredentialSubtypeChange} name="Credential Subtype"/>
                   <MythicTextField value={realm} onChange={onRealmChange} name="Realm or Domain"/>
                   <MythicTextField value={account} onChange={onAccountChange} name="Account Name"/>
+                  <MythicTextField value={customDisplay} onChange={onCustomDisplayChange} name="Custom Display"/>
                 </MythicDialogGrid>
               </MythicDialogSection>
               <MythicDialogSection title="Credential Material">
@@ -128,7 +143,7 @@ export function CredentialTableNewCredentialDialog(props) {
             Close
           </Button>
           <Button onClick={onSubmit} color="success" variant="contained" >
-            Create
+            {submitText}
           </Button>
         </DialogActions>
     </React.Fragment>
