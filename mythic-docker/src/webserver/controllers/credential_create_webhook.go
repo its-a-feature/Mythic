@@ -1,13 +1,10 @@
 package webcontroller
 
 import (
-	"database/sql"
-	"errors"
 	"net/http"
 
 	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/rabbitmq"
-	"github.com/its-a-feature/Mythic/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/database"
@@ -25,7 +22,10 @@ type CreateCredential struct {
 	Credential     string                 `json:"credential"`
 	Comment        string                 `json:"comment"`
 	CredentialType string                 `json:"credential_type"`
+	Subtype        string                 `json:"credential_subtype"`
 	Metadata       map[string]interface{} `json:"metadata"`
+	Identity       map[string]interface{} `json:"credential_identity"`
+	CustomDisplay  string                 `json:"custom_display"`
 }
 
 type CreateCredentialResponse struct {
@@ -54,20 +54,7 @@ func CreateCredentialWebhook(c *gin.Context) {
 	}
 	operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
 
-	databaseCred := databaseStructs.Credential{
-		Realm:       input.Input.Realm,
-		Account:     input.Input.Account,
-		OperationID: operatorOperation.CurrentOperation.ID,
-		Credential:  input.Input.Credential,
-		Deleted:     false,
-		Comment:     input.Input.Comment,
-		OperatorID:  operatorOperation.CurrentOperator.ID,
-	}
-	if utils.SliceContains(rabbitmq.ValidCredentialTypesList, input.Input.CredentialType) {
-		databaseCred.Type = input.Input.CredentialType
-	} else {
-		databaseCred.Type = "plaintext"
-	}
+	var taskIDInt *int
 	if taskID, ok := input.Input.Metadata["task_id"]; ok {
 		delete(input.Input.Metadata, "task_id")
 		task := databaseStructs.Task{ID: int(taskID.(float64))}
@@ -83,85 +70,42 @@ func CreateCredentialWebhook(c *gin.Context) {
 			})
 			return
 		}
-		databaseCred.TaskID.Valid = true
-		databaseCred.TaskID.Int64 = int64(task.ID)
+		taskIDInt = &task.ID
 	}
-	parsedCredential, errorsList := rabbitmq.ParseCredential(databaseCred.Type, databaseCred.Credential, input.Input.Metadata)
-	if errorsList != nil {
-		logging.LogInfo("unable to parse credential metadata", "errors", errorsList)
-	}
-	databaseCred.Account, databaseCred.Realm = rabbitmq.PopulateCredentialAccountRealmFromMetadata(databaseCred.Account, databaseCred.Realm, parsedCredential)
-	mergedMetadata := rabbitmq.MergeCredentialMetadata(databaseCred.Type, databaseCred.Credential, parsedCredential, input.Input.Metadata)
-	databaseCred.Metadata = rabbitmq.GetMythicJSONTextFromStruct(mergedMetadata)
+	var apiTokenIDInt *int
 	APITokenID, ok := c.Get(authentication.ContextKeyAPITokenID)
 	if ok {
 		if APITokenID.(int) > 0 {
-			databaseCred.APITokensID.Valid = true
-			databaseCred.APITokensID.Int64 = int64(APITokenID.(int))
+			apiTokenID := APITokenID.(int)
+			apiTokenIDInt = &apiTokenID
 		}
 	}
-	if databaseCred.Realm == "" && databaseCred.Account == "" {
-		c.JSON(http.StatusOK, CreateCredentialResponse{
-			Status: "error",
-			Error:  "Must supply an account name or a realm",
-		})
-		return
-	}
-	// check if the cred already exists. If it does, move on. If it doesn't, create it
-	err = database.DB.Get(&databaseCred, `SELECT * FROM credential WHERE
-			 account=$1 AND realm=$2 AND credential=$3 AND operation_id=$4 AND "type"=$5 AND comment=$6`,
-		databaseCred.Account, databaseCred.Realm, databaseCred.Credential, databaseCred.OperationID, databaseCred.Type, databaseCred.Comment)
-	if errors.Is(err, sql.ErrNoRows) {
-		// credential doesn't exist, so create it
-		statement, err := database.DB.PrepareNamed(`INSERT INTO credential
-				(realm, account, operation_id, credential, deleted, comment, metadata, task_id, "type", operator_id, apitokens_id)
-				VALUES (:realm, :account, :operation_id, :credential, :deleted, :comment, :metadata, :task_id, :type, :operator_id, :apitokens_id)
-				RETURNING id `)
-		if err != nil {
-			logging.LogError(err, "Failed to create new credential")
-			c.JSON(http.StatusOK, CreateCredentialResponse{
-				Status: "error",
-				Error:  err.Error(),
-			})
-			return
-		}
-		err = statement.Get(&databaseCred.ID, databaseCred)
-		if err != nil {
-			logging.LogError(err, "Failed to create new credential")
-			c.JSON(http.StatusOK, CreateCredentialResponse{
-				Status: "error",
-				Error:  err.Error(),
-			})
-			return
-		}
-		go rabbitmq.EmitCredentialLog(databaseCred.ID)
-		go rabbitmq.RefreshCredentialValidity(databaseCred.ID)
-		c.JSON(http.StatusOK, CreateCredentialResponse{
-			Status: "success",
-			ID:     databaseCred.ID,
-		})
-		return
-	}
+	upsertResult, err := rabbitmq.UpsertCredential(rabbitmq.CredentialUpsertInput{
+		Realm:              input.Input.Realm,
+		Account:            input.Input.Account,
+		Credential:         input.Input.Credential,
+		Comment:            input.Input.Comment,
+		CredentialType:     input.Input.CredentialType,
+		CredentialSubtype:  input.Input.Subtype,
+		CustomDisplay:      input.Input.CustomDisplay,
+		Metadata:           input.Input.Metadata,
+		CredentialIdentity: input.Input.Identity,
+		OperationID:        operatorOperation.CurrentOperation.ID,
+		OperatorID:         operatorOperation.CurrentOperator.ID,
+		TaskID:             taskIDInt,
+		APITokensID:        apiTokenIDInt,
+	})
 	if err != nil {
-		// ran into an issue doing the query
-		logging.LogError(err, "Failed to query for credential")
+		logging.LogError(err, "Failed to create credential")
 		c.JSON(http.StatusOK, CreateCredentialResponse{
 			Status: "error",
 			Error:  err.Error(),
 		})
 		return
 	}
-
-	// the credential exists, make sure it's marked as not deleted
-	mergedMetadata = rabbitmq.MergeCredentialMetadata(databaseCred.Type, databaseCred.Credential, mergedMetadata, input.Input.Metadata)
-	_, err = database.DB.Exec(`UPDATE credential SET deleted=false, metadata=$2 WHERE id=$1`, databaseCred.ID, rabbitmq.GetMythicJSONTextFromStruct(mergedMetadata))
-	if err != nil {
-		logging.LogError(err, "failed to update credential that already exists")
-	}
-	go rabbitmq.RefreshCredentialValidity(databaseCred.ID)
 	c.JSON(http.StatusOK, CreateCredentialResponse{
 		Status: "success",
-		ID:     databaseCred.ID,
+		ID:     upsertResult.Credential.ID,
 	})
 	return
 }

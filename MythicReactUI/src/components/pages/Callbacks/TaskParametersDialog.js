@@ -268,7 +268,10 @@ query getCredentialsQuery($operation_id: Int!){
         id
         realm
         type
+        subtype
         metadata
+        credential_identity
+        custom_display
     }
 }
 `;

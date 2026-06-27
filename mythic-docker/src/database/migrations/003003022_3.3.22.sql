@@ -58,9 +58,25 @@ alter table "public"."credential"  alter column "metadata" set not null;
 
 create index if not exists credential_metadata_gin on "public"."credential" using gin ("metadata");
 
+alter table "public"."credential" add column if not exists "subtype" text not null default ''::text;
+
+alter table "public"."credential" add column if not exists "credential_identity" jsonb not null default jsonb_build_object();
+
+alter table "public"."credential" add column if not exists "custom_display" text not null default ''::text;
+
+create index if not exists credential_identity_gin on "public"."credential" using gin ("credential_identity");
+
+create index if not exists credential_identity_lookup_idx
+on "public"."credential" using btree (operation_id, "type", subtype, account, realm, deleted);
+
 -- +migrate Down
 -- SQL section 'Down' is executed when this migration is rolled back
 
+drop index if exists "public"."credential_identity_lookup_idx";
+drop index if exists "public"."credential_identity_gin";
+alter table "public"."credential" drop column if exists "custom_display";
+alter table "public"."credential" drop column if exists "credential_identity";
+alter table "public"."credential" drop column if exists "subtype";
 drop trigger if exists set_public_operator_alias_updated_at on "public"."operator_alias";
 drop index if exists "public"."operator_alias_payloadtype_id_idx";
 drop index if exists "public"."operator_alias_consuming_container_id_idx";

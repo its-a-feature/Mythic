@@ -240,7 +240,10 @@ type Mutation {
     credential: String
     comment: String
     credential_type: String
+    credential_subtype: String
     metadata: jsonb
+    credential_identity: jsonb
+    custom_display: String
   ): createCredentialOutput
 }
 
@@ -696,6 +699,12 @@ type Mutation {
 }
 
 type Mutation {
+  updateCredential(
+    input: updateCredentialInput!
+  ): updateCredentialOutput
+}
+
+type Mutation {
   updateCurrentOperation(
     user_id: Int!
     operation_id: Int!
@@ -823,6 +832,20 @@ input updateCallbackInput {
   dead: Boolean
   color: String
   trigger_on_checkin_after_time: Int
+}
+
+input updateCredentialInput {
+  credential_id: Int!
+  realm: String
+  account: String
+  credential: String
+  comment: String
+  credential_type: String
+  credential_subtype: String
+  metadata: jsonb
+  credential_identity: jsonb
+  custom_display: String
+  deleted: Boolean
 }
 
 input DictionaryEntry {
@@ -1238,6 +1261,23 @@ type createCredentialOutput {
   status: String!
   error: String
   id: Int
+}
+
+type updateCredentialOutput {
+  status: String!
+  error: String
+  id: Int
+  realm: String
+  account: String
+  credential_text: String
+  comment: String
+  credential_type: String
+  credential_subtype: String
+  metadata: jsonb
+  credential_identity: jsonb
+  custom_display: String
+  deleted: Boolean
+  operator_username: String
 }
 
 type createOperationEventLogOutput {

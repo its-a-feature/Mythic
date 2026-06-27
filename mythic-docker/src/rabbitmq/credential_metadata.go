@@ -6,8 +6,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/its-a-feature/Mythic/logging"
 )
 
 const (
@@ -20,10 +18,21 @@ type CredentialParseInput struct {
 	Type             string
 	CredentialText   string
 	SuppliedMetadata map[string]interface{}
+	SuppliedIdentity map[string]interface{}
 }
 
 type CredentialParseResult struct {
 	Metadata map[string]interface{}
+	Identity map[string]interface{}
+	Subtype  string
+	Warnings []string
+	Success  bool
+}
+
+type ParsedCredentialData struct {
+	Metadata map[string]interface{}
+	Identity map[string]interface{}
+	Subtype  string
 	Warnings []string
 }
 
@@ -31,14 +40,15 @@ type CredentialMetadataParser func(input CredentialParseInput) CredentialParseRe
 
 var credentialMetadataParserRegistry = struct {
 	sync.RWMutex
-	parsers map[string]CredentialMetadataParser
+	parsers map[string][]CredentialMetadataParser
 }{
-	parsers: make(map[string]CredentialMetadataParser),
+	parsers: make(map[string][]CredentialMetadataParser),
 }
 
 type CredentialAccountRealmParser func(input CredentialParseAccountRealmInput) CredentialParseAccountRealmResult
 type CredentialParseAccountRealmInput struct {
 	Metadata map[string]interface{}
+	Identity map[string]interface{}
 	Account  string
 	Realm    string
 }
@@ -58,55 +68,92 @@ var credentialParseAccountRealmRegistry = struct {
 func RegisterCredentialMetadataParser(credentialType string, parser CredentialMetadataParser) {
 	credentialMetadataParserRegistry.Lock()
 	defer credentialMetadataParserRegistry.Unlock()
-	credentialMetadataParserRegistry.parsers[strings.ToLower(strings.TrimSpace(credentialType))] = parser
+	credentialType = strings.ToLower(strings.TrimSpace(credentialType))
+	credentialMetadataParserRegistry.parsers[credentialType] = append(credentialMetadataParserRegistry.parsers[credentialType], parser)
 }
 func RegisterCredentialParseAccountRealm(parserType string, parser CredentialAccountRealmParser) {
 	credentialParseAccountRealmRegistry.Lock()
 	defer credentialParseAccountRealmRegistry.Unlock()
-	credentialParseAccountRealmRegistry.parsers[strings.ToLower(strings.TrimSpace(parserType))] = parser
+	parserType = strings.ToLower(strings.TrimSpace(parserType))
+	credentialParseAccountRealmRegistry.parsers[parserType] = parser
 }
 
-func ParseCredential(credentialType string, credentialText string, suppliedMetadata map[string]interface{}) (map[string]interface{}, []string) {
-	metadata := copyCredentialMetadataMap(suppliedMetadata)
+func ParseCredential(credentialType string, credentialText string, suppliedMetadata map[string]interface{}, suppliedIdentity map[string]interface{}) ParsedCredentialData {
+	metadata := copyCredentialMap(suppliedMetadata)
+	identity := copyCredentialMap(suppliedIdentity)
 	credentialMetadataParserRegistry.RLock()
-	parser, ok := credentialMetadataParserRegistry.parsers[strings.ToLower(strings.TrimSpace(credentialType))]
+	parsers, ok := credentialMetadataParserRegistry.parsers[strings.ToLower(strings.TrimSpace(credentialType))]
 	credentialMetadataParserRegistry.RUnlock()
 	if !ok {
 		applyCredentialValidityToMetadata(metadata, time.Now().UTC())
-		return metadata, nil
+		return ParsedCredentialData{
+			Metadata: metadata,
+			Identity: identity,
+		}
 	}
-
-	result := parser(CredentialParseInput{
-		Type:             credentialType,
-		CredentialText:   credentialText,
-		SuppliedMetadata: copyCredentialMetadataMap(metadata),
-	})
-	for key, value := range result.Metadata {
-		metadata[key] = value
+	for _, parser := range parsers {
+		result := parser(CredentialParseInput{
+			Type:             credentialType,
+			CredentialText:   credentialText,
+			SuppliedMetadata: metadata,
+			SuppliedIdentity: identity,
+		})
+		if !result.Success {
+			continue
+		}
+		for key, value := range result.Metadata {
+			metadata[key] = value
+		}
+		for key, value := range result.Identity {
+			identity[key] = value
+		}
+		if len(result.Warnings) > 0 {
+			metadata[credentialMetadataParserWarningsKey] = appendCredentialParserWarnings(metadata[credentialMetadataParserWarningsKey], result.Warnings)
+		}
+		metadata[credentialMetadataParsedAtKey] = time.Now().UTC().Format(time.RFC3339)
+		applyCredentialValidityToMetadata(metadata, time.Now().UTC())
+		return ParsedCredentialData{
+			Metadata: metadata,
+			Identity: identity,
+			Subtype:  strings.ToLower(strings.TrimSpace(result.Subtype)),
+			Warnings: result.Warnings,
+		}
 	}
-	if len(result.Warnings) > 0 {
-		metadata[credentialMetadataParserWarningsKey] = appendCredentialParserWarnings(metadata[credentialMetadataParserWarningsKey], result.Warnings)
-	}
-	metadata[credentialMetadataParsedAtKey] = time.Now().UTC().Format(time.RFC3339)
 	applyCredentialValidityToMetadata(metadata, time.Now().UTC())
-	return metadata, result.Warnings
+	return ParsedCredentialData{
+		Metadata: metadata,
+		Identity: identity,
+	}
 }
 
-func MergeCredentialMetadata(credentialType string, credentialText string, existingMetadata map[string]interface{}, suppliedMetadata map[string]interface{}) map[string]interface{} {
-	mergedMetadata := existingMetadata
-	incomingMetadata, errorList := ParseCredential(credentialType, credentialText, suppliedMetadata)
-	if errorList != nil {
-		logging.LogInfo("unable to parse credential metadata", "errors", errorList)
-		return existingMetadata
+func stripCredentialParserData(metadata map[string]interface{}, identity map[string]interface{}) (map[string]interface{}, map[string]interface{}) {
+	cleanMetadata := copyCredentialMap(metadata)
+	cleanIdentity := copyCredentialMap(identity)
+	parserName, ok := cleanMetadata[credentialMetadataParserKey]
+	if ok {
+		parserNameString := strings.ToLower(strings.TrimSpace(parserName.(string)))
+		if parserNameString != "" {
+			delete(cleanMetadata, parserNameString)
+			delete(cleanIdentity, parserNameString)
+		}
 	}
-	for key, value := range incomingMetadata {
-		mergedMetadata[key] = value
+	credentialParseAccountRealmRegistry.RLock()
+	for parserNamespace := range credentialParseAccountRealmRegistry.parsers {
+		delete(cleanMetadata, parserNamespace)
+		delete(cleanIdentity, parserNamespace)
 	}
-	applyCredentialValidityToMetadata(mergedMetadata, time.Now().UTC())
-	return mergedMetadata
+	credentialParseAccountRealmRegistry.RUnlock()
+	delete(cleanMetadata, credentialMetadataParserKey)
+	delete(cleanMetadata, credentialMetadataParsedAtKey)
+	delete(cleanMetadata, credentialMetadataParserWarningsKey)
+	delete(cleanMetadata, credentialValidityMetadataKey)
+	delete(cleanMetadata, "not_before")
+	delete(cleanMetadata, "expires_at")
+	delete(cleanMetadata, "renew_until")
+	return cleanMetadata, cleanIdentity
 }
 
-func copyCredentialMetadataMap(input map[string]interface{}) map[string]interface{} {
+func copyCredentialMap(input map[string]interface{}) map[string]interface{} {
 	output := make(map[string]interface{}, len(input))
 	for key, value := range input {
 		output[key] = value
@@ -172,19 +219,24 @@ func credentialByteCandidates(credentialText string) [][]byte {
 	return candidates
 }
 
-func PopulateCredentialAccountRealmFromMetadata(account string, realm string, metadata map[string]interface{}) (string, string) {
+func PopulateCredentialAccountRealmFromIdentity(account string, realm string, metadata map[string]interface{}, identity map[string]interface{}) (string, string) {
 	parserStringKeyword, ok := metadata[credentialMetadataParserKey]
 	if !ok {
 		return account, realm
 	}
+	parserName, ok := parserStringKeyword.(string)
+	if !ok {
+		return account, realm
+	}
 	credentialParseAccountRealmRegistry.RLock()
-	parserFunc, ok := credentialParseAccountRealmRegistry.parsers[parserStringKeyword.(string)]
+	parserFunc, ok := credentialParseAccountRealmRegistry.parsers[strings.ToLower(strings.TrimSpace(parserName))]
 	credentialParseAccountRealmRegistry.RUnlock()
 	if !ok {
 		return account, realm
 	}
 	result := parserFunc(CredentialParseAccountRealmInput{
 		Metadata: metadata,
+		Identity: identity,
 		Account:  account,
 		Realm:    realm,
 	})

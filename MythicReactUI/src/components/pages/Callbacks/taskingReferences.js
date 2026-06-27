@@ -12,7 +12,7 @@ import {snackActions} from "../../utilities/Snackbar";
 export const taskReferenceRegex = /@([A-Za-z][A-Za-z0-9_-]*):([A-Za-z0-9][A-Za-z0-9_-]*)(?:\.([A-Za-z][A-Za-z0-9_-]*))?/g;
 const exactTaskReferenceRegex = /^@([A-Za-z][A-Za-z0-9_-]*):([A-Za-z0-9][A-Za-z0-9_-]*)(?:\.([A-Za-z][A-Za-z0-9_-]*))?$/;
 const credentialReferenceKeyword = "cred";
-export const credentialReferenceFields = ["credential", "account", "realm", "type", "comment", "id"];
+export const credentialReferenceFields = ["credential", "account", "realm", "type", "subtype", "comment", "id", "custom_display", "credential_identity", "metadata"];
 const credentialReferenceFieldSet = new Set(credentialReferenceFields);
 
 const isCredentialReference = (reference) => reference?.keyword?.toLowerCase() === credentialReferenceKeyword;
@@ -76,6 +76,10 @@ export const getCredentialDisplayLabel = (credential, field="") => {
     if(!credential){
         return "credential";
     }
+    if((credential.custom_display || "").trim() !== ""){
+        const fieldText = field ? ` .${field}` : "";
+        return `${credential.custom_display}${fieldText}`;
+    }
     const account = credential.account || "-";
     const realm = credential.realm ? `@${credential.realm}` : "";
     const fieldText = field ? ` .${field}` : "";
@@ -88,7 +92,11 @@ const credentialReferenceFieldOptions = [
     {field: "account", label: "Account"},
     {field: "realm", label: "Realm"},
     {field: "type", label: "Type"},
+    {field: "subtype", label: "Subtype"},
     {field: "comment", label: "Comment"},
+    {field: "custom_display", label: "Custom Display"},
+    {field: "credential_identity", label: "Credential Identity"},
+    {field: "metadata", label: "Metadata"},
     {field: "id", label: "ID"},
 ];
 
@@ -138,9 +146,12 @@ const getExpandedCredentialPreview = (credential) => {
         account: credential.account || "",
         realm: credential.realm || "",
         type: credential.type || "",
+        subtype: credential.subtype || "",
         comment: credential.comment || "",
         credential: credential.credential_text || "",
         metadata: credential.metadata || {},
+        credential_identity: credential.credential_identity || {},
+        custom_display: credential.custom_display || "",
     }, null, 2);
 }
 
@@ -221,8 +232,8 @@ query CredentialReferenceById($id: Int!) {
 `;
 
 const createCredentialReferenceMutation = gql`
-mutation CreateCredentialReference($comment: String!, $account: String!, $realm: String!, $type: String!, $credential: String!, $metadata: jsonb) {
-    createCredential(account: $account, credential: $credential, comment: $comment, realm: $realm, credential_type: $type, metadata: $metadata) {
+mutation CreateCredentialReference($comment: String!, $account: String!, $realm: String!, $type: String!, $subtype: String, $credential: String!, $metadata: jsonb, $custom_display: String) {
+    createCredential(account: $account, credential: $credential, comment: $comment, realm: $realm, credential_type: $type, credential_subtype: $subtype, metadata: $metadata, custom_display: $custom_display) {
         status
         error
         id
@@ -485,6 +496,7 @@ const getCredentialReferenceSearchWhere = ({operation_id, search, credentialType
                 {account: {_ilike: search}},
                 {realm: {_ilike: search}},
                 {comment: {_ilike: search}},
+                {custom_display: {_ilike: search}},
                 {type: {_ilike: search}},
                 {credential_text: {_ilike: search}},
             ],
@@ -562,8 +574,8 @@ export function CredentialReferencePickerDialog({operation_id, credentialTypes, 
         }
     }, [credentials, selectedCredential]);
 
-    const onCreateCredential = ({type, account, realm, comment, credential, metadata}) => {
-        createCredential({variables: {type, account, realm, comment, credential, metadata}});
+    const onCreateCredential = ({type, subtype, account, realm, comment, credential, metadata, custom_display}) => {
+        createCredential({variables: {type, subtype, account, realm, comment, credential, metadata, custom_display}});
     }
 
     return (

@@ -40,8 +40,8 @@ const renderModeOptions = [
   {value: RenderModes.terminal, label: "Terminal", Icon: TerminalIcon},
 ];
 const createCredentialMutation = gql`
-mutation createCredential($comment: String!, $account: String!, $realm: String!, $type: String!, $credential: String!, $metadata: jsonb) {
-    createCredential(account: $account, credential: $credential, comment: $comment, realm: $realm, credential_type: $type, metadata: $metadata) {
+mutation createCredential($comment: String!, $account: String!, $realm: String!, $type: String!, $subtype: String, $credential: String!, $metadata: jsonb, $custom_display: String) {
+    createCredential(account: $account, credential: $credential, comment: $comment, realm: $realm, credential_type: $type, credential_subtype: $subtype, metadata: $metadata, custom_display: $custom_display) {
       status
       error
       id
@@ -310,8 +310,8 @@ export const ResponseDisplayPlaintext = (props) =>{
         });
         setCreateCredentialDialogOpen(true);
     }
-    const onCreateCredential = ({type, account, realm, comment, credential, metadata}) => {
-        createCredential({variables: {type, account, realm, comment, credential, metadata}})
+    const onCreateCredential = ({type, subtype, account, realm, comment, credential, metadata, custom_display}) => {
+        createCredential({variables: {type, subtype, account, realm, comment, credential, metadata, custom_display}})
     }
     const scrollContent = (node, isAppearing) => {
         // only auto-scroll if you issued the task
