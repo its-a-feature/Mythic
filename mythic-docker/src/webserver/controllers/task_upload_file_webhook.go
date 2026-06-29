@@ -91,10 +91,22 @@ func TaskUploadFileWebhook(c *gin.Context) {
 	} else {
 		fileMeta.Size = fileDisk.Size()
 	}
+	existingFileMeta := databaseStructs.Filemeta{}
+	err = database.DB.Get(&existingFileMeta, `SELECT 
+    	id, agent_file_id 
+		FROM filemeta 
+		WHERE sha1=$1 AND md5=$2 AND deleted=false AND operation_id=$3 AND is_download_from_agent=false AND copy_of_file_id IS NULL`,
+		fileMeta.Sha1, fileMeta.Md5, fileMeta.OperationID)
+	if err == nil {
+		// if we already have a non-deleted file for this operation with the same md5 and sha1, just return that file
+		err = os.Remove(fileMeta.Path)
+		c.JSON(http.StatusOK, gin.H{"status": "success", "agent_file_id": existingFileMeta.AgentFileID})
+		return
+	}
 	statement, err := database.DB.PrepareNamed(`INSERT INTO filemeta 
 			(filename,total_chunks,chunks_received,chunk_size,"path",operation_id,complete,"comment",operator_id,delete_after_fetch,md5,sha1,agent_file_id,size,apitokens_id,eventstepinstance_id)
 			VALUES (:filename, :total_chunks, :chunks_received, :chunk_size, :path, :operation_id, :complete, :comment, :operator_id, :delete_after_fetch, :md5, :sha1, :agent_file_id, :size, :apitokens_id, :eventstepinstance_id)
-			RETURNING id`)
+			RETURNING id, agent_file_id`)
 	if err != nil {
 		logging.LogError(err, "Failed to save metadata to database")
 		c.JSON(http.StatusOK, gin.H{
