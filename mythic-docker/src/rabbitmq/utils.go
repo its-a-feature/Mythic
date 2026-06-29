@@ -1355,6 +1355,11 @@ func GetTaskMessageTaskInformation(taskID int) PTTaskMessageTaskData {
 			return data
 		}
 	}
+	keywordResolution := []PTTaskKeywordResolution{}
+	if err = databaseTask.KeywordResolution.Unmarshal(&keywordResolution); err != nil {
+		logging.LogError(err, "Failed to unmarshal keyword resolution for task information")
+		keywordResolution = []PTTaskKeywordResolution{}
+	}
 	data = PTTaskMessageTaskData{
 		ID:                                 databaseTask.ID,
 		DisplayID:                          databaseTask.DisplayID,
@@ -1369,6 +1374,7 @@ func GetTaskMessageTaskInformation(taskID int) PTTaskMessageTaskData {
 		OriginalParams:                     databaseTask.OriginalParams,
 		DisplayParams:                      databaseTask.DisplayParams,
 		MythicParsedParams:                 databaseTask.MythicParsedParams,
+		KeywordResolution:                  keywordResolution,
 		Comment:                            databaseTask.Comment,
 		Stdout:                             databaseTask.Stdout,
 		Stderr:                             databaseTask.Stderr,

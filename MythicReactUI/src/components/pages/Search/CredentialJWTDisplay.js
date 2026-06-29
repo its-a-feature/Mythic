@@ -2,9 +2,7 @@ import React from 'react';
 import {Chip} from '@mui/material';
 import {
     compactMetadataValue,
-    CredentialDetail,
     CredentialInspectorSection,
-    CredentialMetadataPair,
     getNestedMetadataObject,
     isPlainObject,
 } from './CredentialDisplayComponents';
@@ -13,24 +11,6 @@ export const credentialJWTMetadataKeys = new Set(["jwt"]);
 export const credentialJWTIdentityKeys = new Set(["jwt"]);
 
 const jwtSummaryFields = ["credential_format", "token_type", "algorithm", "issuer", "subject", "audience", "expires_at"];
-const jwtHeaderFields = [
-    {label: "Algorithm", key: "alg"},
-    {label: "Type", key: "typ"},
-    {label: "Key ID", key: "kid", code: true},
-    {label: "Content Type", key: "cty"},
-];
-const jwtClaimFields = [
-    {label: "Subject", key: "sub", code: true},
-    {label: "Issuer", key: "iss", wide: true, code: true},
-    {label: "Audience", key: "aud", wide: true, code: true},
-    {label: "JWT ID", key: "jti", code: true},
-    {label: "Issued At", key: "iat", time: true},
-    {label: "Not Before", key: "nbf", time: true},
-    {label: "Expires", key: "exp", time: true},
-    {label: "Scope", key: "scope", wide: true, code: true},
-    {label: "Scopes", key: "scopes", wide: true, code: true},
-];
-
 const base64UrlDecode = (value) => {
     try{
         const normalized = String(value || "").replace(/-/g, "+").replace(/_/g, "/");
@@ -48,8 +28,17 @@ const base64UrlDecode = (value) => {
     }
 }
 
+const normalizeJWTString = (credentialText) => {
+    const tokenString = String(credentialText || "").trim().replace(/^["'`]+|["'`]+$/g, "");
+    const fields = tokenString.split(/\s+/);
+    if(fields.length === 2 && fields[0].toLowerCase() === "bearer"){
+        return fields[1];
+    }
+    return tokenString;
+}
+
 const decodeJWT = (credentialText) => {
-    const parts = String(credentialText || "").trim().split(".");
+    const parts = normalizeJWTString(credentialText).split(".");
     if(parts.length < 2){
         return {};
     }
@@ -93,15 +82,6 @@ const formatJWTTime = (value) => {
     return value;
 }
 
-const claimValue = (claims, key, asTime=false) => {
-    const value = claims[key];
-    const formattedValue = asTime ? formatJWTTime(value) : value;
-    if(Array.isArray(formattedValue)){
-        return formattedValue.join(", ");
-    }
-    return formattedValue;
-}
-
 const jwtSummaryEntries = (metadata, claims, header) => {
     const jwtMetadata = getNestedMetadataObject(metadata, "jwt");
     const entries = [];
@@ -122,13 +102,21 @@ const jwtSummaryEntries = (metadata, claims, header) => {
     return entries;
 }
 
-const remainingEntries = (source, displayedKeys) => {
-    return Object.entries(source)
-        .filter(([key, value]) => !displayedKeys.has(key) && value !== undefined && value !== null && value !== "");
+const prettyJWTJSON = (value) => {
+    try{
+        return JSON.stringify(value || {}, null, 2);
+    }catch(error){
+        return "{}";
+    }
 }
 
-const hasJWTFieldValue = (value) => {
-    return value !== undefined && value !== null && value !== "";
+function JWTJSONBlock({title, value}){
+    return (
+        <div className="mythic-credential-search-jwt-json-block">
+            <span>{title}</span>
+            <pre>{prettyJWTJSON(value)}</pre>
+        </div>
+    )
 }
 
 export function CredentialJWTDisplay({credential, metadata, identity, validityChips=[]}){
@@ -136,14 +124,10 @@ export function CredentialJWTDisplay({credential, metadata, identity, validityCh
     const jwtIdentity = getNestedMetadataObject(identity, "jwt");
     const header = firstPlainObject(jwtIdentity.header, jwtIdentity.headers, decoded.header);
     const claims = firstPlainObject(jwtIdentity.claims, jwtIdentity.payload, jwtIdentity.body, decoded.claims);
-    const signature = firstValue(jwtIdentity.signature, decoded.signature);
     const warningValues = Array.isArray(metadata.parser_warnings) ? metadata.parser_warnings : [];
     const summaryEntries = jwtSummaryEntries(metadata, claims, header);
     const showSummary = summaryEntries.length > 0 || validityChips.length > 0 || warningValues.length > 0;
-    const displayedHeaderKeys = new Set(jwtHeaderFields.map((field) => field.key));
-    const displayedClaimKeys = new Set(jwtClaimFields.map((field) => field.key));
-    const remainingHeaderEntries = remainingEntries(header, displayedHeaderKeys);
-    const remainingClaimEntries = remainingEntries(claims, displayedClaimKeys);
+    const hasJWTIdentity = Object.keys(header).length > 0 || Object.keys(claims).length > 0;
 
     return (
         <>
@@ -151,10 +135,10 @@ export function CredentialJWTDisplay({credential, metadata, identity, validityCh
                 <CredentialInspectorSection title="JWT Metadata" tone="metadata">
                     <div className="mythic-credential-search-chip-list mythic-credential-search-section-chips">
                         {summaryEntries.map(([key, value]) => (
-                            <Chip key={key} size="small" variant="outlined" label={`${key}: ${compactMetadataValue(value)}`} className="mythic-credential-search-mini-chip mythic-credential-search-metadata-chip" />
+                            <Chip key={key} size="small" variant="outlined" label={`${key}: ${compactMetadataValue(value)}`} className="mythic-credential-search-mini-chip" />
                         ))}
                         {validityChips.map((chip) => (
-                            <Chip key={chip.label} size="small" color={chip.color} variant="outlined" label={chip.label} className="mythic-credential-search-mini-chip mythic-credential-search-metadata-chip" />
+                            <Chip key={chip.label} size="small" color={chip.color} variant="outlined" label={chip.label} className="mythic-credential-search-mini-chip" />
                         ))}
                     </div>
                     {warningValues.length > 0 &&
@@ -166,31 +150,10 @@ export function CredentialJWTDisplay({credential, metadata, identity, validityCh
                     }
                 </CredentialInspectorSection>
             }
-            {(Object.keys(header).length > 0 || Object.keys(claims).length > 0 || signature) &&
+            {hasJWTIdentity &&
                 <CredentialInspectorSection title="JWT Identity" tone="identity">
-                    {jwtHeaderFields.filter((field) => hasJWTFieldValue(header[field.key])).map((field) => (
-                        <CredentialDetail key={`header-${field.key}`} label={field.label} value={header[field.key]} code={field.code} tone="identity" />
-                    ))}
-                    {jwtClaimFields.filter((field) => hasJWTFieldValue(claimValue(claims, field.key, field.time))).map((field) => (
-                        <CredentialDetail key={`claim-${field.key}`} label={field.label} value={claimValue(claims, field.key, field.time)} wide={field.wide} code={field.code} tone="identity" />
-                    ))}
-                    {signature &&
-                        <CredentialDetail label="Signature" value={signature} wide code tone="identity" />
-                    }
-                    {remainingHeaderEntries.length > 0 &&
-                        <div className="mythic-credential-search-metadata-grid mythic-credential-search-metadata-grid-identity">
-                            {remainingHeaderEntries.map(([key, value]) => (
-                                <CredentialMetadataPair key={`header-${key}`} name={`header.${key}`} value={value} tone="identity" />
-                            ))}
-                        </div>
-                    }
-                    {remainingClaimEntries.length > 0 &&
-                        <div className="mythic-credential-search-metadata-grid mythic-credential-search-metadata-grid-identity">
-                            {remainingClaimEntries.map(([key, value]) => (
-                                <CredentialMetadataPair key={`claim-${key}`} name={`claim.${key}`} value={value} tone="identity" />
-                            ))}
-                        </div>
-                    }
+                    <JWTJSONBlock title="Header" value={header} />
+                    <JWTJSONBlock title="Claims" value={claims} />
                 </CredentialInspectorSection>
             }
         </>

@@ -1626,6 +1626,38 @@ tspan {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     min-width: 0;
 }
+.mythic-credential-search-jwt-json-block {
+    border: 1px solid var(--mythic-global-129);
+    border-radius: var(--mythic-global-008);
+    box-shadow: inset 3px 0 0 var(--mythic-global-123);
+    display: grid;
+    gap: 0.3rem;
+    grid-column: 1 / -1;
+    min-width: 0;
+    padding: 0.42rem 0.5rem;
+}
+.mythic-credential-search-jwt-json-block > span {
+    color: var(--mythic-global-123);
+    font-size: 0.66rem;
+    font-weight: 850;
+    line-height: 1.1;
+    text-transform: uppercase;
+}
+.mythic-credential-search-jwt-json-block > pre {
+    background-color: var(--mythic-global-009);
+    border: 1px solid var(--mythic-global-010);
+    border-radius: var(--mythic-global-008);
+    color: var(--mythic-global-002);
+    font-family: var(--mythic-global-065);
+    font-size: 0.72rem;
+    line-height: 1.35;
+    margin: 0;
+    max-height: 18rem;
+    min-height: 2rem;
+    overflow: auto;
+    padding: 0.45rem 0.55rem;
+    white-space: pre;
+}
 .mythic-credential-search-kerberos-ticket {
     border: 1px solid var(--mythic-global-129);
     border-radius: var(--mythic-global-008);

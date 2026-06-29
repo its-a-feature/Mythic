@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 
@@ -30,6 +31,27 @@ type taskReferenceKeyword struct {
 type taskReferenceKeywordResolvedValue struct {
 	Scalar     string
 	Structured interface{}
+}
+
+const (
+	taskReferenceValueTypeString     = "string"
+	taskReferenceValueTypeStructured = "structured"
+)
+
+type PTTaskKeywordResolution struct {
+	Raw            string   `json:"raw"`
+	Keyword        string   `json:"keyword"`
+	Selector       string   `json:"selector"`
+	Field          string   `json:"field"`
+	ValueType      string   `json:"value_type"`
+	ExpandedValue  string   `json:"expanded_value"`
+	ParameterNames []string `json:"parameter_names"`
+}
+
+type taskReferenceMatch struct {
+	Reference     taskReferenceKeyword
+	ParameterName string
+	ValueType     string
 }
 
 // taskReferenceKeywordProvider allows us to resolve task references like @cred:12.credential
@@ -73,15 +95,16 @@ type taskReferenceResolveContext struct {
 	StructuredParameterProviders map[string]string
 }
 
-func expandTaskReferenceParameters(commandID int, operationID int, params string) (string, bool, error) {
+func expandTaskReferenceParameters(commandID int, operationID int, params string) (string, bool, []PTTaskKeywordResolution, error) {
 	if commandID <= 0 || operationID <= 0 {
 		logging.LogError(nil, "expandTaskReferenceParameters", "invalid command ID or operation ID")
-		return params, false, nil
+		return params, false, nil, nil
 	}
 	trimmedParams := strings.TrimSpace(params)
 	if trimmedParams == "" {
-		return params, false, nil
+		return params, false, nil, nil
 	}
+	// get a list of all the providers
 	taskReferenceProviderRegistry.RLock()
 	providers := make([]taskReferenceKeywordProvider, 0, len(taskReferenceProviderRegistry.providers))
 	for keyword := range taskReferenceProviderRegistry.providers {
@@ -89,10 +112,10 @@ func expandTaskReferenceParameters(commandID int, operationID int, params string
 	}
 	taskReferenceProviderRegistry.RUnlock()
 	context := taskReferenceResolveContext{
-		OperationID:                  operationID,
+		OperationID: operationID,
+		// StructuredParameterProviders maps Parameter Name -> Parser Keyword
 		StructuredParameterProviders: make(map[string]string),
 	}
-
 	providersByParameterType := make(map[string]taskReferenceKeywordProvider)
 	parameterTypes := make([]string, 0, len(providers))
 	for _, provider := range providers {
@@ -117,13 +140,13 @@ func expandTaskReferenceParameters(commandID int, operationID int, params string
 			commandID, parameterTypes)
 		if err != nil {
 			logging.LogError(err, "expandTaskReferenceParameters", "failed to build parameter query")
-			return params, false, fmt.Errorf("failed to build parameter query: %w", err)
+			return params, false, nil, fmt.Errorf("failed to build parameter query: %w", err)
 		}
 		query = database.DB.Rebind(query)
 		err = database.DB.Select(&structuredParameters, query, args...)
 		if err != nil {
 			logging.LogError(err, "expandTaskReferenceParameters", "failed to query parameters")
-			return params, false, fmt.Errorf("failed to query parameters: %w", err)
+			return params, false, nil, fmt.Errorf("failed to query parameters: %w", err)
 		}
 		for _, parameter := range structuredParameters {
 			provider, ok := providersByParameterType[parameter.Type]
@@ -142,9 +165,9 @@ func expandTaskReferenceParameters(commandID int, operationID int, params string
 	return resolveTaskReferencesInParams(params, context)
 }
 
-func resolveTaskReferencesInParams(params string, context taskReferenceResolveContext) (string, bool, error) {
+func resolveTaskReferencesInParams(params string, context taskReferenceResolveContext) (string, bool, []PTTaskKeywordResolution, error) {
 	if strings.TrimSpace(params) == "" {
-		return params, false, nil
+		return params, false, nil, nil
 	}
 	decoder := json.NewDecoder(strings.NewReader(params))
 	decoder.UseNumber()
@@ -153,61 +176,70 @@ func resolveTaskReferencesInParams(params string, context taskReferenceResolveCo
 		err = decoder.Decode(&struct{}{})
 		// make sure that we have proper json to parse JSON vs raw string
 		if err != io.EOF {
-			return params, false, fmt.Errorf("failed to parse task parameters as a single JSON value")
+			return params, false, nil, fmt.Errorf("failed to parse task parameters as a single JSON value")
 		}
 		// find all references
-		references, err := collectTaskReferencesFromJSON(decoded, context, true)
+		matches, err := collectTaskReferencesFromJSON(decoded, context, true, "")
 		if err != nil {
-			return params, false, err
+			return params, false, nil, err
 		}
-		if len(references) == 0 {
-			return params, false, nil
+		if len(matches) == 0 {
+			return params, false, nil, nil
 		}
 		// resolve references to actual values
+		references := taskReferenceMatchesToReferences(matches)
 		resolved, err := resolveTaskReferenceBatch(context.OperationID, references)
 		if err != nil {
-			return params, false, err
+			return params, false, nil, err
 		}
 		// apply resolved references to the original JSON
 		updated, changed, err := applyTaskReferencesToJSON(decoded, context, resolved, true)
 		if err != nil {
-			return params, false, err
+			return params, false, nil, err
 		}
 		if !changed {
-			return params, false, nil
+			return params, false, nil, nil
 		}
 		updatedBytes, err := json.Marshal(updated)
 		if err != nil {
-			return params, false, fmt.Errorf("failed to serialize task parameters after reference resolution: %w", err)
+			return params, false, nil, fmt.Errorf("failed to serialize task parameters after reference resolution: %w", err)
 		}
-		return string(updatedBytes), true, nil
+		return string(updatedBytes), true, buildTaskKeywordResolution(matches, resolved), nil
 	}
-
-	references, err := collectTaskReferencesFromString(params, false)
+	// fall here if we're not looking at JSON data
+	matches, err := collectTaskReferencesFromString(params, false, "")
 	if err != nil {
-		return params, false, err
+		return params, false, nil, err
 	}
-	if len(references) == 0 {
-		return params, false, nil
+	if len(matches) == 0 {
+		return params, false, nil, nil
 	}
+	references := taskReferenceMatchesToReferences(matches)
 	resolved, err := resolveTaskReferenceBatch(context.OperationID, references)
 	if err != nil {
-		return params, false, err
+		return params, false, nil, err
 	}
 	updated, changed, err := applyTaskReferencesToString(params, resolved, false)
 	if err != nil {
-		return params, false, err
+		return params, false, nil, err
 	}
-	return updated, changed, nil
+	if !changed {
+		return params, false, nil, nil
+	}
+	return updated, changed, buildTaskKeywordResolution(matches, resolved), nil
 }
 
-func collectTaskReferencesFromJSON(value interface{}, context taskReferenceResolveContext, topLevel bool) ([]taskReferenceKeyword, error) {
+func collectTaskReferencesFromJSON(value interface{}, context taskReferenceResolveContext, topLevel bool, parameterName string) ([]taskReferenceMatch, error) {
 	switch typed := value.(type) {
 	case map[string]interface{}:
 		// check if we were given structured map[string]interface{} data from the agent
-		references := make([]taskReferenceKeyword, 0)
+		matches := make([]taskReferenceMatch, 0)
 		for key, nestedValue := range typed {
 			// iterate over the agent's structured data looking at the parameter name (key)
+			nestedParameterName := parameterName
+			if topLevel {
+				nestedParameterName = key
+			}
 			if topLevel {
 				if providerKeyword := context.StructuredParameterProviders[key]; providerKeyword != "" {
 					// if that structured data's parameter name maps back to a parameter we know about that supports some keyword provider
@@ -230,43 +262,47 @@ func collectTaskReferencesFromJSON(value interface{}, context taskReferenceResol
 						return nil, err
 					}
 					// if it's all good, then we found a valid reference
-					references = append(references, reference)
+					matches = append(matches, taskReferenceMatch{
+						Reference:     reference,
+						ParameterName: key,
+						ValueType:     taskReferenceValueTypeStructured,
+					})
 					continue
 				}
 			}
 			// see if we're looking at any nested keys
-			nestedReferences, err := collectTaskReferencesFromJSON(nestedValue, context, false)
+			nestedReferences, err := collectTaskReferencesFromJSON(nestedValue, context, false, nestedParameterName)
 			if err != nil {
 				return nil, err
 			}
 			// append all references
-			references = append(references, nestedReferences...)
+			matches = append(matches, nestedReferences...)
 		}
-		return references, nil
+		return matches, nil
 	case []interface{}:
-		references := make([]taskReferenceKeyword, 0)
+		matches := make([]taskReferenceMatch, 0)
 		for _, nestedValue := range typed {
-			nestedReferences, err := collectTaskReferencesFromJSON(nestedValue, context, false)
+			nestedReferences, err := collectTaskReferencesFromJSON(nestedValue, context, false, parameterName)
 			if err != nil {
 				return nil, err
 			}
-			references = append(references, nestedReferences...)
+			matches = append(matches, nestedReferences...)
 		}
-		return references, nil
+		return matches, nil
 	case string:
 		// if the value from the agent is a string, do a special check
-		return collectTaskReferencesFromString(typed, false)
+		return collectTaskReferencesFromString(typed, false, parameterName)
 	default:
 		return nil, nil
 	}
 }
 
-func collectTaskReferencesFromString(value string, includeBare bool) ([]taskReferenceKeyword, error) {
+func collectTaskReferencesFromString(value string, includeBare bool, parameterName string) ([]taskReferenceMatch, error) {
 	matches := taskReferenceKeywordPattern.FindAllStringSubmatch(value, -1)
 	if matches == nil || len(matches) == 0 {
 		return nil, nil
 	}
-	references := make([]taskReferenceKeyword, 0, len(matches))
+	references := make([]taskReferenceMatch, 0, len(matches))
 	for _, match := range matches {
 		reference := taskReferenceKeyword{
 			Raw:      match[0],                  // full match like @cred:12.credential
@@ -284,7 +320,15 @@ func collectTaskReferencesFromString(value string, includeBare bool) ([]taskRefe
 		if err != nil {
 			return nil, err
 		}
-		references = append(references, reference)
+		valueType := taskReferenceValueTypeString
+		if reference.Field == "" {
+			valueType = taskReferenceValueTypeStructured
+		}
+		references = append(references, taskReferenceMatch{
+			Reference:     reference,
+			ParameterName: parameterName,
+			ValueType:     valueType,
+		})
 	}
 	return references, nil
 }
@@ -362,6 +406,64 @@ func resolveTaskReferenceBatch(operationID int, references []taskReferenceKeywor
 		}
 	}
 	return resolved, nil
+}
+
+func taskReferenceMatchesToReferences(matches []taskReferenceMatch) []taskReferenceKeyword {
+	references := make([]taskReferenceKeyword, 0, len(matches))
+	for _, match := range matches {
+		references = append(references, match.Reference)
+	}
+	return references
+}
+
+func buildTaskKeywordResolution(matches []taskReferenceMatch, resolved map[taskReferenceKeyword]taskReferenceKeywordResolvedValue) []PTTaskKeywordResolution {
+	resolutionByRaw := make(map[string]*PTTaskKeywordResolution)
+	order := make([]string, 0, len(matches))
+	for _, match := range matches {
+		resolvedValue, ok := resolved[match.Reference]
+		if !ok {
+			continue
+		}
+		entry, ok := resolutionByRaw[match.Reference.Raw]
+		if !ok {
+			entry = &PTTaskKeywordResolution{
+				Raw:            match.Reference.Raw,
+				Keyword:        match.Reference.Keyword,
+				Selector:       match.Reference.Selector,
+				Field:          match.Reference.Field,
+				ValueType:      match.ValueType,
+				ExpandedValue:  resolvedValue.Scalar,
+				ParameterNames: []string{},
+			}
+			if match.ValueType == taskReferenceValueTypeStructured {
+				entry.ExpandedValue = ""
+			}
+			resolutionByRaw[match.Reference.Raw] = entry
+			order = append(order, match.Reference.Raw)
+		}
+		if strings.TrimSpace(match.ParameterName) == "" {
+			continue
+		}
+		if !taskKeywordResolutionHasParameterName(entry.ParameterNames, match.ParameterName) {
+			entry.ParameterNames = append(entry.ParameterNames, match.ParameterName)
+		}
+	}
+	sort.Strings(order)
+	resolutions := make([]PTTaskKeywordResolution, 0, len(order))
+	for _, raw := range order {
+		sort.Strings(resolutionByRaw[raw].ParameterNames)
+		resolutions = append(resolutions, *resolutionByRaw[raw])
+	}
+	return resolutions
+}
+
+func taskKeywordResolutionHasParameterName(parameterNames []string, parameterName string) bool {
+	for _, existing := range parameterNames {
+		if existing == parameterName {
+			return true
+		}
+	}
+	return false
 }
 
 func applyTaskReferencesToJSON(value interface{}, context taskReferenceResolveContext, resolved map[taskReferenceKeyword]taskReferenceKeywordResolvedValue, topLevel bool) (interface{}, bool, error) {

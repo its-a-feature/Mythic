@@ -46,6 +46,7 @@ before update on "public"."operator_alias"
 for each row execute function public.set_current_timestamp_updated_at();
 
 alter table "public"."task" add column if not exists "alias_resolution" text not null default ''::text;
+alter table "public"."task" add column if not exists "keyword_resolution" jsonb not null default '[]'::jsonb;
 alter table "public"."custombrowser" add column if not exists "display_name" text not null default ''::text;
 
 alter table "public"."credential" alter column "metadata" drop default;
@@ -86,3 +87,4 @@ drop index if exists "public"."operator_alias_operator_container_command_idx";
 drop index if exists "public"."operator_alias_operator_payloadtype_command_unique";
 drop index if exists "public"."operator_alias_operator_container_command_unique";
 drop table if exists "public"."operator_alias";
+alter table "public"."task" drop column if exists "keyword_resolution";

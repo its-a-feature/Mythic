@@ -69,4 +69,5 @@ type Task struct {
 	ProcessAtOriginalCommand           bool              `db:"process_at_original_command" json:"process_at_original_command" mapstructure:"process_at_original_command"`
 	MythicParsedParams                 string            `db:"mythic_parsed_params" json:"mythic_parsed_params" mapstructure:"mythic_parsed_params"`
 	AliasResolution                    string            `db:"alias_resolution" json:"alias_resolution" mapstructure:"alias_resolution"`
+	KeywordResolution                  MythicJSONArray   `db:"keyword_resolution" json:"keyword_resolution" mapstructure:"keyword_resolution"`
 }

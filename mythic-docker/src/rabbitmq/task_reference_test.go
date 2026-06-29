@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -100,7 +101,7 @@ func (batchTaskReferenceProvider) BatchResolveTaskReferences(operationID int, re
 }
 
 func TestTaskReferenceScalarReplacementInRawParams(t *testing.T) {
-	updated, changed, err := resolveTaskReferencesInParams(
+	updated, changed, _, err := resolveTaskReferencesInParams(
 		`run @testref:alpha.value and @testref:beta.name`,
 		taskReferenceResolveContext{OperationID: 7},
 	)
@@ -117,7 +118,7 @@ func TestTaskReferenceScalarReplacementInRawParams(t *testing.T) {
 }
 
 func TestTaskReferenceLeavesBareRawReferences(t *testing.T) {
-	updated, changed, err := resolveTaskReferencesInParams(
+	updated, changed, _, err := resolveTaskReferencesInParams(
 		`run @testref:alpha`,
 		taskReferenceResolveContext{OperationID: 7},
 	)
@@ -133,7 +134,7 @@ func TestTaskReferenceLeavesBareRawReferences(t *testing.T) {
 }
 
 func TestTaskReferenceJSONScalarAndStructuredReplacement(t *testing.T) {
-	updated, changed, err := resolveTaskReferencesInParams(
+	updated, changed, keywordResolution, err := resolveTaskReferencesInParams(
 		`{"cred":"@testref:alpha","args":"name=@testref:alpha.name","nested":{"value":"@testref:beta.value"}}`,
 		taskReferenceResolveContext{
 			OperationID: 42,
@@ -166,10 +167,42 @@ func TestTaskReferenceJSONScalarAndStructuredReplacement(t *testing.T) {
 	if nested["value"] != "beta:value" {
 		t.Fatalf("unexpected nested scalar value: %#v", nested["value"])
 	}
+	expectedResolution := []PTTaskKeywordResolution{
+		{
+			Raw:            "@testref:alpha",
+			Keyword:        "testref",
+			Selector:       "alpha",
+			Field:          "",
+			ValueType:      taskReferenceValueTypeStructured,
+			ExpandedValue:  "",
+			ParameterNames: []string{"cred"},
+		},
+		{
+			Raw:            "@testref:alpha.name",
+			Keyword:        "testref",
+			Selector:       "alpha",
+			Field:          "name",
+			ValueType:      taskReferenceValueTypeString,
+			ExpandedValue:  "alpha:name",
+			ParameterNames: []string{"args"},
+		},
+		{
+			Raw:            "@testref:beta.value",
+			Keyword:        "testref",
+			Selector:       "beta",
+			Field:          "value",
+			ValueType:      taskReferenceValueTypeString,
+			ExpandedValue:  "beta:value",
+			ParameterNames: []string{"nested"},
+		},
+	}
+	if !reflect.DeepEqual(keywordResolution, expectedResolution) {
+		t.Fatalf("keyword resolution = %#v, want %#v", keywordResolution, expectedResolution)
+	}
 }
 
 func TestTaskReferenceStructuredReplacementTrimsReferenceValue(t *testing.T) {
-	updated, changed, err := resolveTaskReferencesInParams(
+	updated, changed, _, err := resolveTaskReferencesInParams(
 		`{"cred":"  @testref:alpha  "}`,
 		taskReferenceResolveContext{
 			OperationID: 42,
@@ -198,7 +231,7 @@ func TestTaskReferenceStructuredReplacementTrimsReferenceValue(t *testing.T) {
 }
 
 func TestTaskReferenceCredentialJSONRequiresReferenceString(t *testing.T) {
-	_, _, err := resolveTaskReferencesInParams(
+	_, _, _, err := resolveTaskReferencesInParams(
 		`{"cred":123}`,
 		taskReferenceResolveContext{
 			OperationID: 42,
@@ -213,7 +246,7 @@ func TestTaskReferenceCredentialJSONRequiresReferenceString(t *testing.T) {
 }
 
 func TestTaskReferenceRejectsUnsupportedField(t *testing.T) {
-	_, _, err := resolveTaskReferencesInParams(
+	_, _, _, err := resolveTaskReferencesInParams(
 		`run @testref:alpha.nope`,
 		taskReferenceResolveContext{OperationID: 7},
 	)
@@ -223,7 +256,7 @@ func TestTaskReferenceRejectsUnsupportedField(t *testing.T) {
 }
 
 func TestTaskReferenceRejectsUnsupportedKeyword(t *testing.T) {
-	_, _, err := resolveTaskReferencesInParams(
+	_, _, _, err := resolveTaskReferencesInParams(
 		`run @missingref:alpha.value`,
 		taskReferenceResolveContext{OperationID: 7},
 	)
@@ -233,7 +266,7 @@ func TestTaskReferenceRejectsUnsupportedKeyword(t *testing.T) {
 }
 
 func TestTaskReferenceStructuredReferenceRejectsFieldedValue(t *testing.T) {
-	_, _, err := resolveTaskReferencesInParams(
+	_, _, _, err := resolveTaskReferencesInParams(
 		`{"cred":"@testref:alpha.value"}`,
 		taskReferenceResolveContext{
 			OperationID: 42,
@@ -250,7 +283,7 @@ func TestTaskReferenceStructuredReferenceRejectsFieldedValue(t *testing.T) {
 func TestTaskReferenceBatchResolutionDeduplicatesReferences(t *testing.T) {
 	batchProviderCalls = 0
 	batchProviderReferenceCount = 0
-	updated, changed, err := resolveTaskReferencesInParams(
+	updated, changed, keywordResolution, err := resolveTaskReferencesInParams(
 		`run @batchref:one.value @batchref:one.value @batchref:two.value`,
 		taskReferenceResolveContext{OperationID: 99},
 	)
@@ -269,12 +302,71 @@ func TestTaskReferenceBatchResolutionDeduplicatesReferences(t *testing.T) {
 	if batchProviderReferenceCount != 2 {
 		t.Fatalf("expected two deduplicated references, got %d", batchProviderReferenceCount)
 	}
+	expectedResolution := []PTTaskKeywordResolution{
+		{
+			Raw:            "@batchref:one.value",
+			Keyword:        "batchref",
+			Selector:       "one",
+			Field:          "value",
+			ValueType:      taskReferenceValueTypeString,
+			ExpandedValue:  "99:one:value",
+			ParameterNames: []string{},
+		},
+		{
+			Raw:            "@batchref:two.value",
+			Keyword:        "batchref",
+			Selector:       "two",
+			Field:          "value",
+			ValueType:      taskReferenceValueTypeString,
+			ExpandedValue:  "99:two:value",
+			ParameterNames: []string{},
+		},
+	}
+	if !reflect.DeepEqual(keywordResolution, expectedResolution) {
+		t.Fatalf("keyword resolution = %#v, want %#v", keywordResolution, expectedResolution)
+	}
+}
+
+func TestTaskReferenceKeywordResolutionCollectsTopLevelParameterNames(t *testing.T) {
+	_, changed, keywordResolution, err := resolveTaskReferencesInParams(
+		`{"args":"@testref:alpha.value","items":["@testref:alpha.value"],"other":"@testref:beta.name"}`,
+		taskReferenceResolveContext{OperationID: 42},
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !changed {
+		t.Fatal("expected params to change")
+	}
+	expectedResolution := []PTTaskKeywordResolution{
+		{
+			Raw:            "@testref:alpha.value",
+			Keyword:        "testref",
+			Selector:       "alpha",
+			Field:          "value",
+			ValueType:      taskReferenceValueTypeString,
+			ExpandedValue:  "alpha:value",
+			ParameterNames: []string{"args", "items"},
+		},
+		{
+			Raw:            "@testref:beta.name",
+			Keyword:        "testref",
+			Selector:       "beta",
+			Field:          "name",
+			ValueType:      taskReferenceValueTypeString,
+			ExpandedValue:  "beta:name",
+			ParameterNames: []string{"other"},
+		},
+	}
+	if !reflect.DeepEqual(keywordResolution, expectedResolution) {
+		t.Fatalf("keyword resolution = %#v, want %#v", keywordResolution, expectedResolution)
+	}
 }
 
 func TestTaskReferenceBatchResolutionMergesMultipleProviders(t *testing.T) {
 	batchProviderCalls = 0
 	batchProviderReferenceCount = 0
-	updated, changed, err := resolveTaskReferencesInParams(
+	updated, changed, _, err := resolveTaskReferencesInParams(
 		`run @testref:alpha.value @batchref:two.value`,
 		taskReferenceResolveContext{OperationID: 99},
 	)

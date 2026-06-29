@@ -173,6 +173,7 @@ select_permissions:
         - token_id
         - agent_task_id
         - alias_resolution
+        - keyword_resolution
         - command_name
         - command_payload_type
         - comment
@@ -239,6 +240,7 @@ select_permissions:
         - token_id
         - agent_task_id
         - alias_resolution
+        - keyword_resolution
         - command_name
         - command_payload_type
         - comment
@@ -305,6 +307,7 @@ select_permissions:
         - token_id
         - agent_task_id
         - alias_resolution
+        - keyword_resolution
         - command_name
         - command_payload_type
         - comment
@@ -371,6 +374,7 @@ select_permissions:
         - token_id
         - agent_task_id
         - alias_resolution
+        - keyword_resolution
         - command_name
         - command_payload_type
         - comment
