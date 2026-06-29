@@ -1,6 +1,8 @@
 package rabbitmq
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -137,6 +139,66 @@ func TestKerberosMetadataIsNamespacedAndLifecycleIsTopLevel(t *testing.T) {
 	}
 }
 
+func TestParseJWTCredentialMetadataIncludesClaimsAndLifecycle(t *testing.T) {
+	issuedAt := time.Now().UTC().Add(-time.Hour).Unix()
+	notBefore := time.Now().UTC().Add(-30 * time.Minute).Unix()
+	expiresAt := time.Now().UTC().Add(time.Hour).Unix()
+	token := testCompactJWT(t, map[string]interface{}{
+		"alg": "RS256",
+		"typ": "JWT",
+		"kid": "key-1",
+	}, map[string]interface{}{
+		"iss":                "https://issuer.example/tenant",
+		"sub":                "subject-1",
+		"aud":                []string{"api", "cli"},
+		"iat":                issuedAt,
+		"nbf":                notBefore,
+		"exp":                expiresAt,
+		"jti":                "jwt-id-1",
+		"preferred_username": "alice@example.com",
+	})
+
+	parsed := ParseCredential("jwt", "Bearer "+token, nil, nil)
+
+	if parsed.Subtype != "jwt" {
+		t.Fatalf("expected jwt subtype, got %q", parsed.Subtype)
+	}
+	if parsed.Metadata[credentialMetadataParserKey] != "jwt" {
+		t.Fatalf("expected jwt parser metadata: %#v", parsed.Metadata)
+	}
+	expectedNotBefore := time.Unix(notBefore, 0).UTC().Format(time.RFC3339)
+	expectedExpiresAt := time.Unix(expiresAt, 0).UTC().Format(time.RFC3339)
+	if parsed.Metadata["not_before"] != expectedNotBefore || parsed.Metadata["expires_at"] != expectedExpiresAt {
+		t.Fatalf("JWT lifecycle fields should be promoted for validity tracking: %#v", parsed.Metadata)
+	}
+	validity, ok := parsed.Metadata[credentialValidityMetadataKey].(map[string]interface{})
+	if !ok || validity["valid"] != true || validity["expired"] != false {
+		t.Fatalf("JWT expiration should drive credential validity metadata: %#v", parsed.Metadata)
+	}
+	jwtMetadata, ok := parsed.Metadata[credentialMetadataJWTKey].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected namespaced jwt metadata: %#v", parsed.Metadata)
+	}
+	if jwtMetadata["algorithm"] != "RS256" || jwtMetadata["key_id"] != "key-1" {
+		t.Fatalf("expected JWT header summary metadata: %#v", jwtMetadata)
+	}
+	if jwtMetadata["issuer"] != "https://issuer.example/tenant" || jwtMetadata["subject"] != "subject-1" {
+		t.Fatalf("expected JWT claim summary metadata: %#v", jwtMetadata)
+	}
+	audience, ok := jwtMetadata["audience"].([]string)
+	if !ok || len(audience) != 2 || audience[0] != "api" || audience[1] != "cli" {
+		t.Fatalf("expected JWT audience metadata: %#v", jwtMetadata)
+	}
+	jwtIdentity, ok := parsed.Identity[credentialMetadataJWTKey].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected namespaced jwt identity: %#v", parsed.Identity)
+	}
+	claims, ok := jwtIdentity["claims"].(map[string]interface{})
+	if !ok || claims["preferred_username"] != "alice@example.com" {
+		t.Fatalf("expected JWT claims in credential identity: %#v", jwtIdentity)
+	}
+}
+
 func TestPopulateCredentialAccountRealmFromKerberosIdentity(t *testing.T) {
 	metadata := map[string]interface{}{
 		credentialMetadataParserKey: "kerberos",
@@ -168,6 +230,46 @@ func TestPopulateCredentialAccountRealmFromKerberosIdentity(t *testing.T) {
 	}
 }
 
+func TestPopulateCredentialAccountRealmFromJWTIdentity(t *testing.T) {
+	metadata := map[string]interface{}{
+		credentialMetadataParserKey: "jwt",
+	}
+	identity := map[string]interface{}{
+		credentialMetadataJWTKey: map[string]interface{}{
+			"claims": map[string]interface{}{
+				"preferred_username": "alice@example.com",
+				"iss":                "https://issuer.example/tenant",
+			},
+		},
+	}
+
+	account, realm := PopulateCredentialAccountRealmFromIdentity("", "", metadata, identity)
+	if account != "alice@example.com" || realm != "https://issuer.example/tenant" {
+		t.Fatalf("expected account and realm from jwt identity, got account=%q realm=%q", account, realm)
+	}
+
+	account, realm = PopulateCredentialAccountRealmFromIdentity("supplied", "", metadata, identity)
+	if account != "supplied" || realm != "https://issuer.example/tenant" {
+		t.Fatalf("supplied account should win while empty realm is filled, got account=%q realm=%q", account, realm)
+	}
+
+	account, realm = PopulateCredentialAccountRealmFromIdentity("", "SUPPLIED.REALM", metadata, identity)
+	if account != "alice@example.com" || realm != "SUPPLIED.REALM" {
+		t.Fatalf("empty account should be filled while supplied realm wins, got account=%q realm=%q", account, realm)
+	}
+
+	account, realm = PopulateCredentialAccountRealmFromIdentity("", "", metadata, map[string]interface{}{
+		credentialMetadataJWTKey: map[string]interface{}{
+			"claims": map[string]interface{}{
+				"email": "bob@example.com",
+			},
+		},
+	})
+	if account != "bob@example.com" || realm != "example.com" {
+		t.Fatalf("expected jwt realm fallback from email-style account, got account=%q realm=%q", account, realm)
+	}
+}
+
 func TestPopulateCredentialAccountRealmIgnoresNonKerberosIdentity(t *testing.T) {
 	account, realm := PopulateCredentialAccountRealmFromIdentity("", "", map[string]interface{}{
 		credentialMetadataParserKey: "plaintext",
@@ -184,4 +286,20 @@ func TestPopulateCredentialAccountRealmIgnoresNonKerberosIdentity(t *testing.T) 
 	if account != "" || realm != "" {
 		t.Fatalf("non-kerberos identity should not populate account or realm, got account=%q realm=%q", account, realm)
 	}
+}
+
+func testCompactJWT(t *testing.T, header map[string]interface{}, claims map[string]interface{}) string {
+	t.Helper()
+	headerBytes, err := json.Marshal(header)
+	if err != nil {
+		t.Fatalf("failed to marshal JWT header: %v", err)
+	}
+	claimBytes, err := json.Marshal(claims)
+	if err != nil {
+		t.Fatalf("failed to marshal JWT claims: %v", err)
+	}
+	return fmt.Sprintf("%s.%s.signature",
+		base64.RawURLEncoding.EncodeToString(headerBytes),
+		base64.RawURLEncoding.EncodeToString(claimBytes),
+	)
 }

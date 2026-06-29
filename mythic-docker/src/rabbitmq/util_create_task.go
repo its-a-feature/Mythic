@@ -615,9 +615,10 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 	}
 	task.MythicParsedParams = createTaskInput.Params
 	displayParams := createTaskInput.Params
+	task.KeywordResolution = GetMythicJSONArrayFromStruct([]PTTaskKeywordResolution{})
 	if createTaskInput.ResolveTaskReferences == nil || *createTaskInput.ResolveTaskReferences {
 		// try to expand the task references for things like @cred:12.credential
-		expandedParams, taskReferencesExpanded, err := expandTaskReferenceParameters(
+		expandedParams, taskReferencesExpanded, keywordResolution, err := expandTaskReferenceParameters(
 			task.Command.ID,
 			createTaskInput.CurrentOperationID,
 			createTaskInput.Params,
@@ -632,6 +633,10 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 			// update the params that the agent sees with the expanded values
 			createTaskInput.Params = expandedParams
 		}
+		if keywordResolution == nil {
+			keywordResolution = []PTTaskKeywordResolution{}
+		}
+		task.KeywordResolution = GetMythicJSONArrayFromStruct(keywordResolution)
 	}
 	commandAttributes := CommandAttribute{}
 	// set up the new task for the database
@@ -1371,12 +1376,12 @@ func addTaskToDatabase(task *databaseStructs.Task) error {
 		original_params,display_params,status,tasking_location,parameter_group_name,
 		parent_task_id,subtask_callback_function,group_callback_function,subtask_group_name,operation_id,
 	    is_interactive_task, interactive_task_type, eventstepinstance_id, status_timestamp_submitted,
-	 command_payload_type, mythic_parsed_params, apitokens_id, alias_resolution)
+	 command_payload_type, mythic_parsed_params, apitokens_id, alias_resolution, keyword_resolution)
 		VALUES (:agent_task_id, :command_name, :callback_id, :operator_id, :command_id, :token_id, :params,
 			:original_params, :display_params, :status, :tasking_location, :parameter_group_name,
 			:parent_task_id, :subtask_callback_function, :group_callback_function, :subtask_group_name, :operation_id,
 		        :is_interactive_task, :interactive_task_type, :eventstepinstance_id, :status_timestamp_submitted,
-		        :command_payload_type, :mythic_parsed_params, :apitokens_id, :alias_resolution)
+		        :command_payload_type, :mythic_parsed_params, :apitokens_id, :alias_resolution, :keyword_resolution)
 			RETURNING id, display_id`)
 	if err != nil {
 		logging.LogError(err, "Failed to make a prepared statement for new task creation")
