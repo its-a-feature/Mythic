@@ -58,12 +58,14 @@ func MythicRPCProcessCreate(input MythicRPCProcessCreateMessage, authContext Rab
 		response.Error = err.Error()
 		return response
 	}
-	err = HandleAgentMessagePostResponseProcesses(task, &input.Processes, int(task.APITokensID.Int64))
-	if err != nil {
-		logging.LogError(err, "Failed to create processes in MythicRPCProcessCreate")
-		response.Error = err.Error()
-		return response
-	}
+	go func() {
+		// handle the actual creation async
+		err = HandleAgentMessagePostResponseProcesses(task, &input.Processes, int(task.APITokensID.Int64))
+		if err != nil {
+			logging.LogError(err, "Failed to create processes in MythicRPCProcessCreate")
+		}
+	}()
+
 	response.Success = true
 	return response
 }

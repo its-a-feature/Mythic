@@ -53,12 +53,15 @@ func MythicRPCResponseCreate(input MythicRPCResponseCreateMessage, authContext R
 		response.Error = err.Error()
 		return response
 	}
-	stringOutput := string(input.Response)
-	handleAgentMessagePostResponseUserOutput(task, agentMessagePostResponse{
-		TaskID:     task.AgentTaskID,
-		UserOutput: &stringOutput,
-	}, true)
-	_, _ = database.DB.Exec(`UPDATE task SET timestamp=$2 WHERE id=$1`, input.TaskID, time.Now().UTC())
+	go func() {
+		stringOutput := string(input.Response)
+		handleAgentMessagePostResponseUserOutput(task, agentMessagePostResponse{
+			TaskID:     task.AgentTaskID,
+			UserOutput: &stringOutput,
+		}, true)
+		_, _ = database.DB.Exec(`UPDATE task SET timestamp=$2 WHERE id=$1`, input.TaskID, time.Now().UTC())
+	}()
+
 	response.Success = true
 	return response
 
