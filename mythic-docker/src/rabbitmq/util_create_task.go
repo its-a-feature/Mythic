@@ -616,11 +616,13 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 	task.MythicParsedParams = createTaskInput.Params
 	displayParams := createTaskInput.Params
 	task.KeywordResolution = GetMythicJSONArrayFromStruct([]PTTaskKeywordResolution{})
+	taskReferencePostCreateActions := []taskReferencePostCreateAction{}
 	if createTaskInput.ResolveTaskReferences == nil || *createTaskInput.ResolveTaskReferences {
 		// try to expand the task references for things like @cred:12.credential
-		expandedParams, taskReferencesExpanded, keywordResolution, err := expandTaskReferenceParameters(
+		expandedParams, taskReferencesExpanded, keywordResolution, postCreateActions, err := expandTaskReferenceParameters(
 			task.Command.ID,
 			createTaskInput.CurrentOperationID,
+			callback.ID,
 			createTaskInput.Params,
 		)
 		if err != nil {
@@ -636,6 +638,7 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 		if keywordResolution == nil {
 			keywordResolution = []PTTaskKeywordResolution{}
 		}
+		taskReferencePostCreateActions = postCreateActions
 		task.KeywordResolution = GetMythicJSONArrayFromStruct(keywordResolution)
 	}
 	commandAttributes := CommandAttribute{}
@@ -749,7 +752,7 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 		}
 		task.AliasResolution = string(resolution)
 	}
-	err = addTaskToDatabase(&task)
+	err = addTaskToDatabase(&task, taskReferencePostCreateActions...)
 	if err != nil {
 		response.Error = "Failed to create task in database"
 		return response
@@ -1358,7 +1361,7 @@ func associateUploadedFilesWithTask(task *databaseStructs.Task, files []string) 
 		}
 	}
 }
-func addTaskToDatabase(task *databaseStructs.Task) error {
+func addTaskToDatabase(task *databaseStructs.Task, postCreateActions ...taskReferencePostCreateAction) error {
 	// create the task in the database
 	//logging.LogInfo("adding task to database", "task", task)
 	if task.IsInteractiveTask {
@@ -1399,6 +1402,15 @@ func addTaskToDatabase(task *databaseStructs.Task) error {
 	}
 	task.ID = taskIDs.ID
 	task.DisplayID = taskIDs.DisplayID
+	for _, action := range postCreateActions {
+		if action.Execute == nil {
+			continue
+		}
+		if err = action.Execute(transaction, *task); err != nil {
+			logging.LogError(err, "Failed to execute task reference post-create action", "action", action.Description, "task_id", task.ID)
+			return err
+		}
+	}
 	err = transaction.Commit()
 	if err != nil {
 		logging.LogError(err, "Failed to commit transaction of creating new task")

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -19,20 +20,44 @@ const (
 type credentialTaskReferenceProvider struct{}
 
 func init() {
-	registerTaskReferenceKeywordProvider(credentialTaskReferenceProvider{})
+	registerTaskReferenceProvider(credentialTaskReferenceProvider{})
 }
 
 func (credentialTaskReferenceProvider) Keyword() string {
 	return taskReferenceCredentialKeyword
 }
 
-func (credentialTaskReferenceProvider) ParameterType() string {
-	return COMMAND_PARAMETER_TYPE_CREDENTIAL
+func (credentialTaskReferenceProvider) StructuredParameterTypes() []string {
+	return []string{COMMAND_PARAMETER_TYPE_CREDENTIAL}
 }
 
-func (credentialTaskReferenceProvider) ValidateSelector(selector string) error {
-	_, err := credentialReferenceSelectorID(selector)
-	return err
+func (credentialTaskReferenceProvider) ParseReferenceBody(body string, _ string) (taskReference, error) {
+	selector := strings.TrimSpace(body)
+	field := ""
+	if fieldSeparatorIndex := strings.LastIndex(selector, "."); fieldSeparatorIndex >= 0 {
+		field = strings.ToLower(strings.TrimSpace(selector[fieldSeparatorIndex+1:]))
+		selector = strings.TrimSpace(selector[:fieldSeparatorIndex])
+	}
+	return taskReference{
+		Selector: selector,
+		Field:    field,
+	}, nil
+}
+
+func (provider credentialTaskReferenceProvider) ValidateReference(reference taskReference, structured bool) error {
+	if _, err := credentialReferenceSelectorID(reference.Selector); err != nil {
+		return fmt.Errorf("invalid credential reference selector %q: %w", reference.Selector, err)
+	}
+	if reference.Field == "" {
+		return nil
+	}
+	if structured {
+		return fmt.Errorf("credential parameters require @cred:<id> task references")
+	}
+	if err := provider.ValidateField(reference.Field); err != nil {
+		return fmt.Errorf("invalid credential reference field %q: %w", reference.Field, err)
+	}
+	return nil
 }
 
 func (credentialTaskReferenceProvider) ValidateField(field string) error {
@@ -44,7 +69,7 @@ func (credentialTaskReferenceProvider) ValidateField(field string) error {
 	}
 }
 
-func (credentialTaskReferenceProvider) BatchResolveTaskReferences(operationID int, references []taskReferenceKeyword) (map[taskReferenceKeyword]taskReferenceKeywordResolvedValue, error) {
+func (credentialTaskReferenceProvider) BatchResolveTaskReferences(context taskReferenceResolveContext, references []taskReference) (map[taskReference]taskReferenceResolvedValue, error) {
 	credentialIDsBySelector := make(map[string]int)
 	for _, reference := range references {
 		id, err := credentialReferenceSelectorID(reference.Selector)
@@ -59,7 +84,7 @@ func (credentialTaskReferenceProvider) BatchResolveTaskReferences(operationID in
 	}
 	sort.Ints(credentialIDs)
 	if len(credentialIDs) == 0 {
-		return map[taskReferenceKeyword]taskReferenceKeywordResolvedValue{}, nil
+		return map[taskReference]taskReferenceResolvedValue{}, nil
 	}
 
 	credentials := []databaseStructs.Credential{}
@@ -67,7 +92,7 @@ func (credentialTaskReferenceProvider) BatchResolveTaskReferences(operationID in
 		c.id, c."type", c.subtype, c.account, c.realm, c.comment, c.custom_display, credential_credentials(c) AS credential, c.metadata, c.credential_identity
 		FROM credential c
 		WHERE c.operation_id=? AND c.deleted=false AND c.id IN (?)`,
-		operationID, credentialIDs)
+		context.OperationID, credentialIDs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build credential reference query: %w", err)
 	}
@@ -81,7 +106,7 @@ func (credentialTaskReferenceProvider) BatchResolveTaskReferences(operationID in
 		credentialsByID[credential.ID] = credential
 	}
 
-	resolved := make(map[taskReferenceKeyword]taskReferenceKeywordResolvedValue, len(references))
+	resolved := make(map[taskReference]taskReferenceResolvedValue, len(references))
 	for _, reference := range references {
 		credentialID := credentialIDsBySelector[reference.Selector]
 		credential, ok := credentialsByID[credentialID]
@@ -89,7 +114,7 @@ func (credentialTaskReferenceProvider) BatchResolveTaskReferences(operationID in
 			return nil, fmt.Errorf("credential reference @cred:%s was not found in this operation or was deleted", reference.Selector)
 		}
 		if reference.Field == "" {
-			resolved[reference] = taskReferenceKeywordResolvedValue{
+			resolved[reference] = taskReferenceResolvedValue{
 				Structured: credentialTaskReferenceStructuredValue(credential),
 			}
 			continue
@@ -98,7 +123,7 @@ func (credentialTaskReferenceProvider) BatchResolveTaskReferences(operationID in
 		if err != nil {
 			return nil, err
 		}
-		resolved[reference] = taskReferenceKeywordResolvedValue{Scalar: scalar}
+		resolved[reference] = taskReferenceResolvedValue{Scalar: scalar}
 	}
 	return resolved, nil
 }

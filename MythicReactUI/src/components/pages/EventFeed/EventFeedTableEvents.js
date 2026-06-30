@@ -31,7 +31,7 @@ const StyledListItem = styled(ListItem)((
 }));
 
 const GetEventStatusChip = ({message}) => {
-    if(message.warning){
+    if(message.warning || message.level === "warning"){
         return (
             <MythicStatusChip
                 label={message.resolved ? "Resolved" : "Warning"}
@@ -51,6 +51,7 @@ const GetEventStatusChip = ({message}) => {
 export function EventFeedTableEvents(props){
 
     const me = useReactiveVar(meState);
+    const isWarning = props.warning || props.level === "warning";
 
     return (
         <StyledListItem alignItems="flex-start" style={{...props.style, margin: 0, padding: "0 0 0 10px"}}>
@@ -85,11 +86,10 @@ export function EventFeedTableEvents(props){
                 </div>
                 }
             />
-            <EventFeedTableEventsActions id={props.id} level={props.level} warning={props.warning}
+            <EventFeedTableEventsActions id={props.id} level={props.level} warning={isWarning}
               onUpdateResolution={props.onUpdateResolution}
               onUpdateLevel={props.onUpdateLevel}
               resolved={props.resolved}/>
         </StyledListItem>
     );
 }
-
