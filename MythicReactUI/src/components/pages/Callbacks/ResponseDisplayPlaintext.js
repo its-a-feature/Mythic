@@ -23,7 +23,7 @@ import {
   getLongestTerminalTextLineLength as getLongestTerminalLineLength,
   sanitizeTerminalOutput
 } from "./ResponseDisplayInteractive";
-import {isAllowedMarkdownLink, markdownPlugins} from "../../utilities/Markdown";
+import {markdownPlugins} from "../../utilities/Markdown";
 import {markdownComponents} from "../Chat/Chat";
 import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import {CredentialTableNewCredentialDialog} from "../Search/CredentialTableNewCredentialDialog";
@@ -60,20 +60,6 @@ const getInitialRenderMode = (props) => {
   }
   return props?.render_colors ? RenderModes.terminal : RenderModes.plaintext;
 }
-const markdownComponentsOld = {
-  a: ({href, children}) => {
-    if(!isAllowedMarkdownLink(href)){
-      return children;
-    }
-    return <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
-  },
-  code: ({className, children}) => (
-      <code className={className || "mythic-response-markdown-inline-code"}>{children}</code>
-  ),
-  table: ({children}) => <table className="mythic-response-markdown-table">{children}</table>,
-  pre: ({children}) => <pre className="mythic-response-markdown-code-block">{children}</pre>,
-};
-
 const ResponseMarkdownDisplay = ({value, wrapText, expand}) => {
   return (
       <div className={`mythic-response-markdown${wrapText ? " is-wrapped" : " is-unwrapped"}${expand ? " is-expanded" : " is-capped"}`}>
@@ -222,7 +208,7 @@ export const ResponseDisplayPlaintext = (props) =>{
   const [mode, setMode] = React.useState(initialMode);
   const [renderMode, setRenderMode] = React.useState(getInitialRenderMode(props));
   const [wrapText, setWrapText] = React.useState(props?.wrap_text === undefined ? true : props.wrap_text);
-  const [showOptions, setShowOptions] = React.useState(false);
+  const [showOptions, setShowOptions] = React.useState(Boolean(props?.initial_show_options));
   const [createCredentialDialogOpen, setCreateCredentialDialogOpen] = React.useState(false);
   const [initialCredentialValues, setInitialCredentialValues] = React.useState({});
   const largeResponseWarningShown = React.useRef(false);
@@ -286,6 +272,7 @@ export const ResponseDisplayPlaintext = (props) =>{
             const currentValue = currentContentRef.current?.editor?.getValue?.() || plaintextView;
             let tmp = JSON.stringify(JSON.parse(currentValue), null, 2);
             setPlaintextView(tmp);
+            props.onChangeContent?.(tmp);
             setMode("json");
         }catch(error){
             snackActions.warning("Failed to reformat as JSON")
@@ -294,9 +281,16 @@ export const ResponseDisplayPlaintext = (props) =>{
     const onChangeShowOptions = () => {
         setShowOptions(!showOptions);
     }
-    const sourceTaskMetadata = () => ({
-        task_id: props?.task?.id,
-    });
+    const sourceTaskMetadata = () => {
+        const taskMetadata = props?.task?.id ? {task_id: props.task.id} : {};
+        const credentialMetadata = typeof props?.credentialMetadata === "function" ?
+            props.credentialMetadata() :
+            (props?.credentialMetadata || {});
+        return {
+            ...taskMetadata,
+            ...credentialMetadata,
+        };
+    };
     const openCreateCredentialDialog = () => {
         const selectedText = currentContentRef.current?.editor?.getSelectedText?.() || "";
         const credentialText = selectedText.trim() === "" ? plaintextView : selectedText;
@@ -345,6 +339,9 @@ export const ResponseDisplayPlaintext = (props) =>{
     }, [props?.initial_render_mode, props?.render_mode, props?.render_colors]);
     const currentRenderModeLabel = renderModeOptions.find((option) => option.value === renderMode)?.label || "Plaintext";
     const displayWrapText = renderMode === RenderModes.plaintext ? wrapText : true;
+    const toolbarActions = props?.toolbarActions || [];
+    const showCreateCredentialAction = props?.enableCredentialCreation !== false &&
+        (props.task || props.credentialMetadata || props.showCredentialAction);
   return (
       <div style={{display: "flex", height: "100%", flexDirection: "column"}}>
           {createCredentialDialogOpen &&
@@ -360,7 +357,7 @@ export const ResponseDisplayPlaintext = (props) =>{
                           onClick={onChangeShowOptions}
                           style={{color: theme.outputTextColor}}>
                       {showOptions ? <UnfoldLessIcon fontSize="small" /> : <UnfoldMoreIcon fontSize="small" />}
-                      <span className="mythic-response-render-toolbar-title">Output</span>
+                      <span className="mythic-response-render-toolbar-title">{props?.toolbarTitle || "Output"}</span>
                       <span className="mythic-response-render-toolbar-mode">{currentRenderModeLabel}</span>
                   </button>
                   {showOptions &&
@@ -378,6 +375,13 @@ export const ResponseDisplayPlaintext = (props) =>{
                                   </button>
                               ))}
                           </div>
+                          {toolbarActions.length > 0 &&
+                              <div className="mythic-response-render-action-group">
+                                  {toolbarActions.map((action, index) => (
+                                      <React.Fragment key={action?.key || index}>{action}</React.Fragment>
+                                  ))}
+                              </div>
+                          }
                           {renderMode === RenderModes.plaintext &&
                               <>
                                   <div className="mythic-response-render-action-group">
@@ -400,7 +404,7 @@ export const ResponseDisplayPlaintext = (props) =>{
                                               <CodeIcon fontSize="small" />
                                           </button>
                                       </MythicStyledTooltip>
-                                      {props.task &&
+                                      {showCreateCredentialAction &&
                                           <MythicStyledTooltip title={"Create Credential"} >
                                               <button
                                                   aria-label="Create Credential"
@@ -427,6 +431,7 @@ export const ResponseDisplayPlaintext = (props) =>{
                                   </label>
                               </>
                           }
+                          {props.toolbarNotice}
                       </div>
                   }
               </div>
@@ -452,6 +457,7 @@ export const ResponseDisplayPlaintext = (props) =>{
                       fontSize={14}
                       showGutter={ props.displayType !== 'console'}
                       onChange={onChangeText}
+                      readOnly={Boolean(props?.readOnly)}
                       //onLoad={onLoad}
                       highlightActiveLine={false}
                       showPrintMargin={false}

@@ -5188,8 +5188,24 @@ tspan {
     background-color: var(--mythic-global-219);
     color: var(--mythic-global-220);
 }
+.mythic-response-render-action-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.46;
+}
+.mythic-response-render-action-button:disabled:hover {
+    background-color: transparent;
+    color: var(--mythic-global-218);
+}
 .mythic-response-render-action-button.is-selected {
     background-color: var(--mythic-global-225);
+    color: var(--mythic-global-220);
+}
+.mythic-response-render-action-button-save:not(:disabled) {
+    background-color: var(--mythic-global-187);
+    color: var(--mythic-global-220);
+}
+.mythic-response-render-action-button-save:not(:disabled):hover {
+    background-color: var(--mythic-global-188);
     color: var(--mythic-global-220);
 }
 .mythic-response-syntax-group {

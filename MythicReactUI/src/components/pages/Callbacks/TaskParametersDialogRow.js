@@ -584,6 +584,7 @@ export function TaskParametersDialogRow(props){
         c2_profile: {name: props.choices[host_index]["payloads"][payload_index]["c2info"][c2_index].name, parameters: c2profileparameters}};
         if(props.choices[host_index]["payloads"][payload_index].type === "callback"){
             agentConnectValue["callback_uuid"] = props.choices[host_index]["payloads"][payload_index]["agent_callback_id"];
+            agentConnectValue["callback_display_id"] = props.choices[host_index]["payloads"][payload_index]["display_id"];
         }else{
             agentConnectValue["callback_uuid"] = "";
         }
@@ -603,7 +604,7 @@ export function TaskParametersDialogRow(props){
                 return {...prev};
             }
         }, {});
-        let agentConnectValue = {host: choice.host, agent_uuid: choice.payload.uuid, callback_uuid: choice.agent_callback_id, c2_profile: {name: props.choices[index]["c2profile"]["name"], parameters: c2profileparameters} };
+        let agentConnectValue = {edge_id: choice.id, host: choice.host, agent_uuid: choice.payload.uuid, callback_uuid: choice.agent_callback_id, c2_profile: {name: props.choices[index]["c2profile"]["name"], parameters: c2profileparameters} };
         props.onChange(props.name, agentConnectValue, false);
         setValue(index);
     }
