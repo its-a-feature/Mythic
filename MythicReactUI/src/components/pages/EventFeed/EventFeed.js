@@ -5,8 +5,8 @@ import {snackActions} from '../../utilities/Snackbar';
 import {alertCount} from "../../../cache";
 
 const GET_Event_Feed_Warnings = gql`
-query GetOperationEventLogs($offset: Int!, $limit: Int!, $search: String!, $level: String!, $resolved: Boolean!) {
-  operationeventlog(where: {deleted: {_eq: false}, message: {_ilike: $search}, level: {_like: $level}, resolved: {_eq: $resolved}, warning: {_eq: true}}, order_by: {id: desc}, limit: $limit, offset: $offset) {
+query GetOperationEventLogs($offset: Int!, $limit: Int!, $search: String!, $resolved: Boolean!) {
+  operationeventlog(where: {deleted: {_eq: false}, message: {_ilike: $search}, resolved: {_eq: $resolved}, _or: [{warning: {_eq: true}}, {level: {_eq: "warning"}}]}, order_by: {id: desc}, limit: $limit, offset: $offset) {
     id
     level
     message
@@ -16,7 +16,7 @@ query GetOperationEventLogs($offset: Int!, $limit: Int!, $search: String!, $leve
     source
     warning
   }
-  operationeventlog_aggregate(where: {deleted: {_eq: false}, message: {_ilike: $search}, level: {_like: $level}, resolved: {_eq: $resolved}, warning: {_eq: true}}) {
+  operationeventlog_aggregate(where: {deleted: {_eq: false}, message: {_ilike: $search}, resolved: {_eq: $resolved}, _or: [{warning: {_eq: true}}, {level: {_eq: "warning"}}]}) {
     aggregate {
       count
     }
@@ -73,9 +73,9 @@ mutation UpdateLevelOperationEventLog($id: Int!) {
   }
 }
  `;
- const Update_ResolveViewableErrors = gql`
+const Update_ResolveViewableErrors = gql`
  mutation UpdateResolveViewableErrorsOperationEventLog($ids: [Int]!) {
-   update_operationeventlog(where:{id: {_in: $ids}, warning: {_eq: true}}, _set: {resolved: true}) {
+   update_operationeventlog(where:{id: {_in: $ids}}, _set: {resolved: true}) {
      returning{
          id
          resolved
@@ -85,7 +85,7 @@ mutation UpdateLevelOperationEventLog($id: Int!) {
   `;
  const Update_ResolveAllErrors = gql`
   mutation UpdateResolveAllErrorsOperationEventLog {
-    update_operationeventlog(where: {resolved: {_eq: false}, warning: {_eq: true}}, _set: {resolved: true}) {
+    update_operationeventlog(where: {resolved: {_eq: false}, _or: [{warning: {_eq: true}}, {level: {_eq: "warning"}}]}, _set: {resolved: true}) {
       returning{
           id
           resolved
@@ -96,6 +96,7 @@ mutation UpdateLevelOperationEventLog($id: Int!) {
 export const levelOptions = [
   "All Levels", "warning (unresolved)", "warning (resolved)", "info", "debug", "api", "auth", "agent"
 ];
+const isWarningEvent = (event) => event.warning || event.level === "warning";
 export function EventFeed({}){
   const [pageData, setPageData] = React.useState({
     "totalCount": 0,
@@ -120,19 +121,19 @@ export function EventFeed({}){
           case "All Levels":
             return [...prev, cur];
           case "warning (unresolved)":
-            if( (cur.warning || cur.level === 'warning') && cur.resolved === false){
+            if(isWarningEvent(cur) && cur.resolved === false){
               return [...prev, cur]
             } else {
               return [...prev];
             }
           case "warning (resolved)":
-            if( (cur.warning || cur.level === 'warning') && cur.resolved === true){
+            if(isWarningEvent(cur) && cur.resolved === true){
               return [...prev, cur];
             } else {
               return [...prev];
             }
           default:
-            if(cur.level === level && !cur.warning){
+            if(cur.level === level && !isWarningEvent(cur)){
               return [...prev, cur];
             } else {
               return [...prev];
@@ -282,7 +283,6 @@ export function EventFeed({}){
       getMoreEventFeedWithWarning({variables: {offset: (value - 1) * pageData.fetchLimit,
           limit: pageData.fetchLimit,
           search: localSearch,
-          level: localLevel,
           resolved: localResolved
         }})
     }
@@ -296,7 +296,7 @@ export function EventFeed({}){
   const resolveViewableErrors = useCallback( () => {
     snackActions.info("Resolving Errors...");
     const resolveIds = operationeventlog.reduce( (prev, cur) => {
-      if(cur.warning && !cur.resolved){
+      if(isWarningEvent(cur) && !cur.resolved){
         return [...prev, cur.id];
       }else{
         return [...prev];

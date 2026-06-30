@@ -17,6 +17,27 @@ import {getSkewedNow} from "./components/utilities/Time";
 
 export const mythicUIVersion = "0.3.112";
 
+const isResizeObserverLoopError = (message) => {
+  return message === "ResizeObserver loop limit exceeded" ||
+      message === "ResizeObserver loop completed with undelivered notifications.";
+}
+
+if(process.env.NODE_ENV === "development"){
+  window.addEventListener("error", (event) => {
+    if(isResizeObserverLoopError(event.message)){
+      event.stopImmediatePropagation();
+      event.preventDefault();
+    }
+  }, true);
+  window.addEventListener("unhandledrejection", (event) => {
+    const message = event.reason?.message || event.reason;
+    if(isResizeObserverLoopError(message)){
+      event.stopImmediatePropagation();
+      event.preventDefault();
+    }
+  }, true);
+}
+
 let fetchingNewToken = false;
 
 let cache = new InMemoryCache({

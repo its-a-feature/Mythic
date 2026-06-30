@@ -27,6 +27,7 @@ import {
     CredentialReferencePickerDialog,
     formatCredentialReference,
     getTaskReferenceCaretContext,
+    LinkReferencePickerDialog,
     parseTaskReferences,
     replaceTextRange
 } from "./taskingReferences";
@@ -178,6 +179,8 @@ const GetDefaultValueForType = (parameter_type) => {
             return [];
         case "number":
             return 0;
+        case "AgentConnect":
+        case "LinkInfo":
         case "CredentialJson":
             return "";
         case "boolean":
@@ -197,6 +200,8 @@ const IsCLIPossibleParameterType = (parameter_type) => {
         case "ChooseMultiple":
         case "String":
         case "CredentialJson":
+        case "AgentConnect":
+        case "LinkInfo":
             return true;
         default:
             return false;
@@ -535,6 +540,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
     const selectedTaskReferences = React.useRef([]);
     const [credentialPickerContext, setCredentialPickerContext] = React.useState(null);
     const [credentialFieldContext, setCredentialFieldContext] = React.useState(null);
+    const [linkPickerContext, setLinkPickerContext] = React.useState(null);
     const [openSelectCommandDialog, setOpenSelectCommandDialog] = React.useState(false);
     const me = useReactiveVar(meState);
     const {data: payloadAliasData} = useQuery(GetOperatorPayloadAliases, {fetchPolicy: "no-cache"});
@@ -890,9 +896,40 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             credentialTypes: lastSuppliedParameter.limit_credentials_by_type || [],
         };
     }
+    const getLinkReferenceCompletionContext = () => {
+        const input = inputRef.current;
+        const cursorPosition = typeof input?.selectionStart === "number" ? input.selectionStart : message.length;
+        const command = getCurrentCommandForReferenceCompletion();
+        if(!command){
+            return undefined;
+        }
+        const parsed = parseCommandLine(message, command, false);
+        if(parsed === undefined){
+            return undefined;
+        }
+        const [lastSuppliedParameter, lastSuppliedParameterHasValue] = getLastSuppliedArgument(command, message, parsed);
+        if(!["AgentConnect", "LinkInfo"].includes(lastSuppliedParameter?.parameter_type)){
+            return undefined;
+        }
+        const lastValue = String(lastSuppliedParameterHasValue || "");
+        if(lastValue !== "" && !lastValue.startsWith("@link:")){
+            return undefined;
+        }
+        return {
+            parameterType: lastSuppliedParameter.parameter_type,
+            start: lastValue.startsWith("@link:") ? cursorPosition - lastValue.length : cursorPosition,
+            end: cursorPosition,
+            defaultHost: callbackContext.host || "",
+        };
+    }
     const openTaskReferenceHelper = () => {
         const input = inputRef.current;
         const cursorPosition = typeof input?.selectionStart === "number" ? input.selectionStart : message.length;
+        const linkReferenceContext = getLinkReferenceCompletionContext();
+        if(linkReferenceContext){
+            setLinkPickerContext(linkReferenceContext);
+            return true;
+        }
         const credentialJsonContext = getCredentialJsonCompletionContext();
         if(credentialJsonContext){
             setCredentialPickerContext(credentialJsonContext);
@@ -909,6 +946,15 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         }
         console.log("returning false in openTaskReferenceHelper");
         return false;
+    }
+    const onSelectLinkReference = (referenceText) => {
+        if(!linkPickerContext){
+            return;
+        }
+        const newMessage = replaceTextRange(message, linkPickerContext.start, linkPickerContext.end, referenceText);
+        addSelectedTaskReference(referenceText);
+        updateMessageWithCursor(newMessage, linkPickerContext.start + referenceText.length);
+        setLinkPickerContext(null);
     }
     const onSelectCredentialReference = (credential) => {
         if(!credentialPickerContext){
@@ -969,7 +1015,6 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             if(openTaskReferenceHelper()){
                 return;
             }
-            console.log("tab or shift+space pressed and continuing to processing");
             if(message.trim().startsWith("/")){
                 const aliasOptions = getMatchingPayloadAliases(message);
                 if(aliasOptions.length === 0){
@@ -1511,6 +1556,8 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 case "ChooseOneCustom":
                 case "String":
                 case "CredentialJson":
+                case "AgentConnect":
+                case "LinkInfo":
                     stringArgs.push("-" + cmd.commandparameters[i].cli_name);
                     break;
                 case "Number":
@@ -2579,6 +2626,19 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                                   partialField={credentialFieldContext.partialField}
                                   onClose={() => setCredentialFieldContext(null)}
                                   onSelect={onSelectCredentialReferenceField}
+                              />}
+                />
+            }
+            {linkPickerContext &&
+                <MythicDialog fullWidth={true} maxWidth="lg" open={linkPickerContext}
+                              onClose={() => setLinkPickerContext(null)}
+                              innerDialog={<LinkReferencePickerDialog
+                                  operation_id={props.operation_id}
+                                  callback_id={props.callback_id}
+                                  parameterType={linkPickerContext.parameterType}
+                                  defaultHost={linkPickerContext.defaultHost}
+                                  onClose={() => setLinkPickerContext(null)}
+                                  onSelect={onSelectLinkReference}
                               />}
                 />
             }

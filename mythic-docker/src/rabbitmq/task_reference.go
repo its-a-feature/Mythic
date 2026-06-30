@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -15,22 +16,36 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-var taskReferenceKeywordPattern = regexp.MustCompile(`@([A-Za-z][A-Za-z0-9_-]*):([A-Za-z0-9][A-Za-z0-9_-]*)(?:\.([A-Za-z][A-Za-z0-9_-]*))?`)
+var (
+	taskReferenceExactPattern  = regexp.MustCompile(`^@([A-Za-z][A-Za-z0-9_-]*):(.+)$`)
+	taskReferenceLegacyPattern = regexp.MustCompile(`@([A-Za-z][A-Za-z0-9_-]*):([A-Za-z0-9][A-Za-z0-9_-]*)(?:\.([A-Za-z][A-Za-z0-9_-]*))?`)
+)
 
-type taskReferenceKeyword struct {
-	// keyword like the cred in @cred:12.credential
+type taskReference struct {
+	// Keyword is the provider name, like the cred in @cred:12.credential.
 	Keyword string
-	// selector like the 12 in @cred:12.credential
+	// Selector is provider-owned, comparable selector text. For @cred it is 12;
+	// for @link it is a canonical named-argument string.
 	Selector string
-	// field like the credential in @cred:12.credential
+	// Field is used by scalar references such as @cred:12.credential.
 	Field string
-	// raw string like @cred:12.credential
+	// Raw is the exact text supplied by the operator or automation.
 	Raw string
+	// ParameterType is set only for top-level structured parameter references.
+	ParameterType string
 }
 
-type taskReferenceKeywordResolvedValue struct {
-	Scalar     string
-	Structured interface{}
+type taskReferenceResolvedValue struct {
+	Scalar            string
+	Structured        interface{}
+	PostCreateActions []taskReferencePostCreateAction
+}
+
+// taskReferencePostCreateAction exists for references that imply database
+// bookkeeping after the task ID is known, such as @link payload-on-host tracking.
+type taskReferencePostCreateAction struct {
+	Description string
+	Execute     func(*sqlx.Tx, databaseStructs.Task) error
 }
 
 const (
@@ -49,30 +64,34 @@ type PTTaskKeywordResolution struct {
 }
 
 type taskReferenceMatch struct {
-	Reference     taskReferenceKeyword
-	ParameterName string
-	ValueType     string
+	Reference      taskReference
+	ParameterNames []string
+	ValueType      string
 }
 
-// taskReferenceKeywordProvider allows us to resolve task references like @cred:12.credential
-type taskReferenceKeywordProvider interface {
+// taskReferenceProvider is the extension point for keywords like @cred and
+// @link. The generic resolver owns traversal and replacement; providers own
+// syntax, validation, lookup, and optional post-create side effects.
+type taskReferenceProvider interface {
 	Keyword() string
-	ParameterType() string
-	ValidateSelector(selector string) error
-	ValidateField(field string) error
-	BatchResolveTaskReferences(operationID int, references []taskReferenceKeyword) (map[taskReferenceKeyword]taskReferenceKeywordResolvedValue, error)
+	// StructuredParameterTypes identifies top-level command parameter types
+	// where a string reference can expand into a structured JSON value.
+	StructuredParameterTypes() []string
+	ParseReferenceBody(body string, raw string) (taskReference, error)
+	// ValidateReference ensures that the reference is valid for the provider.
+	ValidateReference(reference taskReference, structured bool) error
+	// BatchResolveTaskReferences resolves references into their database-backed fields
+	BatchResolveTaskReferences(context taskReferenceResolveContext, references []taskReference) (map[taskReference]taskReferenceResolvedValue, error)
 }
 
-// taskReferenceProviderRegistry maps task reference keywords (like cred) to provider that can process and resolve that data
 var taskReferenceProviderRegistry = struct {
 	sync.RWMutex
-	providers map[string]taskReferenceKeywordProvider
+	providers map[string]taskReferenceProvider
 }{
-	providers: make(map[string]taskReferenceKeywordProvider),
+	providers: make(map[string]taskReferenceProvider),
 }
 
-// registerTaskReferenceKeywordProvider registers a task reference provider that can resolve task references like @cred:12.credential
-func registerTaskReferenceKeywordProvider(provider taskReferenceKeywordProvider) {
+func registerTaskReferenceProvider(provider taskReferenceProvider) {
 	keyword := strings.ToLower(strings.TrimSpace(provider.Keyword()))
 	if keyword == "" {
 		return
@@ -82,55 +101,63 @@ func registerTaskReferenceKeywordProvider(provider taskReferenceKeywordProvider)
 	taskReferenceProviderRegistry.providers[keyword] = provider
 }
 
-// getTaskReferenceKeywordProvider returns the task reference provider for the given keyword, or false if not found
-func getTaskReferenceKeywordProvider(keyword string) (taskReferenceKeywordProvider, bool) {
+func getTaskReferenceProvider(keyword string) (taskReferenceProvider, bool) {
 	taskReferenceProviderRegistry.RLock()
 	defer taskReferenceProviderRegistry.RUnlock()
 	provider, ok := taskReferenceProviderRegistry.providers[strings.ToLower(strings.TrimSpace(keyword))]
 	return provider, ok
 }
 
-type taskReferenceResolveContext struct {
-	OperationID                  int
-	StructuredParameterProviders map[string]string
+type taskReferenceStructuredParameterProvider struct {
+	Keyword       string
+	ParameterType string
+	// ParameterNames contains the command parameter name, CLI name, and display
+	// name. Containers can pass any of those names to RevertKeywords.
+	ParameterNames []string
 }
 
-func expandTaskReferenceParameters(commandID int, operationID int, params string) (string, bool, []PTTaskKeywordResolution, error) {
+type taskReferenceResolveContext struct {
+	OperationID                  int
+	CallbackID                   int
+	StructuredParameterProviders map[string]taskReferenceStructuredParameterProvider
+}
+
+func expandTaskReferenceParameters(commandID int, operationID int, callbackID int, params string) (string, bool, []PTTaskKeywordResolution, []taskReferencePostCreateAction, error) {
 	if commandID <= 0 || operationID <= 0 {
 		logging.LogError(nil, "expandTaskReferenceParameters", "invalid command ID or operation ID")
-		return params, false, nil, nil
+		return params, false, nil, nil, nil
 	}
-	trimmedParams := strings.TrimSpace(params)
-	if trimmedParams == "" {
-		return params, false, nil, nil
+	if strings.TrimSpace(params) == "" {
+		return params, false, nil, nil, nil
 	}
-	// get a list of all the providers
 	taskReferenceProviderRegistry.RLock()
-	providers := make([]taskReferenceKeywordProvider, 0, len(taskReferenceProviderRegistry.providers))
+	providers := make([]taskReferenceProvider, 0, len(taskReferenceProviderRegistry.providers))
 	for keyword := range taskReferenceProviderRegistry.providers {
 		providers = append(providers, taskReferenceProviderRegistry.providers[keyword])
 	}
 	taskReferenceProviderRegistry.RUnlock()
 	context := taskReferenceResolveContext{
 		OperationID: operationID,
-		// StructuredParameterProviders maps Parameter Name -> Parser Keyword
-		StructuredParameterProviders: make(map[string]string),
+		CallbackID:  callbackID,
+		// StructuredParameterProviders maps parameter names, CLI names, and
+		// display names to the provider that can hydrate that top-level value.
+		StructuredParameterProviders: make(map[string]taskReferenceStructuredParameterProvider),
 	}
-	providersByParameterType := make(map[string]taskReferenceKeywordProvider)
+	providersByParameterType := make(map[string]taskReferenceProvider)
 	parameterTypes := make([]string, 0, len(providers))
 	for _, provider := range providers {
-		parameterType := strings.TrimSpace(provider.ParameterType())
-		if parameterType == "" {
-			continue
+		for _, parameterType := range provider.StructuredParameterTypes() {
+			parameterType = strings.TrimSpace(parameterType)
+			if parameterType == "" {
+				continue
+			}
+			if _, exists := providersByParameterType[parameterType]; !exists {
+				parameterTypes = append(parameterTypes, parameterType)
+			}
+			providersByParameterType[parameterType] = provider
 		}
-		if _, exists := providersByParameterType[parameterType]; !exists {
-			parameterTypes = append(parameterTypes, parameterType)
-		}
-		providersByParameterType[parameterType] = provider
 	}
 	if len(parameterTypes) > 0 {
-		// Provider parameter types tell us which top-level command parameters can
-		// accept a bare structured reference like @cred:<id>.
 		structuredParameters := []databaseStructs.Commandparameters{}
 		query, args, err := sqlx.In(`SELECT
 				DISTINCT ON ("name")
@@ -140,142 +167,129 @@ func expandTaskReferenceParameters(commandID int, operationID int, params string
 			commandID, parameterTypes)
 		if err != nil {
 			logging.LogError(err, "expandTaskReferenceParameters", "failed to build parameter query")
-			return params, false, nil, fmt.Errorf("failed to build parameter query: %w", err)
+			return params, false, nil, nil, fmt.Errorf("failed to build parameter query: %w", err)
 		}
 		query = database.DB.Rebind(query)
 		err = database.DB.Select(&structuredParameters, query, args...)
 		if err != nil {
 			logging.LogError(err, "expandTaskReferenceParameters", "failed to query parameters")
-			return params, false, nil, fmt.Errorf("failed to query parameters: %w", err)
+			return params, false, nil, nil, fmt.Errorf("failed to query parameters: %w", err)
 		}
 		for _, parameter := range structuredParameters {
 			provider, ok := providersByParameterType[parameter.Type]
 			if !ok {
 				continue
 			}
-			for _, paramKey := range []string{parameter.Name, parameter.CliName, parameter.DisplayName} {
-				if strings.TrimSpace(paramKey) != "" {
-					// This gives us a mapping like {"myParameterName": "cred"}.
-					context.StructuredParameterProviders[paramKey] = provider.Keyword()
-				}
+			parameterNames := taskReferenceUniqueParameterNames(parameter.Name, parameter.CliName, parameter.DisplayName)
+			structuredProvider := taskReferenceStructuredParameterProvider{
+				Keyword:        provider.Keyword(),
+				ParameterType:  parameter.Type,
+				ParameterNames: parameterNames,
+			}
+			for _, parameterKey := range parameterNames {
+				context.StructuredParameterProviders[parameterKey] = structuredProvider
 			}
 		}
 	}
-
 	return resolveTaskReferencesInParams(params, context)
 }
 
-func resolveTaskReferencesInParams(params string, context taskReferenceResolveContext) (string, bool, []PTTaskKeywordResolution, error) {
+func taskReferenceUniqueParameterNames(parameterNames ...string) []string {
+	uniqueNames := make([]string, 0, len(parameterNames))
+	seen := make(map[string]bool)
+	for _, parameterName := range parameterNames {
+		parameterName = strings.TrimSpace(parameterName)
+		if parameterName == "" || seen[parameterName] {
+			continue
+		}
+		seen[parameterName] = true
+		uniqueNames = append(uniqueNames, parameterName)
+	}
+	return uniqueNames
+}
+
+func resolveTaskReferencesInParams(params string, context taskReferenceResolveContext) (string, bool, []PTTaskKeywordResolution, []taskReferencePostCreateAction, error) {
 	if strings.TrimSpace(params) == "" {
-		return params, false, nil, nil
+		return params, false, nil, nil, nil
 	}
 	decoder := json.NewDecoder(strings.NewReader(params))
 	decoder.UseNumber()
 	var decoded interface{}
 	if err := decoder.Decode(&decoded); err == nil {
 		err = decoder.Decode(&struct{}{})
-		// make sure that we have proper json to parse JSON vs raw string
 		if err != io.EOF {
-			return params, false, nil, fmt.Errorf("failed to parse task parameters as a single JSON value")
+			return params, false, nil, nil, fmt.Errorf("failed to parse task parameters as a single JSON value")
 		}
-		// find all references
 		matches, err := collectTaskReferencesFromJSON(decoded, context, true, "")
 		if err != nil {
-			return params, false, nil, err
+			return params, false, nil, nil, err
 		}
 		if len(matches) == 0 {
-			return params, false, nil, nil
+			return params, false, nil, nil, nil
 		}
-		// resolve references to actual values
 		references := taskReferenceMatchesToReferences(matches)
-		resolved, err := resolveTaskReferenceBatch(context.OperationID, references)
+		resolved, err := resolveTaskReferenceBatch(context, references)
 		if err != nil {
-			return params, false, nil, err
+			return params, false, nil, nil, err
 		}
-		// apply resolved references to the original JSON
-		updated, changed, err := applyTaskReferencesToJSON(decoded, context, resolved, true)
-		if err != nil {
-			return params, false, nil, err
-		}
+		updated, changed := applyTaskReferencesToJSON(
+			decoded,
+			context,
+			taskReferenceStructuredValuesByLookupKey(resolved),
+			taskReferenceScalarValuesByRaw(resolved),
+			true,
+		)
 		if !changed {
-			return params, false, nil, nil
+			return params, false, nil, nil, nil
 		}
 		updatedBytes, err := json.Marshal(updated)
 		if err != nil {
-			return params, false, nil, fmt.Errorf("failed to serialize task parameters after reference resolution: %w", err)
+			return params, false, nil, nil, fmt.Errorf("failed to serialize task parameters after reference resolution: %w", err)
 		}
-		return string(updatedBytes), true, buildTaskKeywordResolution(matches, resolved), nil
+		return string(updatedBytes), true, buildTaskKeywordResolution(matches, resolved), collectTaskReferencePostCreateActions(matches, resolved), nil
 	}
-	// fall here if we're not looking at JSON data
-	matches, err := collectTaskReferencesFromString(params, false, "")
+	matches, err := collectTaskReferencesFromString(params, "")
 	if err != nil {
-		return params, false, nil, err
+		return params, false, nil, nil, err
 	}
 	if len(matches) == 0 {
-		return params, false, nil, nil
+		return params, false, nil, nil, nil
 	}
 	references := taskReferenceMatchesToReferences(matches)
-	resolved, err := resolveTaskReferenceBatch(context.OperationID, references)
+	resolved, err := resolveTaskReferenceBatch(context, references)
 	if err != nil {
-		return params, false, nil, err
+		return params, false, nil, nil, err
 	}
-	updated, changed, err := applyTaskReferencesToString(params, resolved, false)
-	if err != nil {
-		return params, false, nil, err
-	}
+	updated, changed := applyTaskReferencesToString(params, taskReferenceScalarValuesByRaw(resolved))
 	if !changed {
-		return params, false, nil, nil
+		return params, false, nil, nil, nil
 	}
-	return updated, changed, buildTaskKeywordResolution(matches, resolved), nil
+	return updated, true, buildTaskKeywordResolution(matches, resolved), collectTaskReferencePostCreateActions(matches, resolved), nil
 }
 
 func collectTaskReferencesFromJSON(value interface{}, context taskReferenceResolveContext, topLevel bool, parameterName string) ([]taskReferenceMatch, error) {
 	switch typed := value.(type) {
 	case map[string]interface{}:
-		// check if we were given structured map[string]interface{} data from the agent
 		matches := make([]taskReferenceMatch, 0)
 		for key, nestedValue := range typed {
-			// iterate over the agent's structured data looking at the parameter name (key)
 			nestedParameterName := parameterName
 			if topLevel {
 				nestedParameterName = key
 			}
 			if topLevel {
-				if providerKeyword := context.StructuredParameterProviders[key]; providerKeyword != "" {
-					// if that structured data's parameter name maps back to a parameter we know about that supports some keyword provider
-					// track the referenceValue as some potential to be a value like @cred:12.credential
-					referenceValue, ok := nestedValue.(string)
-					if !ok {
-						// if the value isn't a string, bail because it's supposed to be a string value
-						return nil, fmt.Errorf("%s parameters require %s task references", providerKeyword, providerKeyword)
-					}
-					// check if reference value is an exact match for our special formatting
-					reference, ok := parseExactTaskReference(referenceValue)
-					if !ok || reference.Field != "" || strings.ToLower(reference.Keyword) != providerKeyword {
-						// if it's not an exact match, if you tried to supply @cred:12.credential when we need @cred:12
-						// or if the regex matched a keyword that we're not looking for, bail
-						return nil, fmt.Errorf("%s parameters require @%s:<id> task references", providerKeyword, providerKeyword)
-					}
-					// make sure our reference is valid for the parameter type (structured = no field specified)
-					err := validateTaskReference(reference, true)
+				if structuredProvider, ok := context.StructuredParameterProviders[key]; ok {
+					structuredMatch, err := collectStructuredTaskReference(nestedValue, structuredProvider, key)
 					if err != nil {
 						return nil, err
 					}
-					// if it's all good, then we found a valid reference
-					matches = append(matches, taskReferenceMatch{
-						Reference:     reference,
-						ParameterName: key,
-						ValueType:     taskReferenceValueTypeStructured,
-					})
+					matches = append(matches, structuredMatch)
 					continue
 				}
 			}
-			// see if we're looking at any nested keys
 			nestedReferences, err := collectTaskReferencesFromJSON(nestedValue, context, false, nestedParameterName)
 			if err != nil {
 				return nil, err
 			}
-			// append all references
 			matches = append(matches, nestedReferences...)
 		}
 		return matches, nil
@@ -290,133 +304,209 @@ func collectTaskReferencesFromJSON(value interface{}, context taskReferenceResol
 		}
 		return matches, nil
 	case string:
-		// if the value from the agent is a string, do a special check
-		return collectTaskReferencesFromString(typed, false, parameterName)
+		return collectTaskReferencesFromString(typed, parameterName)
 	default:
 		return nil, nil
 	}
 }
 
-func collectTaskReferencesFromString(value string, includeBare bool, parameterName string) ([]taskReferenceMatch, error) {
-	matches := taskReferenceKeywordPattern.FindAllStringSubmatch(value, -1)
-	if matches == nil || len(matches) == 0 {
+func collectStructuredTaskReference(value interface{}, structuredProvider taskReferenceStructuredParameterProvider, parameterName string) (taskReferenceMatch, error) {
+	reference, err := parseStructuredTaskReference(value, structuredProvider)
+	if err != nil {
+		return taskReferenceMatch{}, err
+	}
+	return taskReferenceMatch{
+		Reference:      reference,
+		ParameterNames: taskReferenceUniqueParameterNames(append([]string{parameterName}, structuredProvider.ParameterNames...)...),
+		ValueType:      taskReferenceValueTypeStructured,
+	}, nil
+}
+
+func collectTaskReferencesFromString(value string, parameterName string) ([]taskReferenceMatch, error) {
+	matches := taskReferenceLegacyPattern.FindAllStringSubmatch(value, -1)
+	if len(matches) == 0 {
 		return nil, nil
 	}
 	references := make([]taskReferenceMatch, 0, len(matches))
 	for _, match := range matches {
-		reference := taskReferenceKeyword{
-			Raw:      match[0],                  // full match like @cred:12.credential
-			Keyword:  strings.ToLower(match[1]), // cred in @cred:12.credential
-			Selector: match[2],                  // 12 in @cred:12.credential
-		}
-		if len(match) > 3 {
-			reference.Field = strings.ToLower(match[3]) // credential in @cred:12.credential
-		}
-		if reference.Field == "" && !includeBare {
-			// includeBare means without field, so you'd get the full JSON dict spliced in eventually
+		reference, ok := taskReferenceFromLegacySubmatch(match)
+		if !ok || reference.Field == "" {
 			continue
 		}
-		err := validateTaskReference(reference, reference.Field == "")
-		if err != nil {
+		if err := validateTaskReference(reference, false); err != nil {
 			return nil, err
 		}
-		valueType := taskReferenceValueTypeString
-		if reference.Field == "" {
-			valueType = taskReferenceValueTypeStructured
-		}
 		references = append(references, taskReferenceMatch{
-			Reference:     reference,
-			ParameterName: parameterName,
-			ValueType:     valueType,
+			Reference:      reference,
+			ParameterNames: taskReferenceUniqueParameterNames(parameterName),
+			ValueType:      taskReferenceValueTypeString,
 		})
 	}
 	return references, nil
 }
 
-func parseExactTaskReference(value string) (taskReferenceKeyword, bool) {
-	value = strings.TrimSpace(value)
-	matches := taskReferenceKeywordPattern.FindStringSubmatch(value)
-	if len(matches) == 0 || matches[0] != value {
-		// looking for exact matches, so if the first match isn't the full value, we have a problem
-		return taskReferenceKeyword{}, false
+func taskReferenceFromLegacySubmatch(match []string) (taskReference, bool) {
+	if len(match) < 3 || match[0] == "" {
+		return taskReference{}, false
 	}
-	reference := taskReferenceKeyword{
-		Raw:      matches[0],                  // @cred:12.credential
-		Keyword:  strings.ToLower(matches[1]), // cred
-		Selector: matches[2],                  // 12
+	reference := taskReference{
+		Raw:      match[0],
+		Keyword:  strings.ToLower(match[1]),
+		Selector: match[2],
 	}
-	if len(matches) > 3 {
-		reference.Field = strings.ToLower(matches[3]) // credential
+	if len(match) > 3 {
+		reference.Field = strings.ToLower(match[3])
 	}
 	return reference, true
 }
 
-func validateTaskReference(reference taskReferenceKeyword, structured bool) error {
-	provider, ok := getTaskReferenceKeywordProvider(reference.Keyword)
+func parseStructuredTaskReference(value interface{}, structuredProvider taskReferenceStructuredParameterProvider) (taskReference, error) {
+	providerKeyword := strings.ToLower(strings.TrimSpace(structuredProvider.Keyword))
+	if _, ok := getTaskReferenceProvider(providerKeyword); !ok {
+		return taskReference{}, fmt.Errorf("unsupported task reference keyword %q", structuredProvider.Keyword)
+	}
+	referenceValue, ok := value.(string)
+	if !ok {
+		return taskReference{}, fmt.Errorf("%s parameters require @%s task references", structuredProvider.Keyword, structuredProvider.Keyword)
+	}
+	reference, found, err := parseExactTaskReference(referenceValue)
+	if err != nil {
+		return taskReference{}, err
+	}
+	if !found {
+		return taskReference{}, fmt.Errorf("%s parameters require @%s task references", structuredProvider.Keyword, structuredProvider.Keyword)
+	}
+	if reference.Keyword != providerKeyword {
+		return taskReference{}, fmt.Errorf("%s parameters require @%s task references", structuredProvider.Keyword, structuredProvider.Keyword)
+	}
+	if reference.Field != "" {
+		return taskReference{}, fmt.Errorf("%s parameters require structured @%s task references", structuredProvider.Keyword, structuredProvider.Keyword)
+	}
+	reference.ParameterType = structuredProvider.ParameterType
+	if err := validateTaskReference(reference, true); err != nil {
+		return taskReference{}, err
+	}
+	return reference, nil
+}
+
+func parseExactTaskReference(value string) (taskReference, bool, error) {
+	value = strings.TrimSpace(value)
+	matches := taskReferenceExactPattern.FindStringSubmatch(value)
+	if len(matches) == 0 || matches[0] != value {
+		return taskReference{}, false, nil
+	}
+	keyword := strings.ToLower(strings.TrimSpace(matches[1]))
+	provider, ok := getTaskReferenceProvider(keyword)
+	if !ok {
+		return taskReference{}, true, fmt.Errorf("unsupported task reference keyword %q", keyword)
+	}
+	reference, err := provider.ParseReferenceBody(matches[2], matches[0])
+	if err != nil {
+		return taskReference{}, true, err
+	}
+	reference.Keyword = keyword
+	reference.Raw = matches[0]
+	return reference, true, nil
+}
+
+func validateTaskReference(reference taskReference, structured bool) error {
+	provider, ok := getTaskReferenceProvider(reference.Keyword)
 	if !ok {
 		logging.LogError(nil, "validateTaskReference", "unsupported provider", reference.Keyword)
 		return fmt.Errorf("unsupported task reference keyword %q", reference.Keyword)
 	}
-	// validate that the selector we're trying to access is a valid value and not like @cred:bob
-	err := provider.ValidateSelector(reference.Selector)
-	if err != nil {
-		logging.LogError(err, "invalid reference selector", "keyword", reference.Keyword, "selector", reference.Selector)
-		return fmt.Errorf("invalid %s reference selector %q: %w", reference.Keyword, reference.Selector, err)
+	if err := provider.ValidateReference(reference, structured); err != nil {
+		logging.LogError(err, "invalid task reference", "keyword", reference.Keyword, "selector", reference.Selector, "field", reference.Field)
+		return err
 	}
-	if reference.Field == "" {
-		if !structured {
-			// nonstructured reference (i.e. a reference in a string and not a sole parameter) needs a field
-			return fmt.Errorf("task reference %s requires a field", reference.Raw)
-		}
-		return nil
-	}
-	// check if the field supplied makes sense for the provider - don't need @cred:12.username when it should be .account
-	err = provider.ValidateField(reference.Field)
-	if err != nil {
-		logging.LogError(err, "invalid reference field", "keyword", reference.Keyword, "field", reference.Field)
-		return fmt.Errorf("invalid %s reference field %q: %w", reference.Keyword, reference.Field, err)
+	if reference.Field == "" && !structured {
+		return fmt.Errorf("task reference %s requires a field", reference.Raw)
 	}
 	return nil
 }
 
-func resolveTaskReferenceBatch(operationID int, references []taskReferenceKeyword) (map[taskReferenceKeyword]taskReferenceKeywordResolvedValue, error) {
-	referencesByProvider := make(map[string][]taskReferenceKeyword)
+func resolveTaskReferenceBatch(context taskReferenceResolveContext, references []taskReference) (map[taskReference]taskReferenceResolvedValue, error) {
+	referencesByProvider := make(map[string][]taskReference)
+	canonicalReferences := make(map[string]taskReference)
 	seen := make(map[string]bool)
-	// group references by provider
 	for _, reference := range references {
-		if seen[reference.Raw] {
+		dedupeKey := taskReferenceDedupeKey(reference)
+		if seen[dedupeKey] {
 			continue
 		}
-		seen[reference.Raw] = true
+		seen[dedupeKey] = true
+		canonicalReferences[dedupeKey] = reference
 		referencesByProvider[reference.Keyword] = append(referencesByProvider[reference.Keyword], reference)
 	}
-	resolved := make(map[taskReferenceKeyword]taskReferenceKeywordResolvedValue)
+	resolved := make(map[taskReference]taskReferenceResolvedValue)
 	for keyword, providerReferences := range referencesByProvider {
-		provider, ok := getTaskReferenceKeywordProvider(keyword)
+		provider, ok := getTaskReferenceProvider(keyword)
 		if !ok {
 			return nil, fmt.Errorf("unsupported task reference keyword %q", keyword)
 		}
-		providerResolved, err := provider.BatchResolveTaskReferences(operationID, providerReferences)
+		providerResolved, err := provider.BatchResolveTaskReferences(context, providerReferences)
 		if err != nil {
 			return nil, err
 		}
-		// update resolved tracking with values from one provider, then move to the next provider
 		for reference, resolvedValue := range providerResolved {
+			resolved[reference] = resolvedValue
+		}
+	}
+	for _, reference := range references {
+		if _, ok := resolved[reference]; !ok {
+			canonicalReference, ok := canonicalReferences[taskReferenceDedupeKey(reference)]
+			if !ok {
+				return nil, fmt.Errorf("failed to resolve %s", reference.Raw)
+			}
+			resolvedValue, ok := resolved[canonicalReference]
+			if !ok {
+				return nil, fmt.Errorf("failed to resolve %s", reference.Raw)
+			}
 			resolved[reference] = resolvedValue
 		}
 	}
 	return resolved, nil
 }
 
-func taskReferenceMatchesToReferences(matches []taskReferenceMatch) []taskReferenceKeyword {
-	references := make([]taskReferenceKeyword, 0, len(matches))
+func taskReferenceDedupeKey(reference taskReference) string {
+	return strings.Join([]string{reference.Keyword, reference.Selector, reference.Field, reference.ParameterType}, "\x00")
+}
+
+func taskReferenceMatchesToReferences(matches []taskReferenceMatch) []taskReference {
+	references := make([]taskReference, 0, len(matches))
 	for _, match := range matches {
 		references = append(references, match.Reference)
 	}
 	return references
 }
 
-func buildTaskKeywordResolution(matches []taskReferenceMatch, resolved map[taskReferenceKeyword]taskReferenceKeywordResolvedValue) []PTTaskKeywordResolution {
+func taskReferenceScalarValuesByRaw(resolved map[taskReference]taskReferenceResolvedValue) map[string]string {
+	scalars := make(map[string]string, len(resolved))
+	for reference, resolvedValue := range resolved {
+		if reference.Field == "" {
+			continue
+		}
+		scalars[reference.Raw] = resolvedValue.Scalar
+	}
+	return scalars
+}
+
+func taskReferenceStructuredValuesByLookupKey(resolved map[taskReference]taskReferenceResolvedValue) map[string]interface{} {
+	structuredValues := make(map[string]interface{}, len(resolved))
+	for reference, resolvedValue := range resolved {
+		if reference.Field != "" || reference.ParameterType == "" {
+			continue
+		}
+		structuredValues[taskReferenceStructuredLookupKey(reference.Raw, reference.ParameterType)] = resolvedValue.Structured
+	}
+	return structuredValues
+}
+
+func taskReferenceStructuredLookupKey(raw string, parameterType string) string {
+	return strings.Join([]string{strings.TrimSpace(raw), parameterType}, "\x00")
+}
+
+func buildTaskKeywordResolution(matches []taskReferenceMatch, resolved map[taskReference]taskReferenceResolvedValue) []PTTaskKeywordResolution {
 	resolutionByRaw := make(map[string]*PTTaskKeywordResolution)
 	order := make([]string, 0, len(matches))
 	for _, match := range matches {
@@ -441,11 +531,14 @@ func buildTaskKeywordResolution(matches []taskReferenceMatch, resolved map[taskR
 			resolutionByRaw[match.Reference.Raw] = entry
 			order = append(order, match.Reference.Raw)
 		}
-		if strings.TrimSpace(match.ParameterName) == "" {
-			continue
-		}
-		if !taskKeywordResolutionHasParameterName(entry.ParameterNames, match.ParameterName) {
-			entry.ParameterNames = append(entry.ParameterNames, match.ParameterName)
+		for _, parameterName := range match.ParameterNames {
+			parameterName = strings.TrimSpace(parameterName)
+			if parameterName == "" {
+				continue
+			}
+			if !slices.Contains(entry.ParameterNames, parameterName) {
+				entry.ParameterNames = append(entry.ParameterNames, parameterName)
+			}
 		}
 	}
 	sort.Strings(order)
@@ -457,94 +550,85 @@ func buildTaskKeywordResolution(matches []taskReferenceMatch, resolved map[taskR
 	return resolutions
 }
 
-func taskKeywordResolutionHasParameterName(parameterNames []string, parameterName string) bool {
-	for _, existing := range parameterNames {
-		if existing == parameterName {
-			return true
+func collectTaskReferencePostCreateActions(matches []taskReferenceMatch, resolved map[taskReference]taskReferenceResolvedValue) []taskReferencePostCreateAction {
+	actions := make([]taskReferencePostCreateAction, 0)
+	seen := make(map[string]bool)
+	for _, match := range matches {
+		resolvedValue, ok := resolved[match.Reference]
+		if !ok || len(resolvedValue.PostCreateActions) == 0 {
+			continue
 		}
+		dedupeKey := taskReferenceDedupeKey(match.Reference)
+		if seen[dedupeKey] {
+			continue
+		}
+		seen[dedupeKey] = true
+		actions = append(actions, resolvedValue.PostCreateActions...)
 	}
-	return false
+	return actions
 }
 
-func applyTaskReferencesToJSON(value interface{}, context taskReferenceResolveContext, resolved map[taskReferenceKeyword]taskReferenceKeywordResolvedValue, topLevel bool) (interface{}, bool, error) {
+func applyTaskReferencesToJSON(value interface{}, context taskReferenceResolveContext, structuredValuesByLookupKey map[string]interface{}, scalarValuesByRaw map[string]string, topLevel bool) (interface{}, bool) {
 	switch typed := value.(type) {
 	case map[string]interface{}:
 		changed := false
 		for parameterName, parameterValue := range typed {
-			// looping through the tasking parameters
 			if topLevel {
-				if providerKeyword := context.StructuredParameterProviders[parameterName]; providerKeyword != "" {
-					referenceValue, ok := parameterValue.(string)
-					if !ok {
-						return value, false, fmt.Errorf("%s parameters require @%s:<id> task references", providerKeyword, providerKeyword)
+				if structuredProvider, ok := context.StructuredParameterProviders[parameterName]; ok {
+					updatedValue, structuredChanged := applyStructuredTaskReference(parameterValue, structuredProvider, structuredValuesByLookupKey)
+					if structuredChanged {
+						typed[parameterName] = updatedValue
+						changed = true
 					}
-					reference, ok := parseExactTaskReference(referenceValue)
-					if !ok || reference.Field != "" || reference.Keyword != providerKeyword {
-						return value, false, fmt.Errorf("%s parameters require @%s:<id> task references", providerKeyword, providerKeyword)
-					}
-					resolvedValue, ok := resolved[reference]
-					if !ok {
-						return value, false, fmt.Errorf("failed to resolve %s", reference.Raw)
-					}
-					typed[parameterName] = resolvedValue.Structured
-					changed = true
 					continue
 				}
 			}
-			updatedValue, nestedChanged, err := applyTaskReferencesToJSON(parameterValue, context, resolved, false)
-			if err != nil {
-				return value, false, err
-			}
+			updatedValue, nestedChanged := applyTaskReferencesToJSON(parameterValue, context, structuredValuesByLookupKey, scalarValuesByRaw, false)
 			if nestedChanged {
 				typed[parameterName] = updatedValue
 				changed = true
 			}
 		}
-		return typed, changed, nil
+		return typed, changed
 	case []interface{}:
 		changed := false
 		for index, nestedValue := range typed {
-			updatedValue, nestedChanged, err := applyTaskReferencesToJSON(nestedValue, context, resolved, false)
-			if err != nil {
-				return value, false, err
-			}
+			updatedValue, nestedChanged := applyTaskReferencesToJSON(nestedValue, context, structuredValuesByLookupKey, scalarValuesByRaw, false)
 			if nestedChanged {
 				typed[index] = updatedValue
 				changed = true
 			}
 		}
-		return typed, changed, nil
+		return typed, changed
 	case string:
-		return applyTaskReferencesToString(typed, resolved, false)
+		updated, changed := applyTaskReferencesToString(typed, scalarValuesByRaw)
+		return updated, changed
 	default:
-		return value, false, nil
+		return value, false
 	}
 }
 
-func applyTaskReferencesToString(value string, resolved map[taskReferenceKeyword]taskReferenceKeywordResolvedValue, includeBare bool) (string, bool, error) {
+func applyStructuredTaskReference(value interface{}, structuredProvider taskReferenceStructuredParameterProvider, structuredValuesByLookupKey map[string]interface{}) (interface{}, bool) {
+	referenceValue, ok := value.(string)
+	if !ok {
+		return value, false
+	}
+	resolvedValue, ok := structuredValuesByLookupKey[taskReferenceStructuredLookupKey(referenceValue, structuredProvider.ParameterType)]
+	if !ok {
+		return value, false
+	}
+	return resolvedValue, true
+}
+
+func applyTaskReferencesToString(value string, scalarValuesByRaw map[string]string) (string, bool) {
 	changed := false
-	var applyErr error
-	updated := taskReferenceKeywordPattern.ReplaceAllStringFunc(value, func(raw string) string {
-		if applyErr != nil {
-			return raw
-		}
-		reference, ok := parseExactTaskReference(raw)
+	updated := taskReferenceLegacyPattern.ReplaceAllStringFunc(value, func(raw string) string {
+		scalarValue, ok := scalarValuesByRaw[raw]
 		if !ok {
-			return raw
-		}
-		if reference.Field == "" && !includeBare {
-			return raw
-		}
-		resolvedValue, ok := resolved[reference]
-		if !ok {
-			applyErr = fmt.Errorf("failed to resolve %s", raw)
 			return raw
 		}
 		changed = true
-		return resolvedValue.Scalar
+		return scalarValue
 	})
-	if applyErr != nil {
-		return value, false, applyErr
-	}
-	return updated, changed, nil
+	return updated, changed
 }
