@@ -920,6 +920,7 @@ function FileMetaUploadTableRow(props){
                                               innerDialog={<PreviewFileMediaDialog
                                                   agent_file_id={props.agent_file_id}
                                                   filename={props.filename_text}
+                                                  editable={true}
                                                   onClose={(e)=>{setOpenPreviewMediaDialog(false);}} />}
                                 />
                             }

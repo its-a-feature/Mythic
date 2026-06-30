@@ -21,6 +21,31 @@
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
     <title>Mythic</title>
+    <script>
+      (function () {
+        var resizeObserverLoopErrors = [
+          "ResizeObserver loop limit exceeded",
+          "ResizeObserver loop completed with undelivered notifications."
+        ];
+        function isResizeObserverLoopError(message) {
+          return resizeObserverLoopErrors.indexOf(message) !== -1;
+        }
+        window.addEventListener("error", function (event) {
+          if (isResizeObserverLoopError(event.message)) {
+            event.stopImmediatePropagation();
+            event.preventDefault();
+          }
+        }, true);
+        window.addEventListener("unhandledrejection", function (event) {
+          var reason = event.reason;
+          var message = reason && reason.message ? reason.message : reason;
+          if (isResizeObserverLoopError(message)) {
+            event.stopImmediatePropagation();
+            event.preventDefault();
+          }
+        }, true);
+      })();
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

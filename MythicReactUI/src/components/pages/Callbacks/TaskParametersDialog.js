@@ -448,6 +448,7 @@ export function TaskParametersDialog(props) {
                     }
                 }, {});
                 return {
+                    edge: choices[0].id,
                     host: choice.host,
                     agent_uuid: choice.payload.uuid,
                     callback_uuid: choice.agent_callback_id,
@@ -876,7 +877,7 @@ export function TaskParametersDialog(props) {
                 case "Array":
                 case "TypedArray":
                 case "LinkInfo":
-                    //console.log("submit param", param)
+                    console.log("submit param", param)
                     collapsedParameters[param.name] = param.value;
                     break;
                 case "AgentConnect":
@@ -884,7 +885,14 @@ export function TaskParametersDialog(props) {
                         snackActions.warning("No connection info specified")
                         return
                     }
-                    collapsedParameters[param.name] = param.value;
+                    console.log(param.value)
+                    if(param.value.callback_uuid !== undefined && param.value.callback_uuid !== ""){
+
+                        collapsedParameters[param.name] = `@link:callback=${param.value.callback_display_id},c2=${param.value.c2_profile.name}`;
+                    } else {
+                        collapsedParameters[param.name] = `@link:payload=${param.value.agent_uuid},c2=${param.value.c2_profile.name},host=${param.value.host}`;
+                    }
+                    //collapsedParameters[param.name] = param.value;
                     break
                 case "File":
                     if(props.captureOnly){

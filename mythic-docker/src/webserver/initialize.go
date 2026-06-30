@@ -282,11 +282,6 @@ func setRoutes(r *gin.Engine) {
 						mythicjwt.SCOPE_FILE_READ,
 					}),
 					webcontroller.FileDirectDownloadWebhook)
-				r.POST("/direct/upload/:file_uuid",
-					authentication.TokenScopeMiddleware([]string{
-						mythicjwt.SCOPE_FILE_WRITE,
-					}),
-					webcontroller.FileDirectUploadWebhook)
 				allOperationMembers.POST("eventing_import_automatic_webhook",
 					authentication.TokenScopeMiddleware([]string{
 						mythicjwt.SCOPE_EVENTING_WRITE,
@@ -429,6 +424,11 @@ func setRoutes(r *gin.Engine) {
 						mythicjwt.SCOPE_FILE_WRITE,
 					}),
 					webcontroller.TaskUploadFileWebhook)
+				noSpectators.POST("direct/upload/:file_uuid",
+					authentication.TokenScopeMiddleware([]string{
+						mythicjwt.SCOPE_FILE_WRITE,
+					}),
+					webcontroller.FileDirectUploadWebhook)
 				noSpectators.POST("create_task_webhook",
 					authentication.TokenScopeMiddleware([]string{
 						mythicjwt.SCOPE_TASK_WRITE,

@@ -2,13 +2,9 @@ import React from 'react';
 import {Typography, Link} from '@mui/material';
 import { Button, IconButton } from '@mui/material';
 import {GetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
-import MenuItem from '@mui/material/MenuItem';
-import TextField from '@mui/material/TextField';
 import AceEditor from 'react-ace';
 import {useTheme} from '@mui/material/styles';
 import {snackActions} from "../../utilities/Snackbar";
-import FormControl from '@mui/material/FormControl';
-import WrapTextIcon from '@mui/icons-material/WrapText';
 // https://github.com/ajaxorg/ace-builds/tree/master/src-min-noconflict
 import 'ace-builds/src-noconflict/mode-json';
 import 'ace-builds/src-noconflict/mode-csharp';
@@ -44,8 +40,7 @@ import Tabs from '@mui/material/Tabs';
 import TabContext from '@mui/lab/TabContext';
 import Tab from '@mui/material/Tab';
 import {previewFileQuery} from "../Search/FileMetaTable";
-import { useMutation, gql, useQuery } from '@apollo/client';
-import CodeIcon from '@mui/icons-material/Code';
+import { useMutation, gql } from '@apollo/client';
 import DownloadIcon from '@mui/icons-material/Download';
 import {b64DecodeUnicode} from "./ResponseDisplay";
 import {MythicDialog, TableRowSizeCell} from "../../MythicComponents/MythicDialog";
@@ -65,6 +60,9 @@ import sqlWasm from "!!file-loader?name=sql-wasm-[contenthash].wasm!sql.js/dist/
 import {copyStringToClipboard} from "../../utilities/Clipboard";
 import {FileDownloadButtonWithAuth, FileDownloadLinkWithAuth} from "../../utilities/FileDownloadWithAuth";
 import {ImageWithAuth} from "../../utilities/ImageWithAuth";
+import {ResponseDisplayPlaintext} from "./ResponseDisplayPlaintext";
+import {UploadDirectFile} from "../../MythicComponents/MythicFileUpload";
+import SaveIcon from '@mui/icons-material/Save';
 
 export const modeOptions = ["csharp", "golang", "html", "json", "markdown", "ruby", "python", "java",
     "javascript", "yaml", "toml", "swift", "sql", "rust", "powershell", "pgsql", "perl", "php", "objectivec",
@@ -79,6 +77,7 @@ const fileMetaQuery = gql`
             size
             agent_file_id
             complete
+            deleted
             total_chunks
             chunks_received
             task {
@@ -118,6 +117,7 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
                 agent_file_id: data.filemeta[0].agent_file_id,
                 task_display_id: data.filemeta[0]?.task?.display_id,
                 complete: data.filemeta[0].complete,
+                deleted: data.filemeta[0].deleted,
                 total_chunks: data.filemeta[0].total_chunks,
                 chunks_received: data.filemeta[0].chunks_received
             })
@@ -169,6 +169,7 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
                     <DisplayMedia agent_file_id={media?.agent_file_id || ""}
                                   task={task} filename={media?.filename || undefined}
                                   fileMetaData={fileMetaData}
+                                  editable={Boolean(media?.editable)}
                                   expand={expand} />
                 }
             </div>
@@ -177,6 +178,7 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
                     <DisplayText agent_file_id={media?.agent_file_id || ""}
                                  task={task} filename={media?.filename || undefined}
                                  fileMetaData={fileMetaData}
+                                 editable={Boolean(media?.editable)}
                                  expand={expand} preview />
                 }
             </div>
@@ -265,7 +267,7 @@ const mimeType = (path) => {
     }
     return undefined;
 }
-export const DisplayMedia = ({agent_file_id, filename, expand, task, fileMetaData}) => {
+export const DisplayMedia = ({agent_file_id, filename, expand, task, fileMetaData, editable=false}) => {
     const showMediaSetting = GetMythicSetting({setting_name: "showMedia", default_value: true});
     const [openScreenshot, setOpenScreenshot] = React.useState(false);
     const [showMedia, setShowMedia] = React.useState(showMediaSetting);
@@ -373,7 +375,7 @@ export const DisplayMedia = ({agent_file_id, filename, expand, task, fileMetaDat
         return (
             <div style={{height: "100%", minHeight: "100px", width: "100%"}}>
                 <DisplayText agent_file_id={agent_file_id} expand={expand} filename={filename}
-                             fileMetaData={fileMetaData}/>
+                             fileMetaData={fileMetaData} editable={editable}/>
             </div>
         )
     }
@@ -433,170 +435,190 @@ const DisplayFileMetaData = ({fileMetaData}) => {
         </TableContainer>
     )
 }
-const DisplayText = ({agent_file_id, expand, filename, preview, fileMetaData}) => {
-    const theme = useTheme();
-    const [mode, setMode] = React.useState("html");
+const getTextSyntaxForFilename = (filename) => {
+    if(!filename){
+        return "html";
+    }
+    let extension = filename.split(".");
+    if(extension.length > 1){
+        extension = extension[extension.length - 1].toLowerCase();
+        return textExtensionTypesToSyntax[extension] || "html";
+    }
+    return textExtensionTypesToSyntax[filename.toLowerCase()] || "html";
+}
+
+const DisplayText = ({agent_file_id, expand, filename, editable=false, fileMetaData}) => {
     const [content, setContent] = React.useState("");
-    const [wrapText, setWrapText] = React.useState(true);
-    const [previewFileString] = useMutation(previewFileQuery, {
-        onCompleted: (data) => {
-            if(data.previewFile.status === "success"){
-                setContent(b64DecodeUnicode(data.previewFile.contents));
-                if(data.previewFile.size > 512000){
-                    setLimitedPreviewWarning(true);
-                }
-            }else{
-                console.log(data.previewFile.error);
-                if(data.previewFile.error !== "EOF"){
-                    snackActions.error(data.previewFile.error);
-                }
-            }
-        },
-        onError: (data) => {
-            console.log(data);
-            snackActions.error(data);
-        }
-    });
+    const [editedContent, setEditedContent] = React.useState("");
+    const [loading, setLoading] = React.useState(true);
+    const [loadError, setLoadError] = React.useState("");
     const [limitedPreviewWarning, setLimitedPreviewWarning] = React.useState(false);
-    const currentContentRef = React.useRef();
+    const [previewLoaded, setPreviewLoaded] = React.useState(false);
+    const [saving, setSaving] = React.useState(false);
+    const [previewFileString] = useMutation(previewFileQuery);
+    const initialMode = React.useMemo(() => getTextSyntaxForFilename(filename), [filename]);
     React.useEffect( () => {
-        if(preview){
-            // get first 512KB
-            previewFileString({variables: {file_id: agent_file_id}})
-        }else{
-            // get entire file
-            fetch('/direct/view/' + agent_file_id, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-                }
-            }).then((response) => {
-                if(response.status !== 200){
-                    snackActions.warning("Failed to fetch contents from Mythic");
+        let cancelled = false;
+        const loadText = async () => {
+            setLoading(true);
+            setLoadError("");
+            setPreviewLoaded(false);
+            setLimitedPreviewWarning(false);
+            setContent("");
+            setEditedContent("");
+            try{
+                const {data} = await previewFileString({variables: {file_id: agent_file_id}});
+                const previewData = data?.previewFile;
+                if(cancelled){
                     return;
                 }
-                response.text().then(data => {
-                    if(data.length > MaxRenderSize){
-                        snackActions.warning("File too large (> 2MB), truncating the render");
-                        setLimitedPreviewWarning(true);
-                        setContent(data.substring(0, MaxRenderSize));
+                let previewText = "";
+                if(previewData?.status !== "success"){
+                    const errorMessage = previewData?.error || "Failed to preview file";
+                    if(errorMessage === "EOF"){
+                        setPreviewLoaded(true);
+                    }else{
+                        setLoadError(errorMessage);
+                        snackActions.error(errorMessage);
                         return;
                     }
-                    try{
-                        let cont = JSON.stringify(JSON.parse(data), null, 2);
-                        setContent(cont);
-                    }catch(error){
-                        setContent(data.substring(0, MaxRenderSize));
+                }else{
+                    setPreviewLoaded(true);
+                    previewText = b64DecodeUnicode(previewData.contents || "");
+                }
+                if((previewData.size || 0) > MaxRenderSize){
+                    setLimitedPreviewWarning(true);
+                    setContent(previewText);
+                    setEditedContent(previewText);
+                    return;
+                }
+                const response = await fetch('/direct/view/' + agent_file_id, {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('access_token')}`,
                     }
-                }).catch(error => {
-                    snackActions.warning("Error getting contents from server: " + error.toString());
-                    console.log("Error trying to get json response", error, response);
                 });
-            }).catch(error => {
-                if(error.toString() === "TypeError: Failed to fetch"){
-                    snackActions.warning("Please refresh and accept the SSL connection error");
-                } else {
-                    snackActions.warning("Error talking to server: " + error.toString());
+                if(cancelled){
+                    return;
                 }
+                if(response.status !== 200){
+                    setLoadError("Failed to fetch contents from Mythic");
+                    snackActions.warning("Failed to fetch contents from Mythic");
+                    setContent(previewText);
+                    setEditedContent(previewText);
+                    return;
+                }
+                const fullText = await response.text();
+                if(cancelled){
+                    return;
+                }
+                if(fullText.length > MaxRenderSize){
+                    snackActions.warning("File too large (> 2MB), truncating the render");
+                    setLimitedPreviewWarning(true);
+                    const truncatedText = fullText.substring(0, MaxRenderSize);
+                    setContent(truncatedText);
+                    setEditedContent(truncatedText);
+                    return;
+                }
+                setContent(fullText);
+                setEditedContent(fullText);
+            }catch(error){
+                if(cancelled){
+                    return;
+                }
+                const errorMessage = error.toString() === "TypeError: Failed to fetch" ?
+                    "Please refresh and accept the SSL connection error" :
+                    "Error talking to server: " + error.toString();
+                setLoadError(errorMessage);
+                snackActions.warning(errorMessage);
                 console.log("There was an error!", error);
-            });
-        }
-        if(filename){
-            let extension = filename.split(".");
-            if(extension.length > 1){
-                extension = extension[extension.length - 1];
-                if(textExtensionTypesToSyntax[extension]){
-                    setMode(textExtensionTypesToSyntax[extension]);
-                }
-            } else {
-                if(textExtensionTypesToSyntax[filename.toLowerCase()]){
-                    setMode(textExtensionTypesToSyntax[filename.toLowerCase()]);
+            }finally{
+                if(!cancelled){
+                    setLoading(false);
                 }
             }
         }
-    }, [agent_file_id, filename, fileMetaData]);
-    const onChangeMode = (event) => {
-        setMode(event.target.value);
-    }
-    const toggleWrapText = () => {
-        setWrapText(!wrapText);
-    }
-    const formatJSON = () => {
+        if(agent_file_id){
+            loadText();
+        }
+        return () => {
+            cancelled = true;
+        }
+    }, [agent_file_id, previewFileString]);
+    const canSave = editable &&
+        previewLoaded &&
+        !loading &&
+        !loadError &&
+        !limitedPreviewWarning &&
+        fileMetaData?.complete !== false &&
+        !fileMetaData?.deleted;
+    const saveDisabledReason = !editable ? "Editing is not enabled for this file" :
+        !previewLoaded ? "Text preview has not loaded successfully" :
+        limitedPreviewWarning ? "Only a truncated preview is loaded" :
+        fileMetaData?.complete === false ? "File is not completely uploaded" :
+        fileMetaData?.deleted ? "Deleted files cannot be edited" :
+        loadError ? loadError :
+        saving ? "Saving file" :
+        "";
+    const onSave = async () => {
+        if(!canSave || saving){
+            if(saveDisabledReason){
+                snackActions.warning(saveDisabledReason);
+            }
+            return;
+        }
+        setSaving(true);
         try{
-            let tmp = JSON.stringify(JSON.parse(currentContentRef.current?.editor?.getValue()), null, 2);
-            setContent(tmp);
-            setMode("json");
-        }catch(error){
-            snackActions.warning("Failed to reformat as JSON")
+            const newFile = new File([editedContent], filename || agent_file_id, {type: "text/plain;charset=utf-8"});
+            const uploadResult = await UploadDirectFile(agent_file_id, newFile);
+            if(uploadResult?.status === "success"){
+                snackActions.success("Successfully saved file");
+            }else if(uploadResult?.error){
+                snackActions.error(uploadResult.error);
+            }else{
+                snackActions.error("Failed to save file");
+            }
+        }finally{
+            setSaving(false);
         }
     }
+    const toolbarActions = editable ? [
+        <MythicStyledTooltip title={saveDisabledReason || "Save file"}>
+            <span>
+                <button
+                    aria-label="Save file"
+                    className="mythic-response-render-action-button mythic-response-render-action-button-save"
+                    disabled={!canSave || saving}
+                    onClick={onSave}
+                    type="button">
+                    <SaveIcon fontSize="small" />
+                </button>
+            </span>
+        </MythicStyledTooltip>
+    ] : [];
+    const toolbarNotice = limitedPreviewWarning ? (
+        <MythicStyledTooltip title={"Only a truncated preview of this file is shown"}>
+            <WarningOutlinedIcon style={{marginLeft: "5px"}} color={"warning"} />
+        </MythicStyledTooltip>
+    ) : null;
     return (
-        <div style={{display: "flex", height: "100%", flexDirection: "column"}}>
-            <div style={{display: "inline-flex", flexDirection: "row", alignItems: "center"}}>
-                <FormControl sx={{ display: "inline-block", marginLeft: "10px" }} size="small" color={"secondary"}>
-                    <TextField
-                        select
-                        label={"Syntax"}
-                        margin={"dense"}
-                        size={"small"}
-                        style={{display: "inline-block", width: "100%",}}
-                        value={mode}
-                        sx={{padding: 0}}
-                        onChange={onChangeMode}
-                    >
-                        {
-                            modeOptions.map((opt, i) => (
-                                <MenuItem key={"searchopt" + opt} value={opt}>{opt}</MenuItem>
-                            ))
-                        }
-                    </TextField>
-                </FormControl>
-                <MythicStyledTooltip title={wrapText ?  "Unwrap Text" : "Wrap Text"} >
-                    <IconButton onClick={toggleWrapText} style={{}}>
-                        <WrapTextIcon color={wrapText ? "success" : "secondary"}
-                                      style={{cursor: "pointer"}}
-                        />
-                    </IconButton>
-                </MythicStyledTooltip>
-                <MythicStyledTooltip title={"Auto format JSON"} >
-                    <IconButton onClick={formatJSON} style={{}}>
-                        <CodeIcon color={"info"} style={{cursor: "pointer"}} />
-                    </IconButton>
-                </MythicStyledTooltip>
-                {limitedPreviewWarning &&
-                    <>
-                        <MythicStyledTooltip title={preview ? "Only first 512KB of file is shown" :
-                            "Only first 2MB of file is shown"}>
-                            <WarningOutlinedIcon style={{marginLeft: "5px"}} color={"warning"} />
-                        </MythicStyledTooltip>
-                    </>
-                }
-            </div>
-            <div style={{display: "flex", flexGrow: 1, height: "100%"}}>
-                <AceEditor
-                    ref={currentContentRef}
-                    mode={mode}
-                    theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}
-                    fontSize={14}
-                    showGutter={true}
-                    //onLoad={onLoad}
-                    highlightActiveLine={false}
-                    showPrintMargin={false}
-                    value={content}
-                    height={expand ? "100%": undefined}
-                    maxLines={expand ? undefined : 20}
-                    width={"100%"}
-                    //autoScrollEditorIntoView={true}
-                    wrapEnabled={wrapText}
-                    minLines={2}
-                    //maxLines={props.expand ? 50 : 20}
-                    setOptions={{
-                        showLineNumbers: true,
-                        tabSize: 4,
-                        useWorker: false
-                    }}/>
-            </div>
-
-        </div>
+        <ResponseDisplayPlaintext
+            plaintext={loading ? "Loading..." : content}
+            expand={expand}
+            initial_mode={initialMode}
+            autoFormat={false}
+            readOnly={!editable}
+            toolbarTitle={"Text"}
+            initial_show_options={true}
+            toolbarActions={toolbarActions}
+            toolbarNotice={toolbarNotice}
+            enableCredentialCreation={!loading && previewLoaded}
+            credentialMetadata={{
+                agent_file_id,
+                filemeta_id: fileMetaData?.id,
+                filename: filename || fileMetaData?.filename,
+            }}
+            onChangeContent={setEditedContent}
+        />
     )
 }
 const DisplayHex = ({agent_file_id, expand, fileMetaData}) => {

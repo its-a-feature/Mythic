@@ -1,7 +1,7 @@
 import {MythicSearchTabLabel, MythicTabPanel} from '../../MythicComponents/MythicTabPanel';
 import React from 'react';
 import AttachmentIcon from '@mui/icons-material/Attachment';
-import {gql, useLazyQuery} from '@apollo/client';
+import {gql} from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
 import {
     FileMetaDownloadTable,
@@ -16,10 +16,18 @@ import {UploadTaskFile} from '../../MythicComponents/MythicFileUpload';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import BackupIcon from '@mui/icons-material/Backup';
+import NoteAddIcon from '@mui/icons-material/NoteAdd';
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 import {MythicTablePagination} from "../../MythicComponents/MythicTablePagination";
 import {MythicSearchField, MythicTableToolbar, MythicTableToolbarGroup, MythicToolbarButton, MythicToolbarSelect, MythicToolbarToggle} from "../../MythicComponents/MythicTableToolbar";
 import {MythicSearchEmptyState} from "../../MythicComponents/MythicStateDisplay";
+import {MythicDialog} from "../../MythicComponents/MythicDialog";
+import {MythicDraggableDialogTitle} from "../../MythicComponents/MythicDraggableDialogTitle";
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import Button from '@mui/material/Button';
+import TextField from '@mui/material/TextField';
+import {ResponseDisplayPlaintext} from "../Callbacks/ResponseDisplayPlaintext";
 
 const fileMetaFragment = gql`
 fragment filemetaData on filemeta{
@@ -471,6 +479,107 @@ export function SearchTabFilesLabel(props) {
     )
 }
 
+const newTextFileSyntaxMap = {
+    "json": "json",
+    "md": "markdown",
+    "markdown": "markdown",
+    "py": "python",
+    "ps1": "powershell",
+    "sh": "sh",
+    "bash": "sh",
+    "zsh": "sh",
+    "js": "javascript",
+    "go": "golang",
+    "yml": "yaml",
+    "yaml": "yaml",
+    "toml": "toml",
+    "ini": "ini",
+    "conf": "apache_conf",
+    "html": "html",
+    "xml": "html",
+};
+const getNewTextFileSyntax = (filename) => {
+    if(!filename){
+        return "html";
+    }
+    const pieces = filename.split(".");
+    const extension = pieces.length > 1 ? pieces[pieces.length - 1].toLowerCase() : filename.toLowerCase();
+    return newTextFileSyntaxMap[extension] || "html";
+}
+
+const CreateTextFileDialog = ({onClose}) => {
+    const [filename, setFilename] = React.useState("new-file.txt");
+    const [content, setContent] = React.useState("");
+    const [uploading, setUploading] = React.useState(false);
+    const initialMode = React.useMemo(() => getNewTextFileSyntax(filename), [filename]);
+    const onSave = async (event) => {
+        if(event){
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        const trimmedFilename = filename.trim();
+        if(trimmedFilename === ""){
+            snackActions.warning("Filename is required");
+            return;
+        }
+        setUploading(true);
+        try{
+            const newFile = new File([content], trimmedFilename, {type: "text/plain;charset=utf-8"});
+            const newUUID = await UploadTaskFile(newFile, "Manually created text file");
+            if(newUUID){
+                snackActions.success("Successfully created text file. It's available in 'uploads'");
+                onClose();
+            }
+        }finally{
+            setUploading(false);
+        }
+    }
+    return (
+        <React.Fragment>
+            <MythicDraggableDialogTitle>
+                Create Text File
+            </MythicDraggableDialogTitle>
+            <DialogContent style={{height: "calc(75vh)", display: "flex", flexDirection: "column", gap: "8px", paddingBottom: "8px"}}>
+                <TextField
+                    label="Filename"
+                    margin="dense"
+                    size="small"
+                    value={filename}
+                    onChange={(event) => setFilename(event.target.value)}
+                    onKeyDown={(event) => {
+                        if(event.key === "Enter" && (event.metaKey || event.ctrlKey)){
+                            onSave(event);
+                        }
+                    }}
+                />
+                <div style={{flexGrow: 1, minHeight: 0}}>
+                    <ResponseDisplayPlaintext
+                        plaintext={content}
+                        expand={true}
+                        autoFormat={false}
+                        toolbarTitle={"Text"}
+                        initial_show_options={true}
+                        initial_mode={initialMode}
+                        credentialMetadata={{
+                            filename: filename.trim(),
+                            source: "manual_text_file",
+                        }}
+                        onChangeContent={setContent}
+                    />
+                </div>
+            </DialogContent>
+            <DialogActions>
+                <Button variant="outlined" onClick={onClose} disabled={uploading}>
+                    Close
+                </Button>
+                <Button variant="contained" color="primary" onClick={onSave} disabled={uploading}>
+                    {uploading ? "Saving" : "Save"}
+                </Button>
+            </DialogActions>
+        </React.Fragment>
+    )
+}
+
 const SearchTabFilesSearchPanel = (props) => {
     const [searchHost, setSearchHost] = React.useState("");
     const [search, setSearch] = React.useState("");
@@ -479,6 +588,7 @@ const SearchTabFilesSearchPanel = (props) => {
     const [searchLocation, setSearchLocation] = React.useState("Downloads");
     const searchLocationOptions = ["Uploads", "Downloads", "Hosted", "FileBrowser", "Screenshots", "Eventing Workflows"];
     const [showDeleted, setShowDeleted] = React.useState(false);
+    const [openCreateTextFileDialog, setOpenCreateTextFileDialog] = React.useState(false);
     const handleToggleShowDeleted = (event) => {
         setShowDeleted(!showDeleted);
         props.onChangeDeletedField(!showDeleted);
@@ -554,7 +664,7 @@ const SearchTabFilesSearchPanel = (props) => {
     const onFileChange = async (evt) => {
         for(let i = 0; i < evt.target.files.length; i++){
             let newUUID = await UploadTaskFile(evt.target.files[i], "Manually uploaded");
-            if (newUUID !== "") {
+            if (newUUID) {
                 snackActions.success("Successfully uploaded file. It's available in 'uploads'")
             }
         }
@@ -593,6 +703,12 @@ const SearchTabFilesSearchPanel = (props) => {
     }, [props.value, props.index]);
     return (
         <MythicTableToolbar variant="search">
+            {openCreateTextFileDialog &&
+                <MythicDialog fullWidth={true} maxWidth="xl" open={openCreateTextFileDialog}
+                              onClose={()=>{setOpenCreateTextFileDialog(false);}}
+                              innerDialog={<CreateTextFileDialog onClose={()=>{setOpenCreateTextFileDialog(false);}} />}
+                />
+            }
             <MythicTableToolbarGroup label="Host" style={{minWidth: "13rem"}}>
                 <MythicSearchField placeholder="Host Name Search..." name="Host" value={searchHost}
                                    onChange={handleSearchHostValueChange} onEnter={submitSearch}/>
@@ -628,6 +744,9 @@ const SearchTabFilesSearchPanel = (props) => {
                 <MythicToolbarButton className="mythic-toolbar-button-hover-success" variant="outlined" component="label" startIcon={<BackupIcon />}>
                     Files
                     <input onChange={onFileChange} type="file" multiple hidden/>
+                </MythicToolbarButton>
+                <MythicToolbarButton className="mythic-toolbar-button-hover-info" variant="outlined" startIcon={<NoteAddIcon />} onClick={()=>{setOpenCreateTextFileDialog(true);}}>
+                    Text
                 </MythicToolbarButton>
                 <MythicToolbarToggle
                     checked={showDeleted}

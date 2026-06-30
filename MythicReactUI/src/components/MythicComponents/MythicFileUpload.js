@@ -21,13 +21,57 @@ export const UploadTaskFile = async (file, comment) => {
     });
     try{
       const upload_result = upload_response.json().then(data => {
-          return data?.agent_file_id || data?.error || null;
+          if(data?.status === "error"){
+            snackActions.error(data.error || "Failed to upload file");
+            return null;
+          }
+          return data?.agent_file_id || null;
         }).catch(error => {
           snackActions.warning("Error: " + upload_response.statusText + "\nError Code: " + upload_response.status);
           console.log("Error trying to get json response", error.toString());
           return null;
         });
         return upload_result;
+    }catch(error){
+      snackActions.error(error.toString());
+      return null;
+    }
+  }catch(error){
+      snackActions.error(error.toString());
+      return null;
+  }
+}
+
+export const UploadDirectFile = async (agent_file_id, file) => {
+  let formData = new FormData();
+  try{
+    formData.append("file", file);
+    //snackActions.info("Saving " + file.name + " to Mythic...", {autoHideDuration: 1000});
+  }catch(error){
+    console.log(error)
+    return null;
+  }
+  try{
+    const upload_response = await fetch('/direct/upload/' + agent_file_id, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+        MythicSource: "web",
+      }
+    });
+    try{
+      return upload_response.json().then(data => {
+        if(data?.status === "error"){
+          snackActions.error(data.error || "Failed to save file");
+          return data;
+        }
+        return data;
+      }).catch(error => {
+        snackActions.warning("Error: " + upload_response.statusText + "\nError Code: " + upload_response.status);
+        console.log("Error trying to get json response", error.toString());
+        return null;
+      });
     }catch(error){
       snackActions.error(error.toString());
       return null;
