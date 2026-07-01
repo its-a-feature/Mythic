@@ -197,11 +197,13 @@ export const CallbacksTabsFileBrowserTable = (props) => {
         return tempData;
     }, [allData, sortData]);
     const onSubmitFilterOptions = (value) => {
-        setFilterOptions({...filterOptions, [selectedColumn.key]: value });
+
         try{
-            updateSetting({setting_name: `file_browser_filter_options`, value: {...filterOptions,[selectedColumn.key]: value }});
+            let newValue = value ? value : "";
+            setFilterOptions({...filterOptions, [selectedColumn.key]: newValue });
+            updateSetting({setting_name: `file_browser_filter_options`, value: {...filterOptions,[selectedColumn.key]: newValue }});
         }catch(error){
-            console.log("failed to save filter options");
+            console.log("failed to save filter options", error);
         }
     }
     const filterRow = (row) => {

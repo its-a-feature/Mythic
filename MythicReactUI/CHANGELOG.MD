@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.113] - 2026-07-01
+
+### Changed
+
+- Fixed a bug in the process browser that would set a filter to undefined instead of ""
+
 ## [0.3.112] - 2026-05-17
 
 - Updated the single task view to show interactive tasking surrounding results

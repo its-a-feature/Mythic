@@ -393,11 +393,12 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         return tempData;
     }, [allData, sortData]);
     const onSubmitFilterOptions = (value) => {
-        setFilterOptions({...filterOptions, [selectedColumn.current.key]: value });
+        let newValue = value ? value : "";
         try{
-            updateSetting({setting_name: `process_browser_filter_options`, value: {...filterOptions,[selectedColumn.current.key]: value }});
+            setFilterOptions({...filterOptions, [selectedColumn.current.key]: newValue });
+            updateSetting({setting_name: `process_browser_filter_options`, value: {...filterOptions,[selectedColumn.current.key]: newValue }});
         }catch(error){
-            console.log("failed to save filter options");
+            console.log("failed to save filter options", error, filterOptions, selectedColumn.current.key, newValue);
         }
         if(viewSingleTreeData){
             return
@@ -767,7 +768,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                                   <MythicModifyStringDialog
                                       title='Filter Column'
                                       onSubmit={onSubmitFilterOptions}
-                                      value={filterOptions[selectedColumn.current]}
+                                      value={filterOptions[selectedColumn.current.key]}
                                       onClose={() => {
                                           setOpenContextMenu(false);
                                       }}
