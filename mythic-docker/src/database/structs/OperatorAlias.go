@@ -10,8 +10,9 @@ type OperatorAlias struct {
 	ID                   int                `db:"id" json:"id"`
 	OperatorID           int                `db:"operator_id" json:"operator_id"`
 	Operator             Operator           `db:"operator" json:"operator,omitempty"`
-	SlashCommand         string             `db:"slash_command" json:"slash_command"`
-	ActualCommand        string             `db:"actual_command" json:"actual_command"`
+	Name                 string             `db:"name" json:"name"`
+	Alias                string             `db:"alias" json:"alias"`
+	AliasType            string             `db:"alias_type" json:"alias_type"`
 	PayloadTypeID        structs.NullInt64  `db:"payloadtype_id" json:"payloadtype_id"`
 	Payloadtype          Payloadtype        `db:"payloadtype" json:"payloadtype,omitempty"`
 	ConsumingContainerID structs.NullInt64  `db:"consuming_container_id" json:"consuming_container_id"`

@@ -338,7 +338,7 @@ export function SettingsOperatorTableRow(props){
                                             innerDialog={<SettingsOperatorSecretsConfigDialog  onClose={()=>{setOpenSecretsConfig(false);}} {...props} />}
                               />
                           }
-                          <MythicStyledTooltip title={"Aliases / Slash Commands"} >
+                          <MythicStyledTooltip title={"Operator Aliases"} >
                               <IconButton size="medium" onClick={()=>{setOpenAliasesConfig(true);}}
                                           color="info" variant='contained'
                                           disabled={props.account_type === "bot"}>

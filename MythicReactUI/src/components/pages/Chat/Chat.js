@@ -205,10 +205,12 @@ subscription ChatContainersStream($now: timestamptz!) {
 
 const CHAT_OPERATOR_ALIASES_QUERY = gql`
 query ChatOperatorAliases {
-  operator_alias(where: {active: {_eq: true}, consuming_container_id: {_is_null: false}}, order_by: {slash_command: asc}) {
+  operator_alias(where: {active: {_eq: true}, alias_type: {_in: ["command", "generic"]}, payloadtype_id: {_is_null: true}}, order_by: {name: asc}) {
     id
-    slash_command
-    actual_command
+    name
+    alias
+    alias_type
+    payloadtype_id
     consuming_container_id
   }
 }
@@ -727,20 +729,42 @@ const getAIChatSlashOptions = (channel, chatContainers, aliases) => {
     }
     const modelCommands = getModelSlashCommands(modelForChannel(channel, chatContainers));
     const aliasCommands = (aliases || [])
-        .filter((alias) => alias.consuming_container_id === channel.chat_container_id)
+        .filter((alias) => alias.alias_type === "command" && (alias.consuming_container_id === null || alias.consuming_container_id === channel.chat_container_id))
         .reduce((prev, alias) => {
-            if(!alias.slash_command){
+            if(!alias.name){
                 return prev;
             }
             return [...prev, {
-                name: alias.slash_command,
-                description: alias.actual_command,
+                name: alias.name,
+                description: alias.alias,
                 source: "alias",
-                actualCommand: alias.actual_command,
+                actualCommand: alias.alias,
             }];
         }, []);
     const options = [...modelCommands, ...aliasCommands];
     return options.sort((a, b) => a.name.localeCompare(b.name));
+};
+
+const getAIChatGenericAliasOptions = (channel, aliases) => {
+    if(!channel || channel.channel_type !== "ai"){
+        return [];
+    }
+    const matchingAliases = (aliases || []).filter((alias) => (
+        alias.alias_type === "generic" &&
+        alias.payloadtype_id === null &&
+        (alias.consuming_container_id === null || alias.consuming_container_id === channel.chat_container_id)
+    ));
+    const aliasesByName = {};
+    [...matchingAliases].sort((a, b) => {
+        const aScoped = a.consuming_container_id ? 0 : 1;
+        const bScoped = b.consuming_container_id ? 0 : 1;
+        return aScoped - bScoped || a.name.localeCompare(b.name);
+    }).forEach((alias) => {
+        if(alias.name && !aliasesByName[alias.name]){
+            aliasesByName[alias.name] = alias;
+        }
+    });
+    return Object.values(aliasesByName).sort((a, b) => a.name.localeCompare(b.name));
 };
 
 const parseComposerSlashCommand = (message) => {
@@ -766,6 +790,36 @@ const getMatchingSlashOptions = (composerSlash, slashOptions) => {
     const startsWith = slashOptions.filter((option) => option.name.startsWith(normalizedName));
     const includes = slashOptions.filter((option) => !option.name.startsWith(normalizedName) && option.name.includes(normalizedName));
     return [...startsWith, ...includes].slice(0, 8);
+};
+
+const getGenericAliasCompletionContext = (message, cursorPosition, selectionEnd, genericAliasOptions = []) => {
+    const beforeCursor = message.slice(0, cursorPosition);
+    const atIndex = beforeCursor.lastIndexOf("@");
+    if(atIndex < 0){
+        return undefined;
+    }
+    const partial = beforeCursor.slice(atIndex + 1);
+    if(!/^[A-Za-z0-9_-]*$/.test(partial)){
+        return undefined;
+    }
+    const beforeAt = atIndex > 0 ? message[atIndex - 1] : "";
+    if(beforeAt !== "" && /[A-Za-z0-9_-]/.test(beforeAt)){
+        return undefined;
+    }
+    const suffixMatch = message.slice(selectionEnd).match(/^[A-Za-z0-9_-]*/);
+    const end = selectionEnd + (suffixMatch ? suffixMatch[0].length : 0);
+    const namePrefix = partial.toLowerCase();
+    const startsWith = genericAliasOptions.filter((alias) => alias.name.startsWith(namePrefix));
+    const includes = genericAliasOptions.filter((alias) => !alias.name.startsWith(namePrefix) && alias.name.includes(namePrefix));
+    const matches = [...startsWith, ...includes].slice(0, 8);
+    if(matches.length === 0){
+        return undefined;
+    }
+    return {
+        start: atIndex,
+        end,
+        matches,
+    };
 };
 
 const isKnownSlashCommand = (selectedChannel, composerSlash, slashOptions) => {
@@ -1889,6 +1943,7 @@ const ChatSystemMessageDialog = ({open, selectedChannel, isMythicAdmin, onClose,
 const ChatComposer = React.memo(({
     selectedChannel,
     slashOptions,
+    genericAliasOptions = [],
     disabledReason,
     canCreateSystemMessage,
     isMythicAdmin,
@@ -1909,16 +1964,39 @@ const ChatComposer = React.memo(({
     const sendDisabled = composerDisabled || composer.trim() === "" || !slashCommandIsKnown;
     const showSlashOptions = selectedChannel?.channel_type === "ai" && composerSlash.isSlash && !slashCommandIsKnown;
 
-    const focusComposer = () => {
+    const focusComposer = (cursorPosition) => {
+        const applyFocus = () => {
+            inputRef.current?.focus();
+            if(typeof cursorPosition === "number" && inputRef.current?.setSelectionRange){
+                const adjustedCursorPosition = Math.min(cursorPosition, inputRef.current.value.length);
+                inputRef.current.setSelectionRange(adjustedCursorPosition, adjustedCursorPosition);
+            }
+        };
         if(typeof window !== "undefined" && window.requestAnimationFrame){
-            window.requestAnimationFrame(() => inputRef.current?.focus());
+            window.requestAnimationFrame(applyFocus);
             return;
         }
-        inputRef.current?.focus();
+        applyFocus();
     };
     const selectSlashOption = (option) => {
         setComposer(`/${option.name}${composerSlash.argument ? ` ${composerSlash.argument}` : " "}`);
         focusComposer();
+    };
+    const completeGenericAliasReference = () => {
+        const input = inputRef.current;
+        const cursorPosition = typeof input?.selectionStart === "number" ? input.selectionStart : composer.length;
+        const selectionEnd = typeof input?.selectionEnd === "number" ? input.selectionEnd : cursorPosition;
+        const completionContext = getGenericAliasCompletionContext(composer, cursorPosition, selectionEnd, genericAliasOptions);
+        if(!completionContext){
+            return false;
+        }
+        // Chat generic aliases are expanded server-side for AI channels. Complete
+        // the nearest @ token so aliases still work inside slash-command prompts.
+        const replacement = `@${completionContext.matches[0].name}`;
+        const updatedComposer = `${composer.slice(0, completionContext.start)}${replacement}${composer.slice(completionContext.end)}`;
+        setComposer(updatedComposer);
+        focusComposer(completionContext.start + replacement.length);
+        return true;
     };
     const submitMessage = () => {
         const message = composer.trim();
@@ -1991,6 +2069,10 @@ const ChatComposer = React.memo(({
                     onChange={(e) => setComposer(e.target.value)}
                     onKeyDown={(e) => {
                         if(e.nativeEvent?.isComposing){
+                            return;
+                        }
+                        if(e.key === "Tab" && completeGenericAliasReference()){
+                            e.preventDefault();
                             return;
                         }
                         if(e.key === "Tab" && showSlashOptions && matchingSlashOptions.length > 0){
@@ -2512,6 +2594,9 @@ export function Chat({me}) {
     const slashOptions = React.useMemo(() => (
         getAIChatSlashOptions(selectedChannel, chatContainers, operatorAliases)
     ), [selectedChannel, chatContainers, operatorAliases]);
+    const genericAliasOptions = React.useMemo(() => (
+        getAIChatGenericAliasOptions(selectedChannel, operatorAliases)
+    ), [selectedChannel, operatorAliases]);
     const submitMessage = React.useCallback((messageText) => {
         const message = messageText.trim();
         if(!message || !selectedChannel){
@@ -2799,6 +2884,7 @@ export function Chat({me}) {
                     <ChatComposer
                         selectedChannel={selectedChannel}
                         slashOptions={slashOptions}
+                        genericAliasOptions={genericAliasOptions}
                         disabledReason={disabledReason}
                         canCreateSystemMessage={canCreateSystemMessage}
                         isMythicAdmin={isMythicAdmin}

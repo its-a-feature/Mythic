@@ -488,15 +488,6 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 		return response
 		// if we're not looking at help/clear, fetch the command info and check for block lists
 	}
-	if strings.HasPrefix(strings.TrimSpace(createTaskInput.CommandName), "/") {
-		// we're looking at some sort of alias, so try to resolve that first
-		err = resolveCallbackTaskAlias(&createTaskInput, callback)
-		if err != nil {
-			logging.LogError(err, "failed to resolve task alias")
-			response.Error = err.Error()
-			return response
-		}
-	}
 	if !utils.SliceContains(NonPayloadCommands, createTaskInput.CommandName) {
 		loadedCommands := []databaseStructs.Loadedcommands{}
 		err = database.DB.Select(&loadedCommands, `SELECT
@@ -515,9 +506,40 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 			return response
 		}
 		if len(loadedCommands) == 0 {
-			logging.LogError(err, "Failed to fetch command by that name")
-			response.Error = "Failed to fetch command by that name"
-			return response
+			terminalCommands, err := getLoadedCommandNamesForCallback(callback.ID)
+			if err != nil {
+				logging.LogError(err, "Failed to get loaded command names for alias resolution")
+				response.Error = "Failed to get loaded command names for alias resolution"
+				return response
+			}
+			aliasResolved, err := resolveCallbackTaskCommandAlias(&createTaskInput, callback, terminalCommands)
+			if err != nil {
+				logging.LogError(err, "failed to resolve task alias")
+				response.Error = err.Error()
+				return response
+			}
+			if aliasResolved {
+				err = database.DB.Select(&loadedCommands, `SELECT
+					command.id "command.id",
+					command.attributes "command.attributes",
+					command.supported_ui_features "command.supported_ui_features",
+					payloadtype.name "command.payloadtype.name"
+					FROM loadedcommands
+					JOIN command ON loadedcommands.command_id = command.id
+					JOIN payloadtype ON command.payload_type_id = payloadtype.id
+					WHERE command.cmd=$1 AND loadedcommands.callback_id=$2`,
+					createTaskInput.CommandName, callback.ID)
+				if err != nil {
+					logging.LogError(err, "Failed to get alias-expanded command")
+					response.Error = "Failed to get alias-expanded command"
+					return response
+				}
+			}
+			if len(loadedCommands) == 0 {
+				logging.LogError(err, "Failed to fetch command by that name")
+				response.Error = "Failed to fetch command by that name"
+				return response
+			}
 		}
 		if createTaskInput.PayloadType != nil && *createTaskInput.PayloadType != "" {
 			for _, loadedCommand := range loadedCommands {
@@ -608,7 +630,51 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 		// createTaskInput.Params should now be a string version of parsed parameters if possible
 		createTaskInput.Params = params
 	}
+	genericAliasExpansionError := ""
+	if createTaskInput.ResolveTaskReferences == nil || *createTaskInput.ResolveTaskReferences {
+		scope, err := callbackTaskAliasScope(createTaskInput, callback)
+		if err != nil {
+			logging.LogError(err, "Failed to determine alias scope")
+			response.Error = err.Error()
+			return response
+		}
+		// Generic aliases run before task references so @name can expand into
+		// provider-owned keywords like @cred and @link. Expansion errors are
+		// saved for later so the task still lands in history with a response.
+		paramsBeforeGenericAliasExpansion := createTaskInput.Params
+		originalParamsMatchedParams := createTaskInput.OriginalParams != nil && *createTaskInput.OriginalParams == paramsBeforeGenericAliasExpansion
+		expandedParams, aliasesExpanded, aliasResolution, err := ResolveOperatorGenericAliasesInParams(
+			createTaskInput.OperatorID,
+			scope,
+			createTaskInput.Params,
+		)
+		if err != nil {
+			logging.LogError(err, "Failed to expand generic aliases")
+			genericAliasExpansionError = err.Error()
+		} else if aliasesExpanded {
+			createTaskInput.Params = expandedParams
+			createTaskInput.AliasResolution = MergeOperatorAliasResolution(createTaskInput.AliasResolution, aliasResolution)
+			if originalParamsMatchedParams {
+				createTaskInput.OriginalParams = &expandedParams
+			}
+		}
+		if genericAliasExpansionError == "" && createTaskInput.OriginalParams != nil && !originalParamsMatchedParams {
+			expandedOriginalParams, originalAliasesExpanded, originalAliasResolution, err := ResolveOperatorGenericAliasesInParams(
+				createTaskInput.OperatorID,
+				scope,
+				*createTaskInput.OriginalParams,
+			)
+			if err != nil {
+				logging.LogError(err, "Failed to expand generic aliases in original params")
+				genericAliasExpansionError = err.Error()
+			} else if originalAliasesExpanded {
+				createTaskInput.OriginalParams = &expandedOriginalParams
+				createTaskInput.AliasResolution = MergeOperatorAliasResolution(createTaskInput.AliasResolution, originalAliasResolution)
+			}
+		}
+	}
 	ensureCreateTaskOriginalParams(&createTaskInput)
+	taskReferenceExpansionError := ""
 	selectedParameterGroupName := "Default"
 	if createTaskInput.ParameterGroupName != nil {
 		selectedParameterGroupName = *createTaskInput.ParameterGroupName
@@ -617,7 +683,7 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 	displayParams := createTaskInput.Params
 	task.KeywordResolution = GetMythicJSONArrayFromStruct([]PTTaskKeywordResolution{})
 	taskReferencePostCreateActions := []taskReferencePostCreateAction{}
-	if createTaskInput.ResolveTaskReferences == nil || *createTaskInput.ResolveTaskReferences {
+	if genericAliasExpansionError == "" && (createTaskInput.ResolveTaskReferences == nil || *createTaskInput.ResolveTaskReferences) {
 		// try to expand the task references for things like @cred:12.credential
 		expandedParams, taskReferencesExpanded, keywordResolution, postCreateActions, err := expandTaskReferenceParameters(
 			task.Command.ID,
@@ -627,10 +693,8 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 		)
 		if err != nil {
 			logging.LogError(err, "Failed to expand task references")
-			response.Error = err.Error()
-			return response
-		}
-		if taskReferencesExpanded {
+			taskReferenceExpansionError = err.Error()
+		} else if taskReferencesExpanded {
 			//displayParams = createTaskInput.Params
 			// update the params that the agent sees with the expanded values
 			createTaskInput.Params = expandedParams
@@ -742,7 +806,15 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 		// make sure the command is loaded into this callback
 	}
 	supportedUIFeatures := task.Command.SupportedUiFeatures.StructStringValue()
-	if utils.SliceContains(supportedUIFeatures, PT_TASK_SUPPORTED_UI_FEATURE_TASK_PROCESS_INTERACTIVE_TASKS) {
+	taskingInputError := ""
+	if genericAliasExpansionError != "" {
+		taskingInputError = fmt.Sprintf("Failed to expand generic alias: %s", genericAliasExpansionError)
+	} else if taskReferenceExpansionError != "" {
+		taskingInputError = fmt.Sprintf("Failed to process task references: %s", taskReferenceExpansionError)
+	}
+	if taskingInputError != "" {
+		task.Status = PT_TASK_FUNCTION_STATUS_OPSEC_PRE_ERROR
+	} else if utils.SliceContains(supportedUIFeatures, PT_TASK_SUPPORTED_UI_FEATURE_TASK_PROCESS_INTERACTIVE_TASKS) {
 		task.Status = PT_TASK_CREATE_TASKING
 	}
 	if createTaskInput.AliasResolution != nil {
@@ -764,6 +836,16 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 		OperatorID:  task.OperatorID,
 		TaskID:      task.ID,
 	}
+	if taskingInputError != "" {
+		if err = finishTaskWithTaskingInputError(&task, taskingInputError, createTaskInput.AuthContext); err != nil {
+			logging.LogError(err, "Failed to record tasking input error on task", "task_id", task.ID)
+		}
+		return CreateTaskResponse{
+			Status:        "success",
+			TaskID:        task.ID,
+			TaskDisplayID: task.DisplayID,
+		}
+	}
 	if task.IsInteractiveTask {
 		if utils.SliceContains(supportedUIFeatures, PT_TASK_SUPPORTED_UI_FEATURE_TASK_PROCESS_INTERACTIVE_TASKS) {
 			go sendTaskToContainerCreateTasking(task.ID, createTaskInput.AuthContext)
@@ -780,47 +862,67 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 	}
 }
 
-func resolveCallbackTaskAlias(createTaskInput *CreateTaskInput, callback databaseStructs.Callback) error {
+func callbackTaskAliasScope(createTaskInput CreateTaskInput, callback databaseStructs.Callback) (OperatorAliasScope, error) {
 	payloadTypeID := callback.Payload.PayloadTypeID
 	if createTaskInput.PayloadType != nil && strings.TrimSpace(*createTaskInput.PayloadType) != "" {
-		// trying to resolve this for a different payload type
 		payloadType := databaseStructs.Payloadtype{}
 		err := database.DB.Get(&payloadType,
 			`SELECT id FROM payloadtype WHERE name=$1 AND deleted=false`,
 			strings.TrimSpace(*createTaskInput.PayloadType))
 		if err != nil {
 			logging.LogError(err, "Failed to fetch payload type for callback alias", "payload_type", *createTaskInput.PayloadType)
-			return fmt.Errorf("failed to find payload type for alias scope")
+			return OperatorAliasScope{}, fmt.Errorf("failed to find payload type for alias scope")
 		}
 		payloadTypeID = payloadType.ID
+	}
+	return OperatorAliasScope{PayloadTypeID: payloadTypeID}, nil
+}
+
+func getLoadedCommandNamesForCallback(callbackID int) (map[string]bool, error) {
+	commandNames := []string{}
+	err := database.DB.Select(&commandNames, `SELECT DISTINCT command.cmd
+		FROM loadedcommands
+		JOIN command ON loadedcommands.command_id = command.id
+		WHERE loadedcommands.callback_id=$1`,
+		callbackID)
+	if err != nil {
+		return nil, err
+	}
+	terminalCommands := make(map[string]bool, len(commandNames))
+	for _, commandName := range commandNames {
+		terminalCommands[NormalizeOperatorAliasName(commandName)] = true
+	}
+	return terminalCommands, nil
+}
+
+func resolveCallbackTaskCommandAlias(createTaskInput *CreateTaskInput, callback databaseStructs.Callback, terminalCommands map[string]bool) (bool, error) {
+	scope, err := callbackTaskAliasScope(*createTaskInput, callback)
+	if err != nil {
+		return false, err
 	}
 	line := strings.TrimSpace(createTaskInput.CommandName)
 	if strings.TrimSpace(createTaskInput.Params) != "" {
 		line = strings.TrimSpace(line + " " + strings.TrimSpace(createTaskInput.Params))
 	}
-	// set nil for terminal commands since payload types have no built in alias terminal commands
-	resolution, err := ResolveOperatorAliasLineWithProvidedSlashCommands(createTaskInput.OperatorID, OperatorAliasScope{PayloadTypeID: payloadTypeID}, line, nil)
+	resolution, err := ResolveOperatorAliasCommandLineWithTerminalCommands(createTaskInput.OperatorID, scope, line, terminalCommands)
 	if err != nil {
 		logging.LogError(err, "Failed to resolve callback task alias", "command", createTaskInput.CommandName)
-		return err
+		return false, err
 	}
 	if !resolution.AliasMatched {
-		return fmt.Errorf("unknown callback tasking alias /%s", createTaskInput.CommandName)
-	}
-	if resolution.FinalIsSlash {
-		return fmt.Errorf("callback tasking alias expansion ended with unresolved slash command /%s", resolution.FinalCommand)
+		return false, nil
 	}
 	commandName, params, err := SplitOperatorAliasExpandedTaskLine(resolution.Expanded)
 	if err != nil {
-		return err
+		return false, err
 	}
 	if commandName == "" {
-		return fmt.Errorf("callback tasking alias expanded to an empty command")
+		return false, fmt.Errorf("callback tasking alias expanded to an empty command")
 	}
 	createTaskInput.CommandName = commandName
 	createTaskInput.Params = params
 	createTaskInput.AliasResolution = &resolution
-	return nil
+	return true, nil
 }
 
 func SplitOperatorAliasExpandedTaskLine(line string, commandParameterSets ...[]databaseStructs.Commandparameters) (string, string, error) {
@@ -1417,6 +1519,44 @@ func addTaskToDatabase(task *databaseStructs.Task, postCreateActions ...taskRefe
 		return err
 	}
 	go emitTaskLog(task.ID)
+	return nil
+}
+
+func finishTaskWithTaskingInputError(task *databaseStructs.Task, errorText string, authContext RabbitMQAuthContext) error {
+	// Alias and task-reference errors happen before container-side tasking, but
+	// keeping them as completed task errors preserves command history for edits.
+	task.Status = PT_TASK_FUNCTION_STATUS_OPSEC_PRE_ERROR
+	task.Stderr = errorText
+	task.Completed = true
+	now := time.Now().UTC()
+	task.StatusTimestampProcessing.Valid = true
+	task.StatusTimestampProcessing.Time = now
+	task.StatusTimestampProcessed.Valid = true
+	task.StatusTimestampProcessed.Time = now
+	if _, err := database.DB.NamedExec(`UPDATE task SET
+		status=:status,
+		stderr=:stderr,
+		completed=:completed,
+		status_timestamp_processing=:status_timestamp_processing,
+		status_timestamp_processed=:status_timestamp_processed
+		WHERE id=:id`, task); err != nil {
+		return err
+	}
+	if _, err := database.DB.Exec(`INSERT INTO response
+		(task_id, operation_id, response, is_error, eventstepinstance_id, apitokens_id)
+		VALUES ($1, $2, $3, true, $4, $5)`,
+		task.ID, task.OperationID, task.Stderr, task.EventStepInstanceID, task.APITokensID); err != nil {
+		return err
+	}
+	EventingChannel <- EventNotification{
+		Trigger:             eventing.TriggerTaskFinish,
+		OperationID:         task.OperationID,
+		OperatorID:          task.OperatorID,
+		EventStepInstanceID: int(task.EventStepInstanceID.Int64),
+		TaskID:              task.ID,
+		ActionSuccess:       false,
+	}
+	go CheckAndProcessTaskCompletionHandlers(task.ID, authContext)
 	return nil
 }
 

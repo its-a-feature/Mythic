@@ -586,8 +586,9 @@ type Mutation {
 
 type Mutation {
   operatorAliasCreate(
-    slash_command: String!
-    actual_command: String!
+    name: String!
+    alias: String!
+    alias_type: String
     payloadtype_id: Int
     consuming_container_id: Int
     active: Boolean
@@ -603,8 +604,9 @@ type Mutation {
 type Mutation {
   operatorAliasUpdate(
     id: Int!
-    slash_command: String!
-    actual_command: String!
+    name: String!
+    alias: String!
+    alias_type: String
     payloadtype_id: Int
     consuming_container_id: Int
     active: Boolean!

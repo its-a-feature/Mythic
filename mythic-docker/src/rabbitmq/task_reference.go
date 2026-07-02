@@ -99,6 +99,7 @@ func registerTaskReferenceProvider(provider taskReferenceProvider) {
 	taskReferenceProviderRegistry.Lock()
 	defer taskReferenceProviderRegistry.Unlock()
 	taskReferenceProviderRegistry.providers[keyword] = provider
+	RegisterReservedOperatorAliasName(keyword)
 }
 
 func getTaskReferenceProvider(keyword string) (taskReferenceProvider, bool) {
@@ -130,6 +131,7 @@ func expandTaskReferenceParameters(commandID int, operationID int, callbackID in
 	if strings.TrimSpace(params) == "" {
 		return params, false, nil, nil, nil
 	}
+	paramsContainTaskReference := strings.Contains(params, "@")
 	taskReferenceProviderRegistry.RLock()
 	providers := make([]taskReferenceProvider, 0, len(taskReferenceProviderRegistry.providers))
 	for keyword := range taskReferenceProviderRegistry.providers {
@@ -156,6 +158,9 @@ func expandTaskReferenceParameters(commandID int, operationID int, callbackID in
 			}
 			providersByParameterType[parameterType] = provider
 		}
+	}
+	if !paramsContainTaskReference && len(parameterTypes) == 0 {
+		return params, false, nil, nil, nil
 	}
 	if len(parameterTypes) > 0 {
 		structuredParameters := []databaseStructs.Commandparameters{}
@@ -210,6 +215,9 @@ func taskReferenceUniqueParameterNames(parameterNames ...string) []string {
 
 func resolveTaskReferencesInParams(params string, context taskReferenceResolveContext) (string, bool, []PTTaskKeywordResolution, []taskReferencePostCreateAction, error) {
 	if strings.TrimSpace(params) == "" {
+		return params, false, nil, nil, nil
+	}
+	if !strings.Contains(params, "@") && len(context.StructuredParameterProviders) == 0 {
 		return params, false, nil, nil, nil
 	}
 	decoder := json.NewDecoder(strings.NewReader(params))
@@ -323,6 +331,9 @@ func collectStructuredTaskReference(value interface{}, structuredProvider taskRe
 }
 
 func collectTaskReferencesFromString(value string, parameterName string) ([]taskReferenceMatch, error) {
+	if !strings.Contains(value, "@") {
+		return nil, nil
+	}
 	matches := taskReferenceLegacyPattern.FindAllStringSubmatch(value, -1)
 	if len(matches) == 0 {
 		return nil, nil
@@ -621,6 +632,9 @@ func applyStructuredTaskReference(value interface{}, structuredProvider taskRefe
 }
 
 func applyTaskReferencesToString(value string, scalarValuesByRaw map[string]string) (string, bool) {
+	if len(scalarValuesByRaw) == 0 || !strings.Contains(value, "@") {
+		return value, false
+	}
 	changed := false
 	updated := taskReferenceLegacyPattern.ReplaceAllStringFunc(value, func(raw string) string {
 		scalarValue, ok := scalarValuesByRaw[raw]

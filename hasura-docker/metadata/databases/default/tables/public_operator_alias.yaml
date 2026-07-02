@@ -16,13 +16,14 @@ select_permissions:
     permission:
       columns:
         - active
-        - actual_command
+        - alias
+        - alias_type
         - consuming_container_id
         - created_at
         - id
+        - name
         - operator_id
         - payloadtype_id
-        - slash_command
         - updated_at
       filter:
         _and:
@@ -35,13 +36,14 @@ select_permissions:
     permission:
       columns:
         - active
-        - actual_command
+        - alias
+        - alias_type
         - consuming_container_id
         - created_at
         - id
+        - name
         - operator_id
         - payloadtype_id
-        - slash_command
         - updated_at
       filter:
         _and:
@@ -54,13 +56,14 @@ select_permissions:
     permission:
       columns:
         - active
-        - actual_command
+        - alias
+        - alias_type
         - consuming_container_id
         - created_at
         - id
+        - name
         - operator_id
         - payloadtype_id
-        - slash_command
         - updated_at
       filter:
         _and:
@@ -73,13 +76,14 @@ select_permissions:
     permission:
       columns:
         - active
-        - actual_command
+        - alias
+        - alias_type
         - consuming_container_id
         - created_at
         - id
+        - name
         - operator_id
         - payloadtype_id
-        - slash_command
         - updated_at
       filter:
         _and:

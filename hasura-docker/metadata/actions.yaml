@@ -842,7 +842,7 @@ actions:
       - role: operation_admin
       - role: operator
       - role: spectator
-    comment: Import operator-owned slash aliases from a portable JSON config
+    comment: Import operator-owned aliases from a portable JSON config
   - name: importTagtypes
     definition:
       kind: synchronous
@@ -864,7 +864,7 @@ actions:
       - role: operation_admin
       - role: operator
       - role: spectator
-    comment: Create an operator-owned slash alias
+    comment: Create an operator-owned alias
   - name: operatorAliasDelete
     definition:
       kind: synchronous
@@ -876,7 +876,7 @@ actions:
       - role: operation_admin
       - role: operator
       - role: spectator
-    comment: Delete an operator-owned slash alias
+    comment: Delete an operator-owned alias
   - name: operatorAliasUpdate
     definition:
       kind: synchronous
@@ -888,7 +888,7 @@ actions:
       - role: operation_admin
       - role: operator
       - role: spectator
-    comment: Update an operator-owned slash alias
+    comment: Update an operator-owned alias
   - name: previewFile
     definition:
       kind: synchronous
