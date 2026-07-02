@@ -31,6 +31,7 @@ import {
     parseTaskReferences,
     replaceTextRange
 } from "./taskingReferences";
+import {SettingsOperatorAliasesDialog} from "../Settings/SettingsOperatorAliasesDialog";
 
 const GetLoadedCommandsSubscription = gql`
 subscription GetLoadedCommandsSubscription($callback_id: Int!){
@@ -65,10 +66,11 @@ subscription GetLoadedCommandsSubscription($callback_id: Int!){
 `;
 const GetOperatorPayloadAliases = gql`
 query GetOperatorPayloadAliases {
-    operator_alias(where: {active: {_eq: true}, payloadtype_id: {_is_null: false}}, order_by: {slash_command: asc}) {
+    operator_alias(where: {active: {_eq: true}, consuming_container_id: {_is_null: true}}, order_by: {name: asc}) {
         id
-        slash_command
-        actual_command
+        name
+        alias
+        alias_type
         payloadtype_id
         payloadtype {
             id
@@ -537,16 +539,37 @@ export function CallbacksTabsTaskingInputPreMemo(props){
     const commandOptionsForcePopup = React.useRef(false);
     const commandOptionsCommandLine = React.useRef("");
     const commandOptionsTaskingLocation = React.useRef("parsed_cli");
+    const genericAliasCompletionKey = React.useRef("");
     const selectedTaskReferences = React.useRef([]);
     const [credentialPickerContext, setCredentialPickerContext] = React.useState(null);
     const [credentialFieldContext, setCredentialFieldContext] = React.useState(null);
     const [linkPickerContext, setLinkPickerContext] = React.useState(null);
+    const [openAliasesDialog, setOpenAliasesDialog] = React.useState(false);
     const [openSelectCommandDialog, setOpenSelectCommandDialog] = React.useState(false);
     const me = useReactiveVar(meState);
     const {data: payloadAliasData} = useQuery(GetOperatorPayloadAliases, {fetchPolicy: "no-cache"});
     const payloadAliasOptions = React.useMemo(() => {
         const aliases = payloadAliasData?.operator_alias || [];
-        return aliases.filter((alias) => alias.payloadtype?.name === props.payloadtype_name);
+        return aliases.filter((alias) => alias.alias_type === "command" && (alias.payloadtype_id === null || alias.payloadtype?.name === props.payloadtype_name));
+    }, [payloadAliasData, props.payloadtype_name]);
+    const genericAliasOptions = React.useMemo(() => {
+        const aliases = payloadAliasData?.operator_alias || [];
+        const matchingAliases = aliases.filter((alias) => (
+            alias.alias_type === "generic" &&
+            (alias.payloadtype_id === null || alias.payloadtype?.name === props.payloadtype_name)
+        ));
+        const orderedAliases = [...matchingAliases].sort((a, b) => {
+            const aScoped = a.payloadtype_id ? 0 : 1;
+            const bScoped = b.payloadtype_id ? 0 : 1;
+            return aScoped - bScoped || a.name.localeCompare(b.name);
+        });
+        const aliasesByName = {};
+        orderedAliases.forEach((alias) => {
+            if(!aliasesByName[alias.name]){
+                aliasesByName[alias.name] = alias;
+            }
+        });
+        return Object.values(aliasesByName).sort((a, b) => a.name.localeCompare(b.name));
     }, [payloadAliasData, props.payloadtype_name]);
     const useDisplayParamsForCLIHistoryUserSetting = React.useRef(GetMythicSetting({setting_name: "useDisplayParamsForCLIHistory", default_value: operatorSettingDefaults.useDisplayParamsForCLIHistory}));
     const hideTaskingContext = React.useRef(GetMythicSetting({setting_name: "hideTaskingContext", default_value: operatorSettingDefaults.hideTaskingContext}));
@@ -563,66 +586,97 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             return (currentIndex + 1) % options.length;
         }
     }
-    const parseSlashAliasMessage = (value) => {
+    const parseCommandAliasMessage = (value) => {
         const trimmed = value.trim();
-        if(!trimmed.startsWith("/")){
+        if(trimmed === ""){
             return {isAlias: false, name: "", argument: ""};
         }
-        const withoutSlash = trimmed.replace(/^\/+/, "");
-        const [first = ""] = withoutSlash.split(/\s+/, 1);
+        const [first = ""] = trimmed.split(/\s+/, 1);
         const name = first.toLowerCase();
-        const argument = withoutSlash.length > first.length ? withoutSlash.slice(first.length).trim() : "";
+        const argument = trimmed.length > first.length ? trimmed.slice(first.length).trim() : "";
         return {isAlias: true, name, argument};
     };
     const getMatchingPayloadAliases = (value) => {
-        const parsedAlias = parseSlashAliasMessage(value);
+        const parsedAlias = parseCommandAliasMessage(value);
         if(!parsedAlias.isAlias){
             return [];
         }
         if(parsedAlias.name === ""){
             return payloadAliasOptions.slice(0, 20);
         }
-        const startsWith = payloadAliasOptions.filter((alias) => alias.slash_command.startsWith(parsedAlias.name));
-        const includes = payloadAliasOptions.filter((alias) => !alias.slash_command.startsWith(parsedAlias.name) && alias.slash_command.includes(parsedAlias.name));
+        const startsWith = payloadAliasOptions.filter((alias) => alias.name.startsWith(parsedAlias.name));
+        const includes = payloadAliasOptions.filter((alias) => !alias.name.startsWith(parsedAlias.name) && alias.name.includes(parsedAlias.name));
         return [...startsWith, ...includes].slice(0, 20);
     };
-    const resolveSlashAliasCommandLine = (value) => {
-        let resolvedCommandLine = value.trim();
-        let matchingAlias = undefined;
-        const seenAliasIDs = new Set();
-        const maxAliasResolutionDepth = 5;
-        for(let i = 0; i < maxAliasResolutionDepth; i++){
-            const parsedAlias = parseSlashAliasMessage(resolvedCommandLine);
-            if(!parsedAlias.isAlias || parsedAlias.name === ""){
-                return {resolvedCommandLine, matchingAlias};
-            }
-            matchingAlias = payloadAliasOptions.find((alias) => alias.slash_command === parsedAlias.name);
-            if(!matchingAlias){
-                return {resolvedCommandLine, matchingAlias: undefined, error: `Unknown alias /${parsedAlias.name}`};
-            }
-            if(seenAliasIDs.has(matchingAlias.id)){
-                return {resolvedCommandLine, matchingAlias, error: `Alias loop detected for /${matchingAlias.slash_command}`};
-            }
-            seenAliasIDs.add(matchingAlias.id);
-            resolvedCommandLine = `${matchingAlias.actual_command || ""}${parsedAlias.argument ? ` ${parsedAlias.argument}` : ""}`.trim();
+    const getGenericAliasCompletionContext = () => {
+        const input = inputRef.current;
+        const cursorPosition = typeof input?.selectionStart === "number" ? input.selectionStart : message.length;
+        const selectionEnd = typeof input?.selectionEnd === "number" ? input.selectionEnd : cursorPosition;
+        const beforeCursor = message.slice(0, cursorPosition);
+        const atIndex = beforeCursor.lastIndexOf("@");
+        if(atIndex < 0){
+            return undefined;
         }
-        const parsedAlias = parseSlashAliasMessage(resolvedCommandLine);
-        if(parsedAlias.isAlias){
-            return {resolvedCommandLine, matchingAlias, error: `Alias expansion exceeded maximum depth of ${maxAliasResolutionDepth}`};
+        const partial = beforeCursor.slice(atIndex + 1);
+        if(!/^[A-Za-z0-9_-]*$/.test(partial)){
+            return undefined;
         }
-        return {resolvedCommandLine, matchingAlias};
-    };
-    const submitSlashAliasCommandLine = (evt, commandLine=message) => {
+        const beforeAt = atIndex > 0 ? message[atIndex - 1] : "";
+        if(beforeAt !== "" && /[A-Za-z0-9_-]/.test(beforeAt)){
+            return undefined;
+        }
+        const suffixMatch = message.slice(selectionEnd).match(/^[A-Za-z0-9_-]*/);
+        const end = selectionEnd + (suffixMatch ? suffixMatch[0].length : 0);
+        const namePrefix = partial.toLowerCase();
+        const startsWith = genericAliasOptions.filter((alias) => alias.name.startsWith(namePrefix));
+        const includes = genericAliasOptions.filter((alias) => !alias.name.startsWith(namePrefix) && alias.name.includes(namePrefix));
+        const matches = [...startsWith, ...includes].slice(0, 20);
+        if(matches.length === 0){
+            return undefined;
+        }
+        return {
+            start: atIndex,
+            end,
+            partial: namePrefix,
+            matches,
+            key: `${atIndex}:${end}:${namePrefix}:${matches.map((alias) => alias.id).join(",")}`,
+        };
+    }
+    const completeGenericAliasReference = (event) => {
+        // Generic aliases can appear inside @link/@cred bodies, so complete the
+        // nearest @ token before opening any task-reference picker dialogs.
+        const completionContext = getGenericAliasCompletionContext();
+        if(!completionContext){
+            return false;
+        }
+        if(tabOptionsType.current !== "generic_alias" || genericAliasCompletionKey.current !== completionContext.key){
+            tabOptions.current = completionContext.matches;
+            tabOptionsIndex.current = 0;
+            tabOptionsType.current = "generic_alias";
+            genericAliasCompletionKey.current = completionContext.key;
+        }else{
+            tabOptionsIndex.current = forwardOrBackwardTabIndex(event, tabOptionsIndex.current, tabOptions.current);
+        }
+        const selectedAlias = tabOptions.current[tabOptionsIndex.current];
+        if(!selectedAlias){
+            return false;
+        }
+        const replacement = `@${selectedAlias.name}`;
+        const newMessage = replaceTextRange(message, completionContext.start, completionContext.end, replacement);
+        updateMessageWithCursor(newMessage, completionContext.start + replacement.length);
+        return true;
+    }
+    const submitAliasCommandLine = (evt, commandLine=message) => {
         if(evt){
             evt.preventDefault();
             evt.stopPropagation();
         }
-        const parsedAlias = parseSlashAliasMessage(commandLine);
+        const parsedAlias = parseCommandAliasMessage(commandLine);
         if(!parsedAlias.isAlias || parsedAlias.name === ""){
             snackActions.warning("Unknown alias", snackMessageStyles);
             return;
         }
-        const matchingAlias = payloadAliasOptions.find((alias) => alias.slash_command === parsedAlias.name);
+        const matchingAlias = payloadAliasOptions.find((alias) => alias.name === parsedAlias.name);
         if(!matchingAlias){
             snackActions.warning("Unknown alias", snackMessageStyles);
             return;
@@ -944,7 +998,6 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             setCredentialPickerContext({...caretContext, mode: "fielded"});
             return true;
         }
-        console.log("returning false in openTaskReferenceHelper");
         return false;
     }
     const onSelectLinkReference = (referenceText) => {
@@ -1012,26 +1065,10 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             event.stopPropagation();
             event.preventDefault();
             setUnmodifiedHistoryValue("parsed_cli");
-            if(openTaskReferenceHelper()){
+            if(completeGenericAliasReference(event)){
                 return;
             }
-            if(message.trim().startsWith("/")){
-                const aliasOptions = getMatchingPayloadAliases(message);
-                if(aliasOptions.length === 0){
-                    snackActions.warning("No matching aliases", snackMessageStyles);
-                    return;
-                }
-                if(tabOptions.current.length === 0 || tabOptionsType.current !== "alias"){
-                    tabOptions.current = aliasOptions;
-                    tabOptionsIndex.current = 0;
-                    tabOptionsType.current = "alias";
-                }else{
-                    tabOptionsIndex.current = forwardOrBackwardTabIndex(event, tabOptionsIndex.current, tabOptions.current);
-                }
-                const parsedAlias = parseSlashAliasMessage(message);
-                const selectedAlias = tabOptions.current[tabOptionsIndex.current];
-                setMessage(`/${selectedAlias.slash_command}${parsedAlias.argument ? ` ${parsedAlias.argument}` : " "}`);
-                setCommandPayloadType(props.payloadtype_name);
+            if(openTaskReferenceHelper()){
                 return;
             }
             if(message.includes(" ")){
@@ -1086,7 +1123,6 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                     }
                     return;
                 }
-                console.log(cmd.commandparameters);
                 if(cmd.commandparameters.length > 0){
                     if(message[message.length -1] === " "){
                         // somebody hit tab after a parameter name or after a parameter value
@@ -1100,7 +1136,6 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                             return;
                         }
                         const [lastSuppliedParameter, lastSuppliedParameterHasValue] = getLastSuppliedArgument(cmd, message, parsed);
-                        console.log("lastSuppliedParameter", lastSuppliedParameter, "has_value", lastSuppliedParameterHasValue);
                         lastValueTypedBeforeDynamicParamsRef.current = lastSuppliedParameterHasValue;
                         if (lastSuppliedParameter !== undefined && parsed[lastSuppliedParameter.cli_name] !== undefined && lastSuppliedParameterHasValue === ""){
                             if (lastSuppliedParameter.choices.length > 0){
@@ -1128,7 +1163,6 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                                 return;
                             }
                         }
-                        console.log("cmdGroupNames in tab", cmdGroupNames);
                         for(let i = 0; i < cmd.commandparameters.length; i++){
                             if(cmd.commandparameters[i]["required"] &&
                                 (!(cmd.commandparameters[i]["cli_name"] in parsed) || (IsRepeatableCLIParameterType(cmd.commandparameters[i]["parameter_type"])) ) &&
@@ -1255,7 +1289,6 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                                 return;
                             }
                             const [lastSuppliedParameter, lastSuppliedParameterHasValue] = getLastSuppliedArgument(cmd, message, parsed);
-                            console.log("lastSuppliedParameter", lastSuppliedParameter)
                             lastValueTypedBeforeDynamicParamsRef.current = lastSuppliedParameterHasValue;
                             if (lastSuppliedParameter !== undefined && parsed[lastSuppliedParameter.cli_name] !== undefined){
                                 if (lastSuppliedParameter.choices.length > 0){
@@ -1297,6 +1330,14 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 // somebody hit tab with either a blank message or a partial word
                 if(tabOptions.current.length === 0){
                     let opts = loadedOptions.current.filter( l => l.cmd.toLowerCase().includes(message.toLocaleLowerCase()) && (l.attributes.supported_os.length === 0 || l.attributes.supported_os.includes(props.callback_os)));
+                    const aliasOpts = getMatchingPayloadAliases(message).map((alias) => ({
+                        ...alias,
+                        attributes: {supported_os: []},
+                        cmd: alias.name,
+                        isOperatorAlias: true,
+                        payloadtype: alias.payloadtype || {name: props.payloadtype_name},
+                    }));
+                    opts = [...opts, ...aliasOpts];
                     tabOptionsType.current = "param_name";
                     tabOptionsIndex.current = 0;
                     let startsWithOpts = opts.filter(s => s.cmd.startsWith(message.toLocaleLowerCase()));
@@ -1322,22 +1363,6 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 }
             }
         }else if(event.key === "Enter"){
-            if(message.trim().startsWith("/")){
-                if(event.shiftKey){
-                    event.preventDefault();
-                    event.stopPropagation();
-                    const aliasResolution = resolveSlashAliasCommandLine(message);
-                    if(aliasResolution.error){
-                        snackActions.warning(aliasResolution.error, snackMessageStyles);
-                        return;
-                    }
-                    setMessage(aliasResolution.resolvedCommandLine);
-                    onSubmitCommandLine(event, true, aliasResolution.resolvedCommandLine, "parsed_cli");
-                }else{
-                    submitSlashAliasCommandLine(event);
-                }
-                return;
-            }
             if(event.shiftKey){
                 onSubmitCommandLine(event, true);
             }else{
@@ -1817,9 +1842,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             let new_command_line = command_line;//.replaceAll("\\", "\\\\");
             //console.log("new_command_line", new_command_line);
             const argv = parseToArgv(new_command_line);
-            console.log("argv", argv, "command_line", new_command_line);
             const yargs_parsed = parseArgvToDict(argv, cmd);
-            console.log("yargs_parsed", yargs_parsed);
             return yargs_parsed;
         }catch(error){
             if(showAlert){
@@ -1848,7 +1871,6 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 finalGroupNames.push(currentGroupName);
             }
         }
-        console.log(finalGroupNames)
         if(finalGroupNames.length === 0){
             return "";
         } else if(finalGroupNames.length === 1){
@@ -1905,7 +1927,6 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             }
         }
         // now cmdGroupOptions is a list of all the matching parameter_group_names for the commandline arguments we've specified
-        console.log("cmdGroupOptions", cmdGroupOptions)
         return cmdGroupOptions;
     }
     const fillOutPositionalArguments = (cmd, parsed, groupNames) => {
@@ -1980,7 +2001,6 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         const groupParameters = cmd.commandparameters.filter(c => c.parameter_group_name === usedGroupName);
         groupParameters.sort((a,b) => a.ui_position < b.ui_position ? -1 : 1);
         // now we have all of the parameters and they're sorted by `ui_position`
-        console.log("groupParameters", groupParameters);
         let unSatisfiedArguments = [];
         for(let i = 0; i < groupParameters.length; i++){
             if( !(groupParameters[i]["cli_name"] in parsedCopy)){
@@ -2103,7 +2123,6 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             if(cmd.commandparameters.length > 0){
                 parsed["_"].unshift(cmd);
                 parsedWithPositionalParameters = fillOutPositionalArguments(cmd, parsed, cmdGroupName);
-                console.log("what's left", parsedWithPositionalParameters);
                 if(parsedWithPositionalParameters === undefined){
                     return;
                 }
@@ -2142,9 +2161,6 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             setUnmodifiedHistoryValue("parsed_cli");
             return;
         }
-        console.log("positional args added in:", parsedWithPositionalParameters);
-        console.log("about to call onSubmitCommandLine", cmd);
-        console.log("commandOptionsForcePopup", Boolean(commandOptionsForcePopup.current), "group name", cmdGroupName)
         props.onSubmitCommandLine(commandLine, cmd, parsedWithPositionalParameters, Boolean(commandOptionsForcePopup.current), cmdGroupName, taskingLocation, getTaskReferenceSubmitOptions(commandLine));
         clearSelectedTaskReferences();
         setMessage("");
@@ -2158,13 +2174,14 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         evt.preventDefault();
         evt.stopPropagation();
         //console.log("onSubmitCommandLine", evt, message);
-        if(commandLine.trim().startsWith("/")){
-            submitSlashAliasCommandLine(evt, commandLine);
-            return;
-        }
         let splitMessage = commandLine.trim().split(" ");
         let cmd = loadedOptions.current.filter( l => l.cmd === splitMessage[0]);
         if(cmd === undefined || cmd.length === 0){
+            const matchingAlias = payloadAliasOptions.find((alias) => alias.name === splitMessage[0]?.toLowerCase());
+            if(matchingAlias){
+                submitAliasCommandLine(evt, commandLine);
+                return;
+            }
             snackActions.warning("Unknown (or not loaded) command", snackMessageStyles);
             return;
         }
@@ -2278,24 +2295,16 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         if(trimmedMessage === ""){
             return {state: "empty", message: "Type a loaded command to preview CLI parameters"};
         }
-        if(trimmedMessage.startsWith("/")){
-            const parsedAlias = parseSlashAliasMessage(trimmedMessage);
-            const matchingAlias = payloadAliasOptions.find((alias) => alias.slash_command === parsedAlias.name);
-            if(matchingAlias){
-                return {state: "empty", message: `/${matchingAlias.slash_command} -> ${matchingAlias.actual_command}`};
-            }
-            const matchingAliases = getMatchingPayloadAliases(trimmedMessage);
-            if(matchingAliases.length > 0){
-                return {state: "empty", message: matchingAliases.map((alias) => `/${alias.slash_command}`).join(", ")};
-            }
-            return {state: "empty", message: "No matching aliases"};
-        }
         const commandName = trimmedMessage.split(/\s+/)[0];
         const matchingCommands = loadedOptions.current.filter((command) => {
             const supportedOS = command.attributes?.supported_os || [];
             return command.cmd === commandName && (supportedOS.length === 0 || supportedOS.includes(props.callback_os));
         });
         if(matchingCommands.length === 0){
+            const matchingAlias = payloadAliasOptions.find((alias) => alias.name === commandName);
+            if(matchingAlias){
+                return {state: "empty", message: `${matchingAlias.name} -> ${matchingAlias.alias}`};
+            }
             return {state: "empty", message: "No loaded command selected"};
         }
         let command = undefined;
@@ -2547,6 +2556,15 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                                             aria-label="Filter task history"><TuneIcon fontSize="small"/></IconButton>
                                     </MythicStyledTooltip>
                                 }
+                                <MythicStyledTooltip title={"Manage aliases"}>
+                                    <IconButton
+                                        className="mythic-tasking-action-button mythic-tasking-action-button-neutral"
+                                        onClick={() => setOpenAliasesDialog(true)}
+                                        disableRipple={true}
+                                        disableFocusRipple={true}
+                                        size="small"
+                                        aria-label="Manage aliases"><TerminalIcon fontSize="small"/></IconButton>
+                                </MythicStyledTooltip>
                                 <MythicStyledTooltip title={"Submit task"}>
                                     <IconButton
                                         className="mythic-tasking-action-button mythic-tasking-action-button-success"
@@ -2605,6 +2623,17 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                                   filterOptions={props.filterOptions} onClose={() => {
                                   setOpenFilterOptionsDialog(false);
                               }}/>}
+                />
+            }
+            {openAliasesDialog &&
+                <MythicDialog fullWidth={true} maxWidth="lg" open={openAliasesDialog}
+                              onClose={() => setOpenAliasesDialog(false)}
+                              innerDialog={<SettingsOperatorAliasesDialog
+                                  me={me}
+                                  initialScopeType="callback"
+                                  initialPayloadTypeName={props.payloadtype_name}
+                                  onClose={() => setOpenAliasesDialog(false)}
+                              />}
                 />
             }
             {credentialPickerContext &&

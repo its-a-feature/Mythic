@@ -32,11 +32,12 @@ import {downloadFileFromMemory} from '../../utilities/Clipboard';
 
 const OPERATOR_ALIAS_QUERY = gql`
 query OperatorAliasSettingsQuery($operator_id: Int!) {
-  operator_alias(where: {operator_id: {_eq: $operator_id}}, order_by: [{consuming_container_id: asc_nulls_last}, {payloadtype_id: asc_nulls_last}, {slash_command: asc}, {active: desc}, {actual_command: asc}]) {
+  operator_alias(where: {operator_id: {_eq: $operator_id}}, order_by: [{consuming_container_id: asc_nulls_last}, {payloadtype_id: asc_nulls_last}, {alias_type: asc}, {name: asc}, {active: desc}, {alias: asc}]) {
     id
     operator_id
-    slash_command
-    actual_command
+    name
+    alias
+    alias_type
     payloadtype_id
     consuming_container_id
     active
@@ -87,8 +88,8 @@ mutation ImportOperatorAliases($config: String!) {
 `;
 
 const CREATE_OPERATOR_ALIAS = gql`
-mutation CreateOperatorAlias($slash_command: String!, $actual_command: String!, $payloadtype_id: Int, $consuming_container_id: Int, $active: Boolean) {
-  operatorAliasCreate(slash_command: $slash_command, actual_command: $actual_command, payloadtype_id: $payloadtype_id, consuming_container_id: $consuming_container_id, active: $active) {
+mutation CreateOperatorAlias($name: String!, $alias: String!, $alias_type: String, $payloadtype_id: Int, $consuming_container_id: Int, $active: Boolean) {
+  operatorAliasCreate(name: $name, alias: $alias, alias_type: $alias_type, payloadtype_id: $payloadtype_id, consuming_container_id: $consuming_container_id, active: $active) {
     status
     error
     id
@@ -97,8 +98,8 @@ mutation CreateOperatorAlias($slash_command: String!, $actual_command: String!, 
 `;
 
 const UPDATE_OPERATOR_ALIAS = gql`
-mutation UpdateOperatorAlias($id: Int!, $slash_command: String!, $actual_command: String!, $payloadtype_id: Int, $consuming_container_id: Int, $active: Boolean!) {
-  operatorAliasUpdate(id: $id, slash_command: $slash_command, actual_command: $actual_command, payloadtype_id: $payloadtype_id, consuming_container_id: $consuming_container_id, active: $active) {
+mutation UpdateOperatorAlias($id: Int!, $name: String!, $alias: String!, $alias_type: String, $payloadtype_id: Int, $consuming_container_id: Int, $active: Boolean!) {
+  operatorAliasUpdate(id: $id, name: $name, alias: $alias, alias_type: $alias_type, payloadtype_id: $payloadtype_id, consuming_container_id: $consuming_container_id, active: $active) {
     status
     error
     id
@@ -116,15 +117,16 @@ mutation DeleteOperatorAlias($id: Int!) {
 }
 `;
 
-const normalizeSlashCommand = (value) => value.trim().replace(/^\/+/, '').toLowerCase();
+const normalizeAliasName = (value) => value.trim().replace(/^[/@]+/, '').toLowerCase();
 
 export function SettingsOperatorAliasesDialog(props) {
     const operatorID = props.id || props.me?.user?.id;
     const fileInputRef = React.useRef(null);
     const [editingID, setEditingID] = React.useState(null);
-    const [slashCommand, setSlashCommand] = React.useState("");
-    const [actualCommand, setActualCommand] = React.useState("");
-    const [scopeType, setScopeType] = React.useState("chat");
+    const [aliasName, setAliasName] = React.useState("");
+    const [aliasText, setAliasText] = React.useState("");
+    const [aliasType, setAliasType] = React.useState("command");
+    const [scopeType, setScopeType] = React.useState(props.initialScopeType || "global");
     const [payloadTypeID, setPayloadTypeID] = React.useState("");
     const [containerID, setContainerID] = React.useState("");
     const [active, setActive] = React.useState(true);
@@ -146,38 +148,46 @@ export function SettingsOperatorAliasesDialog(props) {
             setContainerID(`${chatContainers[0].id}`);
         }
         if(scopeType === "callback" && payloadTypeID === "" && payloadTypes.length > 0){
-            setPayloadTypeID(`${payloadTypes[0].id}`);
+            const initialPayloadType = payloadTypes.find((payloadType) => payloadType.name === props.initialPayloadTypeName);
+            setPayloadTypeID(`${initialPayloadType?.id || payloadTypes[0].id}`);
         }
-    }, [scopeType, containerID, payloadTypeID, chatContainers, payloadTypes]);
+    }, [scopeType, containerID, payloadTypeID, chatContainers, payloadTypes, props.initialPayloadTypeName]);
     const resetForm = () => {
         setEditingID(null);
-        setSlashCommand("");
-        setActualCommand("");
-        setScopeType("chat");
-        setPayloadTypeID("");
-        setContainerID(chatContainers.length > 0 ? `${chatContainers[0].id}` : "");
+        setAliasName("");
+        setAliasText("");
+        setAliasType("command");
+        setScopeType(props.initialScopeType || "global");
+        setPayloadTypeID(props.initialPayloadTypeID ? `${props.initialPayloadTypeID}` : "");
+        setContainerID(props.initialContainerID ? `${props.initialContainerID}` : "");
         setActive(true);
     };
     const editAlias = (alias) => {
         setEditingID(alias.id);
-        setSlashCommand(alias.slash_command || "");
-        setActualCommand(alias.actual_command || "");
+        setAliasName(alias.name || "");
+        setAliasText(alias.alias || "");
+        setAliasType(alias.alias_type || "command");
         if(alias.consuming_container_id){
             setScopeType("chat");
             setContainerID(`${alias.consuming_container_id}`);
             setPayloadTypeID("");
-        } else {
+        } else if(alias.payloadtype_id) {
             setScopeType("callback");
             setPayloadTypeID(`${alias.payloadtype_id}`);
+            setContainerID("");
+        } else {
+            setScopeType("global");
+            setPayloadTypeID("");
             setContainerID("");
         }
         setActive(Boolean(alias.active));
     };
     const variablesForSubmit = () => {
-        const normalizedCommand = normalizeSlashCommand(slashCommand);
+        const normalizedName = normalizeAliasName(aliasName);
         return {
-            slash_command: normalizedCommand,
-            actual_command: actualCommand.trim(),
+            name: normalizedName,
+            alias: aliasText.trim(),
+            alias_type: aliasType,
             payloadtype_id: scopeType === "callback" ? Number(payloadTypeID) : null,
             consuming_container_id: scopeType === "chat" ? Number(containerID) : null,
             active,
@@ -185,8 +195,8 @@ export function SettingsOperatorAliasesDialog(props) {
     };
     const submitAlias = () => {
         const variables = variablesForSubmit();
-        if(variables.slash_command === "" || variables.actual_command === ""){
-            snackActions.warning("Alias and actual command are required");
+        if(variables.name === "" || variables.alias === ""){
+            snackActions.warning("Name and alias are required");
             return;
         }
         if((scopeType === "chat" && !variables.consuming_container_id) || (scopeType === "callback" && !variables.payloadtype_id)){
@@ -223,8 +233,9 @@ export function SettingsOperatorAliasesDialog(props) {
     const toggleAliasActive = (alias, nextActive) => {
         updateAlias({variables: {
             id: alias.id,
-            slash_command: alias.slash_command,
-            actual_command: alias.actual_command,
+            name: alias.name,
+            alias: alias.alias,
+            alias_type: alias.alias_type || "command",
             payloadtype_id: alias.payloadtype_id || null,
             consuming_container_id: alias.consuming_container_id || null,
             active: nextActive,
@@ -271,15 +282,15 @@ export function SettingsOperatorAliasesDialog(props) {
         reader.readAsText(file);
         evt.target.value = "";
     };
-    const formDisabled = normalizeSlashCommand(slashCommand) === "" ||
-        actualCommand.trim() === "" ||
+    const formDisabled = normalizeAliasName(aliasName) === "" ||
+        aliasText.trim() === "" ||
         (scopeType === "chat" && containerID === "") ||
         (scopeType === "callback" && payloadTypeID === "");
     return (
         <>
             <DialogTitle>
                 <Box sx={{display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1}}>
-                    <Typography component="div" variant="h6">Aliases / Slash Commands</Typography>
+                    <Typography component="div" variant="h6">Operator Aliases</Typography>
                     <Box sx={{display: "flex", gap: 1}}>
                         <MythicStyledTooltip title="Export aliases">
                             <Button size="small" variant="outlined" startIcon={<CloudDownloadIcon fontSize="small" />} onClick={exportOperatorAliases}>
@@ -299,20 +310,28 @@ export function SettingsOperatorAliasesDialog(props) {
                 <Box sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "1fr 1fr"}, gap: 1.5}}>
                     <TextField
                         size="small"
-                        label="Alias"
-                        value={slashCommand}
-                        onChange={(e) => setSlashCommand(e.target.value)}
-                        InputProps={{startAdornment: <InputAdornment position="start">/</InputAdornment>}}
+                        label="Name"
+                        value={aliasName}
+                        onChange={(e) => setAliasName(e.target.value)}
+                        InputProps={aliasType === "generic" ? {startAdornment: <InputAdornment position="start">@</InputAdornment>} : undefined}
                     />
                     <TextField
                         size="small"
-                        label="Actual command"
-                        value={actualCommand}
-                        onChange={(e) => setActualCommand(e.target.value)}
+                        label="Alias"
+                        value={aliasText}
+                        onChange={(e) => setAliasText(e.target.value)}
                     />
+                    <FormControl size="small">
+                        <InputLabel>Type</InputLabel>
+                        <Select label="Type" value={aliasType} onChange={(e) => setAliasType(e.target.value)}>
+                            <MenuItem value="command">Command</MenuItem>
+                            <MenuItem value="generic">Generic</MenuItem>
+                        </Select>
+                    </FormControl>
                     <FormControl size="small">
                         <InputLabel>Scope</InputLabel>
                         <Select label="Scope" value={scopeType} onChange={(e) => setScopeType(e.target.value)}>
+                            <MenuItem value="global">Global</MenuItem>
                             <MenuItem value="chat">AI chat container</MenuItem>
                             <MenuItem value="callback">Callback payload type</MenuItem>
                         </Select>
@@ -328,7 +347,7 @@ export function SettingsOperatorAliasesDialog(props) {
                                 ))}
                             </Select>
                         </FormControl>
-                    ) : (
+                    ) : scopeType === "callback" ? (
                         <FormControl size="small">
                             <InputLabel>Payload type</InputLabel>
                             <Select label="Payload type" value={payloadTypeID} onChange={(e) => setPayloadTypeID(e.target.value)}>
@@ -337,6 +356,8 @@ export function SettingsOperatorAliasesDialog(props) {
                                 ))}
                             </Select>
                         </FormControl>
+                    ) : (
+                        <Box />
                     )}
                     <FormControlLabel
                         control={<Switch checked={active} onChange={(e) => setActive(e.target.checked)} />}
@@ -359,8 +380,9 @@ export function SettingsOperatorAliasesDialog(props) {
                     <Table size="small">
                         <TableHead>
                             <TableRow>
+                                <TableCell>Name</TableCell>
                                 <TableCell>Alias</TableCell>
-                                <TableCell>Actual command</TableCell>
+                                <TableCell>Type</TableCell>
                                 <TableCell>Scope</TableCell>
                                 <TableCell>Status</TableCell>
                                 <TableCell align="right">Actions</TableCell>
@@ -370,13 +392,16 @@ export function SettingsOperatorAliasesDialog(props) {
                             {aliases.map((alias) => (
                                 <TableRow key={alias.id} hover selected={editingID === alias.id}>
                                     <TableCell>
-                                        <Typography variant="body2" sx={{fontFamily: "monospace"}}>/{alias.slash_command}</Typography>
+                                        <Typography variant="body2" sx={{fontFamily: "monospace"}}>{alias.alias_type === "generic" ? "@" : ""}{alias.name}</Typography>
                                     </TableCell>
                                     <TableCell>
-                                        <Typography variant="body2" sx={{fontFamily: "monospace", whiteSpace: "pre-wrap"}}>{alias.actual_command}</Typography>
+                                        <Typography variant="body2" sx={{fontFamily: "monospace", whiteSpace: "pre-wrap"}}>{alias.alias}</Typography>
                                     </TableCell>
                                     <TableCell>
-                                        {alias.consuming_container_id ? `AI: ${alias.consuming_container?.name || alias.consuming_container_id}` : `Callback: ${alias.payloadtype?.name || alias.payloadtype_id}`}
+                                        {alias.alias_type || "command"}
+                                    </TableCell>
+                                    <TableCell>
+                                        {alias.consuming_container_id ? `AI: ${alias.consuming_container?.name || alias.consuming_container_id}` : alias.payloadtype_id ? `Callback: ${alias.payloadtype?.name || alias.payloadtype_id}` : "Global"}
                                     </TableCell>
                                     <TableCell>
                                         <Box sx={{display: "flex", alignItems: "center", gap: 1}}>

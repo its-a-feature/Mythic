@@ -17,16 +17,45 @@ func TestOperatorAliasCommandNormalization(t *testing.T) {
 	}{
 		{input: "/Test", expected: "test", valid: true},
 		{input: "  ///Alias_Name-1  ", expected: "alias_name-1", valid: true},
+		{input: "@GenericRef", expected: "genericref", valid: true},
 		{input: "/1bad", expected: "1bad", valid: false},
 		{input: "/bad value", expected: "bad value", valid: false},
 	}
 	for _, test := range tests {
-		if got := NormalizeOperatorAliasCommand(test.input); got != test.expected {
-			t.Fatalf("NormalizeOperatorAliasCommand(%q) = %q, want %q", test.input, got, test.expected)
+		if got := NormalizeOperatorAliasName(test.input); got != test.expected {
+			t.Fatalf("NormalizeOperatorAliasName(%q) = %q, want %q", test.input, got, test.expected)
 		}
-		if got := IsValidOperatorAliasCommand(test.input); got != test.valid {
-			t.Fatalf("IsValidOperatorAliasCommand(%q) = %v, want %v", test.input, got, test.valid)
+		if got := IsValidOperatorAliasName(test.input); got != test.valid {
+			t.Fatalf("IsValidOperatorAliasName(%q) = %v, want %v", test.input, got, test.valid)
 		}
+	}
+}
+
+func TestOperatorAliasTypeNormalization(t *testing.T) {
+	if got := NormalizeOperatorAliasType(""); got != OperatorAliasTypeCommand {
+		t.Fatalf("empty alias type = %q, want command", got)
+	}
+	if !IsValidOperatorAliasType("generic") {
+		t.Fatalf("generic alias type should be valid")
+	}
+	if IsValidOperatorAliasType("reference") {
+		t.Fatalf("unexpected alias type should be invalid")
+	}
+}
+
+func TestReservedOperatorAliasNameUsesTaskReferenceProviders(t *testing.T) {
+	if !IsReservedOperatorAliasName("cred") {
+		t.Fatalf("cred should be reserved by the task reference provider")
+	}
+	if !IsReservedOperatorAliasName("@link") {
+		t.Fatalf("link should be reserved by the task reference provider")
+	}
+	if IsReservedOperatorAliasName("myalias") {
+		t.Fatalf("unregistered alias name should not be reserved")
+	}
+	RegisterReservedOperatorAliasName("future")
+	if !IsReservedOperatorAliasName("future") {
+		t.Fatalf("manually registered reserved alias name was not reserved")
 	}
 }
 
@@ -44,6 +73,19 @@ func TestParseSlashCommandLine(t *testing.T) {
 	_, _, ok = ParseSlashCommandLine("not a slash command")
 	if ok {
 		t.Fatalf("expected non-slash input to not parse")
+	}
+}
+
+func TestParseOperatorAliasCommandLine(t *testing.T) {
+	command, argument, ok := ParseOperatorAliasCommandLine("  TEST one string arg  ")
+	if !ok {
+		t.Fatalf("expected command alias line to parse")
+	}
+	if command != "test" {
+		t.Fatalf("command = %q, want test", command)
+	}
+	if argument != "one string arg" {
+		t.Fatalf("argument = %q, want one string arg", argument)
 	}
 }
 

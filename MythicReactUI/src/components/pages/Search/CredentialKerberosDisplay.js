@@ -58,10 +58,10 @@ function KerberosPrincipal({label, principal, realm, service=false}){
         <div className={`mythic-credential-search-kerberos-principal ${service ? "mythic-credential-search-kerberos-principal-service" : ""}`}>
             <span>{label}</span>
             {hasValue(principal) &&
-                <strong title={principal}>{principal}</strong>
+                <strong>{principal}</strong>
             }
             {hasValue(realm) &&
-                <Chip size="small" variant="outlined" label={realm} className="mythic-credential-search-mini-chip mythic-credential-search-identity-chip" />
+                <Chip size="small" variant="outlined" label={realm} className="mythic-credential-search-mini-chip" />
             }
         </div>
     )

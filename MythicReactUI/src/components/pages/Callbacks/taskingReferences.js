@@ -1,7 +1,8 @@
 import React from 'react';
-import {useLazyQuery} from '@apollo/client';
+import {gql, useLazyQuery} from '@apollo/client';
 import {Box, Button, DialogActions, DialogContent, DialogTitle, Typography} from '@mui/material';
 import {MythicDialog} from '../../MythicComponents/MythicDialog';
+import {MythicStyledTooltip} from '../../MythicComponents/MythicStyledTooltip';
 import {
     CredentialReferenceFieldDialog,
     CredentialReferencePickerDialog,
@@ -32,6 +33,61 @@ import {
     parseLinkReferences,
 } from './taskingReferencesLink';
 
+const genericAliasReferenceRegex = /(^|[^A-Za-z0-9_-])@([A-Za-z][A-Za-z0-9_-]*)/g;
+const reservedTaskReferenceKeywords = new Set(["cred", "link"]);
+
+const parseGenericAliasReferences = (value) => {
+    const text = String(value || "");
+    const references = [];
+    for(const match of text.matchAll(genericAliasReferenceRegex)){
+        const name = String(match[2] || "").toLowerCase();
+        const aliasStart = (match.index || 0) + match[1].length;
+        const aliasEnd = aliasStart + name.length + 1;
+        if(reservedTaskReferenceKeywords.has(name)){
+            continue;
+        }
+        if(text[aliasEnd] === ":"){
+            continue;
+        }
+        references.push({
+            raw: text.slice(aliasStart, aliasEnd),
+            keyword: "alias",
+            selector: name,
+            field: "",
+            index: aliasStart,
+        });
+    }
+    return references;
+}
+
+const genericAliasReferenceQuery = gql`
+query GenericAliasReferenceDisplay($names: [String!]!) {
+    operator_alias(where: {active: {_eq: true}, alias_type: {_eq: "generic"}, name: {_in: $names}}) {
+        id
+        name
+        alias
+        payloadtype_id
+        consuming_container_id
+        payloadtype {
+            name
+        }
+        consuming_container {
+            name
+        }
+    }
+}
+`;
+
+const uniqueGenericAliasNames = (references) => {
+    const names = new Set();
+    references.forEach((reference) => {
+        if(reference.keyword === "alias" && reference.selector){
+            names.add(reference.selector);
+        }
+    });
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
+}
+
 export {
     CredentialReferenceFieldDialog,
     CredentialReferencePickerDialog,
@@ -56,6 +112,29 @@ const taskReferenceProviders = [
         getReviewLabel: getLinkTaskReferenceReviewLabel,
         getReviewValue: getLinkTaskReferenceReviewValue,
         renderToken: (reference, context) => <LinkReferenceToken reference={reference} linkReferences={context.linkReferences} />,
+    },
+    {
+        keyword: "alias",
+        parseReferences: parseGenericAliasReferences,
+        isReference: (reference) => reference?.keyword === "alias",
+        getReviewLabel: () => "Generic alias",
+        getReviewValue: (reference, context) => {
+            const aliases = context.aliasesByName?.[reference.selector] || [];
+            if(aliases.length === 0){
+                return "Alias will be resolved on the server";
+            }
+            return aliases.map((alias) => {
+                const scope = alias.payloadtype_id ? `Callback: ${alias.payloadtype?.name || alias.payloadtype_id}` :
+                    alias.consuming_container_id ? `AI: ${alias.consuming_container?.name || alias.consuming_container_id}` :
+                        "Global";
+                return `${alias.alias} (${scope})`;
+            }).join("\n");
+        },
+        renderToken: (reference) => (
+            <MythicStyledTooltip title={reference.raw}>
+                <span className="mythic-reference-token mythic-reference-token-keyword">{reference.raw}</span>
+            </MythicStyledTooltip>
+        ),
     },
 ];
 
@@ -108,6 +187,7 @@ const selectedTaskReferencesCoverAll = (references, selectedTaskReferences) => {
 
 const emptyTaskReferenceContext = () => ({
     credentialsByID: {},
+    aliasesByName: {},
     linkReferences: emptyLinkReferenceDisplayContext(),
 });
 
@@ -119,6 +199,9 @@ const useTaskReferenceLookupContext = (references, options={}) => {
     const linkReferenceVariables = React.useMemo(() => getLinkReferenceLookupVariables(references), [references]);
     const linkLookupKey = React.useMemo(() => linkReferenceLookupVariablesKey(linkReferenceVariables), [linkReferenceVariables]);
     const [getLinkReferences, linkReferenceQuery] = useLazyQuery(linkReferenceDisplayQuery, {fetchPolicy: "cache-first"});
+    const aliasNames = React.useMemo(() => uniqueGenericAliasNames(references), [references]);
+    const aliasNameKey = aliasNames.join(",");
+    const [getAliases, aliasQuery] = useLazyQuery(genericAliasReferenceQuery, {fetchPolicy: "cache-first"});
 
     // Provider-specific lookups stay batched here so token rendering can remain generic and Apollo can cache by variables.
     React.useEffect(() => {
@@ -133,6 +216,12 @@ const useTaskReferenceLookupContext = (references, options={}) => {
         }
     }, [getLinkReferences, linkReferenceVariables, linkLookupKey]);
 
+    React.useEffect(() => {
+        if(aliasNames.length > 0){
+            getAliases({variables: {names: aliasNames}});
+        }
+    }, [aliasNameKey, aliasNames, getAliases]);
+
     const credentialsByID = React.useMemo(() => {
         return (credentialQuery.data?.credential || []).reduce((previous, credential) => {
             previous[credential.id] = credential;
@@ -144,8 +233,15 @@ const useTaskReferenceLookupContext = (references, options={}) => {
         return buildLinkReferenceDisplayContext(linkReferenceQuery.data);
     }, [linkReferenceQuery.data]);
 
+    const aliasesByName = React.useMemo(() => {
+        return (aliasQuery.data?.operator_alias || []).reduce((previous, alias) => {
+            previous[alias.name] = [...(previous[alias.name] || []), alias];
+            return previous;
+        }, {});
+    }, [aliasQuery.data]);
+
     return {
-        context: {credentialsByID, linkReferences},
+        context: {credentialsByID, aliasesByName, linkReferences},
         credentialsLoading: credentialQuery.loading || (credentialIDs.length > 0 && !credentialQuery.called),
     };
 }

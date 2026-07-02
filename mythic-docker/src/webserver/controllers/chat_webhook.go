@@ -282,17 +282,37 @@ func createAIChatMessageWithOptions(c *gin.Context, operatorOperation *databaseS
 		chatRespondError(c, err.Error())
 		return
 	}
+	finalPrompt, genericMetadata, aliasResolution, err := processAIChatGenericAliases(
+		operatorOperation.CurrentOperator.ID,
+		channel,
+		finalPrompt,
+		aliasResolution,
+	)
+	if err != nil {
+		chatRespondError(c, err.Error())
+		return
+	}
+	if slashCommand != nil {
+		if finalCommand, finalArgument, finalIsSlash := rabbitmq.ParseSlashCommandLine(finalPrompt); finalIsSlash {
+			slashCommand.Name = finalCommand
+			slashCommand.Argument = finalArgument
+			slashCommand.Raw = finalPrompt
+		}
+	}
 	options.RequestMessageMetadata = mergeChatMetadata(options.RequestMessageMetadata, slashMetadata)
+	options.RequestMessageMetadata = mergeChatMetadata(options.RequestMessageMetadata, genericMetadata)
 	options.SlashCommand = slashCommand
 	options.AliasResolution = aliasResolution
-	options.SlashMetadata = slashMetadata
+	options.SlashMetadata = mergeChatMetadata(slashMetadata, genericMetadata)
 	chatAuthContext, err := chatChannelAuthContext(channel)
 	if err != nil {
 		chatRespondError(c, err.Error())
 		return
 	}
 	operatorAuthContext := authentication.RabbitMQAuthContextFromGin(c)
-	requestMessageID, err := insertOperatorChatMessageWithMetadata(operatorOperation, channel, message, operatorAuthContext, options.RequestMessageMetadata)
+	// Store the expanded prompt as the visible request message so every
+	// operator sees exactly what was submitted to the AI container.
+	requestMessageID, err := insertOperatorChatMessageWithMetadata(operatorOperation, channel, finalPrompt, operatorAuthContext, options.RequestMessageMetadata)
 	if err != nil {
 		logging.LogError(err, "Failed to create AI prompt message")
 		chatRespondError(c, err.Error())
@@ -599,7 +619,7 @@ func processAIChatSlashInput(operatorID int, channel databaseStructs.ChatChannel
 	}
 	modelCommands := getAIModelSlashCommands(container, channel.ChatModel)
 	scope := rabbitmq.OperatorAliasScope{ConsumingContainerID: int(channel.ChatContainerID.Int64)}
-	_, aliasFound, err := rabbitmq.GetActiveOperatorAlias(operatorID, scope, initialCommand)
+	_, aliasFound, err := rabbitmq.GetActiveOperatorAlias(operatorID, scope, rabbitmq.OperatorAliasTypeCommand, initialCommand)
 	if err != nil {
 		return message, nil, nil, nil, err
 	}
@@ -645,6 +665,22 @@ func processAIChatSlashInput(operatorID int, channel databaseStructs.ChatChannel
 	}
 	metadata["slash_command"] = slashCommand
 	return finalPrompt, metadata, slashCommand, aliasResolution, nil
+}
+
+func processAIChatGenericAliases(operatorID int, channel databaseStructs.ChatChannel, message string, aliasResolution *rabbitmq.OperatorAliasResolution) (string, map[string]interface{}, *rabbitmq.OperatorAliasResolution, error) {
+	scope := rabbitmq.OperatorAliasScope{ConsumingContainerID: int(channel.ChatContainerID.Int64)}
+	finalPrompt, aliasesExpanded, genericResolution, err := rabbitmq.ResolveOperatorGenericAliasesInString(operatorID, scope, message)
+	if err != nil {
+		return message, nil, aliasResolution, err
+	}
+	if !aliasesExpanded {
+		return message, nil, aliasResolution, nil
+	}
+	aliasResolution = rabbitmq.MergeOperatorAliasResolution(aliasResolution, genericResolution)
+	metadata := map[string]interface{}{
+		"generic_alias_expansion": genericResolution,
+	}
+	return finalPrompt, metadata, aliasResolution, nil
 }
 
 type aiChatSlashCommandDefinition struct {

@@ -56,8 +56,9 @@ type OperatorAliasImportInput struct {
 }
 
 type OperatorAliasCreate struct {
-	SlashCommand         string `json:"slash_command" binding:"required"`
-	ActualCommand        string `json:"actual_command" binding:"required"`
+	Name                 string `json:"name" binding:"required"`
+	Alias                string `json:"alias" binding:"required"`
+	AliasType            string `json:"alias_type"`
 	PayloadTypeID        *int   `json:"payloadtype_id"`
 	ConsumingContainerID *int   `json:"consuming_container_id"`
 	Active               *bool  `json:"active"`
@@ -65,8 +66,9 @@ type OperatorAliasCreate struct {
 
 type OperatorAliasUpdate struct {
 	ID                   int    `json:"id" binding:"required"`
-	SlashCommand         string `json:"slash_command" binding:"required"`
-	ActualCommand        string `json:"actual_command" binding:"required"`
+	Name                 string `json:"name" binding:"required"`
+	Alias                string `json:"alias" binding:"required"`
+	AliasType            string `json:"alias_type"`
 	PayloadTypeID        *int   `json:"payloadtype_id"`
 	ConsumingContainerID *int   `json:"consuming_container_id"`
 	Active               bool   `json:"active"`
@@ -86,10 +88,11 @@ type OperatorAliasPortableConfig struct {
 }
 
 type OperatorAliasPortableAlias struct {
-	SlashCommand  string                     `json:"slash_command"`
-	ActualCommand string                     `json:"actual_command"`
-	Active        bool                       `json:"active"`
-	Scope         OperatorAliasPortableScope `json:"scope"`
+	Name      string                     `json:"name"`
+	Alias     string                     `json:"alias"`
+	AliasType string                     `json:"alias_type"`
+	Active    bool                       `json:"active"`
+	Scope     OperatorAliasPortableScope `json:"scope,omitempty"`
 }
 
 type OperatorAliasPortableScope struct {
@@ -98,18 +101,20 @@ type OperatorAliasPortableScope struct {
 }
 
 type OperatorAliasImportSkipped struct {
-	Index         int    `json:"index"`
-	SlashCommand  string `json:"slash_command,omitempty"`
-	ActualCommand string `json:"actual_command,omitempty"`
-	ScopeType     string `json:"scope_type,omitempty"`
-	ScopeName     string `json:"scope_name,omitempty"`
-	Reason        string `json:"reason"`
-	Error         string `json:"error"`
+	Index     int    `json:"index"`
+	Name      string `json:"name,omitempty"`
+	Alias     string `json:"alias,omitempty"`
+	AliasType string `json:"alias_type,omitempty"`
+	ScopeType string `json:"scope_type,omitempty"`
+	ScopeName string `json:"scope_name,omitempty"`
+	Reason    string `json:"reason"`
+	Error     string `json:"error"`
 }
 
 type operatorAliasExportRow struct {
-	SlashCommand      string         `db:"slash_command"`
-	ActualCommand     string         `db:"actual_command"`
+	Name              string         `db:"name"`
+	Alias             string         `db:"alias"`
+	AliasType         string         `db:"alias_type"`
 	Active            bool           `db:"active"`
 	PayloadTypeName   sql.NullString `db:"payloadtype_name"`
 	ChatContainerName sql.NullString `db:"chat_container_name"`
@@ -139,10 +144,11 @@ func OperatorAliasCreateWebhook(c *gin.Context) {
 	if input.Input.Active != nil {
 		active = *input.Input.Active
 	}
-	normalized, actualCommand, scope, err := validateOperatorAliasValues(
+	normalized, aliasText, aliasType, scope, err := validateOperatorAliasValues(
 		operatorID,
-		input.Input.SlashCommand,
-		input.Input.ActualCommand,
+		input.Input.Name,
+		input.Input.Alias,
+		input.Input.AliasType,
 		input.Input.PayloadTypeID,
 		input.Input.ConsumingContainerID,
 		0,
@@ -167,7 +173,7 @@ func OperatorAliasCreateWebhook(c *gin.Context) {
 	}
 	defer tx.Rollback()
 	if active {
-		if err = deactivateOperatorAliasSiblings(tx, operatorID, scope, normalized, 0); err != nil {
+		if err = deactivateOperatorAliasSiblings(tx, operatorID, aliasType, scope, normalized, 0); err != nil {
 			logging.LogError(err, "Failed to deactivate sibling operator aliases")
 			operatorAliasRespondError(c, "failed to create alias")
 			return
@@ -175,18 +181,19 @@ func OperatorAliasCreateWebhook(c *gin.Context) {
 	}
 	var aliasID int
 	err = tx.Get(&aliasID, `INSERT INTO operator_alias
-		(operator_id, slash_command, actual_command, payloadtype_id, consuming_container_id, active)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		(operator_id, name, alias, alias_type, payloadtype_id, consuming_container_id, active)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id`,
 		operatorID,
 		normalized,
-		actualCommand,
+		aliasText,
+		aliasType,
 		payloadTypeID,
 		consumingContainerID,
 		active)
 	if err != nil {
 		logging.LogError(err, "Failed to create operator alias")
-		operatorAliasRespondError(c, "failed to create alias; an alias with that command may already exist for this scope")
+		operatorAliasRespondError(c, "failed to create alias; an alias with that name may already exist for this scope")
 		return
 	}
 	if err = tx.Commit(); err != nil {
@@ -224,10 +231,11 @@ func OperatorAliasUpdateWebhook(c *gin.Context) {
 		operatorAliasRespondError(c, "failed to fetch alias")
 		return
 	}
-	normalized, actualCommand, scope, err := validateOperatorAliasValues(
+	normalized, aliasText, aliasType, scope, err := validateOperatorAliasValues(
 		operatorID,
-		input.Input.SlashCommand,
-		input.Input.ActualCommand,
+		input.Input.Name,
+		input.Input.Alias,
+		input.Input.AliasType,
 		input.Input.PayloadTypeID,
 		input.Input.ConsumingContainerID,
 		input.Input.ID,
@@ -252,28 +260,30 @@ func OperatorAliasUpdateWebhook(c *gin.Context) {
 	}
 	defer tx.Rollback()
 	if input.Input.Active {
-		if err = deactivateOperatorAliasSiblings(tx, operatorID, scope, normalized, input.Input.ID); err != nil {
+		if err = deactivateOperatorAliasSiblings(tx, operatorID, aliasType, scope, normalized, input.Input.ID); err != nil {
 			logging.LogError(err, "Failed to deactivate sibling operator aliases")
 			operatorAliasRespondError(c, "failed to update alias")
 			return
 		}
 	}
 	if _, err = tx.Exec(`UPDATE operator_alias
-		SET slash_command=$1,
-			actual_command=$2,
-			payloadtype_id=$3,
-			consuming_container_id=$4,
-			active=$5
-		WHERE id=$6 AND operator_id=$7`,
+		SET name=$1,
+			alias=$2,
+			alias_type=$3,
+			payloadtype_id=$4,
+			consuming_container_id=$5,
+			active=$6
+		WHERE id=$7 AND operator_id=$8`,
 		normalized,
-		actualCommand,
+		aliasText,
+		aliasType,
 		payloadTypeID,
 		consumingContainerID,
 		input.Input.Active,
 		input.Input.ID,
 		operatorID); err != nil {
 		logging.LogError(err, "Failed to update operator alias")
-		operatorAliasRespondError(c, "failed to update alias; an alias with that command may already exist for this scope")
+		operatorAliasRespondError(c, "failed to update alias; an alias with that name may already exist for this scope")
 		return
 	}
 	if err = tx.Commit(); err != nil {
@@ -318,8 +328,9 @@ func OperatorAliasExportWebhook(c *gin.Context) {
 	}
 	aliasRows := []operatorAliasExportRow{}
 	if err = database.DB.Select(&aliasRows, `SELECT
-			operator_alias.slash_command,
-			operator_alias.actual_command,
+			operator_alias.name,
+			operator_alias.alias,
+			operator_alias.alias_type,
 			operator_alias.active,
 			payloadtype.name "payloadtype_name",
 			consuming_container.name "chat_container_name"
@@ -330,8 +341,9 @@ func OperatorAliasExportWebhook(c *gin.Context) {
 		ORDER BY
 			COALESCE(consuming_container.name, ''),
 			COALESCE(payloadtype.name, ''),
-			operator_alias.slash_command,
-			operator_alias.actual_command,
+			operator_alias.alias_type,
+			operator_alias.name,
+			operator_alias.alias,
 			operator_alias.id`, operatorID); err != nil {
 		logging.LogError(err, "Failed to fetch operator aliases for export")
 		c.JSON(http.StatusOK, OperatorAliasExportOutput{Status: "error", Error: "failed to fetch aliases"})
@@ -343,9 +355,10 @@ func OperatorAliasExportWebhook(c *gin.Context) {
 	}
 	for _, alias := range aliasRows {
 		portableAlias := OperatorAliasPortableAlias{
-			SlashCommand:  alias.SlashCommand,
-			ActualCommand: alias.ActualCommand,
-			Active:        alias.Active,
+			Name:      alias.Name,
+			Alias:     alias.Alias,
+			AliasType: alias.AliasType,
+			Active:    alias.Active,
 		}
 		if alias.PayloadTypeName.Valid {
 			portableAlias.Scope = OperatorAliasPortableScope{
@@ -357,9 +370,6 @@ func OperatorAliasExportWebhook(c *gin.Context) {
 				Type: operatorAliasScopeChatContainer,
 				Name: alias.ChatContainerName.String,
 			}
-		} else {
-			logging.LogError(nil, "Skipping operator alias export row with missing scope name", "slash_command", alias.SlashCommand)
-			continue
 		}
 		config.Aliases = append(config.Aliases, portableAlias)
 	}
@@ -404,7 +414,7 @@ func OperatorAliasImportWebhook(c *gin.Context) {
 	}
 	defer tx.Rollback()
 	for index, alias := range config.Aliases {
-		normalized, actualCommand, invalidReason := normalizePortableOperatorAlias(alias)
+		normalized, aliasText, aliasType, invalidReason := normalizePortableOperatorAlias(alias)
 		if invalidReason != "" {
 			response.addSkippedAlias(index, alias, operatorAliasSkipInvalidReason, invalidReason)
 			continue
@@ -423,7 +433,7 @@ func OperatorAliasImportWebhook(c *gin.Context) {
 			response.addSkippedAlias(index, alias, operatorAliasSkipMissingReason, missingReason)
 			continue
 		}
-		exists, err := operatorAliasExactDuplicateExists(tx, operatorID, normalized, actualCommand, scope, 0)
+		exists, err := operatorAliasExactDuplicateExists(tx, operatorID, normalized, aliasText, aliasType, scope, 0)
 		if err != nil {
 			logging.LogError(err, "Failed to check imported operator alias duplicate")
 			operatorAliasRespondImportError(c, "failed to import aliases")
@@ -433,7 +443,7 @@ func OperatorAliasImportWebhook(c *gin.Context) {
 			response.addSkippedAlias(index, alias, operatorAliasSkipDuplicateReason, "alias already exists for that scope")
 			continue
 		}
-		err = insertImportedOperatorAlias(tx, operatorID, normalized, actualCommand, scope)
+		err = insertImportedOperatorAlias(tx, operatorID, normalized, aliasText, aliasType, scope)
 		if err != nil {
 			logging.LogError(err, "Failed to insert imported operator alias")
 			operatorAliasRespondImportError(c, "failed to import aliases")
@@ -449,14 +459,21 @@ func OperatorAliasImportWebhook(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-func validateOperatorAliasValues(operatorID int, slashCommand string, actualCommand string, payloadTypeID *int, consumingContainerID *int, excludeID int) (string, string, rabbitmq.OperatorAliasScope, error) {
-	normalized := rabbitmq.NormalizeOperatorAliasCommand(slashCommand)
-	if !rabbitmq.IsValidOperatorAliasCommand(normalized) {
-		return "", "", rabbitmq.OperatorAliasScope{}, fmt.Errorf("slash command must start with a letter and contain only letters, numbers, underscores, or hyphens")
+func validateOperatorAliasValues(operatorID int, name string, alias string, aliasType string, payloadTypeID *int, consumingContainerID *int, excludeID int) (string, string, string, rabbitmq.OperatorAliasScope, error) {
+	normalized := rabbitmq.NormalizeOperatorAliasName(name)
+	if !rabbitmq.IsValidOperatorAliasName(normalized) {
+		return "", "", "", rabbitmq.OperatorAliasScope{}, fmt.Errorf("alias name must start with a letter and contain only letters, numbers, underscores, or hyphens")
 	}
-	actualCommand = strings.TrimSpace(actualCommand)
-	if actualCommand == "" {
-		return "", "", rabbitmq.OperatorAliasScope{}, fmt.Errorf("actual command is required")
+	normalizedType := rabbitmq.NormalizeOperatorAliasType(aliasType)
+	if !rabbitmq.IsValidOperatorAliasType(normalizedType) {
+		return "", "", "", rabbitmq.OperatorAliasScope{}, fmt.Errorf("alias type must be command or generic")
+	}
+	if normalizedType == rabbitmq.OperatorAliasTypeGeneric && rabbitmq.IsReservedOperatorAliasName(normalized) {
+		return "", "", "", rabbitmq.OperatorAliasScope{}, fmt.Errorf("alias name %q is reserved for task references", normalized)
+	}
+	alias = strings.TrimSpace(alias)
+	if alias == "" {
+		return "", "", "", rabbitmq.OperatorAliasScope{}, fmt.Errorf("alias expansion is required")
 	}
 	scope := rabbitmq.OperatorAliasScope{}
 	if payloadTypeID != nil && *payloadTypeID > 0 {
@@ -466,7 +483,7 @@ func validateOperatorAliasValues(operatorID int, slashCommand string, actualComm
 		scope.ConsumingContainerID = *consumingContainerID
 	}
 	if (scope.PayloadTypeID > 0) && (scope.ConsumingContainerID > 0) {
-		return "", "", rabbitmq.OperatorAliasScope{}, fmt.Errorf("select exactly one alias scope")
+		return "", "", "", rabbitmq.OperatorAliasScope{}, fmt.Errorf("select at most one alias scope")
 	}
 	if scope.PayloadTypeID > 0 {
 		payloadType := databaseStructs.Payloadtype{}
@@ -475,30 +492,30 @@ func validateOperatorAliasValues(operatorID int, slashCommand string, actualComm
 			scope.PayloadTypeID)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				return "", "", rabbitmq.OperatorAliasScope{}, fmt.Errorf("failed to find that payload type")
+				return "", "", "", rabbitmq.OperatorAliasScope{}, fmt.Errorf("failed to find that payload type")
 			}
-			return "", "", rabbitmq.OperatorAliasScope{}, err
+			return "", "", "", rabbitmq.OperatorAliasScope{}, err
 		}
-	} else {
+	} else if scope.ConsumingContainerID > 0 {
 		container := databaseStructs.ConsumingContainer{}
 		err := database.DB.Get(&container,
 			`SELECT id FROM consuming_container WHERE id=$1 AND type=$2 AND deleted=false`,
 			scope.ConsumingContainerID, rabbitmq.CONSUMING_SERVICES_TYPE_CHAT)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				return "", "", rabbitmq.OperatorAliasScope{}, fmt.Errorf("failed to find that chat container")
+				return "", "", "", rabbitmq.OperatorAliasScope{}, fmt.Errorf("failed to find that chat container")
 			}
-			return "", "", rabbitmq.OperatorAliasScope{}, err
+			return "", "", "", rabbitmq.OperatorAliasScope{}, err
 		}
 	}
-	exists, err := operatorAliasExactDuplicateExists(database.DB, operatorID, normalized, actualCommand, scope, excludeID)
+	exists, err := operatorAliasExactDuplicateExists(database.DB, operatorID, normalized, alias, normalizedType, scope, excludeID)
 	if err != nil {
-		return "", "", rabbitmq.OperatorAliasScope{}, err
+		return "", "", "", rabbitmq.OperatorAliasScope{}, err
 	}
 	if exists {
-		return "", "", rabbitmq.OperatorAliasScope{}, fmt.Errorf("alias /%s already exists with that command for that scope", normalized)
+		return "", "", "", rabbitmq.OperatorAliasScope{}, fmt.Errorf("alias %s already exists with that expansion for that scope", normalized)
 	}
-	return normalized, actualCommand, scope, nil
+	return normalized, alias, normalizedType, scope, nil
 }
 
 type operatorAliasGetter interface {
@@ -509,16 +526,23 @@ type operatorAliasExecutor interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
 }
 
-func normalizePortableOperatorAlias(alias OperatorAliasPortableAlias) (string, string, string) {
-	normalized := rabbitmq.NormalizeOperatorAliasCommand(alias.SlashCommand)
-	if !rabbitmq.IsValidOperatorAliasCommand(normalized) {
-		return "", "", "slash command must start with a letter and contain only letters, numbers, underscores, or hyphens"
+func normalizePortableOperatorAlias(alias OperatorAliasPortableAlias) (string, string, string, string) {
+	normalized := rabbitmq.NormalizeOperatorAliasName(alias.Name)
+	if !rabbitmq.IsValidOperatorAliasName(normalized) {
+		return "", "", "", "alias name must start with a letter and contain only letters, numbers, underscores, or hyphens"
 	}
-	actualCommand := strings.TrimSpace(alias.ActualCommand)
-	if actualCommand == "" {
-		return "", "", "actual command is required"
+	aliasType := rabbitmq.NormalizeOperatorAliasType(alias.AliasType)
+	if !rabbitmq.IsValidOperatorAliasType(aliasType) {
+		return "", "", "", "alias type must be command or generic"
 	}
-	return normalized, actualCommand, ""
+	if aliasType == rabbitmq.OperatorAliasTypeGeneric && rabbitmq.IsReservedOperatorAliasName(normalized) {
+		return "", "", "", fmt.Sprintf("alias name %q is reserved for task references", normalized)
+	}
+	aliasText := strings.TrimSpace(alias.Alias)
+	if aliasText == "" {
+		return "", "", "", "alias expansion is required"
+	}
+	return normalized, aliasText, aliasType, ""
 }
 
 var PayloadTypeIDs = make(map[string]int)
@@ -528,6 +552,9 @@ var PayloadTypeContainerNameIDMutex sync.Mutex
 func resolvePortableOperatorAliasScope(getter operatorAliasGetter, portableScope OperatorAliasPortableScope) (rabbitmq.OperatorAliasScope, string, string, error) {
 	scopeType := strings.ToLower(strings.TrimSpace(portableScope.Type))
 	scopeName := strings.TrimSpace(portableScope.Name)
+	if scopeType == "" && scopeName == "" {
+		return rabbitmq.OperatorAliasScope{}, "", "", nil
+	}
 	if scopeName == "" {
 		return rabbitmq.OperatorAliasScope{}, "", "scope name is required", nil
 	}
@@ -569,23 +596,30 @@ func resolvePortableOperatorAliasScope(getter operatorAliasGetter, portableScope
 	return scope, "", "", nil
 }
 
-func operatorAliasExactDuplicateExists(getter operatorAliasGetter, operatorID int, slashCommand string, actualCommand string, scope rabbitmq.OperatorAliasScope, excludeID int) (bool, error) {
+func operatorAliasExactDuplicateExists(getter operatorAliasGetter, operatorID int, name string, aliasText string, aliasType string, scope rabbitmq.OperatorAliasScope, excludeID int) (bool, error) {
 	var existingID int
 	var err error
 	if scope.PayloadTypeID > 0 {
 		err = getter.Get(&existingID, `SELECT id
 			FROM operator_alias
 			WHERE operator_id=$1 AND payloadtype_id=$2 AND consuming_container_id IS NULL
-				AND slash_command=$3 AND actual_command=$4 AND id<>$5
+				AND name=$3 AND alias=$4 AND alias_type=$5 AND id<>$6
 			LIMIT 1`,
-			operatorID, scope.PayloadTypeID, slashCommand, actualCommand, excludeID)
-	} else {
+			operatorID, scope.PayloadTypeID, name, aliasText, aliasType, excludeID)
+	} else if scope.ConsumingContainerID > 0 {
 		err = getter.Get(&existingID, `SELECT id
 			FROM operator_alias
 			WHERE operator_id=$1 AND consuming_container_id=$2 AND payloadtype_id IS NULL
-				AND slash_command=$3 AND actual_command=$4 AND id<>$5
+				AND name=$3 AND alias=$4 AND alias_type=$5 AND id<>$6
 			LIMIT 1`,
-			operatorID, scope.ConsumingContainerID, slashCommand, actualCommand, excludeID)
+			operatorID, scope.ConsumingContainerID, name, aliasText, aliasType, excludeID)
+	} else {
+		err = getter.Get(&existingID, `SELECT id
+			FROM operator_alias
+			WHERE operator_id=$1 AND payloadtype_id IS NULL AND consuming_container_id IS NULL
+				AND name=$2 AND alias=$3 AND alias_type=$4 AND id<>$5
+			LIMIT 1`,
+			operatorID, name, aliasText, aliasType, excludeID)
 	}
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
@@ -596,25 +630,31 @@ func operatorAliasExactDuplicateExists(getter operatorAliasGetter, operatorID in
 	return true, nil
 }
 
-func deactivateOperatorAliasSiblings(executor operatorAliasExecutor, operatorID int, scope rabbitmq.OperatorAliasScope, slashCommand string, excludeID int) error {
+func deactivateOperatorAliasSiblings(executor operatorAliasExecutor, operatorID int, aliasType string, scope rabbitmq.OperatorAliasScope, name string, excludeID int) error {
 	var err error
 	if scope.PayloadTypeID > 0 {
 		_, err = executor.Exec(`UPDATE operator_alias
 			SET active=false
 			WHERE operator_id=$1 AND payloadtype_id=$2 AND consuming_container_id IS NULL
-				AND slash_command=$3 AND active=true AND id<>$4`,
-			operatorID, scope.PayloadTypeID, slashCommand, excludeID)
-	} else {
+				AND alias_type=$3 AND name=$4 AND active=true AND id<>$5`,
+			operatorID, scope.PayloadTypeID, aliasType, name, excludeID)
+	} else if scope.ConsumingContainerID > 0 {
 		_, err = executor.Exec(`UPDATE operator_alias
 			SET active=false
 			WHERE operator_id=$1 AND consuming_container_id=$2 AND payloadtype_id IS NULL
-				AND slash_command=$3 AND active=true AND id<>$4`,
-			operatorID, scope.ConsumingContainerID, slashCommand, excludeID)
+				AND alias_type=$3 AND name=$4 AND active=true AND id<>$5`,
+			operatorID, scope.ConsumingContainerID, aliasType, name, excludeID)
+	} else {
+		_, err = executor.Exec(`UPDATE operator_alias
+			SET active=false
+			WHERE operator_id=$1 AND payloadtype_id IS NULL AND consuming_container_id IS NULL
+				AND alias_type=$2 AND name=$3 AND active=true AND id<>$4`,
+			operatorID, aliasType, name, excludeID)
 	}
 	return err
 }
 
-func insertImportedOperatorAlias(executor operatorAliasExecutor, operatorID int, slashCommand string, actualCommand string, scope rabbitmq.OperatorAliasScope) error {
+func insertImportedOperatorAlias(executor operatorAliasExecutor, operatorID int, name string, aliasText string, aliasType string, scope rabbitmq.OperatorAliasScope) error {
 	var payloadTypeID interface{}
 	var consumingContainerID interface{}
 	if scope.PayloadTypeID > 0 {
@@ -624,9 +664,9 @@ func insertImportedOperatorAlias(executor operatorAliasExecutor, operatorID int,
 		consumingContainerID = scope.ConsumingContainerID
 	}
 	_, err := executor.Exec(`INSERT INTO operator_alias
-		(operator_id, slash_command, actual_command, payloadtype_id, consuming_container_id, active)
-		VALUES ($1, $2, $3, $4, $5, true)`,
-		operatorID, slashCommand, actualCommand, payloadTypeID, consumingContainerID)
+		(operator_id, name, alias, alias_type, payloadtype_id, consuming_container_id, active)
+		VALUES ($1, $2, $3, $4, $5, $6, true)`,
+		operatorID, name, aliasText, aliasType, payloadTypeID, consumingContainerID)
 	return err
 }
 
@@ -641,13 +681,14 @@ func (response *OperatorAliasImportOutput) addSkippedAlias(index int, alias Oper
 		response.SkippedInvalidCount += 1
 	}
 	response.Skipped = append(response.Skipped, OperatorAliasImportSkipped{
-		Index:         index,
-		SlashCommand:  alias.SlashCommand,
-		ActualCommand: alias.ActualCommand,
-		ScopeType:     alias.Scope.Type,
-		ScopeName:     alias.Scope.Name,
-		Reason:        reason,
-		Error:         err,
+		Index:     index,
+		Name:      alias.Name,
+		Alias:     alias.Alias,
+		AliasType: alias.AliasType,
+		ScopeType: alias.Scope.Type,
+		ScopeName: alias.Scope.Name,
+		Reason:    reason,
+		Error:     err,
 	})
 }
 
