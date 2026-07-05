@@ -30,6 +30,7 @@ type MythicRPCFileCreateMessage struct {
 	RemotePathOnTarget  string `json:"remote_path"`
 	TargetHostName      string `json:"host"`
 	Comment             string `json:"comment"`
+	FileBrowserID       int    `json:"file_browser_id"`
 }
 type MythicRPCFileCreateMessageResponse struct {
 	Success     bool   `json:"success"`
@@ -92,6 +93,11 @@ func MythicRPCFileCreate(input MythicRPCFileCreateMessage) MythicRPCFileCreateMe
 	fileData.Md5 = fmt.Sprintf("%x", md5Sum)
 	if len(input.Filename) != 0 {
 		fileData.Filename = []byte(input.Filename)
+	}
+
+	if input.FileBrowserID > 0 {
+		fileData.MythicTreeID.Valid = true
+		fileData.MythicTreeID.Int64 = int64(input.FileBrowserID)
 	}
 
 	if input.TaskID > 0 {
@@ -185,8 +191,8 @@ func MythicRPCFileCreate(input MythicRPCFileCreateMessage) MythicRPCFileCreateMe
 		return response
 	}
 	if statement, err := database.DB.PrepareNamed(`INSERT INTO filemeta 
-			(filename,total_chunks,chunks_received,chunk_size,path,operation_id,complete,comment,operator_id,delete_after_fetch,md5,sha1,agent_file_id,full_remote_path,task_id,is_screenshot,is_download_from_agent,host,size)
-			VALUES (:filename, :total_chunks, :chunks_received, :chunk_size, :path, :operation_id, :complete, :comment, :operator_id, :delete_after_fetch, :md5, :sha1, :agent_file_id, :full_remote_path, :task_id, :is_screenshot, :is_download_from_agent, :host, :size)
+			(filename,total_chunks,chunks_received,chunk_size,path,operation_id,complete,comment,operator_id,delete_after_fetch,md5,sha1,agent_file_id,full_remote_path,task_id,is_screenshot,is_download_from_agent,host,size,mythictree_id)
+			VALUES (:filename, :total_chunks, :chunks_received, :chunk_size, :path, :operation_id, :complete, :comment, :operator_id, :delete_after_fetch, :md5, :sha1, :agent_file_id, :full_remote_path, :task_id, :is_screenshot, :is_download_from_agent, :host, :size, :mythictree_id)
 			RETURNING id`); err != nil {
 		logging.LogError(err, "Failed to save file metadata to database")
 		response.Error = err.Error()

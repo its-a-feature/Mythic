@@ -16,6 +16,7 @@ type MythicRPCFileBrowserCreateMessage struct {
 type MythicRPCFileBrowserCreateMessageResponse struct {
 	Success bool   `json:"success"`
 	Error   string `json:"error"`
+	NodeId  int    `json:"node_id"`
 }
 type MythicRPCFileBrowserCreateFileBrowserData = agentMessagePostResponseFileBrowser
 
@@ -52,19 +53,20 @@ func MythicRPCFileBrowserCreate(input MythicRPCFileBrowserCreateMessage) MythicR
 		response.Error = err.Error()
 		return response
 	}
-	err = HandleAgentMessagePostResponseFileBrowser(task, &input.FileBrowser, int(task.APITokensID.Int64))
+	id, err := HandleAgentMessagePostResponseFileBrowser(task, &input.FileBrowser, int(task.APITokensID.Int64))
 	if err != nil {
 		logging.LogError(err, "Failed to create files in MythicRPCFileBrowserCreate")
 		response.Error = err.Error()
 		return response
 	}
-	err = HandleAgentMessagePostResponseFileBrowser(task, nil, int(task.APITokensID.Int64))
+	_, err = HandleAgentMessagePostResponseFileBrowser(task, nil, int(task.APITokensID.Int64))
 	if err != nil {
 		logging.LogError(err, "Failed to flush files in MythicRPCFileBrowserCreate")
 		response.Error = err.Error()
 		return response
 	}
 	response.Success = true
+	response.NodeId = id
 	return response
 }
 func processMythicRPCFileBrowserCreate(msg amqp.Delivery) interface{} {

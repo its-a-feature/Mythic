@@ -1802,7 +1802,7 @@ func listenForFileBrowserData() {
 		case message := <-FileBrowserChannel:
 			//logging.LogInfo("[*] got message from FileBrowserChannel", "task", message.Task.ID, "completed", message.Task.Completed,
 			//	"nil data", message.NewFileBrowserData == nil)
-			err := HandleAgentMessagePostResponseFileBrowser(*message.Task, message.NewFileBrowserData, message.APITokenID)
+			_, err := HandleAgentMessagePostResponseFileBrowser(*message.Task, message.NewFileBrowserData, message.APITokenID)
 			if err != nil {
 				logging.LogError(err, "Failed to handle file browser post response")
 			}
@@ -1810,7 +1810,7 @@ func listenForFileBrowserData() {
 	}
 }
 func HandleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBrowser *agentMessagePostResponseFileBrowser,
-	apitokensId int) error {
+	apitokensId int) (int, error) {
 	// given a FileBrowser object, need to insert it into database and potentially insert parents along the way
 	if fileBrowser == nil {
 		fileBrowserUpdateDeletedChannel <- FileBrowserChannelMessage{
@@ -1818,7 +1818,7 @@ func HandleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 			NewFileBrowserData: fileBrowser,
 			APITokenID:         apitokensId,
 		}
-		return nil
+		return 0, nil
 	}
 	if fileBrowser.SetAsUserOutput != nil && *fileBrowser.SetAsUserOutput {
 		go func(fileBrowserForOutput *agentMessagePostResponseFileBrowser) {
@@ -1838,7 +1838,7 @@ func HandleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 	if err != nil {
 		logging.LogError(err, "Failed to add data for file browser due to path issue")
 		go SendAllOperationsMessage(err.Error(), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
-		return err
+		return 0, err
 	}
 	if pathData.Host == "" {
 		pathData.Host = strings.ToUpper(task.Callback.Host)
@@ -1857,7 +1857,7 @@ func HandleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 	}
 	if fileBrowser.Name == "" {
 		logging.LogError(nil, "Can't create file browser entry with empty name")
-		return errors.New("can't make file browser entry with empty name")
+		return 0, errors.New("can't make file browser entry with empty name")
 	}
 	fullPath := treeNodeGetFullPath(
 		[]byte(realParentPath),
@@ -1928,7 +1928,7 @@ func HandleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 			createTreeNode(&newTreeChild)
 		}
 	}
-	return nil
+	return newTree.ID, nil
 }
 func listenForFileBrowserUpdateDeleted() {
 	fileBrowserUpdateDeletedCache := make(map[int][]*agentMessagePostResponseFileBrowser)

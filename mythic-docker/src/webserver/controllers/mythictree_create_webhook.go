@@ -70,7 +70,7 @@ func MythictreeCreateWebhook(c *gin.Context) {
 		return
 	}
 	if input.Input.FileBrowser != nil {
-		err = rabbitmq.HandleAgentMessagePostResponseFileBrowser(task, input.Input.FileBrowser, apitokenId)
+		_, err = rabbitmq.HandleAgentMessagePostResponseFileBrowser(task, input.Input.FileBrowser, apitokenId)
 		if err != nil {
 			c.JSON(http.StatusOK, gin.H{
 				"status": "error",
@@ -78,7 +78,7 @@ func MythictreeCreateWebhook(c *gin.Context) {
 			})
 			return
 		}
-		err = rabbitmq.HandleAgentMessagePostResponseFileBrowser(task, nil, apitokenId)
+		_, err = rabbitmq.HandleAgentMessagePostResponseFileBrowser(task, nil, apitokenId)
 		if err != nil {
 			c.JSON(http.StatusOK, gin.H{
 				"status": "error",
