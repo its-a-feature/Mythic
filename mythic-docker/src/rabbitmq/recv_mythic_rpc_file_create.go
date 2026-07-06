@@ -13,6 +13,7 @@ import (
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
+	"github.com/its-a-feature/Mythic/utils"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -95,11 +96,13 @@ func MythicRPCFileCreate(input MythicRPCFileCreateMessage, authContext RabbitMQA
 	}
 	fileData.OperationID = authContext.OperationID
 	fileData.OperatorID = authContext.OperatorID
+	task := databaseStructs.Task{}
 	if input.TaskID > 0 {
-		task := databaseStructs.Task{}
 		err = database.DB.Get(&task, `SELECT
 		task.display_id,
-		callback.host "callback.host"
+		task.id, task.operation_id,
+		callback.host "callback.host",
+		callback.id "callback.id"
 		FROM
 		task
 		JOIN callback ON task.callback_id = callback.id
@@ -191,6 +194,16 @@ func MythicRPCFileCreate(input MythicRPCFileCreateMessage, authContext RabbitMQA
 	response.Success = true
 	response.AgentFileId = fileData.AgentFileID
 	go EmitFileLog(fileData.ID)
+	// if we have a remote path, also associate it with the file browser
+	if input.RemotePathOnTarget != "" && input.TaskID > 0 {
+		filePieces, err := utils.SplitFilePathGetHost(input.RemotePathOnTarget, "", []string{})
+		if err != nil {
+			logging.LogError(err, "Failed to split file path")
+			return response
+		}
+		filePieces.Host = fileData.Host
+		go associateFileMetaWithMythicTree(filePieces, fileData, task)
+	}
 	return response
 }
 func processMythicRPCFileCreate(msg amqp.Delivery) interface{} {
