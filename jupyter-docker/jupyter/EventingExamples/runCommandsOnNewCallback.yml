@@ -59,7 +59,10 @@ steps:
     description: "Process the output of the HealthInspector task to see if there's any EDR running"
     inputs:
       SCRIPT_TASK_ID: "run script.SCRIPT_TASK_ID"
-      APIToken: mythic.apitoken
+      APIToken:
+        type: mythic.apitoken
+        scopes:
+          - "*"
       CALLBACK_ID: env.display_id
     action: custom_function
     action_data:
@@ -67,4 +70,3 @@ steps:
       container_name: opsecChecker
     depends_on:
       - run script
-

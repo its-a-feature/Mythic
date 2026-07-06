@@ -8,7 +8,9 @@ steps:
     action_data:
       container_name: "opsecChecker"
     inputs:
-      apitoken: "mythic.apitoken"
+      apitoken:
+        type: "mythic.apitoken"
+        scopes:
+          - "*"
       command: "env.command_name"
       params: "env.params"
-  

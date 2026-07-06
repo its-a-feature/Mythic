@@ -17,13 +17,17 @@ object_relationships:
   - name: request_message
     using:
       foreign_key_constraint_on: request_message_id
-  - name: response_message
-    using:
-      foreign_key_constraint_on: response_message_id
   - name: retry_of
     using:
       foreign_key_constraint_on: retry_of_id
 array_relationships:
+  - name: response_messages
+    using:
+      foreign_key_constraint_on:
+        column: chat_request_id
+        table:
+          name: chat_message
+          schema: public
   - name: chat_requests
     using:
       foreign_key_constraint_on:
@@ -47,7 +51,6 @@ select_permissions:
         - model
         - operation_id
         - request_message_id
-        - response_message_id
         - retry_of_id
         - status
         - updated_at
@@ -73,7 +76,6 @@ select_permissions:
         - model
         - operation_id
         - request_message_id
-        - response_message_id
         - retry_of_id
         - status
         - updated_at
@@ -99,7 +101,6 @@ select_permissions:
         - model
         - operation_id
         - request_message_id
-        - response_message_id
         - retry_of_id
         - status
         - updated_at
@@ -125,7 +126,6 @@ select_permissions:
         - model
         - operation_id
         - request_message_id
-        - response_message_id
         - retry_of_id
         - status
         - updated_at

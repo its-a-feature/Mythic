@@ -25,7 +25,6 @@ type ChatContainerRequestMessage struct {
 	ChannelSlug       string                        `json:"channel_slug" mapstructure:"channel_slug"`
 	RequestID         int                           `json:"request_id" mapstructure:"request_id"`
 	RequestMessageID  int                           `json:"request_message_id" mapstructure:"request_message_id"`
-	ResponseMessageID int                           `json:"response_message_id" mapstructure:"response_message_id"`
 	Model             string                        `json:"model" mapstructure:"model"`
 	Prompt            string                        `json:"prompt" mapstructure:"prompt"`
 	Config            map[string]interface{}        `json:"config" mapstructure:"config"`
@@ -36,13 +35,12 @@ type ChatContainerRequestMessage struct {
 }
 
 type ChatContainerCancelRequestMessage struct {
-	ContainerName     string `json:"container_name" mapstructure:"container_name"`
-	OperationID       int    `json:"operation_id" mapstructure:"operation_id"`
-	ChannelID         int    `json:"channel_id" mapstructure:"channel_id"`
-	RequestID         int    `json:"request_id" mapstructure:"request_id"`
-	ResponseMessageID int    `json:"response_message_id" mapstructure:"response_message_id"`
-	Reason            string `json:"reason" mapstructure:"reason"`
-	CancelledBy       int    `json:"cancelled_by" mapstructure:"cancelled_by"`
+	ContainerName string `json:"container_name" mapstructure:"container_name"`
+	OperationID   int    `json:"operation_id" mapstructure:"operation_id"`
+	ChannelID     int    `json:"channel_id" mapstructure:"channel_id"`
+	RequestID     int    `json:"request_id" mapstructure:"request_id"`
+	Reason        string `json:"reason" mapstructure:"reason"`
+	CancelledBy   int    `json:"cancelled_by" mapstructure:"cancelled_by"`
 }
 
 func (r *rabbitMQConnection) SendChatContainerRequest(containerName string, chatMessage ChatContainerRequestMessage, authContext RabbitMQAuthContext) error {

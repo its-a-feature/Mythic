@@ -306,7 +306,6 @@ const COLOR_EDITOR_SECTIONS = [
         colors: [
             {name: "chatMessageOperatorBackground", display: "Other Messages", description: "Message bubble background for operator messages from other users.", preview: "chat"},
             {name: "chatMessageSelfBackground", display: "My Messages", description: "Message bubble background for messages sent by the current operator.", preview: "chat"},
-            {name: "chatMessageAIBackground", display: "AI Messages", description: "Message bubble background for AI-generated messages.", preview: "chat"},
             {name: "chatMessageSystemBackground", display: "System Messages", description: "Message bubble background for chat system messages.", preview: "chat"},
             {name: "chatMarkdownSurfaceBackground", display: "Markdown Surface", description: "Background for inline code, fenced code blocks, blockquotes, and markdown table headers.", preview: "chat"},
             {name: "chatMarkdownSurfaceStrongBackground", display: "Markdown Label Surface", description: "Background for compact markdown labels such as fenced-code language tags.", preview: "chat"},
@@ -555,7 +554,6 @@ const ColorUsagePreview = ({option, palette, mode}) => {
     const emptyFolder = getPaletteValue(palette, "emptyFolderColor", mode);
     const chatOperatorBackground = getPaletteValue(palette, "chatMessageOperatorBackground", mode);
     const chatSelfBackground = getPaletteValue(palette, "chatMessageSelfBackground", mode);
-    const chatAIBackground = getPaletteValue(palette, "chatMessageAIBackground", mode);
     const chatSystemBackground = getPaletteValue(palette, "chatMessageSystemBackground", mode);
     const chatMarkdownSurface = getPaletteValue(palette, "chatMarkdownSurfaceBackground", mode);
     const chatMarkdownSurfaceStrong = getPaletteValue(palette, "chatMarkdownSurfaceStrongBackground", mode);
@@ -688,7 +686,7 @@ const ColorUsagePreview = ({option, palette, mode}) => {
                         <Box sx={{justifySelf: "end", maxWidth: "82%", border: `1px solid ${addAlpha(border, "99")}`, borderRadius: "6px", backgroundColor: chatSelfBackground, color: text, px: 0.75, py: 0.4}}>
                             <PreviewLabel color={text}>My message</PreviewLabel>
                         </Box>
-                        <Box sx={{justifySelf: "start", maxWidth: "82%", border: `1px solid ${addAlpha(border, "99")}`, borderRadius: "6px", backgroundColor: chatAIBackground, color: text, px: 0.75, py: 0.4}}>
+                        <Box sx={{justifySelf: "start", maxWidth: "82%", color: text, px: 0.25, py: 0.2}}>
                             <PreviewLabel color={text}>AI response</PreviewLabel>
                             <Box sx={{mt: 0.35, backgroundColor: chatMarkdownSurface, border: `1px solid ${addAlpha(border, "99")}`, borderRadius: "4px", px: 0.5, py: 0.25}}>
                                 <Typography variant="caption" sx={{color: text, display: "block", fontFamily: "monospace", lineHeight: 1.2}}>

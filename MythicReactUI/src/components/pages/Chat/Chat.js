@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {gql, useLazyQuery, useMutation, useQuery, useSubscription} from '@apollo/client';
 import ReactMarkdown from 'react-markdown';
 import Split from 'react-split';
@@ -6,6 +6,7 @@ import {alpha, useTheme} from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
+import Collapse from '@mui/material/Collapse';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -35,6 +36,8 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import ForumTwoToneIcon from '@mui/icons-material/ForumTwoTone';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import LockIcon from '@mui/icons-material/Lock';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
@@ -48,6 +51,7 @@ import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
 import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/MythicPageHeader";
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {MythicConfirmDialog} from "../../MythicComponents/MythicConfirmDialog";
+import {GetMythicSetting, useSetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import {MeContext} from "../../App";
 import {snackActions} from "../../utilities/Snackbar";
 import {getSkewedNow} from "../../utilities/Time";
@@ -60,6 +64,12 @@ const CHAT_MESSAGE_LIMIT = 250;
 const CHAT_REQUEST_LIMIT = 50;
 const CHAT_SPLIT_STORAGE_KEY = "chatSplitSizes";
 const CHAT_SPLIT_DEFAULT_SIZES = [20, 80];
+const CHAT_SELECTED_CHANNEL_SETTING = "chatSelectedChannelID";
+const CHAT_DIALOG_TEXT_FIELD_PROPS = {
+    multiline: true,
+    minRows: 1,
+    maxRows: 5,
+};
 
 const CHAT_CHANNEL_FIELDS = gql`
 fragment ChatChannelFields on chat_channel {
@@ -115,6 +125,8 @@ const CHAT_MESSAGE_FIELDS = gql`
 fragment ChatMessageFields on chat_message {
     id
     channel_id
+    chat_request_id
+    chat_response_key
     operator_id
     author_type
     sender_display_name
@@ -139,7 +151,6 @@ fragment ChatRequestFields on chat_request {
     id
     channel_id
     request_message_id
-    response_message_id
     status
     error
     created_by
@@ -335,7 +346,6 @@ mutation CreateChatMessage($channel_id: Int!, $message: String!, $system_message
     error
     message_id
     request_id
-    response_message_id
   }
 }
 `;
@@ -377,7 +387,6 @@ mutation RetryChatRequest($request_id: Int!) {
     error
     request_id
     message_id
-    response_message_id
   }
 }
 `;
@@ -408,7 +417,6 @@ mutation MCPToolConfirmation($message_id: Int!, $decision: String!, $response: S
     error
     message_id
     request_id
-    response_message_id
   }
 }
 `;
@@ -1258,6 +1266,9 @@ const ChatConfigurationFields = ({options, values, setValues}) => {
                         required={option.required}
                         value={configValueForField(values[option.name], option)}
                         helperText={option.description}
+                        multiline={option.type !== "number"}
+                        minRows={option.type !== "number" ? 1 : undefined}
+                        maxRows={option.type !== "number" ? 5 : undefined}
                         onChange={(e) => setValues((prev) => ({...prev, [option.name]: e.target.value}))}
                     />
                 );
@@ -1612,8 +1623,8 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers, currentUser,
                         <MenuItem value="ai">AI</MenuItem>
                     </Select>
                 </FormControl>
-                <TextField label="Name" size="small" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
-                <TextField label="Description" size="small" value={description} onChange={(e) => setDescription(e.target.value)} />
+                <TextField label="Name" size="small" value={name} onChange={(e) => setName(e.target.value)} autoFocus {...CHAT_DIALOG_TEXT_FIELD_PROPS} />
+                <TextField label="Description" size="small" value={description} onChange={(e) => setDescription(e.target.value)} {...CHAT_DIALOG_TEXT_FIELD_PROPS} />
                 {channelType === "ai" &&
                     <>
                         <FormControl size="small" fullWidth>
@@ -1820,13 +1831,15 @@ const ChatEditChannelDialog = ({open, channel, onClose, onSave, chatContainers =
                     size="small"
                     disabled={isGeneralChannel}
                     value={name}
+                    {...CHAT_DIALOG_TEXT_FIELD_PROPS}
                     onChange={(e) => setName(e.target.value)}
                 />
                 <TextField
                     fullWidth
                     label="Description"
                     multiline
-                    minRows={3}
+                    minRows={1}
+                    maxRows={5}
                     size="small"
                     autoFocus={isGeneralChannel}
                     value={description}
@@ -1945,10 +1958,12 @@ const ChatComposer = React.memo(({
     slashOptions,
     genericAliasOptions = [],
     disabledReason,
+    activeAIRequest,
     canCreateSystemMessage,
     isMythicAdmin,
     onOpenSystemMessage,
     onSendMessage,
+    onCancelRequest,
 }) => {
     const theme = useTheme();
     const inputRef = React.useRef(null);
@@ -2011,6 +2026,31 @@ const ChatComposer = React.memo(({
     return (
         <Box className="mythic-chat-composer" sx={{backgroundColor: theme.palette.background.paper}}>
             <Box sx={{display: "flex", flexDirection: "column", gap: 0.75, flex: "1 1 auto", minWidth: 0}}>
+                {activeAIRequest &&
+                    <Box
+                        sx={{
+                            alignItems: "center",
+                            backgroundColor: alpha(theme.palette.warning.main, 0.08),
+                            border: `1px solid ${alpha(theme.palette.warning.main, 0.24)}`,
+                            borderRadius: `${theme.shape.borderRadius}px`,
+                            display: "flex",
+                            gap: 1,
+                            justifyContent: "space-between",
+                            px: 1,
+                            py: 0.5,
+                        }}
+                    >
+                        <Box sx={{display: "flex", flexDirection: "column", minWidth: 0}}>
+                            <Typography variant="caption" sx={{fontWeight: 700}}>AI response in progress</Typography>
+                            <Typography variant="caption" color="text.secondary" noWrap>{activeAIRequest.status || "streaming"}</Typography>
+                        </Box>
+                        <MythicStyledTooltip title="Cancel request">
+                            <IconButton size="small" color="warning" onClick={() => onCancelRequest(activeAIRequest.id)}>
+                                <StopCircleIcon fontSize="small" />
+                            </IconButton>
+                        </MythicStyledTooltip>
+                    </Box>
+                }
                 {showSlashOptions &&
                     <Box sx={{
                         border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
@@ -2130,7 +2170,9 @@ export function Chat({me}) {
     const theme = useTheme();
     const meContext = React.useContext(MeContext);
     const currentMe = me || meContext;
-    const [selectedChannelID, setSelectedChannelID] = React.useState(null);
+    const initialSavedChannelID = GetMythicSetting({setting_name: CHAT_SELECTED_CHANNEL_SETTING, default_value: 0});
+    const [selectedChannelID, setSelectedChannelID] = React.useState(Number(initialSavedChannelID) || null);
+    const [saveMythicSetting] = useSetMythicSetting();
     const [showArchived, setShowArchived] = React.useState(false);
     const [createOpen, setCreateOpen] = React.useState(false);
     const [createInitialChannel, setCreateInitialChannel] = React.useState(null);
@@ -2177,6 +2219,17 @@ export function Chat({me}) {
     }), [selectedChannelID]);
     selectedChannelIDRef.current = selectedChannelID;
     readStateRef.current = readState;
+    const selectChannel = React.useCallback((channelID, persist = true) => {
+        const numericChannelID = Number(channelID) || null;
+        setSelectedChannelID(numericChannelID);
+        if(persist && numericChannelID){
+            saveMythicSetting({
+                setting_name: CHAT_SELECTED_CHANNEL_SETTING,
+                value: numericChannelID,
+                broadcast: false,
+            });
+        }
+    }, [saveMythicSetting]);
 
     const {data: channelData} = useQuery(CHAT_CHANNELS_QUERY, {fetchPolicy: "no-cache"});
     const {data: readStateData} = useQuery(CHAT_READ_STATE_QUERY, {fetchPolicy: "no-cache"});
@@ -2284,11 +2337,11 @@ export function Chat({me}) {
     }, []);
 
     React.useEffect(() => {
-        if(!selectedChannelID && channels.length > 0){
+        if(channels.length > 0 && !selectedChannel){
             const active = channels.find((channel) => !channel.archived) || channels[0];
-            setSelectedChannelID(active.id);
+            selectChannel(active.id, false);
         }
-    }, [channels, selectedChannelID]);
+    }, [channels, selectedChannel, selectChannel]);
 
     React.useEffect(() => {
         setMessages([]);
@@ -2345,9 +2398,9 @@ export function Chat({me}) {
         },
         onError: (error) => console.log(error),
     });
-    const requestsByResponseID = React.useMemo(() => {
+    const requestsByID = React.useMemo(() => {
         return requests.reduce((prev, request) => {
-            prev[request.response_message_id] = request;
+            prev[request.id] = request;
             return prev;
         }, {});
     }, [requests]);
@@ -2355,7 +2408,7 @@ export function Chat({me}) {
     const [createChannel] = useMutation(CREATE_CHANNEL, {
         onCompleted: (data) => {
             if(data.chatCreateChannel.status === "success"){
-                setSelectedChannelID(data.chatCreateChannel.channel_id);
+                selectChannel(data.chatCreateChannel.channel_id);
                 setCreateOpen(false);
                 setCreateInitialChannel(null);
             } else {
@@ -2620,7 +2673,7 @@ export function Chat({me}) {
             if(result.data?.chatCreateMessage?.status === "success"){
                 snackActions.success("System message sent");
                 if(all_operations && generalChannel){
-                    setSelectedChannelID(generalChannel.id);
+                    selectChannel(generalChannel.id);
                 }
             }
             return result;
@@ -2696,7 +2749,7 @@ export function Chat({me}) {
         }
     };
     const selectSearchResult = (result) => {
-        setSelectedChannelID(result.channel_id);
+        selectChannel(result.channel_id);
         setSearchOpen(false);
     };
     const refreshChatSpecialMessage = React.useCallback((message) => {
@@ -2767,7 +2820,7 @@ export function Chat({me}) {
                                     channel={channel}
                                     selected={channel.id === selectedChannelID}
                                     unread={channelHasUnread(channel)}
-                                    onSelect={setSelectedChannelID}
+                                    onSelect={selectChannel}
                                 />
                             ))
                         )}
@@ -2784,7 +2837,7 @@ export function Chat({me}) {
                                     channel={channel}
                                     selected={channel.id === selectedChannelID}
                                     unread={channelHasUnread(channel)}
-                                    onSelect={setSelectedChannelID}
+                                    onSelect={selectChannel}
                                 />
                             ))
                         )}
@@ -2860,11 +2913,10 @@ export function Chat({me}) {
                                 <MessageBubble
                                     key={message.id}
                                     message={message}
-                                    request={requestsByResponseID[message.id]}
+                                    request={message.chat_request_id ? requestsByID[message.chat_request_id] : null}
                                     me={currentMe}
                                     onEdit={beginEdit}
                                     onDelete={(messageID) => deleteMessage({variables: {message_id: messageID}})}
-                                    onCancel={(requestID) => cancelRequest({variables: {request_id: requestID}})}
                                     onRetry={(requestID) => retryRequest({variables: {request_id: requestID}})}
                                     onRefreshSpecial={refreshChatSpecialMessage}
                                     onReviewSpecial={reviewChatSpecialMessage}
@@ -2886,10 +2938,12 @@ export function Chat({me}) {
                         slashOptions={slashOptions}
                         genericAliasOptions={genericAliasOptions}
                         disabledReason={disabledReason}
+                        activeAIRequest={activeAIRequest}
                         canCreateSystemMessage={canCreateSystemMessage}
                         isMythicAdmin={isMythicAdmin}
                         onOpenSystemMessage={openSystemMessageDialog}
                         onSendMessage={submitMessage}
+                        onCancelRequest={(requestID) => cancelRequest({variables: {request_id: requestID}})}
                     />
                 </Box>
             </Split>
@@ -3073,8 +3127,26 @@ const MarkdownMessage = ({message}) => {
     );
 };
 
+const ChatAssistantMessage = ({message}) => {
+    const theme = useTheme();
+    const chatMessageColors = theme.chat?.message || {};
+    return (
+        <Box
+            className="mythic-chat-assistant-message"
+            sx={{
+                "--mythic-chat-markdown-border": theme.table?.borderSoft || theme.borderColor || theme.palette.divider,
+                "--mythic-chat-markdown-surface": chatMessageColors.markdownSurface,
+                "--mythic-chat-markdown-surface-strong": chatMessageColors.markdownSurfaceStrong,
+            }}
+        >
+            <MarkdownMessage message={message} />
+        </Box>
+    );
+};
+
 const CHAT_SPECIAL_TYPE_EVENTING_USER_INTERACTION = "eventing_user_interaction";
 const CHAT_SPECIAL_TYPE_MCP_TOOL_CONFIRMATION = "mcp_tool_confirmation";
+const CHAT_SPECIAL_TYPE_TOOL_USE = "tool_use";
 
 const getChatMessageMetadata = (message) => {
     const metadata = message?.metadata || {};
@@ -3104,6 +3176,15 @@ const getMCPToolConfirmationSnapshot = (message) => {
         return null;
     }
     const snapshot = metadata.mcp_tool_confirmation || {};
+    return snapshot && typeof snapshot === "object" && !Array.isArray(snapshot) ? snapshot : {};
+};
+
+const getToolUseSnapshot = (message) => {
+    const metadata = getChatMessageMetadata(message);
+    if(metadata.special_type !== CHAT_SPECIAL_TYPE_TOOL_USE){
+        return null;
+    }
+    const snapshot = metadata.tool_use || {};
     return snapshot && typeof snapshot === "object" && !Array.isArray(snapshot) ? snapshot : {};
 };
 
@@ -3163,7 +3244,7 @@ const getChatEventingStateClass = (snapshot) => {
     }
 };
 
-const ChatEventingUserInteractionCard = ({message, me, onRefresh, onReview, refreshing}) => {
+const ChatEventingUserInteractionEvent = ({message, me, onRefresh, onReview, refreshing}) => {
     const metadata = getChatMessageMetadata(message);
     const snapshot = getEventingInteractionSnapshot(message) || {};
     const waiting = Boolean(snapshot.waiting);
@@ -3181,34 +3262,27 @@ const ChatEventingUserInteractionCard = ({message, me, onRefresh, onReview, refr
         snapshot.run_operator_username ? {label: "Run as", value: snapshot.run_operator_username} : null,
         snapshot.resolved_by_username ? {label: "Resolved by", value: snapshot.resolved_by_username} : null,
     ].filter(Boolean);
+    const [showDetails, setShowDetails] = useState(waiting);
+    React.useEffect(() => {
+        if(!waiting){
+            setShowDetails(false);
+        }
+    }, [waiting]);
     return (
-        <Box className={`mythic-chat-special-card mythic-chat-eventing-card mythic-chat-eventing-card-${stateClass}`.trim()}>
-            <Box className="mythic-chat-special-card-header">
-                <Box className="mythic-chat-special-card-title-wrap">
-                    <Typography className="mythic-chat-special-card-title" variant="subtitle2">{stepName}</Typography>
-                    <Typography className="mythic-chat-special-card-subtitle" variant="caption">Eventing user interaction</Typography>
+        <Box className={`mythic-chat-inline-event mythic-chat-inline-event-${stateClass}`.trim()}>
+            <Box className="mythic-chat-inline-event-summary">
+                <Box className="mythic-chat-inline-event-main">
+                    <Chip
+                        size="small"
+                        className={`mythic-chat-special-status mythic-chat-special-status-${stateClass}`.trim()}
+                        label={statusText}
+                        variant="outlined"
+                    />
+                    <Typography className="mythic-chat-inline-event-title" variant="body2" noWrap>
+                        Eventing interaction: {stepName}
+                    </Typography>
                 </Box>
-                <Chip
-                    size="small"
-                    className={`mythic-chat-special-status mythic-chat-special-status-${stateClass}`.trim()}
-                    label={statusText}
-                    variant="outlined"
-                />
-            </Box>
-            <Box className="mythic-chat-special-card-prompt">{getChatEventingPrompt(snapshot)}</Box>
-            <Box className="mythic-chat-special-card-details">
-                {detailItems.map((item) => (
-                    <span className="mythic-chat-special-card-detail" key={`${message.id}-${item.label}`}>
-                        <span className="mythic-chat-special-card-detail-label">{item.label}</span>
-                        <span className="mythic-chat-special-card-detail-value">{item.value}</span>
-                    </span>
-                ))}
-            </Box>
-            <Box className="mythic-chat-special-card-footer">
-                <Typography className="mythic-chat-special-card-refresh-time" variant="caption">
-                    {refreshedAt ? `Refreshed ${formatTimestamp(refreshedAt, me?.user?.view_utc_time)}` : ""}
-                </Typography>
-                <Box className="mythic-chat-special-card-actions">
+                <Box className="mythic-chat-inline-event-actions">
                     <MythicStyledTooltip title="Refresh">
                         <span>
                             <IconButton
@@ -3222,17 +3296,47 @@ const ChatEventingUserInteractionCard = ({message, me, onRefresh, onReview, refr
                             </IconButton>
                         </span>
                     </MythicStyledTooltip>
+                    {waiting &&
+                        <Button
+                            size="small"
+                            variant="contained"
+                            className="mythic-table-row-action mythic-table-row-action-hover-success"
+                            onClick={() => onReview(message)}
+                        >
+                            Review
+                        </Button>
+                    }
                     <Button
                         size="small"
-                        variant="contained"
-                        className="mythic-table-row-action mythic-table-row-action-hover-success"
-                        disabled={!waiting}
-                        onClick={() => onReview(message)}
+                        variant="text"
+                        className="mythic-chat-inline-details-toggle"
+                        startIcon={showDetails ? <KeyboardArrowDownIcon fontSize="small" /> : <KeyboardArrowRightIcon fontSize="small" />}
+                        onClick={() => setShowDetails((open) => !open)}
                     >
-                        Review
+                        Details
                     </Button>
                 </Box>
             </Box>
+            <Collapse in={showDetails} timeout="auto" unmountOnExit>
+                <Box className="mythic-chat-inline-event-details">
+                    <Typography variant="caption" className="mythic-chat-inline-event-description">
+                        {getChatEventingPrompt(snapshot)}
+                    </Typography>
+                    <Box className="mythic-chat-special-card-details">
+                        {detailItems.map((item) => (
+                            <span className="mythic-chat-special-card-detail" key={`${message.id}-${item.label}`}>
+                                <span className="mythic-chat-special-card-detail-label">{item.label}</span>
+                                <span className="mythic-chat-special-card-detail-value">{item.value}</span>
+                            </span>
+                        ))}
+                    </Box>
+                    {refreshedAt &&
+                        <Typography className="mythic-chat-special-card-refresh-time" variant="caption">
+                            Refreshed {formatTimestamp(refreshedAt, me?.user?.view_utc_time)}
+                        </Typography>
+                    }
+                </Box>
+            </Collapse>
         </Box>
     );
 };
@@ -3269,7 +3373,7 @@ const getMCPConfirmationStateClass = (snapshot) => {
     }
 };
 
-const ChatMCPToolConfirmationCard = ({message, onSubmit, submitting}) => {
+const ChatMCPToolConfirmationEvent = ({message, onSubmit, submitting}) => {
     const snapshot = getMCPToolConfirmationSnapshot(message) || {};
     const pending = (snapshot.status || "pending") === "pending";
     const stateClass = getMCPConfirmationStateClass(snapshot);
@@ -3277,105 +3381,256 @@ const ChatMCPToolConfirmationCard = ({message, onSubmit, submitting}) => {
     const toolName = snapshot.tool_name || snapshot.server_tool_name || "MCP tool";
     const serverName = snapshot.server_name || "unknown";
     const argumentText = jsonTextForConfigValue(snapshot.arguments || {});
+    const [showDetails, setShowDetails] = useState(pending);
+    React.useEffect(() => {
+        if(!pending){
+            setShowDetails(false);
+        }
+    }, [pending]);
     const detailItems = [
         {label: "Server", value: serverName},
         {label: "Tool", value: toolName},
         snapshot.server_tool_name && snapshot.server_tool_name !== toolName ? {label: "MCP name", value: snapshot.server_tool_name} : null,
         snapshot.read_only === true ? {label: "Configured access", value: "Read-only"} : {label: "Configured access", value: "Confirmation required"},
+        snapshot.resolved_at ? {label: "Resolved", value: formatTimestamp(snapshot.resolved_at)} : null,
         snapshot.resolved_by ? {label: "Resolved by", value: snapshot.resolved_by} : null,
     ].filter(Boolean);
     return (
-        <Box className={`mythic-chat-special-card mythic-chat-mcp-card mythic-chat-eventing-card-${stateClass}`.trim()}>
-            <Box className="mythic-chat-special-card-header">
-                <Box className="mythic-chat-special-card-title-wrap">
-                    <Typography className="mythic-chat-special-card-title" variant="subtitle2">{toolName}</Typography>
-                    <Typography className="mythic-chat-special-card-subtitle" variant="caption">MCP tool execution</Typography>
-                </Box>
-                <Chip
-                    size="small"
-                    className={`mythic-chat-special-status mythic-chat-special-status-${stateClass}`.trim()}
-                    label={statusText}
-                    variant="outlined"
-                />
-            </Box>
-            <Box className="mythic-chat-special-card-prompt">
-                {snapshot.description || "This MCP tool is write-capable unless explicitly configured as read-only."}
-            </Box>
-            <Box className="mythic-chat-special-card-details">
-                {detailItems.map((item) => (
-                    <span className="mythic-chat-special-card-detail" key={`${message.id}-${item.label}`}>
-                        <span className="mythic-chat-special-card-detail-label">{item.label}</span>
-                        <span className="mythic-chat-special-card-detail-value">{item.value}</span>
-                    </span>
-                ))}
-            </Box>
-            <Typography component="pre" variant="caption" className="mythic-chat-mcp-arguments">
-                {argumentText}
-            </Typography>
-            {snapshot.annotations && Object.keys(snapshot.annotations).length > 0 &&
-                <Typography component="pre" variant="caption" className="mythic-chat-mcp-annotations">
-                    {jsonTextForConfigValue(snapshot.annotations)}
-                </Typography>
-            }
-            <Box className="mythic-chat-special-card-footer">
-                <Typography className="mythic-chat-special-card-refresh-time" variant="caption">
-                    {snapshot.resolved_at ? `Resolved ${formatTimestamp(snapshot.resolved_at)}` : ""}
-                </Typography>
-                <Box className="mythic-chat-special-card-actions">
-                    <Button
+        <Box className={`mythic-chat-inline-event mythic-chat-inline-event-${stateClass}`.trim()}>
+            <Box className="mythic-chat-inline-event-summary">
+                <Box className="mythic-chat-inline-event-main">
+                    <Chip
                         size="small"
-                        variant="contained"
-                        className="mythic-table-row-action mythic-table-row-action-hover-success"
-                        disabled={!pending || submitting}
-                        onClick={() => onSubmit(message, "confirm")}
-                    >
-                        Confirm
-                    </Button>
-                    <Button
-                        size="small"
+                        className={`mythic-chat-special-status mythic-chat-special-status-${stateClass}`.trim()}
+                        label={statusText}
                         variant="outlined"
-                        disabled={!pending || submitting}
-                        onClick={() => onSubmit(message, "reject")}
-                    >
-                        Reject
-                    </Button>
+                    />
+                    <Typography className="mythic-chat-inline-event-title" variant="body2" noWrap>
+                        MCP tool: {toolName}
+                    </Typography>
+                </Box>
+                <Box className="mythic-chat-inline-event-actions">
+                    {pending &&
+                        <>
+                            <Button
+                                size="small"
+                                variant="contained"
+                                className="mythic-table-row-action mythic-table-row-action-hover-success"
+                                disabled={submitting}
+                                onClick={() => onSubmit(message, "confirm")}
+                            >
+                                Confirm
+                            </Button>
+                            <Button
+                                size="small"
+                                variant="text"
+                                disabled={submitting}
+                                onClick={() => onSubmit(message, "reject")}
+                            >
+                                Reject
+                            </Button>
+                            <Button
+                                size="small"
+                                variant="text"
+                                disabled={submitting}
+                                onClick={() => onSubmit(message, "respond")}
+                            >
+                                Respond
+                            </Button>
+                        </>
+                    }
                     <Button
                         size="small"
                         variant="text"
-                        disabled={!pending || submitting}
-                        onClick={() => onSubmit(message, "respond")}
+                        className="mythic-chat-inline-details-toggle"
+                        startIcon={showDetails ? <KeyboardArrowDownIcon fontSize="small" /> : <KeyboardArrowRightIcon fontSize="small" />}
+                        onClick={() => setShowDetails((open) => !open)}
                     >
-                        Respond
+                        Details
                     </Button>
                 </Box>
             </Box>
+            <Collapse in={showDetails} timeout="auto" unmountOnExit>
+                <Box className="mythic-chat-inline-event-details">
+                    {snapshot.description &&
+                        <Typography variant="caption" className="mythic-chat-inline-event-description">
+                            {snapshot.description}
+                        </Typography>
+                    }
+                    <Box className="mythic-chat-special-card-details">
+                        {detailItems.map((item) => (
+                            <span className="mythic-chat-special-card-detail" key={`${message.id}-${item.label}`}>
+                                <span className="mythic-chat-special-card-detail-label">{item.label}</span>
+                                <span className="mythic-chat-special-card-detail-value">{item.value}</span>
+                            </span>
+                        ))}
+                    </Box>
+                    <Typography component="pre" variant="caption" className="mythic-chat-mcp-arguments">
+                        {argumentText}
+                    </Typography>
+                    {snapshot.annotations && Object.keys(snapshot.annotations).length > 0 &&
+                        <Typography component="pre" variant="caption" className="mythic-chat-mcp-annotations">
+                            {jsonTextForConfigValue(snapshot.annotations)}
+                        </Typography>
+                    }
+                </Box>
+            </Collapse>
         </Box>
     );
 };
 
-export const MessageBubble = ({message, request, me, onEdit, onDelete, onCancel, onRetry, onRefreshSpecial, onReviewSpecial, onSubmitMCPConfirmation, refreshingSpecialMessageID, submittingMCPConfirmationID, editing, editText, setEditText, saveEdit, cancelEdit}) => {
+const getToolUseStatusText = (snapshot) => {
+    switch(snapshot.status || "started"){
+        case "started":
+            return "Running";
+        case "completed":
+            return "Finished";
+        case "error":
+            return "Failed";
+        case "waiting_confirmation":
+            return "Waiting confirmation";
+        default:
+            return snapshot.status || "Tool use";
+    }
+};
+
+const getToolUseStateClass = (snapshot) => {
+    switch(snapshot.status || "started"){
+        case "completed":
+            return "success";
+        case "error":
+            return "error";
+        case "waiting_confirmation":
+            return "waiting";
+        case "started":
+            return "running";
+        default:
+            return "neutral";
+    }
+};
+
+const ChatToolUseEvent = ({message}) => {
+    const snapshot = getToolUseSnapshot(message) || {};
+    const [showDetails, setShowDetails] = useState(false);
+    const stateClass = getToolUseStateClass(snapshot);
+    const toolName = snapshot.tool_name || "unknown_tool";
+    const source = snapshot.tool_source || "unknown";
+    const sourceLabel = source === "mcp" ? "MCP" : source === "mythic" ? "Mythic" : "Tool";
+    const isDuplicateMCPConfirmationWait = source === "mcp" && (snapshot.status || "") === "waiting_confirmation";
+    const detailItems = [
+        {label: "Source", value: source},
+        snapshot.server_name ? {label: "Server", value: snapshot.server_name} : null,
+        snapshot.tool_call_id ? {label: "Call ID", value: snapshot.tool_call_id} : null,
+        snapshot.tool_call_round ? {label: "Round", value: snapshot.tool_call_round} : null,
+        snapshot.tool_call_count ? {label: "Call", value: `${snapshot.tool_call_index || 1} of ${snapshot.tool_call_count}`} : null,
+        snapshot.requires_confirmation ? {label: "Confirmation", value: "Required"} : null,
+        snapshot.confirmed ? {label: "Approval", value: "Confirmed"} : null,
+    ].filter(Boolean);
+    if(isDuplicateMCPConfirmationWait){
+        return null;
+    }
+    return (
+        <Box className={`mythic-chat-inline-event mythic-chat-inline-event-${stateClass}`.trim()}>
+            <Box className="mythic-chat-inline-event-summary">
+                <Box className="mythic-chat-inline-event-main">
+                    <Chip
+                        size="small"
+                        className={`mythic-chat-special-status mythic-chat-special-status-${stateClass}`.trim()}
+                        label={getToolUseStatusText(snapshot)}
+                        variant="outlined"
+                    />
+                    <Typography className="mythic-chat-inline-event-title" variant="body2" noWrap>
+                        {sourceLabel} tool: {toolName}
+                    </Typography>
+                </Box>
+                <Button
+                    size="small"
+                    variant="text"
+                    className="mythic-chat-inline-details-toggle"
+                    startIcon={showDetails ? <KeyboardArrowDownIcon fontSize="small" /> : <KeyboardArrowRightIcon fontSize="small" />}
+                    onClick={() => setShowDetails((open) => !open)}
+                >
+                    Details
+                </Button>
+            </Box>
+            <Collapse in={showDetails} timeout="auto" unmountOnExit>
+                <Box className="mythic-chat-inline-event-details">
+                    {message.message &&
+                        <Typography variant="caption" className="mythic-chat-inline-event-description">
+                            {message.message}
+                        </Typography>
+                    }
+                    <Box className="mythic-chat-special-card-details">
+                        {detailItems.map((item) => (
+                            <span className="mythic-chat-special-card-detail" key={`${message.id}-${item.label}`}>
+                                <span className="mythic-chat-special-card-detail-label">{item.label}</span>
+                                <span className="mythic-chat-special-card-detail-value">{item.value}</span>
+                            </span>
+                        ))}
+                    </Box>
+                    {snapshot.result_preview &&
+                        <Typography component="pre" variant="caption" className="mythic-chat-tooluse-result">
+                            {snapshot.result_preview}
+                        </Typography>
+                    }
+                </Box>
+            </Collapse>
+        </Box>
+    );
+};
+
+export const MessageBubble = ({message, request, me, onEdit, onDelete, onRetry, onRefreshSpecial, onReviewSpecial, onSubmitMCPConfirmation, refreshingSpecialMessageID, submittingMCPConfirmationID, editing, editText, setEditText, saveEdit, cancelEdit}) => {
     const theme = useTheme();
     const isMine = message.operator_id === me?.user?.user_id;
     const isAI = message.author_type === "ai";
     const isSystem = message.author_type === "system";
     const eventingInteractionSnapshot = getEventingInteractionSnapshot(message);
     const mcpConfirmationSnapshot = getMCPToolConfirmationSnapshot(message);
-    const eventingInteractionStateClass = eventingInteractionSnapshot ? getChatEventingStateClass(eventingInteractionSnapshot) : "";
-    const mcpConfirmationStateClass = mcpConfirmationSnapshot ? getMCPConfirmationStateClass(mcpConfirmationSnapshot) : "";
+    const toolUseSnapshot = getToolUseSnapshot(message);
     const canEdit = isMine && message.author_type === "operator" && !message.deleted;
     const canDelete = !message.deleted && (isMine || message.author_type !== "operator");
-    const streaming = message.status === "pending" || message.status === "streaming";
+    const streaming = message.status === "streaming";
     const softBorderColor = theme.table?.borderSoft || theme.borderColor || theme.palette.divider;
     const chatMessageColors = theme.chat?.message || {};
-    const markdownSurface = chatMessageColors.markdownSurface || (theme.palette.mode === "dark" ? alpha(theme.palette.common.black, 0.24) : alpha(theme.palette.common.black, 0.045));
-    const markdownSurfaceStrong = chatMessageColors.markdownSurfaceStrong || (theme.palette.mode === "dark" ? alpha(theme.palette.common.white, 0.08) : alpha(theme.palette.common.black, 0.06));
+    const markdownSurface = chatMessageColors.markdownSurface;
+    const markdownSurfaceStrong = chatMessageColors.markdownSurfaceStrong;
     const messageBackgroundColor = isSystem ? chatMessageColors.systemBackground :
-        isAI ? chatMessageColors.aiBackground :
-            isMine ? chatMessageColors.selfBackground : chatMessageColors.operatorBackground;
+        isMine ? chatMessageColors.selfBackground :
+            chatMessageColors.operatorBackground;
+    if(toolUseSnapshot){
+        return (
+            <ChatToolUseEvent message={message} />
+        );
+    }
+    if(mcpConfirmationSnapshot){
+        return (
+            <ChatMCPToolConfirmationEvent
+                message={message}
+                onSubmit={onSubmitMCPConfirmation}
+                submitting={submittingMCPConfirmationID === message.id}
+            />
+        );
+    }
+    if(eventingInteractionSnapshot){
+        return (
+            <ChatEventingUserInteractionEvent
+                message={message}
+                me={me}
+                onRefresh={onRefreshSpecial}
+                onReview={onReviewSpecial}
+                refreshing={refreshingSpecialMessageID === message.id}
+            />
+        );
+    }
+    if(isAI && !eventingInteractionSnapshot){
+        return (
+            <ChatAssistantMessage message={message.message} />
+        );
+    }
     return (
         <Box className={`mythic-chat-message-row ${isMine ? "mythic-chat-message-row-mine" : ""}`}>
             <Box
-                className={`mythic-chat-message ${isAI ? "mythic-chat-message-ai" : ""} ${isSystem ? "mythic-chat-message-system" : ""} ${eventingInteractionSnapshot ? `mythic-chat-message-special-eventing mythic-chat-message-special-eventing-${eventingInteractionStateClass}` : ""} ${mcpConfirmationSnapshot ? `mythic-chat-message-special-mcp mythic-chat-message-special-mcp-${mcpConfirmationStateClass}` : ""}`.trim()}
+                className={`mythic-chat-message ${isAI ? "mythic-chat-message-ai" : ""} ${isSystem ? "mythic-chat-message-system" : ""}`.trim()}
                 sx={{
                     "--mythic-chat-markdown-border": softBorderColor,
                     "--mythic-chat-markdown-surface": markdownSurface,
@@ -3394,14 +3649,7 @@ export const MessageBubble = ({message, request, me, onEdit, onDelete, onCancel,
                     </Box>
                     <Box className="mythic-chat-message-actions">
                         <Typography variant="caption" color="text.secondary">{formatTimestamp(message.created_at, me?.user?.view_utc_time)}</Typography>
-                        {request && streaming &&
-                            <MythicStyledTooltip title="Cancel request">
-                                <IconButton size="small" onClick={() => onCancel(request.id)}>
-                                    <StopCircleIcon fontSize="small" />
-                                </IconButton>
-                            </MythicStyledTooltip>
-                        }
-                        {request && (message.status === "error" || message.status === "cancelled") &&
+                        {request && ["error", "cancelled"].includes(request.status) && (message.status === "error" || message.status === "cancelled") &&
                             <MythicStyledTooltip title="Retry request">
                                 <IconButton size="small" onClick={() => onRetry(request.id)}>
                                     <RestartAltIcon fontSize="small" />
@@ -3439,20 +3687,6 @@ export const MessageBubble = ({message, request, me, onEdit, onDelete, onCancel,
                             <Button size="small" variant="contained" onClick={saveEdit}>Save</Button>
                         </Box>
                     </Box>
-                ) : eventingInteractionSnapshot ? (
-                    <ChatEventingUserInteractionCard
-                        message={message}
-                        me={me}
-                        onRefresh={onRefreshSpecial}
-                        onReview={onReviewSpecial}
-                        refreshing={refreshingSpecialMessageID === message.id}
-                    />
-                ) : mcpConfirmationSnapshot ? (
-                    <ChatMCPToolConfirmationCard
-                        message={message}
-                        onSubmit={onSubmitMCPConfirmation}
-                        submitting={submittingMCPConfirmationID === message.id}
-                    />
                 ) : (
                     <MarkdownMessage message={message.message} />
                 )}

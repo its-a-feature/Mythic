@@ -76,6 +76,8 @@ const (
 var EventingChannel = make(chan EventNotification, 100)
 var CronChannel = make(chan CronNotification, 100)
 
+const eventingAPITokenInputType = "mythic.apitoken"
+
 func initializeEventGroupCronSchedulesOnStart() {
 	go listenForCronEvents()
 	eventGroups := []databaseStructs.EventGroup{}
@@ -978,6 +980,17 @@ func startEventStepInstance(eventStepInstanceID int) error {
 	groupEnv := eventStepInstance.EventGroupInstance.Environment.StructValue()
 	actionDataString := eventStepInstance.EventStep.ActionData.String()
 	for key, val := range eventStepInstance.EventStep.Inputs.StructValue() {
+		if requestedScopes, ok, err := eventStepInputAPITokenScopes(val); err != nil {
+			return fmt.Errorf("failed to resolve input %q: %w", key, err)
+		} else if ok {
+			plainAPITokenValue, err := createEventStepAPIToken(eventStepInstance, requestedScopes)
+			if err != nil {
+				return fmt.Errorf("failed to create API token for input %q: %w", key, err)
+			}
+			inputs[key] = plainAPITokenValue
+			actionDataString = replaceVariableInActionDataString(actionDataString, key, plainAPITokenValue)
+			continue
+		}
 		switch val.(type) {
 		case string:
 		default:
@@ -1047,44 +1060,14 @@ func startEventStepInstance(eventStepInstanceID int) error {
 			actionDataString = replaceVariableInActionDataString(actionDataString, key, fileMeta.AgentFileID)
 		}
 		if eventStepInputPieces[0] == "mythic" {
-			if eventStepInputPieces[1] == "apitoken" {
-				// save off the access_token as an API token and then return it
-				apiToken := databaseStructs.Apitokens{
-					TokenValue: "",
-					OperatorID: eventStepInstance.OperatorID,
-					TokenType:  mythicjwt.AUTH_METHOD_EVENT,
-					Active:     true,
-					Name:       fmt.Sprintf("Generated Event API Token for step \"%s\"", eventStepInstance.EventStep.Name),
-					CreatedBy:  eventStepInstance.OperatorID,
-				}
-				apiToken.EventStepInstanceID.Valid = true
-				apiToken.EventStepInstanceID.Int64 = int64(eventStepInstance.ID)
-				statement, err := database.DB.PrepareNamed(`INSERT INTO apitokens 
-						(token_value, operator_id, token_type, active, "name", created_by, eventstepinstance_id) 
-						VALUES
-						(:token_value, :operator_id, :token_type, :active, :name, :created_by, :eventstepinstance_id)
-						RETURNING id`)
+			if len(eventStepInputPieces) == 2 && eventStepInputPieces[1] == "apitoken" {
+				// Legacy fallback for callers that hit the old string split path.
+				plainAPITokenValue, err := createEventStepAPIToken(eventStepInstance, []string{mythicjwt.SCOPE_ALL})
 				if err != nil {
-					logging.LogError(err, "Failed to insert apitokens")
-					continue
-				}
-				err = statement.Get(&apiToken.ID, apiToken)
-				if err != nil {
-					logging.LogError(err, "Failed to get new apitoken")
-					continue
-				}
-				plainAPITokenValue, storedAPITokenValue, err := mythicjwt.GenerateOpaqueAPIToken()
-				if err != nil {
-					logging.LogError(err, "Failed to generate access token")
-					continue
-				}
-				apiToken.TokenValue = storedAPITokenValue
-				_, err = database.DB.Exec(`UPDATE apitokens SET token_value=$1 WHERE id=$2`, apiToken.TokenValue, apiToken.ID)
-				if err != nil {
-					logging.LogError(err, "Failed to update apitoken")
-					continue
+					return fmt.Errorf("failed to create API token for input %q: %w", key, err)
 				}
 				inputs[key] = plainAPITokenValue
+				actionDataString = replaceVariableInActionDataString(actionDataString, key, plainAPITokenValue)
 			}
 		}
 		for i := 0; i < len(allEventSteps); i++ {
@@ -1278,6 +1261,130 @@ func resolveUserInteractionStepOutputReference(sourceReference string, allEventS
 		return outputValue, ok
 	}
 	return nil, false
+}
+
+func eventStepInputAPITokenScopes(value interface{}) ([]string, bool, error) {
+	switch typedValue := value.(type) {
+	case string:
+		if strings.TrimSpace(typedValue) != eventingAPITokenInputType {
+			return nil, false, nil
+		}
+		return []string{mythicjwt.SCOPE_ALL}, true, nil
+	case map[string]interface{}:
+		return eventStepInputAPITokenScopesFromMap(typedValue)
+	case map[interface{}]interface{}:
+		stringMap := make(map[string]interface{}, len(typedValue))
+		for key, mapValue := range typedValue {
+			keyString, ok := key.(string)
+			if !ok {
+				continue
+			}
+			stringMap[keyString] = mapValue
+		}
+		return eventStepInputAPITokenScopesFromMap(stringMap)
+	default:
+		return nil, false, nil
+	}
+}
+
+func eventStepInputAPITokenScopesFromMap(input map[string]interface{}) ([]string, bool, error) {
+	rawType, hasType := input["type"]
+	if !hasType {
+		return nil, false, nil
+	}
+	typeString, ok := rawType.(string)
+	if !ok || strings.TrimSpace(typeString) != eventingAPITokenInputType {
+		return nil, false, nil
+	}
+	rawScopes, hasScopes := input["scopes"]
+	if !hasScopes {
+		return nil, true, errors.New("mythic.apitoken input requires scopes")
+	}
+	scopes, err := eventStepInputAPITokenScopeStrings(rawScopes)
+	if err != nil {
+		return nil, true, err
+	}
+	normalizedScopes, err := mythicjwt.NormalizeAPITokenScopes(scopes)
+	if err != nil {
+		return nil, true, err
+	}
+	if len(normalizedScopes) == 0 {
+		return nil, true, errors.New("mythic.apitoken input requires at least one scope")
+	}
+	return normalizedScopes, true, nil
+}
+
+func eventStepInputAPITokenScopeStrings(rawScopes interface{}) ([]string, error) {
+	switch typedScopes := rawScopes.(type) {
+	case []string:
+		return append([]string{}, typedScopes...), nil
+	case []interface{}:
+		scopes := make([]string, 0, len(typedScopes))
+		for i, rawScope := range typedScopes {
+			scope, ok := rawScope.(string)
+			if !ok {
+				return nil, fmt.Errorf("mythic.apitoken scopes[%d] must be a string", i)
+			}
+			scopes = append(scopes, scope)
+		}
+		return scopes, nil
+	default:
+		return nil, fmt.Errorf("mythic.apitoken scopes must be a list of strings, got %T", rawScopes)
+	}
+}
+
+func newEventStepAPIToken(eventStepInstance databaseStructs.EventStepInstance, scopes []string) databaseStructs.Apitokens {
+	apiToken := databaseStructs.Apitokens{
+		TokenValue: "",
+		OperatorID: eventStepInstance.OperatorID,
+		TokenType:  mythicjwt.AUTH_METHOD_EVENT,
+		Active:     true,
+		Name:       fmt.Sprintf("Generated Event API Token for step \"%s\"", eventStepInstance.EventStep.Name),
+		Scopes:     append([]string{}, scopes...),
+		CreatedBy:  eventStepInstance.OperatorID,
+	}
+	apiToken.EventStepInstanceID.Valid = true
+	apiToken.EventStepInstanceID.Int64 = int64(eventStepInstance.ID)
+	return apiToken
+}
+
+func createEventStepAPIToken(eventStepInstance databaseStructs.EventStepInstance, scopes []string) (string, error) {
+	normalizedScopes, err := mythicjwt.NormalizeAPITokenScopes(scopes)
+	if err != nil {
+		return "", err
+	}
+	if len(normalizedScopes) == 0 {
+		return "", errors.New("mythic.apitoken input requires at least one scope")
+	}
+	apiToken := newEventStepAPIToken(eventStepInstance, normalizedScopes)
+	statement, err := database.DB.PrepareNamed(`INSERT INTO apitokens
+		(token_value, operator_id, token_type, active, "name", scopes, created_by, eventstepinstance_id)
+		VALUES
+		(:token_value, :operator_id, :token_type, :active, :name, :scopes, :created_by, :eventstepinstance_id)
+		RETURNING id`)
+	if err != nil {
+		logging.LogError(err, "Failed to insert apitokens")
+		return "", err
+	}
+	err = statement.Get(&apiToken.ID, apiToken)
+	if err != nil {
+		logging.LogError(err, "Failed to get new apitoken")
+		return "", err
+	}
+	plainAPITokenValue, storedAPITokenValue, err := mythicjwt.GenerateOpaqueAPIToken()
+	if err != nil {
+		logging.LogError(err, "Failed to generate access token")
+		expireAPIToken(apiToken.ID)
+		return "", err
+	}
+	apiToken.TokenValue = storedAPITokenValue
+	_, err = database.DB.Exec(`UPDATE apitokens SET token_value=$1 WHERE id=$2`, apiToken.TokenValue, apiToken.ID)
+	if err != nil {
+		logging.LogError(err, "Failed to update apitoken")
+		expireAPIToken(apiToken.ID)
+		return "", err
+	}
+	return plainAPITokenValue, nil
 }
 
 func resumeWaitingEventStepInstance(eventStepInstanceID int) {

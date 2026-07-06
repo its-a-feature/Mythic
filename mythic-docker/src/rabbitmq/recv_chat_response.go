@@ -1,11 +1,9 @@
 package rabbitmq
 
 import (
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -25,17 +23,16 @@ const (
 )
 
 type ChatContainerResponseMessage struct {
-	OperationID       int                           `json:"operation_id" mapstructure:"operation_id"`
-	RequestID         int                           `json:"request_id" mapstructure:"request_id"`
-	ResponseMessageID int                           `json:"response_message_id" mapstructure:"response_message_id"`
-	ResponseKey       string                        `json:"response_key" mapstructure:"response_key"`
-	Content           string                        `json:"content" mapstructure:"content"`
-	IsDelta           bool                          `json:"is_delta" mapstructure:"is_delta"`
-	Complete          bool                          `json:"complete" mapstructure:"complete"`
-	CompleteRequest   bool                          `json:"complete_request" mapstructure:"complete_request"`
-	Status            string                        `json:"status" mapstructure:"status"`
-	Error             string                        `json:"error" mapstructure:"error"`
-	Metadata          ChatContainerResponseMetadata `json:"metadata" mapstructure:"metadata"`
+	OperationID     int                           `json:"operation_id" mapstructure:"operation_id"`
+	RequestID       int                           `json:"request_id" mapstructure:"request_id"`
+	ResponseKey     string                        `json:"response_key" mapstructure:"response_key"`
+	Content         string                        `json:"content" mapstructure:"content"`
+	IsDelta         bool                          `json:"is_delta" mapstructure:"is_delta"`
+	Complete        bool                          `json:"complete" mapstructure:"complete"`
+	CompleteRequest bool                          `json:"complete_request" mapstructure:"complete_request"`
+	Status          string                        `json:"status" mapstructure:"status"`
+	Error           string                        `json:"error" mapstructure:"error"`
+	Metadata        ChatContainerResponseMetadata `json:"metadata" mapstructure:"metadata"`
 }
 
 // ChatContainerResponseMetadata documents the JSON stored in chat_message.metadata
@@ -54,6 +51,10 @@ type ChatContainerResponseMessage struct {
 //   - eventing_user_interaction: Mythic eventing authored. It is documented
 //     here because it uses the same special message convention, but chat
 //     containers should not normally send it.
+//   - tool_use: chat-container authored status row for a provider tool call.
+//     Send it with a stable response_key so start/finish metadata updates the
+//     same secondary chat message without converting the primary AI answer into
+//     a special card.
 //
 // Minimal metadata for a chat-container-authored MCP confirmation card:
 //
@@ -380,7 +381,6 @@ type chatResponseRequest struct {
 	ID                int    `db:"id"`
 	OperationID       int    `db:"operation_id"`
 	ChannelID         int    `db:"channel_id"`
-	ResponseMessageID int    `db:"response_message_id"`
 	ChatContainerID   int    `db:"chat_container_id"`
 	ChatContainerName string `db:"chat_container_name"`
 	Status            string `db:"status"`
@@ -422,7 +422,7 @@ func processChatContainerResponse(msg amqp.Delivery) {
 	}
 	if err = applyChatContainerResponse(incomingMessage, authContext); err != nil {
 		logging.LogError(err, "Failed to apply chat container response",
-			"request_id", incomingMessage.RequestID, "response_message_id", incomingMessage.ResponseMessageID)
+			"request_id", incomingMessage.RequestID, "response_key", incomingMessage.ResponseKey)
 	}
 }
 
@@ -442,13 +442,12 @@ func applyChatContainerResponse(incomingMessage ChatContainerResponseMessage, au
 		return fmt.Errorf("chat response auth operation %d does not match request operation %d",
 			authContext.OperationID, request.OperationID)
 	}
-	if incomingMessage.ResponseMessageID > 0 && incomingMessage.ResponseMessageID != request.ResponseMessageID {
-		return fmt.Errorf("chat response message %d does not match request response message %d",
-			incomingMessage.ResponseMessageID, request.ResponseMessageID)
-	}
 
-	targetMessageID, targetIsPrimary, err := getChatResponseTargetMessageID(request, incomingMessage)
+	targetMessageID, err := getChatResponseTargetMessageID(request, incomingMessage)
 	if err != nil {
+		if request.ID > 0 {
+			_ = failChatResponseRequest(request, "system:invalid-response", err.Error())
+		}
 		return err
 	}
 	chatResponseLock := getChatResponseLock(targetMessageID)
@@ -460,12 +459,6 @@ func applyChatContainerResponse(incomingMessage ChatContainerResponseMessage, au
 	}
 	if isTerminalChatResponseStatus(request.Status) {
 		return nil
-	}
-	if !targetIsPrimary {
-		targetMessageID, _, err = getChatResponseTargetMessageID(request, incomingMessage)
-		if err != nil {
-			return err
-		}
 	}
 
 	status := normalizeChatContainerResponseStatus(incomingMessage)
@@ -501,22 +494,14 @@ func applyChatContainerResponse(incomingMessage ChatContainerResponseMessage, au
 		if err = setChatResponseMessageStatus(targetMessageID, request.OperationID, status, incomingMessage.Error, incomingMessage.Metadata); err != nil {
 			return err
 		}
-		completeRequestFromSecondary := !targetIsPrimary && incomingMessage.CompleteRequest && isTerminalChatResponseStatus(status)
-		if completeRequestFromSecondary {
-			if err = finalizePrimaryResponseFromSecondary(request, status); err != nil {
-				return err
-			}
-		}
-		if targetIsPrimary || completeRequestFromSecondary || status == databaseStructs.ChatMessageStatusStreaming {
+		if status == databaseStructs.ChatMessageStatusStreaming ||
+			(incomingMessage.CompleteRequest && isTerminalChatResponseStatus(status)) {
 			if err = setChatRequestStatus(request, status, incomingMessage.Error); err != nil {
 				return err
 			}
 		}
 		if isTerminalChatResponseStatus(status) {
 			chatResponseLocks.Delete(targetMessageID)
-			if completeRequestFromSecondary {
-				chatResponseLocks.Delete(request.ResponseMessageID)
-			}
 		}
 	}
 	return nil
@@ -524,26 +509,19 @@ func applyChatContainerResponse(incomingMessage ChatContainerResponseMessage, au
 
 func getChatResponseRequest(incomingMessage ChatContainerResponseMessage, operationID int) (chatResponseRequest, error) {
 	request := chatResponseRequest{}
-	if incomingMessage.RequestID <= 0 && incomingMessage.ResponseMessageID <= 0 {
-		return request, errors.New("chat response requires request_id or response_message_id")
-	}
-	whereClause := "chat_request.id=$1"
-	arg := incomingMessage.RequestID
 	if incomingMessage.RequestID <= 0 {
-		whereClause = "chat_request.response_message_id=$1"
-		arg = incomingMessage.ResponseMessageID
+		return request, errors.New("chat response requires request_id")
 	}
-	sqlStatement := fmt.Sprintf(`SELECT chat_request.id,
+	sqlStatement := `SELECT chat_request.id,
 			chat_request.operation_id,
 			chat_request.channel_id,
-			chat_request.response_message_id,
 			chat_request.chat_container_id,
 			chat_request.status,
 			COALESCE(consuming_container.name, '') "chat_container_name"
 		FROM chat_request
 		LEFT JOIN consuming_container ON consuming_container.id = chat_request.chat_container_id
-		WHERE %s`, whereClause)
-	args := []interface{}{arg}
+		WHERE chat_request.id=$1`
+	args := []interface{}{incomingMessage.RequestID}
 	if operationID > 0 {
 		sqlStatement += " AND chat_request.operation_id=$2"
 		args = append(args, operationID)
@@ -554,48 +532,35 @@ func getChatResponseRequest(incomingMessage ChatContainerResponseMessage, operat
 	return request, nil
 }
 
-func getChatResponseTargetMessageID(request chatResponseRequest, incomingMessage ChatContainerResponseMessage) (int, bool, error) {
+func getChatResponseTargetMessageID(request chatResponseRequest, incomingMessage ChatContainerResponseMessage) (int, error) {
 	responseKey := strings.TrimSpace(incomingMessage.ResponseKey)
 	if responseKey == "" {
-		return request.ResponseMessageID, true, nil
+		return 0, errors.New("chat response requires non-empty response_key")
 	}
 	messageID, err := getOrCreateChatResponseKeyMessage(request, responseKey)
-	return messageID, false, err
+	return messageID, err
 }
 
 func getOrCreateChatResponseKeyMessage(request chatResponseRequest, responseKey string) (int, error) {
 	var messageID int
-	err := database.DB.Get(&messageID, `SELECT id
-		FROM chat_message
-		WHERE operation_id=$1
-			AND channel_id=$2
-			AND author_type='ai'
-			AND deleted=false
-			AND metadata->>'chat_request_id'=$3
-			AND metadata->>'chat_response_key'=$4
-		ORDER BY id ASC
-		LIMIT 1`,
-		request.OperationID,
-		request.ChannelID,
-		strconv.Itoa(request.ID),
-		responseKey,
-	)
-	if err == nil {
-		return messageID, nil
-	}
-	if !errors.Is(err, sql.ErrNoRows) {
-		return 0, err
-	}
+	// response_key identifies one visible output block for this request. The
+	// first delta/status creates the block; subsequent messages with the same
+	// key update it so streamed text and tool cards stay grouped.
 	metadata := GetMythicJSONTextFromStruct(map[string]interface{}{
 		"chat_request_id":   request.ID,
 		"chat_response_key": responseKey,
 	})
-	err = database.DB.Get(&messageID, `INSERT INTO chat_message
-		(operation_id, channel_id, author_type, chat_container_id, sender_display_name, status, metadata)
-		VALUES ($1, $2, 'ai', $3, $4, 'pending', $5::jsonb)
+	err := database.DB.Get(&messageID, `INSERT INTO chat_message
+		(operation_id, channel_id, author_type, chat_request_id, chat_response_key,
+		 chat_container_id, sender_display_name, status, metadata)
+		VALUES ($1, $2, 'ai', $3, $4, $5, $6, 'pending', $7::jsonb)
+		ON CONFLICT (chat_request_id, chat_response_key) WHERE chat_request_id IS NOT NULL
+		DO UPDATE SET metadata = chat_message.metadata || EXCLUDED.metadata
 		RETURNING id`,
 		request.OperationID,
 		request.ChannelID,
+		request.ID,
+		responseKey,
 		request.ChatContainerID,
 		request.ChatContainerName,
 		metadata.String(),
@@ -651,7 +616,7 @@ func queueChatResponseDelta(responseMessageID int, operationID int, delta string
 	if buffer.Timer == nil {
 		buffer.Timer = time.AfterFunc(chatStreamFlushInterval, func() {
 			if err := flushChatResponseMessage(responseMessageID, operationID, false); err != nil {
-				logging.LogError(err, "Failed to flush chat response buffer", "response_message_id", responseMessageID)
+				logging.LogError(err, "Failed to flush chat response buffer", "chat_message_id", responseMessageID)
 			}
 		})
 	}
@@ -731,19 +696,29 @@ func setChatRequestStatus(request chatResponseRequest, status string, responseEr
 	return err
 }
 
-func finalizePrimaryResponseFromSecondary(request chatResponseRequest, status string) error {
-	if err := flushChatResponseMessageLocked(request.ResponseMessageID, request.OperationID, true); err != nil {
+func failChatResponseRequest(request chatResponseRequest, responseKey string, errorMessage string) error {
+	metadata := ChatContainerResponseMetadata{}
+	messageID, err := getOrCreateChatResponseKeyMessage(request, responseKey)
+	if err != nil {
 		return err
 	}
-	_, err := database.DB.Exec(`UPDATE chat_message
-		SET status=$3
+	_, err = database.DB.Exec(`UPDATE chat_message
+		SET status='error',
+			message=$3,
+			metadata=metadata || $4::jsonb
 		WHERE id=$1
 			AND operation_id=$2
-			AND deleted=false
-			AND status IN ('pending', 'streaming')`,
-		request.ResponseMessageID,
+			AND deleted=false`,
+		messageID,
 		request.OperationID,
-		status,
+		errorMessage,
+		GetMythicJSONTextFromStruct(map[string]interface{}{
+			"container_metadata": metadata.StructValue(),
+			"error":              errorMessage,
+		}).String(),
 	)
-	return err
+	if err != nil {
+		return err
+	}
+	return setChatRequestStatus(request, databaseStructs.ChatMessageStatusError, errorMessage)
 }
