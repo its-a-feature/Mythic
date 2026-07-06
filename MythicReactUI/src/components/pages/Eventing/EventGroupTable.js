@@ -1,5 +1,5 @@
 import React from 'react';
-import { gql, useMutation } from '@apollo/client';
+import { gql, useLazyQuery, useMutation } from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
 import Button from '@mui/material/Button';
 import {toLocalTime} from "../../utilities/Time";
@@ -31,10 +31,10 @@ import {EventTriggerKeywordDialog} from "./EventTriggerKeywordDialog";
 import LayersTwoToneIcon from '@mui/icons-material/LayersTwoTone';
 import {EventGroupConsumingContainersDialog} from "./EventGroupConsumingContainersDialog";
 import CalendarMonthTwoToneIcon from '@mui/icons-material/CalendarMonthTwoTone';
-import {EventGroupTableEditDialog} from "./EventEditEventGroupDialog";
 import EditNoteTwoToneIcon from '@mui/icons-material/EditNoteTwoTone';
 import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/MythicPageHeader";
 import {MythicStateChip} from "../../MythicComponents/MythicStateChip";
+import {CreateEventingStepper, getWizardPayloadFromWorkflow} from "./CreateEventingStepper";
 
 const updateDeleteStatusMutation = gql(`
 mutation updateDeleteStatusMutation($eventgroup_id: Int!, $deleted: Boolean!) {
@@ -58,15 +58,25 @@ mutation eventingManualTrigger($eventgroup_id: Int!){
     }
 }
 `)
+const getExportWorkflow = gql(`
+query exportWorkflow($eventgroup_id: Int!, $include_steps: Boolean!, $output_format: String!) {
+  eventingExportWorkflow(eventgroup_id: $eventgroup_id, include_steps: $include_steps, output_format: $output_format) {
+    status
+    error
+    workflow
+  }
+}
+`)
 export function EventGroupTable({selectedEventGroup, me, showInstances, showGraph, height}) {
     const [openEventStepRender, setOpenEventStepRender] = React.useState(false);
     const [openEnvView, setOpenEnvView] = React.useState(false);
     const [openTriggerDataView, setOpenTriggerDataView] = React.useState(false);
-    const [openFileView, setOpenFileView] = React.useState(false);
     const [openDeleteDialog, setOpenDeleteDialog] = React.useState(false);
     const [openActiveDialog, setOpenActiveDialog] = React.useState(false);
     const [openApprovalDialog, setOpenApprovalDialog] = React.useState(false);
-    const [openEditDialog, setOpenEditDialog] = React.useState(false);
+    const [openStepperDialog, setOpenStepperDialog] = React.useState(false);
+    const [stepperMode, setStepperMode] = React.useState("edit");
+    const [stepperInitialPayload, setStepperInitialPayload] = React.useState(null);
     const [updateDeleteMutation] = useMutation(updateDeleteStatusMutation, {
      onCompleted: (data) => {
      },
@@ -93,6 +103,27 @@ export function EventGroupTable({selectedEventGroup, me, showInstances, showGrap
 
         }
     })
+    const [getExportedWorkflow] = useLazyQuery(getExportWorkflow, {
+        fetchPolicy: "no-cache",
+        onCompleted: (data) => {
+            if(data.eventingExportWorkflow.status === "success"){
+                try{
+                    const workflow = JSON.parse(data.eventingExportWorkflow.workflow);
+                    setStepperInitialPayload(getWizardPayloadFromWorkflow(workflow));
+                    setOpenStepperDialog(true);
+                }catch(error){
+                    snackActions.error("Failed to parse exported workflow");
+                    console.log(error);
+                }
+            } else {
+                snackActions.error(data.eventingExportWorkflow.error);
+            }
+        },
+        onError: (data) => {
+            console.log(data);
+            snackActions.error("Failed to export workflow");
+        }
+    });
     const [selectedInstanceID, setSelectedInstanceID] = React.useState(0);
     const [openFileManageView, setOpenFileManageView] = React.useState(false);
     const [openTriggerKeyword, setOpenTriggerKeyword] = React.useState(false);
@@ -132,6 +163,14 @@ export function EventGroupTable({selectedEventGroup, me, showInstances, showGrap
      const onTriggerManual = () => {
          triggerManually({variables: {eventgroup_id: selectedEventGroup.id}});
      }
+     const openWorkflowStepper = (mode) => {
+         setStepperMode(mode);
+         getExportedWorkflow({variables: {
+             eventgroup_id: selectedEventGroup.id,
+             include_steps: true,
+             output_format: "json",
+         }});
+     }
  return (
      <div className="mythic-eventing-detail" style={{height: height || "100%"}}>
 
@@ -159,10 +198,10 @@ export function EventGroupTable({selectedEventGroup, me, showInstances, showGrap
                  <EventGroupWorkflowOverview
                      consumingContainersErrors={consumingContainersErrors}
                      me={me}
-                     onClone={() => setOpenFileView(true)}
+                     onClone={() => openWorkflowStepper("duplicate")}
                      onDelete={() => setOpenDeleteDialog(true)}
                      onDisable={() => setOpenActiveDialog(true)}
-                     onEdit={() => setOpenEditDialog(true)}
+                     onEdit={() => openWorkflowStepper("edit")}
                      onEnable={onAcceptActive}
                      onManageFiles={() => setOpenFileManageView(true)}
                      onOpenApproval={() => setOpenApprovalDialog(true)}
@@ -201,16 +240,6 @@ export function EventGroupTable({selectedEventGroup, me, showInstances, showGrap
                                setOpenApprovalDialog(false);
                            }} eventgroupapprovals={selectedEventGroup.eventgroupapprovals}
                            me={me} selectedEventGroup={selectedEventGroup} />}
-             />
-         }
-         {openFileView &&
-             <MythicDialog fullWidth={true} maxWidth="lg" open={openFileView}
-                           onClose={() => {
-                               setOpenFileView(false);
-                           }}
-                           innerDialog={<EventGroupTableEditDialog onClose={() => {
-                               setOpenFileView(false);
-                           }} me={me} selectedEventGroup={selectedEventGroup} includeSteps={true} />}
              />
          }
          {openEnvView && <MythicDialog fullWidth={true} maxWidth="lg" open={openEnvView}
@@ -268,14 +297,20 @@ export function EventGroupTable({selectedEventGroup, me, showInstances, showGrap
                            }} selectedEventGroup={selectedEventGroup} />}
              />
          }
-         {openEditDialog &&
-             <MythicDialog fullWidth={true} maxWidth="lg" open={openEditDialog}
+         {openStepperDialog &&
+             <MythicDialog fullWidth={true} maxWidth="xl" open={openStepperDialog}
                            onClose={() => {
-                               setOpenEditDialog(false);
+                               setOpenStepperDialog(false);
                            }}
-                           innerDialog={<EventGroupTableEditDialog onClose={() => {
-                               setOpenEditDialog(false);
-                           }} me={me} selectedEventGroup={selectedEventGroup} />}
+                           innerDialog={<CreateEventingStepper
+                               mode={stepperMode}
+                               initialPayload={stepperInitialPayload}
+                               onClose={() => {
+                                   setOpenStepperDialog(false);
+                               }}
+                               selectedEventGroup={selectedEventGroup}
+                               sourceEventGroupFiles={selectedEventGroup?.filemeta || []}
+                           />}
              />
          }
      </div>
@@ -479,7 +514,7 @@ function EventGroupWorkflowOverview({
                                 Keyword run
                             </Button>
                         }
-                        <MythicStyledTooltip title="Edit workflow metadata and settings, not steps">
+                        <MythicStyledTooltip title="Edit workflow metadata, settings, and steps">
                             <Button
                                 className="mythic-table-row-action mythic-table-row-action-hover-info"
                                 size="small"

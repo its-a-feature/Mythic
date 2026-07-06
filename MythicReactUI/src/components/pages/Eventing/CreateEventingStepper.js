@@ -4,7 +4,7 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { gql, useLazyQuery, useReactiveVar } from '@apollo/client';
+import { gql, useLazyQuery, useMutation, useReactiveVar } from '@apollo/client';
 import {meState} from "../../../cache";
 import {IconButton, Switch, Typography} from '@mui/material';
 import FormControl from '@mui/material/FormControl';
@@ -155,6 +155,14 @@ query EventingTaskCreateCallbacksQuery($operation_id: Int!, $command_name: Strin
     }
 }
 `;
+const updateEventGroupMutation = gql(`
+mutation updateEventGroupMutation($eventgroup_id: Int!, $updated_config: String) {
+  eventingTriggerUpdate(eventgroup_id: $eventgroup_id, updated_config: $updated_config) {
+    status
+    error
+  }
+}
+`)
 const getCallbackDisplayIdInput = () => ({
     name: callbackTriggerTaskCreateInputName,
     type: "env",
@@ -287,7 +295,7 @@ function CreateEventingStepperNavigationButtons(props){
                     onClick={props.finished}
                     disabled={disabledButtons}
                 >
-                    {props.last ? "Create" : 'Next'}
+                    {props.last ? (props.submitLabel || "Create") : 'Next'}
                 </Button>
         </DialogActions>
     );
@@ -678,6 +686,134 @@ const outputOptionsData = {
     webhook_send: {
         output_fields: [],
         description: "This action's output has nothing provided by Mythic, but you can provide your own data"
+    }
+}
+const getWizardRunAsValue = (runAs) => {
+    if(runAsOptions.includes(runAs)){
+        return {type: runAs, value: ""};
+    }
+    return {type: "bot", value: runAs || ""};
+}
+const getFormattedWizardJson = (value, fallback) => {
+    try{
+        return JSON.stringify(value === undefined || value === null ? fallback : value, null, 2);
+    }catch(error){
+        return JSON.stringify(fallback, null, 2);
+    }
+}
+const getWizardInputFromWorkflowValue = (name, value, trigger) => {
+    if(value && typeof value === "object" && value.type === eventingAPITokenInputType){
+        return {
+            name,
+            type: "mythic",
+            value: "apitoken",
+            value_type: "",
+            scopes: normalizeAPITokenScopeSelection(value.scopes || defaultEventingAPITokenScopes),
+        };
+    }
+    if(typeof value !== "string"){
+        return {name, type: "custom", value: getFormattedWizardJson(value, {}), value_type: ""};
+    }
+    if(value.startsWith("env.")){
+        const envValue = value.substring(4);
+        const envOptions = triggerOptionsData[trigger]?.env || [];
+        return {
+            name,
+            type: "env",
+            value: envOptions.includes(envValue) ? "" : envValue,
+            value_type: envOptions.includes(envValue) ? envValue : "",
+        };
+    }
+    const inputPrefix = inputOptions.find((option) => value.startsWith(`${option}.`));
+    if(inputPrefix){
+        return {
+            name,
+            type: inputPrefix,
+            value: value.substring(inputPrefix.length + 1),
+            value_type: "",
+        };
+    }
+    if(value.includes(".")){
+        return {name, type: value, value, value_type: ""};
+    }
+    return {name, type: "custom", value, value_type: ""};
+}
+const getWizardOutputFromWorkflowValue = (name, value, action) => {
+    const outputFields = outputOptionsData[action]?.output_fields || [];
+    if(outputFields.includes(value)){
+        return {name, type: value, value: ""};
+    }
+    return {
+        name,
+        type: outputFields.length > 0 ? outputFields[0] : "",
+        value: value === undefined || value === null ? "" : (
+            typeof value === "string" ? value : getFormattedWizardJson(value, {})
+        ),
+    };
+}
+export const getWizardPayloadFromWorkflow = (workflow) => {
+    const trigger = workflow?.trigger || "manual";
+    const steps = Array.isArray(workflow?.steps) ? workflow.steps : [];
+    return {
+        0: {
+            name: workflow?.name || "",
+            description: workflow?.description || "",
+            trigger,
+            trigger_data: workflow?.trigger_data || {},
+            run_as: getWizardRunAsValue(workflow?.run_as || "bot"),
+            keywords: Array.isArray(workflow?.keywords) ? workflow.keywords : [],
+            environment: getFormattedWizardJson(workflow?.environment, {}),
+            files: [],
+        },
+        1: steps.map((step) => ({
+            name: step?.name || "",
+            description: step?.description || "",
+            inputs: Object.entries(step?.inputs || {}).map(([name, value]) => getWizardInputFromWorkflowValue(name, value, trigger)),
+            action: step?.action || "task_create",
+            action_data: step?.action_data || {},
+            outputs: Object.entries(step?.outputs || {}).map(([name, value]) => getWizardOutputFromWorkflowValue(name, value, step?.action || "task_create")),
+            depends_on: Array.isArray(step?.depends_on) ? step.depends_on : [],
+            environment: step?.environment || {},
+            user_interaction: normalizeUserInteractionConfig(step?.user_interaction),
+            continue_on_error: Boolean(step?.continue_on_error),
+        })),
+    };
+}
+const copyExistingEventGroupFiles = async (sourceFiles, destinationEventGroupID) => {
+    if(!Array.isArray(sourceFiles) || sourceFiles.length === 0 || destinationEventGroupID <= 0){
+        return;
+    }
+    let successCount = 0;
+    for(let i = 0; i < sourceFiles.length; i++){
+        const sourceFile = sourceFiles[i];
+        if(!sourceFile?.agent_file_id){
+            continue;
+        }
+        try{
+            const response = await fetch(`/direct/download/${sourceFile.agent_file_id}`, {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+                },
+            });
+            if(!response.ok){
+                snackActions.error(`Failed to copy ${sourceFile.filename_text || "workflow file"}`);
+                continue;
+            }
+            const blob = await response.blob();
+            const copiedFile = new File([blob], sourceFile.filename_text || `workflow_file_${i + 1}`, {type: blob.type || "application/octet-stream"});
+            const fileuploadStatus = await UploadEventGroupFile(copiedFile, destinationEventGroupID);
+            if(fileuploadStatus?.status === "error"){
+                snackActions.error(fileuploadStatus.error);
+            }else{
+                successCount += 1;
+            }
+        }catch(error){
+            snackActions.error(error.toString());
+        }
+    }
+    if(successCount === sourceFiles.length){
+        snackActions.success("All associated files copied");
     }
 }
 const ChooseOneOrCustom = ({choices, prevData, updateData, choicesLabel, textFieldPlaceholder,
@@ -3280,7 +3416,7 @@ const CreateEventingStep2 = ({finished, back, first, last, cancel, prevData, ste
 }
 
 const outputFormatOptions = ["json", "yaml", "toml"];
-const CreateEventingStep3 = ({finished, back, first, last, cancel, prevData, step1Data, step2Data}) => {
+const CreateEventingStep3 = ({finished, back, first, last, cancel, prevData, step1Data, step2Data, mode = "create", selectedEventGroup, sourceEventGroupFiles = []}) => {
     const [openEventStepRender, setOpenEventStepRender] = React.useState({open: false, data: {}});
     const [renderedVersion, setRenderedVersion] = React.useState("");
     const [outputFormat, setOutputFormat] = React.useState("json");
@@ -3314,6 +3450,7 @@ const CreateEventingStep3 = ({finished, back, first, last, cancel, prevData, ste
                 action: step2Data[i].action,
                 depends_on: step2Data[i].depends_on,
                 action_data: step2Data[i].action_data,
+                environment: step2Data[i].environment || {},
                 inputs: {},
                 outputs: {},
             };
@@ -3394,6 +3531,20 @@ const CreateEventingStep3 = ({finished, back, first, last, cancel, prevData, ste
             console.log(data);
         }
     })
+    const [UpdateEventGroupMutation] = useMutation(updateEventGroupMutation, {
+        onCompleted: (data) => {
+            if(data.eventingTriggerUpdate.status === "success"){
+                snackActions.success("Successfully updated workflow");
+                finished()
+            } else {
+                snackActions.error(data.eventingTriggerUpdate.error);
+            }
+        },
+        onError: (data) => {
+            console.log(data);
+            snackActions.error("Failed to update workflow");
+        }
+    });
     const previewGraph = () => {
         testFileForGraphMutation({variables: {file_contents: renderedVersion}});
     }
@@ -3417,6 +3568,10 @@ const CreateEventingStep3 = ({finished, back, first, last, cancel, prevData, ste
         setRenderedVersion(JSON.stringify(finalStepData, null, 2));
     }, [buildRenderedWorkflowData]);
     const finishedStep3 = async () => {
+        if(mode === "edit"){
+            UpdateEventGroupMutation({variables: {eventgroup_id: selectedEventGroup.id, updated_config: renderedVersion}});
+            return;
+        }
         let blob = new Blob([renderedVersion], { type: 'text/plain' });
         let file = new File([blob], `${step1Data.name}.${outputFormat}`, {type: "text/plain"});
         let uploadStatus = await UploadEventFile(file, "New Manual Eventing Workflow");
@@ -3427,6 +3582,9 @@ const CreateEventingStep3 = ({finished, back, first, last, cancel, prevData, ste
             snackActions.error(uploadStatus.error);
         } else {
             snackActions.success("successfully created new workflow");
+            if(mode === "duplicate"){
+                await copyExistingEventGroupFiles(sourceEventGroupFiles, uploadStatus.eventgroup_id);
+            }
             if(step1Data.files.length > 0){
                 let successCount = 0;
                 for(let i = 0; i < step1Data.files.length; i++){
@@ -3485,13 +3643,19 @@ const CreateEventingStep3 = ({finished, back, first, last, cancel, prevData, ste
                 </div>
                 </div>
             </div>
-            <CreateEventingStepperNavigationButtons first={first} last={last} finished={finishedStep3} back={back} cancel={cancel}/>
+            <CreateEventingStepperNavigationButtons first={first} last={last} finished={finishedStep3} back={back} cancel={cancel}
+                                                    submitLabel={mode === "edit" ? "Update" : "Create"}/>
         </div>
     )
 }
 export function CreateEventingStepper(props){
-      const [payload, setPayload] = React.useState({});
+      const mode = props.mode || "create";
+      const [payload, setPayload] = React.useState(props.initialPayload || {});
       const [activeStep, setActiveStep] = React.useState(0);
+      React.useEffect(() => {
+          setPayload(props.initialPayload || {});
+          setActiveStep(0);
+      }, [props.initialPayload]);
       const updateStep1Data = React.useCallback((step1DataUpdate) => {
         setPayload((currentPayload) => {
             const currentStep1Data = currentPayload[0] || {};
@@ -3508,7 +3672,12 @@ export function CreateEventingStepper(props){
             case 1:
               return <CreateEventingStep2 prevData={payload[1]} step1Data={payload[0]} updateStep1Data={updateStep1Data} finished={handleStepData} back={cancelStep} first={false} last={false} cancel={() => props.onClose(null, true)}/>;
           case 2:
-              return <CreateEventingStep3 prevData={payload[2]} step1Data={payload[0]} step2Data={payload[1]} finished={finished} back={() => cancelStep()} first={false} last={true} cancel={() => props.onClose(null, true)}/>;
+              return <CreateEventingStep3 prevData={payload[2]} step1Data={payload[0]} step2Data={payload[1]}
+                                          finished={finished} back={() => cancelStep()} first={false} last={true}
+                                          cancel={() => props.onClose(null, true)}
+                                          mode={mode}
+                                          selectedEventGroup={props.selectedEventGroup}
+                                          sourceEventGroupFiles={props.sourceEventGroupFiles || []}/>;
           default:
               return "unknown step";
           }
@@ -3539,14 +3708,20 @@ export function CreateEventingStepper(props){
           props.onClose(null, true);
       }
       const activeStepDetails = stepDetails[activeStep] || stepDetails[0];
+      const wizardTitle = mode === "edit" ? "Edit eventing workflow" : (
+          mode === "duplicate" ? "Duplicate eventing workflow" : "Create eventing workflow"
+      );
+      const wizardSubtitle = mode === "edit" ? "Update trigger metadata, steps, and generated output." : (
+          mode === "duplicate" ? "Start from an existing workflow and save it as a new one." : "Build a workflow from trigger metadata through generated output."
+      );
     return (
         <DialogContent className="mythic-eventing-wizard-dialog-content">
             <div className="mythic-eventing-wizard">
                 <div className="mythic-eventing-wizard-header">
                     <div className="mythic-eventing-wizard-title-row">
                         <div>
-                            <div className="mythic-eventing-wizard-title">Create eventing workflow</div>
-                            <div className="mythic-eventing-wizard-subtitle">Build a workflow from trigger metadata through generated output.</div>
+                            <div className="mythic-eventing-wizard-title">{wizardTitle}</div>
+                            <div className="mythic-eventing-wizard-subtitle">{wizardSubtitle}</div>
                         </div>
                         <span className="mythic-eventing-wizard-progress-chip">Step {activeStep + 1} of {steps.length}</span>
                     </div>

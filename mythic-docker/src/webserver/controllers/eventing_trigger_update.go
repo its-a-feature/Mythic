@@ -1,7 +1,6 @@
 package webcontroller
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -77,6 +76,12 @@ func EventingTriggerUpdateWebhook(c *gin.Context) {
 	}
 	needToEnable := false
 	needToDisable := false
+	originalTrigger := eventGroup.Trigger
+	originalRunAs := eventGroup.RunAs
+	originalActive := eventGroup.Active
+	originalDeleted := eventGroup.Deleted
+	originalCronSchedule := getEventGroupCronSchedule(eventGroup)
+	updateSteps := false
 	if input.Input.Active != nil {
 		if eventGroup.Active && !*input.Input.Active {
 			needToDisable = true
@@ -103,29 +108,54 @@ func EventingTriggerUpdateWebhook(c *gin.Context) {
 			})
 			return
 		}
+		updateSteps = len(newEventData.Steps) > 0
+		if updateSteps {
+			err = eventing.EnsureActions(&newEventData)
+			if err != nil {
+				logging.LogError(err, "bad actions for updated eventing")
+				c.JSON(http.StatusOK, EventingTriggerCancelMessageResponse{
+					Status: "error",
+					Error:  err.Error(),
+				})
+				return
+			}
+		}
 		eventGroup.Name = newEventData.Name
 		eventGroup.Description = newEventData.Description
 		eventGroup.Trigger = newEventData.Trigger
-		err = eventing.EnsureTrigger(&eventGroup, false)
+		err = eventing.EnsureTrigger(&newEventData, updateSteps)
 		if err != nil {
 			logging.LogError(err, "bad trigger for updated eventing")
 			c.JSON(http.StatusOK, EventingTriggerCancelMessageResponse{
 				Status: "error",
-				Error:  fmt.Sprintf("%s is not a valid trigger", eventGroup.Trigger),
+				Error:  err.Error(),
 			})
 			return
 		}
 		eventGroup.TriggerData = newEventData.TriggerData
 		eventGroup.Keywords = newEventData.Keywords
 		eventGroup.Environment = newEventData.Environment
-		// for now don't update RunAs changes
-		//eventGroup.RunAs = newEventData.RunAs
+		eventGroup.RunAs = newEventData.RunAs
+		if updateSteps {
+			err = eventing.ResolveDependencies(&newEventData)
+			if err != nil {
+				logging.LogError(err, "bad dependencies for updated eventing")
+				c.JSON(http.StatusOK, EventingTriggerCancelMessageResponse{
+					Status: "error",
+					Error:  err.Error(),
+				})
+				return
+			}
+			eventGroup.Steps = newEventData.Steps
+			eventing.SetEventGroupStepTotals(&eventGroup)
+		}
 	}
 
 	_, err = database.DB.NamedExec(`UPDATE eventgroup SET 
                       active=:active, deleted=:deleted, name=:name, description=:description,
                       trigger=:trigger, trigger_data=:trigger_data, keywords=:keywords,
-                      environment=:environment, run_as=:run_as WHERE id=:id`,
+                      environment=:environment, run_as=:run_as, total_steps=:total_steps,
+                      total_order_steps=:total_order_steps WHERE id=:id`,
 		eventGroup)
 	if err != nil {
 		logging.LogError(err, "failed to update eventgroup")
@@ -135,35 +165,78 @@ func EventingTriggerUpdateWebhook(c *gin.Context) {
 		})
 		return
 	}
-	if eventGroup.Trigger == eventing.TriggerCron {
-		if needToEnable {
-			triggerData := eventGroup.TriggerData.StructValue()
-			if _, ok = triggerData["cron"]; ok {
-				cronData := triggerData["cron"].(string)
-				rabbitmq.CronChannel <- rabbitmq.CronNotification{
-					Action:       rabbitmq.CronActionNewEventGroup,
-					EventGroupID: eventGroup.ID,
-					CronSchedule: cronData,
-					OperationID:  operatorOperation.CurrentOperation.ID,
-					OperatorID:   eventGroup.OperatorID,
-				}
-			}
+	if updateSteps {
+		err = eventing.SaveEventGroupSteps(&eventGroup, operatorOperation, true)
+		if err != nil {
+			c.JSON(http.StatusOK, EventingTriggerCancelMessageResponse{
+				Status: "error",
+				Error:  err.Error(),
+			})
+			return
 		}
-		if needToDisable {
-			rabbitmq.CronChannel <- rabbitmq.CronNotification{
-				Action:       rabbitmq.CronActionTriggerRemove,
-				EventGroupID: eventGroup.ID,
-			}
-		}
-
+		eventing.RefreshEventGroupConsumingContainers(eventGroup.ID)
 	}
-	if eventGroup.Trigger == eventing.TriggerResponseIntercept {
+	if originalRunAs != eventGroup.RunAs {
+		err = eventing.RefreshEventGroupApprovalEntries(&eventGroup, operatorOperation, true)
+		if err != nil {
+			c.JSON(http.StatusOK, EventingTriggerCancelMessageResponse{
+				Status: "error",
+				Error:  err.Error(),
+			})
+			return
+		}
+	}
+	newCronSchedule := getEventGroupCronSchedule(eventGroup)
+	wasRunnableCron := originalTrigger == eventing.TriggerCron && originalActive && !originalDeleted
+	isRunnableCron := eventGroup.Trigger == eventing.TriggerCron && eventGroup.Active && !eventGroup.Deleted
+	cronChanged := originalCronSchedule != newCronSchedule
+	if wasRunnableCron && (!isRunnableCron || cronChanged || needToDisable) {
+		rabbitmq.CronChannel <- rabbitmq.CronNotification{
+			Action:       rabbitmq.CronActionTriggerRemove,
+			EventGroupID: eventGroup.ID,
+		}
+	}
+	if isRunnableCron && (!wasRunnableCron || cronChanged || needToEnable) {
+		if newCronSchedule != "" {
+			rabbitmq.CronChannel <- rabbitmq.CronNotification{
+				Action:       rabbitmq.CronActionNewEventGroup,
+				EventGroupID: eventGroup.ID,
+				CronSchedule: newCronSchedule,
+				OperationID:  operatorOperation.CurrentOperation.ID,
+				OperatorID:   eventGroup.OperatorID,
+			}
+		}
+	}
+	if eventGroup.Trigger == eventing.TriggerResponseIntercept || originalTrigger == eventing.TriggerResponseIntercept {
 		go rabbitmq.UpdateCachedResponseIntercept()
 	}
 	response.Status = "success"
 	response.Active = eventGroup.Active
 	response.Deleted = eventGroup.Deleted
+	response.Name = eventGroup.Name
+	response.Description = eventGroup.Description
+	response.Trigger = eventGroup.Trigger
+	response.TriggerData = eventGroup.TriggerData.StructValue()
+	response.Keywords = eventGroup.Keywords.StructStringValue()
+	response.Env = eventGroup.Environment.StructValue()
+	response.RunAs = eventGroup.RunAs
 	c.JSON(http.StatusOK, response)
 	return
 
+}
+
+func getEventGroupCronSchedule(eventGroup databaseStructs.EventGroup) string {
+	if eventGroup.Trigger != eventing.TriggerCron {
+		return ""
+	}
+	triggerData := eventGroup.TriggerData.StructValue()
+	cronValue, ok := triggerData["cron"]
+	if !ok {
+		return ""
+	}
+	cronString, ok := cronValue.(string)
+	if !ok {
+		return ""
+	}
+	return cronString
 }

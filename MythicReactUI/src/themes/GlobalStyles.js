@@ -306,6 +306,7 @@ html, body, #root {
     height: 100%;
     width: 100%;
     color-scheme: light dark;
+    overscroll-behavior-y: none;
 }
 * {
     box-sizing: border-box;

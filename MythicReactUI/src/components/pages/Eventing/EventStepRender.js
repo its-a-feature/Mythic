@@ -68,7 +68,7 @@ import {meState} from "../../../cache";
 
 const getEventSteps = gql`
 query GetEventSteps($eventgroup_id: Int!) {
-  eventstep(where: {eventgroup_id: {_eq: $eventgroup_id}}) {
+  eventstep(where: {eventgroup_id: {_eq: $eventgroup_id}, deleted: {_eq: false}}) {
     id
     environment
     name

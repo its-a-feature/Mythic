@@ -24,6 +24,7 @@ select_permissions:
     permission:
       columns:
         - continue_on_error
+        - deleted
         - eventgroup_id
         - id
         - operation_id
@@ -50,6 +51,7 @@ select_permissions:
     permission:
       columns:
         - continue_on_error
+        - deleted
         - eventgroup_id
         - id
         - operation_id
@@ -76,6 +78,7 @@ select_permissions:
     permission:
       columns:
         - continue_on_error
+        - deleted
         - eventgroup_id
         - id
         - operation_id
@@ -102,6 +105,7 @@ select_permissions:
     permission:
       columns:
         - continue_on_error
+        - deleted
         - eventgroup_id
         - id
         - operation_id
