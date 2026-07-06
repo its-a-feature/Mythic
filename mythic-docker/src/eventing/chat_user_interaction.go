@@ -185,7 +185,7 @@ func UpsertUserInteractionChatMessage(eventStepInstanceID int, operationID int) 
 		operationID,
 		databaseStructs.ChatChannelTypeStandard,
 		"general",
-		databaseStructs.ChatMessageAuthorSystem,
+		databaseStructs.ChatMessageAuthorEventing,
 		senderDisplayName,
 		message,
 		databaseStructs.ChatMessageStatusComplete,

@@ -96,6 +96,7 @@ export const operatorSettingDefaults =  {
     hideTaskingContext: false,
     taskingContextFields: ["impersonation_context", "cwd"],
     ["experiment-responseStreamLimit"]: 200,
+    chatSelectedChannelID: 0,
     sideShortcuts: defaultShortcuts,
     palette: {
         primary: {
@@ -160,11 +161,7 @@ export const operatorSettingDefaults =  {
         },
         chatMessageSelfBackground: {
             dark: "#142033",
-            light: "#eef5ff",
-        },
-        chatMessageAIBackground: {
-            dark: "#14272b",
-            light: "#edf8f5",
+            light: "#f8fbff",
         },
         chatMessageSystemBackground: {
             dark: "#2a2116",
@@ -172,7 +169,7 @@ export const operatorSettingDefaults =  {
         },
         chatMarkdownSurfaceBackground: {
             dark: "#0b1118",
-            light: "#f1f5f9",
+            light: "#f5f5f5",
         },
         chatMarkdownSurfaceStrongBackground: {
             dark: "#1f2a37",

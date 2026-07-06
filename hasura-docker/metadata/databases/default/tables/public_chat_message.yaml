@@ -11,6 +11,9 @@ object_relationships:
   - name: chat_container
     using:
       foreign_key_constraint_on: chat_container_id
+  - name: chat_request
+    using:
+      foreign_key_constraint_on: chat_request_id
   - name: deleted_operator
     using:
       foreign_key_constraint_on: deleted_by
@@ -35,13 +38,6 @@ array_relationships:
         table:
           name: chat_request
           schema: public
-  - name: requests_as_response
-    using:
-      foreign_key_constraint_on:
-        column: response_message_id
-        table:
-          name: chat_request
-          schema: public
 select_permissions:
   - role: mythic_admin
     permission:
@@ -50,6 +46,8 @@ select_permissions:
         - author_type
         - channel_id
         - chat_container_id
+        - chat_request_id
+        - chat_response_key
         - created_at
         - deleted
         - deleted_at
@@ -88,6 +86,8 @@ select_permissions:
         - author_type
         - channel_id
         - chat_container_id
+        - chat_request_id
+        - chat_response_key
         - created_at
         - deleted
         - deleted_at
@@ -126,6 +126,8 @@ select_permissions:
         - author_type
         - channel_id
         - chat_container_id
+        - chat_request_id
+        - chat_response_key
         - created_at
         - deleted
         - deleted_at
@@ -164,6 +166,8 @@ select_permissions:
         - author_type
         - channel_id
         - chat_container_id
+        - chat_request_id
+        - chat_response_key
         - created_at
         - deleted
         - deleted_at

@@ -6,7 +6,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { gql, useLazyQuery, useReactiveVar } from '@apollo/client';
 import {meState} from "../../../cache";
-import {Typography, IconButton, Switch} from '@mui/material';
+import {IconButton, Switch, Typography} from '@mui/material';
 import FormControl from '@mui/material/FormControl';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
@@ -35,6 +35,7 @@ import {MythicTableEmptyState, MythicTableLoadingState} from "../../MythicCompon
 import {MythicClientSideTablePagination, useMythicClientPagination} from "../../MythicComponents/MythicTablePagination";
 import {TaskParametersDialog} from "../Callbacks/TaskParametersDialog";
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
+import {APITokenScopeSelector, defaultAPITokenScopes, normalizeAPITokenScopeSelection} from "../../MythicComponents/APITokenScopeSelector";
 
 function getSteps(){
     return ['Trigger Metadata', 'Steps', 'Confirm']
@@ -574,7 +575,7 @@ const inputOptionsData = {
         description: "this allows you to specify the name of a file that was uploaded as part of the workflow. You can see these files and upload/remove them by clicking the paperclip icon in the actions column when viewing the eventgroup workflow."
     },
     mythic: {
-        description: "this allows you to get various pieces of information from Mythic that you can't get elsewhere. This is currently limited to apitoken."
+        description: "this allows you to get various pieces of information from Mythic that you can't get elsewhere. This is currently limited to scoped apitokens."
     },
     output: {
         description: "this allows you to reference the output from a previous task by using the step name"
@@ -583,6 +584,8 @@ const inputOptionsData = {
         description: "this is a completely custom input that's whatever you desire"
     }
 }
+const eventingAPITokenInputType = "mythic.apitoken";
+const defaultEventingAPITokenScopes = defaultAPITokenScopes;
 const userInteractionInputTypes = ["string", "number", "boolean", "json", "ChooseOne"];
 const userInteractionBotApprovalApprovers = {
     operator: {
@@ -1026,6 +1029,15 @@ const getInputTypeDescription = (t) => {
     }
     return inputOptionsData["output"].description;
 }
+const EventingAPITokenScopeSelector = ({scopes, onChange}) => (
+    <APITokenScopeSelector
+        className="mythic-eventing-apitoken-scope-picker"
+        sx={{gridColumn: "2 / -1", minWidth: 0}}
+        selectedScopes={scopes}
+        onChange={onChange}
+        libraryMaxHeight={360}
+    />
+)
 const EventingStepConfigSection = ({title, description, children, className = ""}) => (
     <div className={`mythic-eventing-step-config-section ${className}`.trim()}>
         <div className="mythic-eventing-step-config-section-header">
@@ -1110,10 +1122,13 @@ const EventingStepInputs = ({updateStep, index, localInputOptions, step1Data, pr
         newLocalInput[i].type = event.target.value;
         if(newLocalInput[i].type === "mythic"){
             newLocalInput[i].value = "apitoken";
+            newLocalInput[i].scopes = newLocalInput[i].scopes?.length > 0 ? newLocalInput[i].scopes : defaultEventingAPITokenScopes;
         } else if(newLocalInput[i].type.includes(".")){
             newLocalInput[i].value = newLocalInput[i].type;
+            delete newLocalInput[i].scopes;
         } else {
             newLocalInput[i].value = "";
+            delete newLocalInput[i].scopes;
         }
         setLocalInputs(newLocalInput);
     }
@@ -1130,6 +1145,11 @@ const EventingStepInputs = ({updateStep, index, localInputOptions, step1Data, pr
     const onChangeLocalInputValue = (i, value) => {
         let newLocalInput = [...localInputs];
         newLocalInput[i].value = value;
+        setLocalInputs(newLocalInput);
+    }
+    const onChangeLocalInputScopes = (i, scopes) => {
+        let newLocalInput = [...localInputs];
+        newLocalInput[i].scopes = scopes;
         setLocalInputs(newLocalInput);
     }
     const removeLocalInput = (i) => {
@@ -1232,6 +1252,12 @@ const EventingStepInputs = ({updateStep, index, localInputOptions, step1Data, pr
                                             {getInputAdornment(localInputs[i].type)}
                                         </Typography>
                                 }}/>)
+                            }
+                            {localInputs[i].type === "mythic" && localInputs[i].value === "apitoken" &&
+                                <EventingAPITokenScopeSelector
+                                    scopes={localInputs[i].scopes ?? defaultEventingAPITokenScopes}
+                                    onChange={(scopes) => onChangeLocalInputScopes(i, scopes)}
+                                />
                             }
                             <div className="mythic-eventing-step-helper-text">{getInputTypeDescription(localInputs[i].type)}</div>
                         </div>
@@ -2499,7 +2525,7 @@ const actionOptionsData = {
         element: EventingStepActionDataTaskCreate
     },
     custom_function: {
-        description: "This action allows you to execute a custom function within a custom event container that you install. The benefit here is that you can get access to the entirety of Mythic's Scripting and GraphQL API by using an input of mythic.apitoken . This allows you to do almost anything.",
+        description: "This action allows you to execute a custom function within a custom event container that you install. Add a mythic.apitoken input with the scopes that function needs to use Mythic's Scripting and GraphQL APIs.",
         element: EventingStepActionDataCustomFunction
     },
     conditional_check: {
@@ -3295,7 +3321,15 @@ const CreateEventingStep3 = ({finished, back, first, last, cancel, prevData, ste
                 stepData.user_interaction = normalizeUserInteractionConfig(step2Data[i].user_interaction);
             }
             for(let j = 0; j < step2Data[i].inputs.length; j++){
-                if(step2Data[i].inputs[j].type === "custom"){
+                if(step2Data[i].inputs[j].type === "mythic" && step2Data[i].inputs[j].value === "apitoken"){
+                    const tokenScopeInput = step2Data[i].inputs[j].scopes === undefined ?
+                        defaultEventingAPITokenScopes : step2Data[i].inputs[j].scopes;
+                    const tokenScopes = normalizeAPITokenScopeSelection(tokenScopeInput);
+                    stepData.inputs[step2Data[i].inputs[j].name] = {
+                        type: eventingAPITokenInputType,
+                        scopes: tokenScopes,
+                    };
+                } else if(step2Data[i].inputs[j].type === "custom"){
                     stepData.inputs[step2Data[i].inputs[j].name] = step2Data[i].inputs[j].value;
                 } else if(step2Data[i].inputs[j].type === "env") {
                     if (step2Data[i].inputs[j].value === "") {

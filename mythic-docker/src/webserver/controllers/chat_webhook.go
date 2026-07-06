@@ -42,14 +42,13 @@ type aiChatRequestOptions struct {
 }
 
 type ChatActionResponse struct {
-	Status            string             `json:"status"`
-	Error             string             `json:"error,omitempty"`
-	ID                int                `json:"id,omitempty"`
-	ChannelID         int                `json:"channel_id,omitempty"`
-	MessageID         int                `json:"message_id,omitempty"`
-	RequestID         int                `json:"request_id,omitempty"`
-	ResponseMessageID int                `json:"response_message_id,omitempty"`
-	Results           []ChatSearchResult `json:"results,omitempty"`
+	Status    string             `json:"status"`
+	Error     string             `json:"error,omitempty"`
+	ID        int                `json:"id,omitempty"`
+	ChannelID int                `json:"channel_id,omitempty"`
+	MessageID int                `json:"message_id,omitempty"`
+	RequestID int                `json:"request_id,omitempty"`
+	Results   []ChatSearchResult `json:"results,omitempty"`
 }
 
 type CreateChatChannelInput struct {
@@ -318,36 +317,19 @@ func createAIChatMessageWithOptions(c *gin.Context, operatorOperation *databaseS
 		chatRespondError(c, err.Error())
 		return
 	}
-	var responseMessageID int
-	err = database.DB.Get(&responseMessageID, `INSERT INTO chat_message
-		(operation_id, channel_id, author_type, chat_container_id, sender_display_name, status, metadata)
-		VALUES ($1, $2, 'ai', $3, $4, 'pending', $5::jsonb)
-		RETURNING id`,
-		operatorOperation.CurrentOperation.ID,
-		channel.ID,
-		container.ID,
-		container.Name,
-		rabbitmq.GetMythicJSONTextFromStruct(map[string]interface{}{"model": channel.ChatModel}).String(),
-	)
-	if err != nil {
-		logging.LogError(err, "Failed to create AI response placeholder")
-		chatRespondError(c, err.Error())
-		return
-	}
 	var retryOf interface{}
 	if options.RetryOfID != nil {
 		retryOf = *options.RetryOfID
 	}
 	var requestID int
 	err = database.DB.Get(&requestID, `INSERT INTO chat_request
-		(operation_id, channel_id, request_message_id, response_message_id, chat_container_id,
+		(operation_id, channel_id, request_message_id, chat_container_id,
 		 model, status, context_snapshot, retry_of_id, created_by)
-		VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7::jsonb, $8, $9)
+		VALUES ($1, $2, $3, $4, $5, 'pending', $6::jsonb, $7, $8)
 		RETURNING id`,
 		operatorOperation.CurrentOperation.ID,
 		channel.ID,
 		requestMessageID,
-		responseMessageID,
 		container.ID,
 		channel.ChatModel,
 		rabbitmq.GetMythicJSONTextFromStruct(map[string]interface{}{}).String(),
@@ -367,7 +349,6 @@ func createAIChatMessageWithOptions(c *gin.Context, operatorOperation *databaseS
 		container,
 		requestID,
 		requestMessageID,
-		responseMessageID,
 		finalPrompt,
 		retryOf,
 		options.SlashCommand,
@@ -378,12 +359,11 @@ func createAIChatMessageWithOptions(c *gin.Context, operatorOperation *databaseS
 	)
 
 	c.JSON(http.StatusOK, ChatActionResponse{
-		Status:            "success",
-		ID:                requestMessageID,
-		MessageID:         requestMessageID,
-		ChannelID:         channel.ID,
-		RequestID:         requestID,
-		ResponseMessageID: responseMessageID,
+		Status:    "success",
+		ID:        requestMessageID,
+		MessageID: requestMessageID,
+		ChannelID: channel.ID,
+		RequestID: requestID,
 	})
 }
 
@@ -394,7 +374,6 @@ func dispatchAIChatRequest(
 	container databaseStructs.ConsumingContainer,
 	requestID int,
 	requestMessageID int,
-	responseMessageID int,
 	prompt string,
 	retryOf interface{},
 	slashCommand *rabbitmq.ChatSlashCommandInvocation,
@@ -406,7 +385,7 @@ func dispatchAIChatRequest(
 	contextMessages, err := getChatContextMessages(operationID, channel.ID, requestMessageID)
 	if err != nil {
 		logging.LogError(err, "Failed to fetch AI chat context")
-		markChatRequestFailed(requestID, responseMessageID, operationID, err.Error())
+		markChatRequestFailed(requestID, operationID, err.Error())
 		return
 	}
 	chatConfig := getChatChannelConfig(channel)
@@ -417,7 +396,6 @@ func dispatchAIChatRequest(
 	contextSnapshotMap := map[string]interface{}{
 		"context_message_ids":   contextIDs,
 		"request_message_id":    requestMessageID,
-		"response_message_id":   responseMessageID,
 		"retry_of_id":           retryOf,
 		"confirmed_tool_call":   confirmedToolCall,
 		"context_message_limit": chatContextMessageLimit,
@@ -446,7 +424,6 @@ func dispatchAIChatRequest(
 		ChannelSlug:       channel.Slug,
 		RequestID:         requestID,
 		RequestMessageID:  requestMessageID,
-		ResponseMessageID: responseMessageID,
 		Model:             channel.ChatModel,
 		Prompt:            prompt,
 		Config:            chatConfig,
@@ -456,8 +433,8 @@ func dispatchAIChatRequest(
 		ConfirmedToolCall: confirmedToolCall,
 	}, chatAuthContext)
 	if err != nil {
-		logging.LogError(err, "Failed to send AI chat request", "request_id", requestID, "response_message_id", responseMessageID)
-		markChatRequestFailed(requestID, responseMessageID, operationID, err.Error())
+		logging.LogError(err, "Failed to send AI chat request", "request_id", requestID)
+		markChatRequestFailed(requestID, operationID, err.Error())
 	}
 }
 
@@ -991,13 +968,23 @@ func getChatContextMessages(operationID int, channelID int, lastMessageID int) (
 	return contextMessages, nil
 }
 
-func markChatRequestFailed(requestID int, responseMessageID int, operationID int, errorMessage string) {
+func markChatRequestFailed(requestID int, operationID int, errorMessage string) {
 	metadata := rabbitmq.GetMythicJSONTextFromStruct(map[string]interface{}{
-		"error": errorMessage,
+		"error":             errorMessage,
+		"chat_request_id":   requestID,
+		"chat_response_key": "system:error",
 	})
-	_, _ = database.DB.Exec(`UPDATE chat_message
-		SET status='error', metadata=metadata || $3::jsonb
-		WHERE id=$1 AND operation_id=$2`, responseMessageID, operationID, metadata.String())
+	_, _ = database.DB.Exec(`INSERT INTO chat_message
+		(operation_id, channel_id, author_type, chat_request_id, chat_response_key,
+		 chat_container_id, sender_display_name, message, status, metadata)
+		SELECT operation_id, channel_id, 'ai', id, 'system:error',
+			chat_container_id, COALESCE(consuming_container.name, ''), $3, 'error', $4::jsonb
+		FROM chat_request
+		LEFT JOIN consuming_container ON consuming_container.id = chat_request.chat_container_id
+		WHERE chat_request.id=$1 AND chat_request.operation_id=$2
+		ON CONFLICT (chat_request_id, chat_response_key) WHERE chat_request_id IS NOT NULL
+		DO UPDATE SET message=EXCLUDED.message, status='error', metadata=chat_message.metadata || EXCLUDED.metadata`,
+		requestID, operationID, errorMessage, metadata.String())
 	_, _ = database.DB.Exec(`UPDATE chat_request
 		SET status='error', error=$3
 		WHERE id=$1 AND operation_id=$2`, requestID, operationID, errorMessage)

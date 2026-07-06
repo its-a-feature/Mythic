@@ -354,9 +354,22 @@ func DeleteChatMessageWebhook(c *gin.Context) {
 		chatRespondError(c, err.Error())
 		return
 	}
-	_, _ = database.DB.Exec(`UPDATE chat_request
-		SET status='cancelled', cancelled_at=now(), error='Chat message was deleted'
-		WHERE operation_id=$1 AND (request_message_id=$2 OR response_message_id=$2) AND status IN ('pending', 'streaming')`,
+	_, _ = database.DB.Exec(`WITH cancelled_requests AS (
+			UPDATE chat_request
+			SET status='cancelled', cancelled_at=now(), error='Chat message was deleted'
+			WHERE operation_id=$1
+				AND status IN ('pending', 'streaming')
+				AND (
+					request_message_id=$2
+					OR id=(SELECT chat_request_id FROM chat_message WHERE id=$2 AND operation_id=$1)
+				)
+			RETURNING id
+		)
+		UPDATE chat_message
+		SET status='cancelled'
+		WHERE operation_id=$1
+			AND chat_request_id IN (SELECT id FROM cancelled_requests)
+			AND status IN ('pending', 'streaming')`,
 		operatorOperation.CurrentOperation.ID, chatMessage.ID)
 	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", ID: chatMessage.ID, MessageID: chatMessage.ID, ChannelID: channel.ID})
 }
@@ -732,8 +745,8 @@ func CancelChatRequestWebhook(c *gin.Context) {
 	}
 	_, _ = database.DB.Exec(`UPDATE chat_message
 		SET status='cancelled'
-		WHERE id=$1 AND operation_id=$2 AND status IN ('pending', 'streaming')`,
-		request.ResponseMessageID, operatorOperation.CurrentOperation.ID)
+		WHERE chat_request_id=$1 AND operation_id=$2 AND status IN ('pending', 'streaming')`,
+		request.ID, operatorOperation.CurrentOperation.ID)
 	if rowsAffected > 0 {
 		container := databaseStructs.ConsumingContainer{}
 		if err = database.DB.Get(&container, `SELECT *
@@ -745,19 +758,18 @@ func CancelChatRequestWebhook(c *gin.Context) {
 		}
 		authContext := authentication.RabbitMQAuthContextFromGin(c)
 		if err = rabbitmq.RabbitMQConnection.SendChatContainerCancelRequest(container.Name, rabbitmq.ChatContainerCancelRequestMessage{
-			OperationID:       operatorOperation.CurrentOperation.ID,
-			ChannelID:         channel.ID,
-			RequestID:         request.ID,
-			ResponseMessageID: request.ResponseMessageID,
-			Reason:            "Cancelled by operator",
-			CancelledBy:       operatorOperation.CurrentOperator.ID,
+			OperationID: operatorOperation.CurrentOperation.ID,
+			ChannelID:   channel.ID,
+			RequestID:   request.ID,
+			Reason:      "Cancelled by operator",
+			CancelledBy: operatorOperation.CurrentOperator.ID,
 		}, authContext); err != nil {
 			logging.LogError(err, "Failed to send chat cancellation", "request_id", request.ID, "container", container.Name)
 			chatRespondError(c, "cancelled in Mythic, but failed to notify the chat container")
 			return
 		}
 	}
-	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", RequestID: request.ID, ResponseMessageID: request.ResponseMessageID, ChannelID: channel.ID})
+	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", RequestID: request.ID, ChannelID: channel.ID})
 }
 
 func RetryChatRequestWebhook(c *gin.Context) {

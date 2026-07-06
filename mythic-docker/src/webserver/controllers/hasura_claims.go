@@ -121,6 +121,10 @@ func GetHasuraClaims(c *gin.Context) {
 	c.Set("GraphQLName", hasuraInput.Request.OperationName)
 	c.Set(authentication.ContextKeyUserID, claims.UserID)
 	c.Set("hasura_claims", claims)
+	if preflightError := hasuraScopePreflight(hasuraInput, claims); preflightError != nil {
+		writeHasuraScopePreflightError(c, preflightError)
+		return
+	}
 	hasuraClaimsCacheLock.RLock()
 	hasuraClaims, ok := hasuraClaimsCache[fmt.Sprintf("%d-%s-%d-%d-%s",
 		claims.UserID, claims.AuthMethod, claims.OperationID, claims.APITokensID, strings.Join(claims.Scopes, ","),

@@ -131,6 +131,8 @@ create table if not exists "public"."chat_message" (
     channel_id integer not null references "public"."chat_channel"(id) on delete cascade,
     operator_id integer references "public"."operator"(id) on delete set null,
     apitokens_id integer references "public"."apitokens"(id) on delete set null,
+    chat_request_id integer,
+    chat_response_key text not null default '',
     author_type text not null default 'operator',
     chat_container_id integer references "public"."consuming_container"(id) on delete set null,
     sender_display_name text not null default '',
@@ -153,7 +155,7 @@ create table if not exists "public"."chat_message" (
     metadata jsonb not null default jsonb_build_object(),
     created_at timestamp without time zone not null default now(),
     updated_at timestamp without time zone not null default now(),
-    constraint chat_message_author_type_check check (author_type in ('operator', 'ai', 'system')),
+    constraint chat_message_author_type_check check (author_type in ('operator', 'ai', 'system', 'eventing')),
     constraint chat_message_status_check check (status in ('pending', 'streaming', 'complete', 'error', 'cancelled'))
 );
 
@@ -216,7 +218,6 @@ create table if not exists "public"."chat_request" (
     operation_id integer not null references "public"."operation"(id) on delete cascade,
     channel_id integer not null references "public"."chat_channel"(id) on delete cascade,
     request_message_id integer not null references "public"."chat_message"(id) on delete cascade,
-    response_message_id integer not null references "public"."chat_message"(id) on delete cascade,
     chat_container_id integer not null references "public"."consuming_container"(id) on delete restrict,
     model text not null default '',
     status text not null default 'pending',
@@ -238,8 +239,16 @@ create index if not exists chat_request_active_operation_channel_idx
 on "public"."chat_request" using btree (operation_id, channel_id, id desc)
 where status in ('pending', 'streaming');
 
-create index if not exists chat_request_response_message_id_idx
-on "public"."chat_request" using btree (response_message_id);
+alter table "public"."chat_message"
+    add constraint chat_message_chat_request_id_fkey
+    foreign key (chat_request_id) references "public"."chat_request"(id) on delete cascade;
+
+create unique index if not exists chat_message_chat_request_response_key_unique
+on "public"."chat_message" using btree (chat_request_id, chat_response_key)
+where chat_request_id is not null;
+
+create index if not exists chat_message_chat_request_id_idx
+on "public"."chat_message" using btree (chat_request_id, id);
 
 create or replace trigger set_public_chat_request_updated_at
 before update on "public"."chat_request"
@@ -458,6 +467,10 @@ drop index if exists "public"."mythictree_operation_tree_host_parent_callback_id
 drop index if exists "public"."operationeventlog_unresolved_warning_source_operation_level_idx";
 drop index if exists "public"."chat_channel_operation_unread_idx";
 drop index if exists "public"."chat_request_active_operation_channel_idx";
+drop index if exists "public"."chat_message_chat_request_id_idx";
+drop index if exists "public"."chat_message_chat_request_response_key_unique";
+alter table if exists "public"."chat_message"
+    drop constraint if exists chat_message_chat_request_id_fkey;
 drop trigger if exists update_chat_channel_last_message_id_trigger on "public"."chat_message";
 drop function if exists public.update_chat_channel_last_message_id();
 drop trigger if exists create_default_chat_channel_for_operation_trigger on "public"."operation";

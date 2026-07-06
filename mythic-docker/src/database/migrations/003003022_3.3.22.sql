@@ -59,13 +59,35 @@ alter table "public"."task" add column if not exists "alias_resolution" text not
 alter table "public"."task" add column if not exists "keyword_resolution" jsonb not null default '[]'::jsonb;
 alter table "public"."custombrowser" add column if not exists "display_name" text not null default ''::text;
 
-alter table "public"."credential" alter column "metadata" drop default;
+-- +migrate StatementBegin
+do $$
+begin
+    if exists (
+        select 1
+        from information_schema.columns
+        where table_schema = 'public'
+          and table_name = 'credential'
+          and column_name = 'metadata'
+          and data_type <> 'jsonb'
+    ) then
+        alter table "public"."credential" alter column "metadata" drop default;
+        alter table "public"."credential" alter column "metadata" type jsonb
+            using (
+                case
+                    when "metadata" is null or btrim("metadata"::text) = '' then jsonb_build_object()
+                    else "metadata"::jsonb
+                end
+            );
+    end if;
 
-alter table "public"."credential" alter column "metadata" type jsonb using jsonb_build_object();
+    update "public"."credential"
+    set "metadata" = jsonb_build_object()
+    where "metadata" is null;
 
-alter table "public"."credential"  alter column "metadata" set default jsonb_build_object();
-
-alter table "public"."credential"  alter column "metadata" set not null;
+    alter table "public"."credential" alter column "metadata" set default jsonb_build_object();
+    alter table "public"."credential" alter column "metadata" set not null;
+end $$;
+-- +migrate StatementEnd
 
 create index if not exists credential_metadata_gin on "public"."credential" using gin ("metadata");
 

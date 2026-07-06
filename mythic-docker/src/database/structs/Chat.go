@@ -13,6 +13,7 @@ const (
 
 	ChatMessageAuthorOperator = "operator"
 	ChatMessageAuthorSystem   = "system"
+	ChatMessageAuthorEventing = "eventing"
 	ChatMessageAuthorAI       = "ai"
 
 	ChatMessageStatusStreaming = "streaming"
@@ -58,6 +59,8 @@ type ChatMessage struct {
 	Operator          Operator           `db:"operator" json:"operator,omitempty"`
 	APITokensID       structs.NullInt64  `db:"apitokens_id" json:"api_tokens_id" mapstructure:"apitokens_id"`
 	APIToken          Apitokens          `db:"apitoken" json:"apitoken,omitempty"`
+	ChatRequestID     structs.NullInt64  `db:"chat_request_id" json:"chat_request_id"`
+	ChatResponseKey   string             `db:"chat_response_key" json:"chat_response_key"`
 	AuthorType        string             `db:"author_type" json:"author_type"`
 	ChatContainerID   structs.NullInt64  `db:"chat_container_id" json:"chat_container_id"`
 	ChatContainer     ConsumingContainer `db:"chat_container" json:"chat_container,omitempty"`
@@ -75,28 +78,26 @@ type ChatMessage struct {
 }
 
 type ChatRequest struct {
-	ID                int                `db:"id" json:"id"`
-	OperationID       int                `db:"operation_id" json:"operation_id"`
-	Operation         Operation          `db:"operation" json:"operation,omitempty"`
-	ChannelID         int                `db:"channel_id" json:"channel_id"`
-	Channel           ChatChannel        `db:"channel" json:"channel,omitempty"`
-	RequestMessageID  int                `db:"request_message_id" json:"request_message_id"`
-	RequestMessage    ChatMessage        `db:"request_message" json:"request_message,omitempty"`
-	ResponseMessageID int                `db:"response_message_id" json:"response_message_id"`
-	ResponseMessage   ChatMessage        `db:"response_message" json:"response_message,omitempty"`
-	ChatContainerID   int                `db:"chat_container_id" json:"chat_container_id"`
-	ChatContainer     ConsumingContainer `db:"chat_container" json:"chat_container,omitempty"`
-	Model             string             `db:"model" json:"model"`
-	Status            string             `db:"status" json:"status"`
-	Error             string             `db:"error" json:"error"`
-	ContextSnapshot   MythicJSONText     `db:"context_snapshot" json:"context_snapshot"`
-	RetryOfID         structs.NullInt64  `db:"retry_of_id" json:"retry_of_id"`
-	CreatedBy         int                `db:"created_by" json:"created_by"`
-	Creator           Operator           `db:"creator" json:"creator,omitempty"`
-	CreatedAt         time.Time          `db:"created_at" json:"created_at"`
-	UpdatedAt         time.Time          `db:"updated_at" json:"updated_at"`
-	CompletedAt       sql.NullTime       `db:"completed_at" json:"completed_at"`
-	CancelledAt       sql.NullTime       `db:"cancelled_at" json:"cancelled_at"`
+	ID               int                `db:"id" json:"id"`
+	OperationID      int                `db:"operation_id" json:"operation_id"`
+	Operation        Operation          `db:"operation" json:"operation,omitempty"`
+	ChannelID        int                `db:"channel_id" json:"channel_id"`
+	Channel          ChatChannel        `db:"channel" json:"channel,omitempty"`
+	RequestMessageID int                `db:"request_message_id" json:"request_message_id"`
+	RequestMessage   ChatMessage        `db:"request_message" json:"request_message,omitempty"`
+	ChatContainerID  int                `db:"chat_container_id" json:"chat_container_id"`
+	ChatContainer    ConsumingContainer `db:"chat_container" json:"chat_container,omitempty"`
+	Model            string             `db:"model" json:"model"`
+	Status           string             `db:"status" json:"status"`
+	Error            string             `db:"error" json:"error"`
+	ContextSnapshot  MythicJSONText     `db:"context_snapshot" json:"context_snapshot"`
+	RetryOfID        structs.NullInt64  `db:"retry_of_id" json:"retry_of_id"`
+	CreatedBy        int                `db:"created_by" json:"created_by"`
+	Creator          Operator           `db:"creator" json:"creator,omitempty"`
+	CreatedAt        time.Time          `db:"created_at" json:"created_at"`
+	UpdatedAt        time.Time          `db:"updated_at" json:"updated_at"`
+	CompletedAt      sql.NullTime       `db:"completed_at" json:"completed_at"`
+	CancelledAt      sql.NullTime       `db:"cancelled_at" json:"cancelled_at"`
 }
 
 type ChatReadState struct {

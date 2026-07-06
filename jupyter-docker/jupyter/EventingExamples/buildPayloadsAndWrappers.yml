@@ -32,7 +32,10 @@ steps:
     - "apollo bin"
     inputs:
       PayloadUUID: "apollo bin.PayloadUUID"
-      APIToken: "mythic.apitoken"
+      APIToken:
+        type: "mythic.apitoken"
+        scopes:
+          - "*"
     action_data:
       function_name: "opsecStrings"
       container_name: "fileProcessor"
@@ -42,7 +45,10 @@ steps:
     depends_on:
     - "bin opsec checker"
     inputs:
-      APIToken: "mythic.apitoken"
+      APIToken:
+        type: "mythic.apitoken"
+        scopes:
+          - "*"
       PayloadUUID: "apollo bin.PayloadUUID"
     action_data:
       function_name: "conditionalService"
@@ -75,7 +81,10 @@ steps:
     depends_on:
     - "apollo service"
     inputs:
-      APIToken: "mythic.apitoken"
+      APIToken:
+        type: "mythic.apitoken"
+        scopes:
+          - "*"
       PayloadUUID: "apollo service.PayloadUUID"
     action_data:
       function_name: "opsecStrings"

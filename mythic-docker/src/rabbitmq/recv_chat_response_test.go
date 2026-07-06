@@ -57,7 +57,6 @@ func TestChatContainerResponseKeyFieldsRoundTrip(t *testing.T) {
 	message := ChatContainerResponseMessage{}
 	err := json.Unmarshal([]byte(`{
 		"request_id": 10,
-		"response_message_id": 20,
 		"response_key": "mcp_confirmation:abc",
 		"complete_request": true,
 		"content": "confirmation required"
@@ -81,6 +80,10 @@ func TestChatContainerResponseKeyFieldsRoundTrip(t *testing.T) {
 	}
 	if values["response_key"] != "mcp_confirmation:abc" {
 		t.Fatalf("response_key missing from serialized message: %#v", values)
+	}
+	legacyKey := "response" + "_message_id"
+	if _, ok := values[legacyKey]; ok {
+		t.Fatalf("legacy response id should not be serialized: %#v", values)
 	}
 	if values["complete_request"] != true {
 		t.Fatalf("complete_request missing from serialized message: %#v", values)

@@ -1609,7 +1609,6 @@ type ChatActionOutput {
   channel_id: Int
   message_id: Int
   request_id: Int
-  response_message_id: Int
   results: [ChatSearchResult]
 }
 

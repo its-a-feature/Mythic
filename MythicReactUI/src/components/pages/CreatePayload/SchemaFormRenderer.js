@@ -396,6 +396,9 @@ const StringMapField = ({schema, value, onChange}) => {
                                         fullWidth
                                         size="small"
                                         label={valueLabel}
+                                        multiline
+                                        minRows={1}
+                                        maxRows={5}
                                         value={val}
                                         onChange={(event) => onChange({...obj, [key]: event.target.value})}
                                     />
@@ -466,6 +469,9 @@ const StringField = ({schema, value, onChange}) => (
         <TextField
             fullWidth
             size="small"
+            multiline
+            minRows={1}
+            maxRows={5}
             placeholder={schema.placeholder}
             value={value ?? ""}
             onChange={(event) => onChange(event.target.value)}

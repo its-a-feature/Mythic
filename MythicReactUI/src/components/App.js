@@ -168,7 +168,6 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
             message: {
                 operatorBackground: getColor("chatMessageOperatorBackground"),
                 selfBackground: getColor("chatMessageSelfBackground"),
-                aiBackground: getColor("chatMessageAIBackground"),
                 systemBackground: getColor("chatMessageSystemBackground"),
                 markdownSurface: getColor("chatMarkdownSurfaceBackground"),
                 markdownSurfaceStrong: getColor("chatMarkdownSurfaceStrongBackground"),

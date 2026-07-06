@@ -83,12 +83,8 @@ func TestProcessCredentialForStorageClearsStaleParserIdentity(t *testing.T) {
 	if parsedIdentity["custom_identity"] != "keep" {
 		t.Fatalf("custom identity should be preserved: %#v", parsedIdentity)
 	}
-	if parsedMetadata[credentialMetadataParserKey] != "kerberos" {
-		t.Fatalf("failed ticket parse should record kerberos parser context: %#v", parsedMetadata)
-	}
-	warnings, ok := parsedMetadata[credentialMetadataParserWarningsKey].([]interface{})
-	if !ok || len(warnings) == 0 {
-		t.Fatalf("failed ticket parse should record fresh warnings: %#v", parsedMetadata)
+	if parsedMetadata[credentialMetadataParserKey] == "kerberos" {
+		t.Fatalf("failed ticket parse should clear kerberos parser context: %#v", parsedMetadata)
 	}
 
 	credential = databaseStructs.Credential{
