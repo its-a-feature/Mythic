@@ -58,6 +58,7 @@ for each row execute function public.set_current_timestamp_updated_at();
 alter table "public"."task" add column if not exists "alias_resolution" text not null default ''::text;
 alter table "public"."task" add column if not exists "keyword_resolution" jsonb not null default '[]'::jsonb;
 alter table "public"."custombrowser" add column if not exists "display_name" text not null default ''::text;
+alter table "public"."eventstep" add column if not exists "deleted" boolean not null default false;
 
 -- +migrate StatementBegin
 do $$
@@ -110,6 +111,7 @@ drop index if exists "public"."credential_identity_gin";
 alter table "public"."credential" drop column if exists "custom_display";
 alter table "public"."credential" drop column if exists "credential_identity";
 alter table "public"."credential" drop column if exists "subtype";
+alter table "public"."eventstep" drop column if exists "deleted";
 drop trigger if exists set_public_operator_alias_updated_at on "public"."operator_alias";
 drop index if exists "public"."operator_alias_payloadtype_id_idx";
 drop index if exists "public"."operator_alias_consuming_container_id_idx";

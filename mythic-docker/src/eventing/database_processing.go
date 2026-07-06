@@ -26,14 +26,7 @@ var (
 func SaveEventGroup(eventGroup *databaseStructs.EventGroup, currentOperatorOperation *databaseStructs.Operatoroperation) error {
 	eventGroup.OperatorID = currentOperatorOperation.CurrentOperator.ID
 	eventGroup.OperationID = currentOperatorOperation.CurrentOperation.ID
-	eventGroup.TotalSteps = len(eventGroup.Steps)
-	highestOrder := 0
-	for i, _ := range eventGroup.Steps {
-		if eventGroup.Steps[i].Order > highestOrder {
-			highestOrder = eventGroup.Steps[i].Order
-		}
-	}
-	eventGroup.TotalOrderSteps = highestOrder
+	SetEventGroupStepTotals(eventGroup)
 	statement, err := database.DB.PrepareNamed(`INSERT INTO eventgroup 
 			(operator_id, operation_id, filemeta_id, "name", description, trigger, trigger_data, active, deleted, environment, keywords, total_steps, total_order_steps, run_as)
 			VALUES (:operator_id, :operation_id, :filemeta_id, :name, :description, :trigger, :trigger_data, :active, :deleted, :environment, :keywords, :total_steps, :total_order_steps, :run_as)
@@ -47,22 +40,78 @@ func SaveEventGroup(eventGroup *databaseStructs.EventGroup, currentOperatorOpera
 		logging.LogError(err, "Failed to save eventgroup to database")
 		return err
 	}
+	err = RefreshEventGroupApprovalEntries(eventGroup, currentOperatorOperation, false)
+	if err != nil {
+		return err
+	}
+	err = SaveEventGroupSteps(eventGroup, currentOperatorOperation, false)
+	if err != nil {
+		return err
+	}
+	RefreshEventGroupConsumingContainers(eventGroup.ID)
+	return nil
+}
+func SetEventGroupStepTotals(eventGroup *databaseStructs.EventGroup) {
+	eventGroup.TotalSteps = len(eventGroup.Steps)
+	highestOrder := 0
+	for i, _ := range eventGroup.Steps {
+		if eventGroup.Steps[i].Order > highestOrder {
+			highestOrder = eventGroup.Steps[i].Order
+		}
+	}
+	eventGroup.TotalOrderSteps = highestOrder
+}
+func SaveEventGroupSteps(eventGroup *databaseStructs.EventGroup, currentOperatorOperation *databaseStructs.Operatoroperation, softDeleteExisting bool) error {
+	if softDeleteExisting {
+		_, err := database.DB.Exec(`UPDATE eventstep SET deleted=true WHERE eventgroup_id=$1 AND operation_id=$2 AND deleted=false`,
+			eventGroup.ID, currentOperatorOperation.CurrentOperation.ID)
+		if err != nil {
+			logging.LogError(err, "Failed to mark existing event steps as deleted")
+			return err
+		}
+	}
+	statement, err := database.DB.PrepareNamed(`INSERT INTO eventstep
+			(operator_id, operation_id, "name", description, eventgroup_id, environment, depends_on, action, action_data, inputs, outputs, user_interaction, "order", continue_on_error)
+			VALUES (:operator_id, :operation_id,:name, :description, :eventgroup_id, :environment, :depends_on, :action, :action_data, :inputs, :outputs, :user_interaction, :order, :continue_on_error )
+			RETURNING id`)
+	if err != nil {
+		logging.LogError(err, "Failed to create statement for saving eventstep")
+		return err
+	}
+	for i, _ := range eventGroup.Steps {
+		eventGroup.Steps[i].OperationID = currentOperatorOperation.CurrentOperation.ID
+		eventGroup.Steps[i].EventGroup = eventGroup.ID
+		eventGroup.Steps[i].OperatorID = currentOperatorOperation.CurrentOperator.ID
+		err = statement.Get(&eventGroup.Steps[i].ID, eventGroup.Steps[i])
+		if err != nil {
+			logging.LogError(err, "Failed to save event step to database")
+			return err
+		}
+	}
+	return nil
+}
+func RefreshEventGroupApprovalEntries(eventGroup *databaseStructs.EventGroup, currentOperatorOperation *databaseStructs.Operatoroperation, clearExisting bool) error {
+	if clearExisting {
+		_, err := database.DB.Exec(`DELETE FROM eventgroupapproval WHERE eventgroup_id=$1 AND operation_id=$2`,
+			eventGroup.ID, currentOperatorOperation.CurrentOperation.ID)
+		if err != nil {
+			logging.LogError(err, "Failed to clear eventgroupapproval entries")
+			return err
+		}
+	}
+	eventGroup.ApprovedToRun = false
 	switch eventGroup.RunAs {
 	case RunAsEventGroupCreator:
-		err = CreateEventGroupApprovalEntry(currentOperatorOperation.CurrentOperator.ID,
+		err := CreateEventGroupApprovalEntry(currentOperatorOperation.CurrentOperator.ID,
 			currentOperatorOperation.CurrentOperation.ID, eventGroup.ID, true)
 		if err != nil {
 			logging.LogError(err, "Failed to save eventgroupapproval to database")
 			return err
 		}
-		_, err = database.DB.Exec(`UPDATE eventgroup SET approved_to_run = true WHERE id = $1`, eventGroup.ID)
-		if err != nil {
-			logging.LogError(err, "Failed to set eventgroup as approved to run")
-			return err
-		}
+		eventGroup.ApprovedToRun = true
 	case RunAsEventGroupTrigger:
 		operationMembers := []databaseStructs.Operatoroperation{}
-		err = database.DB.Select(&operationMembers, `SELECT
+		err := database.DB.Select(&operationMembers, `SELECT
 			operator_id
 			FROM operatoroperation WHERE operation_id=$1`, currentOperatorOperation.CurrentOperation.ID)
 		if err != nil {
@@ -80,24 +129,18 @@ func SaveEventGroup(eventGroup *databaseStructs.EventGroup, currentOperatorOpera
 	case RunAsOperationBot:
 		fallthrough
 	case RunAsOperationAdmin:
-		err = CreateEventGroupApprovalEntry(currentOperatorOperation.CurrentOperation.AdminID,
-			currentOperatorOperation.CurrentOperation.ID, eventGroup.ID,
-			currentOperatorOperation.CurrentOperation.AdminID == currentOperatorOperation.CurrentOperator.ID)
+		approved := currentOperatorOperation.CurrentOperation.AdminID == currentOperatorOperation.CurrentOperator.ID
+		err := CreateEventGroupApprovalEntry(currentOperatorOperation.CurrentOperation.AdminID,
+			currentOperatorOperation.CurrentOperation.ID, eventGroup.ID, approved)
 		if err != nil {
 			logging.LogError(err, "Failed to save eventgroupapproval to database")
 			return err
 		}
-		if currentOperatorOperation.CurrentOperation.AdminID == currentOperatorOperation.CurrentOperator.ID {
-			_, err = database.DB.Exec(`UPDATE eventgroup SET approved_to_run = true WHERE id = $1`, eventGroup.ID)
-			if err != nil {
-				logging.LogError(err, "Failed to set eventgroup as approved to run")
-				return err
-			}
-		}
+		eventGroup.ApprovedToRun = approved
 	default:
 		// if it wasn't any of those use cases, then a specific operator was called out as execution
 		targetOperator := databaseStructs.Operator{}
-		err = database.DB.Get(&targetOperator, `SELECT id, account_type FROM operator WHERE "username"=$1`, eventGroup.RunAs)
+		err := database.DB.Get(&targetOperator, `SELECT id, account_type FROM operator WHERE "username"=$1`, eventGroup.RunAs)
 		if err != nil {
 			logging.LogError(err, "Failed to get target operator")
 			return errors.New("failed to find target operator")
@@ -118,26 +161,11 @@ func SaveEventGroup(eventGroup *databaseStructs.EventGroup, currentOperatorOpera
 			}
 		}
 	}
-	for i, _ := range eventGroup.Steps {
-		eventGroup.Steps[i].OperationID = currentOperatorOperation.CurrentOperation.ID
-		eventGroup.Steps[i].EventGroup = eventGroup.ID
-		eventGroup.Steps[i].OperatorID = currentOperatorOperation.CurrentOperator.ID
-		statement, err = database.DB.PrepareNamed(`INSERT INTO eventstep 
-			(operator_id, operation_id, "name", description, eventgroup_id, environment, depends_on, action, action_data, inputs, outputs, user_interaction, "order", continue_on_error)
-			VALUES (:operator_id, :operation_id,:name, :description, :eventgroup_id, :environment, :depends_on, :action, :action_data, :inputs, :outputs, :user_interaction, :order, :continue_on_error )
-			RETURNING id`)
-		if err != nil {
-			logging.LogError(err, "Failed to create statement for saving eventstep")
-			return err
-		}
-		err = statement.Get(&eventGroup.Steps[i].ID, eventGroup.Steps[i])
-		if err != nil {
-			logging.LogError(err, "Failed to save event step to database")
-			return err
-		}
+	_, err := database.DB.Exec(`UPDATE eventgroup SET approved_to_run=$1 WHERE id=$2`, eventGroup.ApprovedToRun, eventGroup.ID)
+	if err != nil {
+		logging.LogError(err, "Failed to set eventgroup approved_to_run")
 	}
-	ProcessEventGroupConsumingContainersByEventGroup(eventGroup.ID)
-	return nil
+	return err
 }
 func CreateEventGroupApprovalEntry(operatorId int, operationId int, eventgroupId int, approved bool) error {
 	_, err := database.DB.Exec(`INSERT INTO eventgroupapproval
@@ -147,6 +175,14 @@ func CreateEventGroupApprovalEntry(operatorId int, operationId int, eventgroupId
 		logging.LogError(err, "Failed to save eventgroupapproval to database")
 	}
 	return err
+}
+func RefreshEventGroupConsumingContainers(eventgroupId int) {
+	_, err := database.DB.Exec(`DELETE FROM eventgroupconsumingcontainer WHERE eventgroup_id=$1`, eventgroupId)
+	if err != nil {
+		logging.LogError(err, "Failed to clear event group consuming containers")
+		return
+	}
+	ProcessEventGroupConsumingContainersByEventGroup(eventgroupId)
 }
 func getTriggerData(triggerMetadata map[string]interface{}, operationID int) map[string]interface{} {
 	triggerData := make(map[string]interface{})
@@ -517,7 +553,7 @@ func CreateEventGroupInstance(eventGroupId int, trigger string, triggeringOperat
 		return 0, err
 	}
 	eventGroupSteps := []databaseStructs.EventStep{}
-	err = database.DB.Select(&eventGroupSteps, "SELECT * FROM eventstep WHERE eventgroup_id = $1", eventGroupId)
+	err = database.DB.Select(&eventGroupSteps, "SELECT * FROM eventstep WHERE eventgroup_id = $1 AND deleted=false", eventGroupId)
 	if err != nil {
 		logging.LogError(err, "Failed to get event group steps")
 		return 0, err
@@ -623,7 +659,7 @@ type consumingContainerSubscriptionDefinition struct {
 
 func ProcessEventGroupConsumingContainersByEventGroup(eventgroupId int) {
 	eventSteps := []databaseStructs.EventStep{}
-	err := database.DB.Select(&eventSteps, `SELECT * FROM eventstep WHERE eventgroup_id=$1`, eventgroupId)
+	err := database.DB.Select(&eventSteps, `SELECT * FROM eventstep WHERE eventgroup_id=$1 AND deleted=false`, eventgroupId)
 	if err != nil {
 		logging.LogError(err, "Failed to get event steps")
 		return

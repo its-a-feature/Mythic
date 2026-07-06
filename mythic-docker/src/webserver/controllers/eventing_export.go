@@ -93,7 +93,7 @@ func getFormattedEventingFile(eventGroup *databaseStructs.EventGroup, includeSte
 	}
 	if includeSteps {
 		if len(eventGroup.Steps) == 0 {
-			err := database.DB.Select(&eventGroup.Steps, `SELECT * FROM eventstep WHERE eventgroup_id=$1`, eventGroup.ID)
+			err := database.DB.Select(&eventGroup.Steps, `SELECT * FROM eventstep WHERE eventgroup_id=$1 AND deleted=false`, eventGroup.ID)
 			if err != nil {
 				logging.LogError(err, "failed to get eventgroup steps")
 			}

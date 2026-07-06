@@ -21,6 +21,7 @@ type EventStep struct {
 	UserInteraction MythicJSONText  `db:"user_interaction" json:"user_interaction" toml:"user_interaction" yaml:"user_interaction,flow"`
 	Order           int             `db:"order" json:"order" toml:"order" yaml:"order"`
 	ContinueOnError bool            `db:"continue_on_error" json:"continue_on_error" toml:"continue_on_error" yaml:"continue_on_error"`
+	Deleted         bool            `db:"deleted" json:"deleted" toml:"deleted" yaml:"deleted"`
 	CreatedAt       time.Time       `db:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
 }
 
