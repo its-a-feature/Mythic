@@ -1978,7 +1978,7 @@ func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseSt
 			}
 		} else {
 			newFileMeta = databaseStructs.Filemeta{}
-			err = database.DB.Get(&newFileMeta, `SELECT id, total_chunks, complete, copy_of_file_id 
+			err = database.DB.Get(&newFileMeta, `SELECT id, total_chunks, complete, copy_of_file_id, filename 
 				FROM filemeta 
 				WHERE task_id=$1 AND path=$2 AND copy_of_file_id=$3
 				ORDER BY id DESC
