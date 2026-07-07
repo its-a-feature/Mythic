@@ -9,7 +9,6 @@ import ComputerIcon from '@mui/icons-material/Computer';
 import DescriptionIcon from '@mui/icons-material/Description';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ErrorIcon from '@mui/icons-material/Error';
-import { useTheme } from '@mui/material/styles';
 import { Typography } from '@mui/material';
 import { MythicStyledTooltip } from "./MythicStyledTooltip";
 import WidgetsIcon from '@mui/icons-material/Widgets';
@@ -40,31 +39,65 @@ const StyledAutoSizer = styled(AutoSizer)((
     theme
   }
 ) => ({
-  [`& .${classes.rowContainer}`]: {},
+  height: "100%",
+  minHeight: 0,
+  minWidth: 0,
+  overflow: "hidden",
+  width: "100%",
+
+  [`& .${classes.rowContainer}`]: {
+    cursor: "pointer",
+    overflow: "hidden",
+    transition: "background-color 120ms ease, color 120ms ease",
+  },
+
+  [`& .${classes.rowContainer}:hover`]: {
+    backgroundColor: theme.palette.action.hover,
+  },
 
   [`& .${classes.row}`]: {
     display: "flex",
-    alignItems: "left",
-    marginLeft: (props) => theme.spacing(3 * props.depth),
+    alignItems: "center",
+    height: "100%",
+    minWidth: "fit-content",
+    paddingRight: theme.spacing(1),
     userSelect: "none",
-    whiteSpace: "nowrap"
+    whiteSpace: "nowrap",
+    width: "100%",
+  },
+
+  [`& .${classes.row}[data-deleted="true"]`]: {
+    textDecoration: "line-through",
   },
 
   [`& .${classes.rowButtonWrapper}`]: {
-    width: theme.spacing(3),
-    textAlign: "center",
-    "&:hover": {
-      cursor: "pointer",
-      textDecoration: "underline"
-    }
+    alignSelf: "stretch",
+    borderLeft: `2px dashed ${alpha(theme.palette.text.primary, 0.34)}`,
+    flex: "0 0 14px",
+    marginLeft: 7,
   },
 
   [`& .${classes.rowButton}`]: {
-    width: theme.spacing(3)
+    alignItems: "center",
+    display: "inline-flex",
+    flex: "0 0 auto",
+    justifyContent: "center",
+    width: theme.spacing(3),
   },
 
   [`& .${classes.rowLabel}`]: {
-    marginLeft: theme.spacing(0.5)
+    color: theme.palette.text.primary,
+    fontFamily: "inherit",
+    fontSize: theme.typography.pxToRem(13),
+    lineHeight: 1.35,
+    margin: 0,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+
+  [`& .${classes.rowLabel}[data-muted="true"]`]: {
+    color: theme.palette.text.secondary,
   },
 
   [`& .${classes.heading}`]: {
@@ -102,9 +135,20 @@ const StyledAutoSizer = styled(AutoSizer)((
   },
 
   [`& .${classes.icon}`]: {
+      flex: "0 0 auto",
+      height: 16,
+      marginLeft: 3,
+      marginRight: 5,
       verticalAlign: 'middle',
-      height: 20,
-      width: 20,
+      width: 16,
+  },
+
+  [`& .${classes.icon}[data-folder="true"]`]: {
+      color: theme.folderColor,
+  },
+
+  [`& .${classes.icon}[data-empty="true"]`]: {
+      color: theme.emptyFolderColor,
   },
 
   [`& .${classes.details}`]: {
@@ -120,7 +164,11 @@ const StyledAutoSizer = styled(AutoSizer)((
 
   [`& .${classes.paper}`]: {
       width: '100%',
-      marginBottom: theme.spacing(2),
+      height: "100%",
+      marginBottom: 0,
+      minHeight: 0,
+      minWidth: 0,
+      overflow: "hidden",
   },
 
   [`& .${classes.table}`]: {
@@ -164,7 +212,6 @@ const VirtualTreeRow = React.memo(({
   const itemTreeData = ListProps.data[ListProps.index];
   const item = ListProps.treeRootData[itemTreeData.group]?.[itemTreeData.host]?.[itemTreeData.full_path_text] || itemTreeData;
   //console.log("item", item, "itemlookup", ListProps.treeRootData[itemTreeData.host]?.[itemTreeData.name])
-  const theme = useTheme();
   const handleOnClickButton = (e) => {
     e.stopPropagation();
     if (itemTreeData.isOpen) {
@@ -192,90 +239,57 @@ const VirtualTreeRow = React.memo(({
       return "";
     }
   return (
-    <div className={`hoverme ${selectedPath()}`}
+    <div className={`${classes.rowContainer} hoverme ${selectedPath()}`.trim()}
          style={ListProps.style}
          onContextMenu={handleContextClick}
          onClick={handleOnClickRow}>
-    <div style={{display: 'flex' , marginBottom: "1px", flexGrow: 1, width: "100%"}}>
+    <div className={classes.row} data-deleted={itemTreeData.deleted ? "true" : undefined}>
         {[...Array(itemTreeData.depth)].map((o, i) => (
-            <div
+            <span
+                className={classes.rowButtonWrapper}
                 key={'folder' + itemTreeData.id + 'lines' + i}
-                style={{
-                    borderLeft: `2px dashed ${alpha(theme.palette.text.primary, 0.4)}`,
-                    marginLeft: 7,
-                    paddingRight: 7,
-                    display: 'inline-block',
-                }}></div>
+            />
         ))}
-        <div
-          className={classes.root}
-          style={{ backgroundColor: theme.body, color: theme.text, alignItems: 'center', display: 'flex', paddingRight: "10px", textDecoration: itemTreeData.deleted ? 'line-through' : ''  }}
-
-          >
 
           {itemTreeData.is_group ? (
-              <WidgetsIcon style={{
-                  width: "15px",
-                  height: "15px",
-                  marginLeft: "3px",
-                  marginRight: "5px" }} />
+              <WidgetsIcon className={classes.icon} />
           ): itemTreeData.root  ? (
-              <ComputerIcon style={{
-                  width: "15px",
-                  height: "15px",
-                  marginLeft: '3px',
-                  marginRight: '5px' }}  />
+              <ComputerIcon className={classes.icon}  />
           ) : !itemTreeData.can_have_children ? (
-              <DescriptionIcon style={{
-                  width: "15px",
-                  height: "15px",
-                  marginLeft: '3px',
-                  marginRight: '5px' }} />
+              <DescriptionIcon className={classes.icon} />
           ) : itemTreeData.isOpen ? (
             <FontAwesomeIcon 
               icon={faFolderOpen} 
-              style={{
-                  width: "15px",
-                  height: "15px",
-                marginLeft: '3px',
-                marginRight: '5px',
-                color: item?.has_children || item.success ? theme.folderColor : theme.emptyFolderColor,
-              }}
+              className={classes.icon}
+              data-folder={item?.has_children || item.success ? "true" : undefined}
+              data-empty={item?.has_children || item.success ? undefined : "true"}
               size={"lg"}
               onClick={handleOnClickButton} />
           ) : (
               <FontAwesomeIcon 
-                style={{
-                    width: "15px",
-                    height: "15px",
-                    marginLeft: '3px',
-                    marginRight: '5px',
-                    color: item?.has_children || item.success ? theme.folderColor : theme.emptyFolderColor, }}
+                className={classes.icon}
+                data-folder={item?.has_children || item.success ? "true" : undefined}
+                data-empty={item?.has_children || item.success ? undefined : "true"}
                 size={"lg"}
                 icon={faFolder} onClick={handleOnClickButton} />
           )}
           <Typography
-              style={{
-                  color:
-                      item?.has_children ||
-                      item.success !== null
-                          ? theme.palette.text.primary
-                          : theme.palette.text.secondary,
-              }} component="pre">
+              className={classes.rowLabel}
+              data-muted={item?.has_children || item.success !== null ? undefined : "true"}
+              component="pre">
               {itemTreeData.name}
           </Typography>
 
           {item.success === true && itemTreeData.depth > 0 ? (
-              <MythicStyledTooltip title='Successfully listed contents of folder' style={{display: "inline-flex", marginLeft: "5px"}}>
-                  <CheckCircleOutlineIcon fontSize='small' color="success" />
+              <MythicStyledTooltip title='Successfully listed contents of folder'>
+                  <CheckCircleOutlineIcon className={classes.icon} fontSize='small' color="success" />
               </MythicStyledTooltip>
           ) : item.success === false && itemTreeData.depth > 0 ? (
-              <MythicStyledTooltip title='Failed to list contents of folder' style={{display: "inline-flex", marginLeft: "5px"}}>
-                  <ErrorIcon fontSize='small' color="error" />
+              <MythicStyledTooltip title='Failed to list contents of folder'>
+                  <ErrorIcon className={classes.icon} fontSize='small' color="error" />
               </MythicStyledTooltip>
           ) : null}
 
-      </div>
     </div>
     </div>
   );
@@ -435,8 +449,8 @@ const FileBrowserVirtualTreePreMemo = ({
       }
   }, [selectedFolderData, flattenedNodes]);
   return flattenedNodes.length > 0 ? (
-    <div style={{height: "100%", width: "100%", minHeight: 0, minWidth: 0, overflow: "hidden"}}>
-      <StyledAutoSizer style={{height: "100%", width: "100%"}}>
+    <div className="mythic-process-browser-table-shell">
+      <StyledAutoSizer>
       {(AutoSizerProps) => (
         <List
           itemData={flattenedNodes}

@@ -88,7 +88,7 @@ export const StyledPaper = styled(Paper)((
     transition: "background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease",
     "&:hover": {
       borderColor: theme.palette.mode === "dark" ? alpha(theme.palette.common.white, 0.22) : alpha(theme.palette.common.black, 0.18),
-      backgroundColor: theme.palette.mode === "dark" ? alpha(theme.palette.common.white, 0.035) : alpha(theme.palette.common.black, 0.015),
+      backgroundColor:  alpha(theme.palette.background.paper, 0.75),
     },
   },
 

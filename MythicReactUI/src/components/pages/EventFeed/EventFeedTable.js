@@ -3,6 +3,7 @@ import { EventFeedTableEvents } from './EventFeedTableEvents';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import HealingIcon from '@mui/icons-material/Healing';
 import MenuItem from '@mui/material/MenuItem';
+import TableContainer from '@mui/material/TableContainer';
 import {alertCount} from "../../../cache";
 import {levelOptions} from "./EventFeed";
 import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
@@ -13,7 +14,7 @@ import {MythicEmptyState} from "../../MythicComponents/MythicStateDisplay";
 
 const EventList = ({onUpdateLevel, onUpdateResolution, operationeventlog}) => {
    return (
-    <div style={{ flexGrow: 1}}>
+    <div className="mythic-column-stack">
         {operationeventlog.length === 0 ? (
             <MythicEmptyState
                 compact
@@ -78,7 +79,7 @@ export function EventFeedTable(props){
                     </>
                 }
             />
-            <MythicTableToolbar>
+            <MythicTableToolbar variant="search">
                 <MythicTableToolbarGroup grow>
                     <MythicSearchField value={search} onChange={handleSearchValueChange} onEnter={submitSearch} onSearch={submitSearch} />
                 </MythicTableToolbarGroup>
@@ -96,12 +97,12 @@ export function EventFeedTable(props){
                 </MythicTableToolbarGroup>
             </MythicTableToolbar>
 
-            <div style={{display: "flex", flexDirection: "column", overflowY: "auto", flexGrow: 1, overflowX: "Hidden"}}>
+            <TableContainer component="div" className="mythicElement mythic-create-section-fill mythic-create-section-scroll">
                     <EventList 
                         onUpdateResolution={props.onUpdateResolution}
                         onUpdateLevel={props.onUpdateLevel}
                         operationeventlog={props.operationeventlog}/>
-            </div>
+            </TableContainer>
             <MythicTablePagination totalCount={props.pageData.totalCount} fetchLimit={props.pageData.fetchLimit} onChange={props.onChangePage} />
         </MythicPageBody>
     );

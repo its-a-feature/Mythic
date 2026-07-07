@@ -75,7 +75,7 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, onDragEnd, clic
 
     return (
         <div style={{width: "100%", maxWidth: "100%", display: 'flex', flexDirection: 'column', flexGrow: 1, height: "100%" }}>
-            <AppBar color='default' position={"static"} style={{backgroundColor: "transparent"}} >
+            <AppBar color='default' position={"static"} className="no-box-shadow mythic-table-toolbar">
                 <DragDropContext onDragEnd={onDragEnd}>
                     <Droppable droppableId="callback-tabs-list" direction={"horizontal"}>
                         {(provided) => (
@@ -88,7 +88,6 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, onDragEnd, clic
                                     textColor='primary'
                                     variant='fullWidth'
                                     scrollButtons={true}
-                                    style={{ }}
                                     TabIndicatorProps={{style: {display: "none"}}}
                                     aria-label='scrollable tabs'>
                                     {openTabs.map((tab, index) => {
