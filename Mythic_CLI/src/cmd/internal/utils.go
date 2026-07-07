@@ -129,6 +129,7 @@ func tarFileToBytes(sourceName string) (*bytes.Buffer, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer source.Close()
 	sourceStats, err := source.Stat()
 	if err != nil {
 		return nil, err
@@ -163,8 +164,10 @@ func tarFileToBytes(sourceName string) (*bytes.Buffer, error) {
 					return err
 				}
 				if _, err := io.Copy(tw, data); err != nil {
+					data.Close()
 					return err
 				}
+				data.Close()
 			}
 			return nil
 		})
