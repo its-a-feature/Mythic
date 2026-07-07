@@ -109,5 +109,6 @@ type ChatReadState struct {
 	Operator          Operator          `db:"operator" json:"operator,omitempty"`
 	LastReadMessageID structs.NullInt64 `db:"last_read_message_id" json:"last_read_message_id"`
 	LastReadMessage   ChatMessage       `db:"last_read_message" json:"last_read_message,omitempty"`
+	Muted             bool              `db:"muted" json:"muted"`
 	UpdatedAt         time.Time         `db:"updated_at" json:"updated_at"`
 }

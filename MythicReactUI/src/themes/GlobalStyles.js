@@ -12248,6 +12248,12 @@ tspan {
     letter-spacing: 0;
     text-transform: uppercase;
 }
+.mythic-chat-channel-row {
+    align-items: center;
+    display: grid;
+    gap: 5px;
+    grid-template-columns: minmax(0, 1fr) 28px;
+}
 .mythic-chat-channel-button {
     align-items: center;
     background-color: var(--mythic-theme-palette-background-paper-alpha-dark72-light82);
@@ -12261,6 +12267,7 @@ tspan {
     padding: 6px 8px;
     text-align: left;
     transition: background-color 120ms ease, border-color 120ms ease;
+    width: 100%;
 }
 .mythic-chat-channel-button:hover {
     background-color: var(--mythic-theme-surface-hover-bg) !important;
@@ -12329,6 +12336,9 @@ tspan {
     color: var(--mythic-chat-channel-warning);
     box-shadow: inset 0 0 0 1px var(--mythic-chat-channel-warning);
 }
+.mythic-chat-channel-state-muted {
+    color: var(--mythic-chat-channel-info);
+}
 .mythic-chat-channel-state-locked {
     color: var(--mythic-chat-channel-warning);
 }
@@ -12339,6 +12349,14 @@ tspan {
     align-self: center;
     color: var(--mythic-chat-channel-error);
     box-shadow: inset 0 0 0 1px var(--mythic-chat-channel-error);
+}
+.mythic-chat-channel-mute-button.MuiIconButton-root {
+    border-radius: 6px;
+    height: 28px;
+    width: 28px;
+}
+.mythic-chat-channel-mute-button-muted.MuiIconButton-root {
+    color: var(--mythic-chat-channel-info);
 }
 .mythic-chat-main {
     background-color: var(--mythic-theme-palette-background-paper);

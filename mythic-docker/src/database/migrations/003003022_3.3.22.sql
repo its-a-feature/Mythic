@@ -103,6 +103,51 @@ create index if not exists credential_identity_gin on "public"."credential" usin
 create index if not exists credential_identity_lookup_idx
 on "public"."credential" using btree (operation_id, "type", subtype, account, realm, deleted);
 
+alter table "public"."chat_read_state"
+    add column if not exists "muted" boolean not null default false;
+
+-- +migrate StatementBegin
+create or replace function public.advance_muted_chat_read_state() returns trigger
+    language plpgsql
+as $$
+begin
+    if new.author_type = 'system' then
+        return new;
+    end if;
+
+    update "public"."chat_read_state" read_state
+    set last_read_message_id = new.id,
+        updated_at = now()
+    where read_state.operation_id = new.operation_id
+      and read_state.channel_id = new.channel_id
+      and read_state.muted = true
+      and (
+        read_state.last_read_message_id is null
+            or read_state.last_read_message_id < new.id
+        )
+      and not exists (
+        select 1
+        from "public"."chat_message" system_message
+        where system_message.operation_id = new.operation_id
+          and system_message.channel_id = new.channel_id
+          and system_message.author_type = 'system'
+          and (
+            read_state.last_read_message_id is null
+                or system_message.id > read_state.last_read_message_id
+            )
+          and system_message.id <= new.id
+    );
+
+    return new;
+end;
+$$;
+-- +migrate StatementEnd
+
+drop trigger if exists advance_muted_chat_read_state_trigger on "public"."chat_message";
+create trigger advance_muted_chat_read_state_trigger
+    after insert on "public"."chat_message"
+    for each row execute function public.advance_muted_chat_read_state();
+
 -- +migrate Down
 -- SQL section 'Down' is executed when this migration is rolled back
 
@@ -124,3 +169,6 @@ drop index if exists "public"."operator_alias_operator_payloadtype_alias_unique"
 drop index if exists "public"."operator_alias_operator_container_alias_unique";
 drop table if exists "public"."operator_alias";
 alter table "public"."task" drop column if exists "keyword_resolution";
+drop trigger if exists advance_muted_chat_read_state_trigger on "public"."chat_message";
+drop function if exists public.advance_muted_chat_read_state();
+alter table "public"."chat_read_state" drop column if exists "muted";

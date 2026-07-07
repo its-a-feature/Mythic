@@ -141,6 +141,7 @@ type Mutation {
     chat_model: String
     ai_metadata: jsonb
     apitokens_id: Int
+    muted: Boolean
   ): ChatActionOutput
 }
 

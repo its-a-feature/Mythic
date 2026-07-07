@@ -207,11 +207,12 @@ actions:
       handler: '{{MYTHIC_ACTIONS_URL_BASE}}/chat_update_channel_webhook'
       forward_client_headers: true
     permissions:
+      - role: spectator
       - role: operator
       - role: operation_admin
       - role: mythic_admin
       - role: developer
-    comment: Update, archive, or lock a chat channel
+    comment: Update, archive, lock, mute, or unmute a chat channel
   - name: configCheck
     definition:
       kind: ""
