@@ -25,7 +25,7 @@ type mythicTreeIngestMessage struct {
 	Kind          mythicTreeIngestMessageKind
 	Task          databaseStructs.Task
 	FileBrowser   *agentMessagePostResponseFileBrowser
-	Processes     *[]agentMessagePostResponseProcesses
+	Processes     *agentMessagePostResponseProcessesMeta
 	CustomBrowser *agentMessagePostResponseCustomBrowser
 	APITokenID    int
 }
@@ -54,9 +54,9 @@ func initializeMythicTreeIngestWorkers() {
 	}
 }
 
-// enqueueMythicTreeFileBrowserResponse queues a single file browser response so
+// EnqueueMythicTreeFileBrowserResponse queues a single file browser response so
 // agent post-response processing is not blocked on MythicTree DB writes.
-func enqueueMythicTreeFileBrowserResponse(task databaseStructs.Task, fileBrowser *agentMessagePostResponseFileBrowser, apitokensId int) {
+func EnqueueMythicTreeFileBrowserResponse(task databaseStructs.Task, fileBrowser *agentMessagePostResponseFileBrowser, apitokensId int) {
 	enqueueMythicTreeIngestMessage(mythicTreeIngestMessage{
 		Kind:        mythicTreeIngestFileBrowser,
 		Task:        task,
@@ -65,9 +65,9 @@ func enqueueMythicTreeFileBrowserResponse(task databaseStructs.Task, fileBrowser
 	})
 }
 
-// enqueueMythicTreeFileBrowserFlush queues the completion marker that tells the
+// EnqueueMythicTreeFileBrowserFlush queues the completion marker that tells the
 // file-browser update_deleted coordinator it can reconcile cached chunks.
-func enqueueMythicTreeFileBrowserFlush(task databaseStructs.Task, apitokensId int) {
+func EnqueueMythicTreeFileBrowserFlush(task databaseStructs.Task, apitokensId int) {
 	enqueueMythicTreeIngestMessage(mythicTreeIngestMessage{
 		Kind:       mythicTreeIngestFileBrowserFlush,
 		Task:       task,
@@ -75,9 +75,9 @@ func enqueueMythicTreeFileBrowserFlush(task databaseStructs.Task, apitokensId in
 	})
 }
 
-// enqueueMythicTreeProcessResponse queues process MythicTree data on the shared
+// EnqueueMythicTreeProcessResponse queues process MythicTree data on the shared
 // ingest pool, preserving the direct RPC path for callers that need it.
-func enqueueMythicTreeProcessResponse(task databaseStructs.Task, processes *[]agentMessagePostResponseProcesses, apitokensId int) {
+func EnqueueMythicTreeProcessResponse(task databaseStructs.Task, processes *agentMessagePostResponseProcessesMeta, apitokensId int) {
 	if processes == nil {
 		return
 	}
@@ -89,9 +89,9 @@ func enqueueMythicTreeProcessResponse(task databaseStructs.Task, processes *[]ag
 	})
 }
 
-// enqueueMythicTreeCustomBrowserResponse queues custom-browser MythicTree data
+// EnqueueMythicTreeCustomBrowserResponse queues custom-browser MythicTree data
 // on the same bounded pool as file and process browser data.
-func enqueueMythicTreeCustomBrowserResponse(task databaseStructs.Task, customBrowser *agentMessagePostResponseCustomBrowser) {
+func EnqueueMythicTreeCustomBrowserResponse(task databaseStructs.Task, customBrowser *agentMessagePostResponseCustomBrowser) {
 	if customBrowser == nil {
 		return
 	}

@@ -85,7 +85,7 @@ type agentMessagePostResponse struct {
 	RemovedFiles    *[]agentMessagePostResponseRemovedFiles   `json:"removed_files,omitempty" mapstructure:"removed_files,omitempty" xml:"removed_files,omitempty"`
 	Credentials     *[]agentMessagePostResponseCredentials    `json:"credentials,omitempty" mapstructure:"credentials,omitempty" xml:"credentials,omitempty"`
 	Artifacts       *[]agentMessagePostResponseArtifacts      `json:"artifacts,omitempty" mapstructure:"artifacts,omitempty" xml:"artifacts,omitempty"`
-	Processes       *[]agentMessagePostResponseProcesses      `json:"processes,omitempty" mapstructure:"processes,omitempty" xml:"processes,omitempty"`
+	Processes       *agentMessagePostResponseProcessesMeta    `json:"processes,omitempty" mapstructure:"processes,omitempty" xml:"processes,omitempty"`
 	Edges           *[]agentMessagePostResponseEdges          `json:"edges,omitempty" mapstructure:"edges,omitempty" xml:"edges,omitempty"`
 	Commands        *[]agentMessagePostResponseCommands       `json:"commands,omitempty" mapstructure:"commands,omitempty" xml:"commands,omitempty"`
 	ProcessResponse *interface{}                              `json:"process_response,omitempty" mapstructure:"process_response,omitempty" xml:"process_response,omitempty"`
@@ -180,8 +180,13 @@ type agentMessagePostResponseArtifactsResponse struct {
 	ArtifactID int  `json:"id" mapstructure:"id" xml:"id"`
 	Success    bool `json:"success" mapstructure:"success" xml:"success"`
 }
+type agentMessagePostResponseProcessesMeta struct {
+	UpdateDeleted *bool                                `json:"update_deleted,omitempty" mapstructure:"update_deleted,omitempty" xml:"update_deleted,omitempty"`
+	Host          *string                              `mapstructure:"host,omitempty" json:"host,omitempty" xml:"host,omitempty"`
+	OS            *string                              `mapstructure:"os,omitempty" json:"os,omitempty" xml:"os,omitempty"`
+	Processes     *[]agentMessagePostResponseProcesses `json:"processes" mapstructure:"processes" xml:"processes"`
+}
 type agentMessagePostResponseProcesses struct {
-	Host                   *string                `mapstructure:"host,omitempty" json:"host,omitempty" xml:"host,omitempty"`
 	ProcessID              int                    `mapstructure:"process_id" json:"process_id" xml:"process_id"`
 	ParentProcessID        int                    `mapstructure:"parent_process_id" json:"parent_process_id" xml:"parent_process_id"`
 	Architecture           string                 `mapstructure:"architecture" json:"architecture" xml:"architecture"`
@@ -194,8 +199,6 @@ type agentMessagePostResponseProcesses struct {
 	Description            string                 `mapstructure:"description" json:"description" xml:"description"`
 	Signer                 string                 `mapstructure:"signer" json:"signer" xml:"signer"`
 	ProtectionProcessLevel int                    `mapstructure:"protected_process_level" json:"protected_process_level" xml:"protected_process_level"`
-	UpdateDeleted          *bool                  `mapstructure:"update_deleted,omitempty" json:"update_deleted,omitempty" xml:"update_deleted,omitempty"`
-	OS                     *string                `mapstructure:"os,omitempty" json:"os,omitempty" xml:"os,omitempty"`
 	Other                  map[string]interface{} `json:"-" mapstructure:",remain"`
 }
 type agentMessagePostResponseEdges struct {
@@ -805,10 +808,10 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 			currentTask.Stderr += *agentResponse.Stderr
 		}
 		if agentResponse.FileBrowser != nil {
-			enqueueMythicTreeFileBrowserResponse(currentTask, agentResponse.FileBrowser, 0)
+			EnqueueMythicTreeFileBrowserResponse(currentTask, agentResponse.FileBrowser, 0)
 		}
 		if agentResponse.Processes != nil {
-			enqueueMythicTreeProcessResponse(currentTask, agentResponse.Processes, 0)
+			EnqueueMythicTreeProcessResponse(currentTask, agentResponse.Processes, 0)
 		}
 		if agentResponse.RemovedFiles != nil {
 			go handleAgentMessagePostResponseRemovedFiles(currentTask, agentResponse.RemovedFiles)
@@ -854,7 +857,7 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 			go handleAgentMessagePostResponseEvent(currentTask, agentResponse.Events)
 		}
 		if agentResponse.CustomBrowser != nil {
-			enqueueMythicTreeCustomBrowserResponse(currentTask, agentResponse.CustomBrowser)
+			EnqueueMythicTreeCustomBrowserResponse(currentTask, agentResponse.CustomBrowser)
 		}
 		// this section always happens
 		reflectBackOtherKeys(&mythicResponse, &agentResponse.Other)
@@ -888,7 +891,7 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 				}
 			}
 			go CheckAndProcessTaskCompletionHandlers(currentTask.ID, completionAuthContext)
-			enqueueMythicTreeFileBrowserFlush(currentTask, 0)
+			EnqueueMythicTreeFileBrowserFlush(currentTask, 0)
 			go emitTaskLog(currentTask.ID)
 			go func(task databaseStructs.Task) {
 				EventingChannel <- EventNotification{
@@ -1978,7 +1981,7 @@ func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseSt
 			}
 		} else {
 			newFileMeta = databaseStructs.Filemeta{}
-			err = database.DB.Get(&newFileMeta, `SELECT id, total_chunks, complete, copy_of_file_id, filename 
+			err = database.DB.Get(&newFileMeta, `SELECT id, total_chunks, complete, copy_of_file_id, filename, size 
 				FROM filemeta 
 				WHERE task_id=$1 AND path=$2 AND copy_of_file_id=$3
 				ORDER BY id DESC
@@ -2127,20 +2130,6 @@ func addFilePermissions(fileBrowser *agentMessagePostResponseFileBrowser) map[st
 		"has_children": !fileBrowser.IsFile,
 		"permissions":  fileBrowser.Permissions,
 	}
-	/*
-		switch x := fileBrowser.Permissions.(type) {
-		case []interface{}:
-			fileMetaData["permissions"] = x
-		case map[string]interface{}:
-			fileMetaData["permissions"] = []interface{}{x}
-		case nil:
-			fileMetaData["permissions"] = []interface{}{}
-		default:
-			fileMetaData["permissions"] = []interface{}{}
-			logging.LogError(nil, "Unknown permissions type", "data", fileBrowser.Permissions)
-		}
-
-	*/
 	return fileMetaData
 }
 func addChildFilePermissions(fileBrowser *agentMessagePostResponseFileBrowserChildren) map[string]interface{} {
@@ -2151,19 +2140,6 @@ func addChildFilePermissions(fileBrowser *agentMessagePostResponseFileBrowserChi
 		"has_children": !fileBrowser.IsFile,
 		"permissions":  fileBrowser.Permissions,
 	}
-	/*
-		switch x := fileBrowser.Permissions.(type) {
-		case []interface{}:
-			fileMetaData["permissions"] = x
-		case map[string]interface{}:
-			fileMetaData["permissions"] = []interface{}{x}
-		case nil:
-			fileMetaData["permissions"] = []interface{}{}
-		default:
-			logging.LogError(nil, "Unknown permissions type", "data", fileBrowser.Permissions)
-		}
-
-	*/
 	return fileMetaData
 }
 
@@ -2319,22 +2295,20 @@ func listenForFileBrowserUpdateDeleted() {
 		}
 	}
 }
-func HandleAgentMessagePostResponseProcesses(task databaseStructs.Task, processes *[]agentMessagePostResponseProcesses,
+func HandleAgentMessagePostResponseProcesses(task databaseStructs.Task, processMeta *agentMessagePostResponseProcessesMeta,
 	apitokensId int) error {
-	if processes == nil || len(*processes) == 0 {
+	if processMeta == nil || processMeta.Processes == nil || len(*processMeta.Processes) == 0 {
 		return nil
 	}
 	// process data is also represented in a tree format with a full path of the process_id
 	updateDeleted := false
-	for indx := range *processes {
-		if (*processes)[indx].UpdateDeleted != nil && *(*processes)[indx].UpdateDeleted {
-			updateDeleted = true
-		}
+	if processMeta.UpdateDeleted != nil && *processMeta.UpdateDeleted {
+		updateDeleted = true
 	}
 	// Get the host (default to callback.Host if per-process host not specified)
 	host := task.Callback.Host
-	if (*processes)[0].Host != nil && *(*processes)[0].Host != "" {
-		host = strings.ToUpper(*(*processes)[0].Host)
+	if *processMeta.Host != "" {
+		host = strings.ToUpper(*processMeta.Host)
 	}
 	if updateDeleted {
 		if err := ensureTaskCallbackMythicTreeGroups(&task); err != nil {
@@ -2356,16 +2330,16 @@ func HandleAgentMessagePostResponseProcesses(task databaseStructs.Task, processe
 			logging.LogError(err, "Failed to fetch existing children")
 			return err
 		}
-		incomingProcessesByMatchKey := make(map[string]agentMessagePostResponseProcesses, len(*processes))
-		for _, newEntry := range *processes {
+		incomingProcessesByMatchKey := make(map[string]agentMessagePostResponseProcesses, len(*processMeta.Processes))
+		for _, newEntry := range *processMeta.Processes {
 			incomingProcessesByMatchKey[getProcessMatchKey(newEntry)] = newEntry
 		}
-		namesToDeleteAndUpdate := make(map[string]struct{}, len(existingTreeEntries)+len(*processes))
-		treeNodesToUpsert := make([]*databaseStructs.MythicTree, 0, len(*processes))
+		namesToDeleteAndUpdate := make(map[string]struct{}, len(existingTreeEntries)+len(*processMeta.Processes))
+		treeNodesToUpsert := make([]*databaseStructs.MythicTree, 0, len(*processMeta.Processes))
 		for _, existingEntry := range existingTreeEntries {
 			if newEntry, ok := incomingProcessesByMatchKey[getExistingProcessMatchKey(existingEntry)]; ok {
 				namesToDeleteAndUpdate[strconv.Itoa(newEntry.ProcessID)] = struct{}{}
-				treeNodesToUpsert = append(treeNodesToUpsert, buildProcessMythicTreeNode(task, host, newEntry, apitokensId))
+				treeNodesToUpsert = append(treeNodesToUpsert, buildProcessMythicTreeNode(task, host, processMeta.OS, newEntry, apitokensId))
 			} else {
 				// full path is just the string of the PID
 				namesToDeleteAndUpdate[string(existingEntry.FullPath)] = struct{}{}
@@ -2375,9 +2349,9 @@ func HandleAgentMessagePostResponseProcesses(task databaseStructs.Task, processe
 			}
 		}
 		// now all existing ones have been updated or deleted, so it's time to add new ones
-		for _, newEntry := range *processes {
+		for _, newEntry := range *processMeta.Processes {
 			if _, ok := namesToDeleteAndUpdate[strconv.Itoa(newEntry.ProcessID)]; !ok {
-				treeNodesToUpsert = append(treeNodesToUpsert, buildProcessMythicTreeNode(task, host, newEntry, apitokensId))
+				treeNodesToUpsert = append(treeNodesToUpsert, buildProcessMythicTreeNode(task, host, processMeta.OS, newEntry, apitokensId))
 			}
 		}
 		if err := upsertMythicTreeNodes(treeNodesToUpsert); err != nil {
@@ -2389,13 +2363,9 @@ func HandleAgentMessagePostResponseProcesses(task databaseStructs.Task, processe
 			return err
 		}
 	} else {
-		treeNodesToUpsert := make([]*databaseStructs.MythicTree, 0, len(*processes))
-		for _, newEntry := range *processes {
-			host = task.Callback.Host
-			if newEntry.Host != nil && *newEntry.Host != "" {
-				host = strings.ToUpper(*newEntry.Host)
-			}
-			treeNodesToUpsert = append(treeNodesToUpsert, buildProcessMythicTreeNode(task, host, newEntry, apitokensId))
+		treeNodesToUpsert := make([]*databaseStructs.MythicTree, 0, len(*processMeta.Processes))
+		for _, newEntry := range *processMeta.Processes {
+			treeNodesToUpsert = append(treeNodesToUpsert, buildProcessMythicTreeNode(task, host, processMeta.OS, newEntry, apitokensId))
 		}
 		if err := upsertMythicTreeNodes(treeNodesToUpsert); err != nil {
 			logging.LogError(err, "Failed to upsert process MythicTree entries")
@@ -2404,12 +2374,7 @@ func HandleAgentMessagePostResponseProcesses(task databaseStructs.Task, processe
 	}
 	return nil
 }
-func resolveAndCreateParentPathsForTreeNode(pathData utils.AnalyzedPath, displayPathData utils.AnalyzedPath, task databaseStructs.Task, treeType string) {
-	parentNodes := buildMythicTreeParentNodes(pathData, displayPathData, task, treeType)
-	if err := upsertMythicTreeNodes(parentNodes); err != nil {
-		logging.LogError(err, "Failed to create MythicTree parent paths")
-	}
-}
+
 func getOSTypeBasedOnPathSeparator(pathSeparator string, treeType string) string {
 	switch treeType {
 	case databaseStructs.TREE_TYPE_FILE:

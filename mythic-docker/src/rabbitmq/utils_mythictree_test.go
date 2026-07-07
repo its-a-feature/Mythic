@@ -279,7 +279,7 @@ func TestBuildProcessMythicTreeNodeNormalizesProcessData(t *testing.T) {
 		ParentProcessID: 1,
 	}
 
-	node := buildProcessMythicTreeNode(task, "HOST", process, 0)
+	node := buildProcessMythicTreeNode(task, "HOST", nil, process, 0)
 	if string(node.Name) != "unknown" {
 		t.Fatalf("expected empty process name to normalize to unknown, got %q", string(node.Name))
 	}

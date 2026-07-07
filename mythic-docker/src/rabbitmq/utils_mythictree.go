@@ -617,14 +617,6 @@ func getFileBrowserUpdateDeletedPath(task *databaseStructs.Task, fileBrowser *ag
 	return pathData, fullPath, nil
 }
 
-// reconcileFileBrowserUpdateDeletedGroup applies update_deleted semantics for a
-// single listed directory: update reported children, insert new children, and
-// mark DB-only children deleted. Each group is independent so a task can report
-// multiple directories without cross-contaminating their child sets.
-func reconcileFileBrowserUpdateDeletedGroup(task *databaseStructs.Task, group fileBrowserUpdateDeletedGroup, apitokensId int) error {
-	return reconcileFileBrowserUpdateDeletedGroups(task, []fileBrowserUpdateDeletedGroup{group}, apitokensId)
-}
-
 // reconcileFileBrowserUpdateDeletedGroups batches update_deleted writes across
 // all file-browser chunks for a task completion flush.
 func reconcileFileBrowserUpdateDeletedGroups(task *databaseStructs.Task, groups []fileBrowserUpdateDeletedGroup, apitokensId int) error {
@@ -771,7 +763,7 @@ func applyMythicTreeChildrenReconciliation(taskID int, reconciliation mythicTree
 // buildProcessMythicTreeNode centralizes process-to-MythicTree normalization so
 // update_deleted and normal process responses use identical path, OS, metadata,
 // callback, and API token handling.
-func buildProcessMythicTreeNode(task databaseStructs.Task, host string, process agentMessagePostResponseProcesses, apitokensId int) *databaseStructs.MythicTree {
+func buildProcessMythicTreeNode(task databaseStructs.Task, host string, OS *string, process agentMessagePostResponseProcesses, apitokensId int) *databaseStructs.MythicTree {
 	process.Name = normalizeProcessName(process.Name)
 	parentPath := getProcessParentPath(process.ParentProcessID)
 	fullPath := treeNodeGetFullPath(
@@ -791,8 +783,8 @@ func buildProcessMythicTreeNode(task databaseStructs.Task, host string, process 
 		Deleted:         false,
 		DisplayPath:     []byte{},
 	}
-	if process.OS != nil {
-		newTree.Os = *process.OS
+	if OS != nil {
+		newTree.Os = *OS
 	} else {
 		newTree.Os = task.Callback.Payload.Os
 	}

@@ -56,14 +56,8 @@ func MythicRPCFileBrowserCreate(input MythicRPCFileBrowserCreateMessage, authCon
 	}
 	go func() {
 		// handle the actual creation async
-		err = HandleAgentMessagePostResponseFileBrowser(task, &input.FileBrowser, int(task.APITokensID.Int64))
-		if err != nil {
-			logging.LogError(err, "Failed to create files in MythicRPCFileBrowserCreate")
-		}
-		err = HandleAgentMessagePostResponseFileBrowser(task, nil, int(task.APITokensID.Int64))
-		if err != nil {
-			logging.LogError(err, "Failed to flush files in MythicRPCFileBrowserCreate")
-		}
+		EnqueueMythicTreeFileBrowserResponse(task, &input.FileBrowser, int(task.APITokensID.Int64))
+		EnqueueMythicTreeFileBrowserFlush(task, int(task.APITokensID.Int64))
 	}()
 
 	response.Success = true

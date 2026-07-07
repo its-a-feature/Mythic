@@ -18,7 +18,7 @@ type MythictreeCreateInput struct {
 type MythictreeCreate struct {
 	TaskId         int                                                 `json:"task_id" binding:"required"`
 	FileBrowser    *rabbitmq.MythicRPCFileBrowserCreateFileBrowserData `json:"file_browser"`
-	ProcessBrowser *[]rabbitmq.MythicRPCProcessCreateProcessData       `json:"process_browser"`
+	ProcessBrowser *rabbitmq.MythicRPCProcessCreateProcessDataMeta     `json:"process_browser"`
 }
 
 // this function called from webhook_endpoint through the UI or scripting
@@ -71,32 +71,11 @@ func MythictreeCreateWebhook(c *gin.Context) {
 		return
 	}
 	if input.Input.FileBrowser != nil {
-		err = rabbitmq.HandleAgentMessagePostResponseFileBrowser(task, input.Input.FileBrowser, apitokenId)
-		if err != nil {
-			c.JSON(http.StatusOK, gin.H{
-				"status": "error",
-				"error":  err.Error(),
-			})
-			return
-		}
-		err = rabbitmq.HandleAgentMessagePostResponseFileBrowser(task, nil, apitokenId)
-		if err != nil {
-			c.JSON(http.StatusOK, gin.H{
-				"status": "error",
-				"error":  err.Error(),
-			})
-			return
-		}
+		rabbitmq.EnqueueMythicTreeFileBrowserResponse(task, input.Input.FileBrowser, apitokenId)
+		rabbitmq.EnqueueMythicTreeFileBrowserFlush(task, apitokenId)
 	}
 	if input.Input.ProcessBrowser != nil {
-		err = rabbitmq.HandleAgentMessagePostResponseProcesses(task, input.Input.ProcessBrowser, apitokenId)
-		if err != nil {
-			c.JSON(http.StatusOK, gin.H{
-				"status": "error",
-				"error":  err.Error(),
-			})
-			return
-		}
+		rabbitmq.EnqueueMythicTreeProcessResponse(task, input.Input.ProcessBrowser, apitokenId)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": "success"})
