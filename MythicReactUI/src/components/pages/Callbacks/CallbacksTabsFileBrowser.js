@@ -682,8 +682,8 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
     }
     return (
         <MythicTabPanel index={index} value={value}>
-            <Split direction="horizontal" style={{width: "100%", height: "100%", display: "flex", overflow: "hidden"}} sizes={[30, 70]} >
-                <div className="bg-gray-base" style={{display: "inline-flex", height: "100%", minHeight: 0, minWidth: 0, overflow: "hidden"}}>
+            <Split direction="horizontal" className="mythic-eventing-split" sizes={[30, 70]} >
+                <div className="mythic-eventing-sidebar">
                     <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={true}>
                         <CircularProgress color="inherit" />
                     </Backdrop>
@@ -702,9 +702,9 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
                     />
 
                 </div>
-                <div className="bg-gray-light" style={{display: "inline-flex", height: "100%", minHeight: 0, minWidth: 0, overflow: "hidden"}}>
-                    <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minHeight: 0, minWidth: 0, overflow: "hidden" }}>
-                        <div style={{ flexGrow: 0 }}>
+                <div className="mythic-eventing-content">
+                    <div className="mythic-process-browser-table-shell">
+                        <div>
                             <FileBrowserTableTop
                                 tabInfo={tabInfo}
                                 taskingTableTopTypedDataRef={taskingTableTopTypedDataRef}
@@ -720,7 +720,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
                                 baseUIFeature={baseUIFeature}
                             />
                         </div>
-                        <div style={{ flex: "1 1 auto", minHeight: 0, minWidth: 0, overflow: "hidden" }}>
+                        <div className="mythic-process-browser-grid-shell">
                             <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={true}>
                                 <CircularProgress color="inherit" />
                             </Backdrop>

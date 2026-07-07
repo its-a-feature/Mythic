@@ -5315,13 +5315,16 @@ tspan {
     vertical-align: middle;
 }
 .mythic-table-footer {
-    background: transparent;
+    background-color: var(--mythic-theme-panel-muted-bg);
+    border: 1px solid var(--mythic-theme-table-border-soft-fallback-border-color);
+    border-radius: var(--mythic-theme-shape-border-radius);
     display: flex;
     justify-content: center;
     align-items: center;
     flex-wrap: wrap;
     gap: 0.5rem;
-    padding: 0.5rem 0 0.75rem;
+    padding: 0.55rem 0.65rem;
+    width: 100%;
 }
 .mythic-table-footer .MuiPagination-root {
     padding: 0;
@@ -5351,7 +5354,6 @@ tspan {
     font-weight: 750;
 }
 .mythic-table-toolbar {
-    align-items: center;
     background-color: var(--mythic-theme-panel-muted-bg);
     border: 1px solid var(--mythic-theme-table-border-soft-fallback-border-color);
     border-radius: var(--mythic-theme-shape-border-radius);
@@ -5368,7 +5370,7 @@ tspan {
 }
 .mythic-table-toolbar-search {
     align-items: stretch;
-    background-color: var(--mythic-theme-table-toolbar-search-bg);
+    background-color: var(--mythic-theme-panel-muted-bg);
     gap: 0.55rem;
     padding: 0.55rem;
 }
@@ -12150,6 +12152,7 @@ tspan {
     min-height: 0;
     flex: 1 1 auto;
     overflow: visible;
+    width: 100%;
 }
 .mythic-chat-layout > .gutter.gutter-horizontal {
     cursor: col-resize;
@@ -12169,8 +12172,8 @@ tspan {
     background-color: var(--mythic-theme-page-header-text);
 }
 .mythic-chat-sidebar {
-    background-color: var(--mythic-theme-palette-background-paper-alpha-dark72-light86);
-    border: 1px solid var(--mythic-theme-page-header-text-muted);
+    background-color: var(--mythic-theme-panel-raised-bg);
+    border: 1px solid var(--mythic-theme-table-border-soft-fallback-border-color);
     display: flex;
     flex-direction: column;
     min-height: 0;
@@ -12229,9 +12232,13 @@ tspan {
     align-items: center;
 }
 .mythic-chat-channel-section {
+    background-color: var(--mythic-theme-panel-muted-bg);
+    border: 1px solid var(--mythic-theme-table-border-soft-fallback-border-color);
+    border-radius: var(--mythic-theme-shape-border-radius);
     display: flex;
     flex-direction: column;
     gap: 5px;
+    margin: 8px;
     padding: 8px;
     overflow-y: auto;
 }
@@ -12243,6 +12250,7 @@ tspan {
 }
 .mythic-chat-channel-button {
     align-items: center;
+    background-color: var(--mythic-theme-palette-background-paper-alpha-dark72-light82);
     border: 1px solid transparent;
     border-radius: 7px;
     cursor: pointer;
@@ -12259,6 +12267,8 @@ tspan {
     border-color: var(--mythic-theme-table-border-soft-fallback-border-color) !important;
 }
 .mythic-chat-channel-button-selected {
+    background-color: var(--mythic-theme-palette-primary-main-alpha-dark18-light10);
+    border-color: var(--mythic-theme-palette-primary-main-alpha-45);
     box-shadow: inset 3px 0 0 var(--mythic-chat-channel-accent);
 }
 .mythic-chat-channel-icon,

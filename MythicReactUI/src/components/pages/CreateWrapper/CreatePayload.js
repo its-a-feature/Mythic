@@ -7,6 +7,7 @@ import Typography from '@mui/material/Typography';
 import {Step3SelectPayload} from './Step3SelectPayload';
 import {Step5Build} from './Step5Build';
 import { snackActions } from '../../utilities/Snackbar';
+import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
 
 function getSteps(){
     return ['Select Target OS', 'Payload Type', 'Select Payload', 'Build']
@@ -69,41 +70,26 @@ export function CreatePayloadWrapper(props){
       }, [noOperation]);
 
     return (
-        <div style={{display: "flex", flexDirection: "column", height: "100%", width: "100%"}}>
-            <div style={{display: "flex", flexDirection: "row", width: "100%", alignItems: "center"}}>
-                <Typography variant="h5" style={{marginLeft: "10px", width: "25%"}}>
-                    Payload Creation
+        <MythicPageBody>
+        <div className="mythic-create-flow-shell">
+            <div className="mythic-detail-section-header">
+                <Typography variant="h5" className="mythic-detail-section-title">
+                    Payload Wrapper Creation
                 </Typography>
-                <Stepper activeStep={activeStep} alternativeLabel style={{marginTop: "10px", width: "100%"}}>
+                <div className="mythic-create-section-fill">
+                <Stepper activeStep={activeStep} alternativeLabel>
                     {steps.map((label, index) => (
-                        <Step key={label} sx={{
-                            '& .MuiStepLabel-root .Mui-completed': {
-                                color: 'success.main', // circle color (COMPLETED)
-                            },
-                            '& .MuiStepLabel-label.Mui-completed.MuiStepLabel-alternativeLabel':
-                                {
-                                    color: 'grey.500', // Just text label (COMPLETED)
-                                },
-                            '& .MuiStepLabel-root .Mui-active': {
-                                color: 'info.main', // circle color (ACTIVE)
-                            },
-                            '& .MuiStepLabel-label.Mui-active.MuiStepLabel-alternativeLabel':
-                                {
-                                    fontWeight: "bold", // Just text label (ACTIVE)
-                                    color: ''
-                                },
-                            '& .MuiStepLabel-root .Mui-active .MuiStepIcon-text': {
-                                fill: 'black', // circle's number (ACTIVE)
-                            },
-                        }}>
+                        <Step key={label}>
                             <StepLabel>{label}</StepLabel>
                         </Step>
                     ))}
                 </Stepper>
+                </div>
             </div>
-            <div style={{display: "flex", flexDirection: "column", flexGrow: 1, overflowY: 'auto'}}>
+            <div className="mythic-create-flow-content mythic-create-section-scroll">
                 {getStepContent(activeStep)}
             </div>
         </div>
+        </MythicPageBody>
     );
 } 

@@ -13,12 +13,11 @@ export function CreatePayloadNavigationButtons(props){
     const me = useReactiveVar(meState);
     const disabledButtons = (me?.user?.current_operation_id || 0) > 0 ? false : true;
     return (
-        <div style={{marginLeft: "20px"}}>
+        <div className="mythic-table-toolbar mythic-create-flow-footer">
             <Button
                 className="mythic-table-row-action"
                 disabled={props.first}
                 variant="contained"
-                style={{marginRight: "10px"}}
                 onClick={props.canceled}
               >
                 Back
@@ -36,7 +35,6 @@ export function CreatePayloadNavigationButtons(props){
                 <Button
                   className="mythic-table-row-action mythic-table-row-action-hover-warning"
                   variant="contained"
-                  style={{marginLeft: "10px"}}
                   onClick={props.startOver}
                 >
                   Start Over
@@ -46,7 +44,6 @@ export function CreatePayloadNavigationButtons(props){
                   className="mythic-table-row-action mythic-table-row-action-hover-info"
                   variant="contained"
                   component={Link}
-                  style={{marginLeft: "10px"}}
                   to={"/new/createpayload"}
                 >
                   Go To Create Another Base Payload

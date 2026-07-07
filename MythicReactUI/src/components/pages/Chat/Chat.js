@@ -2791,11 +2791,6 @@ export function Chat({me}) {
                 sizes={chatSplitSizes}
                 minSize={[0, 0]}
                 onDragEnd={updateChatSplitSizes}
-                style={{
-                    backgroundColor: "transparent",
-                    boxShadow: "none",
-                    width: "100%",
-                }}
             >
                 <Box className="mythic-chat-sidebar">
                     <Box className="mythic-chat-sidebar-toolbar">

@@ -23,10 +23,13 @@ const StyledListItem = styled(ListItem)((
 ) => ({
     [`& .${classes.root}`]: {
       width: '100%',
+      margin: 0,
+      overflowX: 'auto',
     },
 
     [`& .${classes.inline}`]: {
       display: 'inline',
+      margin: 0,
     }
 }));
 
@@ -36,7 +39,6 @@ const GetEventStatusChip = ({message}) => {
             <MythicStatusChip
                 label={message.resolved ? "Resolved" : "Warning"}
                 status={message.resolved ? "success" : "error"}
-                sx={{mr: 1, flex: "0 0 auto"}}
             />
         );
     }
@@ -44,7 +46,6 @@ const GetEventStatusChip = ({message}) => {
         <MythicStatusChip
             label={message.level}
             status={message.level === "warning" ? "warning" : "info"}
-            sx={{mr: 1, flex: "0 0 auto"}}
         />
     );
 }
@@ -54,23 +55,21 @@ export function EventFeedTableEvents(props){
     const isWarning = props.warning || props.level === "warning";
 
     return (
-        <StyledListItem alignItems="flex-start" style={{...props.style, margin: 0, padding: "0 0 0 10px"}}>
-            <ListItemText disableTypography style={{margin: "0 0 0 0", flexGrow: 1, overflowX: 'auto'}}
+        <StyledListItem alignItems="flex-start" className={classes.root}>
+            <ListItemText disableTypography className={classes.root}
                 primary={
                     <React.Fragment>
                     <Typography
                         component="span"
                         variant="caption"
                         className={classes.inline}
-                        style={{margin: "0 0 0 0px"}}
                     >
                         {toLocalTime(props.timestamp, me?.user?.view_utc_time || false)}
                     </Typography>
                       <Typography
-                        component="span"
+                        component="strong"
                         variant="body1"
                         className={classes.inline}
-                        style={{fontWeight: "bold", margin: 0, padding: 0}}
                       >
                         {props.count > 1 ? " ( " + props.count + " )" : ""}
                       </Typography>
@@ -78,9 +77,9 @@ export function EventFeedTableEvents(props){
                     </React.Fragment>
                 }
                 secondary={
-                <div style={{display: "flex", alignItems: "flex-start", overflowX: "auto"}}>
+                <div className="mythic-search-result-inline mythic-search-result-inline-nowrap">
                     <GetEventStatusChip message={props} />
-                    <pre style={{  margin: "0 0 0 0px", overflowX: "auto", maxWidth: "90%", wordBreak: "break-all", whiteSpace: "pre-wrap"}}>
+                    <pre className="mythic-search-result-code">
                         {props.message}
                     </pre>
                 </div>
