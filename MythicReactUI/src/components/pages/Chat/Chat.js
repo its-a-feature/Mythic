@@ -40,6 +40,8 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import LockIcon from '@mui/icons-material/Lock';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import SearchIcon from '@mui/icons-material/Search';
 import SendIcon from '@mui/icons-material/Send';
@@ -181,6 +183,7 @@ query ChatReadState {
   chat_read_state {
     channel_id
     last_read_message_id
+    muted
     updated_at
   }
 }
@@ -191,6 +194,7 @@ subscription ChatReadStateStream($now: timestamp!) {
   chat_read_state_stream(batch_size: 50, cursor: {initial_value: {updated_at: $now}, ordering: ASC}) {
     channel_id
     last_read_message_id
+    muted
     updated_at
   }
 }
@@ -297,8 +301,8 @@ mutation CreateChatChannel($name: String!, $description: String, $channel_type: 
 `;
 
 const UPDATE_CHANNEL = gql`
-mutation UpdateChatChannel($channel_id: Int!, $name: String, $description: String, $archived: Boolean, $locked: Boolean, $chat_model: String, $ai_metadata: jsonb, $apitokens_id: Int) {
-  chatUpdateChannel(channel_id: $channel_id, name: $name, description: $description, archived: $archived, locked: $locked, chat_model: $chat_model, ai_metadata: $ai_metadata, apitokens_id: $apitokens_id) {
+mutation UpdateChatChannel($channel_id: Int!, $name: String, $description: String, $archived: Boolean, $locked: Boolean, $chat_model: String, $ai_metadata: jsonb, $apitokens_id: Int, $muted: Boolean) {
+  chatUpdateChannel(channel_id: $channel_id, name: $name, description: $description, archived: $archived, locked: $locked, chat_model: $chat_model, ai_metadata: $ai_metadata, apitokens_id: $apitokens_id, muted: $muted) {
     status
     error
     channel_id
@@ -635,13 +639,18 @@ const mergeReadStateRows = (current, incoming) => {
         return current;
     }
     return incoming.reduce((prev, currentState) => {
-        const existing = prev[currentState.channel_id] || 0;
+        const existing = prev[currentState.channel_id] || {lastReadMessageID: 0, muted: false};
         return {
             ...prev,
-            [currentState.channel_id]: Math.max(existing, currentState.last_read_message_id || 0),
+            [currentState.channel_id]: {
+                lastReadMessageID: Math.max(existing.lastReadMessageID || 0, currentState.last_read_message_id || 0),
+                muted: Boolean(currentState.muted),
+            },
         };
     }, current);
 };
+
+const getChannelReadState = (readState, channelID) => readState[channelID] || {lastReadMessageID: 0, muted: false};
 
 const channelDisplayName = (channel) => `# ${channel?.name || ""}`;
 
@@ -1471,7 +1480,7 @@ const ChatEmptyState = ({icon, title, detail}) => (
     </Box>
 );
 
-const ChannelButton = ({channel, selected, unread, onSelect}) => {
+const ChannelButton = ({channel, selected, unread, muted, onSelect, onToggleMute}) => {
     const theme = useTheme();
     const isAI = channel.channel_type === "ai";
     const accentColor = isAI ? theme.palette.info.main : theme.palette.primary.main;
@@ -1482,41 +1491,55 @@ const ChannelButton = ({channel, selected, unread, onSelect}) => {
         isAI && channel.chat_container && !channel.chat_container.container_running ? {label: "Offline", className: "mythic-chat-channel-state-offline"} : null,
     ].filter(Boolean);
     return (
-        <button
-            type="button"
-            onClick={() => onSelect(channel.id)}
-            className={`mythic-chat-channel-button${selected ? " mythic-chat-channel-button-selected" : ""}${channel.archived ? " mythic-chat-channel-button-archived" : ""}`}
+        <Box
+            className="mythic-chat-channel-row"
             style={{
                 "--mythic-chat-channel-accent": accentColor,
                 "--mythic-chat-channel-warning": theme.palette.warning.main,
                 "--mythic-chat-channel-error": theme.palette.error.main,
                 "--mythic-chat-channel-muted": theme.palette.text.secondary,
-                borderColor: selected ? alpha(accentColor, 0.28) : "transparent",
-                backgroundColor: selected ? alpha(accentColor, theme.palette.mode === "dark" ? 0.18 : 0.1) : channel.archived ? alpha(theme.palette.text.secondary, 0.06) : "transparent",
-                color: theme.palette.text.primary,
+                "--mythic-chat-channel-info": theme.palette.info.main,
             }}
         >
-            <span className="mythic-chat-channel-icon">
-                {channel.archived ? <ArchiveIcon fontSize="small" /> : isAI ? <SmartToyTwoToneIcon fontSize="small" /> : <ForumTwoToneIcon fontSize="small" />}
-            </span>
-            <span className="mythic-chat-channel-main">
-                <span className="mythic-chat-channel-name">{channelDisplayName(channel)}</span>
-                {secondary && <span className="mythic-chat-channel-meta">{secondary}</span>}
-                {states.length > 0 &&
-                    <span className="mythic-chat-channel-states">
-                        {states.map((state) => (
-                            <span key={state.label} className={`mythic-chat-channel-state ${state.className}`}>{state.label}</span>
-                        ))}
-                    </span>
-                }
-            </span>
-            {unread && <span className="mythic-chat-unread-badge">Unread</span>}
-        </button>
+            <button
+                type="button"
+                onClick={() => onSelect(channel.id)}
+                className={`mythic-chat-channel-button${selected ? " mythic-chat-channel-button-selected" : ""}${channel.archived ? " mythic-chat-channel-button-archived" : ""}`}
+                style={{
+                    borderColor: selected ? alpha(accentColor, 0.28) : "transparent",
+                    backgroundColor: selected ? alpha(accentColor, theme.palette.mode === "dark" ? 0.18 : 0.1) : channel.archived ? alpha(theme.palette.text.secondary, 0.06) : "transparent",
+                    color: theme.palette.text.primary,
+                }}
+            >
+                <span className="mythic-chat-channel-icon">
+                    {channel.archived ? <ArchiveIcon fontSize="small" /> : isAI ? <SmartToyTwoToneIcon fontSize="small" /> : <ForumTwoToneIcon fontSize="small" />}
+                </span>
+                <span className="mythic-chat-channel-main">
+                    <span className="mythic-chat-channel-name">{channelDisplayName(channel)}</span>
+                    {secondary && <span className="mythic-chat-channel-meta">{secondary}</span>}
+                    {states.length > 0 &&
+                        <span className="mythic-chat-channel-states">
+                            {states.map((state) => (
+                                <span key={state.label} className={`mythic-chat-channel-state ${state.className}`}>{state.label}</span>
+                            ))}
+                        </span>
+                    }
+                </span>
+                {unread && <span className="mythic-chat-unread-badge">Unread</span>}
+            </button>
+            <MythicStyledTooltip title={muted ? "Unsilence notifications" : "Silence notifications"}>
+                <IconButton
+                    className={`mythic-chat-channel-mute-button${muted ? " mythic-chat-channel-mute-button-muted" : ""}`}
+                    size="small"
+                    onClick={() => onToggleMute(channel)}
+                    aria-label={muted ? `Unsilence ${channelDisplayName(channel)}` : `Silence ${channelDisplayName(channel)}`}
+                >
+                    {muted ? <NotificationsOffIcon fontSize="small" /> : <NotificationsActiveIcon fontSize="small" />}
+                </IconButton>
+            </MythicStyledTooltip>
+        </Box>
     );
 };
-
-
-
 const ChatCreateDialog = ({open, onClose, onCreate, chatContainers, currentUser, operationBot, initialChannel}) => {
     const theme = useTheme();
     const [name, setName] = React.useState("");
@@ -2331,6 +2354,8 @@ export function Chat({me}) {
     const isMythicAdmin = Boolean(currentMe?.user?.admin || currentOperatorData?.operator_by_pk?.admin);
     const canCreateSystemMessage = isMythicAdmin || currentOperatorViewMode === "lead";
     const selectedChannelIsGeneral = isGeneralChatChannel(selectedChannel);
+    const selectedChannelReadState = getChannelReadState(readState, selectedChannelID);
+    const selectedChannelMuted = Boolean(selectedChannelReadState.muted);
     const updateChatSplitSizes = React.useCallback((sizes) => {
         setChatSplitSizes(sizes);
         localStorage.setItem(CHAT_SPLIT_STORAGE_KEY, JSON.stringify(sizes));
@@ -2473,7 +2498,7 @@ export function Chat({me}) {
         if(!channelID || !messageID){
             return;
         }
-        const currentReadID = readStateRef.current[channelID] || 0;
+        const currentReadID = getChannelReadState(readStateRef.current, channelID).lastReadMessageID || 0;
         const submittedReadID = submittedReadStateRef.current[channelID] || 0;
         const pendingReadID = pendingReadStateRef.current[channelID] || 0;
         if(messageID <= Math.max(currentReadID, submittedReadID, pendingReadID)){
@@ -2488,7 +2513,7 @@ export function Chat({me}) {
             delete pendingReadStateRef.current[channelID];
             delete markReadTimersRef.current[channelID];
             const latestKnownReadID = Math.max(
-                readStateRef.current[channelID] || 0,
+                getChannelReadState(readStateRef.current, channelID).lastReadMessageID || 0,
                 submittedReadStateRef.current[channelID] || 0
             );
             if(lastReadMessageID <= latestKnownReadID){
@@ -2497,15 +2522,16 @@ export function Chat({me}) {
             submittedReadStateRef.current[channelID] = lastReadMessageID;
             markRead({variables: {channel_id: channelID, last_read_message_id: lastReadMessageID}}).catch(() => {
                 if((submittedReadStateRef.current[channelID] || 0) <= lastReadMessageID){
-                    submittedReadStateRef.current[channelID] = readStateRef.current[channelID] || 0;
+                    submittedReadStateRef.current[channelID] = getChannelReadState(readStateRef.current, channelID).lastReadMessageID || 0;
                 }
             });
         }, 750);
     }, [markRead]);
     React.useEffect(() => {
-        Object.entries(readState).forEach(([channelID, lastReadMessageID]) => {
-            submittedReadStateRef.current[channelID] = Math.max(submittedReadStateRef.current[channelID] || 0, lastReadMessageID || 0);
-            if((pendingReadStateRef.current[channelID] || 0) <= (lastReadMessageID || 0)){
+        Object.entries(readState).forEach(([channelID, channelReadState]) => {
+            const lastReadMessageID = channelReadState?.lastReadMessageID || 0;
+            submittedReadStateRef.current[channelID] = Math.max(submittedReadStateRef.current[channelID] || 0, lastReadMessageID);
+            if((pendingReadStateRef.current[channelID] || 0) <= lastReadMessageID){
                 delete pendingReadStateRef.current[channelID];
                 if(markReadTimersRef.current[channelID]){
                     clearTimeout(markReadTimersRef.current[channelID]);
@@ -2636,7 +2662,7 @@ export function Chat({me}) {
         if(latestMessageID === 0 || channel.id === selectedChannelID){
             return false;
         }
-        return (readState[channel.id] || 0) < latestMessageID;
+        return (getChannelReadState(readState, channel.id).lastReadMessageID || 0) < latestMessageID;
     }, [readState, selectedChannelID]);
     const activeAIRequest = React.useMemo(() => {
         if(selectedChannel?.channel_type !== "ai"){
@@ -2715,6 +2741,41 @@ export function Chat({me}) {
             updateChannel({variables: {channel_id: selectedChannel.id, locked: !selectedChannel.locked}});
         }
     };
+    const toggleMute = React.useCallback((channel) => {
+        if(!channel?.id){
+            return;
+        }
+        const previousReadState = getChannelReadState(readStateRef.current, channel.id);
+        const nextMuted = !previousReadState.muted;
+        setReadState((prev) => ({
+            ...prev,
+            [channel.id]: {
+                ...getChannelReadState(prev, channel.id),
+                muted: nextMuted,
+            },
+        }));
+        updateChannel({variables: {channel_id: channel.id, muted: nextMuted}})
+            .then(({data}) => {
+                if(data?.chatUpdateChannel?.status !== "success"){
+                    setReadState((prev) => ({
+                        ...prev,
+                        [channel.id]: {
+                            ...getChannelReadState(prev, channel.id),
+                            muted: previousReadState.muted,
+                        },
+                    }));
+                }
+            })
+            .catch(() => {
+                setReadState((prev) => ({
+                    ...prev,
+                    [channel.id]: {
+                        ...getChannelReadState(prev, channel.id),
+                        muted: previousReadState.muted,
+                    },
+                }));
+            });
+    }, [updateChannel]);
     const saveChannelDetails = (variables) => {
         updateChannel({variables}).then(({data}) => {
             if(data?.chatUpdateChannel?.status === "success"){
@@ -2815,7 +2876,9 @@ export function Chat({me}) {
                                     channel={channel}
                                     selected={channel.id === selectedChannelID}
                                     unread={channelHasUnread(channel)}
+                                    muted={getChannelReadState(readState, channel.id).muted}
                                     onSelect={selectChannel}
+                                    onToggleMute={toggleMute}
                                 />
                             ))
                         )}
@@ -2832,7 +2895,9 @@ export function Chat({me}) {
                                     channel={channel}
                                     selected={channel.id === selectedChannelID}
                                     unread={channelHasUnread(channel)}
+                                    muted={getChannelReadState(readState, channel.id).muted}
                                     onSelect={selectChannel}
+                                    onToggleMute={toggleMute}
                                 />
                             ))
                         )}
@@ -2859,6 +2924,13 @@ export function Chat({me}) {
                             </Box>
                         </Box>
                         <Box className="mythic-chat-header-actions">
+                            {selectedChannel &&
+                                <MythicStyledTooltip title={selectedChannelMuted ? "Unsilence notifications" : "Silence notifications"}>
+                                    <IconButton size="small" onClick={() => toggleMute(selectedChannel)}>
+                                        {selectedChannelMuted ? <NotificationsOffIcon fontSize="small" /> : <NotificationsActiveIcon fontSize="small" />}
+                                    </IconButton>
+                                </MythicStyledTooltip>
+                            }
                             {selectedChannel &&
                                 <MythicStyledTooltip title="Edit channel">
                                     <IconButton size="small" onClick={() => setEditChannelOpen(true)}>

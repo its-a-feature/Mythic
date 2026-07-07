@@ -31,6 +31,7 @@ type UpdateChatChannel struct {
 	ChatModel   *string     `json:"chat_model"`
 	AIMetadata  interface{} `json:"ai_metadata"`
 	APITokenID  *int        `json:"apitokens_id"`
+	Muted       *bool       `json:"muted"`
 }
 type EditChatMessageInput struct {
 	Input EditChatMessage `json:"input" binding:"required"`
@@ -123,6 +124,14 @@ func UpdateChatChannelWebhook(c *gin.Context) {
 	if err != nil {
 		logging.LogError(err, "Failed to get chat channel")
 		chatRespondError(c, "failed to find chat channel")
+		return
+	}
+	if input.Input.Muted != nil {
+		if !input.Input.IsMuteOnly() {
+			chatRespondError(c, "muted can only be updated by itself")
+			return
+		}
+		updateChatMuted(c, operatorOperation, channel, *input.Input.Muted)
 		return
 	}
 	if !chatRequireScope(c, chatScopeForChannel(channel, true)) {
@@ -273,6 +282,98 @@ func UpdateChatChannelWebhook(c *gin.Context) {
 		expireGeneratedChatAPITokensForChannel(channel.ID)
 	}
 	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", ID: channel.ID, ChannelID: channel.ID})
+}
+
+func (u UpdateChatChannel) IsMuteOnly() bool {
+	return u.Muted != nil &&
+		u.Name == nil &&
+		u.Description == nil &&
+		u.Archived == nil &&
+		u.Locked == nil &&
+		u.ChatModel == nil &&
+		u.AIMetadata == nil &&
+		u.APITokenID == nil
+}
+
+func updateChatMuted(c *gin.Context, operatorOperation *databaseStructs.Operatoroperation, channel databaseStructs.ChatChannel, muted bool) {
+	if !chatRequireScope(c, chatScopeForChannel(channel, false)) {
+		return
+	}
+	if muted {
+		var targetReadID sql.NullInt64
+		err := database.DB.Get(&targetReadID, `WITH current_state AS (
+				SELECT last_read_message_id
+				FROM chat_read_state
+				WHERE operator_id=$3 AND channel_id=$2
+			),
+			first_unread_system AS (
+				SELECT min(id) AS id
+				FROM chat_message
+				WHERE operation_id=$1
+					AND channel_id=$2
+					AND author_type=$4
+					AND id > COALESCE((SELECT last_read_message_id FROM current_state), 0)
+			)
+			SELECT max(id)
+			FROM chat_message
+			WHERE operation_id=$1
+				AND channel_id=$2
+				AND (
+					(SELECT id FROM first_unread_system) IS NULL
+					OR id < (SELECT id FROM first_unread_system)
+				)`,
+			operatorOperation.CurrentOperation.ID,
+			channel.ID,
+			operatorOperation.CurrentOperator.ID,
+			databaseStructs.ChatMessageAuthorSystem,
+		)
+		if err != nil {
+			logging.LogError(err, "Failed to calculate muted chat read target")
+			chatRespondError(c, err.Error())
+			return
+		}
+		var lastReadID interface{}
+		if targetReadID.Valid {
+			lastReadID = targetReadID.Int64
+		}
+		_, err = database.DB.Exec(`INSERT INTO chat_read_state
+			(operation_id, channel_id, operator_id, last_read_message_id, muted)
+			VALUES ($1, $2, $3, $4, true)
+			ON CONFLICT (operator_id, channel_id) DO UPDATE
+			SET muted=true,
+				last_read_message_id=CASE
+					WHEN excluded.last_read_message_id IS NULL THEN chat_read_state.last_read_message_id
+					WHEN chat_read_state.last_read_message_id IS NULL THEN excluded.last_read_message_id
+					WHEN chat_read_state.last_read_message_id < excluded.last_read_message_id THEN excluded.last_read_message_id
+					ELSE chat_read_state.last_read_message_id
+				END`,
+			operatorOperation.CurrentOperation.ID,
+			channel.ID,
+			operatorOperation.CurrentOperator.ID,
+			lastReadID,
+		)
+		if err != nil {
+			logging.LogError(err, "Failed to mute chat channel")
+			chatRespondError(c, err.Error())
+			return
+		}
+	} else {
+		_, err := database.DB.Exec(`INSERT INTO chat_read_state
+			(operation_id, channel_id, operator_id, muted)
+			VALUES ($1, $2, $3, false)
+			ON CONFLICT (operator_id, channel_id) DO UPDATE
+			SET muted=false`,
+			operatorOperation.CurrentOperation.ID,
+			channel.ID,
+			operatorOperation.CurrentOperator.ID,
+		)
+		if err != nil {
+			logging.LogError(err, "Failed to unmute chat channel")
+			chatRespondError(c, err.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", ChannelID: channel.ID})
 }
 
 func EditChatMessageWebhook(c *gin.Context) {

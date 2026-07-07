@@ -20,6 +20,7 @@ select_permissions:
       columns:
         - channel_id
         - last_read_message_id
+        - muted
         - operation_id
         - operator_id
         - updated_at
@@ -47,6 +48,7 @@ select_permissions:
       columns:
         - channel_id
         - last_read_message_id
+        - muted
         - operation_id
         - operator_id
         - updated_at
@@ -74,6 +76,7 @@ select_permissions:
       columns:
         - channel_id
         - last_read_message_id
+        - muted
         - operation_id
         - operator_id
         - updated_at
@@ -101,6 +104,7 @@ select_permissions:
       columns:
         - channel_id
         - last_read_message_id
+        - muted
         - operation_id
         - operator_id
         - updated_at

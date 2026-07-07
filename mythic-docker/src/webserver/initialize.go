@@ -395,7 +395,7 @@ func setRoutes(r *gin.Engine) {
 						mythicjwt.SCOPE_CHAT_AI_WRITE,
 					}),
 					webcontroller.CreateChatChannelWebhook)
-				noSpectators.POST("chat_update_channel_webhook",
+				allOperationMembers.POST("chat_update_channel_webhook",
 					webcontroller.UpdateChatChannelWebhook)
 				noSpectators.POST("chat_create_message_webhook",
 					webcontroller.CreateChatMessageWebhook)
