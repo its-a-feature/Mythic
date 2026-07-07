@@ -11,14 +11,18 @@ import (
 )
 
 type MythicRPCProcessCreateMessage struct {
-	TaskID    int                                 `json:"task_id"` //required
-	Processes []MythicRPCProcessCreateProcessData `json:"processes"`
+	TaskID        int                                 `json:"task_id"` //required
+	UpdateDeleted *bool                               `json:"update_deleted"`
+	Host          *string                             `json:"host"`
+	OS            *string                             `json:"os"`
+	Processes     []MythicRPCProcessCreateProcessData `json:"processes"`
 }
 type MythicRPCProcessCreateMessageResponse struct {
 	Success bool   `json:"success"`
 	Error   string `json:"error"`
 }
 type MythicRPCProcessCreateProcessData = agentMessagePostResponseProcesses
+type MythicRPCProcessCreateProcessDataMeta = agentMessagePostResponseProcessesMeta
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
@@ -59,11 +63,17 @@ func MythicRPCProcessCreate(input MythicRPCProcessCreateMessage, authContext Rab
 		return response
 	}
 	go func() {
-		// handle the actual creation async
-		err = HandleAgentMessagePostResponseProcesses(task, &input.Processes, int(task.APITokensID.Int64))
-		if err != nil {
-			logging.LogError(err, "Failed to create processes in MythicRPCProcessCreate")
+		host := task.Callback.Host
+		if input.Host != nil {
+			host = *input.Host
 		}
+		// handle the actual creation async
+		EnqueueMythicTreeProcessResponse(task, &agentMessagePostResponseProcessesMeta{
+			Processes:     &input.Processes,
+			Host:          &host,
+			OS:            input.OS,
+			UpdateDeleted: input.UpdateDeleted,
+		}, int(task.APITokensID.Int64))
 	}()
 
 	response.Success = true

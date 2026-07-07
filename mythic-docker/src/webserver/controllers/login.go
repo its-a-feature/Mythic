@@ -257,7 +257,6 @@ func RefreshJWT(c *gin.Context) {
 		"view_utc_time":                  currentOperation.CurrentOperator.ViewUtcTime,
 		"current_utc_time":               time.Now().UTC(),
 	}
-	// setting cookie max age to 2 days
 	c.Set(authentication.ContextKeyUserID, currentOperation.CurrentOperator.ID)
 	c.Set(authentication.ContextKeyUsername, currentOperation.CurrentOperator.Username)
 	c.JSON(http.StatusOK, gin.H{"access_token": accessToken, "refresh_token": refreshToken, "user": user})
