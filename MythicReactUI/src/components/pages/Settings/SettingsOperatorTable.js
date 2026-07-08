@@ -57,14 +57,26 @@ export function SettingsOperatorTable(props){
     const [openInviteLinksDialog, setOpenInviteLinksDialog] = React.useState(false);
     const [inviteLinksEnabled, setInviteLinksEnabled] = React.useState(false);
     const [getGlobalSettings] = useLazyQuery(GET_GLOBAL_SETTINGS, {fetchPolicy: "no-cache",
+        context: {suppressErrorSnackbar: true},
     });
+    const refreshInviteLinksEnabled = React.useCallback(() => {
+        getGlobalSettings()
+            .then(({data}) => {
+                const allowInviteLinks = data?.getGlobalSettings?.settings?.["server_config"]?.["allow_invite_links"] === true;
+                setInviteLinksEnabled(allowInviteLinks);
+            })
+            .catch((error) => {
+                console.log(error);
+                setInviteLinksEnabled(false);
+            });
+    }, [getGlobalSettings]);
     const closeGlobalSettingsDialog = () => {
-        getGlobalSettings().then(({data}) => setInviteLinksEnabled(data.getGlobalSettings.settings["server_config"]["allow_invite_links"]));
+        refreshInviteLinksEnabled();
         setOpenGlobalSettingsDialog(false);
     }
     React.useEffect( () => {
-        getGlobalSettings().then(({data}) => setInviteLinksEnabled(data.getGlobalSettings.settings["server_config"]["allow_invite_links"]));
-    }, []);
+        refreshInviteLinksEnabled();
+    }, [refreshInviteLinksEnabled]);
     const visibleOperators = props.operators.filter((op) => showDeleted || !op.deleted);
     const activeOperatorCount = props.operators.filter((op) => op.active && !op.deleted).length;
     const operatorCountLabel = visibleOperators.length === 1 ? "1 shown" : `${visibleOperators.length} shown`;

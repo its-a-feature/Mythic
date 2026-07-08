@@ -39,15 +39,25 @@ export function SettingsGlobalDialog(props) {
     const [serverName, setServerName] = React.useState("");
     const userPreferencesRef = React.useRef("{}");
     useQuery(GET_GLOBAL_SETTINGS, {fetchPolicy: "no-cache",
+        context: {suppressErrorSnackbar: true},
         onCompleted: (data) => {
-            setDebugAgentMessage(data.getGlobalSettings.settings["server_config"]["debug_agent_message"])
+            const settings = data?.getGlobalSettings?.settings;
+            const serverConfig = settings?.["server_config"];
+            if (!settings || !serverConfig) {
+                snackActions.error("Unable to load global settings");
+                return;
+            }
+            setDebugAgentMessage(serverConfig["debug_agent_message"] ?? false)
             //setDebugAgentMessage(data.getGlobalSettings.settings["MYTHIC_DEBUG_AGENT_MESSAGE"]);
-            setAllowInviteLinks(data.getGlobalSettings.settings["server_config"]["allow_invite_links"]);
+            setAllowInviteLinks(serverConfig["allow_invite_links"] ?? false);
             //setAllowInviteLinks(data.getGlobalSettings.settings["MYTHIC_SERVER_ALLOW_INVITE_LINKS"]);
-            setServerName(data.getGlobalSettings.settings["server_config"]["name"]);
+            setServerName(serverConfig["name"] ?? "");
             //setServerName(data.getGlobalSettings.settings["MYTHIC_GLOBAL_SERVER_NAME"]);
-            setAllowWebhooksOnNewCallbacks(data.getGlobalSettings.settings["server_config"]["allow_webhooks_on_new_callbacks"]);
-            userPreferencesRef.current = JSON.stringify(data.getGlobalSettings.settings["preferences"], null, 2);
+            setAllowWebhooksOnNewCallbacks(serverConfig["allow_webhooks_on_new_callbacks"] ?? true);
+            userPreferencesRef.current = JSON.stringify(settings["preferences"] ?? {}, null, 2);
+        },
+        onError: () => {
+            snackActions.error("Unable to load global settings");
         }
     });
     const [updateGlobalSettings] = useMutation(UpdateGlobalSettingsMutation, {

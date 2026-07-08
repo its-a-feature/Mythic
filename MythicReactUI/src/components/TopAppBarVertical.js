@@ -859,9 +859,11 @@ export function TopAppBarVertical(props) {
   const [serverVersion, setServerVersion] = React.useState("...");
   const [serverName, setServerName] = React.useState("...");
   useQuery(GET_SETTINGS, {fetchPolicy: "no-cache",
+    context: {suppressErrorSnackbar: true},
     onCompleted: (data) => {
-      setServerVersion(data.getGlobalSettings?.settings?.["server_config"]?.["version"]);
-      setServerName(data.getGlobalSettings?.settings?.["server_config"]?.["name"]);
+      const serverConfig = data?.getGlobalSettings?.settings?.["server_config"] || {};
+      setServerVersion(serverConfig["version"] || "...");
+      setServerName(serverConfig["name"] || "...");
     }
   });
   const toggleDrawerOpen = (e) => {
