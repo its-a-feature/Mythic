@@ -158,13 +158,17 @@ const authLink = setContext( async (_, {headers}) => {
       }
     }
 });
-const errorLink = onError(({ graphQLErrors, networkError }) => {
+const errorLink = onError(({ graphQLErrors, networkError, operation }) => {
   console.log("errors?");
+  const suppressErrorSnackbar = operation?.getContext()?.suppressErrorSnackbar === true;
   try{
     if (graphQLErrors) {
       console.log("[graphQLError]", graphQLErrors);
+      if (suppressErrorSnackbar) {
+        return;
+      }
       for (let err of graphQLErrors) {
-        switch (err.extensions.code) {
+        switch (err.extensions?.code) {
           case 'forbidden':
               snackActions.error(err.message);
               break;
@@ -204,6 +208,9 @@ const errorLink = onError(({ graphQLErrors, networkError }) => {
     if (networkError) {
       console.log("[Network error]", networkError);
       console.log(networkError.extensions, networkError.message);
+      if (suppressErrorSnackbar) {
+        return;
+      }
       
       if(networkError.extensions === undefined){
         meState({...meState(), badConnection: true});
