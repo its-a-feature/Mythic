@@ -25,6 +25,7 @@ func TestParseCredentialMergesIdentityAndSubtype(t *testing.T) {
 				"parsed_identity":   true,
 			},
 			Subtype: "Example",
+			Success: true,
 		}
 	})
 

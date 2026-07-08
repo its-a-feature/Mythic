@@ -186,6 +186,7 @@ func GetClaims(c *gin.Context) (*mythicjwt.CustomClaims, error) {
 		return nil, err
 	}
 	c.Set(ContextKeyUserID, claims.UserID)
+	// always pull the latest from the database in case the user changed their operation
 	user, err := database.GetUserFromID(claims.UserID)
 	if err != nil {
 		logging.LogError(err, "failed to get user from id in GetClaims")

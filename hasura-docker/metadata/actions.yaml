@@ -145,17 +145,17 @@ actions:
       - role: mythic_admin
       - role: developer
     comment: Edit an operator-authored chat message
-  - name: chatMCPToolConfirmation
+  - name: chatInputResponse
     definition:
       kind: synchronous
-      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/chat_mcp_tool_confirmation_webhook'
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/chat_input_response_webhook'
       forward_client_headers: true
     permissions:
       - role: operator
       - role: operation_admin
       - role: mythic_admin
       - role: developer
-    comment: Confirm, reject, or respond to a pending MCP tool execution request in an AI chat
+    comment: Accept, reject, respond to, or select from a pending AI chat input request
   - name: chatMarkRead
     definition:
       kind: synchronous
