@@ -12475,6 +12475,12 @@ tspan {
     max-width: min(100%, 62rem);
     min-width: 0;
 }
+.mythic-chat-assistant-timestamp {
+    display: block;
+    font-size: 0.72rem !important;
+    font-weight: 650 !important;
+    margin: 0 0 1px 4px !important;
+}
 .mythic-chat-assistant-message .mythic-chat-markdown {
     padding: 2px 4px 4px;
 }

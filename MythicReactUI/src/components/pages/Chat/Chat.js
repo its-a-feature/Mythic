@@ -1980,6 +1980,7 @@ const ChatComposer = React.memo(({
     selectedChannel,
     slashOptions,
     genericAliasOptions = [],
+    messageHistory = [],
     disabledReason,
     activeAIRequest,
     canCreateSystemMessage,
@@ -1990,7 +1991,9 @@ const ChatComposer = React.memo(({
 }) => {
     const theme = useTheme();
     const inputRef = React.useRef(null);
+    const historyDraftRef = React.useRef("");
     const [composer, setComposer] = React.useState("");
+    const [historyIndex, setHistoryIndex] = React.useState(null);
     const composerSlash = React.useMemo(() => parseComposerSlashCommand(composer), [composer]);
     const slashCommandIsKnown = React.useMemo(() => (
         isKnownSlashCommand(selectedChannel, composerSlash, slashOptions)
@@ -2001,6 +2004,11 @@ const ChatComposer = React.memo(({
     const composerDisabled = disabledReason !== "";
     const sendDisabled = composerDisabled || composer.trim() === "" || !slashCommandIsKnown;
     const showSlashOptions = selectedChannel?.channel_type === "ai" && composerSlash.isSlash && !slashCommandIsKnown;
+
+    React.useEffect(() => {
+        setHistoryIndex(null);
+        historyDraftRef.current = "";
+    }, [selectedChannel?.id]);
 
     const focusComposer = (cursorPosition) => {
         const applyFocus = () => {
@@ -2036,6 +2044,55 @@ const ChatComposer = React.memo(({
         focusComposer(completionContext.start + replacement.length);
         return true;
     };
+    const composerCursorAllowsHistory = (event, direction) => {
+        if(messageHistory.length === 0 || showSlashOptions || event.altKey || event.ctrlKey || event.metaKey){
+            return false;
+        }
+        const input = event.target;
+        const inputValue = typeof input.value === "string" ? input.value : composer;
+        const cursorPosition = typeof input.selectionStart === "number" ? input.selectionStart : composer.length;
+        const selectionEnd = typeof input.selectionEnd === "number" ? input.selectionEnd : cursorPosition;
+        if(cursorPosition !== selectionEnd){
+            return false;
+        }
+        if(direction < 0){
+            return !inputValue.slice(0, cursorPosition).includes("\n");
+        }
+        return !inputValue.slice(selectionEnd).includes("\n");
+    };
+    const navigateComposerHistory = (direction) => {
+        if(direction < 0){
+            if(historyIndex === null){
+                historyDraftRef.current = composer;
+                const nextMessage = messageHistory[0] || "";
+                setHistoryIndex(0);
+                setComposer(nextMessage);
+                focusComposer(nextMessage.length);
+                return;
+            }
+            const nextIndex = Math.min(historyIndex + 1, messageHistory.length - 1);
+            const nextMessage = messageHistory[nextIndex] || "";
+            setHistoryIndex(nextIndex);
+            setComposer(nextMessage);
+            focusComposer(nextMessage.length);
+            return;
+        }
+        if(historyIndex === null){
+            return;
+        }
+        const nextIndex = historyIndex - 1;
+        if(nextIndex < 0){
+            const draft = historyDraftRef.current;
+            setHistoryIndex(null);
+            setComposer(draft);
+            focusComposer(draft.length);
+            return;
+        }
+        const nextMessage = messageHistory[nextIndex] || "";
+        setHistoryIndex(nextIndex);
+        setComposer(nextMessage);
+        focusComposer(nextMessage.length);
+    };
     const submitMessage = () => {
         const message = composer.trim();
         if(sendDisabled || message === ""){
@@ -2043,6 +2100,8 @@ const ChatComposer = React.memo(({
         }
         if(onSendMessage(message)){
             setComposer("");
+            setHistoryIndex(null);
+            historyDraftRef.current = "";
         }
     };
 
@@ -2129,9 +2188,23 @@ const ChatComposer = React.memo(({
                     error={composerSlash.isSlash && !slashCommandIsKnown}
                     helperText={composerSlash.isSlash && !slashCommandIsKnown ? "Unknown slash command" : ""}
                     inputRef={inputRef}
-                    onChange={(e) => setComposer(e.target.value)}
+                    onChange={(e) => {
+                        setComposer(e.target.value);
+                        setHistoryIndex(null);
+                        historyDraftRef.current = "";
+                    }}
                     onKeyDown={(e) => {
                         if(e.nativeEvent?.isComposing){
+                            return;
+                        }
+                        if(e.key === "ArrowUp" && composerCursorAllowsHistory(e, -1)){
+                            e.preventDefault();
+                            navigateComposerHistory(-1);
+                            return;
+                        }
+                        if(e.key === "ArrowDown" && historyIndex !== null && composerCursorAllowsHistory(e, 1)){
+                            e.preventDefault();
+                            navigateComposerHistory(1);
                             return;
                         }
                         if(e.key === "Tab" && completeGenericAliasReference()){
@@ -2677,6 +2750,20 @@ export function Chat({me}) {
     const genericAliasOptions = React.useMemo(() => (
         getAIChatGenericAliasOptions(selectedChannel, operatorAliases)
     ), [selectedChannel, operatorAliases]);
+    const messageHistory = React.useMemo(() => {
+        const seenMessages = new Set();
+        return [...messages].reverse().reduce((prev, message) => {
+            const messageText = (message.message || "").trim();
+            if(message.author_type !== "operator" || message.operator_id !== currentMe?.user?.user_id || message.deleted || messageText === ""){
+                return prev;
+            }
+            if(seenMessages.has(messageText)){
+                return prev;
+            }
+            seenMessages.add(messageText);
+            return [...prev, messageText];
+        }, []);
+    }, [messages, currentMe?.user?.user_id]);
     const submitMessage = React.useCallback((messageText) => {
         const message = messageText.trim();
         if(!message || !selectedChannel){
@@ -3005,6 +3092,7 @@ export function Chat({me}) {
                         selectedChannel={selectedChannel}
                         slashOptions={slashOptions}
                         genericAliasOptions={genericAliasOptions}
+                        messageHistory={messageHistory}
                         disabledReason={disabledReason}
                         activeAIRequest={activeAIRequest}
                         canCreateSystemMessage={canCreateSystemMessage}
@@ -3195,9 +3283,10 @@ const MarkdownMessage = ({message}) => {
     );
 };
 
-const ChatAssistantMessage = ({message}) => {
+const ChatAssistantMessage = ({message, timestamp, viewUTCTime}) => {
     const theme = useTheme();
     const chatMessageColors = theme.chat?.message || {};
+    const formattedTimestamp = formatTimestamp(timestamp, viewUTCTime);
     return (
         <Box
             className="mythic-chat-assistant-message"
@@ -3207,6 +3296,11 @@ const ChatAssistantMessage = ({message}) => {
                 "--mythic-chat-markdown-surface-strong": chatMessageColors.markdownSurfaceStrong,
             }}
         >
+            {formattedTimestamp &&
+                <Typography variant="caption" color="text.secondary" className="mythic-chat-assistant-timestamp">
+                    {formattedTimestamp}
+                </Typography>
+            }
             <MarkdownMessage message={message} />
         </Box>
     );
@@ -3743,7 +3837,11 @@ export const MessageBubble = ({message, request, me, onEdit, onDelete, onRetry, 
     }
     if(isAI && !eventingInteractionSnapshot){
         return (
-            <ChatAssistantMessage message={message.message} />
+            <ChatAssistantMessage
+                message={message.message}
+                timestamp={message.created_at}
+                viewUTCTime={me?.user?.view_utc_time}
+            />
         );
     }
     return (
