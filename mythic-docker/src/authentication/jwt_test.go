@@ -1,6 +1,7 @@
 package authentication
 
 import (
+	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -21,7 +22,7 @@ func TestTokenValid(t *testing.T) {
 	}
 	gin.SetMode(gin.TestMode)
 
-	user := databaseStructs.Operator{ID: 123}
+	user := databaseStructs.Operator{ID: 123, CurrentOperationID: sql.NullInt64{Int64: 9, Valid: true}}
 	access_token, _, _, _ := mythicjwt.GenerateJWT(user, mythicjwt.AUTH_METHOD_USER, 0, 0)
 
 	tests := []struct {
@@ -90,7 +91,7 @@ func TestGetClaims(t *testing.T) {
 	}
 	gin.SetMode(gin.TestMode)
 
-	user := databaseStructs.Operator{ID: 123}
+	user := databaseStructs.Operator{ID: 123, CurrentOperationID: sql.NullInt64{Int64: 9, Valid: true}}
 	access_token, _, _, _ := mythicjwt.GenerateJWT(user, mythicjwt.AUTH_METHOD_USER, 0, 0)
 
 	tests := []struct {
@@ -107,9 +108,10 @@ func TestGetClaims(t *testing.T) {
 				},
 			},
 			want: &mythicjwt.CustomClaims{
-				UserID:     123,
-				AuthMethod: mythicjwt.AUTH_METHOD_USER,
-				Scopes:     []string{mythicjwt.SCOPE_ALL},
+				UserID:      123,
+				AuthMethod:  mythicjwt.AUTH_METHOD_USER,
+				OperationID: 9,
+				Scopes:      []string{mythicjwt.SCOPE_ALL},
 				StandardClaims: jwt.StandardClaims{
 					IssuedAt:  time.Now().Unix(),
 					ExpiresAt: time.Now().Add(mythicjwt.JWTTimespan).UTC().Unix(),
@@ -292,7 +294,7 @@ func TestRefreshJWT(t *testing.T) {
 		refresh_token string
 	}
 	userID := 42
-	user := databaseStructs.Operator{ID: userID}
+	user := databaseStructs.Operator{ID: userID, CurrentOperationID: sql.NullInt64{Int64: 9, Valid: true}}
 	access_token, refresh_token, _, _ := mythicjwt.GenerateJWT(user, mythicjwt.AUTH_METHOD_USER, 0, 0)
 
 	tests := []struct {

@@ -584,12 +584,10 @@ var hasuraTableScopePolicies = map[string]hasuraTableScopePolicy{
 		ReadScopes: []string{mythicjwt.SCOPE_CALLBACK_READ},
 	},
 	"callbackgraphedge": {
-		ReadScopes:  []string{mythicjwt.SCOPE_CALLBACK_READ},
-		WriteScopes: []string{mythicjwt.SCOPE_CALLBACK_WRITE},
+		ReadScopes: []string{mythicjwt.SCOPE_CALLBACK_READ},
 	},
 	"callbackport": {
-		ReadScopes:  []string{mythicjwt.SCOPE_CALLBACK_READ},
-		WriteScopes: []string{mythicjwt.SCOPE_CALLBACK_WRITE},
+		ReadScopes: []string{mythicjwt.SCOPE_CALLBACK_READ},
 	},
 	"callbacktoken": {
 		ReadScopes:  []string{mythicjwt.SCOPE_CALLBACK_READ},

@@ -67,14 +67,15 @@ type RefreshChatSpecialMessage struct {
 	MessageID int `json:"message_id" binding:"required"`
 }
 
-type SubmitChatMCPToolConfirmationInput struct {
-	Input SubmitChatMCPToolConfirmation `json:"input" binding:"required"`
+type SubmitChatInputResponseInput struct {
+	Input SubmitChatInputResponse `json:"input" binding:"required"`
 }
 
-type SubmitChatMCPToolConfirmation struct {
+type SubmitChatInputResponse struct {
 	MessageID int    `json:"message_id" binding:"required"`
-	Decision  string `json:"decision" binding:"required"`
+	Action    string `json:"action" binding:"required"`
 	Response  string `json:"response"`
+	ChoiceID  string `json:"choice_id"`
 }
 
 type ChatSearchInput struct {
@@ -584,8 +585,8 @@ func RefreshChatSpecialMessageWebhook(c *gin.Context) {
 	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", ID: chatMessage.ID, MessageID: chatMessage.ID, ChannelID: channel.ID})
 }
 
-func SubmitChatMCPToolConfirmationWebhook(c *gin.Context) {
-	var input SubmitChatMCPToolConfirmationInput
+func SubmitChatInputResponseWebhook(c *gin.Context) {
+	var input SubmitChatInputResponseInput
 	if !bindChatInput(c, &input) {
 		return
 	}
@@ -593,19 +594,24 @@ func SubmitChatMCPToolConfirmationWebhook(c *gin.Context) {
 	if !ok {
 		return
 	}
-	decision := strings.ToLower(strings.TrimSpace(input.Input.Decision))
-	if decision != "confirm" && decision != "reject" && decision != "respond" {
-		chatRespondError(c, "decision must be confirm, reject, or respond")
+	action := strings.ToLower(strings.TrimSpace(input.Input.Action))
+	if action != "accept" && action != "reject" && action != "respond" && action != "select" {
+		chatRespondError(c, "action must be accept, reject, respond, or select")
 		return
 	}
 	response := strings.TrimSpace(input.Input.Response)
-	if decision == "respond" && response == "" {
+	choiceID := strings.TrimSpace(input.Input.ChoiceID)
+	if action == "respond" && response == "" {
 		chatRespondError(c, "response is required")
+		return
+	}
+	if action == "select" && choiceID == "" {
+		chatRespondError(c, "choice_id is required")
 		return
 	}
 	chatMessage, channel, err := getChatMessageAndChannel(input.Input.MessageID, operatorOperation.CurrentOperation.ID)
 	if err != nil {
-		logging.LogError(err, "Failed to find MCP tool confirmation message")
+		logging.LogError(err, "Failed to find input request message")
 		chatRespondError(c, "failed to find chat message")
 		return
 	}
@@ -613,7 +619,7 @@ func SubmitChatMCPToolConfirmationWebhook(c *gin.Context) {
 		return
 	}
 	if channel.ChannelType != databaseStructs.ChatChannelTypeAI {
-		chatRespondError(c, "MCP tool confirmations are only valid in AI chat channels")
+		chatRespondError(c, "input responses are only valid in AI chat channels")
 		return
 	}
 	if channel.Archived {
@@ -629,54 +635,68 @@ func SubmitChatMCPToolConfirmationWebhook(c *gin.Context) {
 		return
 	}
 	if chatMessage.AuthorType != databaseStructs.ChatMessageAuthorAI {
-		chatRespondError(c, "MCP tool confirmations must come from AI messages")
+		chatRespondError(c, "input requests must come from AI messages")
+		return
+	}
+	if !chatMessage.ChatRequestID.Valid || chatMessage.ChatRequestID.Int64 <= 0 {
+		chatRespondError(c, "input request is missing its chat request reference")
 		return
 	}
 	metadata := chatMessage.Metadata.StructValue()
-	if metadata["special_type"] != chatSpecialTypeMCPToolConfirmation {
-		chatRespondError(c, "chat message is not an MCP tool confirmation")
+	if metadata["special_type"] != chatSpecialTypeInputRequested {
+		chatRespondError(c, "chat message is not an input request")
 		return
 	}
-	confirmation, ok := metadata[chatSpecialTypeMCPToolConfirmation].(map[string]interface{})
+	inputRequest, ok := metadata[chatSpecialTypeInputRequested].(map[string]interface{})
 	if !ok {
-		chatRespondError(c, "MCP tool confirmation metadata is missing")
+		chatRespondError(c, "input request metadata is missing")
 		return
 	}
-	status, _ := confirmation["status"].(string)
-	if status != chatMCPToolConfirmationStatusPending {
-		chatRespondError(c, "MCP tool confirmation is no longer pending")
+	status, _ := inputRequest["status"].(string)
+	if status != chatInputRequestedStatusPending {
+		chatRespondError(c, "input request is no longer pending")
 		return
-	}
-	if decision == "confirm" || decision == "respond" {
-		activeRequestID, err := getActiveAIChatRequest(operatorOperation.CurrentOperation.ID, channel.ID)
-		if err != nil {
-			logging.LogError(err, "Failed to check active AI chat request before MCP confirmation")
-			chatRespondError(c, err.Error())
-			return
-		}
-		if activeRequestID > 0 {
-			chatRespondError(c, fmt.Sprintf("AI chat request %d is still in progress; wait for it to finish or cancel it before responding", activeRequestID))
-			return
-		}
 	}
 
-	updatedConfirmation := chatCopyMetadataMap(confirmation)
-	switch decision {
-	case "confirm":
-		updatedConfirmation["status"] = chatMCPToolConfirmationStatusConfirmed
+	updatedInputRequest := chatCopyMetadataMap(inputRequest)
+	resolvedAt := time.Now().UTC().Format(time.RFC3339)
+	var selectedChoice map[string]interface{}
+	switch action {
+	case "accept":
+		updatedInputRequest["status"] = chatInputRequestedStatusAccepted
 	case "reject":
-		updatedConfirmation["status"] = chatMCPToolConfirmationStatusRejected
+		updatedInputRequest["status"] = chatInputRequestedStatusRejected
 	case "respond":
-		updatedConfirmation["status"] = chatMCPToolConfirmationStatusResponded
-		updatedConfirmation["response"] = response
+		updatedInputRequest["status"] = chatInputRequestedStatusResponded
+	case "select":
+		updatedInputRequest["status"] = chatInputRequestedStatusSelected
+		selectedChoice = chatFindInputChoice(updatedInputRequest, choiceID)
+		if selectedChoice == nil {
+			chatRespondError(c, "choice_id does not match any pending input choice")
+			return
+		}
 	}
-	updatedConfirmation["resolved_by_operator_id"] = operatorOperation.CurrentOperator.ID
-	updatedConfirmation["resolved_by"] = operatorOperation.CurrentOperator.Username
-	updatedConfirmation["resolved_at"] = time.Now().UTC().Format(time.RFC3339)
-	metadata[chatSpecialTypeMCPToolConfirmation] = updatedConfirmation
+	inputResponseMetadata := map[string]interface{}{
+		"action":                   action,
+		"input_request_message_id": chatMessage.ID,
+		"resolved_by_operator_id":  operatorOperation.CurrentOperator.ID,
+		"resolved_by":              operatorOperation.CurrentOperator.Username,
+		"resolved_at":              resolvedAt,
+	}
+	if response != "" {
+		inputResponseMetadata["response"] = response
+	}
+	if selectedChoice != nil {
+		inputResponseMetadata["choice"] = selectedChoice
+	}
+	updatedInputRequest["response"] = inputResponseMetadata
+	updatedInputRequest["resolved_by_operator_id"] = operatorOperation.CurrentOperator.ID
+	updatedInputRequest["resolved_by"] = operatorOperation.CurrentOperator.Username
+	updatedInputRequest["resolved_at"] = resolvedAt
+	metadata[chatSpecialTypeInputRequested] = updatedInputRequest
 	metadata["updated_by_operator_id"] = operatorOperation.CurrentOperator.ID
 	metadata["updated_by"] = operatorOperation.CurrentOperator.Username
-	metadata["updated_at"] = time.Now().UTC().Format(time.RFC3339)
+	metadata["updated_at"] = resolvedAt
 	metadataText := rabbitmq.GetMythicJSONTextFromStruct(metadata)
 	result, err := database.DB.Exec(`UPDATE chat_message
 		SET metadata=$3::jsonb, updated_at=now()
@@ -684,59 +704,87 @@ func SubmitChatMCPToolConfirmationWebhook(c *gin.Context) {
 			AND operation_id=$2
 			AND deleted=false
 			AND metadata->>'special_type'=$4
-			AND metadata->'mcp_tool_confirmation'->>'status'=$5`,
+			AND metadata->'input_requested'->>'status'=$5`,
 		chatMessage.ID,
 		operatorOperation.CurrentOperation.ID,
 		metadataText.String(),
-		chatSpecialTypeMCPToolConfirmation,
-		chatMCPToolConfirmationStatusPending,
+		chatSpecialTypeInputRequested,
+		chatInputRequestedStatusPending,
 	)
 	if err != nil {
-		logging.LogError(err, "Failed to update MCP tool confirmation message")
+		logging.LogError(err, "Failed to update input request message")
 		chatRespondError(c, err.Error())
 		return
 	}
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		logging.LogError(err, "Failed to check MCP confirmation rows affected")
+		logging.LogError(err, "Failed to check input request rows affected")
 		rowsAffected = 0
 	}
 	if rowsAffected == 0 {
-		chatRespondError(c, "MCP tool confirmation is no longer pending")
+		chatRespondError(c, "input request is no longer pending")
 		return
 	}
 
-	actionMetadata := map[string]interface{}{
-		"mcp_tool_confirmation_action": map[string]interface{}{
-			"decision":                decision,
-			"confirmation_message_id": chatMessage.ID,
-			"tool_name":               updatedConfirmation["tool_name"],
-			"server_name":             updatedConfirmation["server_name"],
-		},
-	}
-	switch decision {
-	case "confirm":
-		toolCall := chatCopyMetadataMap(updatedConfirmation)
-		toolCall["confirmation_message_id"] = chatMessage.ID
-		delete(toolCall, "status")
-		delete(toolCall, "resolved_by_operator_id")
-		delete(toolCall, "resolved_by")
-		delete(toolCall, "resolved_at")
-		prompt := fmt.Sprintf("Approved MCP tool call %s.", chatMCPToolDisplayName(updatedConfirmation))
-		createAIChatMessageWithOptions(c, operatorOperation, channel, prompt, aiChatRequestOptions{
-			RequestMessageMetadata: actionMetadata,
-			ConfirmedToolCall:      toolCall,
-		})
+	request, _, err := getChatRequestAndChannel(int(chatMessage.ChatRequestID.Int64), operatorOperation.CurrentOperation.ID)
+	if err != nil {
+		logging.LogError(err, "Failed to find chat request for input response")
+		chatRespondError(c, "failed to find chat request")
 		return
-	case "respond":
-		actionMetadata["mcp_tool_confirmation_action"].(map[string]interface{})["response"] = response
-		createAIChatMessageWithOptions(c, operatorOperation, channel, response, aiChatRequestOptions{
-			RequestMessageMetadata: actionMetadata,
-		})
-		return
-	default:
-		c.JSON(http.StatusOK, ChatActionResponse{Status: "success", ID: chatMessage.ID, MessageID: chatMessage.ID, ChannelID: channel.ID})
 	}
+	if chatRequestStatusIsTerminal(request.Status) {
+		chatRespondError(c, "chat request is already complete")
+		return
+	}
+	container, err := getChatContainer(request.ChatContainerID)
+	if err != nil {
+		logging.LogError(err, "Failed to find AI chat container for input response")
+		chatRespondError(c, "failed to find AI chat container")
+		return
+	}
+	if !container.ContainerRunning {
+		chatRespondError(c, fmt.Sprintf("chat container %s is not running", container.Name))
+		return
+	}
+	chatAuthContext, err := chatChannelAuthContext(channel)
+	if err != nil {
+		chatRespondError(c, err.Error())
+		return
+	}
+	var originalPrompt string
+	if err = database.DB.Get(&originalPrompt, `SELECT message FROM chat_message
+		WHERE id=$1 AND operation_id=$2 AND deleted=false`,
+		request.RequestMessageID, operatorOperation.CurrentOperation.ID); err != nil {
+		logging.LogError(err, "Failed to get original prompt for input response")
+		chatRespondError(c, "failed to find original prompt")
+		return
+	}
+	inputResponse := &rabbitmq.ChatContainerInputResponse{
+		Action:                action,
+		Response:              response,
+		Choice:                selectedChoice,
+		InputRequestMessageID: chatMessage.ID,
+		InputRequest:          updatedInputRequest,
+		ResolvedByOperatorID:  operatorOperation.CurrentOperator.ID,
+		ResolvedBy:            operatorOperation.CurrentOperator.Username,
+		ResolvedAt:            resolvedAt,
+	}
+	go dispatchAIChatRequest(
+		operatorOperation.CurrentOperation.ID,
+		operatorOperation.CurrentOperator.ID,
+		channel,
+		container,
+		request.ID,
+		request.RequestMessageID,
+		originalPrompt,
+		nil,
+		nil,
+		nil,
+		nil,
+		inputResponse,
+		chatAuthContext,
+	)
+	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", ID: chatMessage.ID, MessageID: chatMessage.ID, ChannelID: channel.ID, RequestID: request.ID})
 }
 
 func ChatSearchWebhook(c *gin.Context) {

@@ -414,9 +414,9 @@ mutation RefreshSpecialMessage($message_id: Int!) {
 }
 `;
 
-const MCP_TOOL_CONFIRMATION = gql`
-mutation MCPToolConfirmation($message_id: Int!, $decision: String!, $response: String) {
-  chatMCPToolConfirmation(message_id: $message_id, decision: $decision, response: $response) {
+const INPUT_RESPONSE = gql`
+mutation ChatInputResponse($message_id: Int!, $action: String!, $response: String, $choice_id: String) {
+  chatInputResponse(message_id: $message_id, action: $action, response: $response, choice_id: $choice_id) {
     status
     error
     message_id
@@ -2208,10 +2208,10 @@ export function Chat({me}) {
     const [editingID, setEditingID] = React.useState(null);
     const [editText, setEditText] = React.useState("");
     const [reviewMessage, setReviewMessage] = React.useState(null);
-    const [mcpResponseTarget, setMCPResponseTarget] = React.useState(null);
-    const [mcpResponseText, setMCPResponseText] = React.useState("");
+    const [inputResponseTarget, setInputResponseTarget] = React.useState(null);
+    const [inputResponseText, setInputResponseText] = React.useState("");
     const [refreshingSpecialMessageID, setRefreshingSpecialMessageID] = React.useState(null);
-    const [submittingMCPConfirmationID, setSubmittingMCPConfirmationID] = React.useState(null);
+    const [submittingInputResponseID, setSubmittingInputResponseID] = React.useState(null);
     const [chatSplitSizes, setChatSplitSizes] = React.useState(getStoredChatSplitSizes);
     const messagesContainerRef = React.useRef(null);
     const messagesEndRef = React.useRef(null);
@@ -2554,45 +2554,46 @@ export function Chat({me}) {
         },
         onError: (error) => snackActions.error(error.message),
     });
-    const [submitMCPToolConfirmation] = useMutation(MCP_TOOL_CONFIRMATION, {
+    const [submitInputResponse] = useMutation(INPUT_RESPONSE, {
         onCompleted: (data) => {
-            setSubmittingMCPConfirmationID(null);
-            if(data.chatMCPToolConfirmation.status === "success"){
-                setMCPResponseTarget(null);
-                setMCPResponseText("");
+            setSubmittingInputResponseID(null);
+            if(data.chatInputResponse.status === "success"){
+                setInputResponseTarget(null);
+                setInputResponseText("");
             }
-            if(data.chatMCPToolConfirmation.status !== "success"){
-                snackActions.error(data.chatMCPToolConfirmation.error);
+            if(data.chatInputResponse.status !== "success"){
+                snackActions.error(data.chatInputResponse.error);
             }
         },
         onError: (error) => {
-            setSubmittingMCPConfirmationID(null);
+            setSubmittingInputResponseID(null);
             snackActions.error(error.message);
         },
     });
-    const submitMCPConfirmationDecision = React.useCallback((message, decision, response = "") => {
+    const submitInputResponseAction = React.useCallback((message, action, response = "", choiceID = "") => {
         if(!message?.id){
             return;
         }
-        setSubmittingMCPConfirmationID(message.id);
-        submitMCPToolConfirmation({
+        setSubmittingInputResponseID(message.id);
+        submitInputResponse({
             variables: {
                 message_id: message.id,
-                decision,
+                action,
                 response,
+                choice_id: choiceID,
             },
         }).catch(() => {
-            setSubmittingMCPConfirmationID(null);
+            setSubmittingInputResponseID(null);
         });
-    }, [submitMCPToolConfirmation]);
-    const handleMCPConfirmationAction = React.useCallback((message, decision) => {
-        if(decision === "respond"){
-            setMCPResponseTarget(message);
-            setMCPResponseText("");
+    }, [submitInputResponse]);
+    const handleInputResponseAction = React.useCallback((message, action, options = {}) => {
+        if(action === "respond"){
+            setInputResponseTarget(message);
+            setInputResponseText("");
             return;
         }
-        submitMCPConfirmationDecision(message, decision);
-    }, [submitMCPConfirmationDecision]);
+        submitInputResponseAction(message, action, options.response || "", options.choice_id || "");
+    }, [submitInputResponseAction]);
     const [runSearch, {data: searchData, loading: searchLoading}] = useLazyQuery(CHAT_SEARCH, {
         fetchPolicy: "no-cache",
         onCompleted: (data) => {
@@ -2987,9 +2988,9 @@ export function Chat({me}) {
                                     onRetry={(requestID) => retryRequest({variables: {request_id: requestID}})}
                                     onRefreshSpecial={refreshChatSpecialMessage}
                                     onReviewSpecial={reviewChatSpecialMessage}
-                                    onSubmitMCPConfirmation={handleMCPConfirmationAction}
+                                    onSubmitInputResponse={handleInputResponseAction}
                                     refreshingSpecialMessageID={refreshingSpecialMessageID}
-                                    submittingMCPConfirmationID={submittingMCPConfirmationID}
+                                    submittingInputResponseID={submittingInputResponseID}
                                     editing={editingID === message.id}
                                     editText={editText}
                                     setEditText={setEditText}
@@ -3071,9 +3072,9 @@ export function Chat({me}) {
                     viewUTCTime={currentMe?.user?.view_utc_time}
                 />
             }
-            {mcpResponseTarget &&
-                <Dialog open={Boolean(mcpResponseTarget)} onClose={() => {setMCPResponseTarget(null); setMCPResponseText("");}} maxWidth="sm" fullWidth>
-                    <DialogTitle>Respond To MCP Request</DialogTitle>
+            {inputResponseTarget &&
+                <Dialog open={Boolean(inputResponseTarget)} onClose={() => {setInputResponseTarget(null); setInputResponseText("");}} maxWidth="sm" fullWidth>
+                    <DialogTitle>Respond To Input Request</DialogTitle>
                     <DialogContent className="mythic-chat-dialog-content" sx={{display: "flex", flexDirection: "column", gap: 1.75, pt: "20px !important", px: 3}}>
                         <TextField
                             autoFocus
@@ -3082,16 +3083,16 @@ export function Chat({me}) {
                             minRows={4}
                             size="small"
                             label="Response"
-                            value={mcpResponseText}
-                            onChange={(e) => setMCPResponseText(e.target.value)}
+                            value={inputResponseText}
+                            onChange={(e) => setInputResponseText(e.target.value)}
                         />
                     </DialogContent>
                     <DialogActions>
-                        <Button onClick={() => {setMCPResponseTarget(null); setMCPResponseText("");}}>Cancel</Button>
+                        <Button onClick={() => {setInputResponseTarget(null); setInputResponseText("");}}>Cancel</Button>
                         <Button
                             variant="contained"
-                            disabled={mcpResponseText.trim() === "" || submittingMCPConfirmationID === mcpResponseTarget?.id}
-                            onClick={() => submitMCPConfirmationDecision(mcpResponseTarget, "respond", mcpResponseText.trim())}
+                            disabled={inputResponseText.trim() === "" || submittingInputResponseID === inputResponseTarget?.id}
+                            onClick={() => submitInputResponseAction(inputResponseTarget, "respond", inputResponseText.trim())}
                         >
                             Send
                         </Button>
@@ -3212,7 +3213,7 @@ const ChatAssistantMessage = ({message}) => {
 };
 
 const CHAT_SPECIAL_TYPE_EVENTING_USER_INTERACTION = "eventing_user_interaction";
-const CHAT_SPECIAL_TYPE_MCP_TOOL_CONFIRMATION = "mcp_tool_confirmation";
+const CHAT_SPECIAL_TYPE_INPUT_REQUESTED = "input_requested";
 const CHAT_SPECIAL_TYPE_TOOL_USE = "tool_use";
 
 const getChatMessageMetadata = (message) => {
@@ -3237,12 +3238,12 @@ const getEventingInteractionSnapshot = (message) => {
     return snapshot && typeof snapshot === "object" && !Array.isArray(snapshot) ? snapshot : {};
 };
 
-const getMCPToolConfirmationSnapshot = (message) => {
+const getInputRequestedSnapshot = (message) => {
     const metadata = getChatMessageMetadata(message);
-    if(metadata.special_type !== CHAT_SPECIAL_TYPE_MCP_TOOL_CONFIRMATION){
+    if(metadata.special_type !== CHAT_SPECIAL_TYPE_INPUT_REQUESTED){
         return null;
     }
-    const snapshot = metadata.mcp_tool_confirmation || {};
+    const snapshot = metadata.input_requested || {};
     return snapshot && typeof snapshot === "object" && !Array.isArray(snapshot) ? snapshot : {};
 };
 
@@ -3408,13 +3409,13 @@ const ChatEventingUserInteractionEvent = ({message, me, onRefresh, onReview, ref
     );
 };
 
-const getMCPConfirmationStatusText = (snapshot) => {
+const getInputRequestedStatusText = (snapshot) => {
     const status = snapshot.status || "pending";
     if(status === "pending"){
-        return "Needs confirmation";
+        return "Input requested";
     }
-    if(status === "confirmed"){
-        return "Confirmed";
+    if(status === "accepted"){
+        return "Accepted";
     }
     if(status === "rejected"){
         return "Rejected";
@@ -3422,12 +3423,16 @@ const getMCPConfirmationStatusText = (snapshot) => {
     if(status === "responded"){
         return "Responded";
     }
+    if(status === "selected"){
+        return "Selected";
+    }
     return status;
 };
 
-const getMCPConfirmationStateClass = (snapshot) => {
+const getInputRequestedStateClass = (snapshot) => {
     switch(snapshot.status || "pending"){
-        case "confirmed":
+        case "accepted":
+        case "selected":
             return "success";
         case "rejected":
             return "error";
@@ -3440,14 +3445,16 @@ const getMCPConfirmationStateClass = (snapshot) => {
     }
 };
 
-const ChatMCPToolConfirmationEvent = ({message, onSubmit, submitting}) => {
-    const snapshot = getMCPToolConfirmationSnapshot(message) || {};
+const ChatInputRequestedEvent = ({message, onSubmit, submitting}) => {
+    const snapshot = getInputRequestedSnapshot(message) || {};
     const pending = (snapshot.status || "pending") === "pending";
-    const stateClass = getMCPConfirmationStateClass(snapshot);
-    const statusText = getMCPConfirmationStatusText(snapshot);
-    const toolName = snapshot.tool_name || snapshot.server_tool_name || "MCP tool";
-    const serverName = snapshot.server_name || "unknown";
-    const argumentText = jsonTextForConfigValue(snapshot.arguments || {});
+    const stateClass = getInputRequestedStateClass(snapshot);
+    const statusText = getInputRequestedStatusText(snapshot);
+    const inputType = snapshot.input_type || "approval";
+    const title = snapshot.title || "Input requested";
+    const prompt = snapshot.prompt || message.message || "";
+    const choices = Array.isArray(snapshot.choices) ? snapshot.choices : [];
+    const response = snapshot.response && typeof snapshot.response === "object" && !Array.isArray(snapshot.response) ? snapshot.response : null;
     const [showDetails, setShowDetails] = useState(pending);
     React.useEffect(() => {
         if(!pending){
@@ -3455,13 +3462,13 @@ const ChatMCPToolConfirmationEvent = ({message, onSubmit, submitting}) => {
         }
     }, [pending]);
     const detailItems = [
-        {label: "Server", value: serverName},
-        {label: "Tool", value: toolName},
-        snapshot.server_tool_name && snapshot.server_tool_name !== toolName ? {label: "MCP name", value: snapshot.server_tool_name} : null,
-        snapshot.read_only === true ? {label: "Configured access", value: "Read-only"} : {label: "Configured access", value: "Confirmation required"},
+        {label: "Type", value: inputType},
         snapshot.resolved_at ? {label: "Resolved", value: formatTimestamp(snapshot.resolved_at)} : null,
         snapshot.resolved_by ? {label: "Resolved by", value: snapshot.resolved_by} : null,
+        response?.action ? {label: "Action", value: response.action} : null,
     ].filter(Boolean);
+    const dataText = jsonTextForConfigValue(snapshot.data || {});
+    const responseText = response ? jsonTextForConfigValue(response) : "";
     return (
         <Box className={`mythic-chat-inline-event mythic-chat-inline-event-${stateClass}`.trim()}>
             <Box className="mythic-chat-inline-event-summary">
@@ -3473,20 +3480,20 @@ const ChatMCPToolConfirmationEvent = ({message, onSubmit, submitting}) => {
                         variant="outlined"
                     />
                     <Typography className="mythic-chat-inline-event-title" variant="body2" noWrap>
-                        MCP tool: {toolName}
+                        {title}
                     </Typography>
                 </Box>
                 <Box className="mythic-chat-inline-event-actions">
-                    {pending &&
+                    {pending && inputType === "approval" &&
                         <>
                             <Button
                                 size="small"
                                 variant="contained"
                                 className="mythic-table-row-action mythic-table-row-action-hover-success"
                                 disabled={submitting}
-                                onClick={() => onSubmit(message, "confirm")}
+                                onClick={() => onSubmit(message, "accept")}
                             >
-                                Confirm
+                                Accept
                             </Button>
                             <Button
                                 size="small"
@@ -3506,6 +3513,17 @@ const ChatMCPToolConfirmationEvent = ({message, onSubmit, submitting}) => {
                             </Button>
                         </>
                     }
+                    {pending && inputType === "text" &&
+                        <Button
+                            size="small"
+                            variant="contained"
+                            className="mythic-table-row-action mythic-table-row-action-hover-success"
+                            disabled={submitting}
+                            onClick={() => onSubmit(message, "respond")}
+                        >
+                            Respond
+                        </Button>
+                    }
                     <Button
                         size="small"
                         variant="text"
@@ -3519,10 +3537,42 @@ const ChatMCPToolConfirmationEvent = ({message, onSubmit, submitting}) => {
             </Box>
             <Collapse in={showDetails} timeout="auto" unmountOnExit>
                 <Box className="mythic-chat-inline-event-details">
+                    {prompt &&
+                        <Typography variant="caption" className="mythic-chat-inline-event-description">
+                            {prompt}
+                        </Typography>
+                    }
                     {snapshot.description &&
                         <Typography variant="caption" className="mythic-chat-inline-event-description">
                             {snapshot.description}
                         </Typography>
+                    }
+                    {pending && inputType === "single_choice" &&
+                        <Box className="mythic-chat-input-choice-list">
+                            {choices.map((choice, index) => {
+                                const choiceID = choice?.id || `${index}`;
+                                return (
+                                    <Button
+                                        key={`${message.id}-choice-${choiceID}`}
+                                        className="mythic-chat-input-choice"
+                                        disabled={submitting}
+                                        onClick={() => onSubmit(message, "select", {choice_id: choiceID})}
+                                        variant="outlined"
+                                    >
+                                        <Box className="mythic-chat-input-choice-content">
+                                            <Typography variant="body2" className="mythic-chat-input-choice-label">
+                                                {choice?.label || choiceID}
+                                            </Typography>
+                                            {choice?.description &&
+                                                <Typography variant="caption" color="text.secondary" className="mythic-chat-input-choice-description">
+                                                    {choice.description}
+                                                </Typography>
+                                            }
+                                        </Box>
+                                    </Button>
+                                );
+                            })}
+                        </Box>
                     }
                     <Box className="mythic-chat-special-card-details">
                         {detailItems.map((item) => (
@@ -3532,12 +3582,14 @@ const ChatMCPToolConfirmationEvent = ({message, onSubmit, submitting}) => {
                             </span>
                         ))}
                     </Box>
-                    <Typography component="pre" variant="caption" className="mythic-chat-mcp-arguments">
-                        {argumentText}
-                    </Typography>
-                    {snapshot.annotations && Object.keys(snapshot.annotations).length > 0 &&
-                        <Typography component="pre" variant="caption" className="mythic-chat-mcp-annotations">
-                            {jsonTextForConfigValue(snapshot.annotations)}
+                    {dataText !== "{}" &&
+                        <Typography component="pre" variant="caption" className="mythic-chat-input-data">
+                            {dataText}
+                        </Typography>
+                    }
+                    {responseText &&
+                        <Typography component="pre" variant="caption" className="mythic-chat-input-data">
+                            {responseText}
                         </Typography>
                     }
                 </Box>
@@ -3646,13 +3698,13 @@ const ChatToolUseEvent = ({message}) => {
     );
 };
 
-export const MessageBubble = ({message, request, me, onEdit, onDelete, onRetry, onRefreshSpecial, onReviewSpecial, onSubmitMCPConfirmation, refreshingSpecialMessageID, submittingMCPConfirmationID, editing, editText, setEditText, saveEdit, cancelEdit}) => {
+export const MessageBubble = ({message, request, me, onEdit, onDelete, onRetry, onRefreshSpecial, onReviewSpecial, onSubmitInputResponse, refreshingSpecialMessageID, submittingInputResponseID, editing, editText, setEditText, saveEdit, cancelEdit}) => {
     const theme = useTheme();
     const isMine = message.operator_id === me?.user?.user_id;
     const isAI = message.author_type === "ai";
     const isSystem = message.author_type === "system";
     const eventingInteractionSnapshot = getEventingInteractionSnapshot(message);
-    const mcpConfirmationSnapshot = getMCPToolConfirmationSnapshot(message);
+    const inputRequestedSnapshot = getInputRequestedSnapshot(message);
     const toolUseSnapshot = getToolUseSnapshot(message);
     const canEdit = isMine && message.author_type === "operator" && !message.deleted;
     const canDelete = !message.deleted && (isMine || message.author_type !== "operator");
@@ -3669,12 +3721,12 @@ export const MessageBubble = ({message, request, me, onEdit, onDelete, onRetry, 
             <ChatToolUseEvent message={message} />
         );
     }
-    if(mcpConfirmationSnapshot){
+    if(inputRequestedSnapshot){
         return (
-            <ChatMCPToolConfirmationEvent
+            <ChatInputRequestedEvent
                 message={message}
-                onSubmit={onSubmitMCPConfirmation}
-                submitting={submittingMCPConfirmationID === message.id}
+                onSubmit={onSubmitInputResponse}
+                submitting={submittingInputResponseID === message.id}
             />
         );
     }

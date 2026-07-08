@@ -21,13 +21,14 @@ import (
 )
 
 const (
-	chatContextMessageLimit                = 40
-	chatGeneralChannelName                 = "general"
-	chatSpecialTypeMCPToolConfirmation     = "mcp_tool_confirmation"
-	chatMCPToolConfirmationStatusPending   = "pending"
-	chatMCPToolConfirmationStatusConfirmed = "confirmed"
-	chatMCPToolConfirmationStatusRejected  = "rejected"
-	chatMCPToolConfirmationStatusResponded = "responded"
+	chatContextMessageLimit           = 40
+	chatGeneralChannelName            = "general"
+	chatSpecialTypeInputRequested     = "input_requested"
+	chatInputRequestedStatusPending   = "pending"
+	chatInputRequestedStatusAccepted  = "accepted"
+	chatInputRequestedStatusRejected  = "rejected"
+	chatInputRequestedStatusResponded = "responded"
+	chatInputRequestedStatusSelected  = "selected"
 )
 
 var chatSlugInvalidCharacters = regexp.MustCompile(`[^a-z0-9]+`)
@@ -35,7 +36,7 @@ var chatSlugInvalidCharacters = regexp.MustCompile(`[^a-z0-9]+`)
 type aiChatRequestOptions struct {
 	RetryOfID              *int
 	RequestMessageMetadata map[string]interface{}
-	ConfirmedToolCall      map[string]interface{}
+	InputResponse          *rabbitmq.ChatContainerInputResponse
 	SlashCommand           *rabbitmq.ChatSlashCommandInvocation
 	AliasResolution        *rabbitmq.OperatorAliasResolution
 	SlashMetadata          map[string]interface{}
@@ -354,7 +355,7 @@ func createAIChatMessageWithOptions(c *gin.Context, operatorOperation *databaseS
 		options.SlashCommand,
 		options.AliasResolution,
 		options.SlashMetadata,
-		options.ConfirmedToolCall,
+		options.InputResponse,
 		chatAuthContext,
 	)
 
@@ -379,7 +380,7 @@ func dispatchAIChatRequest(
 	slashCommand *rabbitmq.ChatSlashCommandInvocation,
 	aliasResolution *rabbitmq.OperatorAliasResolution,
 	slashMetadata map[string]interface{},
-	confirmedToolCall map[string]interface{},
+	inputResponse *rabbitmq.ChatContainerInputResponse,
 	chatAuthContext rabbitmq.RabbitMQAuthContext,
 ) {
 	contextMessages, err := getChatContextMessages(operationID, channel.ID, requestMessageID)
@@ -397,7 +398,7 @@ func dispatchAIChatRequest(
 		"context_message_ids":   contextIDs,
 		"request_message_id":    requestMessageID,
 		"retry_of_id":           retryOf,
-		"confirmed_tool_call":   confirmedToolCall,
+		"input_response":        inputResponse,
 		"context_message_limit": chatContextMessageLimit,
 		"config":                chatConfig,
 		"final_prompt":          prompt,
@@ -417,20 +418,20 @@ func dispatchAIChatRequest(
 		WHERE id=$1 AND operation_id=$2`, requestID, operationID, contextSnapshot.String())
 
 	err = rabbitmq.RabbitMQConnection.SendChatContainerRequest(container.Name, rabbitmq.ChatContainerRequestMessage{
-		OperationID:       operationID,
-		ChannelID:         channel.ID,
-		APITokenID:        int(channel.APITokensID.Int64),
-		ChannelName:       channel.Name,
-		ChannelSlug:       channel.Slug,
-		RequestID:         requestID,
-		RequestMessageID:  requestMessageID,
-		Model:             channel.ChatModel,
-		Prompt:            prompt,
-		Config:            chatConfig,
-		Context:           contextMessages,
-		Secrets:           rabbitmq.GetSecrets(operatorID, 0),
-		SlashCommand:      slashCommand,
-		ConfirmedToolCall: confirmedToolCall,
+		OperationID:      operationID,
+		ChannelID:        channel.ID,
+		APITokenID:       int(channel.APITokensID.Int64),
+		ChannelName:      channel.Name,
+		ChannelSlug:      channel.Slug,
+		RequestID:        requestID,
+		RequestMessageID: requestMessageID,
+		Model:            channel.ChatModel,
+		Prompt:           prompt,
+		Config:           chatConfig,
+		Context:          contextMessages,
+		Secrets:          rabbitmq.GetSecrets(operatorID, 0),
+		SlashCommand:     slashCommand,
+		InputResponse:    inputResponse,
 	}, chatAuthContext)
 	if err != nil {
 		logging.LogError(err, "Failed to send AI chat request", "request_id", requestID)
@@ -573,16 +574,30 @@ func chatCopyMetadataMap(metadata map[string]interface{}) map[string]interface{}
 	return copied
 }
 
-func chatMCPToolDisplayName(confirmation map[string]interface{}) string {
-	toolName, _ := confirmation["tool_name"].(string)
-	serverName, _ := confirmation["server_name"].(string)
-	if serverName != "" && toolName != "" {
-		return fmt.Sprintf("%s.%s", serverName, toolName)
+func chatFindInputChoice(inputRequest map[string]interface{}, choiceID string) map[string]interface{} {
+	choices, ok := inputRequest["choices"].([]interface{})
+	if !ok {
+		return nil
 	}
-	if toolName != "" {
-		return toolName
+	for index, choice := range choices {
+		choiceMap, ok := choice.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if id, _ := choiceMap["id"].(string); id == choiceID {
+			return chatCopyMetadataMap(choiceMap)
+		}
+		if _, ok = choiceMap["id"]; !ok && fmt.Sprintf("%d", index) == choiceID {
+			return chatCopyMetadataMap(choiceMap)
+		}
 	}
-	return "requested tool"
+	return nil
+}
+
+func chatRequestStatusIsTerminal(status string) bool {
+	return status == databaseStructs.ChatMessageStatusComplete ||
+		status == databaseStructs.ChatMessageStatusError ||
+		status == databaseStructs.ChatMessageStatusCancelled
 }
 
 func processAIChatSlashInput(operatorID int, channel databaseStructs.ChatChannel, container databaseStructs.ConsumingContainer, message string) (string, map[string]interface{}, *rabbitmq.ChatSlashCommandInvocation, *rabbitmq.OperatorAliasResolution, error) {
@@ -780,6 +795,8 @@ func getChatMessageAndChannel(messageID int, operationID int) (databaseStructs.C
 			operator_id,
 			apitokens_id,
 			author_type,
+			chat_request_id,
+			chat_response_key,
 			chat_container_id,
 			sender_display_name,
 			message,

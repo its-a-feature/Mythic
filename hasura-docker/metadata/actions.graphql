@@ -96,10 +96,11 @@ type Mutation {
 }
 
 type Mutation {
-  chatMCPToolConfirmation(
+  chatInputResponse(
     message_id: Int!
-    decision: String!
+    action: String!
     response: String
+    choice_id: String
   ): ChatActionOutput
 }
 
