@@ -690,10 +690,9 @@ type aiChatModelDefinition struct {
 
 func getAIModelSlashCommands(container databaseStructs.ConsumingContainer, modelName string) map[string]aiChatSlashCommandDefinition {
 	modelCommands := map[string]aiChatSlashCommandDefinition{}
-	for _, subscription := range container.Subscriptions {
+	for _, subscription := range container.Subscriptions.StructValue() {
 		var modelDefinition aiChatModelDefinition
-		err := mapstructure.Decode(subscription, &modelDefinition)
-		if err != nil {
+		if err := decodeAIChatModelSubscription(subscription, &modelDefinition); err != nil {
 			logging.LogError(err, "failed to decode subscription in getAIModelSlashCommands")
 			continue
 		}
@@ -709,6 +708,13 @@ func getAIModelSlashCommands(container databaseStructs.ConsumingContainer, model
 		return modelCommands
 	}
 	return modelCommands
+}
+
+func decodeAIChatModelSubscription(subscription interface{}, modelDefinition *aiChatModelDefinition) error {
+	if subscriptionString, ok := subscription.(string); ok {
+		return json.Unmarshal([]byte(subscriptionString), modelDefinition)
+	}
+	return mapstructure.Decode(subscription, modelDefinition)
 }
 
 func mergeChatMetadata(base map[string]interface{}, extra map[string]interface{}) map[string]interface{} {
