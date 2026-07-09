@@ -17,6 +17,9 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
 import InputLabel from '@mui/material/InputLabel';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import Switch from '@mui/material/Switch';
@@ -36,6 +39,7 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import LockIcon from '@mui/icons-material/Lock';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
@@ -5009,6 +5013,9 @@ const getInputRequestedStatusText = (snapshot) => {
     if(status === "selected"){
         return "Selected";
     }
+    if(status === "cancelled"){
+        return "Cancelled";
+    }
     return status;
 };
 
@@ -5018,6 +5025,7 @@ const getInputRequestedStateClass = (snapshot) => {
         case "selected":
             return "success";
         case "rejected":
+        case "cancelled":
             return "error";
         case "responded":
             return "queued";
@@ -5221,6 +5229,8 @@ const getSubagentStatusText = (snapshot) => {
         case "failed":
         case "error":
             return "Failed";
+        case "cancelled":
+            return "Cancelled";
         case "running":
         case "started":
             return "Running";
@@ -5237,6 +5247,7 @@ const getSubagentStateClass = (snapshot) => {
             return "success";
         case "failed":
         case "error":
+        case "cancelled":
             return "error";
         case "running":
         case "started":
@@ -5246,7 +5257,7 @@ const getSubagentStateClass = (snapshot) => {
     }
 };
 
-const isTerminalSubagentSnapshot = (snapshot) => ["finished", "completed", "complete", "failed", "error"].includes(`${snapshot.status || ""}`.toLowerCase());
+const isTerminalSubagentSnapshot = (snapshot) => ["finished", "completed", "complete", "failed", "error", "cancelled"].includes(`${snapshot.status || ""}`.toLowerCase());
 
 const normalizeFontAwesomeIconName = (value) => {
     const text = `${value || ""}`.trim();
@@ -5527,6 +5538,7 @@ const ChatSpecialEventFrame = ({message, me, children}) => {
 
 export const MessageBubble = ({message, request, me, onEdit, onDelete, onRetry, onRefreshSpecial, onReviewSpecial, onSubmitInputResponse, onOpenDelegation, onViewToolOutput, refreshingSpecialMessageID, submittingInputResponseID, editing, editText, setEditText, saveEdit, cancelEdit}) => {
     const theme = useTheme();
+    const [actionMenuAnchor, setActionMenuAnchor] = React.useState(null);
     const isMine = message.operator_id === me?.user?.user_id;
     const isAI = message.author_type === "ai";
     const isSystem = message.author_type === "system";
@@ -5536,6 +5548,8 @@ export const MessageBubble = ({message, request, me, onEdit, onDelete, onRetry, 
     const subagentSnapshot = getSubagentSnapshot(message);
     const canEdit = isMine && message.author_type === "operator" && !message.deleted;
     const canDelete = !message.deleted && (isMine || message.author_type !== "operator");
+    const canCopy = !message.deleted && `${message.message || ""}` !== "";
+    const hasMessageActions = canCopy || canEdit || canDelete;
     const streaming = message.status === "streaming";
     const softBorderColor = theme.table?.borderSoft || theme.borderColor || theme.palette.divider;
     const chatMessageColors = theme.chat?.message || {};
@@ -5544,6 +5558,31 @@ export const MessageBubble = ({message, request, me, onEdit, onDelete, onRetry, 
     const messageBackgroundColor = isSystem ? chatMessageColors.systemBackground :
         isMine ? chatMessageColors.selfBackground :
             chatMessageColors.operatorBackground;
+    const closeActionMenu = () => setActionMenuAnchor(null);
+    const copyMessageText = async () => {
+        const text = `${message.message || ""}`;
+        closeActionMenu();
+        try {
+            if(typeof navigator !== "undefined" && navigator.clipboard?.writeText){
+                await navigator.clipboard.writeText(text);
+            } else if(typeof document !== "undefined"){
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.setAttribute("readonly", "");
+                textArea.style.position = "fixed";
+                textArea.style.left = "-9999px";
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand("copy");
+                document.body.removeChild(textArea);
+            } else {
+                throw new Error("clipboard unavailable");
+            }
+            snackActions.success("Copied message text");
+        } catch (error) {
+            snackActions.error("Failed to copy message text");
+        }
+    };
     if(subagentSnapshot){
         return (
             <ChatSpecialEventFrame message={message} me={me}>
@@ -5622,19 +5661,53 @@ export const MessageBubble = ({message, request, me, onEdit, onDelete, onRetry, 
                                 </IconButton>
                             </MythicStyledTooltip>
                         }
-                        {canEdit &&
-                            <MythicStyledTooltip title="Edit message">
-                                <IconButton size="small" onClick={() => onEdit(message)}>
-                                    <EditIcon fontSize="small" />
-                                </IconButton>
-                            </MythicStyledTooltip>
-                        }
-                        {canDelete &&
-                            <MythicStyledTooltip title="Delete message">
-                                <IconButton size="small" onClick={() => onDelete(message.id)}>
-                                    <DeleteIcon fontSize="small" />
-                                </IconButton>
-                            </MythicStyledTooltip>
+                        {hasMessageActions &&
+                            <>
+                                <MythicStyledTooltip title="Message actions">
+                                    <IconButton
+                                        size="small"
+                                        aria-controls={actionMenuAnchor ? `chat-message-actions-${message.id}` : undefined}
+                                        aria-haspopup="true"
+                                        aria-expanded={actionMenuAnchor ? "true" : undefined}
+                                        onClick={(e) => setActionMenuAnchor(e.currentTarget)}
+                                    >
+                                        <MoreVertIcon fontSize="small" />
+                                    </IconButton>
+                                </MythicStyledTooltip>
+                                <Menu
+                                    id={`chat-message-actions-${message.id}`}
+                                    anchorEl={actionMenuAnchor}
+                                    open={Boolean(actionMenuAnchor)}
+                                    onClose={closeActionMenu}
+                                    anchorOrigin={{vertical: "bottom", horizontal: "right"}}
+                                    transformOrigin={{vertical: "top", horizontal: "right"}}
+                                >
+                                    {canCopy &&
+                                        <MenuItem onClick={copyMessageText}>
+                                            <ListItemIcon>
+                                                <ContentCopyIcon fontSize="small" />
+                                            </ListItemIcon>
+                                            <ListItemText>Copy text</ListItemText>
+                                        </MenuItem>
+                                    }
+                                    {canEdit &&
+                                        <MenuItem onClick={() => { closeActionMenu(); onEdit(message); }}>
+                                            <ListItemIcon>
+                                                <EditIcon fontSize="small" />
+                                            </ListItemIcon>
+                                            <ListItemText>Edit</ListItemText>
+                                        </MenuItem>
+                                    }
+                                    {canDelete &&
+                                        <MenuItem onClick={() => { closeActionMenu(); onDelete(message.id); }}>
+                                            <ListItemIcon>
+                                                <DeleteIcon fontSize="small" />
+                                            </ListItemIcon>
+                                            <ListItemText>Delete</ListItemText>
+                                        </MenuItem>
+                                    }
+                                </Menu>
+                            </>
                         }
                     </Box>
                 </Box>

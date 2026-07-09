@@ -48,8 +48,8 @@ type ChatContainerResponseMessage struct {
 // Current special metadata shapes:
 //   - input_requested: chat-container authored. Include InputRequested with
 //     status "pending" to display a human-in-the-loop card. The backend later
-//     updates that same nested object to accepted, rejected, responded, or
-//     selected.
+//     updates that same nested object to accepted, rejected, responded, selected,
+//     or cancelled.
 //   - eventing_user_interaction: Mythic eventing authored. It is documented
 //     here because it uses the same special message convention, but chat
 //     containers should not normally send it.
@@ -134,7 +134,7 @@ type ChatContainerResponseMetadata struct {
 // metadata.special_type == "input_requested".
 type ChatInputRequestedMetadata struct {
 	// Status must be "pending" when sent by a chat container. Mythic later sets
-	// it to "accepted", "rejected", "responded", or "selected".
+	// it to "accepted", "rejected", "responded", "selected", or "cancelled".
 	Status string `json:"status,omitempty" mapstructure:"status"`
 
 	// InputType controls the UI affordance: "approval", "text", or
@@ -466,6 +466,7 @@ type chatResponseRequest struct {
 	ChatContainerID   int    `db:"chat_container_id"`
 	ChatContainerName string `db:"chat_container_name"`
 	Status            string `db:"status"`
+	ChannelArchived   bool   `db:"channel_archived"`
 }
 
 type chatStreamBuffer struct {
@@ -513,9 +514,6 @@ func applyChatContainerResponse(incomingMessage ChatContainerResponseMessage, au
 	if err != nil {
 		return err
 	}
-	if request.Status == databaseStructs.ChatMessageStatusCancelled {
-		return nil
-	}
 	if incomingMessage.OperationID > 0 && incomingMessage.OperationID != request.OperationID {
 		return fmt.Errorf("chat response operation %d does not match request operation %d",
 			incomingMessage.OperationID, request.OperationID)
@@ -523,6 +521,9 @@ func applyChatContainerResponse(incomingMessage ChatContainerResponseMessage, au
 	if authContext.OperationID > 0 && authContext.OperationID != request.OperationID {
 		return fmt.Errorf("chat response auth operation %d does not match request operation %d",
 			authContext.OperationID, request.OperationID)
+	}
+	if request.ChannelArchived {
+		return nil
 	}
 
 	targetMessageID, err := getChatResponseTargetMessageID(request, incomingMessage)
@@ -535,13 +536,6 @@ func applyChatContainerResponse(incomingMessage ChatContainerResponseMessage, au
 	chatResponseLock := getChatResponseLock(targetMessageID)
 	chatResponseLock.Lock()
 	defer chatResponseLock.Unlock()
-
-	if request, err = getChatResponseRequest(ChatContainerResponseMessage{RequestID: request.ID}, request.OperationID); err != nil {
-		return err
-	}
-	if isTerminalChatResponseStatus(request.Status) {
-		return nil
-	}
 
 	status := normalizeChatContainerResponseStatus(incomingMessage)
 	if message := chatResponseVisibleContent(incomingMessage); message != "" {
@@ -609,8 +603,11 @@ func getChatResponseRequest(incomingMessage ChatContainerResponseMessage, operat
 			chat_request.channel_id,
 			chat_request.chat_container_id,
 			chat_request.status,
+			chat_channel.archived "channel_archived",
 			COALESCE(consuming_container.name, '') "chat_container_name"
 		FROM chat_request
+		JOIN chat_channel ON chat_channel.id = chat_request.channel_id
+			AND chat_channel.operation_id = chat_request.operation_id
 		LEFT JOIN consuming_container ON consuming_container.id = chat_request.chat_container_id
 		WHERE chat_request.id=$1`
 	args := []interface{}{incomingMessage.RequestID}
@@ -776,7 +773,7 @@ func setChatResponseMessageStatus(responseMessageID int, operationID int, status
 		SET status=$3,
 			metadata = metadata || $4::jsonb,
 			tool_output = CASE WHEN $5 THEN $6 ELSE tool_output END
-		WHERE id=$1 AND operation_id=$2 AND deleted=false AND status <> 'cancelled'`,
+		WHERE id=$1 AND operation_id=$2 AND deleted=false`,
 		responseMessageID, operationID, status, metadataJSON.String(), toolOutput != "", toolOutput)
 	return err
 }
@@ -865,7 +862,7 @@ func setChatRequestStatus(request chatResponseRequest, status string, responseEr
 			error=$3,
 			completed_at=CASE WHEN $2='complete' THEN now() ELSE completed_at END,
 			cancelled_at=CASE WHEN $2='cancelled' THEN now() ELSE cancelled_at END
-		WHERE id=$1 AND operation_id=$4 AND status <> 'cancelled'`, request.ID, status, responseError, request.OperationID)
+		WHERE id=$1 AND operation_id=$4 AND status IN ('pending', 'streaming')`, request.ID, status, responseError, request.OperationID)
 	return err
 }
 

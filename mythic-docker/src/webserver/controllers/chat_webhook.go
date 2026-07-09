@@ -24,11 +24,13 @@ const (
 	chatContextMessageLimit           = 40
 	chatGeneralChannelName            = "general"
 	chatSpecialTypeInputRequested     = "input_requested"
+	chatSpecialTypeSubagent           = "subagent"
 	chatInputRequestedStatusPending   = "pending"
 	chatInputRequestedStatusAccepted  = "accepted"
 	chatInputRequestedStatusRejected  = "rejected"
 	chatInputRequestedStatusResponded = "responded"
 	chatInputRequestedStatusSelected  = "selected"
+	chatInputRequestedStatusCancelled = "cancelled"
 )
 
 var chatSlugInvalidCharacters = regexp.MustCompile(`[^a-z0-9]+`)
