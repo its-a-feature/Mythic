@@ -6,6 +6,7 @@ import {gql, useMutation} from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
 import SyncAltIcon from '@mui/icons-material/SyncAlt';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
+import {MythicChatContainerIcon} from "../../MythicComponents/MythicChatContainerIcon";
 import MythicTableCell from "../../MythicComponents/MythicTableCell";
 import DeleteIcon from '@mui/icons-material/Delete';
 import RestoreFromTrashOutlinedIcon from '@mui/icons-material/RestoreFromTrashOutlined';
@@ -24,6 +25,7 @@ import {
     InstalledServiceIdentity,
     InstalledServiceMetadataSummary
 } from "./InstalledServiceTableComponents";
+import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 
 const testWebhookMutation = gql`
 mutation testWebhookWorks($service_type: String!){
@@ -231,7 +233,8 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
             <MythicTableCell>
                 {renderDeleteButton(w)}
             </MythicTableCell>
-            <MythicTableCell>
+            <MythicTableCell style={{display: "inline-flex"}}>
+                <MythicAgentSVGIcon payload_type={w.name} style={{width: "80px", padding: "5px", objectFit: "unset"}} />
                 <InstalledServiceIdentity
                     name={w.name}
                     typeLabel={typeLabel}
