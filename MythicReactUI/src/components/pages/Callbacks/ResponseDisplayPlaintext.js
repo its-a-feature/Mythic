@@ -24,7 +24,7 @@ import {
   sanitizeTerminalOutput
 } from "./ResponseDisplayInteractive";
 import {markdownPlugins} from "../../utilities/Markdown";
-import {markdownComponents} from "../Chat/Chat";
+import {markdownComponents} from "../../utilities/MarkdownComponents";
 import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import {CredentialTableNewCredentialDialog} from "../Search/CredentialTableNewCredentialDialog";
 
@@ -343,7 +343,7 @@ export const ResponseDisplayPlaintext = (props) =>{
     const showCreateCredentialAction = props?.enableCredentialCreation !== false &&
         (props.task || props.credentialMetadata || props.showCredentialAction);
   return (
-      <div style={{display: "flex", height: "100%", flexDirection: "column"}}>
+      <div style={{display: "flex", height: "100%", minHeight: 0, minWidth: 0, flexDirection: "column", flex: "1 1 auto"}}>
           {createCredentialDialogOpen &&
               <MythicDialog fullWidth={true} maxWidth="md" open={createCredentialDialogOpen}
                             onClose={()=>{setCreateCredentialDialogOpen(false);}}

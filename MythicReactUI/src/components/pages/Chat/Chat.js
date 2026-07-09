@@ -15,16 +15,11 @@ import Divider from '@mui/material/Divider';
 import FormControl from '@mui/material/FormControl';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import IconButton from '@mui/material/IconButton';
+import InputAdornment from '@mui/material/InputAdornment';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import Switch from '@mui/material/Switch';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import TextField from '@mui/material/TextField';
@@ -34,6 +29,7 @@ import ArchiveIcon from '@mui/icons-material/Archive';
 import CampaignTwoToneIcon from '@mui/icons-material/CampaignTwoTone';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
+import DragHandleIcon from '@mui/icons-material/DragHandle';
 import EditIcon from '@mui/icons-material/Edit';
 import ForumTwoToneIcon from '@mui/icons-material/ForumTwoTone';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
@@ -45,9 +41,12 @@ import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import SearchIcon from '@mui/icons-material/Search';
 import SendIcon from '@mui/icons-material/Send';
+import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
 import SmartToyTwoToneIcon from '@mui/icons-material/SmartToyTwoTone';
 import StopCircleIcon from '@mui/icons-material/StopCircle';
 import UnarchiveIcon from '@mui/icons-material/Unarchive';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
 import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/MythicPageHeader";
@@ -57,15 +56,27 @@ import {GetMythicSetting, useSetMythicSetting} from "../../MythicComponents/Myth
 import {MeContext} from "../../App";
 import {snackActions} from "../../utilities/Snackbar";
 import {getSkewedNow} from "../../utilities/Time";
-import {isAllowedMarkdownLink, markdownPlugins} from "../../utilities/Markdown";
+import {markdownPlugins} from "../../utilities/Markdown";
+import {markdownComponents} from "../../utilities/MarkdownComponents";
 import {EventStepUserInteractionDialog} from "../Eventing/EventStepRender";
 import {SettingsAPITokenDialog} from "../Settings/SettingsOperatorDialog";
 import {SchemaFormRenderer, emptyValueForSchema} from "../CreatePayload/SchemaFormRenderer";
+import {ResponseDisplayPlaintext} from "../Callbacks/ResponseDisplayPlaintext";
+import {MythicDraggablePortal, reorder} from "../../MythicComponents/MythicDraggableList";
+import {
+    Draggable,
+    DragDropContext,
+    Droppable,
+} from "@hello-pangea/dnd";
+import {MythicColorSwatchInput} from "../../MythicComponents/MythicColorInput";
 
 const CHAT_MESSAGE_LIMIT = 250;
 const CHAT_REQUEST_LIMIT = 50;
+const CHAT_UPDATE_LIMIT = 100;
 const CHAT_SPLIT_STORAGE_KEY = "chatSplitSizes";
 const CHAT_SPLIT_DEFAULT_SIZES = [20, 80];
+const CHAT_DELEGATION_SPLIT_STORAGE_KEY = "chatDelegationSplitSizes";
+const CHAT_DELEGATION_SPLIT_DEFAULT_SIZES = [68, 32];
 const CHAT_SELECTED_CHANNEL_SETTING = "chatSelectedChannelID";
 const CHAT_DIALOG_TEXT_FIELD_PROPS = {
     multiline: true,
@@ -262,10 +273,10 @@ query ChatMessages($channel_id: Int!, $limit: Int!) {
 }
 `;
 
-const CHAT_MESSAGES_STREAM_SUBSCRIPTION = gql`
+const CHAT_MESSAGES_UPDATED_QUERY = gql`
 ${CHAT_MESSAGE_FIELDS}
-subscription ChatMessagesStream($channel_id: Int!, $now: timestamp!) {
-  chat_message_stream(batch_size: 50, cursor: {initial_value: {updated_at: $now}, ordering: ASC}, where: {channel_id: {_eq: $channel_id}}) {
+query ChatMessagesUpdated($channel_id: Int!, $since: timestamp!, $limit: Int!) {
+  chat_message(where: {channel_id: {_eq: $channel_id}, updated_at: {_gte: $since}}, order_by: [{updated_at: asc}, {id: asc}], limit: $limit) {
     ...ChatMessageFields
   }
 }
@@ -280,10 +291,10 @@ query ChatRequests($channel_id: Int!, $limit: Int!) {
 }
 `;
 
-const CHAT_REQUESTS_STREAM_SUBSCRIPTION = gql`
+const CHAT_REQUESTS_UPDATED_QUERY = gql`
 ${CHAT_REQUEST_FIELDS}
-subscription ChatRequestsStream($channel_id: Int!, $now: timestamp!) {
-  chat_request_stream(batch_size: 25, cursor: {initial_value: {updated_at: $now}, ordering: ASC}, where: {channel_id: {_eq: $channel_id}}) {
+query ChatRequestsUpdated($channel_id: Int!, $since: timestamp!, $limit: Int!) {
+  chat_request(where: {channel_id: {_eq: $channel_id}, updated_at: {_gte: $since}}, order_by: [{updated_at: asc}, {id: asc}], limit: $limit) {
     ...ChatRequestFields
   }
 }
@@ -344,12 +355,21 @@ mutation CreateChatAPIToken($operator_id: Int, $name: String, $scopes: [String!]
 `;
 
 const CREATE_MESSAGE = gql`
-mutation CreateChatMessage($channel_id: Int!, $message: String!, $system_message: Boolean = false, $all_operations: Boolean = false) {
-  chatCreateMessage(channel_id: $channel_id, message: $message, system_message: $system_message, all_operations: $all_operations) {
+mutation CreateChatMessage($channel_id: Int!, $message: String!, $system_message: Boolean = false, $all_operations: Boolean = false, $delegation_id: String, $delegation_name: String) {
+  chatCreateMessage(channel_id: $channel_id, message: $message, system_message: $system_message, all_operations: $all_operations, delegation_id: $delegation_id, delegation_name: $delegation_name) {
     status
     error
     message_id
     request_id
+  }
+}
+`;
+
+const CHAT_TOOL_OUTPUT_QUERY = gql`
+query ChatToolOutput($message_id: Int!) {
+  chat_message_by_pk(id: $message_id) {
+    id
+    tool_output
   }
 }
 `;
@@ -455,6 +475,14 @@ const getStoredChatSplitSizes = () => {
         return JSON.parse(localStorage.getItem(CHAT_SPLIT_STORAGE_KEY));
     } catch(error) {
         return CHAT_SPLIT_DEFAULT_SIZES;
+    }
+};
+
+const getStoredChatDelegationSplitSizes = () => {
+    try {
+        return JSON.parse(localStorage.getItem(CHAT_DELEGATION_SPLIT_STORAGE_KEY));
+    } catch(error) {
+        return CHAT_DELEGATION_SPLIT_DEFAULT_SIZES;
     }
 };
 
@@ -888,6 +916,7 @@ const getModelConfigOptions = (model) => {
             choices,
             jsonStringSchema,
             minRows: Number(option.min_rows || option.minRows || option.MinRows || 6),
+            displayAsChip: Boolean(option.display_as_chip || option.displayAsChip || option.DisplayAsChip),
         };
     }).filter((option) => option.name);
 };
@@ -1204,6 +1233,694 @@ const applyConfigToMetadata = (metadata, config) => ({
     config,
 });
 
+const getChannelMetadataItems = (channel) => {
+    const metadata = getChannelAIMetadata(channel);
+    const channelMetadata = parseJSONLikeObject(metadata.channel_metadata);
+    return Array.isArray(channelMetadata.items) ? channelMetadata.items : [];
+};
+
+const getChannelMetadataDefaultDisplayString = (channel) => {
+    const metadata = getChannelAIMetadata(channel);
+    const channelMetadata = parseJSONLikeObject(metadata.channel_metadata);
+    return typeof channelMetadata.default_display === "string" ? channelMetadata.default_display :
+        typeof channelMetadata.display === "string" ? channelMetadata.display :
+            "";
+};
+
+const getChannelMetadataDisplayString = (channel) => {
+    const metadata = getChannelAIMetadata(channel);
+    const display = parseJSONLikeObject(metadata.channel_metadata_display);
+    return typeof display.display === "string" ? display.display : "";
+};
+
+const getEffectiveChannelMetadataDisplayString = (channel, displayStringOverride) => {
+    const userDisplayString = displayStringOverride === undefined ? getChannelMetadataDisplayString(channel) : `${displayStringOverride || ""}`;
+    return userDisplayString.trim() === "" ? getChannelMetadataDefaultDisplayString(channel) : userDisplayString;
+};
+
+const applyMetadataDisplayToMetadata = (metadata, displayString) => {
+    const nextMetadata = parseJSONLikeObject(metadata);
+    const trimmedDisplay = `${displayString || ""}`.trim();
+    if(trimmedDisplay === ""){
+        delete nextMetadata.channel_metadata_display;
+    } else {
+        nextMetadata.channel_metadata_display = {
+            ...parseJSONLikeObject(nextMetadata.channel_metadata_display),
+            display: trimmedDisplay,
+        };
+    }
+    return nextMetadata;
+};
+
+const isChipEligibleConfigOption = (option) => (
+    Boolean(option.displayAsChip) && ["string", "number", "boolean", "choice"].includes(option.type)
+);
+
+const formatConfigChipValue = (option, rawValue) => {
+    if(option.type === "boolean"){
+        return parseBooleanConfigValue(rawValue) ? "Yes" : "No";
+    }
+    if(option.type === "choice"){
+        const choice = option.choices.find((item) => `${item.value}` === `${rawValue}`);
+        return choice?.label || `${rawValue ?? ""}`;
+    }
+    return `${rawValue ?? ""}`;
+};
+
+const getChannelConfigChips = (channel, chatContainers) => {
+    if(!channel || channel.channel_type !== "ai"){
+        return [];
+    }
+    const model = modelForChannel(channel, chatContainers || []);
+    const config = getChannelAIConfig(channel);
+    return getModelConfigOptions(model)
+        .filter(isChipEligibleConfigOption)
+        .reduce((chips, option) => {
+            const rawValue = config[option.name];
+            if(rawValue === undefined || rawValue === null || `${rawValue}`.trim() === ""){
+                return chips;
+            }
+            return [...chips, {
+                key: `config:${option.name}`,
+                label: option.displayName || option.name,
+                value: formatConfigChipValue(option, rawValue),
+                tooltip: option.description,
+                status: "neutral",
+            }];
+        }, []);
+};
+
+const metadataDisplayKeyPattern = /^[A-Za-z0-9_.-]+$/;
+const metadataDisplayColorPattern = /^(neutral|info|success|warning|error|danger|#[0-9a-fA-F]{6})$/;
+const metadataScaleColorPattern = /^scale\((.+)\)$/i;
+
+const normalizeChipColor = (color) => {
+    const text = `${color || ""}`.trim();
+    if(text === ""){
+        return "";
+    }
+    return metadataDisplayColorPattern.test(text) ? text.toLowerCase() : "";
+};
+
+const parseMetadataScaleColor = (rawColor) => {
+    const match = `${rawColor || ""}`.trim().match(metadataScaleColorPattern);
+    if(!match){
+        return null;
+    }
+    const stops = match[1].split("|").map((rawStop) => {
+        const [rawAt, ...rawColorParts] = rawStop.split(":");
+        const at = Number(`${rawAt || ""}`.trim());
+        const color = normalizeChipColor(rawColorParts.join(":"));
+        if(Number.isNaN(at) || color === ""){
+            return null;
+        }
+        return {at, color};
+    }).filter(Boolean).sort((a, b) => a.at - b.at);
+    return stops.length > 0 ? {type: "scale", source: "value", stops} : null;
+};
+
+const parseMetadataColorValue = (rawColor) => {
+    const text = `${rawColor || ""}`.trim();
+    if(text === ""){
+        return {color: "", warning: ""};
+    }
+    const scaleColor = parseMetadataScaleColor(text);
+    if(scaleColor){
+        return {color: scaleColor, warning: ""};
+    }
+    const color = normalizeChipColor(text);
+    if(color){
+        return {color, warning: ""};
+    }
+    return {color: "", warning: `Invalid color "${text}"`};
+};
+
+const parseMetadataDisplayItem = (rawItem) => {
+    const text = `${rawItem || ""}`.trim();
+    if(text === ""){
+        return {item: null, warning: ""};
+    }
+    const equalIndex = text.indexOf("=");
+    const label = equalIndex >= 0 ? text.slice(0, equalIndex).trim() : "";
+    const keyAndFormat = equalIndex >= 0 ? text.slice(equalIndex + 1).trim() : text;
+    if(equalIndex >= 0 && label === ""){
+        return {item: null, warning: `Missing label in "${text}"`};
+    }
+    const formatIndex = keyAndFormat.lastIndexOf(":");
+    const key = (formatIndex >= 0 ? keyAndFormat.slice(0, formatIndex) : keyAndFormat).trim();
+    const format = formatIndex >= 0 ? keyAndFormat.slice(formatIndex + 1).trim() : "";
+    if(!metadataDisplayKeyPattern.test(key)){
+        return {item: null, warning: `Invalid metadata key "${key || text}"`};
+    }
+    if(format && !metadataDisplayKeyPattern.test(format)){
+        return {item: null, warning: `Invalid format "${format}" for ${key}`};
+    }
+    return {
+        item: {
+            key,
+            label: label || "",
+            format: format || "",
+        },
+        warning: "",
+    };
+};
+
+const parseMetadataDisplayItems = (text) => {
+    const warnings = [];
+    const items = `${text || ""}`.split(",").reduce((prev, rawItem) => {
+        const parsed = parseMetadataDisplayItem(rawItem);
+        if(parsed.warning){
+            warnings.push(parsed.warning);
+        }
+        return parsed.item ? [...prev, parsed.item] : prev;
+    }, []);
+    return {items, warnings};
+};
+
+const parseMetadataDisplayColors = (text) => {
+    const warnings = [];
+    const colors = {};
+    `${text || ""}`.split(",").map((item) => item.trim()).filter(Boolean).forEach((item) => {
+        const equalIndex = item.indexOf("=");
+        if(equalIndex <= 0){
+            warnings.push(`Invalid color rule "${item}"`);
+            return;
+        }
+        const key = item.slice(0, equalIndex).trim();
+        const rawColor = item.slice(equalIndex + 1).trim();
+        if(!metadataDisplayKeyPattern.test(key)){
+            warnings.push(`Invalid color metadata key "${key}"`);
+            return;
+        }
+        const parsedColor = parseMetadataColorValue(rawColor);
+        if(parsedColor.warning){
+            warnings.push(`${parsedColor.warning} for ${key}`);
+            return;
+        }
+        if(parsedColor.color){
+            colors[key] = parsedColor.color;
+        }
+    });
+    return {colors, warnings};
+};
+
+const parseMetadataDisplayString = (displayString) => {
+    const display = `${displayString || ""}`.trim();
+    const result = {
+        collapsed: null,
+        maxVisible: null,
+        items: [],
+        hidden: [],
+        colors: {},
+        warnings: [],
+    };
+    if(display === ""){
+        return result;
+    }
+    const segments = display.split(";").map((segment) => segment.trim()).filter(Boolean);
+    const hasChipsDirective = segments.some((segment) => segment.toLowerCase().startsWith("chips:"));
+    segments.forEach((segment, index) => {
+        const lowerSegment = segment.toLowerCase();
+        if(lowerSegment === "collapsed"){
+            result.collapsed = true;
+            return;
+        }
+        if(lowerSegment === "expanded"){
+            result.collapsed = false;
+            return;
+        }
+        if(lowerSegment.startsWith("max=")){
+            const maxVisible = Number(segment.slice(segment.indexOf("=") + 1).trim());
+            if(Number.isInteger(maxVisible) && maxVisible > 0){
+                result.maxVisible = maxVisible;
+            } else {
+                result.warnings.push(`Invalid max value in "${segment}"`);
+            }
+            return;
+        }
+        if(lowerSegment.startsWith("chips:")){
+            const parsed = parseMetadataDisplayItems(segment.slice(segment.indexOf(":") + 1));
+            result.items = parsed.items;
+            result.warnings.push(...parsed.warnings);
+            return;
+        }
+        if(lowerSegment.startsWith("hide:")){
+            const hidden = segment.slice(segment.indexOf(":") + 1).split(",").map((item) => item.trim()).filter(Boolean);
+            const validHidden = hidden.filter((item) => metadataDisplayKeyPattern.test(item));
+            const invalidHidden = hidden.filter((item) => !metadataDisplayKeyPattern.test(item));
+            result.hidden = validHidden;
+            invalidHidden.forEach((item) => result.warnings.push(`Invalid hidden metadata key "${item}"`));
+            return;
+        }
+        if(lowerSegment.startsWith("colors:")){
+            const parsed = parseMetadataDisplayColors(segment.slice(segment.indexOf(":") + 1));
+            result.colors = parsed.colors;
+            result.warnings.push(...parsed.warnings);
+            return;
+        }
+        if(!hasChipsDirective && index === 0){
+            const parsed = parseMetadataDisplayItems(segment);
+            result.items = parsed.items;
+            result.warnings.push(...parsed.warnings);
+            return;
+        }
+        result.warnings.push(`Unknown display segment "${segment}"`);
+    });
+    return result;
+};
+
+const normalizeMetadataItem = (item) => {
+    if(!item || typeof item !== "object"){
+        return null;
+    }
+    const key = `${item.key || item.name || ""}`.trim();
+    if(!metadataDisplayKeyPattern.test(key)){
+        return null;
+    }
+    return {
+        key,
+        label: item.label || item.display_name || item.displayName || key,
+        value: item.value,
+        displayValue: item.display_value ?? item.displayValue,
+        format: item.format || "",
+        status: item.status || "neutral",
+        color: item.color || "",
+        tooltip: item.tooltip || item.description || "",
+        order: Number.isFinite(Number(item.order)) ? Number(item.order) : 1000,
+    };
+};
+
+const formatMetadataValue = (item) => {
+    if(item.displayValue !== undefined && item.displayValue !== null && `${item.displayValue}` !== ""){
+        return `${item.displayValue}`;
+    }
+    const value = item.value;
+    if(value === undefined || value === null){
+        return "";
+    }
+    if(item.format === "percent"){
+        const numberValue = Number(value);
+        if(!Number.isNaN(numberValue)){
+            return `${numberValue <= 1 ? Math.round(numberValue * 100) : numberValue}%`;
+        }
+    }
+    if(item.format === "currency"){
+        const numberValue = Number(value);
+        if(!Number.isNaN(numberValue)){
+            return new Intl.NumberFormat(undefined, {style: "currency", currency: "USD", maximumFractionDigits: 2}).format(numberValue);
+        }
+    }
+    if(item.format === "number"){
+        const numberValue = Number(value);
+        if(!Number.isNaN(numberValue)){
+            return new Intl.NumberFormat().format(numberValue);
+        }
+    }
+    if(typeof value === "boolean"){
+        return value ? "Yes" : "No";
+    }
+    return `${value}`;
+};
+
+const colorValueToString = (color) => {
+    if(!color){
+        return "";
+    }
+    if(typeof color === "string"){
+        return color;
+    }
+    if(color.type === "scale" && Array.isArray(color.stops)){
+        return `scale(${color.stops.map((stop) => `${stop.at}:${stop.color}`).join("|")})`;
+    }
+    return "";
+};
+
+const resolveScaledChipColor = (color, item) => {
+    if(!color || color.type !== "scale" || !Array.isArray(color.stops)){
+        return "";
+    }
+    const sourceValue = color.source && color.source !== "value" ? item[color.source] : item.value;
+    const value = Number(sourceValue);
+    if(Number.isNaN(value)){
+        return "";
+    }
+    const sortedStops = color.stops
+        .map((stop) => ({at: Number(stop.at), color: normalizeChipColor(stop.color)}))
+        .filter((stop) => !Number.isNaN(stop.at) && stop.color)
+        .sort((a, b) => a.at - b.at);
+    if(sortedStops.length === 0){
+        return "";
+    }
+    return sortedStops.reduce((selectedColor, stop) => value >= stop.at ? stop.color : selectedColor, sortedStops[0].color);
+};
+
+const resolveMetadataChipColor = (item, colorOverride) => {
+    const selectedColor = colorOverride || item.color || item.status || "neutral";
+    const color = typeof selectedColor === "string" ? normalizeChipColor(selectedColor) : resolveScaledChipColor(selectedColor, item);
+    return color || "neutral";
+};
+
+const chipColorStyle = (color) => {
+    if(typeof color === "string" && color.startsWith("#")){
+        return {
+            "--mythic-chat-chip-custom-color": color,
+            "--mythic-chat-chip-custom-border": alpha(color, 0.42),
+            "--mythic-chat-chip-custom-bg": alpha(color, 0.14),
+        };
+    }
+    return undefined;
+};
+
+const buildChannelMetadataChips = (channel, displayStringOverride) => {
+    const displayString = getEffectiveChannelMetadataDisplayString(channel, displayStringOverride);
+    const parsedDisplay = parseMetadataDisplayString(displayString);
+    const hidden = new Set(parsedDisplay.hidden);
+    const metadataItemsByKey = new Map();
+    getChannelMetadataItems(channel).map(normalizeMetadataItem).filter(Boolean).forEach((item) => {
+        if(!hidden.has(item.key)){
+            metadataItemsByKey.set(item.key, item);
+        }
+    });
+    const orderedKeys = new Set();
+    const orderedItems = parsedDisplay.items.reduce((prev, override) => {
+        const item = metadataItemsByKey.get(override.key);
+        if(!item){
+            return prev;
+        }
+        orderedKeys.add(override.key);
+        return [...prev, {
+            ...item,
+            label: override.label || item.label,
+            format: override.format || item.format,
+        }];
+    }, []);
+    const remainingItems = [...metadataItemsByKey.values()]
+        .filter((item) => !orderedKeys.has(item.key))
+        .sort((a, b) => a.order - b.order || a.label.localeCompare(b.label));
+    const chips = [...orderedItems, ...remainingItems]
+        .map((item) => {
+            const color = resolveMetadataChipColor(item, parsedDisplay.colors[item.key]);
+            return {
+                key: item.key,
+                label: item.label,
+                value: formatMetadataValue(item),
+                status: color.startsWith("#") ? "custom" : color,
+                tooltip: item.tooltip,
+                colorStyle: chipColorStyle(color),
+            };
+        })
+        .filter((item) => item.value !== "");
+    return {
+        chips,
+        collapsed: parsedDisplay.collapsed === null ? false : parsedDisplay.collapsed,
+        maxVisible: parsedDisplay.maxVisible || 6,
+        warnings: parsedDisplay.warnings,
+    };
+};
+
+const getAvailableChannelMetadataKeys = (channel) => (
+    getChannelMetadataItems(channel)
+        .map(normalizeMetadataItem)
+        .filter(Boolean)
+        .map((item) => item.key)
+        .filter((key, index, keys) => keys.indexOf(key) === index)
+);
+
+const getAvailableChannelMetadataItems = (channel) => (
+    getChannelMetadataItems(channel)
+        .map(normalizeMetadataItem)
+        .filter(Boolean)
+        .sort((a, b) => a.order - b.order || a.label.localeCompare(b.label))
+);
+
+const metadataDisplayExample = "expanded; max=6; chips: 5hr=five_hour_tokens, Cost=total_cost:currency; colors: total_cost=warning";
+const metadataNamedColorOptions = ["neutral", "info", "success", "warning", "error", "danger"];
+const metadataDefaultScaleStops = [
+    {at: 0, color: "success"},
+    {at: 75, color: "warning"},
+    {at: 90, color: "error"},
+];
+
+const sanitizeMetadataDisplayLabel = (label) => `${label || ""}`.replace(/[,;=]/g, " ").trim();
+
+const metadataDisplayItemToString = (row) => {
+    const key = `${row.key || ""}`.trim();
+    const label = sanitizeMetadataDisplayLabel(row.labelOverride);
+    const format = `${row.formatOverride || ""}`.trim();
+    if(key === ""){
+        return "";
+    }
+    const labelPrefix = label ? `${label}=` : "";
+    return `${labelPrefix}${key}${format ? `:${format}` : ""}`;
+};
+
+const metadataWizardRowsFromDisplay = (channel, displayString) => {
+    const parsed = parseMetadataDisplayString(displayString);
+    const hidden = new Set(parsed.hidden);
+    const ordered = new Map(parsed.items.map((item, index) => [item.key, {...item, index}]));
+    const rowsByKey = new Map();
+    getAvailableChannelMetadataItems(channel).forEach((item, index) => {
+        const override = ordered.get(item.key);
+        rowsByKey.set(item.key, {
+            key: item.key,
+            baseLabel: item.label,
+            labelOverride: override?.label || "",
+            formatOverride: override?.format || "",
+            visible: !hidden.has(item.key),
+            order: override ? override.index + 1 : index + 1 + parsed.items.length,
+            colorOverride: colorValueToString(parsed.colors[item.key]),
+            value: formatMetadataValue(item),
+            format: item.format,
+            status: item.status,
+            color: colorValueToString(item.color),
+            tooltip: item.tooltip,
+        });
+    });
+    parsed.items.forEach((item, index) => {
+        if(rowsByKey.has(item.key)){
+            return;
+        }
+        rowsByKey.set(item.key, {
+            key: item.key,
+            baseLabel: item.key,
+            labelOverride: item.label || "",
+            formatOverride: item.format || "",
+            visible: !hidden.has(item.key),
+            order: index + 1,
+            colorOverride: colorValueToString(parsed.colors[item.key]),
+            value: "",
+            format: "",
+            status: "neutral",
+            color: "",
+            tooltip: "Custom key from the current display string. This container has not reported metadata details for it yet.",
+        });
+    });
+    parsed.hidden.forEach((key, index) => {
+        if(rowsByKey.has(key)){
+            return;
+        }
+        rowsByKey.set(key, {
+            key,
+            baseLabel: key,
+            labelOverride: "",
+            formatOverride: "",
+            visible: false,
+            order: rowsByKey.size + index + 1,
+            colorOverride: colorValueToString(parsed.colors[key]),
+            value: "",
+            format: "",
+            status: "neutral",
+            color: "",
+            tooltip: "Hidden custom key from the current display string.",
+        });
+    });
+    Object.entries(parsed.colors).forEach(([key, color]) => {
+        if(rowsByKey.has(key)){
+            return;
+        }
+        rowsByKey.set(key, {
+            key,
+            baseLabel: key,
+            labelOverride: "",
+            formatOverride: "",
+            visible: true,
+            order: rowsByKey.size + 1,
+            colorOverride: colorValueToString(color),
+            value: "",
+            format: "",
+            status: "neutral",
+            color: "",
+            tooltip: "Custom color key from the current display string.",
+        });
+    });
+    return [...rowsByKey.values()].sort((a, b) => Number(a.order) - Number(b.order) || a.key.localeCompare(b.key));
+};
+
+const buildMetadataDisplayStringFromWizard = (rows, hiddenInitially, maxVisible) => {
+    const max = Number(maxVisible);
+    const visibleRows = rows.filter((row) => row.visible);
+    const hiddenRows = rows.filter((row) => !row.visible);
+    const segments = [
+        hiddenInitially ? "collapsed" : "expanded",
+        `max=${Number.isInteger(max) && max > 0 ? max : 6}`,
+    ];
+    if(visibleRows.length > 0){
+        segments.push(`chips: ${visibleRows.map(metadataDisplayItemToString).filter(Boolean).join(", ")}`);
+    }
+    if(hiddenRows.length > 0){
+        segments.push(`hide: ${hiddenRows.map((row) => row.key).filter(Boolean).join(", ")}`);
+    }
+    const colorRules = rows
+        .map((row) => ({key: row.key, color: `${row.colorOverride || ""}`.trim()}))
+        .filter((row) => row.key && row.color)
+        .map((row) => `${row.key}=${row.color}`);
+    if(colorRules.length > 0){
+        segments.push(`colors: ${colorRules.join(", ")}`);
+    }
+    return segments.join("; ");
+};
+
+const metadataColorEditorStateFromString = (colorValue) => {
+    const text = `${colorValue || ""}`.trim();
+    if(text === ""){
+        return {mode: "default", named: "neutral", custom: "#4f46e5", scaleStops: metadataDefaultScaleStops};
+    }
+    const scale = parseMetadataScaleColor(text);
+    if(scale){
+        return {
+            mode: "scale",
+            named: "neutral",
+            custom: "#4f46e5",
+            scaleStops: scale.stops.length > 0 ? scale.stops : metadataDefaultScaleStops,
+        };
+    }
+    if(text.startsWith("#")){
+        return {mode: "custom", named: "neutral", custom: normalizeChipColor(text) || "#4f46e5", scaleStops: metadataDefaultScaleStops};
+    }
+    return {mode: "named", named: normalizeChipColor(text) || "neutral", custom: "#4f46e5", scaleStops: metadataDefaultScaleStops};
+};
+
+const metadataColorEditorStringFromState = (state) => {
+    if(state.mode === "default"){
+        return "";
+    }
+    if(state.mode === "custom"){
+        return normalizeChipColor(state.custom) || "";
+    }
+    if(state.mode === "scale"){
+        const stops = (state.scaleStops || [])
+            .map((stop) => ({at: Number(stop.at), color: normalizeChipColor(stop.color)}))
+            .filter((stop) => !Number.isNaN(stop.at) && stop.color)
+            .sort((a, b) => a.at - b.at);
+        if(stops.length === 0){
+            return "";
+        }
+        return `scale(${stops.map((stop) => `${stop.at}:${stop.color}`).join("|")})`;
+    }
+    return normalizeChipColor(state.named) || "";
+};
+
+const ChatMetadataColorEditor = ({value, fallback, onChange}) => {
+    const state = React.useMemo(() => metadataColorEditorStateFromString(value), [value]);
+    const updateState = (updates) => {
+        onChange(metadataColorEditorStringFromState({...state, ...updates}));
+    };
+    const updateScaleStop = (index, updates) => {
+        updateState({
+            mode: "scale",
+            scaleStops: state.scaleStops.map((stop, stopIndex) => stopIndex === index ? {...stop, ...updates} : stop),
+        });
+    };
+    const addScaleStop = () => {
+        const stops = state.scaleStops.length > 0 ? state.scaleStops : metadataDefaultScaleStops;
+        const lastAt = stops.reduce((max, stop) => Math.max(max, Number(stop.at) || 0), 0);
+        updateState({
+            mode: "scale",
+            scaleStops: [...stops, {at: lastAt + 10, color: "error"}],
+        });
+    };
+    const removeScaleStop = (index) => {
+        const nextStops = state.scaleStops.filter((_, stopIndex) => stopIndex !== index);
+        updateState({
+            mode: "scale",
+            scaleStops: nextStops.length > 0 ? nextStops : metadataDefaultScaleStops,
+        });
+    };
+    return (
+        <Box className="mythic-chat-metadata-color-editor">
+            <Select
+                size="small"
+                value={state.mode}
+                onChange={(e) => updateState({mode: e.target.value})}
+                fullWidth
+            >
+                <MenuItem value="default">Container default{fallback ? ` (${fallback})` : ""}</MenuItem>
+                <MenuItem value="named">Named color</MenuItem>
+                <MenuItem value="custom">Custom color</MenuItem>
+                <MenuItem value="scale">Scale cutoffs</MenuItem>
+            </Select>
+            {state.mode === "named" &&
+                <Select
+                    size="small"
+                    value={state.named}
+                    onChange={(e) => updateState({named: e.target.value})}
+                    fullWidth
+                >
+                    {metadataNamedColorOptions.map((color) => <MenuItem value={color} key={`metadata-color-${color}`}>{color}</MenuItem>)}
+                </Select>
+            }
+            {state.mode === "custom" &&
+                <MythicColorSwatchInput
+                    color={state.custom}
+                    label="Custom chip color"
+                    onChange={(color) => updateState({custom: color})}
+                    inputWidth="110px"
+                    sx={{width: "100%"}}
+                />
+            }
+            {state.mode === "scale" &&
+                <Box className="mythic-chat-metadata-color-scale">
+                    <Box className="mythic-chat-metadata-color-scale-header">
+                        <Typography variant="caption" color="text.secondary">
+                            Apply the last color whose cutoff is at or below the value.
+                        </Typography>
+                        <Button size="small" startIcon={<AddIcon fontSize="small" />} onClick={addScaleStop}>
+                            Add cutoff
+                        </Button>
+                    </Box>
+                    {state.scaleStops.map((stop, index) => (
+                        <Box className="mythic-chat-metadata-color-scale-row" key={`scale-stop-${index}`}>
+                            <TextField
+                                size="small"
+                                label="At least"
+                                type="number"
+                                value={stop.at}
+                                onChange={(e) => updateScaleStop(index, {at: e.target.value})}
+                            />
+                            <Select
+                                size="small"
+                                value={stop.color}
+                                onChange={(e) => updateScaleStop(index, {color: e.target.value})}
+                            >
+                                {metadataNamedColorOptions.map((color) => <MenuItem value={color} key={`scale-${index}-${color}`}>{color}</MenuItem>)}
+                            </Select>
+                            <IconButton
+                                aria-label="Remove cutoff"
+                                className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger"
+                                size="small"
+                                onClick={() => removeScaleStop(index)}
+                                disabled={state.scaleStops.length <= 1}
+                            >
+                                <DeleteIcon fontSize="small" />
+                            </IconButton>
+                        </Box>
+                    ))}
+                </Box>
+            }
+        </Box>
+    );
+};
+
 const ChatConfigurationFields = ({options, values, setValues}) => {
     if(options.length === 0){
         return null;
@@ -1480,11 +2197,352 @@ const ChatEmptyState = ({icon, title, detail}) => (
     </Box>
 );
 
-const ChannelButton = ({channel, selected, unread, muted, onSelect, onToggleMute}) => {
+const ChatDisplayChip = ({chip, className = ""}) => {
+    const content = (
+        <span
+            className={`mythic-chat-display-chip mythic-chat-display-chip-${chip.status || "neutral"}${className ? ` ${className}` : ""}`}
+            style={chip.colorStyle}
+        >
+            <span className="mythic-chat-display-chip-label">{chip.label}:</span>
+            <span className="mythic-chat-display-chip-value">{chip.value}</span>
+        </span>
+    );
+    if(chip.tooltip){
+        return <MythicStyledTooltip title={chip.tooltip}>{content}</MythicStyledTooltip>;
+    }
+    return content;
+};
+
+const ChatDisplayChipRow = ({chips, className = ""}) => {
+    if(!chips || chips.length === 0){
+        return null;
+    }
+    return (
+        <span className={`mythic-chat-display-chip-row${className ? ` ${className}` : ""}`}>
+            {chips.map((chip) => <ChatDisplayChip key={chip.key} chip={chip} />)}
+        </span>
+    );
+};
+
+const ChatChannelMetadataBar = ({channel, displayStringOverride}) => {
+    const metadataState = React.useMemo(() => buildChannelMetadataChips(channel, displayStringOverride), [channel, displayStringOverride]);
+    const [hidden, setHidden] = React.useState(metadataState.collapsed);
+    React.useEffect(() => {
+        setHidden(metadataState.collapsed);
+    }, [channel?.id, metadataState.collapsed]);
+    if(!channel || channel.channel_type !== "ai" || metadataState.chips.length === 0){
+        return null;
+    }
+    const visibleChips = metadataState.chips.slice(0, metadataState.maxVisible);
+    const overflowCount = Math.max(0, metadataState.chips.length - visibleChips.length);
+    return (
+        <Box className={`mythic-chat-metadata-bar${hidden ? " mythic-chat-metadata-bar-hidden" : ""}`}>
+            <IconButton
+                className="mythic-chat-metadata-toggle"
+                size="small"
+                onClick={() => setHidden((prev) => !prev)}
+            >
+                {hidden ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
+            </IconButton>
+            {hidden ? (
+                <Typography variant="caption" color="text.secondary">Metadata hidden</Typography>
+            ) : (
+                <Box className="mythic-chat-metadata-content">
+                    <ChatDisplayChipRow chips={visibleChips} />
+                    {overflowCount > 0 &&
+                        <span className="mythic-chat-display-chip mythic-chat-display-chip-neutral">
+                            <span className="mythic-chat-display-chip-value">+{overflowCount} more</span>
+                        </span>
+                    }
+                </Box>
+            )}
+        </Box>
+    );
+};
+
+const ChatMetadataDisplayPreview = ({channel, displayString}) => {
+    const metadataState = React.useMemo(() => buildChannelMetadataChips(channel, displayString), [channel, displayString]);
+    const availableKeys = React.useMemo(() => getAvailableChannelMetadataKeys(channel), [channel]);
+    const availableKeyText = availableKeys.length > 0 ? `Available keys: ${availableKeys.join(", ")}` : "";
+    if(metadataState.chips.length === 0){
+        return (
+            <Box className="mythic-chat-metadata-preview">
+                <Typography variant="caption" color="text.secondary">No channel metadata chips available yet.</Typography>
+                {availableKeyText &&
+                    <Typography variant="caption" color="text.secondary" sx={{display: "block", mt: 0.5}}>
+                        {availableKeyText}
+                    </Typography>
+                }
+            </Box>
+        );
+    }
+    return (
+        <Box className="mythic-chat-metadata-preview">
+            <Box sx={{display: "flex", flexWrap: "wrap", gap: 0.5, alignItems: "center"}}>
+                <ChatDisplayChipRow chips={metadataState.chips.slice(0, metadataState.maxVisible)} />
+                {metadataState.chips.length > metadataState.maxVisible &&
+                    <span className="mythic-chat-display-chip mythic-chat-display-chip-neutral">
+                        <span className="mythic-chat-display-chip-value">+{metadataState.chips.length - metadataState.maxVisible}</span>
+                    </span>
+                }
+            </Box>
+            {availableKeyText &&
+                <Typography variant="caption" color="text.secondary" sx={{display: "block", mt: 0.75}}>
+                    {availableKeyText}
+                </Typography>
+            }
+        </Box>
+    );
+};
+
+const ChatMetadataWizardDraggableList = ({rows, onDragEnd, updateRow}) => (
+    <DragDropContext onDragEnd={onDragEnd}>
+        <Droppable droppableId="chat-metadata-display-wizard-list">
+            {(provided) => (
+                <div className="mythic-reorder-list mythic-chat-metadata-wizard-list" ref={provided.innerRef} {...provided.droppableProps}>
+                    {rows.map((row, index) => (
+                        <ChatMetadataWizardDraggableRow
+                            key={row.key}
+                            row={row}
+                            index={index}
+                            updateRow={updateRow}
+                        />
+                    ))}
+                    {provided.placeholder}
+                </div>
+            )}
+        </Droppable>
+    </DragDropContext>
+);
+
+const ChatMetadataWizardDraggableRow = ({row, index, updateRow}) => (
+    <Draggable draggableId={`metadata-display-${row.key}`} index={index}>
+        {(provided, snapshot) => {
+            const rowContent = (
+                <div
+                    ref={provided.innerRef}
+                    className={`mythic-reorder-row mythic-chat-metadata-wizard-row${snapshot.isDragging ? " mythic-reorder-row-dragging" : ""}${row.visible ? "" : " mythic-reorder-row-disabled"}`}
+                    {...provided.draggableProps}
+                >
+                    <span className="mythic-reorder-drag-handle" {...provided.dragHandleProps}>
+                        <DragHandleIcon fontSize="small" />
+                    </span>
+                    <div className="mythic-chat-metadata-wizard-row-grid">
+                        <Box className="mythic-chat-metadata-wizard-row-key">
+                            <Typography variant="body2" sx={{fontFamily: "monospace"}} noWrap>{row.key}</Typography>
+                            <Typography variant="caption" color="text.secondary" noWrap>
+                                {row.value !== "" ? `Current: ${row.value}` : "No current value"}
+                            </Typography>
+                        </Box>
+                        <TextField
+                            size="small"
+                            label="Label"
+                            value={row.labelOverride}
+                            placeholder={row.baseLabel}
+                            onChange={(e) => updateRow(row.key, {labelOverride: e.target.value})}
+                            fullWidth
+                        />
+                        <Select
+                            size="small"
+                            displayEmpty
+                            value={row.formatOverride}
+                            onChange={(e) => updateRow(row.key, {formatOverride: e.target.value})}
+                            fullWidth
+                        >
+                            <MenuItem value="">Default{row.format ? ` (${row.format})` : ""}</MenuItem>
+                            <MenuItem value="number">Number</MenuItem>
+                            <MenuItem value="percent">Percent</MenuItem>
+                            <MenuItem value="currency">Currency</MenuItem>
+                            <MenuItem value="string">String</MenuItem>
+                        </Select>
+                        <ChatMetadataColorEditor
+                            value={row.colorOverride}
+                            fallback={row.color || row.status || "neutral"}
+                            onChange={(colorOverride) => updateRow(row.key, {colorOverride})}
+                        />
+                        <Typography className="mythic-chat-metadata-wizard-row-detail" variant="caption" color="text.secondary">
+                            {row.tooltip || "No description reported."}
+                        </Typography>
+                    </div>
+                    <div className="mythic-reorder-row-actions">
+                        <IconButton
+                            aria-label={row.visible ? `Hide ${row.key}` : `Show ${row.key}`}
+                            className={`mythic-table-row-icon-action ${row.visible ? "mythic-table-row-icon-action-hover-danger" : "mythic-table-row-icon-action-hover-info"}`}
+                            size="small"
+                            onClick={() => updateRow(row.key, {visible: !row.visible})}
+                        >
+                            {row.visible ? (
+                                <VisibilityIcon fontSize="small" />
+                            ) : (
+                                <VisibilityOffIcon fontSize="small" />
+                            )}
+                        </IconButton>
+                    </div>
+                </div>
+            );
+            return (
+                <MythicDraggablePortal isDragging={snapshot.isDragging}>
+                    {rowContent}
+                </MythicDraggablePortal>
+            );
+        }}
+    </Draggable>
+);
+
+const ChatMetadataDisplayWizard = ({open, channel, displayString, onClose, onApply}) => {
+    const parsedDisplay = React.useMemo(() => parseMetadataDisplayString(displayString), [displayString]);
+    const [hiddenInitially, setHiddenInitially] = React.useState(false);
+    const [maxVisible, setMaxVisible] = React.useState(6);
+    const [rows, setRows] = React.useState([]);
+    React.useEffect(() => {
+        if(open){
+            setHiddenInitially(parsedDisplay.collapsed === true);
+            setMaxVisible(parsedDisplay.maxVisible || 6);
+            setRows(metadataWizardRowsFromDisplay(channel, displayString));
+        }
+    }, [open, channel, displayString, parsedDisplay.collapsed, parsedDisplay.maxVisible]);
+    const updateRow = (key, updates) => {
+        setRows((prev) => prev.map((row) => row.key === key ? {...row, ...updates} : row));
+    };
+    const onDragEnd = ({destination, source}) => {
+        if(!destination){
+            return;
+        }
+        setRows((prev) => reorder(prev, source.index, destination.index));
+    };
+    const generatedDisplay = React.useMemo(
+        () => buildMetadataDisplayStringFromWizard(rows, hiddenInitially, maxVisible),
+        [rows, hiddenInitially, maxVisible],
+    );
+    const generatedWarnings = React.useMemo(() => parseMetadataDisplayString(generatedDisplay).warnings, [generatedDisplay]);
+    const apply = () => {
+        onApply(generatedDisplay);
+        onClose();
+    };
+    return (
+        <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth>
+            <DialogTitle>Metadata Display Wizard</DialogTitle>
+            <DialogContent className="mythic-chat-dialog-content" sx={{display: "flex", flexDirection: "column", gap: 1.5, pt: "20px !important", px: 3}}>
+                <Box className="mythic-chat-metadata-wizard-top-grid">
+                    <Box className="mythic-chat-metadata-wizard-top-card">
+                        <Typography className="mythic-chat-metadata-wizard-top-title" variant="subtitle2">Initial visibility</Typography>
+                        <Box className="mythic-chat-metadata-wizard-top-body">
+                            <FormControlLabel
+                                className="mythic-chat-metadata-wizard-visibility-control"
+                                control={<Switch checked={!hiddenInitially} onChange={(e) => setHiddenInitially(!e.target.checked)} />}
+                                label="Show initially"
+                            />
+                        </Box>
+                        <Typography variant="caption" color="text.secondary" sx={{display: "block"}}>
+                            Users can still hide or show the bar locally from the chat header.
+                        </Typography>
+                    </Box>
+                    <Box className="mythic-chat-metadata-wizard-top-card">
+                        <Typography className="mythic-chat-metadata-wizard-top-title" variant="subtitle2">Visible limit</Typography>
+                        <Box className="mythic-chat-metadata-wizard-top-body">
+                            <TextField
+                                label="Max visible"
+                                type="number"
+                                size="small"
+                                value={maxVisible}
+                                onChange={(e) => setMaxVisible(e.target.value)}
+                                inputProps={{min: 1}}
+                                helperText="Overflow renders as +N more."
+                                fullWidth
+                            />
+                        </Box>
+                    </Box>
+                    <Box className="mythic-chat-metadata-wizard-top-card">
+                        <Typography className="mythic-chat-metadata-wizard-top-title" variant="subtitle2">Preview</Typography>
+                        <Box className="mythic-chat-metadata-wizard-top-body mythic-chat-metadata-wizard-preview-body">
+                            <ChatMetadataDisplayPreview channel={channel} displayString={generatedDisplay} />
+                        </Box>
+                    </Box>
+                </Box>
+                <Box sx={{display: "flex", flexDirection: "column", gap: 0.75, minHeight: 0}}>
+                    <Typography variant="subtitle2">Metadata chips</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                        Drag rows to set display order. Hidden rows do not count toward the max visible preview.
+                    </Typography>
+                    {rows.length === 0 ? (
+                        <Box sx={{border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1.25}}>
+                            <Typography variant="body2" color="text.secondary">
+                                No metadata items have been reported for this channel yet. You can still edit the display string manually.
+                            </Typography>
+                        </Box>
+                    ) : (
+                        <Box sx={{maxHeight: 420, overflow: "auto"}}>
+                            <ChatMetadataWizardDraggableList rows={rows} onDragEnd={onDragEnd} updateRow={updateRow} />
+                        </Box>
+                    )}
+                </Box>
+                <TextField
+                    label="Generated display string"
+                    value={generatedDisplay}
+                    fullWidth
+                    size="small"
+                    multiline
+                    minRows={2}
+                    InputProps={{readOnly: true}}
+                    helperText={generatedWarnings.length > 0 ? generatedWarnings.join("; ") : "This is what will be written into the Metadata display field."}
+                    error={generatedWarnings.length > 0}
+                />
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={onClose}>Cancel</Button>
+                <Button onClick={apply} variant="contained" disabled={generatedWarnings.length > 0}>Apply</Button>
+            </DialogActions>
+        </Dialog>
+    );
+};
+
+const ChatMetadataDisplayField = ({channel, value, setValue, warnings}) => {
+    const [wizardOpen, setWizardOpen] = React.useState(false);
+    return (
+        <Box sx={{display: "flex", flexDirection: "column", gap: 0.75}}>
+            <TextField
+                fullWidth
+                label="Metadata display"
+                size="small"
+                value={value}
+                placeholder={metadataDisplayExample}
+                onChange={(e) => setValue(e.target.value)}
+                helperText={warnings.length > 0 ? warnings.join("; ") : "Optional compact display string for AI metadata chips."}
+                error={warnings.length > 0}
+                InputProps={{
+                    endAdornment: (
+                        <InputAdornment position="end">
+                            <MythicStyledTooltip title="Open metadata display wizard">
+                                <IconButton size="small" onClick={() => setWizardOpen(true)}>
+                                    <SettingsSuggestIcon fontSize="small" />
+                                </IconButton>
+                            </MythicStyledTooltip>
+                        </InputAdornment>
+                    ),
+                }}
+                {...CHAT_DIALOG_TEXT_FIELD_PROPS}
+            />
+            <Typography variant="caption" color="text.secondary">
+                Example: {metadataDisplayExample}
+            </Typography>
+            <ChatMetadataDisplayPreview channel={channel} displayString={value} />
+            <ChatMetadataDisplayWizard
+                open={wizardOpen}
+                channel={channel}
+                displayString={value}
+                onClose={() => setWizardOpen(false)}
+                onApply={setValue}
+            />
+        </Box>
+    );
+};
+
+const ChannelButton = ({channel, selected, unread, muted, chatContainers, onSelect, onToggleMute}) => {
     const theme = useTheme();
     const isAI = channel.channel_type === "ai";
     const accentColor = isAI ? theme.palette.info.main : theme.palette.primary.main;
     const secondary = channel.description || (isAI ? channel.chat_container?.name || channel.chat_model || "" : "");
+    const configChips = getChannelConfigChips(channel, chatContainers);
     const states = [
         channel.archived ? {label: "Archived", className: "mythic-chat-channel-state-archived"} : null,
         channel.locked ? {label: "Locked", className: "mythic-chat-channel-state-locked"} : null,
@@ -1517,6 +2575,9 @@ const ChannelButton = ({channel, selected, unread, muted, onSelect, onToggleMute
                 <span className="mythic-chat-channel-main">
                     <span className="mythic-chat-channel-name">{channelDisplayName(channel)}</span>
                     {secondary && <span className="mythic-chat-channel-meta">{secondary}</span>}
+                    {configChips.length > 0 &&
+                        <ChatDisplayChipRow chips={configChips} className="mythic-chat-channel-config-chips" />
+                    }
                     {states.length > 0 &&
                         <span className="mythic-chat-channel-states">
                             {states.map((state) => (
@@ -1550,6 +2611,7 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers, currentUser,
     const [configValues, setConfigValues] = React.useState({});
     const [locked, setLocked] = React.useState(true);
     const [apiTokenID, setAPITokenID] = React.useState("");
+    const [metadataDisplay, setMetadataDisplay] = React.useState("");
     React.useEffect(() => {
         if(open){
             const cloningAI = initialChannel?.channel_type === "ai";
@@ -1561,6 +2623,7 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers, currentUser,
             setConfigValues({});
             setLocked(cloningAI ? Boolean(initialChannel.locked) : true);
             setAPITokenID(cloningAI && initialChannel?.apitokens_id ? `${initialChannel.apitokens_id}` : "");
+            setMetadataDisplay(cloningAI ? getChannelMetadataDisplayString(initialChannel) : "");
         }
     }, [open, initialChannel]);
     const selectedContainer = React.useMemo(() => (
@@ -1603,6 +2666,7 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers, currentUser,
             setModel("");
             setConfigValues({});
             setAPITokenID("");
+            setMetadataDisplay("");
         }
     };
     const changeContainer = (event) => {
@@ -1624,6 +2688,7 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers, currentUser,
         ));
     const submit = () => {
         const aiConfig = channelType === "ai" ? normalizeConfigForSubmit(configValues, configOptions) : {};
+        const aiMetadata = channelType === "ai" ? applyMetadataDisplayToMetadata(applyConfigToMetadata({}, aiConfig), metadataDisplay) : {};
         onCreate({
             name,
             description,
@@ -1631,10 +2696,12 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers, currentUser,
             chat_container_id: channelType === "ai" ? Number(containerID) : null,
             chat_model: channelType === "ai" ? model : "",
             locked: channelType === "ai" ? locked : false,
-            ai_metadata: channelType === "ai" ? applyConfigToMetadata({}, aiConfig) : {},
+            ai_metadata: aiMetadata,
             apitokens_id: channelType === "ai" ? Number(apiTokenID) : null,
         });
     };
+    const metadataDisplayWarnings = React.useMemo(() => parseMetadataDisplayString(metadataDisplay).warnings, [metadataDisplay]);
+    const metadataPreviewChannel = initialChannel?.channel_type === "ai" ? initialChannel : null;
     return (
         <Dialog open={open} onClose={onClose} maxWidth={channelType === "ai" ? "lg" : "sm"} fullWidth>
             <DialogTitle>{initialChannel?.channel_type === "ai" ? "Clone AI Chat" : (channelType === "ai" ? "New AI Chat" : "New Channel")}</DialogTitle>
@@ -1701,6 +2768,12 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers, currentUser,
                         {configOptions.length > 0 &&
                             <ChatConfigurationFields options={configOptions} values={configValues} setValues={setConfigValues} />
                         }
+                        <ChatMetadataDisplayField
+                            channel={metadataPreviewChannel}
+                            value={metadataDisplay}
+                            setValue={setMetadataDisplay}
+                            warnings={metadataDisplayWarnings}
+                        />
                         <ChatAPITokenSelector
                             value={apiTokenID}
                             setValue={setAPITokenID}
@@ -1790,6 +2863,7 @@ const ChatEditChannelDialog = ({open, channel, onClose, onSave, chatContainers =
     const [chatModel, setChatModel] = React.useState("");
     const [configValues, setConfigValues] = React.useState({});
     const [apiTokenID, setAPITokenID] = React.useState("");
+    const [metadataDisplay, setMetadataDisplay] = React.useState("");
     const isGeneralChannel = isGeneralChatChannel(channel);
     const isAIChannel = channel?.channel_type === "ai";
     const containerModels = React.useMemo(() => {
@@ -1809,6 +2883,7 @@ const ChatEditChannelDialog = ({open, channel, onClose, onSave, chatContainers =
             setDescription(channel.description || "");
             setChatModel(channel.chat_model || "");
             setAPITokenID(channel.apitokens_id || "");
+            setMetadataDisplay(getChannelMetadataDisplayString(channel));
             const initialModel = modelForChannel(channel, chatContainers);
             setConfigValues(buildDefaultConfigValues(getModelConfigOptions(initialModel), getChannelAIConfig(channel)));
         }
@@ -1833,14 +2908,16 @@ const ChatEditChannelDialog = ({open, channel, onClose, onSave, chatContainers =
         }
         if(isAIChannel){
             update.chat_model = chatModel;
-            update.ai_metadata = applyConfigToMetadata(
+            const metadataWithConfig = applyConfigToMetadata(
                 getChannelAIMetadata(channel),
                 normalizeConfigForSubmit(configValues, configOptions),
             );
+            update.ai_metadata = applyMetadataDisplayToMetadata(metadataWithConfig, metadataDisplay);
             update.apitokens_id = Number(apiTokenID);
         }
         onSave(update);
     };
+    const metadataDisplayWarnings = React.useMemo(() => parseMetadataDisplayString(metadataDisplay).warnings, [metadataDisplay]);
     const saveDisabled = (!isGeneralChannel && name.trim() === "") ||
         (isAIChannel && (!apiTokenID || configHasMissingRequiredValues(configValues, configOptions) || configHasInvalidValues(configValues, configOptions)));
     return (
@@ -1896,6 +2973,12 @@ const ChatEditChannelDialog = ({open, channel, onClose, onSave, chatContainers =
                             </Select>
                         </FormControl>
                         <ChatConfigurationFields options={configOptions} values={configValues} setValues={setConfigValues} />
+                        <ChatMetadataDisplayField
+                            channel={channel}
+                            value={metadataDisplay}
+                            setValue={setMetadataDisplay}
+                            warnings={metadataDisplayWarnings}
+                        />
                         <ChatAPITokenSelector
                             value={apiTokenID}
                             setValue={setAPITokenID}
@@ -1978,6 +3061,7 @@ const ChatSystemMessageDialog = ({open, selectedChannel, isMythicAdmin, onClose,
 
 const ChatComposer = React.memo(({
     selectedChannel,
+    composerScope = "",
     slashOptions,
     genericAliasOptions = [],
     messageHistory = [],
@@ -2008,7 +3092,7 @@ const ChatComposer = React.memo(({
     React.useEffect(() => {
         setHistoryIndex(null);
         historyDraftRef.current = "";
-    }, [selectedChannel?.id]);
+    }, [selectedChannel?.id, composerScope]);
 
     const focusComposer = (cursorPosition) => {
         const applyFocus = () => {
@@ -2262,6 +3346,144 @@ const ChatComposer = React.memo(({
     );
 });
 
+const ChatDelegationPane = ({
+    delegation,
+    messages,
+    requestsByID,
+    me,
+    selectedChannel,
+    slashOptions,
+    genericAliasOptions,
+    messageHistory,
+    disabledReason,
+    activeAIRequest,
+    onClose,
+    onSendMessage,
+    onCancelRequest,
+    onEdit,
+    onDelete,
+    onRetry,
+    onRefreshSpecial,
+    onReviewSpecial,
+    onSubmitInputResponse,
+    onViewToolOutput,
+    refreshingSpecialMessageID,
+    submittingInputResponseID,
+    editingID,
+    editText,
+    setEditText,
+    saveEdit,
+    cancelEdit,
+}) => {
+    const theme = useTheme();
+    const snapshot = delegation?.snapshot || {};
+    const stateClass = getSubagentStateClass(snapshot);
+    const visual = getSubagentVisual(delegation?.id, snapshot, theme);
+    const toolCount = Number(snapshot.tool_count ?? snapshot.tools_done ?? snapshot.completed_tools);
+    const toolTotal = Number(snapshot.tool_total ?? snapshot.tools_total ?? snapshot.total_tools);
+    const hasProgress = !Number.isNaN(toolCount) && !Number.isNaN(toolTotal) && toolTotal > 0;
+    if(!delegation){
+        return null;
+    }
+    return (
+        <Box
+            sx={{
+                borderLeft: "1px solid",
+                borderColor: "divider",
+                display: "flex",
+                flex: "1 1 auto",
+                height: "100%",
+                flexDirection: "column",
+                minHeight: 0,
+                minWidth: 0,
+                width: "100%",
+            }}
+        >
+            <Box className="mythic-chat-conversation-header" sx={{minHeight: 48}}>
+                <Box sx={{alignItems: "center", display: "flex", gap: 1, minWidth: 0}}>
+                    <ChatSubagentAvatar visual={visual} size={30} />
+                    <Box sx={{display: "flex", flexDirection: "column", minWidth: 0}}>
+                        <Box sx={{alignItems: "center", display: "flex", gap: 0.75, minWidth: 0}}>
+                            <Typography className="mythic-chat-conversation-title" variant="subtitle2" noWrap>
+                                {delegation.title || delegation.name || "Sub-agent"}
+                            </Typography>
+                            <Chip
+                                size="small"
+                                className={`mythic-chat-special-status mythic-chat-special-status-${stateClass}`.trim()}
+                                label={getSubagentStatusText(snapshot)}
+                                variant="outlined"
+                            />
+                            {hasProgress &&
+                                <Chip
+                                    size="small"
+                                    className={`mythic-chat-special-status mythic-chat-special-status-${stateClass}`.trim()}
+                                    label={`${toolCount}/${toolTotal} tools`}
+                                    variant="outlined"
+                                />
+                            }
+                        </Box>
+                        <Typography className="mythic-chat-conversation-subtitle" variant="caption" color="text.secondary" noWrap>
+                            {delegation.name || delegation.id}
+                        </Typography>
+                    </Box>
+                </Box>
+                <MythicStyledTooltip title="Close sub-agent view">
+                    <IconButton size="small" onClick={onClose}>
+                        <KeyboardArrowRightIcon fontSize="small" />
+                    </IconButton>
+                </MythicStyledTooltip>
+            </Box>
+            <Box className="mythic-chat-messages" sx={{padding: "8px"}}>
+                {messages.length === 0 ? (
+                    <ChatEmptyState
+                        icon={<SmartToyTwoToneIcon fontSize="large" />}
+                        title="No sub-agent activity"
+                        detail="Delegated messages will appear here."
+                    />
+                ) : (
+                    messages.map((message) => (
+                        <MessageBubble
+                            key={message.id}
+                            message={message}
+                            request={message.chat_request_id ? requestsByID[message.chat_request_id] : null}
+                            me={me}
+                            onEdit={onEdit}
+                            onDelete={onDelete}
+                            onRetry={onRetry}
+                            onRefreshSpecial={onRefreshSpecial}
+                            onReviewSpecial={onReviewSpecial}
+                            onSubmitInputResponse={onSubmitInputResponse}
+                            onOpenDelegation={null}
+                            onViewToolOutput={onViewToolOutput}
+                            refreshingSpecialMessageID={refreshingSpecialMessageID}
+                            submittingInputResponseID={submittingInputResponseID}
+                            editing={editingID === message.id}
+                            editText={editText}
+                            setEditText={setEditText}
+                            saveEdit={saveEdit}
+                            cancelEdit={cancelEdit}
+                        />
+                    ))
+                )}
+            </Box>
+            <ChatComposer
+                selectedChannel={selectedChannel}
+                composerScope={`delegation:${delegation.id}`}
+                slashOptions={slashOptions}
+                genericAliasOptions={genericAliasOptions}
+                messageHistory={messageHistory}
+                disabledReason={disabledReason}
+                activeAIRequest={activeAIRequest}
+                canCreateSystemMessage={false}
+                isMythicAdmin={false}
+                onOpenSystemMessage={() => {}}
+                onSendMessage={(message) => onSendMessage(message, delegation)}
+                onCancelRequest={onCancelRequest}
+            />
+        </Box>
+    );
+};
+
 export function Chat({me}) {
     const theme = useTheme();
     const meContext = React.useContext(MeContext);
@@ -2283,9 +3505,12 @@ export function Chat({me}) {
     const [reviewMessage, setReviewMessage] = React.useState(null);
     const [inputResponseTarget, setInputResponseTarget] = React.useState(null);
     const [inputResponseText, setInputResponseText] = React.useState("");
+    const [selectedDelegationSeed, setSelectedDelegationSeed] = React.useState(null);
+    const [toolOutputTarget, setToolOutputTarget] = React.useState(null);
     const [refreshingSpecialMessageID, setRefreshingSpecialMessageID] = React.useState(null);
     const [submittingInputResponseID, setSubmittingInputResponseID] = React.useState(null);
     const [chatSplitSizes, setChatSplitSizes] = React.useState(getStoredChatSplitSizes);
+    const [delegationSplitSizes, setDelegationSplitSizes] = React.useState(getStoredChatDelegationSplitSizes);
     const messagesContainerRef = React.useRef(null);
     const messagesEndRef = React.useRef(null);
     const messagesNearBottomRef = React.useRef(true);
@@ -2309,10 +3534,11 @@ export function Chat({me}) {
     const [messages, setMessages] = React.useState([]);
     const [requests, setRequests] = React.useState([]);
     const selectedChannelIDRef = React.useRef(selectedChannelID);
-    const selectedChannelStreamCursor = React.useMemo(() => ({
+    const selectedChannelRefreshCursorRef = React.useRef({
         channelID: selectedChannelID,
-        now: getSkewedNow().toISOString(),
-    }), [selectedChannelID]);
+        messagesSince: streamStart.current,
+        requestsSince: streamStart.current,
+    });
     selectedChannelIDRef.current = selectedChannelID;
     readStateRef.current = readState;
     const selectChannel = React.useCallback((channelID, persist = true) => {
@@ -2340,6 +3566,79 @@ export function Chat({me}) {
         fetchPolicy: "no-cache",
         onError: (error) => console.log(error),
     });
+    const bumpSelectedChannelRefreshCursor = React.useCallback((cursorKey, channelID, rows) => {
+        if(!channelID || !Array.isArray(rows) || rows.length === 0){
+            return;
+        }
+        const currentCursor = selectedChannelRefreshCursorRef.current;
+        if(currentCursor.channelID !== channelID){
+            return;
+        }
+        const latestRow = rows.reduce((latest, row) => {
+            return timestampValue(row.updated_at) > timestampValue(latest?.updated_at) ? row : latest;
+        }, null);
+        if(!latestRow?.updated_at){
+            return;
+        }
+        if(timestampValue(latestRow.updated_at) > timestampValue(currentCursor[cursorKey])){
+            selectedChannelRefreshCursorRef.current = {
+                ...currentCursor,
+                [cursorKey]: latestRow.updated_at,
+            };
+        }
+    }, []);
+    const [fetchUpdatedMessages] = useLazyQuery(CHAT_MESSAGES_UPDATED_QUERY, {
+        fetchPolicy: "no-cache",
+        onCompleted: (data) => {
+            const currentChannelID = selectedChannelIDRef.current;
+            const rows = (data?.chat_message || []).filter((message) => message.channel_id === currentChannelID);
+            if(rows.length > 0){
+                setMessages((prev) => mergeRowsByID(prev, rows, sortByID, CHAT_MESSAGE_LIMIT));
+                bumpSelectedChannelRefreshCursor("messagesSince", currentChannelID, rows);
+            }
+        },
+        onError: (error) => console.log(error),
+    });
+    const [fetchUpdatedRequests] = useLazyQuery(CHAT_REQUESTS_UPDATED_QUERY, {
+        fetchPolicy: "no-cache",
+        onCompleted: (data) => {
+            const currentChannelID = selectedChannelIDRef.current;
+            const rows = (data?.chat_request || []).filter((request) => request.channel_id === currentChannelID);
+            if(rows.length > 0){
+                setRequests((prev) => mergeRowsByID(prev, rows, sortByID, CHAT_REQUEST_LIMIT));
+                bumpSelectedChannelRefreshCursor("requestsSince", currentChannelID, rows);
+            }
+        },
+        onError: (error) => console.log(error),
+    });
+    const fetchSelectedChannelUpdates = React.useCallback((channelID) => {
+        if(!channelID){
+            return;
+        }
+        let cursor = selectedChannelRefreshCursorRef.current;
+        if(cursor.channelID !== channelID){
+            cursor = {
+                channelID,
+                messagesSince: getSkewedNow().toISOString(),
+                requestsSince: getSkewedNow().toISOString(),
+            };
+            selectedChannelRefreshCursorRef.current = cursor;
+        }
+        fetchUpdatedMessages({
+            variables: {
+                channel_id: channelID,
+                since: cursor.messagesSince || streamStart.current,
+                limit: CHAT_UPDATE_LIMIT,
+            },
+        });
+        fetchUpdatedRequests({
+            variables: {
+                channel_id: channelID,
+                since: cursor.requestsSince || streamStart.current,
+                limit: CHAT_UPDATE_LIMIT,
+            },
+        });
+    }, [fetchUpdatedMessages, fetchUpdatedRequests]);
 
     React.useEffect(() => {
         if(channelData?.chat_channel){
@@ -2369,6 +3668,10 @@ export function Chat({me}) {
             const updates = data.data?.chat_channel_stream || [];
             if(updates.length > 0){
                 setBaseChannels((prev) => mergeRowsByID(prev, updates, sortChannels));
+                const currentChannelID = selectedChannelIDRef.current;
+                if(currentChannelID && updates.some((channel) => channel.id === currentChannelID)){
+                    fetchSelectedChannelUpdates(currentChannelID);
+                }
             }
         },
         onError: (error) => console.log(error),
@@ -2433,6 +3736,10 @@ export function Chat({me}) {
         setChatSplitSizes(sizes);
         localStorage.setItem(CHAT_SPLIT_STORAGE_KEY, JSON.stringify(sizes));
     }, []);
+    const updateDelegationSplitSizes = React.useCallback((sizes) => {
+        setDelegationSplitSizes(sizes);
+        localStorage.setItem(CHAT_DELEGATION_SPLIT_STORAGE_KEY, JSON.stringify(sizes));
+    }, []);
 
     React.useEffect(() => {
         if(channels.length > 0 && !selectedChannel){
@@ -2444,6 +3751,12 @@ export function Chat({me}) {
     React.useEffect(() => {
         setMessages([]);
         setRequests([]);
+        setSelectedDelegationSeed(null);
+        selectedChannelRefreshCursorRef.current = {
+            channelID: selectedChannelID,
+            messagesSince: getSkewedNow().toISOString(),
+            requestsSince: getSkewedNow().toISOString(),
+        };
     }, [selectedChannelID]);
 
     const {data: messageData} = useQuery(CHAT_MESSAGES_QUERY, {
@@ -2461,41 +3774,17 @@ export function Chat({me}) {
         if(currentChannelID && messageData?.chat_message){
             const rows = messageData.chat_message.filter((message) => message.channel_id === currentChannelID);
             setMessages((prev) => mergeRowsByID(prev, rows, sortByID, CHAT_MESSAGE_LIMIT));
+            bumpSelectedChannelRefreshCursor("messagesSince", currentChannelID, rows);
         }
-    }, [messageData, selectedChannelID]);
+    }, [bumpSelectedChannelRefreshCursor, messageData, selectedChannelID]);
     React.useEffect(() => {
         const currentChannelID = selectedChannelIDRef.current;
         if(currentChannelID && requestData?.chat_request){
             const rows = requestData.chat_request.filter((request) => request.channel_id === currentChannelID);
             setRequests((prev) => mergeRowsByID(prev, rows, sortByID, CHAT_REQUEST_LIMIT));
+            bumpSelectedChannelRefreshCursor("requestsSince", currentChannelID, rows);
         }
-    }, [requestData, selectedChannelID]);
-    useSubscription(CHAT_MESSAGES_STREAM_SUBSCRIPTION, {
-        variables: {channel_id: selectedChannelID || 0, now: selectedChannelStreamCursor.now},
-        skip: !selectedChannelID,
-        fetchPolicy: "no-cache",
-        onData: ({data}) => {
-            const currentChannelID = selectedChannelIDRef.current;
-            const updates = (data.data?.chat_message_stream || []).filter((message) => message.channel_id === currentChannelID);
-            if(updates.length > 0){
-                setMessages((prev) => mergeRowsByID(prev, updates, sortByID, CHAT_MESSAGE_LIMIT));
-            }
-        },
-        onError: (error) => console.log(error),
-    });
-    useSubscription(CHAT_REQUESTS_STREAM_SUBSCRIPTION, {
-        variables: {channel_id: selectedChannelID || 0, now: selectedChannelStreamCursor.now},
-        skip: !selectedChannelID,
-        fetchPolicy: "no-cache",
-        onData: ({data}) => {
-            const currentChannelID = selectedChannelIDRef.current;
-            const updates = (data.data?.chat_request_stream || []).filter((request) => request.channel_id === currentChannelID);
-            if(updates.length > 0){
-                setRequests((prev) => mergeRowsByID(prev, updates, sortByID, CHAT_REQUEST_LIMIT));
-            }
-        },
-        onError: (error) => console.log(error),
-    });
+    }, [bumpSelectedChannelRefreshCursor, requestData, selectedChannelID]);
     const requestsByID = React.useMemo(() => {
         return requests.reduce((prev, request) => {
             prev[request.id] = request;
@@ -2676,6 +3965,10 @@ export function Chat({me}) {
         },
         onError: (error) => snackActions.error(error.message),
     });
+    const [loadToolOutput, {data: toolOutputData, loading: toolOutputLoading, error: toolOutputError}] = useLazyQuery(CHAT_TOOL_OUTPUT_QUERY, {
+        fetchPolicy: "no-cache",
+        onError: (error) => snackActions.error(error.message),
+    });
 
     const updateMessagesNearBottom = React.useCallback(() => {
         const messagesContainer = messagesContainerRef.current;
@@ -2750,6 +4043,30 @@ export function Chat({me}) {
     const genericAliasOptions = React.useMemo(() => (
         getAIChatGenericAliasOptions(selectedChannel, operatorAliases)
     ), [selectedChannel, operatorAliases]);
+    const mainMessages = React.useMemo(() => (
+        messages.filter(shouldShowMessageInMainChat)
+    ), [messages]);
+    const selectedDelegation = React.useMemo(() => {
+        if(!selectedDelegationSeed?.id){
+            return null;
+        }
+        const summaryMessage = messages.find((message) => (
+            getMessageDelegationID(message) === selectedDelegationSeed.id && Boolean(getSubagentSnapshot(message))
+        ));
+        const snapshot = getSubagentSnapshot(summaryMessage) || {};
+        return {
+            ...selectedDelegationSeed,
+            name: getMessageDelegationName(summaryMessage) || snapshot.name || selectedDelegationSeed.name,
+            title: snapshot.title || selectedDelegationSeed.title,
+            snapshot: Object.keys(snapshot).length > 0 ? snapshot : (selectedDelegationSeed.snapshot || {}),
+        };
+    }, [messages, selectedDelegationSeed]);
+    const delegationMessages = React.useMemo(() => {
+        if(!selectedDelegation?.id){
+            return [];
+        }
+        return messages.filter((message) => getMessageDelegationID(message) === selectedDelegation.id);
+    }, [messages, selectedDelegation?.id]);
     const messageHistory = React.useMemo(() => {
         const seenMessages = new Set();
         return [...messages].reverse().reduce((prev, message) => {
@@ -2764,12 +4081,33 @@ export function Chat({me}) {
             return [...prev, messageText];
         }, []);
     }, [messages, currentMe?.user?.user_id]);
-    const submitMessage = React.useCallback((messageText) => {
+    const delegationMessageHistory = React.useMemo(() => {
+        const seenMessages = new Set();
+        return [...delegationMessages].reverse().reduce((prev, message) => {
+            const messageText = (message.message || "").trim();
+            if(message.author_type !== "operator" || message.operator_id !== currentMe?.user?.user_id || message.deleted || messageText === ""){
+                return prev;
+            }
+            if(seenMessages.has(messageText)){
+                return prev;
+            }
+            seenMessages.add(messageText);
+            return [...prev, messageText];
+        }, []);
+    }, [delegationMessages, currentMe?.user?.user_id]);
+    const submitMessage = React.useCallback((messageText, delegation = null) => {
         const message = messageText.trim();
         if(!message || !selectedChannel){
             return false;
         }
-        createMessage({variables: {channel_id: selectedChannel.id, message}});
+        createMessage({
+            variables: {
+                channel_id: selectedChannel.id,
+                message,
+                delegation_id: delegation?.id || null,
+                delegation_name: delegation?.name || null,
+            },
+        });
         return true;
     }, [createMessage, selectedChannel]);
     const submitSystemMessage = ({message, all_operations}) => {
@@ -2912,6 +4250,26 @@ export function Chat({me}) {
     const reviewChatSpecialMessage = (message) => {
         setReviewMessage(message);
     };
+    const openDelegation = React.useCallback((message) => {
+        const delegationID = getMessageDelegationID(message);
+        if(!delegationID){
+            return;
+        }
+        const snapshot = getSubagentSnapshot(message) || {};
+        setSelectedDelegationSeed({
+            id: delegationID,
+            name: getMessageDelegationName(message) || snapshot.name || "Sub-agent",
+            title: snapshot.title || message.message || getMessageDelegationName(message) || "Sub-agent",
+            snapshot,
+        });
+    }, []);
+    const openToolOutput = React.useCallback((message) => {
+        if(!message?.id){
+            return;
+        }
+        setToolOutputTarget(message);
+        loadToolOutput({variables: {message_id: message.id}});
+    }, [loadToolOutput]);
     const reviewSnapshot = getEventingInteractionSnapshot(reviewMessage);
     const metaChips = (
         <>
@@ -2919,6 +4277,7 @@ export function Chat({me}) {
             <MythicPageHeaderChip label={`${aiChannels.length} AI`} />
         </>
     );
+    const selectedConfigChips = getChannelConfigChips(selectedChannel, chatContainers);
 
     return (
         <MythicPageBody>
@@ -2965,6 +4324,7 @@ export function Chat({me}) {
                                     selected={channel.id === selectedChannelID}
                                     unread={channelHasUnread(channel)}
                                     muted={getChannelReadState(readState, channel.id).muted}
+                                    chatContainers={chatContainers}
                                     onSelect={selectChannel}
                                     onToggleMute={toggleMute}
                                 />
@@ -2984,6 +4344,7 @@ export function Chat({me}) {
                                     selected={channel.id === selectedChannelID}
                                     unread={channelHasUnread(channel)}
                                     muted={getChannelReadState(readState, channel.id).muted}
+                                    chatContainers={chatContainers}
                                     onSelect={selectChannel}
                                     onToggleMute={toggleMute}
                                 />
@@ -3009,6 +4370,9 @@ export function Chat({me}) {
                                 <Typography className="mythic-chat-conversation-subtitle" variant="caption" color="text.secondary" noWrap>
                                     {selectedChannel?.description || selectedChannel?.chat_container?.name || ""}
                                 </Typography>
+                                {selectedConfigChips.length > 0 &&
+                                    <ChatDisplayChipRow chips={selectedConfigChips} className="mythic-chat-header-config-chips" />
+                                }
                             </Box>
                         </Box>
                         <Box className="mythic-chat-header-actions">
@@ -3051,56 +4415,109 @@ export function Chat({me}) {
                             }
                         </Box>
                     </Box>
-                    <Box className="mythic-chat-messages" ref={messagesContainerRef} onScroll={updateMessagesNearBottom}>
-                        {!selectedChannel ? (
-                            <ChatEmptyState
-                                icon={<ForumTwoToneIcon fontSize="large" />}
-                                title="No channel selected"
+                    <Split
+                        className="mythic-chat-layout mythic-chat-delegation-split"
+                        direction="horizontal"
+                        sizes={selectedDelegation ? delegationSplitSizes : [100, 0]}
+                        minSize={selectedDelegation ? [0, 320] : [0, 0]}
+                        gutterSize={selectedDelegation ? 5 : 0}
+                        onDragEnd={selectedDelegation ? updateDelegationSplitSizes : undefined}
+                    >
+                        <Box sx={{display: "flex", flex: "1 1 auto", flexDirection: "column", minHeight: 0, minWidth: 0, overflow: "hidden"}}>
+                            <ChatChannelMetadataBar channel={selectedChannel} />
+                            <Box className="mythic-chat-messages" ref={messagesContainerRef} onScroll={updateMessagesNearBottom}>
+                                {!selectedChannel ? (
+                                    <ChatEmptyState
+                                        icon={<ForumTwoToneIcon fontSize="large" />}
+                                        title="No channel selected"
+                                    />
+                                ) : messages.length === 0 ? (
+                                    <ChatEmptyState
+                                        icon={selectedChannel.channel_type === "ai" ? <SmartToyTwoToneIcon fontSize="large" /> : <ForumTwoToneIcon fontSize="large" />}
+                                        title="No messages yet"
+                                        detail={selectedChannel.archived ? "This channel is archived." : "No message history for this channel."}
+                                    />
+                                ) : mainMessages.length === 0 ? (
+                                    <ChatEmptyState
+                                        icon={selectedChannel.channel_type === "ai" ? <SmartToyTwoToneIcon fontSize="large" /> : <ForumTwoToneIcon fontSize="large" />}
+                                        title="No main-channel messages"
+                                        detail="Delegated activity is available from sub-agent cards."
+                                    />
+                                ) : (
+                                    mainMessages.map((message) => (
+                                        <MessageBubble
+                                            key={message.id}
+                                            message={message}
+                                            request={message.chat_request_id ? requestsByID[message.chat_request_id] : null}
+                                            me={currentMe}
+                                            onEdit={beginEdit}
+                                            onDelete={(messageID) => deleteMessage({variables: {message_id: messageID}})}
+                                            onRetry={(requestID) => retryRequest({variables: {request_id: requestID}})}
+                                            onRefreshSpecial={refreshChatSpecialMessage}
+                                            onReviewSpecial={reviewChatSpecialMessage}
+                                            onSubmitInputResponse={handleInputResponseAction}
+                                            onOpenDelegation={openDelegation}
+                                            onViewToolOutput={openToolOutput}
+                                            refreshingSpecialMessageID={refreshingSpecialMessageID}
+                                            submittingInputResponseID={submittingInputResponseID}
+                                            editing={editingID === message.id}
+                                            editText={editText}
+                                            setEditText={setEditText}
+                                            saveEdit={saveEdit}
+                                            cancelEdit={() => {setEditingID(null); setEditText("");}}
+                                        />
+                                    ))
+                                )}
+                                <div ref={messagesEndRef} />
+                            </Box>
+                            <ChatComposer
+                                selectedChannel={selectedChannel}
+                                slashOptions={slashOptions}
+                                genericAliasOptions={genericAliasOptions}
+                                messageHistory={messageHistory}
+                                disabledReason={disabledReason}
+                                activeAIRequest={activeAIRequest}
+                                canCreateSystemMessage={canCreateSystemMessage}
+                                isMythicAdmin={isMythicAdmin}
+                                onOpenSystemMessage={openSystemMessageDialog}
+                                onSendMessage={submitMessage}
+                                onCancelRequest={(requestID) => cancelRequest({variables: {request_id: requestID}})}
                             />
-                        ) : messages.length === 0 ? (
-                            <ChatEmptyState
-                                icon={selectedChannel.channel_type === "ai" ? <SmartToyTwoToneIcon fontSize="large" /> : <ForumTwoToneIcon fontSize="large" />}
-                                title="No messages yet"
-                                detail={selectedChannel.archived ? "This channel is archived." : "No message history for this channel."}
+                        </Box>
+                        <Box sx={{display: selectedDelegation ? "flex" : "none", height: "100%", minHeight: 0, minWidth: 0, overflow: "hidden"}}>
+                            {selectedDelegation &&
+                            <ChatDelegationPane
+                                delegation={selectedDelegation}
+                                messages={delegationMessages}
+                                requestsByID={requestsByID}
+                                me={currentMe}
+                                selectedChannel={selectedChannel}
+                                slashOptions={slashOptions}
+                                genericAliasOptions={genericAliasOptions}
+                                messageHistory={delegationMessageHistory}
+                                disabledReason={disabledReason}
+                                activeAIRequest={activeAIRequest}
+                                onClose={() => setSelectedDelegationSeed(null)}
+                                onSendMessage={submitMessage}
+                                onCancelRequest={(requestID) => cancelRequest({variables: {request_id: requestID}})}
+                                onEdit={beginEdit}
+                                onDelete={(messageID) => deleteMessage({variables: {message_id: messageID}})}
+                                onRetry={(requestID) => retryRequest({variables: {request_id: requestID}})}
+                                onRefreshSpecial={refreshChatSpecialMessage}
+                                onReviewSpecial={reviewChatSpecialMessage}
+                                onSubmitInputResponse={handleInputResponseAction}
+                                onViewToolOutput={openToolOutput}
+                                refreshingSpecialMessageID={refreshingSpecialMessageID}
+                                submittingInputResponseID={submittingInputResponseID}
+                                editingID={editingID}
+                                editText={editText}
+                                setEditText={setEditText}
+                                saveEdit={saveEdit}
+                                cancelEdit={() => {setEditingID(null); setEditText("");}}
                             />
-                        ) : (
-                            messages.map((message) => (
-                                <MessageBubble
-                                    key={message.id}
-                                    message={message}
-                                    request={message.chat_request_id ? requestsByID[message.chat_request_id] : null}
-                                    me={currentMe}
-                                    onEdit={beginEdit}
-                                    onDelete={(messageID) => deleteMessage({variables: {message_id: messageID}})}
-                                    onRetry={(requestID) => retryRequest({variables: {request_id: requestID}})}
-                                    onRefreshSpecial={refreshChatSpecialMessage}
-                                    onReviewSpecial={reviewChatSpecialMessage}
-                                    onSubmitInputResponse={handleInputResponseAction}
-                                    refreshingSpecialMessageID={refreshingSpecialMessageID}
-                                    submittingInputResponseID={submittingInputResponseID}
-                                    editing={editingID === message.id}
-                                    editText={editText}
-                                    setEditText={setEditText}
-                                    saveEdit={saveEdit}
-                                    cancelEdit={() => {setEditingID(null); setEditText("");}}
-                                />
-                            ))
-                        )}
-                        <div ref={messagesEndRef} />
-                    </Box>
-                    <ChatComposer
-                        selectedChannel={selectedChannel}
-                        slashOptions={slashOptions}
-                        genericAliasOptions={genericAliasOptions}
-                        messageHistory={messageHistory}
-                        disabledReason={disabledReason}
-                        activeAIRequest={activeAIRequest}
-                        canCreateSystemMessage={canCreateSystemMessage}
-                        isMythicAdmin={isMythicAdmin}
-                        onOpenSystemMessage={openSystemMessageDialog}
-                        onSendMessage={submitMessage}
-                        onCancelRequest={(requestID) => cancelRequest({variables: {request_id: requestID}})}
-                    />
+                            }
+                        </Box>
+                    </Split>
                 </Box>
             </Split>
             {createOpen &&
@@ -3187,6 +4604,55 @@ export function Chat({me}) {
                     </DialogActions>
                 </Dialog>
             }
+            {toolOutputTarget &&
+                <Dialog
+                    open={Boolean(toolOutputTarget)}
+                    onClose={() => setToolOutputTarget(null)}
+                    maxWidth="lg"
+                    fullWidth
+                    PaperProps={{
+                        sx: {
+                            height: "82vh",
+                            maxHeight: "82vh",
+                        },
+                    }}
+                >
+                <DialogTitle sx={{px: 1.5, py: 1}}>Tool Output</DialogTitle>
+                    <DialogContent
+                        className="mythic-chat-dialog-content"
+                        sx={{
+                            display: "flex",
+                            flex: "1 1 auto",
+                            flexDirection: "column",
+                            minHeight: 0,
+                            overflow: "hidden",
+                            p: "0 !important",
+                        }}
+                    >
+                        {toolOutputLoading ? (
+                            <Typography variant="body2" color="text.secondary" sx={{p: 2}}>Loading output...</Typography>
+                        ) : toolOutputError ? (
+                            <Typography variant="body2" color="error" sx={{p: 2}}>{toolOutputError.message}</Typography>
+                        ) : (
+                            <Box sx={{display: "flex", flex: "1 1 auto", minHeight: 0, minWidth: 0}}>
+                                <ResponseDisplayPlaintext
+                                    plaintext={toolOutputData?.chat_message_by_pk?.tool_output || "No tool output stored for this message."}
+                                    initial_render_mode="plaintext"
+                                    initial_show_options={true}
+                                    toolbarTitle="Tool output"
+                                    autoFormat={false}
+                                    expand={true}
+                                    readOnly={true}
+                                    enableCredentialCreation={false}
+                                />
+                            </Box>
+                        )}
+                    </DialogContent>
+                <DialogActions sx={{px: 1.5, py: 1}}>
+                        <Button onClick={() => setToolOutputTarget(null)}>Close</Button>
+                    </DialogActions>
+                </Dialog>
+            }
             {reviewMessage && reviewSnapshot &&
                 <MythicDialog
                     fullWidth={true}
@@ -3211,64 +4677,6 @@ export function Chat({me}) {
         </MythicPageBody>
     );
 }
-
-const markdownTableAlignments = ["left", "right", "center"];
-const getMarkdownTableAlign = (align) => markdownTableAlignments.includes(align) ? align : "left";
-
-const MarkdownHeading = ({level, children}) => (
-    <Typography component={`h${level}`} className={`mythic-chat-heading mythic-chat-heading-${level}`}>
-        {children}
-    </Typography>
-);
-
-export const markdownComponents = {
-    p: ({children}) => <Typography component="p" className="mythic-chat-paragraph">{children}</Typography>,
-    h1: ({children}) => <MarkdownHeading level={1}>{children}</MarkdownHeading>,
-    h2: ({children}) => <MarkdownHeading level={2}>{children}</MarkdownHeading>,
-    h3: ({children}) => <MarkdownHeading level={3}>{children}</MarkdownHeading>,
-    h4: ({children}) => <MarkdownHeading level={4}>{children}</MarkdownHeading>,
-    h5: ({children}) => <MarkdownHeading level={5}>{children}</MarkdownHeading>,
-    h6: ({children}) => <MarkdownHeading level={6}>{children}</MarkdownHeading>,
-    ul: ({children}) => <ul className="mythic-chat-list">{children}</ul>,
-    ol: ({children}) => <ol className="mythic-chat-list">{children}</ol>,
-    blockquote: ({children}) => <Box component="blockquote" className="mythic-chat-blockquote">{children}</Box>,
-    hr: () => <hr className="mythic-chat-rule" />,
-    table: ({children}) => (
-        <TableContainer className="mythicElement mythic-chat-table-wrap">
-            <Table className="mythic-chat-table" size="small">{children}</Table>
-        </TableContainer>
-    ),
-    thead: ({children}) => <TableHead>{children}</TableHead>,
-    tbody: ({children}) => <TableBody>{children}</TableBody>,
-    tr: ({children}) => <TableRow hover>{children}</TableRow>,
-    th: ({children, align}) => <TableCell component="th" scope="col" align={getMarkdownTableAlign(align)}>{children}</TableCell>,
-    td: ({children, align}) => <TableCell align={getMarkdownTableAlign(align)}>{children}</TableCell>,
-    pre: ({children}) => {
-        let language = "";
-        React.Children.forEach(children, (child) => {
-            const className = child?.props?.className || "";
-            const match = className.match(/language-([^ ]+)/);
-            if(match){
-                language = match[1];
-            }
-        });
-        return (
-            <Box className="mythic-chat-code-block">
-                {language && <span className="mythic-chat-code-language">{language}</span>}
-                <pre>{children}</pre>
-            </Box>
-        );
-    },
-    code: ({className, children}) => (
-        <code className={className || "mythic-chat-inline-code"}>{children}</code>
-    ),
-    a: ({href, children}) => {
-        if(!isAllowedMarkdownLink(href)){
-            return children;
-        }
-        return <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
-    },
-};
 
 const MarkdownMessage = ({message}) => {
     if(!message){
@@ -3309,6 +4717,10 @@ const ChatAssistantMessage = ({message, timestamp, viewUTCTime}) => {
 const CHAT_SPECIAL_TYPE_EVENTING_USER_INTERACTION = "eventing_user_interaction";
 const CHAT_SPECIAL_TYPE_INPUT_REQUESTED = "input_requested";
 const CHAT_SPECIAL_TYPE_TOOL_USE = "tool_use";
+const CHAT_SPECIAL_TYPE_SUBAGENT = "subagent";
+
+const subagentFallbackIcons = ["SA", "AI", "OPS", "T1", "JOB", "RUN"];
+const subagentFallbackPalette = ["info", "success", "warning", "primary", "secondary"];
 
 const getChatMessageMetadata = (message) => {
     const metadata = message?.metadata || {};
@@ -3322,6 +4734,15 @@ const getChatMessageMetadata = (message) => {
     }
     return metadata && typeof metadata === "object" && !Array.isArray(metadata) ? metadata : {};
 };
+
+const getMetadataString = (metadata, key) => {
+    const value = metadata?.[key];
+    return typeof value === "string" ? value.trim() : "";
+};
+
+const getMessageDelegationID = (message) => getMetadataString(getChatMessageMetadata(message), "delegation_id");
+
+const getMessageDelegationName = (message) => getMetadataString(getChatMessageMetadata(message), "delegation_name");
 
 const getEventingInteractionSnapshot = (message) => {
     const metadata = getChatMessageMetadata(message);
@@ -3348,6 +4769,51 @@ const getToolUseSnapshot = (message) => {
     }
     const snapshot = metadata.tool_use || {};
     return snapshot && typeof snapshot === "object" && !Array.isArray(snapshot) ? snapshot : {};
+};
+
+const getSubagentSnapshot = (message) => {
+    const metadata = getChatMessageMetadata(message);
+    if(metadata.special_type !== CHAT_SPECIAL_TYPE_SUBAGENT){
+        return null;
+    }
+    const snapshot = metadata.subagent || {};
+    return snapshot && typeof snapshot === "object" && !Array.isArray(snapshot) ? snapshot : {};
+};
+
+const hashStringToIndex = (value, length) => {
+    if(length <= 0){
+        return 0;
+    }
+    const text = `${value || ""}`;
+    let hash = 0;
+    for(let i = 0; i < text.length; i++){
+        hash = ((hash << 5) - hash) + text.charCodeAt(i);
+        hash |= 0;
+    }
+    return Math.abs(hash) % length;
+};
+
+const isPendingChatHumanInteraction = (message) => {
+    const inputRequestedSnapshot = getInputRequestedSnapshot(message);
+    if(inputRequestedSnapshot){
+        return (inputRequestedSnapshot.status || "pending") === "pending";
+    }
+    const eventingInteractionSnapshot = getEventingInteractionSnapshot(message);
+    if(eventingInteractionSnapshot){
+        return Boolean(eventingInteractionSnapshot.waiting);
+    }
+    return false;
+};
+
+const shouldShowMessageInMainChat = (message) => {
+    const delegationID = getMessageDelegationID(message);
+    if(!delegationID){
+        return true;
+    }
+    if(getSubagentSnapshot(message)){
+        return true;
+    }
+    return isPendingChatHumanInteraction(message);
 };
 
 const getChatEventingPrompt = (snapshot) => {
@@ -3722,7 +5188,176 @@ const getToolUseStateClass = (snapshot) => {
     }
 };
 
-const ChatToolUseEvent = ({message}) => {
+const getSubagentStatusText = (snapshot) => {
+    switch(`${snapshot.status || "running"}`.toLowerCase()){
+        case "finished":
+        case "completed":
+        case "complete":
+            return "Finished";
+        case "failed":
+        case "error":
+            return "Failed";
+        case "running":
+        case "started":
+            return "Running";
+        default:
+            return snapshot.status || "Sub-agent";
+    }
+};
+
+const getSubagentStateClass = (snapshot) => {
+    switch(`${snapshot.status || "running"}`.toLowerCase()){
+        case "finished":
+        case "completed":
+        case "complete":
+            return "success";
+        case "failed":
+        case "error":
+            return "error";
+        case "running":
+        case "started":
+            return "running";
+        default:
+            return "neutral";
+    }
+};
+
+const getSubagentVisual = (delegationID, snapshot, theme) => {
+    const hashSource = delegationID || snapshot.title || snapshot.name || "subagent";
+    const fallbackIcon = subagentFallbackIcons[hashStringToIndex(hashSource, subagentFallbackIcons.length)];
+    const paletteName = subagentFallbackPalette[hashStringToIndex(`${hashSource}:color`, subagentFallbackPalette.length)];
+    const fallbackColor = theme.palette[paletteName]?.main || theme.palette.info.main;
+    return {
+        icon: `${snapshot.icon || fallbackIcon}`.slice(0, 4),
+        color: snapshot.icon_color || fallbackColor,
+    };
+};
+
+const ChatSubagentAvatar = ({visual, size = 26}) => {
+    const theme = useTheme();
+    const visualSoftColor = React.useMemo(() => {
+        try{
+            return alpha(visual.color, theme.palette.mode === "dark" ? 0.2 : 0.12);
+        }catch(error){
+            return alpha(theme.palette.info.main, theme.palette.mode === "dark" ? 0.2 : 0.12);
+        }
+    }, [theme, visual.color]);
+    const visualBorderColor = React.useMemo(() => {
+        try{
+            return alpha(visual.color, 0.4);
+        }catch(error){
+            return alpha(theme.palette.info.main, 0.4);
+        }
+    }, [theme.palette.info.main, visual.color]);
+    return (
+        <Box
+            sx={{
+                alignItems: "center",
+                backgroundColor: visualSoftColor,
+                border: `1px solid ${visualBorderColor}`,
+                borderRadius: 1,
+                color: visual.color,
+                display: "inline-flex",
+                flex: "0 0 auto",
+                fontSize: size > 28 ? "0.78rem" : "0.68rem",
+                fontWeight: 850,
+                height: size,
+                justifyContent: "center",
+                lineHeight: 1,
+                minWidth: size,
+                px: 0.5,
+            }}
+        >
+            {visual.icon}
+        </Box>
+    );
+};
+
+const ChatSubagentEvent = ({message, onOpenDelegation}) => {
+    const theme = useTheme();
+    const metadata = getChatMessageMetadata(message);
+    const snapshot = getSubagentSnapshot(message) || {};
+    const delegationID = getMessageDelegationID(message);
+    const delegationName = getMessageDelegationName(message) || snapshot.name || "Sub-agent";
+    const title = snapshot.title || message.message || delegationName;
+    const stateClass = getSubagentStateClass(snapshot);
+    const visual = getSubagentVisual(delegationID, snapshot, theme);
+    const toolCount = Number(snapshot.tool_count ?? snapshot.tools_done ?? snapshot.completed_tools);
+    const toolTotal = Number(snapshot.tool_total ?? snapshot.tools_total ?? snapshot.total_tools);
+    const hasProgress = !Number.isNaN(toolCount) && !Number.isNaN(toolTotal) && toolTotal > 0;
+    const [showDetails, setShowDetails] = useState(false);
+    const detailItems = [
+        delegationName ? {label: "Agent", value: delegationName} : null,
+        delegationID ? {label: "Delegation", value: delegationID} : null,
+        metadata.source ? {label: "Source", value: metadata.source} : null,
+    ].filter(Boolean);
+    return (
+        <Box className={`mythic-chat-inline-event mythic-chat-inline-event-${stateClass}`.trim()}>
+            <Box className="mythic-chat-inline-event-summary">
+                <Box className="mythic-chat-inline-event-main">
+                    <ChatSubagentAvatar visual={visual} />
+                    <Chip
+                        size="small"
+                        className={`mythic-chat-special-status mythic-chat-special-status-${stateClass}`.trim()}
+                        label={getSubagentStatusText(snapshot)}
+                        variant="outlined"
+                    />
+                    {hasProgress &&
+                        <Chip
+                            size="small"
+                            className={`mythic-chat-special-status mythic-chat-special-status-${stateClass}`.trim()}
+                            label={`${toolCount}/${toolTotal} tools`}
+                            variant="outlined"
+                        />
+                    }
+                    <Typography className="mythic-chat-inline-event-title" variant="body2" noWrap>
+                        {title}
+                    </Typography>
+                </Box>
+                <Box className="mythic-chat-inline-event-actions">
+                    {message.message &&
+                        <Button
+                            size="small"
+                            variant="text"
+                            className="mythic-chat-inline-details-toggle"
+                            startIcon={showDetails ? <KeyboardArrowDownIcon fontSize="small" /> : <KeyboardArrowRightIcon fontSize="small" />}
+                            onClick={() => setShowDetails((open) => !open)}
+                        >
+                            Summary
+                        </Button>
+                    }
+                    {onOpenDelegation &&
+                        <Button
+                            size="small"
+                            variant="outlined"
+                            className="mythic-chat-inline-details-toggle"
+                            onClick={() => onOpenDelegation(message)}
+                        >
+                            Open
+                        </Button>
+                    }
+                </Box>
+            </Box>
+            <Collapse in={showDetails} timeout="auto" unmountOnExit>
+                <Box className="mythic-chat-inline-event-details">
+                    <Box className="mythic-chat-special-card-details">
+                        {detailItems.map((item) => (
+                            <span className="mythic-chat-special-card-detail" key={`${message.id}-${item.label}`}>
+                                <span className="mythic-chat-special-card-detail-label">{item.label}</span>
+                                <span className="mythic-chat-special-card-detail-value">{item.value}</span>
+                            </span>
+                        ))}
+                    </Box>
+                    {message.message &&
+                        <MarkdownMessage message={message.message} />
+                    }
+                </Box>
+            </Collapse>
+        </Box>
+    );
+};
+
+const ChatToolUseEvent = ({message, onViewToolOutput}) => {
     const snapshot = getToolUseSnapshot(message) || {};
     const [showDetails, setShowDetails] = useState(false);
     const stateClass = getToolUseStateClass(snapshot);
@@ -3765,6 +5400,16 @@ const ChatToolUseEvent = ({message}) => {
                 >
                     Details
                 </Button>
+                {snapshot.output_available && onViewToolOutput &&
+                    <Button
+                        size="small"
+                        variant="outlined"
+                        className="mythic-chat-inline-details-toggle"
+                        onClick={() => onViewToolOutput(message)}
+                    >
+                        View output
+                    </Button>
+                }
             </Box>
             <Collapse in={showDetails} timeout="auto" unmountOnExit>
                 <Box className="mythic-chat-inline-event-details">
@@ -3792,7 +5437,21 @@ const ChatToolUseEvent = ({message}) => {
     );
 };
 
-export const MessageBubble = ({message, request, me, onEdit, onDelete, onRetry, onRefreshSpecial, onReviewSpecial, onSubmitInputResponse, refreshingSpecialMessageID, submittingInputResponseID, editing, editText, setEditText, saveEdit, cancelEdit}) => {
+const ChatSpecialEventFrame = ({message, me, children}) => {
+    const formattedTimestamp = formatTimestamp(message.created_at, me?.user?.view_utc_time);
+    return (
+        <Box sx={{minWidth: 0, width: "100%"}}>
+            {formattedTimestamp &&
+                <Typography variant="caption" color="text.secondary" className="mythic-chat-assistant-timestamp">
+                    {formattedTimestamp}
+                </Typography>
+            }
+            {children}
+        </Box>
+    );
+};
+
+export const MessageBubble = ({message, request, me, onEdit, onDelete, onRetry, onRefreshSpecial, onReviewSpecial, onSubmitInputResponse, onOpenDelegation, onViewToolOutput, refreshingSpecialMessageID, submittingInputResponseID, editing, editText, setEditText, saveEdit, cancelEdit}) => {
     const theme = useTheme();
     const isMine = message.operator_id === me?.user?.user_id;
     const isAI = message.author_type === "ai";
@@ -3800,6 +5459,7 @@ export const MessageBubble = ({message, request, me, onEdit, onDelete, onRetry, 
     const eventingInteractionSnapshot = getEventingInteractionSnapshot(message);
     const inputRequestedSnapshot = getInputRequestedSnapshot(message);
     const toolUseSnapshot = getToolUseSnapshot(message);
+    const subagentSnapshot = getSubagentSnapshot(message);
     const canEdit = isMine && message.author_type === "operator" && !message.deleted;
     const canDelete = !message.deleted && (isMine || message.author_type !== "operator");
     const streaming = message.status === "streaming";
@@ -3810,9 +5470,21 @@ export const MessageBubble = ({message, request, me, onEdit, onDelete, onRetry, 
     const messageBackgroundColor = isSystem ? chatMessageColors.systemBackground :
         isMine ? chatMessageColors.selfBackground :
             chatMessageColors.operatorBackground;
-    if(toolUseSnapshot){
+    if(subagentSnapshot){
         return (
-            <ChatToolUseEvent message={message} />
+            <ChatSpecialEventFrame message={message} me={me}>
+                <ChatSubagentEvent message={message} onOpenDelegation={onOpenDelegation} />
+            </ChatSpecialEventFrame>
+        );
+    }
+    if(toolUseSnapshot){
+        if((toolUseSnapshot.tool_source || "unknown") === "mcp" && (toolUseSnapshot.status || "") === "waiting_confirmation"){
+            return null;
+        }
+        return (
+            <ChatSpecialEventFrame message={message} me={me}>
+                <ChatToolUseEvent message={message} onViewToolOutput={onViewToolOutput} />
+            </ChatSpecialEventFrame>
         );
     }
     if(inputRequestedSnapshot){

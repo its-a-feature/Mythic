@@ -66,6 +66,7 @@ type ChatMessage struct {
 	ChatContainer     ConsumingContainer `db:"chat_container" json:"chat_container,omitempty"`
 	SenderDisplayName string             `db:"sender_display_name" json:"sender_display_name"`
 	Message           string             `db:"message" json:"message"`
+	ToolOutput        string             `db:"tool_output" json:"tool_output"`
 	Edited            bool               `db:"edited" json:"edited"`
 	EditedAt          sql.NullTime       `db:"edited_at" json:"edited_at"`
 	Deleted           bool               `db:"deleted" json:"deleted"`

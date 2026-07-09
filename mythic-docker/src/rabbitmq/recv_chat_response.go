@@ -20,6 +20,8 @@ const chatStreamFlushInterval = 750 * time.Millisecond
 const (
 	ChatMessageSpecialTypeInputRequested          = "input_requested"
 	ChatMessageSpecialTypeEventingUserInteraction = "eventing_user_interaction"
+	ChatMessageSpecialTypeToolUse                 = "tool_use"
+	ChatMessageSpecialTypeSubagent                = "subagent"
 )
 
 type ChatContainerResponseMessage struct {
@@ -55,6 +57,10 @@ type ChatContainerResponseMessage struct {
 //     Send it with a stable response_key so start/finish metadata updates the
 //     same secondary chat message without converting the primary AI answer into
 //     a special card.
+//   - subagent: chat-container authored summary row for a delegated sub-agent
+//     turn. Use top-level delegation_id/delegation_name fields on the sub-agent
+//     card and every related delegated message so the UI can filter a flat
+//     transcript without nesting cards.
 //
 // Minimal metadata for a chat-container-authored input request card:
 //
@@ -258,6 +264,43 @@ func (m *ChatContainerResponseMetadata) StructValue() map[string]interface{} {
 
 func (m *ChatContainerResponseMetadata) IsEmpty() bool {
 	return len(m.StructValue()) == 0
+}
+
+func (m *ChatContainerResponseMetadata) ExtractToolOutput() string {
+	if m == nil || m.SpecialType != ChatMessageSpecialTypeToolUse {
+		return ""
+	}
+	toolUse, ok := m.Other[ChatMessageSpecialTypeToolUse].(map[string]interface{})
+	if !ok || toolUse == nil {
+		return ""
+	}
+	rawOutput, ok := toolUse["output"]
+	if !ok {
+		return ""
+	}
+	delete(toolUse, "output")
+
+	var output string
+	switch typedOutput := rawOutput.(type) {
+	case string:
+		output = typedOutput
+	default:
+		if outputBytes, err := json.Marshal(typedOutput); err == nil {
+			output = string(outputBytes)
+		} else {
+			output = fmt.Sprint(typedOutput)
+		}
+	}
+	if output == "" {
+		toolUse["output_available"] = false
+		toolUse["output_size"] = 0
+		m.Other[ChatMessageSpecialTypeToolUse] = toolUse
+		return ""
+	}
+	toolUse["output_available"] = true
+	toolUse["output_size"] = len(output)
+	m.Other[ChatMessageSpecialTypeToolUse] = toolUse
+	return output
 }
 
 func (m *ChatInputRequestedMetadata) UnmarshalJSON(data []byte) error {
@@ -711,6 +754,7 @@ func setChatResponseMessageContent(responseMessageID int, operationID int, conte
 }
 
 func setChatResponseMessageStatus(responseMessageID int, operationID int, status string, responseError string, metadata ChatContainerResponseMetadata) error {
+	toolOutput := metadata.ExtractToolOutput()
 	metadataJSON := GetMythicJSONTextFromStruct(metadata.StructValue())
 	if responseError != "" {
 		metadataJSON = GetMythicJSONTextFromStruct(map[string]interface{}{
@@ -720,8 +764,10 @@ func setChatResponseMessageStatus(responseMessageID int, operationID int, status
 	}
 	_, err := database.DB.Exec(`UPDATE chat_message
 		SET status=$3,
-			metadata = metadata || $4::jsonb
-		WHERE id=$1 AND operation_id=$2 AND deleted=false AND status <> 'cancelled'`, responseMessageID, operationID, status, metadataJSON.String())
+			metadata = metadata || $4::jsonb,
+			tool_output = CASE WHEN $5 THEN $6 ELSE tool_output END
+		WHERE id=$1 AND operation_id=$2 AND deleted=false AND status <> 'cancelled'`,
+		responseMessageID, operationID, status, metadataJSON.String(), toolOutput != "", toolOutput)
 	return err
 }
 
