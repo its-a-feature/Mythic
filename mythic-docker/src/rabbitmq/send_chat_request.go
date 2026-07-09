@@ -32,6 +32,8 @@ type ChatContainerRequestMessage struct {
 	Secrets          map[string]interface{}        `json:"secrets" mapstructure:"secrets"`
 	SlashCommand     *ChatSlashCommandInvocation   `json:"slash_command,omitempty" mapstructure:"slash_command"`
 	InputResponse    *ChatContainerInputResponse   `json:"input_response,omitempty" mapstructure:"input_response"`
+	DelegationID     string                        `json:"delegation_id,omitempty" mapstructure:"delegation_id"`
+	DelegationName   string                        `json:"delegation_name,omitempty" mapstructure:"delegation_name"`
 }
 
 type ChatContainerInputResponse struct {

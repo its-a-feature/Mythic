@@ -79,6 +79,8 @@ type Mutation {
     message: String!
     system_message: Boolean
     all_operations: Boolean
+    delegation_id: String
+    delegation_name: String
   ): ChatActionOutput
 }
 

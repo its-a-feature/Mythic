@@ -94,3 +94,74 @@ func TestChatContainerResponseKeyFieldsRoundTrip(t *testing.T) {
 		t.Fatalf("complete_request missing from serialized message: %#v", values)
 	}
 }
+
+func TestChatSubagentMetadataRoundTrip(t *testing.T) {
+	message := ChatContainerResponseMessage{}
+	err := json.Unmarshal([]byte(`{
+		"request_id": 10,
+		"metadata": {
+			"special_type": "subagent",
+			"delegation_id": "delegate-1",
+			"delegation_name": "BloodHound",
+			"subagent": {
+				"title": "BloodHound: List all domains",
+				"status": "running",
+				"tool_count": 3,
+				"tool_total": 13,
+				"icon": "BH",
+				"icon_color": "#4f8cff"
+			}
+		}
+	}`), &message)
+	if err != nil {
+		t.Fatalf("failed to unmarshal subagent metadata: %v", err)
+	}
+	if message.Metadata.SpecialType != ChatMessageSpecialTypeSubagent {
+		t.Fatalf("special type was not parsed: %q", message.Metadata.SpecialType)
+	}
+	serialized := message.Metadata.StructValue()
+	if serialized["delegation_id"] != "delegate-1" {
+		t.Fatalf("delegation_id missing from serialized metadata: %#v", serialized)
+	}
+	subagent := serialized["subagent"].(map[string]interface{})
+	if subagent["title"] != "BloodHound: List all domains" || subagent["icon"] != "BH" {
+		t.Fatalf("subagent metadata missing from serialized metadata: %#v", subagent)
+	}
+}
+
+func TestChatToolUseOutputIsExtractedFromMetadata(t *testing.T) {
+	message := ChatContainerResponseMessage{}
+	err := json.Unmarshal([]byte(`{
+		"request_id": 10,
+		"metadata": {
+			"special_type": "tool_use",
+			"tool_use": {
+				"status": "completed",
+				"tool_name": "big_tool",
+				"result_preview": "short preview",
+				"output": "very large output"
+			}
+		}
+	}`), &message)
+	if err != nil {
+		t.Fatalf("failed to unmarshal tool metadata: %v", err)
+	}
+	output := message.Metadata.ExtractToolOutput()
+	if output != "very large output" {
+		t.Fatalf("unexpected extracted output: %q", output)
+	}
+	serialized := message.Metadata.StructValue()
+	toolUse := serialized["tool_use"].(map[string]interface{})
+	if _, ok := toolUse["output"]; ok {
+		t.Fatalf("full output should not remain in metadata: %#v", toolUse)
+	}
+	if toolUse["output_available"] != true {
+		t.Fatalf("output_available missing from metadata: %#v", toolUse)
+	}
+	if toolUse["output_size"] != len(output) {
+		t.Fatalf("output_size mismatch in metadata: %#v", toolUse)
+	}
+	if toolUse["result_preview"] != "short preview" {
+		t.Fatalf("result preview should remain in metadata: %#v", toolUse)
+	}
+}

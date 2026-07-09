@@ -260,6 +260,8 @@ const (
 	MYTHIC_RPC_TAGTYPE_GET_OR_CREATE = "mythic_rpc_tag_type_get_or_create"
 	// C2
 	MYTHIC_RPC_C2_UPDATE_STATUS = "mythic_rpc_c2_update_status"
+	// Chat
+	MYTHIC_RPC_CHAT_CHANNEL_METADATA_UPDATE = "mythic_rpc_chat_channel_metadata_update"
 	//
 	MYTHIC_RPC_APITOKEN_CREATE = "mythic_rpc_apitoken_create"
 	//

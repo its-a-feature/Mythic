@@ -72,10 +72,12 @@ type CreateChatMessageInput struct {
 }
 
 type CreateChatMessage struct {
-	ChannelID     int    `json:"channel_id" binding:"required"`
-	Message       string `json:"message" binding:"required"`
-	SystemMessage bool   `json:"system_message"`
-	AllOperations bool   `json:"all_operations"`
+	ChannelID      int    `json:"channel_id" binding:"required"`
+	Message        string `json:"message" binding:"required"`
+	SystemMessage  bool   `json:"system_message"`
+	AllOperations  bool   `json:"all_operations"`
+	DelegationID   string `json:"delegation_id"`
+	DelegationName string `json:"delegation_name"`
 }
 
 func CreateChatChannelWebhook(c *gin.Context) {
@@ -235,10 +237,18 @@ func CreateChatMessageWebhook(c *gin.Context) {
 			chatRespondError(c, "this AI chat is locked to another operator")
 			return
 		}
-		createAIChatMessage(c, operatorOperation, channel, message, nil)
+		createAIChatMessageWithOptions(c, operatorOperation, channel, message, aiChatRequestOptions{
+			RequestMessageMetadata: chatDelegationMetadata(input.Input.DelegationID, input.Input.DelegationName),
+		})
 		return
 	}
-	messageID, err := insertOperatorChatMessage(operatorOperation, channel, message, authentication.RabbitMQAuthContextFromGin(c))
+	messageID, err := insertOperatorChatMessageWithMetadata(
+		operatorOperation,
+		channel,
+		message,
+		authentication.RabbitMQAuthContextFromGin(c),
+		chatDelegationMetadata(input.Input.DelegationID, input.Input.DelegationName),
+	)
 	if err != nil {
 		logging.LogError(err, "Failed to create chat message")
 		chatRespondError(c, err.Error())
@@ -249,6 +259,22 @@ func CreateChatMessageWebhook(c *gin.Context) {
 
 func createAIChatMessage(c *gin.Context, operatorOperation *databaseStructs.Operatoroperation, channel databaseStructs.ChatChannel, message string, retryOfID *int) {
 	createAIChatMessageWithOptions(c, operatorOperation, channel, message, aiChatRequestOptions{RetryOfID: retryOfID})
+}
+
+func chatDelegationMetadata(delegationID string, delegationName string) map[string]interface{} {
+	metadata := map[string]interface{}{}
+	delegationID = strings.TrimSpace(delegationID)
+	delegationName = strings.TrimSpace(delegationName)
+	if delegationID != "" {
+		metadata["delegation_id"] = delegationID
+	}
+	if delegationName != "" {
+		metadata["delegation_name"] = delegationName
+	}
+	if len(metadata) == 0 {
+		return nil
+	}
+	return metadata
 }
 
 func createAIChatMessageWithOptions(c *gin.Context, operatorOperation *databaseStructs.Operatoroperation, channel databaseStructs.ChatChannel, message string, options aiChatRequestOptions) {
@@ -403,6 +429,22 @@ func dispatchAIChatRequest(
 		"config":                chatConfig,
 		"final_prompt":          prompt,
 	}
+	requestMetadata := map[string]interface{}{}
+	if len(contextMessages) > 0 {
+		if err = json.Unmarshal(contextMessages[len(contextMessages)-1].Metadata, &requestMetadata); err != nil {
+			requestMetadata = map[string]interface{}{}
+		}
+	}
+	delegationID, _ := requestMetadata["delegation_id"].(string)
+	delegationName, _ := requestMetadata["delegation_name"].(string)
+	delegationID = strings.TrimSpace(delegationID)
+	delegationName = strings.TrimSpace(delegationName)
+	if delegationID != "" {
+		contextSnapshotMap["delegation_id"] = delegationID
+	}
+	if delegationName != "" {
+		contextSnapshotMap["delegation_name"] = delegationName
+	}
 	if slashCommand != nil {
 		contextSnapshotMap["slash_command"] = slashCommand
 	}
@@ -432,6 +474,8 @@ func dispatchAIChatRequest(
 		Secrets:          rabbitmq.GetSecrets(operatorID, 0),
 		SlashCommand:     slashCommand,
 		InputResponse:    inputResponse,
+		DelegationID:     delegationID,
+		DelegationName:   delegationName,
 	}, chatAuthContext)
 	if err != nil {
 		logging.LogError(err, "Failed to send AI chat request", "request_id", requestID)
@@ -806,6 +850,7 @@ func getChatMessageAndChannel(messageID int, operationID int) (databaseStructs.C
 			chat_container_id,
 			sender_display_name,
 			message,
+			tool_output,
 			edited,
 			edited_at,
 			deleted,

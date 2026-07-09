@@ -16,8 +16,8 @@ type MythicRPCProxyStartMessage struct {
 	RemotePort int    `json:"remote_port"`
 	RemoteIP   string `json:"remote_ip"`
 	PortType   string `json:"port_type"`
-	Username   string `json:"Username"`
-	Password   string `json:"Password"`
+	Username   string `json:"username"`
+	Password   string `json:"password"`
 }
 type MythicRPCProxyStartMessageResponse struct {
 	Success   bool   `json:"success"`
