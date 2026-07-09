@@ -105,6 +105,7 @@ func TestChatSubagentMetadataRoundTrip(t *testing.T) {
 			"delegation_name": "BloodHound",
 			"subagent": {
 				"title": "BloodHound: List all domains",
+				"prompt": "List every Active Directory domain and summarize the trust relationships.",
 				"status": "running",
 				"tool_count": 3,
 				"tool_total": 13,
@@ -126,6 +127,27 @@ func TestChatSubagentMetadataRoundTrip(t *testing.T) {
 	subagent := serialized["subagent"].(map[string]interface{})
 	if subagent["title"] != "BloodHound: List all domains" || subagent["icon"] != "BH" {
 		t.Fatalf("subagent metadata missing from serialized metadata: %#v", subagent)
+	}
+	if subagent["prompt"] != "List every Active Directory domain and summarize the trust relationships." {
+		t.Fatalf("subagent prompt missing from serialized metadata: %#v", subagent)
+	}
+	delegationID, delegationName := getChatSubagentDelegationFields(message.Metadata)
+	if delegationID != "delegate-1" || delegationName != "BloodHound" {
+		t.Fatalf("delegation metadata was not parsed: %q %q", delegationID, delegationName)
+	}
+	if getSubagentFinalOutputResponseKey(delegationID) != "subagent_final:delegate-1" {
+		t.Fatalf("unexpected subagent final output response key")
+	}
+}
+
+func TestChatResponseVisibleContentFallsBackToError(t *testing.T) {
+	message := ChatContainerResponseMessage{Content: "visible", Error: "hidden"}
+	if chatResponseVisibleContent(message) != "visible" {
+		t.Fatalf("content should win over error")
+	}
+	message = ChatContainerResponseMessage{Error: "container failed"}
+	if chatResponseVisibleContent(message) != "container failed" {
+		t.Fatalf("error should be visible when content is empty")
 	}
 }
 

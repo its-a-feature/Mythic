@@ -12231,6 +12231,32 @@ tspan {
     color: var(--mythic-theme-page-header-text);
     min-height: 54px;
 }
+.mythic-chat-delegation-prompt {
+    background-color: var(--mythic-theme-panel-muted-bg);
+    border-bottom: 1px solid var(--mythic-theme-table-border-soft-fallback-border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    padding: 8px 10px;
+}
+.mythic-chat-delegation-prompt-label {
+    color: var(--mythic-theme-palette-text-secondary);
+    font-size: 0.66rem !important;
+    font-weight: 850 !important;
+    letter-spacing: 0;
+    line-height: 1.1 !important;
+    text-transform: uppercase;
+}
+.mythic-chat-delegation-prompt-text {
+    color: var(--mythic-theme-palette-text-primary);
+    font-size: 0.78rem !important;
+    line-height: 1.35 !important;
+    max-height: 8.2rem;
+    overflow: auto;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
 .mythic-chat-header-config-chips {
     display: flex;
     margin-top: 4px;

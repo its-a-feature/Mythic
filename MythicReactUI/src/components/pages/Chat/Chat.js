@@ -62,6 +62,7 @@ import {EventStepUserInteractionDialog} from "../Eventing/EventStepRender";
 import {SettingsAPITokenDialog} from "../Settings/SettingsOperatorDialog";
 import {SchemaFormRenderer, emptyValueForSchema} from "../CreatePayload/SchemaFormRenderer";
 import {ResponseDisplayPlaintext} from "../Callbacks/ResponseDisplayPlaintext";
+import {getIconName} from "../Callbacks/ResponseDisplayTable";
 import {MythicDraggablePortal, reorder} from "../../MythicComponents/MythicDraggableList";
 import {
     Draggable,
@@ -69,6 +70,8 @@ import {
     Droppable,
 } from "@hello-pangea/dnd";
 import {MythicColorSwatchInput} from "../../MythicComponents/MythicColorInput";
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import {findIconDefinition} from '@fortawesome/fontawesome-svg-core';
 
 const CHAT_MESSAGE_LIMIT = 250;
 const CHAT_REQUEST_LIMIT = 50;
@@ -76,7 +79,7 @@ const CHAT_UPDATE_LIMIT = 100;
 const CHAT_SPLIT_STORAGE_KEY = "chatSplitSizes";
 const CHAT_SPLIT_DEFAULT_SIZES = [20, 80];
 const CHAT_DELEGATION_SPLIT_STORAGE_KEY = "chatDelegationSplitSizes";
-const CHAT_DELEGATION_SPLIT_DEFAULT_SIZES = [68, 32];
+const CHAT_DELEGATION_SPLIT_DEFAULT_SIZES = [70, 30];
 const CHAT_SELECTED_CHANNEL_SETTING = "chatSelectedChannelID";
 const CHAT_DIALOG_TEXT_FIELD_PROPS = {
     multiline: true,
@@ -472,7 +475,8 @@ const isGeneralChatChannel = (channel) => channel?.channel_type === "standard" &
 
 const getStoredChatSplitSizes = () => {
     try {
-        return JSON.parse(localStorage.getItem(CHAT_SPLIT_STORAGE_KEY));
+        let sizes = JSON.parse(localStorage.getItem(CHAT_SPLIT_STORAGE_KEY));
+        return sizes ? sizes : CHAT_SPLIT_DEFAULT_SIZES;
     } catch(error) {
         return CHAT_SPLIT_DEFAULT_SIZES;
     }
@@ -480,7 +484,8 @@ const getStoredChatSplitSizes = () => {
 
 const getStoredChatDelegationSplitSizes = () => {
     try {
-        return JSON.parse(localStorage.getItem(CHAT_DELEGATION_SPLIT_STORAGE_KEY));
+        let sizes = JSON.parse(localStorage.getItem(CHAT_DELEGATION_SPLIT_STORAGE_KEY));
+        return sizes ? sizes : CHAT_DELEGATION_SPLIT_DEFAULT_SIZES;
     } catch(error) {
         return CHAT_DELEGATION_SPLIT_DEFAULT_SIZES;
     }
@@ -3382,6 +3387,7 @@ const ChatDelegationPane = ({
     const toolCount = Number(snapshot.tool_count ?? snapshot.tools_done ?? snapshot.completed_tools);
     const toolTotal = Number(snapshot.tool_total ?? snapshot.tools_total ?? snapshot.total_tools);
     const hasProgress = !Number.isNaN(toolCount) && !Number.isNaN(toolTotal) && toolTotal > 0;
+    const prompt = delegation?.prompt || snapshot.prompt || snapshot.title || "";
     if(!delegation){
         return null;
     }
@@ -3404,9 +3410,11 @@ const ChatDelegationPane = ({
                     <ChatSubagentAvatar visual={visual} size={30} />
                     <Box sx={{display: "flex", flexDirection: "column", minWidth: 0}}>
                         <Box sx={{alignItems: "center", display: "flex", gap: 0.75, minWidth: 0}}>
-                            <Typography className="mythic-chat-conversation-title" variant="subtitle2" noWrap>
-                                {delegation.title || delegation.name || "Sub-agent"}
-                            </Typography>
+                            <MythicStyledTooltip title={delegation.title || delegation.name || "Sub-agent"}>
+                                <Typography className="mythic-chat-conversation-title" variant="subtitle2" noWrap>
+                                    {delegation.title || delegation.name || "Sub-agent"}
+                                </Typography>
+                            </MythicStyledTooltip>
                             <Chip
                                 size="small"
                                 className={`mythic-chat-special-status mythic-chat-special-status-${stateClass}`.trim()}
@@ -3433,6 +3441,16 @@ const ChatDelegationPane = ({
                     </IconButton>
                 </MythicStyledTooltip>
             </Box>
+            {prompt &&
+                <Box className="mythic-chat-delegation-prompt">
+                    <Typography className="mythic-chat-delegation-prompt-label" variant="caption">
+                        Prompt
+                    </Typography>
+                    <Typography className="mythic-chat-delegation-prompt-text" variant="body2">
+                        {prompt}
+                    </Typography>
+                </Box>
+            }
             <Box className="mythic-chat-messages" sx={{padding: "8px"}}>
                 {messages.length === 0 ? (
                     <ChatEmptyState
@@ -4058,6 +4076,7 @@ export function Chat({me}) {
             ...selectedDelegationSeed,
             name: getMessageDelegationName(summaryMessage) || snapshot.name || selectedDelegationSeed.name,
             title: snapshot.title || selectedDelegationSeed.title,
+            prompt: snapshot.prompt || selectedDelegationSeed.prompt || snapshot.title || "",
             snapshot: Object.keys(snapshot).length > 0 ? snapshot : (selectedDelegationSeed.snapshot || {}),
         };
     }, [messages, selectedDelegationSeed]);
@@ -4065,7 +4084,10 @@ export function Chat({me}) {
         if(!selectedDelegation?.id){
             return [];
         }
-        return messages.filter((message) => getMessageDelegationID(message) === selectedDelegation.id);
+        return messages.filter((message) => (
+            getMessageDelegationID(message) === selectedDelegation.id &&
+            !getSubagentSnapshot(message)
+        ));
     }, [messages, selectedDelegation?.id]);
     const messageHistory = React.useMemo(() => {
         const seenMessages = new Set();
@@ -4259,7 +4281,8 @@ export function Chat({me}) {
         setSelectedDelegationSeed({
             id: delegationID,
             name: getMessageDelegationName(message) || snapshot.name || "Sub-agent",
-            title: snapshot.title || message.message || getMessageDelegationName(message) || "Sub-agent",
+            title: snapshot.title || getMessageDelegationName(message) || "Sub-agent",
+            prompt: snapshot.prompt || snapshot.title || message.message || "",
             snapshot,
         });
     }, []);
@@ -5005,7 +5028,7 @@ const getInputRequestedStateClass = (snapshot) => {
     }
 };
 
-const ChatInputRequestedEvent = ({message, onSubmit, submitting}) => {
+const ChatInputRequestedEvent = ({message, me, onSubmit, submitting}) => {
     const snapshot = getInputRequestedSnapshot(message) || {};
     const pending = (snapshot.status || "pending") === "pending";
     const stateClass = getInputRequestedStateClass(snapshot);
@@ -5023,7 +5046,8 @@ const ChatInputRequestedEvent = ({message, onSubmit, submitting}) => {
     }, [pending]);
     const detailItems = [
         {label: "Type", value: inputType},
-        snapshot.resolved_at ? {label: "Resolved", value: formatTimestamp(snapshot.resolved_at)} : null,
+        message.updated_at ? {label: "Updated", value: formatTimestamp(message.updated_at, me?.user?.view_utc_time)} : null,
+        snapshot.resolved_at ? {label: "Resolved", value: formatTimestamp(snapshot.resolved_at, me?.user?.view_utc_time)} : null,
         snapshot.resolved_by ? {label: "Resolved by", value: snapshot.resolved_by} : null,
         response?.action ? {label: "Action", value: response.action} : null,
     ].filter(Boolean);
@@ -5222,13 +5246,52 @@ const getSubagentStateClass = (snapshot) => {
     }
 };
 
+const isTerminalSubagentSnapshot = (snapshot) => ["finished", "completed", "complete", "failed", "error"].includes(`${snapshot.status || ""}`.toLowerCase());
+
+const normalizeFontAwesomeIconName = (value) => {
+    const text = `${value || ""}`.trim();
+    if(text === ""){
+        return "";
+    }
+    if(text.includes(" ")){
+        const parts = text.split(/\s+/).filter(Boolean);
+        return normalizeFontAwesomeIconName(parts[parts.length - 1]);
+    }
+    return text
+        .replace(/^fas?-/, "")
+        .replace(/^fa-/, "")
+        .replace(/^fa(?=[A-Z])/, "")
+        .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+        .replace(/_/g, "-")
+        .toLowerCase();
+};
+
+const resolveSubagentFontAwesomeIcon = (iconName) => {
+    const text = `${iconName || ""}`.trim();
+    if(text === ""){
+        return null;
+    }
+    const browserScriptIcon = getIconName(text);
+    if(browserScriptIcon && typeof browserScriptIcon === "object"){
+        return browserScriptIcon;
+    }
+    const normalizedIconName = normalizeFontAwesomeIconName(text);
+    if(normalizedIconName === ""){
+        return null;
+    }
+    return findIconDefinition({prefix: "fas", iconName: normalizedIconName}) || null;
+};
+
 const getSubagentVisual = (delegationID, snapshot, theme) => {
     const hashSource = delegationID || snapshot.title || snapshot.name || "subagent";
     const fallbackIcon = subagentFallbackIcons[hashStringToIndex(hashSource, subagentFallbackIcons.length)];
     const paletteName = subagentFallbackPalette[hashStringToIndex(`${hashSource}:color`, subagentFallbackPalette.length)];
     const fallbackColor = theme.palette[paletteName]?.main || theme.palette.info.main;
+    const configuredIcon = `${snapshot.icon || ""}`.trim();
+    const fontAwesomeIcon = resolveSubagentFontAwesomeIcon(configuredIcon);
     return {
-        icon: `${snapshot.icon || fallbackIcon}`.slice(0, 4),
+        icon: fontAwesomeIcon ? "" : `${configuredIcon || fallbackIcon}`.slice(0, 4),
+        fontAwesomeIcon,
         color: snapshot.icon_color || fallbackColor,
     };
 };
@@ -5268,20 +5331,25 @@ const ChatSubagentAvatar = ({visual, size = 26}) => {
                 px: 0.5,
             }}
         >
-            {visual.icon}
+            {visual.fontAwesomeIcon ? (
+                <FontAwesomeIcon icon={visual.fontAwesomeIcon} />
+            ) : (
+                visual.icon
+            )}
         </Box>
     );
 };
 
-const ChatSubagentEvent = ({message, onOpenDelegation}) => {
+const ChatSubagentEvent = ({message, me, onOpenDelegation}) => {
     const theme = useTheme();
-    const metadata = getChatMessageMetadata(message);
     const snapshot = getSubagentSnapshot(message) || {};
     const delegationID = getMessageDelegationID(message);
     const delegationName = getMessageDelegationName(message) || snapshot.name || "Sub-agent";
     const title = snapshot.title || message.message || delegationName;
     const stateClass = getSubagentStateClass(snapshot);
     const visual = getSubagentVisual(delegationID, snapshot, theme);
+    const terminal = isTerminalSubagentSnapshot(snapshot);
+    const prompt = snapshot.prompt || snapshot.title || "";
     const toolCount = Number(snapshot.tool_count ?? snapshot.tools_done ?? snapshot.completed_tools);
     const toolTotal = Number(snapshot.tool_total ?? snapshot.tools_total ?? snapshot.total_tools);
     const hasProgress = !Number.isNaN(toolCount) && !Number.isNaN(toolTotal) && toolTotal > 0;
@@ -5289,7 +5357,7 @@ const ChatSubagentEvent = ({message, onOpenDelegation}) => {
     const detailItems = [
         delegationName ? {label: "Agent", value: delegationName} : null,
         delegationID ? {label: "Delegation", value: delegationID} : null,
-        metadata.source ? {label: "Source", value: metadata.source} : null,
+        message.updated_at ? {label: terminal ? "End" : "Updated", value: formatTimestamp(message.updated_at, me?.user?.view_utc_time)} : null,
     ].filter(Boolean);
     return (
         <Box className={`mythic-chat-inline-event mythic-chat-inline-event-${stateClass}`.trim()}>
@@ -5340,6 +5408,11 @@ const ChatSubagentEvent = ({message, onOpenDelegation}) => {
             </Box>
             <Collapse in={showDetails} timeout="auto" unmountOnExit>
                 <Box className="mythic-chat-inline-event-details">
+                    {prompt &&
+                        <Typography variant="caption" className="mythic-chat-inline-event-description">
+                            {prompt}
+                        </Typography>
+                    }
                     <Box className="mythic-chat-special-card-details">
                         {detailItems.map((item) => (
                             <span className="mythic-chat-special-card-detail" key={`${message.id}-${item.label}`}>
@@ -5357,7 +5430,7 @@ const ChatSubagentEvent = ({message, onOpenDelegation}) => {
     );
 };
 
-const ChatToolUseEvent = ({message, onViewToolOutput}) => {
+const ChatToolUseEvent = ({message, me, onViewToolOutput}) => {
     const snapshot = getToolUseSnapshot(message) || {};
     const [showDetails, setShowDetails] = useState(false);
     const stateClass = getToolUseStateClass(snapshot);
@@ -5373,6 +5446,7 @@ const ChatToolUseEvent = ({message, onViewToolOutput}) => {
         snapshot.tool_call_count ? {label: "Call", value: `${snapshot.tool_call_index || 1} of ${snapshot.tool_call_count}`} : null,
         snapshot.requires_confirmation ? {label: "Confirmation", value: "Required"} : null,
         snapshot.confirmed ? {label: "Approval", value: "Confirmed"} : null,
+        message.updated_at ? {label: "Updated", value: formatTimestamp(message.updated_at, me?.user?.view_utc_time)} : null,
     ].filter(Boolean);
     if(isDuplicateMCPConfirmationWait){
         return null;
@@ -5473,7 +5547,7 @@ export const MessageBubble = ({message, request, me, onEdit, onDelete, onRetry, 
     if(subagentSnapshot){
         return (
             <ChatSpecialEventFrame message={message} me={me}>
-                <ChatSubagentEvent message={message} onOpenDelegation={onOpenDelegation} />
+                <ChatSubagentEvent message={message} me={me} onOpenDelegation={onOpenDelegation} />
             </ChatSpecialEventFrame>
         );
     }
@@ -5483,17 +5557,20 @@ export const MessageBubble = ({message, request, me, onEdit, onDelete, onRetry, 
         }
         return (
             <ChatSpecialEventFrame message={message} me={me}>
-                <ChatToolUseEvent message={message} onViewToolOutput={onViewToolOutput} />
+                <ChatToolUseEvent message={message} me={me} onViewToolOutput={onViewToolOutput} />
             </ChatSpecialEventFrame>
         );
     }
     if(inputRequestedSnapshot){
         return (
-            <ChatInputRequestedEvent
-                message={message}
-                onSubmit={onSubmitInputResponse}
-                submitting={submittingInputResponseID === message.id}
-            />
+            <ChatSpecialEventFrame message={message} me={me}>
+                <ChatInputRequestedEvent
+                    message={message}
+                    me={me}
+                    onSubmit={onSubmitInputResponse}
+                    submitting={submittingInputResponseID === message.id}
+                />
+            </ChatSpecialEventFrame>
         );
     }
     if(eventingInteractionSnapshot){
