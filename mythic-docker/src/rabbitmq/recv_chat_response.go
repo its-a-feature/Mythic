@@ -544,16 +544,16 @@ func applyChatContainerResponse(incomingMessage ChatContainerResponseMessage, au
 	}
 
 	status := normalizeChatContainerResponseStatus(incomingMessage)
-	if incomingMessage.Content != "" {
+	if message := chatResponseVisibleContent(incomingMessage); message != "" {
 		if incomingMessage.IsDelta {
-			if err = queueChatResponseDelta(targetMessageID, request.OperationID, incomingMessage.Content); err != nil {
+			if err = queueChatResponseDelta(targetMessageID, request.OperationID, message); err != nil {
 				return err
 			}
 		} else {
 			if err = flushChatResponseMessageLocked(targetMessageID, request.OperationID, false); err != nil {
 				return err
 			}
-			if err = setChatResponseMessageContent(targetMessageID, request.OperationID, incomingMessage.Content); err != nil {
+			if err = setChatResponseMessageContent(targetMessageID, request.OperationID, message); err != nil {
 				return err
 			}
 		}
@@ -576,6 +576,9 @@ func applyChatContainerResponse(incomingMessage ChatContainerResponseMessage, au
 		if err = setChatResponseMessageStatus(targetMessageID, request.OperationID, status, incomingMessage.Error, incomingMessage.Metadata); err != nil {
 			return err
 		}
+		if err = persistSubagentFinalOutput(request, targetMessageID, incomingMessage.ResponseKey, status, incomingMessage.Metadata); err != nil {
+			return err
+		}
 		if status == databaseStructs.ChatMessageStatusStreaming ||
 			(incomingMessage.CompleteRequest && isTerminalChatResponseStatus(status)) {
 			if err = setChatRequestStatus(request, status, incomingMessage.Error); err != nil {
@@ -587,6 +590,13 @@ func applyChatContainerResponse(incomingMessage ChatContainerResponseMessage, au
 		}
 	}
 	return nil
+}
+
+func chatResponseVisibleContent(incomingMessage ChatContainerResponseMessage) string {
+	if incomingMessage.Content != "" {
+		return incomingMessage.Content
+	}
+	return incomingMessage.Error
 }
 
 func getChatResponseRequest(incomingMessage ChatContainerResponseMessage, operationID int) (chatResponseRequest, error) {
@@ -769,6 +779,84 @@ func setChatResponseMessageStatus(responseMessageID int, operationID int, status
 		WHERE id=$1 AND operation_id=$2 AND deleted=false AND status <> 'cancelled'`,
 		responseMessageID, operationID, status, metadataJSON.String(), toolOutput != "", toolOutput)
 	return err
+}
+
+func persistSubagentFinalOutput(request chatResponseRequest, summaryMessageID int, sourceResponseKey string, status string, metadata ChatContainerResponseMetadata) error {
+	if metadata.SpecialType != ChatMessageSpecialTypeSubagent || !isTerminalChatResponseStatus(status) {
+		return nil
+	}
+	delegationID, delegationName := getChatSubagentDelegationFields(metadata)
+	if delegationID == "" {
+		return nil
+	}
+	var finalOutput string
+	if err := database.DB.Get(&finalOutput, `SELECT message
+		FROM chat_message
+		WHERE id=$1 AND operation_id=$2 AND deleted=false`, summaryMessageID, request.OperationID); err != nil {
+		return err
+	}
+	if strings.TrimSpace(finalOutput) == "" {
+		return nil
+	}
+	finalStatus := databaseStructs.ChatMessageStatusComplete
+	if status == databaseStructs.ChatMessageStatusError || status == databaseStructs.ChatMessageStatusCancelled {
+		finalStatus = status
+	}
+	senderDisplayName := strings.TrimSpace(delegationName)
+	if senderDisplayName == "" {
+		senderDisplayName = request.ChatContainerName
+	}
+	finalMetadata := map[string]interface{}{
+		"delegation_id":              delegationID,
+		"source_subagent_message_id": summaryMessageID,
+		"source_chat_response_key":   sourceResponseKey,
+		"subagent_final_output":      true,
+	}
+	if delegationName != "" {
+		finalMetadata["delegation_name"] = delegationName
+	}
+	metadataJSON := GetMythicJSONTextFromStruct(finalMetadata)
+	var messageID int
+	return database.DB.Get(&messageID, `INSERT INTO chat_message
+		(operation_id, channel_id, author_type, chat_request_id, chat_response_key,
+		 chat_container_id, sender_display_name, message, status, metadata)
+		VALUES ($1, $2, 'ai', $3, $4, $5, $6, $7, $8, $9::jsonb)
+		ON CONFLICT (chat_request_id, chat_response_key) WHERE chat_request_id IS NOT NULL
+		DO UPDATE SET sender_display_name=EXCLUDED.sender_display_name,
+			message=EXCLUDED.message,
+			status=EXCLUDED.status,
+			metadata=chat_message.metadata || EXCLUDED.metadata,
+			updated_at=now()
+		RETURNING id`,
+		request.OperationID,
+		request.ChannelID,
+		request.ID,
+		getSubagentFinalOutputResponseKey(delegationID),
+		request.ChatContainerID,
+		senderDisplayName,
+		finalOutput,
+		finalStatus,
+		metadataJSON.String(),
+	)
+}
+
+func getChatSubagentDelegationFields(metadata ChatContainerResponseMetadata) (string, string) {
+	return strings.TrimSpace(chatMetadataStringFromMap(metadata.Other, "delegation_id")),
+		strings.TrimSpace(chatMetadataStringFromMap(metadata.Other, "delegation_name"))
+}
+
+func chatMetadataStringFromMap(values map[string]interface{}, key string) string {
+	if values == nil {
+		return ""
+	}
+	if typed, ok := values[key].(string); ok {
+		return typed
+	}
+	return ""
+}
+
+func getSubagentFinalOutputResponseKey(delegationID string) string {
+	return "subagent_final:" + strings.TrimSpace(delegationID)
 }
 
 func setChatRequestStatus(request chatResponseRequest, status string, responseError string) error {
