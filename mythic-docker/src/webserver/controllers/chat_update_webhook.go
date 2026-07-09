@@ -896,6 +896,16 @@ func CancelChatRequestWebhook(c *gin.Context) {
 		SET status='cancelled'
 		WHERE chat_request_id=$1 AND operation_id=$2 AND status IN ('pending', 'streaming')`,
 		request.ID, operatorOperation.CurrentOperation.ID)
+	if err = cancelPendingChatSubagents(request.ID, operatorOperation, "Operator issued cancel"); err != nil {
+		logging.LogError(err, "Failed to cancel pending chat subagents", "request_id", request.ID)
+		chatRespondError(c, err.Error())
+		return
+	}
+	if err = cancelPendingChatInputRequests(request.ID, operatorOperation, "Operator issued cancel"); err != nil {
+		logging.LogError(err, "Failed to cancel pending chat input requests", "request_id", request.ID)
+		chatRespondError(c, err.Error())
+		return
+	}
 	if rowsAffected > 0 {
 		container := databaseStructs.ConsumingContainer{}
 		if err = database.DB.Get(&container, `SELECT *
@@ -919,6 +929,100 @@ func CancelChatRequestWebhook(c *gin.Context) {
 		}
 	}
 	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", RequestID: request.ID, ChannelID: channel.ID})
+}
+
+func cancelPendingChatSubagents(requestID int, operatorOperation *databaseStructs.Operatoroperation, reason string) error {
+	resolvedAt := time.Now().UTC().Format(time.RFC3339)
+	_, err := database.DB.Exec(`UPDATE chat_message
+		SET status='cancelled',
+			metadata = jsonb_set(
+				jsonb_set(metadata, '{subagent,status}', to_jsonb($3::text), true),
+				'{subagent,cancel_reason}',
+				to_jsonb($4::text),
+				true
+			) || jsonb_build_object(
+				'updated_by_operator_id', $5::integer,
+				'updated_by', $6::text,
+				'updated_at', $7::text
+			),
+			updated_at=now()
+		WHERE chat_request_id=$1
+			AND operation_id=$2
+			AND deleted=false
+			AND metadata->>'special_type'=$8
+			AND lower(COALESCE(metadata->'subagent'->>'status', 'running')) NOT IN (
+				'finished',
+				'completed',
+				'complete',
+				'failed',
+				'error',
+				'cancelled'
+			)`,
+		requestID,
+		operatorOperation.CurrentOperation.ID,
+		databaseStructs.ChatMessageStatusCancelled,
+		reason,
+		operatorOperation.CurrentOperator.ID,
+		operatorOperation.CurrentOperator.Username,
+		resolvedAt,
+		chatSpecialTypeSubagent,
+	)
+	return err
+}
+
+func cancelPendingChatInputRequests(requestID int, operatorOperation *databaseStructs.Operatoroperation, reason string) error {
+	resolvedAt := time.Now().UTC().Format(time.RFC3339)
+	_, err := database.DB.Exec(`UPDATE chat_message
+		SET status='cancelled',
+			metadata = jsonb_set(
+				jsonb_set(
+					jsonb_set(
+						jsonb_set(
+							jsonb_set(metadata, '{input_requested,status}', to_jsonb($3::text), true),
+							'{input_requested,response}',
+							jsonb_build_object(
+								'action', 'cancel',
+								'reason', $4::text,
+								'input_request_message_id', id,
+								'resolved_by_operator_id', $5::integer,
+								'resolved_by', $6::text,
+								'resolved_at', $7::text
+							),
+							true
+						),
+						'{input_requested,resolved_by_operator_id}',
+						to_jsonb($5::integer),
+						true
+					),
+					'{input_requested,resolved_by}',
+					to_jsonb($6::text),
+					true
+				),
+				'{input_requested,resolved_at}',
+				to_jsonb($7::text),
+				true
+			) || jsonb_build_object(
+				'updated_by_operator_id', $5::integer,
+				'updated_by', $6::text,
+				'updated_at', $7::text
+			),
+			updated_at=now()
+		WHERE chat_request_id=$1
+			AND operation_id=$2
+			AND deleted=false
+			AND metadata->>'special_type'=$8
+			AND COALESCE(metadata->'input_requested'->>'status', 'pending')=$9`,
+		requestID,
+		operatorOperation.CurrentOperation.ID,
+		chatInputRequestedStatusCancelled,
+		reason,
+		operatorOperation.CurrentOperator.ID,
+		operatorOperation.CurrentOperator.Username,
+		resolvedAt,
+		chatSpecialTypeInputRequested,
+		chatInputRequestedStatusPending,
+	)
+	return err
 }
 
 func RetryChatRequestWebhook(c *gin.Context) {
