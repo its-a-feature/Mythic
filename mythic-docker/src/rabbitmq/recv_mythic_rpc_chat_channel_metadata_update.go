@@ -126,6 +126,7 @@ func validateChatChannelMetadataUpdate(input MythicRPCChatChannelMetadataUpdateM
 
 func normalizeChatChannelMetadata(metadata map[string]interface{}) map[string]interface{} {
 	output := chatMetadataCopyMap(metadata)
+	dropChatChannelMetadataItemStatus(output)
 	if _, ok := output["version"]; !ok {
 		output["version"] = 1
 	}
@@ -133,4 +134,31 @@ func normalizeChatChannelMetadata(metadata map[string]interface{}) map[string]in
 		output["updated_at"] = time.Now().UTC().Format(time.RFC3339)
 	}
 	return output
+}
+
+func dropChatChannelMetadataItemStatus(metadata map[string]interface{}) {
+	switch items := metadata["items"].(type) {
+	case []interface{}:
+		normalized := make([]interface{}, 0, len(items))
+		for _, item := range items {
+			normalized = append(normalized, dropChatChannelMetadataItemStatusValue(item))
+		}
+		metadata["items"] = normalized
+	case []map[string]interface{}:
+		normalized := make([]interface{}, 0, len(items))
+		for _, item := range items {
+			normalized = append(normalized, dropChatChannelMetadataItemStatusValue(item))
+		}
+		metadata["items"] = normalized
+	}
+}
+
+func dropChatChannelMetadataItemStatusValue(item interface{}) interface{} {
+	itemMap, ok := item.(map[string]interface{})
+	if !ok {
+		return item
+	}
+	normalized := chatMetadataCopyMap(itemMap)
+	delete(normalized, "status")
+	return normalized
 }

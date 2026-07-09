@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -26,11 +28,13 @@ type ConsumingContainerSyncMessage struct {
 }
 
 type ConsumingContainerDefinition struct {
-	Name          string   `json:"name"`
-	Description   string   `json:"description"`
-	Type          string   `json:"type"`
-	Subscriptions []string `json:"subscriptions"`
-	SemVer        string   `json:"semver"`
+	Name              string   `json:"name"`
+	Description       string   `json:"description"`
+	Type              string   `json:"type"`
+	Subscriptions     []string `json:"subscriptions"`
+	SemVer            string   `json:"semver"`
+	AgentIcon         *[]byte  `json:"agent_icon,omitempty"`
+	DarkModeAgentIcon *[]byte  `json:"dark_mode_agent_icon,omitempty"`
 }
 
 const (
@@ -138,8 +142,54 @@ func consumingServicesSync(in ConsumingContainerSyncMessage) error {
 		consumingContainer.Name, in.ContainerVersion), 0, "debug", database.MESSAGE_LEVEL_DEBUG, false)
 	go ResolveAllOperationsMessageBySource(getDownContainerSource(consumingContainer.Name), 0)
 	checkContainerStatusAddConsumingContainerChannel <- consumingContainer
+	if consumingContainer.Type == CONSUMING_SERVICES_TYPE_CHAT {
+		if err := saveChatContainerIcons(consumingContainer.Name, in.ConsumingContainer.AgentIcon, in.ConsumingContainer.DarkModeAgentIcon); err != nil {
+			logging.LogError(err, "Failed to save chat container icons")
+		}
+	}
 	// update eventgroup consumingcontainer mappings
 	eventing.UpdateEventGroupConsumingContainersMappingByConsumingContainer(consumingContainer)
 	go CreateAPITokenAndSendOnStartMessage(consumingContainer.Name)
 	return nil
+}
+
+func saveChatContainerIcons(name string, agentIcon *[]byte, darkModeAgentIcon *[]byte) error {
+	absPath, err := filepath.Abs(filepath.Join(".", "static", fmt.Sprintf("%s_light.svg", name)))
+	if err != nil {
+		return err
+	}
+	file, err := os.Create(absPath)
+	if err != nil {
+		return err
+	}
+	if agentIcon != nil {
+		if _, err = file.Write(*agentIcon); err != nil {
+			file.Close()
+			return err
+		}
+	}
+	if err = file.Close(); err != nil {
+		return err
+	}
+
+	darkModeAbsPath, err := filepath.Abs(filepath.Join(".", "static", fmt.Sprintf("%s_dark.svg", name)))
+	if err != nil {
+		return err
+	}
+	darkModeFile, err := os.Create(darkModeAbsPath)
+	if err != nil {
+		return err
+	}
+	if darkModeAgentIcon != nil {
+		if _, err = darkModeFile.Write(*darkModeAgentIcon); err != nil {
+			darkModeFile.Close()
+			return err
+		}
+	} else if agentIcon != nil {
+		if _, err = darkModeFile.Write(*agentIcon); err != nil {
+			darkModeFile.Close()
+			return err
+		}
+	}
+	return darkModeFile.Close()
 }

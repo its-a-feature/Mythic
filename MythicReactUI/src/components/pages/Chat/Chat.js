@@ -11,7 +11,6 @@ import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import Divider from '@mui/material/Divider';
 import FormControl from '@mui/material/FormControl';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import IconButton from '@mui/material/IconButton';
@@ -56,6 +55,7 @@ import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
 import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/MythicPageHeader";
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {MythicConfirmDialog} from "../../MythicComponents/MythicConfirmDialog";
+import {MythicChatContainerIcon} from "../../MythicComponents/MythicChatContainerIcon";
 import {GetMythicSetting, useSetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import {MeContext} from "../../App";
 import {snackActions} from "../../utilities/Snackbar";
@@ -82,6 +82,8 @@ const CHAT_REQUEST_LIMIT = 50;
 const CHAT_UPDATE_LIMIT = 100;
 const CHAT_SPLIT_STORAGE_KEY = "chatSplitSizes";
 const CHAT_SPLIT_DEFAULT_SIZES = [20, 80];
+const CHAT_CHANNEL_SPLIT_STORAGE_KEY = "chatChannelSplitSizes";
+const CHAT_CHANNEL_SPLIT_DEFAULT_SIZES = [52, 48];
 const CHAT_DELEGATION_SPLIT_STORAGE_KEY = "chatDelegationSplitSizes";
 const CHAT_DELEGATION_SPLIT_DEFAULT_SIZES = [70, 30];
 const CHAT_SELECTED_CHANNEL_SETTING = "chatSelectedChannelID";
@@ -486,6 +488,15 @@ const getStoredChatSplitSizes = () => {
     }
 };
 
+const getStoredChatChannelSplitSizes = () => {
+    try {
+        let sizes = JSON.parse(localStorage.getItem(CHAT_CHANNEL_SPLIT_STORAGE_KEY));
+        return sizes ? sizes : CHAT_CHANNEL_SPLIT_DEFAULT_SIZES;
+    } catch(error) {
+        return CHAT_CHANNEL_SPLIT_DEFAULT_SIZES;
+    }
+};
+
 const getStoredChatDelegationSplitSizes = () => {
     try {
         let sizes = JSON.parse(localStorage.getItem(CHAT_DELEGATION_SPLIT_STORAGE_KEY));
@@ -710,6 +721,7 @@ const parseChatContainerModels = (container) => {
         const modelName = model.name || model.Name || "";
         return {
             name: modelName === "" ? "" : `${modelName}`,
+            displayName: model.display_name || model.displayName || model.DisplayName || model.label || model.Label || modelName,
             description: model.description || model.Description || model.type || "",
             metadata: model.metadata || model.Metadata || {},
         };
@@ -1314,9 +1326,29 @@ const getChannelConfigChips = (channel, chatContainers) => {
                 label: option.displayName || option.name,
                 value: formatConfigChipValue(option, rawValue),
                 tooltip: option.description,
-                status: "neutral",
+                color: "neutral",
             }];
         }, []);
+};
+
+const getChannelModelChip = (channel, chatContainers) => {
+    if(!channel || channel.channel_type !== "ai" || !channel.chat_model){
+        return null;
+    }
+    const model = modelForChannel(channel, chatContainers || []);
+    return {
+        key: "model",
+        label: "Model",
+        value: model?.displayName || channel.chat_model,
+        tooltip: model?.description || "Selected chat container model.",
+        color: "neutral",
+    };
+};
+
+const getChannelListChips = (channel, chatContainers) => {
+    const modelChip = getChannelModelChip(channel, chatContainers);
+    const configChips = getChannelConfigChips(channel, chatContainers);
+    return modelChip ? [modelChip, ...configChips] : configChips;
 };
 
 const metadataDisplayKeyPattern = /^[A-Za-z0-9_.-]+$/;
@@ -1512,8 +1544,9 @@ const normalizeMetadataItem = (item) => {
         value: item.value,
         displayValue: item.display_value ?? item.displayValue,
         format: item.format || "",
-        status: item.status || "neutral",
         color: item.color || "",
+        click: `${item.click || ""}`.trim(),
+        clickConfirmationText: item.click_confirmation_text || item.clickConfirmationText || "",
         tooltip: item.tooltip || item.description || "",
         order: Number.isFinite(Number(item.order)) ? Number(item.order) : 1000,
     };
@@ -1584,7 +1617,7 @@ const resolveScaledChipColor = (color, item) => {
 };
 
 const resolveMetadataChipColor = (item, colorOverride) => {
-    const selectedColor = colorOverride || item.color || item.status || "neutral";
+    const selectedColor = colorOverride || item.color || "neutral";
     const color = typeof selectedColor === "string" ? normalizeChipColor(selectedColor) : resolveScaledChipColor(selectedColor, item);
     return color || "neutral";
 };
@@ -1598,6 +1631,14 @@ const chipColorStyle = (color) => {
         };
     }
     return undefined;
+};
+
+const normalizeMetadataClickCommand = (click) => {
+    const command = `${click || ""}`.trim();
+    if(command === ""){
+        return "";
+    }
+    return command.startsWith("/") ? command : `/${command}`;
 };
 
 const buildChannelMetadataChips = (channel, displayStringOverride) => {
@@ -1633,7 +1674,9 @@ const buildChannelMetadataChips = (channel, displayStringOverride) => {
                 key: item.key,
                 label: item.label,
                 value: formatMetadataValue(item),
-                status: color.startsWith("#") ? "custom" : color,
+                color: color.startsWith("#") ? "custom" : color,
+                click: normalizeMetadataClickCommand(item.click),
+                clickConfirmationText: item.clickConfirmationText,
                 tooltip: item.tooltip,
                 colorStyle: chipColorStyle(color),
             };
@@ -1700,8 +1743,9 @@ const metadataWizardRowsFromDisplay = (channel, displayString) => {
             colorOverride: colorValueToString(parsed.colors[item.key]),
             value: formatMetadataValue(item),
             format: item.format,
-            status: item.status,
             color: colorValueToString(item.color),
+            click: item.click,
+            clickConfirmationText: item.clickConfirmationText,
             tooltip: item.tooltip,
         });
     });
@@ -1719,7 +1763,6 @@ const metadataWizardRowsFromDisplay = (channel, displayString) => {
             colorOverride: colorValueToString(parsed.colors[item.key]),
             value: "",
             format: "",
-            status: "neutral",
             color: "",
             tooltip: "Custom key from the current display string. This container has not reported metadata details for it yet.",
         });
@@ -1738,7 +1781,6 @@ const metadataWizardRowsFromDisplay = (channel, displayString) => {
             colorOverride: colorValueToString(parsed.colors[key]),
             value: "",
             format: "",
-            status: "neutral",
             color: "",
             tooltip: "Hidden custom key from the current display string.",
         });
@@ -1757,7 +1799,6 @@ const metadataWizardRowsFromDisplay = (channel, displayString) => {
             colorOverride: colorValueToString(color),
             value: "",
             format: "",
-            status: "neutral",
             color: "",
             tooltip: "Custom color key from the current display string.",
         });
@@ -2207,14 +2248,33 @@ const ChatEmptyState = ({icon, title, detail}) => (
 );
 
 const ChatDisplayChip = ({chip, className = ""}) => {
-    const content = (
-        <span
-            className={`mythic-chat-display-chip mythic-chat-display-chip-${chip.status || "neutral"}${className ? ` ${className}` : ""}`}
-            style={chip.colorStyle}
-        >
+    const chipColor = chip.color || "neutral";
+    const clickable = Boolean(chip.click);
+    const chipClassName = `mythic-chat-display-chip mythic-chat-display-chip-${chipColor}${clickable ? " mythic-chat-display-chip-clickable" : ""}${className ? ` ${className}` : ""}`;
+    const children = (
+        <>
             <span className="mythic-chat-display-chip-label">{chip.label}:</span>
             <span className="mythic-chat-display-chip-value">{chip.value}</span>
-        </span>
+        </>
+    );
+    const content = (
+        clickable ? (
+            <button
+                className={chipClassName}
+                onClick={() => chip.onClick?.(chip)}
+                style={chip.colorStyle}
+                type="button"
+            >
+                {children}
+            </button>
+        ) : (
+            <span
+                className={chipClassName}
+                style={chip.colorStyle}
+            >
+                {children}
+            </span>
+        )
     );
     if(chip.tooltip){
         return <MythicStyledTooltip title={chip.tooltip}>{content}</MythicStyledTooltip>;
@@ -2222,18 +2282,18 @@ const ChatDisplayChip = ({chip, className = ""}) => {
     return content;
 };
 
-const ChatDisplayChipRow = ({chips, className = ""}) => {
+const ChatDisplayChipRow = ({chips, className = "", onChipClick}) => {
     if(!chips || chips.length === 0){
         return null;
     }
     return (
         <span className={`mythic-chat-display-chip-row${className ? ` ${className}` : ""}`}>
-            {chips.map((chip) => <ChatDisplayChip key={chip.key} chip={chip} />)}
+            {chips.map((chip) => <ChatDisplayChip key={chip.key} chip={{...chip, onClick: onChipClick}} />)}
         </span>
     );
 };
 
-const ChatChannelMetadataBar = ({channel, displayStringOverride}) => {
+const ChatChannelMetadataBar = ({channel, displayStringOverride, onChipClick}) => {
     const metadataState = React.useMemo(() => buildChannelMetadataChips(channel, displayStringOverride), [channel, displayStringOverride]);
     const [hidden, setHidden] = React.useState(metadataState.collapsed);
     React.useEffect(() => {
@@ -2257,7 +2317,7 @@ const ChatChannelMetadataBar = ({channel, displayStringOverride}) => {
                 <Typography variant="caption" color="text.secondary">Metadata hidden</Typography>
             ) : (
                 <Box className="mythic-chat-metadata-content">
-                    <ChatDisplayChipRow chips={visibleChips} />
+                    <ChatDisplayChipRow chips={visibleChips} onChipClick={onChipClick} />
                     {overflowCount > 0 &&
                         <span className="mythic-chat-display-chip mythic-chat-display-chip-neutral">
                             <span className="mythic-chat-display-chip-value">+{overflowCount} more</span>
@@ -2366,7 +2426,7 @@ const ChatMetadataWizardDraggableRow = ({row, index, updateRow}) => (
                         </Select>
                         <ChatMetadataColorEditor
                             value={row.colorOverride}
-                            fallback={row.color || row.status || "neutral"}
+                            fallback={row.color || "neutral"}
                             onChange={(colorOverride) => updateRow(row.key, {colorOverride})}
                         />
                         <Typography className="mythic-chat-metadata-wizard-row-detail" variant="caption" color="text.secondary">
@@ -2546,12 +2606,12 @@ const ChatMetadataDisplayField = ({channel, value, setValue, warnings}) => {
     );
 };
 
-const ChannelButton = ({channel, selected, unread, muted, chatContainers, onSelect, onToggleMute}) => {
+const ChannelButtonComponent = ({channel, selected, unread, muted, chatContainers, onSelect, onToggleMute}) => {
     const theme = useTheme();
     const isAI = channel.channel_type === "ai";
     const accentColor = isAI ? theme.palette.info.main : theme.palette.primary.main;
     const secondary = channel.description || (isAI ? channel.chat_container?.name || channel.chat_model || "" : "");
-    const configChips = getChannelConfigChips(channel, chatContainers);
+    const channelListChips = getChannelListChips(channel, chatContainers);
     const states = [
         channel.archived ? {label: "Archived", className: "mythic-chat-channel-state-archived"} : null,
         channel.locked ? {label: "Locked", className: "mythic-chat-channel-state-locked"} : null,
@@ -2579,13 +2639,24 @@ const ChannelButton = ({channel, selected, unread, muted, chatContainers, onSele
                 }}
             >
                 <span className="mythic-chat-channel-icon">
-                    {channel.archived ? <ArchiveIcon fontSize="small" /> : isAI ? <SmartToyTwoToneIcon fontSize="small" /> : <ForumTwoToneIcon fontSize="small" />}
+                    {channel.archived ? (
+                        <ArchiveIcon fontSize="small" />
+                    ) : isAI ? (
+                        <MythicChatContainerIcon
+                            altText={channel.chat_container?.name || channelDisplayName(channel)}
+                            containerName={channel.chat_container?.name}
+                            imgClassName="mythic-chat-channel-icon-image"
+                            iconProps={{fontSize: "small"}}
+                        />
+                    ) : (
+                        <ForumTwoToneIcon fontSize="small" />
+                    )}
                 </span>
                 <span className="mythic-chat-channel-main">
                     <span className="mythic-chat-channel-name">{channelDisplayName(channel)}</span>
-                    {secondary && <span className="mythic-chat-channel-meta">{secondary}</span>}
-                    {configChips.length > 0 &&
-                        <ChatDisplayChipRow chips={configChips} className="mythic-chat-channel-config-chips" />
+                    {secondary && <span className="mythic-chat-channel-meta">{secondary} </span>}
+                    {channelListChips.length > 0 &&
+                        <ChatDisplayChipRow chips={channelListChips} className="mythic-chat-channel-config-chips" />
                     }
                     {states.length > 0 &&
                         <span className="mythic-chat-channel-states">
@@ -2610,6 +2681,7 @@ const ChannelButton = ({channel, selected, unread, muted, chatContainers, onSele
         </Box>
     );
 };
+const ChannelButton = React.memo(ChannelButtonComponent);
 const ChatCreateDialog = ({open, onClose, onCreate, chatContainers, currentUser, operationBot, initialChannel}) => {
     const theme = useTheme();
     const [name, setName] = React.useState("");
@@ -3519,6 +3591,7 @@ export function Chat({me}) {
     const [editChannelOpen, setEditChannelOpen] = React.useState(false);
     const [systemMessageOpen, setSystemMessageOpen] = React.useState(false);
     const [archiveTarget, setArchiveTarget] = React.useState(null);
+    const [metadataClickTarget, setMetadataClickTarget] = React.useState(null);
     const [searchOpen, setSearchOpen] = React.useState(false);
     const [searchText, setSearchText] = React.useState("");
     const [searchQuery, setSearchQuery] = React.useState("");
@@ -3532,6 +3605,7 @@ export function Chat({me}) {
     const [refreshingSpecialMessageID, setRefreshingSpecialMessageID] = React.useState(null);
     const [submittingInputResponseID, setSubmittingInputResponseID] = React.useState(null);
     const [chatSplitSizes, setChatSplitSizes] = React.useState(getStoredChatSplitSizes);
+    const [channelSplitSizes, setChannelSplitSizes] = React.useState(getStoredChatChannelSplitSizes);
     const [delegationSplitSizes, setDelegationSplitSizes] = React.useState(getStoredChatDelegationSplitSizes);
     const messagesContainerRef = React.useRef(null);
     const messagesEndRef = React.useRef(null);
@@ -3757,6 +3831,10 @@ export function Chat({me}) {
     const updateChatSplitSizes = React.useCallback((sizes) => {
         setChatSplitSizes(sizes);
         localStorage.setItem(CHAT_SPLIT_STORAGE_KEY, JSON.stringify(sizes));
+    }, []);
+    const updateChannelSplitSizes = React.useCallback((sizes) => {
+        setChannelSplitSizes(sizes);
+        localStorage.setItem(CHAT_CHANNEL_SPLIT_STORAGE_KEY, JSON.stringify(sizes));
     }, []);
     const updateDelegationSplitSizes = React.useCallback((sizes) => {
         setDelegationSplitSizes(sizes);
@@ -4171,6 +4249,23 @@ export function Chat({me}) {
         }
         return "";
     }, [selectedChannel, currentMe, activeAIRequest]);
+    const handleMetadataChipClick = React.useCallback((chip) => {
+        if(!chip?.click){
+            return;
+        }
+        if(disabledReason){
+            snackActions.error(disabledReason);
+            return;
+        }
+        setMetadataClickTarget(chip);
+    }, [disabledReason]);
+    const confirmMetadataChipClick = React.useCallback(() => {
+        if(!metadataClickTarget?.click){
+            return;
+        }
+        submitMessage(metadataClickTarget.click);
+        setMetadataClickTarget(null);
+    }, [metadataClickTarget, submitMessage]);
     const onCreateChannel = (variables) => createChannel({variables});
     const openSystemMessageDialog = React.useCallback(() => setSystemMessageOpen(true), []);
     const toggleArchive = () => {
@@ -4339,45 +4434,53 @@ export function Chat({me}) {
                             label={<Typography variant="caption">Show archived</Typography>}
                         />
                     </Box>
-                    <Box className="mythic-chat-channel-section">
-                        <Typography variant="caption" color="text.secondary">Standard</Typography>
-                        {standardChannels.length === 0 ? (
-                            <Box className="mythic-chat-empty-list">No standard channels</Box>
-                        ) : (
-                            standardChannels.map((channel) => (
-                                <ChannelButton
-                                    key={channel.id}
-                                    channel={channel}
-                                    selected={channel.id === selectedChannelID}
-                                    unread={channelHasUnread(channel)}
-                                    muted={getChannelReadState(readState, channel.id).muted}
-                                    chatContainers={chatContainers}
-                                    onSelect={selectChannel}
-                                    onToggleMute={toggleMute}
-                                />
-                            ))
-                        )}
-                    </Box>
-                    <Divider />
-                    <Box className="mythic-chat-channel-section">
-                        <Typography variant="caption" color="text.secondary">AI</Typography>
-                        {aiChannels.length === 0 ? (
-                            <Box className="mythic-chat-empty-list">No AI chats</Box>
-                        ) : (
-                            aiChannels.map((channel) => (
-                                <ChannelButton
-                                    key={channel.id}
-                                    channel={channel}
-                                    selected={channel.id === selectedChannelID}
-                                    unread={channelHasUnread(channel)}
-                                    muted={getChannelReadState(readState, channel.id).muted}
-                                    chatContainers={chatContainers}
-                                    onSelect={selectChannel}
-                                    onToggleMute={toggleMute}
-                                />
-                            ))
-                        )}
-                    </Box>
+                    <Split
+                        className="mythic-chat-channel-split"
+                        direction="vertical"
+                        sizes={channelSplitSizes}
+                        minSize={[90, 90]}
+                        gutterSize={5}
+                        onDragEnd={updateChannelSplitSizes}
+                    >
+                        <Box className="mythic-chat-channel-section">
+                            <Typography variant="caption" color="text.secondary">Standard</Typography>
+                            {standardChannels.length === 0 ? (
+                                <Box className="mythic-chat-empty-list">No standard channels</Box>
+                            ) : (
+                                standardChannels.map((channel) => (
+                                    <ChannelButton
+                                        key={channel.id}
+                                        channel={channel}
+                                        selected={channel.id === selectedChannelID}
+                                        unread={channelHasUnread(channel)}
+                                        muted={getChannelReadState(readState, channel.id).muted}
+                                        chatContainers={chatContainers}
+                                        onSelect={selectChannel}
+                                        onToggleMute={toggleMute}
+                                    />
+                                ))
+                            )}
+                        </Box>
+                        <Box className="mythic-chat-channel-section">
+                            <Typography variant="caption" color="text.secondary">AI</Typography>
+                            {aiChannels.length === 0 ? (
+                                <Box className="mythic-chat-empty-list">No AI chats</Box>
+                            ) : (
+                                aiChannels.map((channel) => (
+                                    <ChannelButton
+                                        key={channel.id}
+                                        channel={channel}
+                                        selected={channel.id === selectedChannelID}
+                                        unread={channelHasUnread(channel)}
+                                        muted={getChannelReadState(readState, channel.id).muted}
+                                        chatContainers={chatContainers}
+                                        onSelect={selectChannel}
+                                        onToggleMute={toggleMute}
+                                    />
+                                ))
+                            )}
+                        </Box>
+                    </Split>
                 </Box>
                 <Box className="mythic-chat-main">
                     <Box className="mythic-chat-conversation-header">
@@ -4385,12 +4488,20 @@ export function Chat({me}) {
                             <Box
                                 className="mythic-chat-conversation-icon"
                                 sx={{
-                                    color: selectedChannel?.channel_type === "ai" ? theme.palette.info.main : theme.palette.primary.main,
-                                    borderColor: selectedChannel?.channel_type === "ai" ? alpha(theme.palette.info.main, 0.2) : alpha(theme.palette.primary.main, 0.2),
-                                    backgroundColor: selectedChannel?.channel_type === "ai" ? alpha(theme.palette.info.main, 0.1) : alpha(theme.palette.primary.main, 0.1),
+                                    color: selectedChannel?.channel_type === "ai" ? "" : theme.palette.primary.main,
+                                    borderColor: selectedChannel?.channel_type === "ai" ? "" : alpha(theme.palette.primary.main, 0.2),
+                                    backgroundColor: selectedChannel?.channel_type === "ai" ? "" : alpha(theme.palette.primary.main, 0.1),
                                 }}
                             >
-                                {selectedChannel?.channel_type === "ai" ? <SmartToyTwoToneIcon fontSize="small" /> : <ForumTwoToneIcon fontSize="small" />}
+                                {selectedChannel?.channel_type === "ai" ? (
+                                    <MythicChatContainerIcon
+                                        altText={selectedChannel?.chat_container?.name || channelDisplayName(selectedChannel)}
+                                        containerName={selectedChannel?.chat_container?.name}
+                                        iconProps={{fontSize: "small"}}
+                                    />
+                                ) : (
+                                    <ForumTwoToneIcon fontSize="small" />
+                                )}
                             </Box>
                             <Box sx={{minWidth: 0}}>
                                 <Typography className="mythic-chat-conversation-title" variant="subtitle1" noWrap>{selectedChannel ? channelDisplayName(selectedChannel) : "Chat"}</Typography>
@@ -4451,7 +4562,7 @@ export function Chat({me}) {
                         onDragEnd={selectedDelegation ? updateDelegationSplitSizes : undefined}
                     >
                         <Box sx={{display: "flex", flex: "1 1 auto", flexDirection: "column", minHeight: 0, minWidth: 0, overflow: "hidden"}}>
-                            <ChatChannelMetadataBar channel={selectedChannel} />
+                            <ChatChannelMetadataBar channel={selectedChannel} onChipClick={handleMetadataChipClick} />
                             <Box className="mythic-chat-messages" ref={messagesContainerRef} onScroll={updateMessagesNearBottom}>
                                 {!selectedChannel ? (
                                     <ChatEmptyState
@@ -4589,6 +4700,17 @@ export function Chat({me}) {
                     onSubmit={confirmArchiveChannel}
                 />
             }
+            {metadataClickTarget &&
+                <MythicConfirmDialog
+                    open={Boolean(metadataClickTarget)}
+                    title="Run Chat Action?"
+                    dialogText={metadataClickTarget.clickConfirmationText || `Run ${metadataClickTarget.click}?`}
+                    acceptText="Run"
+                    acceptColor="info"
+                    onClose={() => setMetadataClickTarget(null)}
+                    onSubmit={confirmMetadataChipClick}
+                />
+            }
             {searchOpen &&
                 <ChatSearchDialog
                     open={searchOpen}
@@ -4718,18 +4840,22 @@ const MarkdownMessage = ({message}) => {
     );
 };
 
+const getChatMarkdownSurfaceSx = (theme) => {
+    const chatMessageColors = theme.chat?.message || {};
+    return {
+        "--mythic-chat-markdown-border": theme.table?.borderSoft || theme.borderColor || theme.palette.divider,
+        "--mythic-chat-markdown-surface": chatMessageColors.markdownSurface,
+        "--mythic-chat-markdown-surface-strong": chatMessageColors.markdownSurfaceStrong,
+    };
+};
+
 const ChatAssistantMessage = ({message, timestamp, viewUTCTime}) => {
     const theme = useTheme();
-    const chatMessageColors = theme.chat?.message || {};
     const formattedTimestamp = formatTimestamp(timestamp, viewUTCTime);
     return (
         <Box
             className="mythic-chat-assistant-message"
-            sx={{
-                "--mythic-chat-markdown-border": theme.table?.borderSoft || theme.borderColor || theme.palette.divider,
-                "--mythic-chat-markdown-surface": chatMessageColors.markdownSurface,
-                "--mythic-chat-markdown-surface-strong": chatMessageColors.markdownSurfaceStrong,
-            }}
+            sx={getChatMarkdownSurfaceSx(theme)}
         >
             {formattedTimestamp &&
                 <Typography variant="caption" color="text.secondary" className="mythic-chat-assistant-timestamp">
@@ -5356,11 +5482,13 @@ const ChatSubagentEvent = ({message, me, onOpenDelegation}) => {
     const snapshot = getSubagentSnapshot(message) || {};
     const delegationID = getMessageDelegationID(message);
     const delegationName = getMessageDelegationName(message) || snapshot.name || "Sub-agent";
-    const title = snapshot.title || message.message || delegationName;
+    const summaryOutput = [message.message, snapshot.summary, snapshot.output, snapshot.result, snapshot.final_output]
+        .find((value) => typeof value === "string" && value.trim()) || "";
+    const title = snapshot.title || delegationName;
     const stateClass = getSubagentStateClass(snapshot);
     const visual = getSubagentVisual(delegationID, snapshot, theme);
     const terminal = isTerminalSubagentSnapshot(snapshot);
-    const prompt = snapshot.prompt || snapshot.title || "";
+    const prompt = snapshot.prompt || "";
     const toolCount = Number(snapshot.tool_count ?? snapshot.tools_done ?? snapshot.completed_tools);
     const toolTotal = Number(snapshot.tool_total ?? snapshot.tools_total ?? snapshot.total_tools);
     const hasProgress = !Number.isNaN(toolCount) && !Number.isNaN(toolTotal) && toolTotal > 0;
@@ -5394,7 +5522,7 @@ const ChatSubagentEvent = ({message, me, onOpenDelegation}) => {
                     </Typography>
                 </Box>
                 <Box className="mythic-chat-inline-event-actions">
-                    {message.message &&
+                    {summaryOutput &&
                         <Button
                             size="small"
                             variant="text"
@@ -5432,8 +5560,13 @@ const ChatSubagentEvent = ({message, me, onOpenDelegation}) => {
                             </span>
                         ))}
                     </Box>
-                    {message.message &&
-                        <MarkdownMessage message={message.message} />
+                    {summaryOutput &&
+                        <Box
+                            className="mythic-chat-assistant-message mythic-chat-subagent-summary-output"
+                            sx={getChatMarkdownSurfaceSx(theme)}
+                        >
+                            <MarkdownMessage message={summaryOutput} />
+                        </Box>
                     }
                 </Box>
             </Collapse>
@@ -5523,9 +5656,16 @@ const ChatToolUseEvent = ({message, me, onViewToolOutput}) => {
 };
 
 const ChatSpecialEventFrame = ({message, me, children}) => {
+    const theme = useTheme();
     const formattedTimestamp = formatTimestamp(message.created_at, me?.user?.view_utc_time);
     return (
-        <Box sx={{minWidth: 0, width: "100%"}}>
+        <Box
+            sx={{
+                ...getChatMarkdownSurfaceSx(theme),
+                minWidth: 0,
+                width: "100%",
+            }}
+        >
             {formattedTimestamp &&
                 <Typography variant="caption" color="text.secondary" className="mythic-chat-assistant-timestamp">
                     {formattedTimestamp}
