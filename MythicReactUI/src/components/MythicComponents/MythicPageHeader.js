@@ -137,7 +137,7 @@ export const MythicPageHeader = ({
                 ...sx,
             }}
         >
-            <Stack direction="row" sx={{gap: 1, minWidth: 0, flex: "1 1 24rem"}}>
+            <Stack direction="row" sx={{gap: 1, minWidth: 0, flex: {xs: "0 1 auto", md: "1 1 24rem"}}}>
                 {icon &&
                     <Box sx={{
                         alignItems: "center",

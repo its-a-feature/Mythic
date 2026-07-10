@@ -15,7 +15,7 @@ import {jwtDecode} from 'jwt-decode';
 import {meState} from './cache';
 import {getSkewedNow} from "./components/utilities/Time";
 
-export const mythicUIVersion = "0.4.0.5";
+export const mythicUIVersion = "0.4.0.6";
 
 const isResizeObserverLoopError = (message) => {
   return message === "ResizeObserver loop limit exceeded" ||

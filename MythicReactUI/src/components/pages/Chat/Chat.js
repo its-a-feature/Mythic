@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {gql, useLazyQuery, useMutation, useQuery, useSubscription} from '@apollo/client';
+import {gql, useApolloClient, useLazyQuery, useMutation, useQuery, useSubscription} from '@apollo/client';
 import ReactMarkdown from 'react-markdown';
 import Split from 'react-split';
 import {alpha, useTheme} from '@mui/material/styles';
@@ -62,11 +62,8 @@ import {snackActions} from "../../utilities/Snackbar";
 import {getSkewedNow} from "../../utilities/Time";
 import {markdownPlugins} from "../../utilities/Markdown";
 import {markdownComponents} from "../../utilities/MarkdownComponents";
-import {EventStepUserInteractionDialog} from "../Eventing/EventStepRender";
-import {SettingsAPITokenDialog} from "../Settings/SettingsOperatorDialog";
 import {SchemaFormRenderer, emptyValueForSchema} from "../CreatePayload/SchemaFormRenderer";
-import {ResponseDisplayPlaintext} from "../Callbacks/ResponseDisplayPlaintext";
-import {getIconName} from "../Callbacks/ResponseDisplayTable";
+import {getIconName} from "../../utilities/IconName";
 import {MythicDraggablePortal, reorder} from "../../MythicComponents/MythicDraggableList";
 import {
     Draggable,
@@ -76,10 +73,11 @@ import {
 import {MythicColorSwatchInput} from "../../MythicComponents/MythicColorInput";
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {findIconDefinition} from '@fortawesome/fontawesome-svg-core';
+import {getProgressivelyVisibleRows, mergeRowsByID} from "./ChatStreamUtils";
 
 const CHAT_MESSAGE_LIMIT = 250;
 const CHAT_REQUEST_LIMIT = 50;
-const CHAT_UPDATE_LIMIT = 100;
+const CHAT_RENDER_BATCH_SIZE = 50;
 const CHAT_SPLIT_STORAGE_KEY = "chatSplitSizes";
 const CHAT_SPLIT_DEFAULT_SIZES = [20, 80];
 const CHAT_CHANNEL_SPLIT_STORAGE_KEY = "chatChannelSplitSizes";
@@ -92,6 +90,16 @@ const CHAT_DIALOG_TEXT_FIELD_PROPS = {
     minRows: 1,
     maxRows: 5,
 };
+
+const LazyEventStepUserInteractionDialog = React.lazy(() => (
+    import("../Eventing/EventStepRender").then((module) => ({default: module.EventStepUserInteractionDialog}))
+));
+const LazySettingsAPITokenDialog = React.lazy(() => (
+    import("../Settings/SettingsOperatorDialog").then((module) => ({default: module.SettingsAPITokenDialog}))
+));
+const LazyResponseDisplayPlaintext = React.lazy(() => (
+    import("../Callbacks/ResponseDisplayPlaintext").then((module) => ({default: module.ResponseDisplayPlaintext}))
+));
 
 const CHAT_CHANNEL_FIELDS = gql`
 fragment ChatChannelFields on chat_channel {
@@ -282,10 +290,10 @@ query ChatMessages($channel_id: Int!, $limit: Int!) {
 }
 `;
 
-const CHAT_MESSAGES_UPDATED_QUERY = gql`
+const CHAT_MESSAGES_STREAM_SUBSCRIPTION = gql`
 ${CHAT_MESSAGE_FIELDS}
-query ChatMessagesUpdated($channel_id: Int!, $since: timestamp!, $limit: Int!) {
-  chat_message(where: {channel_id: {_eq: $channel_id}, updated_at: {_gte: $since}}, order_by: [{updated_at: asc}, {id: asc}], limit: $limit) {
+subscription ChatMessagesStream($channel_id: Int!, $now: timestamp!) {
+  chat_message_stream(batch_size: 50, cursor: {initial_value: {updated_at: $now}, ordering: ASC}, where: {channel_id: {_eq: $channel_id}}) {
     ...ChatMessageFields
   }
 }
@@ -300,10 +308,10 @@ query ChatRequests($channel_id: Int!, $limit: Int!) {
 }
 `;
 
-const CHAT_REQUESTS_UPDATED_QUERY = gql`
+const CHAT_REQUESTS_STREAM_SUBSCRIPTION = gql`
 ${CHAT_REQUEST_FIELDS}
-query ChatRequestsUpdated($channel_id: Int!, $since: timestamp!, $limit: Int!) {
-  chat_request(where: {channel_id: {_eq: $channel_id}, updated_at: {_gte: $since}}, order_by: [{updated_at: asc}, {id: asc}], limit: $limit) {
+subscription ChatRequestsStream($channel_id: Int!, $now: timestamp!) {
+  chat_request_stream(batch_size: 25, cursor: {initial_value: {updated_at: $now}, ordering: ASC}, where: {channel_id: {_eq: $channel_id}}) {
     ...ChatRequestFields
   }
 }
@@ -623,37 +631,6 @@ const renderSearchSnippet = (message, query) => (
     ))
 );
 
-const timestampValue = (timestamp) => {
-    if(!timestamp){ return 0; }
-    const value = new Date(timestamp).getTime();
-    return Number.isNaN(value) ? 0 : value;
-};
-
-const newerOrEqual = (incoming, existing) => {
-    if(!existing){ return true; }
-    const incomingUpdatedAt = timestampValue(incoming.updated_at);
-    const existingUpdatedAt = timestampValue(existing.updated_at);
-    return incomingUpdatedAt === 0 || existingUpdatedAt === 0 || incomingUpdatedAt >= existingUpdatedAt;
-};
-
-const shouldKeepExistingStreamingMessage = (incoming, existing) => {
-    if(!incoming || !existing || incoming.id !== existing.id){
-        return false;
-    }
-    const incomingUpdatedAt = timestampValue(incoming.updated_at);
-    const existingUpdatedAt = timestampValue(existing.updated_at);
-    if(incomingUpdatedAt === 0 || incomingUpdatedAt !== existingUpdatedAt){
-        return false;
-    }
-    if(incoming.deleted || incoming.edited || existing.deleted || existing.edited){
-        return false;
-    }
-    if(existing.author_type !== "ai" || !["pending", "streaming"].includes(existing.status)){
-        return false;
-    }
-    return (incoming.message || "").length < (existing.message || "").length;
-};
-
 const sortChannels = (a, b) => {
     if(a.archived !== b.archived){ return a.archived ? 1 : -1; }
     if(a.channel_type !== b.channel_type){ return a.channel_type.localeCompare(b.channel_type); }
@@ -662,25 +639,6 @@ const sortChannels = (a, b) => {
 
 const sortContainers = (a, b) => (a.name || "").localeCompare(b.name || "");
 const sortByID = (a, b) => a.id - b.id;
-
-const mergeRowsByID = (current, incoming, sortFunction, limit) => {
-    if(!incoming || incoming.length === 0){
-        return current;
-    }
-    const rowsByID = new Map((current || []).map((row) => [row.id, row]));
-    incoming.forEach((row) => {
-        const existing = rowsByID.get(row.id);
-        if(newerOrEqual(row, existing)){
-            const mergedRow = {...existing, ...row};
-            if(shouldKeepExistingStreamingMessage(row, existing)){
-                mergedRow.message = existing.message;
-            }
-            rowsByID.set(row.id, mergedRow);
-        }
-    });
-    const merged = [...rowsByID.values()].sort(sortFunction);
-    return limit ? merged.slice(-limit) : merged;
-};
 
 const mergeReadStateRows = (current, incoming) => {
     if(!incoming || incoming.length === 0){
@@ -2220,18 +2178,20 @@ const ChatAPITokenSelector = ({value, setValue, currentToken, currentUser, opera
                     maxWidth="md"
                     onClose={() => setOpenCreateToken(false)}
                     innerDialog={
-                        <SettingsAPITokenDialog
-                            title={`New AI Chat API Token${selectedOwner ? ` for ${selectedOwner.username}` : ""}`}
-                            name={`${selectedOwner?.accountType === "bot" ? "Operation bot" : "Operator"} AI chat token`}
-                            initialScopes={createTokenInitialScopes}
-                            requiredScopes={AI_CHAT_REQUIRED_TOKEN_SCOPES}
-                            requiredScopeDescriptions={{
-                                "apitoken.write": "Required so the chat container can request scoped Mythic API tokens for tools.",
-                                "chat-ai.write": "Required so the chat container can stream AI responses back into this channel.",
-                            }}
-                            onAccept={createToken}
-                            handleClose={() => setOpenCreateToken(false)}
-                        />
+                        <React.Suspense fallback={<Typography sx={{p: 3}} color="text.secondary">Loading token editor...</Typography>}>
+                            <LazySettingsAPITokenDialog
+                                title={`New AI Chat API Token${selectedOwner ? ` for ${selectedOwner.username}` : ""}`}
+                                name={`${selectedOwner?.accountType === "bot" ? "Operation bot" : "Operator"} AI chat token`}
+                                initialScopes={createTokenInitialScopes}
+                                requiredScopes={AI_CHAT_REQUIRED_TOKEN_SCOPES}
+                                requiredScopeDescriptions={{
+                                    "apitoken.write": "Required so the chat container can request scoped Mythic API tokens for tools.",
+                                    "chat-ai.write": "Required so the chat container can stream AI responses back into this channel.",
+                                }}
+                                onAccept={createToken}
+                                handleClose={() => setOpenCreateToken(false)}
+                            />
+                        </React.Suspense>
                     }
                 />
             }
@@ -3457,6 +3417,12 @@ const ChatDelegationPane = ({
     cancelEdit,
 }) => {
     const theme = useTheme();
+    const [visibleMessageCount, setVisibleMessageCount] = React.useState(CHAT_RENDER_BATCH_SIZE);
+    const messagesContainerRef = React.useRef(null);
+    const messagesEndRef = React.useRef(null);
+    const scrollAnchorRef = React.useRef(null);
+    const nearBottomRef = React.useRef(true);
+    const messageStateRef = React.useRef({delegationID: null, ids: new Set(), lastUpdatedAt: null, lastLength: 0});
     const snapshot = delegation?.snapshot || {};
     const stateClass = getSubagentStateClass(snapshot);
     const visual = getSubagentVisual(delegation?.id, snapshot, theme);
@@ -3464,6 +3430,64 @@ const ChatDelegationPane = ({
     const toolTotal = Number(snapshot.tool_total ?? snapshot.tools_total ?? snapshot.total_tools);
     const hasProgress = !Number.isNaN(toolCount) && !Number.isNaN(toolTotal) && toolTotal > 0;
     const prompt = delegation?.prompt || snapshot.prompt || snapshot.title || "";
+    React.useEffect(() => {
+        setVisibleMessageCount(CHAT_RENDER_BATCH_SIZE);
+        nearBottomRef.current = true;
+    }, [delegation?.id]);
+    React.useLayoutEffect(() => {
+        const previous = messageStateRef.current;
+        if(previous.delegationID === delegation?.id && !nearBottomRef.current){
+            const addedCount = messages.reduce((count, message) => count + (previous.ids.has(message.id) ? 0 : 1), 0);
+            if(addedCount > 0){
+                setVisibleMessageCount((count) => Math.min(messages.length, count + addedCount));
+            }
+        }
+    }, [delegation?.id, messages]);
+    const visibleMessages = React.useMemo(() => (
+        getProgressivelyVisibleRows(messages, visibleMessageCount, isPendingChatHumanInteraction)
+    ), [messages, visibleMessageCount]);
+    const hiddenMessageCount = messages.length - visibleMessages.length;
+    const updateNearBottom = React.useCallback(() => {
+        const container = messagesContainerRef.current;
+        nearBottomRef.current = !container || container.scrollHeight - container.scrollTop - container.clientHeight < 80;
+    }, []);
+    const showOlderMessages = React.useCallback(() => {
+        const container = messagesContainerRef.current;
+        if(container){
+            scrollAnchorRef.current = {scrollHeight: container.scrollHeight, scrollTop: container.scrollTop};
+        }
+        setVisibleMessageCount((count) => Math.min(messages.length, count + CHAT_RENDER_BATCH_SIZE));
+    }, [messages.length]);
+    React.useLayoutEffect(() => {
+        const anchor = scrollAnchorRef.current;
+        const container = messagesContainerRef.current;
+        if(!anchor || !container){
+            return;
+        }
+        container.scrollTop = anchor.scrollTop + (container.scrollHeight - anchor.scrollHeight);
+        scrollAnchorRef.current = null;
+        updateNearBottom();
+    }, [visibleMessages.length, updateNearBottom]);
+    React.useEffect(() => {
+        const previous = messageStateRef.current;
+        const lastMessage = messages[messages.length - 1];
+        const delegationChanged = previous.delegationID !== delegation?.id;
+        const hasNewMessages = messages.some((message) => !previous.ids.has(message.id));
+        const lastMessageChanged = Boolean(lastMessage && (
+            previous.lastUpdatedAt !== lastMessage.updated_at ||
+            previous.lastLength !== (lastMessage.message || "").length
+        ));
+        messageStateRef.current = {
+            delegationID: delegation?.id || null,
+            ids: new Set(messages.map((message) => message.id)),
+            lastUpdatedAt: lastMessage?.updated_at || null,
+            lastLength: (lastMessage?.message || "").length,
+        };
+        if(lastMessage && (delegationChanged || ((hasNewMessages || lastMessageChanged) && nearBottomRef.current))){
+            messagesEndRef.current?.scrollIntoView({block: "end"});
+            nearBottomRef.current = true;
+        }
+    }, [delegation?.id, messages]);
     if(!delegation){
         return null;
     }
@@ -3527,7 +3551,7 @@ const ChatDelegationPane = ({
                     </Typography>
                 </Box>
             }
-            <Box className="mythic-chat-messages" sx={{padding: "8px"}}>
+            <Box className="mythic-chat-messages" sx={{padding: "8px"}} ref={messagesContainerRef} onScroll={updateNearBottom}>
                 {messages.length === 0 ? (
                     <ChatEmptyState
                         icon={<SmartToyTwoToneIcon fontSize="large" />}
@@ -3535,30 +3559,40 @@ const ChatDelegationPane = ({
                         detail="Delegated messages will appear here."
                     />
                 ) : (
-                    messages.map((message) => (
-                        <MessageBubble
-                            key={message.id}
-                            message={message}
-                            request={message.chat_request_id ? requestsByID[message.chat_request_id] : null}
-                            me={me}
-                            onEdit={onEdit}
-                            onDelete={onDelete}
-                            onRetry={onRetry}
-                            onRefreshSpecial={onRefreshSpecial}
-                            onReviewSpecial={onReviewSpecial}
-                            onSubmitInputResponse={onSubmitInputResponse}
-                            onOpenDelegation={null}
-                            onViewToolOutput={onViewToolOutput}
-                            refreshingSpecialMessageID={refreshingSpecialMessageID}
-                            submittingInputResponseID={submittingInputResponseID}
-                            editing={editingID === message.id}
-                            editText={editText}
-                            setEditText={setEditText}
-                            saveEdit={saveEdit}
-                            cancelEdit={cancelEdit}
-                        />
-                    ))
+                    <>
+                        {hiddenMessageCount > 0 &&
+                            <Box className="mythic-chat-show-older">
+                                <Button size="small" variant="text" onClick={showOlderMessages}>
+                                    Show {Math.min(CHAT_RENDER_BATCH_SIZE, hiddenMessageCount)} older messages ({hiddenMessageCount} hidden)
+                                </Button>
+                            </Box>
+                        }
+                        {visibleMessages.map((message) => (
+                            <MessageBubble
+                                key={message.id}
+                                message={message}
+                                request={message.chat_request_id ? requestsByID[message.chat_request_id] : null}
+                                me={me}
+                                onEdit={onEdit}
+                                onDelete={onDelete}
+                                onRetry={onRetry}
+                                onRefreshSpecial={onRefreshSpecial}
+                                onReviewSpecial={onReviewSpecial}
+                                onSubmitInputResponse={onSubmitInputResponse}
+                                onOpenDelegation={null}
+                                onViewToolOutput={onViewToolOutput}
+                                refreshingSpecialMessageID={refreshingSpecialMessageID}
+                                submittingInputResponseID={submittingInputResponseID}
+                                editing={editingID === message.id}
+                                editText={editText}
+                                setEditText={setEditText}
+                                saveEdit={saveEdit}
+                                cancelEdit={cancelEdit}
+                            />
+                        ))}
+                    </>
                 )}
+                <div ref={messagesEndRef} />
             </Box>
             <ChatComposer
                 selectedChannel={selectedChannel}
@@ -3580,6 +3614,7 @@ const ChatDelegationPane = ({
 
 export function Chat({me}) {
     const theme = useTheme();
+    const apolloClient = useApolloClient();
     const meContext = React.useContext(MeContext);
     const currentMe = me || meContext;
     const initialSavedChannelID = GetMythicSetting({setting_name: CHAT_SELECTED_CHANNEL_SETTING, default_value: 0});
@@ -3602,6 +3637,8 @@ export function Chat({me}) {
     const [inputResponseText, setInputResponseText] = React.useState("");
     const [selectedDelegationSeed, setSelectedDelegationSeed] = React.useState(null);
     const [toolOutputTarget, setToolOutputTarget] = React.useState(null);
+    const [toolOutputState, setToolOutputState] = React.useState({loading: false, error: null, plaintext: ""});
+    const [visibleMainMessageCount, setVisibleMainMessageCount] = React.useState(CHAT_RENDER_BATCH_SIZE);
     const [refreshingSpecialMessageID, setRefreshingSpecialMessageID] = React.useState(null);
     const [submittingInputResponseID, setSubmittingInputResponseID] = React.useState(null);
     const [chatSplitSizes, setChatSplitSizes] = React.useState(getStoredChatSplitSizes);
@@ -3610,6 +3647,9 @@ export function Chat({me}) {
     const messagesContainerRef = React.useRef(null);
     const messagesEndRef = React.useRef(null);
     const messagesNearBottomRef = React.useRef(true);
+    const mainScrollAnchorRef = React.useRef(null);
+    const mainMessageIDsRef = React.useRef({channelID: null, ids: new Set()});
+    const toolOutputAbortRef = React.useRef(null);
     const messagesScrollStateRef = React.useRef({
         channelID: null,
         messageIDs: new Set(),
@@ -3630,11 +3670,10 @@ export function Chat({me}) {
     const [messages, setMessages] = React.useState([]);
     const [requests, setRequests] = React.useState([]);
     const selectedChannelIDRef = React.useRef(selectedChannelID);
-    const selectedChannelRefreshCursorRef = React.useRef({
+    const selectedChannelStreamCursor = React.useMemo(() => ({
         channelID: selectedChannelID,
-        messagesSince: streamStart.current,
-        requestsSince: streamStart.current,
-    });
+        now: getSkewedNow().toISOString(),
+    }), [selectedChannelID]);
     selectedChannelIDRef.current = selectedChannelID;
     readStateRef.current = readState;
     const selectChannel = React.useCallback((channelID, persist = true) => {
@@ -3662,80 +3701,6 @@ export function Chat({me}) {
         fetchPolicy: "no-cache",
         onError: (error) => console.log(error),
     });
-    const bumpSelectedChannelRefreshCursor = React.useCallback((cursorKey, channelID, rows) => {
-        if(!channelID || !Array.isArray(rows) || rows.length === 0){
-            return;
-        }
-        const currentCursor = selectedChannelRefreshCursorRef.current;
-        if(currentCursor.channelID !== channelID){
-            return;
-        }
-        const latestRow = rows.reduce((latest, row) => {
-            return timestampValue(row.updated_at) > timestampValue(latest?.updated_at) ? row : latest;
-        }, null);
-        if(!latestRow?.updated_at){
-            return;
-        }
-        if(timestampValue(latestRow.updated_at) > timestampValue(currentCursor[cursorKey])){
-            selectedChannelRefreshCursorRef.current = {
-                ...currentCursor,
-                [cursorKey]: latestRow.updated_at,
-            };
-        }
-    }, []);
-    const [fetchUpdatedMessages] = useLazyQuery(CHAT_MESSAGES_UPDATED_QUERY, {
-        fetchPolicy: "no-cache",
-        onCompleted: (data) => {
-            const currentChannelID = selectedChannelIDRef.current;
-            const rows = (data?.chat_message || []).filter((message) => message.channel_id === currentChannelID);
-            if(rows.length > 0){
-                setMessages((prev) => mergeRowsByID(prev, rows, sortByID, CHAT_MESSAGE_LIMIT));
-                bumpSelectedChannelRefreshCursor("messagesSince", currentChannelID, rows);
-            }
-        },
-        onError: (error) => console.log(error),
-    });
-    const [fetchUpdatedRequests] = useLazyQuery(CHAT_REQUESTS_UPDATED_QUERY, {
-        fetchPolicy: "no-cache",
-        onCompleted: (data) => {
-            const currentChannelID = selectedChannelIDRef.current;
-            const rows = (data?.chat_request || []).filter((request) => request.channel_id === currentChannelID);
-            if(rows.length > 0){
-                setRequests((prev) => mergeRowsByID(prev, rows, sortByID, CHAT_REQUEST_LIMIT));
-                bumpSelectedChannelRefreshCursor("requestsSince", currentChannelID, rows);
-            }
-        },
-        onError: (error) => console.log(error),
-    });
-    const fetchSelectedChannelUpdates = React.useCallback((channelID) => {
-        if(!channelID){
-            return;
-        }
-        let cursor = selectedChannelRefreshCursorRef.current;
-        if(cursor.channelID !== channelID){
-            cursor = {
-                channelID,
-                messagesSince: getSkewedNow().toISOString(),
-                requestsSince: getSkewedNow().toISOString(),
-            };
-            selectedChannelRefreshCursorRef.current = cursor;
-        }
-        fetchUpdatedMessages({
-            variables: {
-                channel_id: channelID,
-                since: cursor.messagesSince || streamStart.current,
-                limit: CHAT_UPDATE_LIMIT,
-            },
-        });
-        fetchUpdatedRequests({
-            variables: {
-                channel_id: channelID,
-                since: cursor.requestsSince || streamStart.current,
-                limit: CHAT_UPDATE_LIMIT,
-            },
-        });
-    }, [fetchUpdatedMessages, fetchUpdatedRequests]);
-
     React.useEffect(() => {
         if(channelData?.chat_channel){
             setBaseChannels((prev) => mergeRowsByID(prev, channelData.chat_channel, sortChannels));
@@ -3764,10 +3729,6 @@ export function Chat({me}) {
             const updates = data.data?.chat_channel_stream || [];
             if(updates.length > 0){
                 setBaseChannels((prev) => mergeRowsByID(prev, updates, sortChannels));
-                const currentChannelID = selectedChannelIDRef.current;
-                if(currentChannelID && updates.some((channel) => channel.id === currentChannelID)){
-                    fetchSelectedChannelUpdates(currentChannelID);
-                }
             }
         },
         onError: (error) => console.log(error),
@@ -3852,11 +3813,8 @@ export function Chat({me}) {
         setMessages([]);
         setRequests([]);
         setSelectedDelegationSeed(null);
-        selectedChannelRefreshCursorRef.current = {
-            channelID: selectedChannelID,
-            messagesSince: getSkewedNow().toISOString(),
-            requestsSince: getSkewedNow().toISOString(),
-        };
+        setVisibleMainMessageCount(CHAT_RENDER_BATCH_SIZE);
+        messagesNearBottomRef.current = true;
     }, [selectedChannelID]);
 
     const {data: messageData} = useQuery(CHAT_MESSAGES_QUERY, {
@@ -3873,18 +3831,50 @@ export function Chat({me}) {
         const currentChannelID = selectedChannelIDRef.current;
         if(currentChannelID && messageData?.chat_message){
             const rows = messageData.chat_message.filter((message) => message.channel_id === currentChannelID);
-            setMessages((prev) => mergeRowsByID(prev, rows, sortByID, CHAT_MESSAGE_LIMIT));
-            bumpSelectedChannelRefreshCursor("messagesSince", currentChannelID, rows);
+            setMessages((prev) => mergeRowsByID(prev, rows, sortByID, CHAT_MESSAGE_LIMIT, true));
         }
-    }, [bumpSelectedChannelRefreshCursor, messageData, selectedChannelID]);
+    }, [messageData, selectedChannelID]);
     React.useEffect(() => {
         const currentChannelID = selectedChannelIDRef.current;
         if(currentChannelID && requestData?.chat_request){
             const rows = requestData.chat_request.filter((request) => request.channel_id === currentChannelID);
-            setRequests((prev) => mergeRowsByID(prev, rows, sortByID, CHAT_REQUEST_LIMIT));
-            bumpSelectedChannelRefreshCursor("requestsSince", currentChannelID, rows);
+            setRequests((prev) => mergeRowsByID(prev, rows, sortByID, CHAT_REQUEST_LIMIT, true));
         }
-    }, [bumpSelectedChannelRefreshCursor, requestData, selectedChannelID]);
+    }, [requestData, selectedChannelID]);
+    useSubscription(CHAT_MESSAGES_STREAM_SUBSCRIPTION, {
+        variables: {
+            channel_id: selectedChannelStreamCursor.channelID || 0,
+            now: selectedChannelStreamCursor.now,
+        },
+        skip: !selectedChannelStreamCursor.channelID,
+        fetchPolicy: "no-cache",
+        ignoreResults: true,
+        onData: ({data}) => {
+            const currentChannelID = selectedChannelIDRef.current;
+            const updates = (data.data?.chat_message_stream || []).filter((message) => message.channel_id === currentChannelID);
+            if(updates.length > 0){
+                setMessages((prev) => mergeRowsByID(prev, updates, sortByID, CHAT_MESSAGE_LIMIT));
+            }
+        },
+        onError: (error) => console.log(error),
+    });
+    useSubscription(CHAT_REQUESTS_STREAM_SUBSCRIPTION, {
+        variables: {
+            channel_id: selectedChannelStreamCursor.channelID || 0,
+            now: selectedChannelStreamCursor.now,
+        },
+        skip: !selectedChannelStreamCursor.channelID,
+        fetchPolicy: "no-cache",
+        ignoreResults: true,
+        onData: ({data}) => {
+            const currentChannelID = selectedChannelIDRef.current;
+            const updates = (data.data?.chat_request_stream || []).filter((request) => request.channel_id === currentChannelID);
+            if(updates.length > 0){
+                setRequests((prev) => mergeRowsByID(prev, updates, sortByID, CHAT_REQUEST_LIMIT));
+            }
+        },
+        onError: (error) => console.log(error),
+    });
     const requestsByID = React.useMemo(() => {
         return requests.reduce((prev, request) => {
             prev[request.id] = request;
@@ -4065,10 +4055,49 @@ export function Chat({me}) {
         },
         onError: (error) => snackActions.error(error.message),
     });
-    const [loadToolOutput, {data: toolOutputData, loading: toolOutputLoading, error: toolOutputError}] = useLazyQuery(CHAT_TOOL_OUTPUT_QUERY, {
-        fetchPolicy: "no-cache",
-        onError: (error) => snackActions.error(error.message),
-    });
+    const closeToolOutput = React.useCallback(() => {
+        toolOutputAbortRef.current?.abort();
+        toolOutputAbortRef.current = null;
+        setToolOutputTarget(null);
+        setToolOutputState({loading: false, error: null, plaintext: ""});
+    }, []);
+    const openToolOutput = React.useCallback((message) => {
+        if(!message?.id){
+            return;
+        }
+        toolOutputAbortRef.current?.abort();
+        const controller = new AbortController();
+        toolOutputAbortRef.current = controller;
+        setToolOutputTarget(message);
+        setToolOutputState({loading: true, error: null, plaintext: ""});
+        apolloClient.query({
+            query: CHAT_TOOL_OUTPUT_QUERY,
+            variables: {message_id: message.id},
+            fetchPolicy: "no-cache",
+            context: {fetchOptions: {signal: controller.signal}},
+        }).then(({data}) => {
+            if(controller.signal.aborted || toolOutputAbortRef.current !== controller){
+                return;
+            }
+            toolOutputAbortRef.current = null;
+            setToolOutputState({
+                loading: false,
+                error: null,
+                plaintext: data?.chat_message_by_pk?.tool_output || "No tool output stored for this message.",
+            });
+        }).catch((error) => {
+            if(controller.signal.aborted || toolOutputAbortRef.current !== controller){
+                return;
+            }
+            toolOutputAbortRef.current = null;
+            setToolOutputState({loading: false, error, plaintext: ""});
+            snackActions.error(error.message);
+        });
+    }, [apolloClient]);
+    React.useEffect(() => () => {
+        toolOutputAbortRef.current?.abort();
+        toolOutputAbortRef.current = null;
+    }, []);
 
     const updateMessagesNearBottom = React.useCallback(() => {
         const messagesContainer = messagesContainerRef.current;
@@ -4098,8 +4127,7 @@ export function Chat({me}) {
             lastMessageMatchesChannel &&
             (
                 channelChanged ||
-                hasNewMessages ||
-                (lastMessageChanged && messagesNearBottomRef.current)
+                ((hasNewMessages || lastMessageChanged) && messagesNearBottomRef.current)
             )
         );
 
@@ -4146,6 +4174,41 @@ export function Chat({me}) {
     const mainMessages = React.useMemo(() => (
         messages.filter(shouldShowMessageInMainChat)
     ), [messages]);
+    React.useLayoutEffect(() => {
+        const previous = mainMessageIDsRef.current;
+        const currentIDs = new Set(mainMessages.map((message) => message.id));
+        if(previous.channelID === selectedChannelID && !messagesNearBottomRef.current){
+            const addedCount = mainMessages.reduce((count, message) => count + (previous.ids.has(message.id) ? 0 : 1), 0);
+            if(addedCount > 0){
+                setVisibleMainMessageCount((count) => Math.min(mainMessages.length, count + addedCount));
+            }
+        }
+        mainMessageIDsRef.current = {channelID: selectedChannelID, ids: currentIDs};
+    }, [mainMessages, selectedChannelID]);
+    const visibleMainMessages = React.useMemo(() => (
+        getProgressivelyVisibleRows(mainMessages, visibleMainMessageCount, isPendingChatHumanInteraction)
+    ), [mainMessages, visibleMainMessageCount]);
+    const hiddenMainMessageCount = mainMessages.length - visibleMainMessages.length;
+    const showOlderMainMessages = React.useCallback(() => {
+        const container = messagesContainerRef.current;
+        if(container){
+            mainScrollAnchorRef.current = {
+                scrollHeight: container.scrollHeight,
+                scrollTop: container.scrollTop,
+            };
+        }
+        setVisibleMainMessageCount((count) => Math.min(mainMessages.length, count + CHAT_RENDER_BATCH_SIZE));
+    }, [mainMessages.length]);
+    React.useLayoutEffect(() => {
+        const anchor = mainScrollAnchorRef.current;
+        const container = messagesContainerRef.current;
+        if(!anchor || !container){
+            return;
+        }
+        container.scrollTop = anchor.scrollTop + (container.scrollHeight - anchor.scrollHeight);
+        mainScrollAnchorRef.current = null;
+        updateMessagesNearBottom();
+    }, [visibleMainMessages.length, updateMessagesNearBottom]);
     const selectedDelegation = React.useMemo(() => {
         if(!selectedDelegationSeed?.id){
             return null;
@@ -4173,31 +4236,35 @@ export function Chat({me}) {
     }, [messages, selectedDelegation?.id]);
     const messageHistory = React.useMemo(() => {
         const seenMessages = new Set();
-        return [...messages].reverse().reduce((prev, message) => {
+        const history = [];
+        for(const message of [...messages].reverse()){
             const messageText = (message.message || "").trim();
             if(message.author_type !== "operator" || message.operator_id !== currentMe?.user?.user_id || message.deleted || messageText === ""){
-                return prev;
+                continue;
             }
             if(seenMessages.has(messageText)){
-                return prev;
+                continue;
             }
             seenMessages.add(messageText);
-            return [...prev, messageText];
-        }, []);
+            history.push(messageText);
+        }
+        return history;
     }, [messages, currentMe?.user?.user_id]);
     const delegationMessageHistory = React.useMemo(() => {
         const seenMessages = new Set();
-        return [...delegationMessages].reverse().reduce((prev, message) => {
+        const history = [];
+        for(const message of [...delegationMessages].reverse()){
             const messageText = (message.message || "").trim();
             if(message.author_type !== "operator" || message.operator_id !== currentMe?.user?.user_id || message.deleted || messageText === ""){
-                return prev;
+                continue;
             }
             if(seenMessages.has(messageText)){
-                return prev;
+                continue;
             }
             seenMessages.add(messageText);
-            return [...prev, messageText];
-        }, []);
+            history.push(messageText);
+        }
+        return history;
     }, [delegationMessages, currentMe?.user?.user_id]);
     const submitMessage = React.useCallback((messageText, delegation = null) => {
         const message = messageText.trim();
@@ -4385,13 +4452,6 @@ export function Chat({me}) {
             snapshot,
         });
     }, []);
-    const openToolOutput = React.useCallback((message) => {
-        if(!message?.id){
-            return;
-        }
-        setToolOutputTarget(message);
-        loadToolOutput({variables: {message_id: message.id}});
-    }, [loadToolOutput]);
     const reviewSnapshot = getEventingInteractionSnapshot(reviewMessage);
     const metaChips = (
         <>
@@ -4583,29 +4643,38 @@ export function Chat({me}) {
                                         detail="Delegated activity is available from sub-agent cards."
                                     />
                                 ) : (
-                                    mainMessages.map((message) => (
-                                        <MessageBubble
-                                            key={message.id}
-                                            message={message}
-                                            request={message.chat_request_id ? requestsByID[message.chat_request_id] : null}
-                                            me={currentMe}
-                                            onEdit={beginEdit}
-                                            onDelete={(messageID) => deleteMessage({variables: {message_id: messageID}})}
-                                            onRetry={(requestID) => retryRequest({variables: {request_id: requestID}})}
-                                            onRefreshSpecial={refreshChatSpecialMessage}
-                                            onReviewSpecial={reviewChatSpecialMessage}
-                                            onSubmitInputResponse={handleInputResponseAction}
-                                            onOpenDelegation={openDelegation}
-                                            onViewToolOutput={openToolOutput}
-                                            refreshingSpecialMessageID={refreshingSpecialMessageID}
-                                            submittingInputResponseID={submittingInputResponseID}
-                                            editing={editingID === message.id}
-                                            editText={editText}
-                                            setEditText={setEditText}
-                                            saveEdit={saveEdit}
-                                            cancelEdit={() => {setEditingID(null); setEditText("");}}
-                                        />
-                                    ))
+                                    <>
+                                        {hiddenMainMessageCount > 0 &&
+                                            <Box className="mythic-chat-show-older">
+                                                <Button size="small" variant="text" onClick={showOlderMainMessages}>
+                                                    Show {Math.min(CHAT_RENDER_BATCH_SIZE, hiddenMainMessageCount)} older messages ({hiddenMainMessageCount} hidden)
+                                                </Button>
+                                            </Box>
+                                        }
+                                        {visibleMainMessages.map((message) => (
+                                            <MessageBubble
+                                                key={message.id}
+                                                message={message}
+                                                request={message.chat_request_id ? requestsByID[message.chat_request_id] : null}
+                                                me={currentMe}
+                                                onEdit={beginEdit}
+                                                onDelete={(messageID) => deleteMessage({variables: {message_id: messageID}})}
+                                                onRetry={(requestID) => retryRequest({variables: {request_id: requestID}})}
+                                                onRefreshSpecial={refreshChatSpecialMessage}
+                                                onReviewSpecial={reviewChatSpecialMessage}
+                                                onSubmitInputResponse={handleInputResponseAction}
+                                                onOpenDelegation={openDelegation}
+                                                onViewToolOutput={openToolOutput}
+                                                refreshingSpecialMessageID={refreshingSpecialMessageID}
+                                                submittingInputResponseID={submittingInputResponseID}
+                                                editing={editingID === message.id}
+                                                editText={editText}
+                                                setEditText={setEditText}
+                                                saveEdit={saveEdit}
+                                                cancelEdit={() => {setEditingID(null); setEditText("");}}
+                                            />
+                                        ))}
+                                    </>
                                 )}
                                 <div ref={messagesEndRef} />
                             </Box>
@@ -4757,7 +4826,7 @@ export function Chat({me}) {
             {toolOutputTarget &&
                 <Dialog
                     open={Boolean(toolOutputTarget)}
-                    onClose={() => setToolOutputTarget(null)}
+                    onClose={closeToolOutput}
                     maxWidth="lg"
                     fullWidth
                     PaperProps={{
@@ -4779,27 +4848,29 @@ export function Chat({me}) {
                             p: "0 !important",
                         }}
                     >
-                        {toolOutputLoading ? (
+                        {toolOutputState.loading ? (
                             <Typography variant="body2" color="text.secondary" sx={{p: 2}}>Loading output...</Typography>
-                        ) : toolOutputError ? (
-                            <Typography variant="body2" color="error" sx={{p: 2}}>{toolOutputError.message}</Typography>
+                        ) : toolOutputState.error ? (
+                            <Typography variant="body2" color="error" sx={{p: 2}}>{toolOutputState.error.message}</Typography>
                         ) : (
                             <Box sx={{display: "flex", flex: "1 1 auto", minHeight: 0, minWidth: 0}}>
-                                <ResponseDisplayPlaintext
-                                    plaintext={toolOutputData?.chat_message_by_pk?.tool_output || "No tool output stored for this message."}
-                                    initial_render_mode="plaintext"
-                                    initial_show_options={true}
-                                    toolbarTitle="Tool output"
-                                    autoFormat={false}
-                                    expand={true}
-                                    readOnly={true}
-                                    enableCredentialCreation={false}
-                                />
+                                <React.Suspense fallback={<Typography sx={{p: 2}} color="text.secondary">Loading output viewer...</Typography>}>
+                                    <LazyResponseDisplayPlaintext
+                                        plaintext={toolOutputState.plaintext}
+                                        initial_render_mode="plaintext"
+                                        initial_show_options={true}
+                                        toolbarTitle="Tool output"
+                                        autoFormat={false}
+                                        expand={true}
+                                        readOnly={true}
+                                        enableCredentialCreation={false}
+                                    />
+                                </React.Suspense>
                             </Box>
                         )}
                     </DialogContent>
                 <DialogActions sx={{px: 1.5, py: 1}}>
-                        <Button onClick={() => setToolOutputTarget(null)}>Close</Button>
+                        <Button onClick={closeToolOutput}>Close</Button>
                     </DialogActions>
                 </Dialog>
             }
@@ -4813,22 +4884,24 @@ export function Chat({me}) {
                         setReviewMessage(null);
                     }}
                     innerDialog={
-                        <EventStepUserInteractionDialog
-                            onClose={() => {
-                                refreshChatSpecialMessage(reviewMessage).catch(() => {});
-                                setReviewMessage(null);
-                            }}
-                            onResolved={() => refreshChatSpecialMessage(reviewMessage)}
-                            selectedEventGroupInstance={reviewSnapshot.eventgroupinstance_id}
-                            selectedStep={{id: reviewSnapshot.eventstepinstance_id}}
-                        />}
+                        <React.Suspense fallback={<Typography sx={{p: 3}} color="text.secondary">Loading event review...</Typography>}>
+                            <LazyEventStepUserInteractionDialog
+                                onClose={() => {
+                                    refreshChatSpecialMessage(reviewMessage).catch(() => {});
+                                    setReviewMessage(null);
+                                }}
+                                onResolved={() => refreshChatSpecialMessage(reviewMessage)}
+                                selectedEventGroupInstance={reviewSnapshot.eventgroupinstance_id}
+                                selectedStep={{id: reviewSnapshot.eventstepinstance_id}}
+                            />
+                        </React.Suspense>}
                 />
             }
         </MythicPageBody>
     );
 }
 
-const MarkdownMessage = ({message}) => {
+const MarkdownMessage = React.memo(({message}) => {
     if(!message){
         return null;
     }
@@ -4839,7 +4912,7 @@ const MarkdownMessage = ({message}) => {
             </ReactMarkdown>
         </Box>
     );
-};
+});
 
 const getChatMarkdownSurfaceSx = (theme) => {
     const chatMessageColors = theme.chat?.message || {};
@@ -4850,7 +4923,7 @@ const getChatMarkdownSurfaceSx = (theme) => {
     };
 };
 
-const ChatAssistantMessage = ({message, timestamp, viewUTCTime}) => {
+const ChatAssistantMessage = React.memo(({message, timestamp, viewUTCTime}) => {
     const theme = useTheme();
     const formattedTimestamp = formatTimestamp(timestamp, viewUTCTime);
     return (
@@ -4866,7 +4939,7 @@ const ChatAssistantMessage = ({message, timestamp, viewUTCTime}) => {
             <MarkdownMessage message={message} />
         </Box>
     );
-};
+});
 
 const CHAT_SPECIAL_TYPE_EVENTING_USER_INTERACTION = "eventing_user_interaction";
 const CHAT_SPECIAL_TYPE_INPUT_REQUESTED = "input_requested";
@@ -5677,7 +5750,7 @@ const ChatSpecialEventFrame = ({message, me, children}) => {
     );
 };
 
-export const MessageBubble = ({message, request, me, onEdit, onDelete, onRetry, onRefreshSpecial, onReviewSpecial, onSubmitInputResponse, onOpenDelegation, onViewToolOutput, refreshingSpecialMessageID, submittingInputResponseID, editing, editText, setEditText, saveEdit, cancelEdit}) => {
+const MessageBubbleComponent = ({message, request, me, onEdit, onDelete, onRetry, onRefreshSpecial, onReviewSpecial, onSubmitInputResponse, onOpenDelegation, onViewToolOutput, refreshingSpecialMessageID, submittingInputResponseID, editing, editText, setEditText, saveEdit, cancelEdit}) => {
     const theme = useTheme();
     const [actionMenuAnchor, setActionMenuAnchor] = React.useState(null);
     const isMine = message.operator_id === me?.user?.user_id;
@@ -5877,3 +5950,17 @@ export const MessageBubble = ({message, request, me, onEdit, onDelete, onRetry, 
         </Box>
     );
 };
+
+const messageBubblePropsAreEqual = (previous, next) => (
+    previous.message === next.message &&
+    previous.request === next.request &&
+    previous.me?.user?.user_id === next.me?.user?.user_id &&
+    previous.me?.user?.view_utc_time === next.me?.user?.view_utc_time &&
+    previous.editing === next.editing &&
+    (!next.editing || previous.editText === next.editText) &&
+    (previous.refreshingSpecialMessageID === previous.message.id) === (next.refreshingSpecialMessageID === next.message.id) &&
+    (previous.submittingInputResponseID === previous.message.id) === (next.submittingInputResponseID === next.message.id) &&
+    Boolean(previous.onOpenDelegation) === Boolean(next.onOpenDelegation)
+);
+
+export const MessageBubble = React.memo(MessageBubbleComponent, messageBubblePropsAreEqual);

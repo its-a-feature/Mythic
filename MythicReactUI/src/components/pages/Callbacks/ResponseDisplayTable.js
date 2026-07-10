@@ -13,9 +13,8 @@ import {snackActions} from '../../utilities/Snackbar';
 import {MythicStyledTooltip} from '../../MythicComponents/MythicStyledTooltip';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import MythicResizableGrid from '../../MythicComponents/MythicResizableGrid';
-import {faList, faTrashAlt, faSkullCrossbones, faCamera, faSyringe, faFolder, faFolderOpen, faFileArchive, faCog,
-  faFileWord, faFileExcel, faFilePowerpoint, faFilePdf, faDatabase, faKey, faFileCode, faDownload, faUpload,
-  faFileImage, faCopy, faBoxOpen, faFileAlt, faCirclePlus, faCheck, faSquareXmark, faRotate } from '@fortawesome/free-solid-svg-icons';
+import {faCopy, faKey} from '@fortawesome/free-solid-svg-icons';
+import {getIconName} from '../../utilities/IconName';
 import {Dropdown, DropdownMenuItem} from "../../MythicComponents/MythicNestedMenus";
 import {GetComputedFontSize} from "../../MythicComponents/MythicSavedUserSetting";
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
@@ -29,6 +28,8 @@ import {
 import {gql, useMutation} from '@apollo/client';
 import {CredentialTableNewCredentialDialog} from "../Search/CredentialTableNewCredentialDialog";
 import {getReadableTextColor, isValidHexColor} from "../../MythicComponents/MythicColorInput";
+
+export {getIconName};
 
 const createCredentialMutation = gql`
 mutation createCredential($comment: String!, $account: String!, $realm: String!, $type: String!, $subtype: String, $credential: String!, $metadata: jsonb, $custom_display: String) {
@@ -85,67 +86,6 @@ const getReadableBrowserScriptRow = (row) => {
     return {...prev, [key]: value};
   }, {});
   return updated ? readableRow : row;
-}
-export const getIconName = (iconName) => {
-  switch(iconName.toLowerCase()){
-    case "add":
-      return faCirclePlus;
-    case "x":
-      return faSquareXmark;
-    case "check":
-      return faCheck;
-    case "refresh":
-      return faRotate;
-    case "openfolder":
-    case "folder":
-      return faFolderOpen;
-    case "closedfolder":
-      return faFolder;
-    case "archive":
-    case "zip":
-      return faFileArchive;
-    case "diskimage":
-      return faBoxOpen;
-    case "executable":
-    case "cog":
-      return faCog;
-    case "word":
-      return faFileWord;
-    case "excel":
-      return faFileExcel;
-    case "powerpoint":
-      return faFilePowerpoint;
-    case "pdf":
-    case "adobe":
-      return faFilePdf;
-    case "database":
-      return faDatabase;
-    case "key":
-      return faKey;
-    case "code":
-    case "source":
-      return faFileCode;
-    case "download":
-      return faDownload;
-    case "upload":
-      return faUpload;
-    case "png":
-    case "jpg":
-    case "image":
-      return faFileImage;
-    case "list":
-      return faList;
-    case "delete":
-      return faTrashAlt;
-    case "inject":
-      return faSyringe;
-    case "kill":
-      return faSkullCrossbones;
-    case "camera":
-      return faCamera;
-    default:
-      return iconName;
-  }
 }
 export const getIconColor = (theme, color) => {
   switch(color){
