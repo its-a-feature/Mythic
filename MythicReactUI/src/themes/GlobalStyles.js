@@ -12725,6 +12725,13 @@ tspan {
     overflow-y: auto;
     padding: 10px;
 }
+.mythic-chat-show-older {
+    align-items: center;
+    display: flex;
+    flex: 0 0 auto;
+    justify-content: center;
+    min-height: 30px;
+}
 .mythic-chat-message-row {
     display: flex;
     justify-content: flex-start;
