@@ -12695,7 +12695,6 @@ tspan {
 }
 .mythic-chat-conversation-icon {
     align-items: center;
-    border: 1px solid;
     border-radius: 7px;
     display: inline-flex;
     flex: 0 0 auto;
