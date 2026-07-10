@@ -4495,6 +4495,7 @@ export function Chat({me}) {
                             >
                                 {selectedChannel?.channel_type === "ai" ? (
                                     <MythicChatContainerIcon
+                                        className="mythic-chat-conversation-icon"
                                         altText={selectedChannel?.chat_container?.name || channelDisplayName(selectedChannel)}
                                         containerName={selectedChannel?.chat_container?.name}
                                         iconProps={{fontSize: "small"}}
