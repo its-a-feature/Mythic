@@ -3842,11 +3842,11 @@ export function Chat({me}) {
     }, []);
 
     React.useEffect(() => {
-        if(channels.length > 0 && !selectedChannel){
+        if(channels.length > 0 && !selectedChannelID && !selectedChannel){
             const active = channels.find((channel) => !channel.archived) || channels[0];
             selectChannel(active.id, false);
         }
-    }, [channels, selectedChannel, selectChannel]);
+    }, [channels, selectedChannel, selectedChannelID, selectChannel]);
 
     React.useEffect(() => {
         setMessages([]);
