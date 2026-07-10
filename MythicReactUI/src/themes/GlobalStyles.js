@@ -12701,6 +12701,7 @@ tspan {
     flex: 0 0 auto;
     height: 32px;
     justify-content: center;
+    object-fit: contain;
     width: 32px;
 }
 .mythic-chat-conversation-title {
