@@ -67,8 +67,8 @@ func DownloadBulkFilesWebhook(c *gin.Context) {
 	for _, fileUUID := range input.Input.Files {
 		filemeta := databaseStructs.Filemeta{}
 		err = database.DB.Get(&filemeta,
-			`SELECT * FROM filemeta WHERE 
-				filemeta.agent_file_id=$1 AND 
+			`SELECT * FROM filemeta WHERE
+				filemeta.agent_file_id=$1 AND
 				filemeta.deleted=false AND
 				filemeta.operation_id=$2`,
 			fileUUID, operatorOperation.CurrentOperation.ID)
@@ -81,44 +81,12 @@ func DownloadBulkFilesWebhook(c *gin.Context) {
 			return
 		}
 		go tagFileAs(filemeta.ID, operatorOperation.CurrentOperator.Username, filemeta.OperationID, tagTypeDownload, nil, c, false)
-		file, err := os.Open(filemeta.Path)
-		if err != nil {
-			logging.LogError(err, "Failed to open file", "path", filemeta.Path)
-			c.JSON(http.StatusOK, DownloadBulkFilesResponse{
-				Status: "error",
-				Error:  "Failed to get read file from disk",
-			})
-			return
-		}
-		defer file.Close()
-		// construct a new filename that's HOST_filename_uuid.extension to help with unique-ness
-		stringFileName := string(filemeta.Filename)
-		justFileName := strings.TrimSuffix(stringFileName, filepath.Ext(stringFileName))
-		justFileExtension := "." + filepath.Ext(stringFileName)
-		if justFileExtension == "." {
-			justFileExtension = ""
-		}
-		hostName := filemeta.Host
-		if hostName == "" {
-			hostName = "UNKNOWN"
-		}
-		newFileName := fmt.Sprintf("%s_%s_%s%s", hostName, justFileName, filemeta.AgentFileID, justFileExtension)
-		fileWriter, err := zipWriter.Create(newFileName)
-		if err != nil {
-			logging.LogError(err, "Failed to create file entry in zip")
-			c.JSON(http.StatusOK, DownloadBulkFilesResponse{
-				Status: "error",
-				Error:  "Failed to create file entry in zip",
-			})
-			return
-		}
-		_, err = io.Copy(fileWriter, file)
-		if err != nil {
-			logging.LogError(err, "Failed to write file entry in zip")
-			c.JSON(http.StatusOK, DownloadBulkFilesResponse{
-				Status: "error",
-				Error:  "Failed to write file entry in zip",
-			})
+		// processOneFile opens, writes into the zip, and CLOSES the file
+		// before returning. Using a scoped function (instead of `defer file.Close()`
+		// directly inside the for-range) ensures the file handle is released on
+		// every iteration rather than at the end of the outer function, which
+		// would otherwise accumulate open handles for large bulk downloads.
+		if err := processOneFileForBulkArchive(filemeta.Path, filemeta, zipWriter, c); err != nil {
 			return
 		}
 	}
@@ -167,4 +135,54 @@ func DownloadBulkFilesWebhook(c *gin.Context) {
 		Status: "success",
 		FileID: bulkDownloadUUID,
 	})
+}
+
+// processOneFileForBulkArchive opens a single source file, writes it into the
+// shared zip writer under a host-prefixed unique name, and closes the file
+// before returning. The `defer file.Close()` inside this function fires when
+// the function returns (i.e. at the end of each loop iteration in the caller),
+// which is the correct scoping for a per-iteration cleanup. Returning an
+// error signals the caller to abort the bulk download.
+func processOneFileForBulkArchive(path string, filemeta databaseStructs.Filemeta, zipWriter *zip.Writer, c *gin.Context) error {
+	file, err := os.Open(path)
+	if err != nil {
+		logging.LogError(err, "Failed to open file", "path", path)
+		c.JSON(http.StatusOK, DownloadBulkFilesResponse{
+			Status: "error",
+			Error:  "Failed to get read file from disk",
+		})
+		return err
+	}
+	defer file.Close()
+	// construct a new filename that's HOST_filename_uuid.extension to help with unique-ness
+	stringFileName := string(filemeta.Filename)
+	justFileName := strings.TrimSuffix(stringFileName, filepath.Ext(stringFileName))
+	justFileExtension := "." + filepath.Ext(stringFileName)
+	if justFileExtension == "." {
+		justFileExtension = ""
+	}
+	hostName := filemeta.Host
+	if hostName == "" {
+		hostName = "UNKNOWN"
+	}
+	newFileName := fmt.Sprintf("%s_%s_%s%s", hostName, justFileName, filemeta.AgentFileID, justFileExtension)
+	fileWriter, err := zipWriter.Create(newFileName)
+	if err != nil {
+		logging.LogError(err, "Failed to create file entry in zip")
+		c.JSON(http.StatusOK, DownloadBulkFilesResponse{
+			Status: "error",
+			Error:  "Failed to create file entry in zip",
+		})
+		return err
+	}
+	_, err = io.Copy(fileWriter, file)
+	if err != nil {
+		logging.LogError(err, "Failed to write file entry in zip")
+		c.JSON(http.StatusOK, DownloadBulkFilesResponse{
+			Status: "error",
+			Error:  "Failed to write file entry in zip",
+		})
+		return err
+	}
+	return nil
 }
