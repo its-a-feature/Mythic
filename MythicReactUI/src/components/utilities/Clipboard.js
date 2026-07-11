@@ -95,19 +95,18 @@ export function copyStringToClipboard(str) {
     return false;
 }
 
-export function downloadFileFromMemory(output, filename){
-    const dataBlob = new Blob([output], {type: 'application/octet-stream'});
-    const ele = document.getElementById("download_config");
-    if(ele !== null){
-      ele.href = URL.createObjectURL(dataBlob);
-      ele.download = filename;
-      ele.click();
-    }else{
-      const element = document.createElement("a");
-      element.id = "download_config";
-      element.href = URL.createObjectURL(dataBlob);
-      element.download = filename;
-      document.body.appendChild(element);
+export function downloadFileFromMemory(output, filename, mimeType='application/octet-stream'){
+    const dataBlob = new Blob([output], {type: mimeType});
+    const objectURL = URL.createObjectURL(dataBlob);
+    const element = document.createElement("a");
+    element.href = objectURL;
+    element.download = filename;
+    element.style.display = "none";
+    document.body.appendChild(element);
+    try{
       element.click();
+    }finally{
+      element.remove();
+      setTimeout(() => URL.revokeObjectURL(objectURL), 0);
     }
 }

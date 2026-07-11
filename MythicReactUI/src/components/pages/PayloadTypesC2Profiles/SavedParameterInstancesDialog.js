@@ -19,6 +19,7 @@ import SystemUpdateAltIcon from '@mui/icons-material/SystemUpdateAlt';
 import DeleteIcon from '@mui/icons-material/Delete';
 import {MythicDialogButton, MythicDialogFooter} from "../../MythicComponents/MythicDialogLayout";
 import {MythicLoadingState} from "../../MythicComponents/MythicStateDisplay";
+import {downloadFileFromMemory} from '../../utilities/Clipboard';
 
 const getProfileConfigQuery = gql`
 query getProfileParameters($id: Int!) {
@@ -496,20 +497,7 @@ export function SavedParameterInstancesDialog(props) {
                     return {...prev, [cur.name]:cur.value};
             }
         }, {});
-        const dataBlob = new Blob([JSON.stringify(configuration, null, 2)], {type: 'text/plain'});
-        const ele = document.getElementById("download_instance");
-        if(ele !== null){
-            ele.href = URL.createObjectURL(dataBlob);
-            ele.download = instanceName +  ".json";
-            ele.click();
-        }else{
-            const element = document.createElement("a");
-            element.id = "download_instance";
-            element.href = URL.createObjectURL(dataBlob);
-            element.download = instanceName + ".json";
-            document.body.appendChild(element);
-            element.click();
-        }
+        downloadFileFromMemory(JSON.stringify(configuration, null, 2), instanceName + ".json", "text/plain");
     }
     const onFileChange = (evt) => {
         const reader = new FileReader();

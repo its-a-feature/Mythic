@@ -73,9 +73,14 @@ import {
 import {MythicColorSwatchInput} from "../../MythicComponents/MythicColorInput";
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {findIconDefinition} from '@fortawesome/fontawesome-svg-core';
-import {getProgressivelyVisibleRows, mergeRowsByID} from "./ChatStreamUtils";
+import {
+    getChatMessagePageInfo,
+    getChatMessagePageVariables,
+    getProgressivelyVisibleRows,
+    mergeRowsByID,
+} from "./ChatStreamUtils";
 
-const CHAT_MESSAGE_LIMIT = 250;
+const CHAT_MESSAGE_PAGE_SIZE = 50;
 const CHAT_REQUEST_LIMIT = 50;
 const CHAT_RENDER_BATCH_SIZE = 50;
 const CHAT_SPLIT_STORAGE_KEY = "chatSplitSizes";
@@ -283,8 +288,8 @@ query ChatCurrentOperator($operator_id: Int!, $operation_id: Int!) {
 
 const CHAT_MESSAGES_QUERY = gql`
 ${CHAT_MESSAGE_FIELDS}
-query ChatMessages($channel_id: Int!, $limit: Int!) {
-  chat_message(where: {channel_id: {_eq: $channel_id}}, order_by: {id: desc}, limit: $limit) {
+query ChatMessages($where: chat_message_bool_exp!, $limit: Int!) {
+  chat_message(where: $where, order_by: {id: desc}, limit: $limit) {
     ...ChatMessageFields
   }
 }
@@ -3415,6 +3420,9 @@ const ChatDelegationPane = ({
     setEditText,
     saveEdit,
     cancelEdit,
+    hasOlderMessages,
+    loadingOlderMessages,
+    onLoadOlderMessages,
 }) => {
     const theme = useTheme();
     const [visibleMessageCount, setVisibleMessageCount] = React.useState(CHAT_RENDER_BATCH_SIZE);
@@ -3456,8 +3464,15 @@ const ChatDelegationPane = ({
         if(container){
             scrollAnchorRef.current = {scrollHeight: container.scrollHeight, scrollTop: container.scrollTop};
         }
-        setVisibleMessageCount((count) => Math.min(messages.length, count + CHAT_RENDER_BATCH_SIZE));
-    }, [messages.length]);
+        nearBottomRef.current = false;
+        if(hiddenMessageCount > 0){
+            setVisibleMessageCount((count) => Math.min(messages.length, count + CHAT_RENDER_BATCH_SIZE));
+            return;
+        }
+        onLoadOlderMessages().then((loaded) => {
+            if(!loaded){scrollAnchorRef.current = null;}
+        });
+    }, [hiddenMessageCount, messages.length, onLoadOlderMessages]);
     React.useLayoutEffect(() => {
         const anchor = scrollAnchorRef.current;
         const container = messagesContainerRef.current;
@@ -3552,6 +3567,16 @@ const ChatDelegationPane = ({
                 </Box>
             }
             <Box className="mythic-chat-messages" sx={{padding: "8px"}} ref={messagesContainerRef} onScroll={updateNearBottom}>
+                {(hiddenMessageCount > 0 || hasOlderMessages) &&
+                    <Box className="mythic-chat-show-older">
+                        <Button size="small" variant="text" onClick={showOlderMessages} disabled={loadingOlderMessages}>
+                            {hiddenMessageCount > 0 ?
+                                `Show ${Math.min(CHAT_RENDER_BATCH_SIZE, hiddenMessageCount)} older messages (${hiddenMessageCount} hidden)` :
+                                loadingOlderMessages ? "Fetching previous messages..." : "Fetch previous messages"
+                            }
+                        </Button>
+                    </Box>
+                }
                 {messages.length === 0 ? (
                     <ChatEmptyState
                         icon={<SmartToyTwoToneIcon fontSize="large" />}
@@ -3560,13 +3585,6 @@ const ChatDelegationPane = ({
                     />
                 ) : (
                     <>
-                        {hiddenMessageCount > 0 &&
-                            <Box className="mythic-chat-show-older">
-                                <Button size="small" variant="text" onClick={showOlderMessages}>
-                                    Show {Math.min(CHAT_RENDER_BATCH_SIZE, hiddenMessageCount)} older messages ({hiddenMessageCount} hidden)
-                                </Button>
-                            </Box>
-                        }
                         {visibleMessages.map((message) => (
                             <MessageBubble
                                 key={message.id}
@@ -3669,6 +3687,11 @@ export function Chat({me}) {
     const [readState, setReadState] = React.useState({});
     const [messages, setMessages] = React.useState([]);
     const [requests, setRequests] = React.useState([]);
+    const [hasOlderMessages, setHasOlderMessages] = React.useState(false);
+    const [loadingOlderMessages, setLoadingOlderMessages] = React.useState(false);
+    const oldestFetchedMessageIDRef = React.useRef(null);
+    const messagePageGenerationRef = React.useRef(0);
+    const loadingMessagePageRef = React.useRef(false);
     const selectedChannelIDRef = React.useRef(selectedChannelID);
     const selectedChannelStreamCursor = React.useMemo(() => ({
         channelID: selectedChannelID,
@@ -3814,12 +3837,14 @@ export function Chat({me}) {
         setRequests([]);
         setSelectedDelegationSeed(null);
         setVisibleMainMessageCount(CHAT_RENDER_BATCH_SIZE);
+        setHasOlderMessages(false);
+        setLoadingOlderMessages(false);
+        oldestFetchedMessageIDRef.current = null;
+        loadingMessagePageRef.current = false;
         messagesNearBottomRef.current = true;
     }, [selectedChannelID]);
 
-    const {data: messageData} = useQuery(CHAT_MESSAGES_QUERY, {
-        variables: {channel_id: selectedChannelID || 0, limit: CHAT_MESSAGE_LIMIT},
-        skip: !selectedChannelID,
+    const [fetchMessagePage] = useLazyQuery(CHAT_MESSAGES_QUERY, {
         fetchPolicy: "no-cache",
     });
     const {data: requestData} = useQuery(CHAT_REQUESTS_QUERY, {
@@ -3828,12 +3853,68 @@ export function Chat({me}) {
         fetchPolicy: "no-cache",
     });
     React.useEffect(() => {
-        const currentChannelID = selectedChannelIDRef.current;
-        if(currentChannelID && messageData?.chat_message){
-            const rows = messageData.chat_message.filter((message) => message.channel_id === currentChannelID);
-            setMessages((prev) => mergeRowsByID(prev, rows, sortByID, CHAT_MESSAGE_LIMIT, true));
+        const channelID = selectedChannelID;
+        const generation = messagePageGenerationRef.current + 1;
+        messagePageGenerationRef.current = generation;
+        if(!channelID){return;}
+        loadingMessagePageRef.current = true;
+        setLoadingOlderMessages(true);
+        fetchMessagePage({
+            variables: getChatMessagePageVariables(channelID, CHAT_MESSAGE_PAGE_SIZE),
+        }).then(({data}) => {
+            if(messagePageGenerationRef.current !== generation || selectedChannelIDRef.current !== channelID){return;}
+            const rows = (data?.chat_message || []).filter((message) => message.channel_id === channelID);
+            const pageInfo = getChatMessagePageInfo(rows, CHAT_MESSAGE_PAGE_SIZE);
+            oldestFetchedMessageIDRef.current = pageInfo.oldestID;
+            setHasOlderMessages(pageInfo.hasMore);
+            setMessages((prev) => mergeRowsByID(prev, rows, sortByID, undefined, true));
+        }).catch((error) => {
+            if(messagePageGenerationRef.current === generation){console.log(error);}
+        }).finally(() => {
+            if(messagePageGenerationRef.current === generation){
+                loadingMessagePageRef.current = false;
+                setLoadingOlderMessages(false);
+            }
+        });
+        return () => {
+            if(messagePageGenerationRef.current === generation){
+                messagePageGenerationRef.current += 1;
+                loadingMessagePageRef.current = false;
+            }
+        };
+    }, [fetchMessagePage, selectedChannelID]);
+    const loadOlderMessages = React.useCallback(() => {
+        const channelID = selectedChannelIDRef.current;
+        const beforeID = oldestFetchedMessageIDRef.current;
+        if(!channelID || !beforeID || !hasOlderMessages || loadingMessagePageRef.current){
+            return Promise.resolve(false);
         }
-    }, [messageData, selectedChannelID]);
+        messagesNearBottomRef.current = false;
+        const generation = messagePageGenerationRef.current;
+        loadingMessagePageRef.current = true;
+        setLoadingOlderMessages(true);
+        return fetchMessagePage({
+            variables: getChatMessagePageVariables(channelID, CHAT_MESSAGE_PAGE_SIZE, beforeID),
+        }).then(({data}) => {
+            if(messagePageGenerationRef.current !== generation || selectedChannelIDRef.current !== channelID){return false;}
+            const rows = (data?.chat_message || []).filter((message) => message.channel_id === channelID);
+            const pageInfo = getChatMessagePageInfo(rows, CHAT_MESSAGE_PAGE_SIZE, beforeID);
+            oldestFetchedMessageIDRef.current = pageInfo.oldestID;
+            setHasOlderMessages(pageInfo.hasMore);
+            if(rows.length > 0){
+                setMessages((prev) => mergeRowsByID(prev, rows, sortByID, undefined, true));
+            }
+            return rows.length > 0;
+        }).catch((error) => {
+            console.log(error);
+            return false;
+        }).finally(() => {
+            if(messagePageGenerationRef.current === generation){
+                loadingMessagePageRef.current = false;
+                setLoadingOlderMessages(false);
+            }
+        });
+    }, [fetchMessagePage, hasOlderMessages]);
     React.useEffect(() => {
         const currentChannelID = selectedChannelIDRef.current;
         if(currentChannelID && requestData?.chat_request){
@@ -3853,7 +3934,7 @@ export function Chat({me}) {
             const currentChannelID = selectedChannelIDRef.current;
             const updates = (data.data?.chat_message_stream || []).filter((message) => message.channel_id === currentChannelID);
             if(updates.length > 0){
-                setMessages((prev) => mergeRowsByID(prev, updates, sortByID, CHAT_MESSAGE_LIMIT));
+                setMessages((prev) => mergeRowsByID(prev, updates, sortByID));
             }
         },
         onError: (error) => console.log(error),
@@ -4197,8 +4278,15 @@ export function Chat({me}) {
                 scrollTop: container.scrollTop,
             };
         }
-        setVisibleMainMessageCount((count) => Math.min(mainMessages.length, count + CHAT_RENDER_BATCH_SIZE));
-    }, [mainMessages.length]);
+        messagesNearBottomRef.current = false;
+        if(hiddenMainMessageCount > 0){
+            setVisibleMainMessageCount((count) => Math.min(mainMessages.length, count + CHAT_RENDER_BATCH_SIZE));
+            return;
+        }
+        loadOlderMessages().then((loaded) => {
+            if(!loaded){mainScrollAnchorRef.current = null;}
+        });
+    }, [hiddenMainMessageCount, loadOlderMessages, mainMessages.length]);
     React.useLayoutEffect(() => {
         const anchor = mainScrollAnchorRef.current;
         const container = messagesContainerRef.current;
@@ -4208,7 +4296,7 @@ export function Chat({me}) {
         container.scrollTop = anchor.scrollTop + (container.scrollHeight - anchor.scrollHeight);
         mainScrollAnchorRef.current = null;
         updateMessagesNearBottom();
-    }, [visibleMainMessages.length, updateMessagesNearBottom]);
+    }, [messages.length, visibleMainMessages.length, updateMessagesNearBottom]);
     const selectedDelegation = React.useMemo(() => {
         if(!selectedDelegationSeed?.id){
             return null;
@@ -4625,6 +4713,16 @@ export function Chat({me}) {
                         <Box sx={{display: "flex", flex: "1 1 auto", flexDirection: "column", minHeight: 0, minWidth: 0, overflow: "hidden"}}>
                             <ChatChannelMetadataBar channel={selectedChannel} onChipClick={handleMetadataChipClick} />
                             <Box className="mythic-chat-messages" ref={messagesContainerRef} onScroll={updateMessagesNearBottom}>
+                                {selectedChannel && (hiddenMainMessageCount > 0 || hasOlderMessages) &&
+                                    <Box className="mythic-chat-show-older">
+                                        <Button size="small" variant="text" onClick={showOlderMainMessages} disabled={loadingOlderMessages}>
+                                            {hiddenMainMessageCount > 0 ?
+                                                `Show ${Math.min(CHAT_RENDER_BATCH_SIZE, hiddenMainMessageCount)} older messages (${hiddenMainMessageCount} hidden)` :
+                                                loadingOlderMessages ? "Fetching previous messages..." : "Fetch previous messages"
+                                            }
+                                        </Button>
+                                    </Box>
+                                }
                                 {!selectedChannel ? (
                                     <ChatEmptyState
                                         icon={<ForumTwoToneIcon fontSize="large" />}
@@ -4644,13 +4742,6 @@ export function Chat({me}) {
                                     />
                                 ) : (
                                     <>
-                                        {hiddenMainMessageCount > 0 &&
-                                            <Box className="mythic-chat-show-older">
-                                                <Button size="small" variant="text" onClick={showOlderMainMessages}>
-                                                    Show {Math.min(CHAT_RENDER_BATCH_SIZE, hiddenMainMessageCount)} older messages ({hiddenMainMessageCount} hidden)
-                                                </Button>
-                                            </Box>
-                                        }
                                         {visibleMainMessages.map((message) => (
                                             <MessageBubble
                                                 key={message.id}
@@ -4722,6 +4813,9 @@ export function Chat({me}) {
                                 setEditText={setEditText}
                                 saveEdit={saveEdit}
                                 cancelEdit={() => {setEditingID(null); setEditText("");}}
+                                hasOlderMessages={hasOlderMessages}
+                                loadingOlderMessages={loadingOlderMessages}
+                                onLoadOlderMessages={loadOlderMessages}
                             />
                             }
                         </Box>

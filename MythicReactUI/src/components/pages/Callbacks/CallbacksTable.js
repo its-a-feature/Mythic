@@ -33,6 +33,7 @@ import WidgetsIcon from '@mui/icons-material/Widgets';
 import TerminalIcon from '@mui/icons-material/Terminal';
 import ImportExportIcon from '@mui/icons-material/ImportExport';
 import KeyboardIcon from '@mui/icons-material/Keyboard';
+import {downloadFileFromMemory} from '../../utilities/Clipboard';
 import EditIcon from '@mui/icons-material/Edit';
 import VerticalSplitIcon from '@mui/icons-material/VerticalSplit';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
@@ -357,20 +358,7 @@ function CallbacksTablePreMemo(props){
         fetchPolicy: "no-cache",
         onCompleted: (data) => {
             if(data.exportCallbackConfig.status === "success"){
-                const dataBlob = new Blob([data.exportCallbackConfig.config], {type: 'text/plain'});
-                const ele = document.getElementById("download_config");
-                if(ele !== null){
-                    ele.href = URL.createObjectURL(dataBlob);
-                    ele.download = "exported_callback.json";
-                    ele.click();
-                }else{
-                    const element = document.createElement("a");
-                    element.id = "download_config";
-                    element.href = URL.createObjectURL(dataBlob);
-                    element.download = "exported_callback.json";
-                    document.body.appendChild(element);
-                    element.click();
-                }
+                downloadFileFromMemory(data.exportCallbackConfig.config, "exported_callback.json", "text/plain");
             }else{
                 snackActions.error("Failed to export configuration: " + data.exportCallbackConfig.error);
             }

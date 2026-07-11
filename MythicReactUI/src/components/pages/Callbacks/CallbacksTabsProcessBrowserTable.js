@@ -288,7 +288,8 @@ const columnDefaults = [
 const defaultVisibleColumns = ["Info","PID", "PPID", "Name",  "Arch", "Session", "User", "CMD"];
 export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, me, onRowDoubleClick,
                                                      onTaskRowAction, host, group, showDeletedFiles, tabInfo,
-                                                     expandOrCollapseAll, getLoadedCommandForUIFeature, quickFilter = ""}) => {
+                                                     expandOrCollapseAll, getLoadedCommandForUIFeature, quickFilter = "",
+                                                     active = true, dataVersion = 0}) => {
     //const [allData, setAllData] = React.useState([]);
     //console.log("treeAdjMatrix updated in table", treeAdjMatrix)
     const [updateSetting, updateSettings] = useSetMythicSetting();
@@ -347,10 +348,17 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         setOpenNodes(onodes);
     }
     React.useEffect( () => {
+        if(!active){return;}
         // need to update the matrix in case there are nodes that don't trace back to root
         let adjustedMatrix = {};
         // check for cycles
-        let tempMatrix = {...treeAdjMatrix};
+        let tempMatrix = Object.fromEntries(Object.entries(treeAdjMatrix).map(([currentGroup, hosts]) => [
+            currentGroup,
+            Object.fromEntries(Object.entries(hosts).map(([currentHost, parents]) => [
+                currentHost,
+                Object.fromEntries(Object.entries(parents).map(([parent, children]) => [parent, {...children}]))
+            ]))
+        ]));
         for(const[group, groupMatrix] of Object.entries(tempMatrix)){
             for(const[host, hostMatrix] of Object.entries(tempMatrix[group])){
                 for(const[key, val] of Object.entries(tempMatrix[group][host])){
@@ -413,7 +421,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         }
 
         setUpdatedTreeAdjMatrix(adjustedMatrix);
-    }, [treeAdjMatrix]);
+    }, [active, dataVersion, treeAdjMatrix]);
     const checkLoop = (nodes, visited) => {
         let found = false;
         let checkingKey = visited[visited.length-1]; // the latest thing we've seen
@@ -564,7 +572,9 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         },
         [openNodes, updatedTreeAdjMatrix, singleTreeData, viewSingleTreeData] // eslint-disable-line react-hooks/exhaustive-deps
     );
+    const cachedAllDataRef = React.useRef([]);
     const allData = useMemo(() => {
+        if(!active){return cachedAllDataRef.current;}
         // need to return an array
         let finalData = [];
         let treeToUse = updatedTreeAdjMatrix;
@@ -572,7 +582,10 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
             treeToUse = singleTreeData;
         }
         //console.log("in useMemo", updatedTreeAdjMatrix, "host", host)
-        if(host === "" || treeToUse[group]?.[host] === undefined){return finalData}
+        if(host === "" || treeToUse[group]?.[host] === undefined){
+            cachedAllDataRef.current = finalData;
+            return finalData;
+        }
         finalData.push({
         id: host,
         name: host,
@@ -589,8 +602,9 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         full_path_text: host,
         });
         finalData.push(...Object.keys(treeToUse[group][host][""] === undefined ? {} : treeToUse[group][host][""]).map(c => flattenNode(c, host, group, 1)).flat())
+        cachedAllDataRef.current = finalData;
         return finalData;
-    },[flattenNode, treeRootData, host, group, updatedTreeAdjMatrix, openNodes, singleTreeData, viewSingleTreeData],
+    },[active, dataVersion, flattenNode, treeRootData, host, group, updatedTreeAdjMatrix, openNodes, singleTreeData, viewSingleTreeData],
     );
     const sortedData = React.useMemo(() => {
         if (sortData.sortKey === null || sortData.sortType === null) {
@@ -860,9 +874,11 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
             singleTree: viewSingleTreeData,
         };
     }, [filterOptions, group, host, normalizedQuickFilter, showDeletedFiles, treeRootData, viewSingleTreeData, visibleRows]);
-    const gridData = React.useMemo(
-        () =>
-            visibleRows.reduce((prev, row) => { 
+    const cachedGridDataRef = React.useRef([]);
+    const gridData = React.useMemo(() => {
+        if(!active){return cachedGridDataRef.current;}
+        const nextGridData = [];
+        visibleRows.forEach((row) => {
                     const filterMatchLabels = quickFilterMatchInfo.directMatches[row.full_path_text] || [];
                     const filterAncestor = normalizedQuickFilter !== "" &&
                         quickFilterMatchInfo.keepPaths.has(row.full_path_text) &&
@@ -877,7 +893,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                             filterAncestor ? "mythic-process-filter-ancestor-row" : "",
                         ].filter(Boolean).join(" ")
                     };
-                    return [...prev, columns.map( c => {
+                    nextGridData.push(columns.map( c => {
                         switch(c.name){
                             case "Info":
                                 return  <FileBrowserTableRowActionCell 
@@ -961,11 +977,12 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                             default:
                                 console.log("hit default case in switch on c.name)", c.name)
                         }
-                    })];
-            }, []),
-        [columns, getProcessRowMenuOptions, group, host, normalizedQuickFilter, quickFilterMatchInfo,
-            selectedProcessPath, treeRootData, updatedTreeAdjMatrix, visibleRows]
-    );
+                    }));
+        });
+        cachedGridDataRef.current = nextGridData;
+        return nextGridData;
+    }, [active, columns, dataVersion, getProcessRowMenuOptions, group, host, normalizedQuickFilter,
+        quickFilterMatchInfo, selectedProcessPath, treeRootData, updatedTreeAdjMatrix, visibleRows]);
     const onClickHeader = (e, columnIndex) => {
         const column = columns[columnIndex];
         if(column.disableSort){

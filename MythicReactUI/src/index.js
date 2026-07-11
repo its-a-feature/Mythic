@@ -14,8 +14,9 @@ import {snackActions} from './components/utilities/Snackbar';
 import {jwtDecode} from 'jwt-decode';
 import {meState} from './cache';
 import {getSkewedNow} from "./components/utilities/Time";
+import {createTokenRefreshCoordinator, shouldInvalidateSessionAfterRefreshFailure} from "./tokenRefresh";
 
-export const mythicUIVersion = "0.4.0.6";
+export const mythicUIVersion = "0.4.0.7";
 
 const isResizeObserverLoopError = (message) => {
   return message === "ResizeObserver loop limit exceeded" ||
@@ -37,8 +38,6 @@ if(process.env.NODE_ENV === "development"){
     }
   }, true);
 }
-
-let fetchingNewToken = false;
 
 let cache = new InMemoryCache({
     typePolicies: {
@@ -103,12 +102,6 @@ export const JWTTimeLeft = () => {
   }
 }
 const authLink = setContext( async (_, {headers}) => {
-  // get the authentication token from local storage if it exists
-  // return the headers to the context so httpLink can read them
-  while(fetchingNewToken){
-    // we need to wait until we're no longer fetching a token
-    await new Promise(resolve => setTimeout(resolve, 1000));
-  }
     let access_token = localStorage.getItem('access_token');
     if(access_token){
       const decoded_token = jwtDecode(access_token);
@@ -130,7 +123,9 @@ const authLink = setContext( async (_, {headers}) => {
               }
           } else {
               console.log("JWT is no longer valid and failed to get new tokens");
-              FailedRefresh();
+              if(shouldInvalidateSessionAfterRefreshFailure(isJWTValid())){
+                FailedRefresh();
+              }
           }
       } else if(diff < twoHours && diff > 0){
           console.log("token is at its half life or less, try to get a new token");
@@ -151,8 +146,8 @@ const authLink = setContext( async (_, {headers}) => {
     }
     //console.log("should be called after updating if needed");
     return {
-      Authorization: `Bearer ${localStorage.getItem('access_token')}`,
       headers: {
+          ...headers,
           Authorization: `Bearer ${localStorage.getItem('access_token')}`,
           MythicSource: "web"
       }
@@ -242,57 +237,19 @@ const errorLink = onError(({ graphQLErrors, networkError, operation }) => {
   }
 });
 
-export const GetNewToken = async () =>{
-  fetchingNewToken = true;
-  const requestOptions = {
-      method: "POST",
-      headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-          MythicSource: "web"
-      },
-      body: JSON.stringify({"refresh_token": localStorage.getItem("refresh_token"),
-        "access_token": localStorage.getItem("access_token")})
-  };
-  try{
-      const response = await fetch('/refresh', requestOptions);
-      if (response.ok) {
-          return response.json().then(data => {
-              //console.log(data)
-              if("access_token" in data){
-                  successfulRefresh(data);
-                  console.log("successfully got new access_token");
-                  fetchingNewToken = false;
-                  return true;
-              }else{
-                  console.log("calling FailedRefresh from GetNewToken call");
-                  FailedRefresh();
-                  fetchingNewToken = false;
-                  return false;
-              }
-          }).catch(error => {
-              console.log("Error trying to get json response in GetNewToken", error);
-              console.log(response);
-              FailedRefresh();
-              fetchingNewToken = false;
-              return false;
-          });
-      } else if(response.status === 403) {
-          FailedRefresh();
-          fetchingNewToken = false;
-          return false;
-      } else {
-          return true
-      }
-  }catch(error){
-      console.log(error);
-      FailedRefresh();
-      fetchingNewToken = false;
-      return false;
-  }
-
-
-}
+export const GetNewToken = createTokenRefreshCoordinator({
+  fetchImpl: (...args) => fetch(...args),
+  getTokens: () => ({
+    accessToken: localStorage.getItem("access_token"),
+    refreshToken: localStorage.getItem("refresh_token"),
+  }),
+  isValidResponse: (data) => typeof data?.access_token === "string" && data.access_token.length > 0 && Boolean(data?.user),
+  onSuccess: (data) => {
+    successfulRefresh(data);
+    console.log("successfully got new access_token");
+  },
+  onTerminalFailure: () => FailedRefresh(),
+});
 const websocketAddress = () =>{
     return window.location.protocol === "https:" ? "wss://" + window.location.host + "/graphql/" : "ws://" + window.location.host + "/graphql/";
 }
@@ -331,7 +288,7 @@ const splitLink = split(
   httpLink
 )
 export const apolloClient = new ApolloClient({
-   link: from([authLink, errorLink, retryLink, authLink.concat(splitLink)]),
+   link: from([errorLink, retryLink, authLink, splitLink]),
     cache
   });
 export function restartWebsockets () {

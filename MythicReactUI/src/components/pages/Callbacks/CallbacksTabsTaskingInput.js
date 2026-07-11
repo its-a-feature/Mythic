@@ -693,6 +693,8 @@ export function CallbacksTabsTaskingInputPreMemo(props){
     };
     useSubscription(subscriptionCallbackTokens, {
         variables: {callback_id: props.callback_id}, fetchPolicy: "network-only",
+        skip: props.active === false,
+        ignoreResults: true,
         shouldResubscribe: true,
         onData: ({data}) => {
             if(!mountedRef.current || !props.parentMountedRef.current){
@@ -706,6 +708,8 @@ export function CallbacksTabsTaskingInputPreMemo(props){
       });
     useSubscription(contextSubscription, {
         variables: {callback_id: props.callback_id}, fetchPolicy: "network-only",
+        skip: props.active === false,
+        ignoreResults: true,
         shouldResubscribe: true,
         onData: ({data}) => {
             if(!mountedRef.current || !props.parentMountedRef.current){
@@ -723,6 +727,8 @@ export function CallbacksTabsTaskingInputPreMemo(props){
     });
     useSubscription(subscriptionTask, {
         variables: {callback_id: props.callback_id}, fetchPolicy: "network-only",
+        skip: props.active === false,
+        ignoreResults: true,
         shouldResubscribe: true,
         onData: ({data}) => {
             if(!mountedRef.current || !props.parentMountedRef.current){
@@ -745,6 +751,8 @@ export function CallbacksTabsTaskingInputPreMemo(props){
     });
     useSubscription(GetLoadedCommandsSubscription, {
         variables: {callback_id: props.callback_id}, fetchPolicy: "network-only",
+        skip: props.active === false,
+        ignoreResults: true,
         shouldResubscribe: true,
         onData: ({data}) => {
             if(!mountedRef.current || !props.parentMountedRef.current){

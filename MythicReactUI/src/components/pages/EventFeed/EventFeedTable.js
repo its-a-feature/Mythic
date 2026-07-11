@@ -103,7 +103,8 @@ export function EventFeedTable(props){
                         onUpdateLevel={props.onUpdateLevel}
                         operationeventlog={props.operationeventlog}/>
             </TableContainer>
-            <MythicTablePagination totalCount={props.pageData.totalCount} fetchLimit={props.pageData.fetchLimit} onChange={props.onChangePage} />
+            <MythicTablePagination totalCount={props.pageData.totalCount} fetchLimit={props.pageData.fetchLimit}
+                                   page={props.currentPage} onChange={props.onChangePage} />
         </MythicPageBody>
     );
 }

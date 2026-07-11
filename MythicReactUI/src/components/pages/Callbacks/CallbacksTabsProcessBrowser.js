@@ -1,5 +1,5 @@
 import {MythicTabPanel, MythicTabLabel} from '../../MythicComponents/MythicTabPanel';
-import React, {useEffect} from 'react';
+import React, {useCallback, useEffect} from 'react';
 import {gql, useQuery, useSubscription } from '@apollo/client';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {useTheme} from '@mui/material/styles';
@@ -25,6 +25,7 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
+import {getDefaultBrowserSelection, useCallbackBrowserTree} from "./CallbackBrowserTreeStore";
 
 const treeFragment = gql`
 fragment treeObjData on mythictree {
@@ -85,6 +86,9 @@ const treeHostQuery = gql`
         }
     }
 `;
+const mergeUniqueById = (existing = [], incoming = []) => [
+    ...new Map([...existing, ...incoming].filter(Boolean).map((item) => [item.id, item])).values(),
+];
 export const loadedCommandsQuery = gql`
 query loadedCommandUIFeatures($callback_id: Int!){
     loadedcommands(where: {callback_id: {_eq: $callback_id}}){
@@ -147,10 +151,29 @@ export function CallbacksTabsProcessBrowserLabel(props){
 export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me, setNewDataForTab}) =>{
     const theme = useTheme();
     const fromNow = React.useRef((new Date()));
+    const active = index === value;
+    const markInactiveChange = useCallback(() => {
+        setNewDataForTab((previous) => previous[tabInfo.tabID] ? previous : {
+            ...previous,
+            [tabInfo.tabID]: true,
+        });
+    }, [setNewDataForTab, tabInfo.tabID]);
+    const {
+        treeRootDataRef,
+        treeAdjMtx,
+        version: treeVersion,
+        hydrated: treeHydrated,
+        setTreeAdjMtx,
+        isScopeLoaded,
+        markScopeLoaded,
+    } = useCallbackBrowserTree({
+        treeType: "process",
+        mode: "process",
+        active,
+        onInactiveChange: markInactiveChange,
+    });
     const [backdropOpen, setBackdropOpen] = React.useState(false);
     const [expandOrCollapseAll, setExpandOrCollapseAll] = React.useState(true);
-    const treeRootDataRef = React.useRef({}); // hold all the actual data
-    const [treeAdjMtx, setTreeAdjMtx] = React.useState({}); // hold the simple adjacency matrix for parent/child relationships
     const [openTaskingButton, setOpenTaskingButton] = React.useState(false);
     const taskingData = React.useRef({"parameters": "", "ui_feature": "process_browser:list"});
     const mountedRef = React.useRef(true);
@@ -177,6 +200,7 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me, set
         return newMatrix;
     }
     useQuery(rootQuery, {
+        skip: true,
         onCompleted: (data) => {
            // use an adjacency matrix but only for full_path_text -> children, not both directions
             let defaultGroup = "Default";
@@ -255,6 +279,7 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me, set
     });
     useSubscription(treeSubscription, {
         variables: {now: fromNow.current},
+        skip: true,
         fetchPolicy: "no-cache",
         onData: ({data}) => {
             for(let i = 0; i < data.data.mythictree_stream.length; i++){
@@ -282,9 +307,9 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me, set
                             }
                         }
                         existingData.has_children = data.data.mythictree_stream[i].has_children || existingData.has_children;
-                        existingData.callbacks.push(data.data.mythictree_stream[i].callback)
+                        existingData.callbacks = mergeUniqueById(existingData.callbacks, [data.data.mythictree_stream[i].callback]);
                         existingData.comment += data.data.mythictree_stream[i].comment;
-                        existingData.tags = [...existingData.tags, ...data.data.mythictree_stream[i].tags];
+                        existingData.tags = mergeUniqueById(existingData.tags, data.data.mythictree_stream[i].tags);
                         if(existingData.task_id > data.data.mythictree_stream[i].task_id){
                             existingData.metadata = {...data.data.mythictree_stream[i].metadata, ...existingData.metadata};
                         } else {
@@ -301,6 +326,19 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me, set
             }
         }
     });
+    const initializedSelectionRef = React.useRef(false);
+    React.useEffect(() => {
+        if(!treeHydrated || initializedSelectionRef.current){return;}
+        const selection = getDefaultBrowserSelection(
+            treeRootDataRef.current,
+            treeAdjMtx,
+            tabInfo.callbackID,
+            tabInfo.host,
+        );
+        setSelectedGroup(selection.group);
+        setSelectedHost(selection.host);
+        initializedSelectionRef.current = true;
+    }, [tabInfo.callbackID, tabInfo.host, treeAdjMtx, treeHydrated, treeRootDataRef, treeVersion]);
     const getHostProcessesQuerySuccess = (data) => {
         snackActions.dismiss();
         // add in all of the raw data
@@ -326,8 +364,8 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me, set
                     }
                     let existingData = treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]];
                     existingData.comment += data.mythictree[i].comment;
-                    existingData.callbacks.push(data.mythictree[i].callback)
-                    existingData.tags = [...existingData.tags, ...data.mythictree[i].tags];
+                    existingData.callbacks = mergeUniqueById(existingData.callbacks, [data.mythictree[i].callback]);
+                    existingData.tags = mergeUniqueById(existingData.tags, data.mythictree[i].tags);
                     if(existingData.task_id > data.mythictree[i].task_id){
                         existingData.metadata = {...data.mythictree[i].metadata, ...existingData.metadata};
                     } else {
@@ -341,6 +379,7 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me, set
         const newMatrix = getNewMatrix();
         //console.log(treeRootDataRef.current);
         setTreeAdjMtx(newMatrix);
+        markScopeLoaded(`host:${selectedHost}`);
         //console.log("just set treeAdjMtx, about to close backdrop")
         setBackdropOpen(false);
     }
@@ -397,10 +436,11 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me, set
         return undefined;
     }
     React.useEffect( () => {
+        if(!active || selectedHost === "" || isScopeLoaded(`host:${selectedHost}`)){return;}
         getHostProcessesQuery({variables: {host: selectedHost}})
             .then(({data}) => getHostProcessesQuerySuccess(data)).catch(({data}) => console.log(data));
         setBackdropOpen(true);
-    }, [selectedHost]);
+    }, [active, isScopeLoaded, selectedHost]);
     React.useEffect( () => {
         return() => {
             mountedRef.current = false;
@@ -442,6 +482,8 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me, set
                         setQuickFilter={setQuickFilter}
                     />
                     <CallbacksTabsProcessBrowserTable 
+                        active={active}
+                        dataVersion={treeVersion}
                         showDeletedFiles={showDeletedFiles}
                         tabInfo={tabInfo}
                         onRowDoubleClick={() => {}}

@@ -13340,9 +13340,6 @@ tspan {
     }
 }
 @media (max-width: 900px) {
-    .mythic-chat-sidebar {
-        max-height: 220px;
-    }
     .mythic-chat-message {
         max-width: 100%;
         min-width: 0;

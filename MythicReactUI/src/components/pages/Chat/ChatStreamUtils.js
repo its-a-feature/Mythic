@@ -74,3 +74,23 @@ export const getProgressivelyVisibleRows = (rows, visibleCount, preserveRow = ()
     const startIndex = Math.max(0, safeRows.length - Math.max(0, visibleCount));
     return safeRows.filter((row, index) => index >= startIndex || preserveRow(row));
 };
+
+export const getChatMessagePageVariables = (channelID, pageSize, beforeID = null) => ({
+    where: {
+        channel_id: {_eq: channelID},
+        ...(beforeID ? {id: {_lt: beforeID}} : {}),
+    },
+    limit: pageSize,
+});
+
+export const getChatMessagePageInfo = (rows, pageSize, previousOldestID = null) => {
+    const pageRows = rows || [];
+    const pageOldestID = pageRows.reduce((oldest, row) => (
+        oldest === null || row.id < oldest ? row.id : oldest
+    ), null);
+    return {
+        oldestID: pageOldestID === null ? previousOldestID :
+            previousOldestID === null ? pageOldestID : Math.min(previousOldestID, pageOldestID),
+        hasMore: pageRows.length === pageSize,
+    };
+};

@@ -1,6 +1,6 @@
 import { MythicTabPanel, MythicTabLabel } from '../../MythicComponents/MythicTabPanel';
 import React, { useEffect, useCallback } from 'react';
-import { gql, useLazyQuery, useQuery, useSubscription } from '@apollo/client';
+import { gql, useLazyQuery, useSubscription } from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import MythicTextField from '../../MythicComponents/MythicTextField';
@@ -30,6 +30,7 @@ import {GetMythicSetting, useSetMythicSetting} from "../../MythicComponents/Myth
 import {RenderSingleTask} from "../SingleTaskView/SingleTaskView";
 import {loadedCommandsQuery} from "./CallbacksTabsProcessBrowser";
 import {getSkewedNow} from "../../utilities/Time";
+import {getDefaultBrowserSelection, useCallbackBrowserTree} from "./CallbackBrowserTreeStore";
 
 const fileDataFragment = gql`
     fragment fileObjData on mythictree {
@@ -67,14 +68,6 @@ const fileDataFragment = gql`
         }
     }
 `;
-const rootFileQuery = gql`
-    ${fileDataFragment}
-    query myRootFolderQuery {
-        mythictree(where: { parent_path_text: { _eq: "" }, tree_type: {_eq: "file"} }, order_by: {id: desc}) {
-            ...fileObjData
-        }
-    }
-`;
 const folderQuery = gql`
     ${fileDataFragment}
     query myFolderQuery($parent_path_text: String!, $parents: [String]) {
@@ -93,18 +86,6 @@ const folderQuery = gql`
         self: mythictree(
             where: { full_path_text: { _eq: $parent_path_text }, tree_type: {_eq: "file"} }
             order_by: { can_have_children: asc, name: asc }
-        ) {
-            ...fileObjData
-        }
-    }
-`;
-const fileDataSubscription = gql`
-    ${fileDataFragment}
-    subscription liveData($now: timestamp!) {
-        mythictree_stream(
-            batch_size: 1000,
-            cursor: {initial_value: {timestamp: $now}},
-            where: {tree_type: {_eq: "file"} }
         ) {
             ...fileObjData
         }
@@ -144,6 +125,15 @@ export const getAllParentNodes = (node) => {
     }
     return newNodes;
 }
+const mergeUniqueById = (existing = [], incoming = []) => [
+    ...new Map([...existing, ...incoming].map((item) => [item.id, item])).values(),
+];
+const mergeUniqueValues = (existing = [], incoming = []) => [
+    ...new Map([...existing, ...incoming].map((item) => [
+        item && typeof item === "object" ? JSON.stringify(item) : `${typeof item}:${item}`,
+        item,
+    ])).values(),
+];
 export function CallbacksTabsFileBrowserLabel(props) {
     const [description, setDescription] = React.useState('File Browser: ' + props.tabInfo.displayID);
     const [openEditDescriptionDialog, setOpenEditDescriptionDialog] = React.useState(false);
@@ -200,10 +190,26 @@ export function CallbacksTabsFileBrowserLabel(props) {
 }
 export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNewDataForTab, baseUIFeature }) => {
     const fromNow = React.useRef(getSkewedNow());
+    const active = index === value;
+    const markInactiveChange = useCallback(() => {
+        setNewDataForTab((previous) => previous[tabInfo.tabID] ? previous : {
+            ...previous,
+            [tabInfo.tabID]: true,
+        });
+    }, [setNewDataForTab, tabInfo.tabID]);
+    const {
+        treeRootDataRef,
+        treeAdjMtx,
+        version: treeVersion,
+        hydrated: treeHydrated,
+        setTreeAdjMtx,
+    } = useCallbackBrowserTree({
+        treeType: "file",
+        mode: "file",
+        active,
+        onInactiveChange: markInactiveChange,
+    });
     const [backdropOpen, setBackdropOpen] = React.useState(false);
-    const treeRootDataRef = React.useRef({}); // hold all of the actual data
-    // hold the simple adjacency matrix for parent/child relationships
-    const [treeAdjMtx, setTreeAdjMtx] = React.useState({});
     const [selectedFolderData, setSelectedFolderData] = React.useState({
         full_path_text: '',
         host: tabInfo.host,
@@ -226,164 +232,35 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
     });
     const loadedCommandsRef = React.useRef({});
     const loadingCommandsRef = React.useRef(false);
-    useQuery(rootFileQuery, {
-        onCompleted: (data) => {
-           // use an adjacency matrix but only for full_path_text -> children, not both directions
-           // create the top level data in the treeRootDataRef
-           let defaultGroup = "Default";
-           for(let i = 0; i < data.mythictree.length; i++){
-               let currentGroups = data.mythictree[i]?.["callback"]?.["mythictree_groups"] || ["Unknown Callbacks"];
-               try{
-                   if(data.mythictree[i]?.['callback']?.['id'] === tabInfo.callbackID){
-                       if(!currentGroups.includes(defaultGroup, 0)){
-                           defaultGroup = currentGroups[0];
-                       }
-                   }
-               }catch(error){
-                   console.log(error);
-               }
-                for(let j = 0; j < currentGroups.length; j++){
-                    if(treeRootDataRef.current[currentGroups[j]] === undefined){
-                        treeRootDataRef.current[currentGroups[j]] = {};
-                    }
-                    if( treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]] === undefined) {
-                        // new host discovered
-                        treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]] = {};
-                    }
-                    if(treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] === undefined){
-                        treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] = {...data.mythictree[i]};
-                    } else {
-                        if(treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]].success === null){
-                            treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] = {...data.mythictree[i]}
-                        }
-                    }
-                    if(data.mythictree[i].id > treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]].id){
-                        treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] |= data.mythictree[i].has_children;
-                        treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]].success |= data.mythictree[i].success;
-                    }
-                }
-           }
-           // create the top level data in the adjacency matrix
-           const newMatrix = data.mythictree.reduce( (prev, cur) => {
-               let currentGroups = cur?.["callback"]?.["mythictree_groups"] || ["Unknown Callbacks"];
-               for(let j = 0; j < currentGroups.length; j++) {
-                   if (prev[currentGroups[j]] === undefined) {
-                       prev[currentGroups[j]] = {};
-                   }
-                   if (prev[currentGroups[j]][cur["host"]] === undefined) {
-                       // the current host isn't tracked in the adjacency matrix, so add it
-                       prev[currentGroups[j]][cur["host"]] = {}
-                   }
-                   if (prev[currentGroups[j]][cur["host"]][cur["parent_path_text"]] === undefined) {
-                       // the current parent's path isn't tracked, so add it and ourselves as children
-                       prev[currentGroups[j]][cur["host"]][cur["parent_path_text"]] = {};
-                   }
-                   prev[currentGroups[j]][cur["host"]][cur["parent_path_text"]][cur["full_path_text"]] = 1;
-               }
-                return prev;
-           }, {...treeAdjMtx});
-           //console.log(treeRootDataRef.current);
-           setTreeAdjMtx(newMatrix);
-            setSelectedFolderData({
-                full_path_text: '',
-                host: tabInfo.host,
-                group: defaultGroup,
-                parent_path_text: "",
-            });
-        },
-        fetchPolicy: 'no-cache',
-    });
-    useSubscription(fileDataSubscription, {
-        variables: {now: fromNow.current},
-        fetchPolicy: "no-cache",
-        onData: ({data}) => {
-            for(let i = 0; i < data.data.mythictree_stream.length; i++){
-                let currentGroups = data.data.mythictree_stream[i]?.["callback"]?.["mythictree_groups"] || ["Unknown Callbacks"];
-                for(let j = 0; j < currentGroups.length; j++) {
-                    if (treeRootDataRef.current[currentGroups[j]] === undefined) {
-                        treeRootDataRef.current[currentGroups[j]] = {};
-                    }
-                    if (treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]] === undefined) {
-                        // new host discovered
-                        treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]] = {};
-                    }
-                    if(treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]] === undefined){
-                        // first time we're seeing this file data, just add it
-                        treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]] = {...data.data.mythictree_stream[i]};
-                        treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]].filemeta = treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]].filemeta.map(f => {
-                            return {...f, filename_text: b64DecodeUnicode(f.filename_text)}
-                        })
-                        if(selectedFolderData.group === currentGroups[j] && selectedFolderData.host === data.data.mythictree_stream[i]["host"] &&
-                            selectedFolderData.full_path_text === data.data.mythictree_stream[i]["full_path_text"]){
-                            setSelectedFolderData({...treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]],
-                                group: currentGroups[j], fromHistory: selectedFolderData.fromHistory});
-                        }
-                    } else {
-                        // we need to merge data in because we already have some info
-                        let existingData = treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]];
-                        if(existingData.task_id <= data.data.mythictree_stream[i].task_id){
-                            existingData.deleted = data.data.mythictree_stream[i].deleted;
-                        }
-                        if( (existingData.success === null || !existingData.success) && data.data.mythictree_stream[i].success !== null){
-                            existingData.success = data.data.mythictree_stream[i].success;
-                            existingData.task_id = data.data.mythictree_stream[i].task_id;
-                        }
-                        existingData.comment = data.data.mythictree_stream[i].comment;
-                        existingData.tags = [...existingData.tags, ...data.data.mythictree_stream[i].tags];
-                        existingData.has_children = data.data.mythictree_stream[i].has_children || existingData.has_children;
-                        existingData.metadata.size = data.data.mythictree_stream[i].metadata.size;
-                        existingData.metadata.access_time = data.data.mythictree_stream[i].metadata.access_time;
-                        existingData.metadata.modify_time = data.data.mythictree_stream[i].metadata.modify_time;
-                        if(data.data.mythictree_stream[i].metadata.permissions !== undefined && data.data.mythictree_stream[i].metadata.permissions !== null){
-                            if(Array.isArray(existingData.metadata.permissions) && Array.isArray(data.data.mythictree_stream[i].metadata.permissions)){
-                                existingData.metadata.permissions = [...existingData.metadata.permissions, ...data.data.mythictree_stream[i].metadata.permissions];
-                            } else if(Array.isArray(existingData.metadata.permissions) !== Array.isArray(data.data.mythictree_stream[i].metadata.permissions)) {
-                                // had array/dict and got mismatched array/dict, so just take newer one
-                                existingData.metadata.permissions = data.data.mythictree_stream[i].metadata.permissions;
-                            } else {
-                                existingData.metadata.permissions = {...existingData.metadata.permissions, ...data.data.mythictree_stream[i].metadata.permissions};
-                            }
-                        }
-                        let newfileData = data.data.mythictree_stream[i].filemeta.map(f => {
-                            return {...f, filename_text: b64DecodeUnicode(f.filename_text)};
-                        })
-                        existingData.filemeta = [...existingData.filemeta, ...newfileData]
-                        existingData.filemeta.sort((a,b) => a.id > b.id ? 1 : -1);
-                        treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]] = {...existingData};
-                        if(selectedFolderData.group === currentGroups[j] && selectedFolderData.host === data.data.mythictree_stream[i]["host"] &&
-                            selectedFolderData.full_path_text === data.data.mythictree_stream[i]["full_path_text"]){
-                            setSelectedFolderData({...existingData, group: currentGroups[j], fromHistory: selectedFolderData.fromHistory});
-                        }
-                    }
-                }
-            }
-            const newMatrix = data.data.mythictree_stream.reduce( (prev, cur) => {
-                let currentGroups = cur?.["callback"]?.["mythictree_groups"] || ["Unknown Callbacks"];
-                for(let j = 0; j < currentGroups.length; j++) {
-                    if (prev[currentGroups[j]] === undefined) {
-                        prev[currentGroups[j]] = {};
-                    }
-                    if (prev[currentGroups[j]][cur["host"]] === undefined) {
-                        // the current host isn't tracked in the adjacency matrix, so add it
-                        prev[currentGroups[j]][cur["host"]] = {}
-                    }
-                    if (prev[currentGroups[j]][cur["host"]][cur["parent_path_text"]] === undefined) {
-                        // the current parent's path isn't tracked, so add it and ourselves as children
-                        prev[currentGroups[j]][cur["host"]][cur["parent_path_text"]] = {};
-                    }
-                    prev[currentGroups[j]][cur["host"]][cur["parent_path_text"]][cur["full_path_text"]] = 1;
-                }
-                return prev;
-            }, {...treeAdjMtx});
-            setTreeAdjMtx(newMatrix);
-            if(index !== value){
-                setNewDataForTab((prev) => {return {...prev, [tabInfo.tabID]: true}});
-            }
-        }
-    })
+    const initializedSelectionRef = React.useRef(false);
+    React.useEffect(() => {
+        if(!treeHydrated || initializedSelectionRef.current){return;}
+        const selection = getDefaultBrowserSelection(
+            treeRootDataRef.current,
+            treeAdjMtx,
+            tabInfo.callbackID,
+            tabInfo.host,
+        );
+        setSelectedFolderData({
+            full_path_text: '',
+            host: selection.host,
+            group: selection.group,
+            parent_path_text: "",
+        });
+        initializedSelectionRef.current = true;
+    }, [tabInfo.callbackID, tabInfo.host, treeAdjMtx, treeHydrated, treeRootDataRef, treeVersion]);
+    React.useEffect(() => {
+        if(!active || !initializedSelectionRef.current){return;}
+        setSelectedFolderData((previous) => {
+            const current = treeRootDataRef.current[previous.group]?.[previous.host]?.[previous.full_path_text];
+            if(!current){return previous;}
+            return {...current, group: previous.group, fromHistory: previous.fromHistory};
+        });
+    }, [active, treeRootDataRef, treeVersion]);
     useSubscription(fileBrowserTaskSub, {
         variables: {now: fromNow.current, callback_id: tabInfo.callbackID},
         fetchPolicy: "no-cache",
+        ignoreResults: true,
         onData: ({data}) => {
             for(let i = 0; i < data.data.task_stream.length; i++){
                 if(data.data.task_stream[i].status.toLowerCase().includes("error") && data.data.task_stream[i].completed){
@@ -470,7 +347,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
                             existingData.task_id = mythictree[i].task_id;
                         }
                         existingData.comment += mythictree[i].comment;
-                        existingData.tags = [...existingData.tags, ...mythictree[i].tags];
+                        existingData.tags = mergeUniqueById(existingData.tags, mythictree[i].tags);
                         existingData.has_children = mythictree[i].has_children || existingData.has_children;
                         existingData.metadata.size = mythictree[i].metadata.size;
                         existingData.metadata.access_time = mythictree[i].metadata.access_time;
@@ -478,7 +355,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
                         //console.log("updating permissions", "existing", existingData.metadata.permissions, "new", mythictree[i].metadata)
                         if(mythictree[i].metadata.permissions !== undefined && mythictree[i].metadata.permissions !== null){
                             if(Array.isArray(existingData.metadata.permissions) && Array.isArray(mythictree[i].metadata.permissions)){
-                                existingData.metadata.permissions = [...existingData.metadata.permissions, ...mythictree[i].metadata.permissions];
+                                existingData.metadata.permissions = mergeUniqueValues(existingData.metadata.permissions, mythictree[i].metadata.permissions);
                             } else if(Array.isArray(existingData.metadata.permissions) !== Array.isArray(mythictree[i].metadata.permissions)) {
                                 // had array/dict and got mismatched array/dict, so just take newer one
                                 existingData.metadata.permissions = mythictree[i].metadata.permissions;
@@ -489,7 +366,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
                         let newfileData = mythictree[i].filemeta.map(f => {
                             return {...f, filename_text: b64DecodeUnicode(f.filename_text)};
                         })
-                        existingData.filemeta = [...existingData.filemeta, ...newfileData]
+                        existingData.filemeta = mergeUniqueById(existingData.filemeta, newfileData)
                         existingData.filemeta.sort((a,b) => a.id > b.id ? 1 : -1);
                         treeRootDataRef.current[currentGroups[j]][mythictree[i]["host"]][mythictree[i]["full_path_text"]] = {...existingData};
                         if(selectedFolderData.group === currentGroups[j] && selectedFolderData.host === mythictree[i]["host"] &&
@@ -706,6 +583,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
                     <div className="mythic-process-browser-table-shell">
                         <div>
                             <FileBrowserTableTop
+                                active={active}
                                 tabInfo={tabInfo}
                                 taskingTableTopTypedDataRef={taskingTableTopTypedDataRef}
                                 autoTaskLsOnEmptyDirectoriesRef={autoTaskLsOnEmptyDirectoriesRef}
@@ -725,6 +603,8 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
                                 <CircularProgress color="inherit" />
                             </Backdrop>
                             <CallbacksTabsFileBrowserTable
+                                active={active}
+                                dataVersion={treeVersion}
                                 tabInfo={tabInfo}
                                 showDeletedFiles={showDeletedFiles}
                                 onRowDoubleClick={fetchFolderData}
@@ -759,6 +639,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
     );
 };
 const FileBrowserTableTop = ({
+    active,
     selectedFolderData,
     taskingTableTopTypedDataRef,
     autoTaskLsOnEmptyDirectoriesRef,
@@ -803,6 +684,8 @@ const FileBrowserTableTop = ({
     }
     useSubscription(subscriptionCallbackTokens, {
         variables: {callback_id: tabInfo.callbackID}, fetchPolicy: "no-cache",
+        skip: !active,
+        ignoreResults: true,
         shouldResubscribe: true,
         onData: ({data}) => {
             setTokenOptions(data.data.callbacktoken);
