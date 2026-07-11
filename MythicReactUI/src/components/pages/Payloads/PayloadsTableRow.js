@@ -43,6 +43,7 @@ import {MythicAgentSVGIconNoTooltip} from "../../MythicComponents/MythicAgentSVG
 import SmartToyTwoToneIcon from '@mui/icons-material/SmartToyTwoTone';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import BlockIcon from '@mui/icons-material/Block';
+import {downloadFileFromMemory} from '../../utilities/Clipboard';
 import NotificationsOffOutlinedIcon from '@mui/icons-material/NotificationsOffOutlined';
 import {EditPayloadConfigDialog} from "./EditPayloadConfigDialog";
 import DifferenceIcon from '@mui/icons-material/Difference';
@@ -108,20 +109,8 @@ export function PayloadsTableRow(props){
       onCompleted: (data) => {
         //console.log(data)
         if(data.exportPayloadConfig.status === "success"){
-          const dataBlob = new Blob([data.exportPayloadConfig.config], {type: 'text/plain'});
-          const ele = document.getElementById("download_config");
-          if(ele !== null){
-            ele.href = URL.createObjectURL(dataBlob);
-            ele.download = b64DecodeUnicode(props.filemetum.filename_text) + ".json";
-            ele.click();
-          }else{
-            const element = document.createElement("a");
-            element.id = "download_config";
-            element.href = URL.createObjectURL(dataBlob);
-            element.download = b64DecodeUnicode(props.filemetum.filename_text) + ".json";
-            document.body.appendChild(element);
-            element.click();
-          }
+          downloadFileFromMemory(data.exportPayloadConfig.config,
+              b64DecodeUnicode(props.filemetum.filename_text) + ".json", "text/plain");
         }else{
           snackActions.error("Failed to export configuration: " + data.exportPayloadConfig.error);
         }

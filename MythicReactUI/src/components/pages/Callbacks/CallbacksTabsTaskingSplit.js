@@ -1,6 +1,6 @@
 import {MythicTabPanel, MythicTabLabel} from '../../MythicComponents/MythicTabPanel';
-import React, {useEffect, useRef, useCallback, useLayoutEffect} from 'react';
-import { gql, useMutation, useLazyQuery, useSubscription } from '@apollo/client';
+import React, {useEffect, useRef} from 'react';
+import { useMutation } from '@apollo/client';
 import { TaskDisplayFlat } from './TaskDisplay';
 import {snackActions} from '../../utilities/Snackbar';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
@@ -11,12 +11,12 @@ import { IconButton} from '@mui/material';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
 import {MythicModifyStringDialog} from '../../MythicComponents/MythicDialog';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
-import {taskingDataFragment, createTaskingMutation} from './CallbackMutations.js';
+import {createTaskingMutation} from './CallbackMutations.js';
 import Split from 'react-split';
 import {TaskDisplayContainerFlat} from "./TaskDisplayContainer";
 import { validate as uuidValidate } from 'uuid';
-import {getSkewedNow} from "../../utilities/Time";
 import {useTaskReferenceSubmitter} from "./taskingReferences";
+import {useCallbackTaskingData} from "./useCallbackTaskingData";
 
 
 export function CallbacksTabsTaskingSplitLabel(props){
@@ -62,35 +62,11 @@ export function CallbacksTabsTaskingSplitLabel(props){
         </React.Fragment>  
     )
 }
-// this is to listen for the latest tasking
-const fetchLimit = 30;
-const getTaskingQuery = gql`
-${taskingDataFragment}
-subscription getTasking($callback_id: Int!, $fromNow: timestamp!, $limit: Int){
-    task(where: {callback_id: {_eq: $callback_id}, parent_task_id: {_is_null: true}, timestamp: {_gt: $fromNow}}, order_by: {id: desc}, limit: $limit) {
-        ...taskData
-    }
-}
- `;
-const getNextBatchTaskingQuery = gql`
-${taskingDataFragment}
-query getBatchTasking($callback_id: Int!, $offset: Int!, $fetchLimit: Int!){
-    task(where: {callback_id: {_eq: $callback_id}, parent_task_id: {_is_null: true}}, order_by: {id: desc}, limit: $fetchLimit, offset: $offset) {
-        ...taskData
-    }
-    callback(where: {id: {_eq: $callback_id}}){
-        id
-    }
-}
-`;
 export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTab, me, setNewDataForTab}) =>{
-    const [taskLimit, setTaskLimit] = React.useState(30);
+    const active = index === value;
     const [scrollToBottom, setScrollToBottom] = React.useState(false);
     const [openParametersDialog, setOpenParametersDialog] = React.useState(false);
     const [commandInfo, setCommandInfo] = React.useState({});
-    const [taskingData, setTaskingData] = React.useState({task: []});
-    const taskingDataRef = React.useRef({task: []});
-    const [fromNow, setFromNow] = React.useState(getSkewedNow().toISOString());
     const [selectedToken, setSelectedToken] = React.useState({});
     const [filterOptions, setFilterOptions] = React.useState({
         "operatorsList": [],
@@ -104,8 +80,6 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
     const mountedRef = React.useRef(true);
     const newlyIssuedTasks = useRef(null);
 
-    const [fetched, setFetched] = React.useState(false);
-    const [fetchedAllTasks, setFetchedAllTasks] = React.useState(false);
     const messagesEndRef = useRef(null);
 
     const [createTask] = useMutation(createTaskingMutation, {
@@ -122,163 +96,39 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
         }
     });
     const {submitTask, dialog: taskReferenceSubmitDialog} = useTaskReferenceSubmitter(createTask);
-    const equalTaskTrees = (oldArray, newArray) => {
-        if(oldArray.length !== newArray.length){
-            return false;
-        }
-        for(let i = 0; i < oldArray.length; i++){
-            if(oldArray[i].comment !== newArray[i].comment){
-                return false;
-            }
-            if(oldArray[i].commentOperator !== newArray[i].commentOperator){
-                return false;
-            }
-            if(oldArray[i].completed !== newArray[i].completed){
-                return false;
-            }
-            if(oldArray[i].display_params !== newArray[i].display_params){
-                return false;
-            }
-            if(oldArray[i].original_params !== newArray[i].original_params){
-                return false;
-            }
-            if(oldArray[i].status !== newArray[i].status){
-                return false;
-            }
-            if(oldArray[i].timestamp !== newArray[i].timestamp){
-                return false;
-            }
-            if(oldArray[i].response_count !== newArray[i].response_count){
-                return false;
-            }
-            if(oldArray[i].opsec_pre_blocked !== newArray[i].opsec_pre_blocked){
-                return false;
-            }
-            if(oldArray[i].opsec_pre_bypassed !== newArray[i].opsec_pre_bypassed){
-                return false;
-            }
-            if(oldArray[i].opsec_post_blocked !== newArray[i].opsec_post_blocked){
-                return false;
-            }
-            if(oldArray[i].opsec_post_bypassed !== newArray[i].opsec_post_bypassed){
-                return false;
-            }
-            if(oldArray[i].tasks.length !== newArray[i].tasks.length){
-                return false;
-            }
-            if(oldArray[i].tags.length !== newArray[i].tags.length){
-                return false;
-            }
-        }
-        return true;
-    }
-    const subscriptionDataCallback =  ({data}) => {
-        if(!fetched){
-            setFetched(true);
-        }
-        if(index !== value && fetched){
-            setNewDataForTab((prev) => {return {...prev, [tabInfo.tabID]: true}});
-        }
-        //console.log("new subscription data in CallbacksTabsTasking", subscriptionData);
-        const oldLength = taskingDataRef.current.task.length;
-        const mergedData = data.data.task.reduce( (prev, cur) => {
-            const index = prev.findIndex(element => element.id === cur.id);
-            if(index > -1){
-                // need to update an element
-                prev[index] = {...cur}
-                if(prev[index].id === selectedTask.id){
-                    prev[index].selected = true;
-                }
-                return [...prev];
-            }else{
-                return [...prev, cur];
-            }
-        }, [...taskingDataRef.current.task]);
-        mergedData.sort( (a,b) => a.id < b.id ? -1 : 1);
-        if(!equalTaskTrees(taskingDataRef.current.task, mergedData)){
-            setTaskingData({task: mergedData});
-        }
-        if(mergedData.length > oldLength){
-            //setCanScroll(true);
-        }
-        if(mergedData.length > taskLimit){
-            setTaskLimit(mergedData.length);
-        }
-        if(selectedTask.id){
-            let matchedTask = mergedData.filter(d => d.id === selectedTask.id);
-            if(matchedTask.length > 0){
-                setSelectedTask(matchedTask[0]);
-            }
-        }
-    }
-    useSubscription(getTaskingQuery, {
-        variables: {callback_id: tabInfo.callbackID, fromNow:fromNow, limit: taskLimit},
-        shouldResubscribe: true,
-        onError: data => {
-            console.error(data)
-        },
-        fetchPolicy: "no-cache",
-        onData: subscriptionDataCallback});
-    const [getInfiniteScrollTasking, {loading: loadingMore}] = useLazyQuery(getNextBatchTaskingQuery, {
-        onError: data => {
-            console.error(data);
-        },
-        onCompleted: (data) => {
-            let foundNew = false;
-            if(data.callback.length === 0){
-                onCloseTab(tabInfo);
-                return;
-            }
-            const mergedData = data.task.reduce( (prev, cur) => {
-                const index = prev.findIndex(element => element.id === cur.id);
-                if(index > -1){
-                    // need to update an element
-                    const updated = prev.map( (element) => {
-                        if(element.id === cur.id){
-                            if(selectedTask.id === cur.id){
-                                return {...cur, selected: true}
-                            }
-                            return {...cur, selected: false};
-                        }else{
-                            return {...element, selected: false};
-                        }
-                    });
-                    return updated;
-                }else{
-                    foundNew = true;
-                    return [...prev, {...cur, selected: false}];
-                }
-            }, [...taskingData.task]);
-            mergedData.sort( (a,b) => a.id < b.id ? -1 : 1);
-            setTaskingData({task: mergedData});    
-            if(!foundNew){
-                setFetchedAllTasks(true);
-            }else{
-                if(data.task.length < fetchLimit){
-                    setFetchedAllTasks(true);
-                }else{
-                    setFetchedAllTasks(false);
-                }
-            }
-            if(!scrollToBottom){setScrollToBottom(true)}
-        },
-        fetchPolicy: "no-cache"
+    const onBackgroundChange = React.useCallback(() => {
+        setNewDataForTab((previous) => previous[tabInfo.tabID] ? previous : {...previous, [tabInfo.tabID]: true});
+    }, [setNewDataForTab, tabInfo.tabID]);
+    const {
+        fetched,
+        fetchedAllTasks,
+        loadingMore,
+        loadMoreTasks,
+        taskChildrenStore,
+        tasks,
+    } = useCallbackTaskingData({
+        callbackID: tabInfo.callbackID,
+        active,
+        onBackgroundChange,
+        onMissingCallback: () => onCloseTab(tabInfo),
     });
+    const taskingData = React.useMemo(() => ({
+        task: tasks.map((task) => ({...task, selected: task.id === selectedTask.id})),
+    }), [selectedTask.id, tasks]);
     useEffect( () => {
-        getInfiniteScrollTasking({variables: {callback_id: tabInfo.callbackID, offset: taskingData.task.length, fetchLimit}});
         return() => {
             mountedRef.current = false;
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
     useEffect( () => {
-        if(scrollToBottom){
-            messagesEndRef.current.scrollIntoView();
+        if(fetched && tasks.length > 0 && !scrollToBottom){
+            setScrollToBottom(true);
         }
-    }, [scrollToBottom]);
-    const loadMoreTasks = () => {
-        getInfiniteScrollTasking({variables: {callback_id: tabInfo.callbackID, offset: taskingData.task.length, fetchLimit}});
-    }
+        if(scrollToBottom){
+            messagesEndRef.current?.scrollIntoView();
+        }
+    }, [fetched, scrollToBottom, tasks.length]);
     const onSubmitCommandLine = (message, cmd, parsed, force_parsed_popup, cmdGroupNames, previousTaskingLocation, taskReferenceOptions={}) => {
         //console.log(message, cmd, parsed);
         let params = message.split(" ");
@@ -434,41 +284,30 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
         }
     }
     const changeSelectedTask = (task) => {
-        let updated = {...taskingDataRef.current};
-        for(let i = 0; i < updated.task.length; i++){
-            if(updated.task[i].id === task.id){
-                updated.task[i].selected = true;
-            } else {
-                updated.task[i].selected = false;
-                for(let j = 0; j < updated.task[i].tasks.length; j++){
-                    if(updated.task[i].tasks[j].id === task.id){
-                        updated.task[i].tasks[j].selected = true;
-                    } else {
-                        updated.task[i].tasks[j].selected = false;
-                    }
-                }
-            }
-        }
-        setTaskingData(updated)
         setSelectedTask(task);
     }
     useEffect( () => {
-        taskingDataRef.current = taskingData;
+        if(selectedTask.id){
+            const updatedSelectedTask = tasks.find((task) => task.id === selectedTask.id);
+            if(updatedSelectedTask && updatedSelectedTask !== selectedTask){
+                setSelectedTask(updatedSelectedTask);
+            }
+        }
         if(newlyIssuedTasks.current){
             // we just issued a task, check if we have data on it to set it as the current one
-            let index = taskingDataRef.current.task.findIndex(e => e.id === newlyIssuedTasks.current)
+            let index = tasks.findIndex(e => e.id === newlyIssuedTasks.current)
             if(index > -1){
                 newlyIssuedTasks.current = null;
-                if(taskingDataRef.current.task[index]?.operator?.username === (me?.user?.username || "")){
+                if(tasks[index]?.operator?.username === (me?.user?.username || "")){
                     let el = document.getElementById(`taskingPanelSplit${tabInfo.callbackID}`);
                     if(el && el.scrollHeight - el.scrollTop - el.clientHeight < 100){
-                        changeSelectedTask(taskingDataRef.current.task[index]);
+                        changeSelectedTask(tasks[index]);
                     }
                 }
             }
 
         }
-    }, [taskingData, newlyIssuedTasks]);
+    }, [tasks, newlyIssuedTasks, selectedTask]);
     return (
         <MythicTabPanel index={index} value={value} >
             {taskReferenceSubmitDialog}
@@ -498,6 +337,7 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
                                                      changeSelectedTask(tsk)
                                                  }}
                                                  showOnSelectTask={true} selectedTask={selectedTask}
+                                                 taskChildrenStore={taskChildrenStore} active={active}
                                 />
                             ))
                         }
@@ -512,8 +352,9 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
                                                              onSelectTask={(tsk) => {
                                                              }}
                                                              selectedTask={selectedTask}
+                                                             taskChildrenStore={taskChildrenStore} active={active}
                     />}
-                    <CallbacksTabsTaskingSplitTable selectedTask={selectedTask} me={me} filterOptions={filterOptions}
+                    <CallbacksTabsTaskingSplitTable selectedTask={selectedTask} me={me} filterOptions={filterOptions} active={active}
                                                     onSelectTask={(tsk) => {changeSelectedTask(tsk)}} changeSelectedTask={changeSelectedTask}
                     />
                 </div>
@@ -524,7 +365,7 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
                                        filterOptions={filterOptions} callback_id={tabInfo.callbackID}
                                        callback_display_id={tabInfo.displayID}
                                        operation_id={tabInfo.operation_id}
-                                       callback_os={tabInfo.os} parentMountedRef={mountedRef} />
+                                       callback_os={tabInfo.os} parentMountedRef={mountedRef} active={active} />
         {openParametersDialog && 
             <MythicDialog fullWidth={true} maxWidth="lg" open={openParametersDialog} 
                 onClose={()=>{setOpenParametersDialog(false);}} 
@@ -539,10 +380,10 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
     </MythicTabPanel>
     );
 }
-const CallbacksTabsTaskingSplitTable = ({selectedTask, me}) => {
+const CallbacksTabsTaskingSplitTable = ({selectedTask, me, active=true}) => {
     return (
             <div  style={{width: "100%", flex: "1 1 auto", minHeight: 0, minWidth: 0, overflow: "hidden", display: "flex", flexDirection: "column"}} >
-                    {selectedTask.id > 0 &&
+                    {active && selectedTask.id > 0 &&
                         <TaskDisplayContainerFlat key={selectedTask.id} me={me} task={selectedTask} />
                     }
             </div>

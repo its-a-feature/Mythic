@@ -14,6 +14,7 @@ import {
     CallbacksTabsCustomFileBasedBrowserLabel,
     CallbacksTabsCustomFileBasedBrowserPanel
 } from "./CallbacksTabsCustomFileBasedBrowser";
+import {CallbackBrowserTreeProvider} from "./CallbackBrowserTreeStore";
 
 export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, onDragEnd, clickedTabId, setClickedTabId, onEditTabDescription, contextMenuOptions, me, newDataForTab, setNewDataForTab}) {
 
@@ -74,6 +75,7 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, onDragEnd, clic
         },]
 
     return (
+        <CallbackBrowserTreeProvider openTabs={openTabs}>
         <div style={{width: "100%", maxWidth: "100%", display: 'flex', flexDirection: 'column', flexGrow: 1, height: "100%" }}>
             <AppBar color='default' position={"static"} className="no-box-shadow mythic-table-toolbar">
                 <DragDropContext onDragEnd={onDragEnd}>
@@ -318,5 +320,6 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, onDragEnd, clic
                 }
             })}
         </div>
+        </CallbackBrowserTreeProvider>
     );
 }

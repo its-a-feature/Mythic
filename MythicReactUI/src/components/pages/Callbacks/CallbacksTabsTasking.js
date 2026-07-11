@@ -1,6 +1,6 @@
 import {MythicTabPanel, MythicTabLabel} from '../../MythicComponents/MythicTabPanel';
-import React, {useEffect, useRef, useCallback, useLayoutEffect} from 'react';
-import { gql, useMutation, useLazyQuery, useSubscription } from '@apollo/client';
+import React, {useEffect, useRef} from 'react';
+import { useMutation } from '@apollo/client';
 import { TaskDisplay } from './TaskDisplay';
 import {snackActions} from '../../utilities/Snackbar';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
@@ -11,10 +11,10 @@ import { IconButton} from '@mui/material';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
 import {MythicModifyStringDialog} from '../../MythicComponents/MythicDialog';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
-import {taskingDataFragment, createTaskingMutation} from "./CallbackMutations";
+import {createTaskingMutation} from "./CallbackMutations";
 import { validate as uuidValidate } from 'uuid';
-import {getSkewedNow} from "../../utilities/Time";
 import {useTaskReferenceSubmitter} from "./taskingReferences";
+import {useCallbackTaskingData} from "./useCallbackTaskingData";
 
 
 export function CallbacksTabsTaskingLabel(props){
@@ -61,36 +61,11 @@ export function CallbacksTabsTaskingLabel(props){
     )
 }
 
-// this is to listen for the latest tasking
-const fetchLimit = 30;
-const getTaskingQuery = gql`
-${taskingDataFragment}
-subscription getTasking($callback_id: Int!, $fromNow: timestamp!, $limit: Int){
-    task(where: {callback_id: {_eq: $callback_id}, parent_task_id: {_is_null: true}, timestamp: {_gt: $fromNow}}, order_by: {id: desc}, limit: $limit) {
-        ...taskData
-    }
-}
- `;
-const getNextBatchTaskingQuery = gql`
-${taskingDataFragment}
-query getBatchTasking($callback_id: Int!, $offset: Int!, $fetchLimit: Int!){
-    task(where: {callback_id: {_eq: $callback_id}, parent_task_id: {_is_null: true}}, order_by: {id: desc}, limit: $fetchLimit, offset: $offset) {
-        ...taskData
-    }
-    callback(where: {id: {_eq: $callback_id}}){
-        id
-        display_id
-    }
-}
-`;
 export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, parentMountedRef, me, collapseTaskRequest, setNewDataForTab}) =>{
-    const [taskLimit, setTaskLimit] = React.useState(20);
+    const active = index === value;
     const [scrollToBottom, setScrollToBottom] = React.useState(false);
     const [openParametersDialog, setOpenParametersDialog] = React.useState(false);
     const [commandInfo, setCommandInfo] = React.useState({});
-    const [taskingData, setTaskingData] = React.useState({task: []});
-    const taskingDataRef = React.useRef({task: []});
-    const [fromNow, setFromNow] = React.useState(getSkewedNow().toISOString());
     const [selectedToken, setSelectedToken] = React.useState({});
     const [filterOptions, setFilterOptions] = React.useState({
         "operatorsList": [],
@@ -100,13 +75,7 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
         "everythingButList": [],
         "hideErrors": false
     });
-    const [canScroll, setCanScroll] = React.useState(true);
     const mountedRef = React.useRef(true);
-    useEffect( () => {
-        taskingDataRef.current = taskingData;
-    }, [taskingData]);
-    const [fetched, setFetched] = React.useState(false);
-    const [fetchedAllTasks, setFetchedAllTasks] = React.useState(false);
     const messagesEndRef = useRef(null);
     const newlyIssuedTasks = useRef([]);
     const [createTask] = useMutation(createTaskingMutation, {
@@ -123,160 +92,37 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
         }
     });
     const {submitTask, dialog: taskReferenceSubmitDialog} = useTaskReferenceSubmitter(createTask);
-    const equalTaskTrees = (oldArray, newArray) => {
-        if(oldArray.length !== newArray.length){
-            return false;
-        }
-        for(let i = 0; i < oldArray.length; i++){
-            if(oldArray[i].comment !== newArray[i].comment){
-                return false;
-            }
-            if(oldArray[i].commentOperator !== newArray[i].commentOperator){
-                return false;
-            }
-            if(oldArray[i].completed !== newArray[i].completed){
-                return false;
-            }
-            if(oldArray[i].display_params !== newArray[i].display_params){
-                return false;
-            }
-            if(oldArray[i].original_params !== newArray[i].original_params){
-                return false;
-            }
-            if(oldArray[i].status !== newArray[i].status){
-                return false;
-            }
-            if(oldArray[i].timestamp !== newArray[i].timestamp){
-                return false;
-            }
-            if(oldArray[i].response_count !== newArray[i].response_count){
-                return false;
-            }
-            if(oldArray[i].opsec_pre_blocked !== newArray[i].opsec_pre_blocked){
-                return false;
-            }
-            if(oldArray[i].opsec_pre_bypassed !== newArray[i].opsec_pre_bypassed){
-                return false;
-            }
-            if(oldArray[i].opsec_post_blocked !== newArray[i].opsec_post_blocked){
-                return false;
-            }
-            if(oldArray[i].opsec_post_bypassed !== newArray[i].opsec_post_bypassed){
-                return false;
-            }
-            if(oldArray[i].tasks.length !== newArray[i].tasks.length){
-                return false;
-            }
-            if(oldArray[i].tags.length !== newArray[i].tags.length){
-                return false;
-            }
-        }
-        return true;
-    }
-    const subscriptionDataCallback =  ({data}) => {
-        if((mountedRef && !mountedRef.current) || (parentMountedRef && !parentMountedRef.current)){
-            return null;
-        }
-        if(!fetched){
-            setFetched(true);
-        }
-        if(index !== value && fetched){
-            setNewDataForTab((prev) => {return {...prev, [tabInfo.tabID]: true}});
-        }
-        //console.log("new subscription data in CallbacksTabsTasking", subscriptionData);
-        const oldLength = taskingDataRef.current.task.length;
-        const mergedData = data.data.task.reduce( (prev, cur) => {
-            const index = prev.findIndex(element => element.id === cur.id);
-            if(index > -1){
-                // need to update an element
-                const updated = prev.map( (element) => {
-                    if(element.id === cur.id){
-                        return cur;
-                    }else{
-                        return element;
-                    }
-                });
-                return updated;
-            }else{
-                return [...prev, cur];
-            }
-        }, [...taskingDataRef.current.task]);
-        mergedData.sort( (a,b) => a.id < b.id ? -1 : 1);
-        if(!equalTaskTrees(taskingDataRef.current.task, mergedData)){
-            setTaskingData({task: mergedData});
-        }
-        if(mergedData.length > oldLength){
-            setCanScroll(true);
-        }     
-        if(mergedData.length > taskLimit){
-            setTaskLimit(mergedData.length);
-        }
-    }
-    useSubscription(getTaskingQuery, {
-        variables: {callback_id: tabInfo.callbackID, fromNow:fromNow, limit: taskLimit},
-        onError: data => {
-            console.error(data)
-        },
-        fetchPolicy: "no-cache",
-        onData: subscriptionDataCallback});
-    const [getInfiniteScrollTasking, {loading: loadingMore}] = useLazyQuery(getNextBatchTaskingQuery, {
-        onError: data => {
-            console.error(data);
-        },
-        onCompleted: (data) => {
-            let foundNew = false;
-            if(data.callback.length === 0){
-                onCloseTab(tabInfo);
-                return;
-            }
-            const mergedData = data.task.reduce( (prev, cur) => {
-                const index = prev.findIndex(element => element.id === cur.id);
-                if(index > -1){
-                    // need to update an element
-                    const updated = prev.map( (element) => {
-                        if(element.id === cur.id){
-                            return cur;
-                        }else{
-                            return element;
-                        }
-                    });
-                    return updated;
-                }else{
-                    foundNew = true;
-                    return [...prev, cur];
-                }
-            }, [...taskingData.task]);
-            mergedData.sort( (a,b) => a.id < b.id ? -1 : 1);
-            setTaskingData({task: mergedData});    
-            if(!foundNew){
-                setFetchedAllTasks(true);
-            }else{
-                if(data.task.length < fetchLimit){
-                    setFetchedAllTasks(true);
-                }else{
-                    setFetchedAllTasks(false);
-                }
-            }
-            if(!scrollToBottom){setScrollToBottom(true)}
-        },
-        fetchPolicy: "no-cache"
+    const onBackgroundChange = React.useCallback(() => {
+        setNewDataForTab((previous) => previous[tabInfo.tabID] ? previous : {...previous, [tabInfo.tabID]: true});
+    }, [setNewDataForTab, tabInfo.tabID]);
+    const {
+        fetched,
+        fetchedAllTasks,
+        loadingMore,
+        loadMoreTasks,
+        taskChildrenStore,
+        tasks,
+    } = useCallbackTaskingData({
+        callbackID: tabInfo.callbackID,
+        active,
+        onBackgroundChange,
+        onMissingCallback: () => onCloseTab(tabInfo),
     });
+    const taskingData = React.useMemo(() => ({task: tasks}), [tasks]);
     useEffect( () => {
-        getInfiniteScrollTasking({variables: {callback_id: tabInfo.callbackID, offset: taskingData.task.length, fetchLimit}});
-        setCanScroll(true);
         return() => {
             mountedRef.current = false;
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
     useEffect( () => {
-        if(scrollToBottom){
-            messagesEndRef.current.scrollIntoView();
+        if(fetched && tasks.length > 0 && !scrollToBottom){
+            setScrollToBottom(true);
         }
-    }, [scrollToBottom]);
-    const loadMoreTasks = () => {
-        getInfiniteScrollTasking({variables: {callback_id: tabInfo.callbackID, offset: taskingData.task.length, fetchLimit}});
-    }
+        if(scrollToBottom){
+            messagesEndRef.current?.scrollIntoView();
+        }
+    }, [fetched, scrollToBottom, tasks.length]);
     const onSubmitCommandLine = (message, cmd, parsed, force_parsed_popup, cmdGroupNames, previousTaskingLocation, taskReferenceOptions={}) => {
         console.log(message, cmd, parsed);
         let params = message.split(" ");
@@ -456,7 +302,8 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
                         <TaskDisplay key={"taskinteractdisplay" + task.id} me={me} task={task}
                                      command_id={task.command == null ? 0 : task.command.id}
                                      collapseAllRequest={collapseAllRequest}
-                                     filterOptions={filterOptions} newlyIssuedTasks={newlyIssuedTasks.current}/>
+                                     filterOptions={filterOptions} newlyIssuedTasks={newlyIssuedTasks.current}
+                                     taskChildrenStore={taskChildrenStore} active={active}/>
                     ))
                 }
                 <div ref={messagesEndRef}/>
@@ -473,7 +320,7 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
                                        callback_display_id={tabInfo.displayID}
                                        operation_id={tabInfo.operation_id}
                                        payloadtype_name={tabInfo.payloadtype}
-                                       callback_os={tabInfo.os} parentMountedRef={mountedRef} />
+                                       callback_os={tabInfo.os} parentMountedRef={mountedRef} active={active} />
         {openParametersDialog && 
             <MythicDialog fullWidth={true} maxWidth="lg" open={openParametersDialog} 
                 onClose={()=>{setOpenParametersDialog(false);}} 

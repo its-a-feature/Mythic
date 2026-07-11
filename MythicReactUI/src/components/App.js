@@ -14,14 +14,13 @@ import { Route, Routes } from 'react-router-dom';
 import { useInterval } from './utilities/Time';
 import { JWTTimeLeft, isJWTValid } from '../index';
 import { RefreshTokenDialog } from './RefreshTokenDialog';
-import { MythicDialog } from './MythicComponents/MythicDialog';
+import { MythicDialog } from './MythicComponents/MythicDialogBase';
 import { ToastContainer } from 'react-toastify';
 import "react-toastify/dist/ReactToastify.css";
 import {snackActions} from "./utilities/Snackbar";
 import {TopAppBarVertical} from "./TopAppBarVertical";
 import {MythicLoadingState} from "./MythicComponents/MythicStateDisplay";
 import { library } from '@fortawesome/fontawesome-svg-core';
-import * as Icons from '@fortawesome/free-solid-svg-icons';
 
 const lazyNamed = (importer, exportName) => React.lazy(() =>
     importer().then((module) => ({default: module[exportName]}))
@@ -50,13 +49,18 @@ const Chat = lazyNamed(() => import('./pages/Chat/Chat'), 'Chat');
 const Jupyter = lazyNamed(() => import('./pages/Jupyter/Jupyter'), 'Jupyter');
 const Hasura = lazyNamed(() => import('./pages/Hasura/Hasura'), 'Hasura');
 
-// add all fas icons
-const iconList = Object
-    .keys(Icons)
-    .filter(key => key !== "fas" && key !== "prefix" )
-    .map(icon => Icons[icon])
-
-library.add(...iconList)
+let fontAwesomeCatalogPromise = null;
+const loadFontAwesomeCatalog = () => {
+    if(!fontAwesomeCatalogPromise){
+        fontAwesomeCatalogPromise = import('@fortawesome/free-solid-svg-icons').then((icons) => {
+            const iconList = Object.keys(icons)
+                .filter((key) => key !== "fas" && key !== "prefix")
+                .map((icon) => icons[icon]);
+            library.add(...iconList);
+        });
+    }
+    return fontAwesomeCatalogPromise;
+};
 
 export const MeContext = createContext({});
 export const userSettingsQuery = gql`
@@ -645,6 +649,16 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
 
 
 export function App(props) {
+    const [, setFontAwesomeCatalogReady] = React.useState(false);
+    React.useEffect(() => {
+        let mounted = true;
+        loadFontAwesomeCatalog().then(() => {
+            if(mounted){
+                setFontAwesomeCatalogReady(true);
+            }
+        }).catch((error) => console.error("Failed to load Font Awesome icon catalog", error));
+        return () => {mounted = false;};
+    }, []);
     const me = useReactiveVar(meState);
     const preferences = useReactiveVar(mePreferences);
     const [loadingPreference, setLoadingPreferences] = React.useState(true);

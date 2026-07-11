@@ -1,4 +1,9 @@
-import {getProgressivelyVisibleRows, mergeRowsByID} from "./ChatStreamUtils";
+import {
+    getChatMessagePageInfo,
+    getChatMessagePageVariables,
+    getProgressivelyVisibleRows,
+    mergeRowsByID,
+} from "./ChatStreamUtils";
 
 const sortByID = (left, right) => left.id - right.id;
 
@@ -63,5 +68,33 @@ describe("getProgressivelyVisibleRows", () => {
         const rows = [1, 2, 3, 4, 5].map((id) => ({id, pending: id === 1}));
 
         expect(getProgressivelyVisibleRows(rows, 2, (row) => row.pending).map((row) => row.id)).toEqual([1, 4, 5]);
+    });
+});
+
+describe("chat message server pagination", () => {
+    test("builds an initial page and an ID-cursor older page", () => {
+        expect(getChatMessagePageVariables(12, 50)).toEqual({
+            where: {channel_id: {_eq: 12}},
+            limit: 50,
+        });
+        expect(getChatMessagePageVariables(12, 50, 401)).toEqual({
+            where: {channel_id: {_eq: 12}, id: {_lt: 401}},
+            limit: 50,
+        });
+    });
+
+    test("tracks the oldest cursor and only reports more for a full page", () => {
+        const fullPage = Array.from({length: 50}, (_, index) => ({id: 500 - index}));
+        expect(getChatMessagePageInfo(fullPage, 50)).toEqual({oldestID: 451, hasMore: true});
+        expect(getChatMessagePageInfo([{id: 450}, {id: 449}], 50, 451)).toEqual({
+            oldestID: 449,
+            hasMore: false,
+        });
+    });
+
+    test("retains all fetched pages when no merge limit is supplied", () => {
+        const newest = Array.from({length: 50}, (_, index) => ({id: 51 + index, updated_at: `2026-01-01T00:00:${index}Z`}));
+        const older = Array.from({length: 50}, (_, index) => ({id: 1 + index, updated_at: `2025-12-31T23:59:${index}Z`}));
+        expect(mergeRowsByID(newest, older, sortByID)).toHaveLength(100);
     });
 });

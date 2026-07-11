@@ -228,14 +228,14 @@ export const CallbacksTabsFileBrowserTable = (props) => {
         }
         return false;
     }
-    const gridData = React.useMemo(
-        () =>
-            // row is just the name
-            sortedData.reduce((prev, row) => {
-                if(filterRow(row)){
-                    return [...prev];
-                }else{
-                    return [...prev, columns.map( c => {
+    const cachedGridDataRef = React.useRef([]);
+    const gridData = React.useMemo(() => {
+        if(props.active === false){return cachedGridDataRef.current;}
+        const nextGridData = [];
+        // row is just the name
+        sortedData.forEach((row) => {
+            if(!filterRow(row)){
+                nextGridData.push(columns.map( c => {
                         switch(c.name){
                             case "Info":
                                 return  <FileBrowserTableRowActionCell 
@@ -269,12 +269,13 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                             case "Comment":
                                 return <FileBrowserTableRowStringCell cellData={row.comment} rowData={props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row]} />
                         }
-                    })];
-                }
-                
-        }, []),
-        [sortedData, props.onTaskRowAction, filterOptions, columnVisibility, props.showDeletedFiles]
-    );
+                    }));
+            }
+        });
+        cachedGridDataRef.current = nextGridData;
+        return nextGridData;
+    }, [columns, sortedData, props.active, props.dataVersion, props.onTaskRowAction, filterOptions,
+        props.selectedFolderData, props.showDeletedFiles, props.treeRootData]);
     const getDisplayFormat = () => {
         if(sortedData.length === 0 && props?.selectedFolderData?.success === false){
             return "showTask";
@@ -292,6 +293,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
     }
     const displayFormat = getDisplayFormat();
     useEffect(() => {
+        if(props.active === false){return;}
         // when the folder changes, we need to aggregate all of the entries
         //console.log(props.selectedFolderData, props.treeAdjMatrix, props.treeRootData)
         let desiredPath = props.selectedFolderData.full_path_text;
@@ -301,7 +303,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
         let newAllData = Object.keys(props.treeAdjMatrix[props.selectedFolderData.group]?.[props.selectedFolderData.host]?.[desiredPath] || {});
         setAllData(newAllData);
         //console.log("just set all data")
-    }, [props.selectedFolderData, props.treeAdjMatrix]);
+    }, [props.active, props.dataVersion, props.selectedFolderData, props.treeAdjMatrix]);
     const onRowDoubleClick = (e, rowIndex, rowData) => {
         if (!rowData.can_have_children) {
             return;

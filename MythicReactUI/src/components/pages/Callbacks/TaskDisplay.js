@@ -32,6 +32,7 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import NumbersIcon from '@mui/icons-material/Numbers';
 import {getMythicStatusFromTaskStatus, MythicStatusChip} from '../../MythicComponents/MythicStatusChip';
 import {TaskReferenceDisplay} from './taskingReferences';
+import {mergeTasksByID} from "./CallbackTaskingStreamUtils";
 
 
 const PREFIX = 'TaskDisplay';
@@ -318,6 +319,34 @@ subscription getSubTasking($task_id: Int!){
 }
  `;
 
+const useTaskChildren = ({taskID, taskChildrenStore, active}) => {
+  const [localChildren, setLocalChildren] = React.useState([]);
+  const subscribe = React.useCallback((listener) => {
+    return taskChildrenStore ? taskChildrenStore.subscribe(taskID, listener) : () => {};
+  }, [taskChildrenStore, taskID]);
+  const getSnapshot = React.useCallback(() => {
+    return taskChildrenStore ? taskChildrenStore.getSnapshot(taskID) : localChildren;
+  }, [localChildren, taskChildrenStore, taskID]);
+  const externalChildren = React.useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+
+  React.useEffect(() => {
+    if(!taskChildrenStore){
+      setLocalChildren([]);
+    }
+  }, [taskChildrenStore, taskID]);
+
+  useSubscription(getSubTaskingQuery, {
+    variables: {task_id: taskID},
+    skip: Boolean(taskChildrenStore) || !active,
+    ignoreResults: true,
+    onData: ({data}) => {
+      setLocalChildren((current) => mergeTasksByID(current, data.data?.task_stream || []));
+    },
+  });
+
+  return taskChildrenStore ? externalChildren : localChildren;
+};
+
 export const StyledAccordionSummary = styled(AccordionSummary)((
     {
       theme
@@ -350,26 +379,28 @@ export const StyledAccordionSummary = styled(AccordionSummary)((
 }));
 
 
-function TaskDisplayPreMemo({task, me, filterOptions, newlyIssuedTasks, collapseAllRequest}){
+function TaskDisplayPreMemo({task, me, filterOptions, newlyIssuedTasks, collapseAllRequest, taskChildrenStore, active=true}){
   return (
       <TaskRow me={me} task={task} newlyIssuedTasks={newlyIssuedTasks} filterOptions={filterOptions}
-               indentLevel={0} collapseAllRequest={collapseAllRequest} />
+               indentLevel={0} collapseAllRequest={collapseAllRequest}
+               taskChildrenStore={taskChildrenStore} active={active} />
   );
 }
 export const TaskDisplay = React.memo(TaskDisplayPreMemo);
-function TaskDisplayFlatPreMemo({task, me, filterOptions, selectedTask, onSelectTask, showOnSelectTask}){
+function TaskDisplayFlatPreMemo({task, me, filterOptions, selectedTask, onSelectTask, showOnSelectTask, taskChildrenStore, active=true}){
   return (
       <TaskRowFlat me={me} indentLevel={0} task={task}
                    filterOptions={filterOptions} onSelectTask={onSelectTask}
                    showOnSelectTask={showOnSelectTask} selectedTask={selectedTask}
+                   taskChildrenStore={taskChildrenStore} active={active}
       />
   )
 }
 export const TaskDisplayFlat = React.memo(TaskDisplayFlatPreMemo);
-function TaskDisplayConsolePreMemo({task, me, filterOptions, newlyIssuedTasks}){
+function TaskDisplayConsolePreMemo({task, me, filterOptions, newlyIssuedTasks, taskChildrenStore, active=true}){
   return (
       <TaskRowConsole me={me} task={task} newlyIssuedTasks={newlyIssuedTasks} filterOptions={filterOptions}
-               indentLevel={0} />
+               indentLevel={0} taskChildrenStore={taskChildrenStore} active={active} />
   );
 }
 export const TaskDisplayConsole = React.memo(TaskDisplayConsolePreMemo);
@@ -565,7 +596,7 @@ const ColoredTaskDisplay = ({task, theme, children, expanded}) => {
     </span>
   )
 }
-export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayChildren, toggleDisplayChildren, expanded, compact=false }) => {
+export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayChildren, toggleDisplayChildren, expanded, compact=false, hasChildren }) => {
   const [displayComment, setDisplayComment] = React.useState(false);
   const taskingDisplayFields = useTaskingDisplayFields();
   const initialTaskTimestampDisplayField = GetMythicSetting({setting_name: "taskTimestampDisplayField", default_value: operatorSettingDefaults.taskTimestampDisplayField});
@@ -657,7 +688,7 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
             </span>
           </div>
           <div className={classes.taskCommandRow}>
-            {task.tasks.length > 0 &&
+            {(hasChildren ?? task.tasks.length > 0) &&
               <IconButton className={classes.taskChildToggle} size="small" onClick={toggleDisplayChildren}>
                 {displayChildren ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
               </IconButton>
@@ -691,31 +722,13 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
       </ColoredTaskDisplay>
   )
 }
-const TaskRow = ({task, filterOptions, me, newlyIssuedTasks, indentLevel, collapseAllRequest}) => {
-	const [dropdownOpen, setDropdownOpen] = React.useState(false);
-    const [taskingData, setTaskingData] = React.useState([]);
+const TaskRow = ({task, filterOptions, me, newlyIssuedTasks, indentLevel, collapseAllRequest, taskChildrenStore, active=true}) => {
+		const [dropdownOpen, setDropdownOpen] = React.useState(false);
+    const taskingData = useTaskChildren({taskID: task.id, taskChildrenStore, active});
     const [shouldDisplay, setShouldDisplay] = React.useState(true);
     const [displayChildren, setDisplayChildren] = React.useState(false);
     const hideBrowserTasking = GetMythicSetting({setting_name: "hideBrowserTasking", default_value: operatorSettingDefaults.hideBrowserTasking});
 
-  useSubscription(getSubTaskingQuery, {
-      variables: {task_id: task.id},
-      onData:  ({data}) => {
-        //console.log(subscriptionData);
-        // need to merge in the tasking data
-        const newTaskingData = data.data.task_stream.reduce( (prev, cur) => {
-          for(let i = 0; i < prev.length; i++){
-            if(prev[i].id === cur.id){
-              prev[i] = {...cur}
-              return prev;
-            }
-          }
-          return [...prev, cur];
-        }, [...taskingData]);
-        newTaskingData.sort( (a,b) => a.id < b.id ? -1 : 1);
-        setTaskingData(newTaskingData);
-      }
-    });
     useEffect( () => {
       /*props.onSubmit({
       "operatorsList": onlyOperators,
@@ -830,11 +843,13 @@ const TaskRow = ({task, filterOptions, me, newlyIssuedTasks, indentLevel, collap
           <div style={{marginLeft: (indentLevel * 10) + "px"}}>
             <TaskLabel me={me} task={task} newlyIssuedTasks={newlyIssuedTasks} dropdownOpen={dropdownOpen}
                        toggleTaskDropdown={toggleTaskDropdown}
-                       toggleDisplayChildren={toggleDisplayChildren} displayChildren={displayChildren}/>
+                       toggleDisplayChildren={toggleDisplayChildren} displayChildren={displayChildren}
+                       hasChildren={taskingData.length > 0 || task.tasks.length > 0} active={active}/>
             { displayChildren &&
               taskingData.map( (tsk) => (
                   <TaskRow key={"taskrow: " + tsk.id} me={me} task={tsk}
-                           filterOptions={filterOptions} indentLevel={indentLevel+1}/>
+                           filterOptions={filterOptions} indentLevel={indentLevel+1}
+                           taskChildrenStore={taskChildrenStore} active={active}/>
               ))
             }
           </div>
@@ -842,29 +857,16 @@ const TaskRow = ({task, filterOptions, me, newlyIssuedTasks, indentLevel, collap
       ) : null
     )
 }
-const TaskRowFlat = ({task, filterOptions, me, onSelectTask, showOnSelectTask, selectedTask, indentLevel}) => {
-  const [taskingData, setTaskingData] = React.useState([]);
+const TaskRowFlat = ({task, filterOptions, me, onSelectTask, showOnSelectTask, selectedTask, indentLevel, taskChildrenStore, active=true}) => {
+  const rawTaskingData = useTaskChildren({taskID: task.id, taskChildrenStore, active});
+  const taskingData = React.useMemo(() => rawTaskingData.map((child) => ({
+    ...child,
+    selected: child.id === selectedTask.id,
+  })), [rawTaskingData, selectedTask.id]);
   const [shouldDisplay, setShouldDisplay] = React.useState(true);
   const [displayChildren, setDisplayChildren] = React.useState(false);
   const hideBrowserTasking = GetMythicSetting({setting_name: "hideBrowserTasking", default_value: operatorSettingDefaults.hideBrowserTasking});
 
-  useSubscription(getSubTaskingQuery, {
-    variables: {task_id: task.id},
-    onData:  ({data}) => {
-      // need to merge in the tasking data
-      const newTaskingData = data.data.task_stream.reduce( (prev, cur) => {
-        for(let i = 0; i < prev.length; i++){
-          if(prev[i].id === cur.id){
-            prev[i] = {...cur, selected: cur.id === selectedTask.id}
-            return prev;
-          }
-        }
-        return [...prev, {...cur, selected: cur.id === selectedTask.id}];
-      }, [...taskingData])
-      newTaskingData.sort( (a,b) => a.id < b.id ? -1 : 1);
-      setTaskingData(newTaskingData);
-    }
-  });
   useEffect( () => {
     /*props.onSubmit({
     "operatorsList": onlyOperators,
@@ -941,24 +943,6 @@ const TaskRowFlat = ({task, filterOptions, me, onSelectTask, showOnSelectTask, s
       setShouldDisplay(true);
     }
   }, [filterOptions, task.comment, task.command, task.display_params, task.operator.username]);
-  useEffect(() => {
-    let updated = [...taskingData];
-    for(let i = 0; i < updated.length; i++){
-      if(updated[i].id === selectedTask.id){
-        updated[i].selected = true;
-      } else {
-        updated[i].selected = false;
-        for(let j = 0; j < updated[i].tasks.length; j++){
-          if(updated[i].tasks[j].id === selectedTask.id){
-            updated[i].tasks[j].selected = true;
-          } else {
-            updated[i].tasks[j].selected = false;
-          }
-        }
-      }
-    }
-    setTaskingData(updated)
-  }, [selectedTask]);
   const toggleDisplayChildren = React.useCallback( (event, expanded) => {
     if(window.getSelection().toString() !== ""){
       return;
@@ -977,6 +961,7 @@ const TaskRowFlat = ({task, filterOptions, me, onSelectTask, showOnSelectTask, s
                            onSelectTask={onLocalSelectTask}
                            showOnSelectTask={showOnSelectTask}
                            toggleDisplayChildren={toggleDisplayChildren} displayChildren={displayChildren}
+                           hasChildren={taskingData.length > 0 || task.tasks.length > 0}
             />
             { displayChildren &&
               taskingData.map( (tsk) => (
@@ -984,6 +969,7 @@ const TaskRowFlat = ({task, filterOptions, me, onSelectTask, showOnSelectTask, s
                                me={me} task={tsk} onSelectTask={()=>{onSelectTask(tsk)}}
                                filterOptions={filterOptions} showOnSelectTask={true}
                                selectedTask={selectedTask}
+                               taskChildrenStore={taskChildrenStore} active={active}
                   />
               ))
             }
@@ -991,8 +977,8 @@ const TaskRowFlat = ({task, filterOptions, me, onSelectTask, showOnSelectTask, s
       )
   )
 }
-const TaskLabel = ({task, dropdownOpen, toggleTaskDropdown, me, newlyIssuedTasks, displayChildren, toggleDisplayChildren}) => {
-  const [fromNow, setFromNow] = React.useState(getSkewedNow());
+const TaskLabel = ({task, dropdownOpen, toggleTaskDropdown, me, newlyIssuedTasks, displayChildren, toggleDisplayChildren, hasChildren, active=true}) => {
+  const [fromNow] = React.useState(getSkewedNow());
   const theme = useTheme();
   const prevResponseMaxId = useRef(0);
   useEffect( () => {
@@ -1053,10 +1039,11 @@ const TaskLabel = ({task, dropdownOpen, toggleTaskDropdown, me, newlyIssuedTasks
           <ColoredTaskLabel theme={theme} task={task} me={me} taskDivID={'scrolltotask' + task.id}
             displayChildren={displayChildren} toggleDisplayChildren={toggleDisplayChildren}
                             expanded={dropdownOpen}
+                            hasChildren={hasChildren}
                             onClick={toggleTaskDropdown}
           />
         </StyledAccordionSummary>
-        <TaskDisplayContainer key={task.id} me={me} task={task} />
+        {active && <TaskDisplayContainer key={task.id} me={me} task={task} />}
       </Accordion>
   </StyledPaper>
   );
@@ -1070,7 +1057,7 @@ export const getLabelText = (task, graphView) => {
   }
   return (task?.command?.cmd || task.command_name) + " " + task.display_params;
 }
-export const TaskLabelFlat = ({task, me, showOnSelectTask, onSelectTask, graphView, displayChildren, toggleDisplayChildren}) => {
+export const TaskLabelFlat = ({task, me, showOnSelectTask, onSelectTask, graphView, displayChildren, toggleDisplayChildren, hasChildren}) => {
   const theme = useTheme();
 
   useLayoutEffect( () => {
@@ -1106,6 +1093,7 @@ export const TaskLabelFlat = ({task, me, showOnSelectTask, onSelectTask, graphVi
       >
         <ColoredTaskLabel theme={theme} task={task} me={me} taskDivID={`scrolltotasksplit${task.id}`} onClick={onClickEntry}
                           displayChildren={displayChildren} toggleDisplayChildren={toggleDisplayChildren} expanded={false}
+                          hasChildren={hasChildren}
                           compact={showOnSelectTask}
         />
       </StyledPaper>
@@ -1123,29 +1111,11 @@ const ColoredTaskDisplayConsole = ({task, theme, children, expanded}) => {
       </span>
   )
 }
-const TaskRowConsole = ({task, filterOptions, me, newlyIssuedTasks, indentLevel}) => {
-  const [taskingData, setTaskingData] = React.useState([]);
+const TaskRowConsole = ({task, filterOptions, me, newlyIssuedTasks, indentLevel, taskChildrenStore, active=true}) => {
+  const taskingData = useTaskChildren({taskID: task.id, taskChildrenStore, active});
   const [shouldDisplay, setShouldDisplay] = React.useState(true);
   const hideBrowserTasking = GetMythicSetting({setting_name: "hideBrowserTasking", default_value: operatorSettingDefaults.hideBrowserTasking});
 
-  useSubscription(getSubTaskingQuery, {
-    variables: {task_id: task.id},
-    onData:  ({data}) => {
-      //console.log(subscriptionData);
-      // need to merge in the tasking data
-      const newTaskingData = data.data.task_stream.reduce( (prev, cur) => {
-        for(let i = 0; i < prev.length; i++){
-          if(prev[i].id === cur.id){
-            prev[i] = {...cur}
-            return prev;
-          }
-        }
-        return [...prev, cur];
-      }, [...taskingData]);
-      newTaskingData.sort( (a,b) => a.id < b.id ? -1 : 1);
-      setTaskingData(newTaskingData);
-    }
-  });
   useEffect( () => {
     /*props.onSubmit({
     "operatorsList": onlyOperators,
@@ -1227,11 +1197,12 @@ const TaskRowConsole = ({task, filterOptions, me, newlyIssuedTasks, indentLevel}
   return (
       shouldDisplay ? (
           <div style={{}}>
-            <TaskLabelConsole me={me} task={task} newlyIssuedTasks={newlyIssuedTasks} />
+            <TaskLabelConsole me={me} task={task} newlyIssuedTasks={newlyIssuedTasks} active={active} />
             {
               taskingData.map( (tsk) => (
                   <TaskRowConsole key={"taskrow: " + tsk.id} me={me} task={tsk}
-                                  filterOptions={filterOptions} indentLevel={indentLevel+1}/>
+                                  filterOptions={filterOptions} indentLevel={indentLevel+1}
+                                  taskChildrenStore={taskChildrenStore} active={active}/>
               ))
             }
           </div>
@@ -1317,7 +1288,7 @@ export const ColoredTaskLabelConsole = ({task, theme, me, taskDivID, onClick, di
 	    </ColoredTaskDisplayConsole>
 	);
 }
-const TaskLabelConsole = ({task, me}) => {
+const TaskLabelConsole = ({task, me, active=true}) => {
   const theme = useTheme();
   useLayoutEffect( () => {
     if(task.operator.username === (me?.user?.username || "")){
@@ -1342,7 +1313,7 @@ const TaskLabelConsole = ({task, me}) => {
   return (
       <StyledPaper className={classes.root + " no-box-shadow"} elevation={5} style={{marginRight: 0, marginBottom: "5px"}} id={`taskHeader-${task.id}`}>
           <ColoredTaskLabelConsole theme={theme} task={task} me={me} taskDivID={`scrolltotaskconsole${task.id}`} expanded={true}/>
-          <TaskDisplayContainerConsole me={me} task={task} />
+          {active && <TaskDisplayContainerConsole me={me} task={task} />}
       </StyledPaper>
   );
 }

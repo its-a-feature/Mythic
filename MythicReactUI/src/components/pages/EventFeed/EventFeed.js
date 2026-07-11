@@ -1,8 +1,8 @@
 import React, {useCallback} from 'react';
-import { gql, useMutation, useLazyQuery, useSubscription } from '@apollo/client';
+import { gql, useApolloClient, useMutation, useSubscription } from '@apollo/client';
 import {EventFeedTable} from './EventFeedTable';
 import {snackActions} from '../../utilities/Snackbar';
-import {alertCount} from "../../../cache";
+import {buildEventFeedRequest, capEventPage, createCoalescedScheduler, eventMatchesFilter, isWarningEvent} from "./EventFeedUtils";
 
 const GET_Event_Feed_Warnings = gql`
 query GetOperationEventLogs($offset: Int!, $limit: Int!, $search: String!, $resolved: Boolean!) {
@@ -96,91 +96,85 @@ const Update_ResolveViewableErrors = gql`
 export const levelOptions = [
   "All Levels", "warning (unresolved)", "warning (resolved)", "info", "debug", "api", "auth", "agent"
 ];
-const isWarningEvent = (event) => event.warning || event.level === "warning";
-export function EventFeed({}){
+export function EventFeed(){
+  const apolloClient = useApolloClient();
   const [pageData, setPageData] = React.useState({
     "totalCount": 0,
     "fetchLimit": 100
   });
   const [operationeventlog, setOperationEventLog] = React.useState([]);
-  const [fromNow, setFromNow] = React.useState((new Date()).toISOString());
+  const operationEventLogRef = React.useRef([]);
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const fromNow = React.useRef((new Date()).toISOString()).current;
   const [search, setSearch] = React.useState("");
   const [level, setLevel] = React.useState("info");
+  const requestSequenceRef = React.useRef(0);
+  const refreshPageRef = React.useRef(null);
+  const schedulerRef = React.useRef(null);
+  const filterRef = React.useRef({level, search});
+  React.useEffect(() => {
+    operationEventLogRef.current = operationeventlog;
+  }, [operationeventlog]);
+  React.useEffect(() => {
+    filterRef.current = {level, search};
+  }, [level, search]);
   useSubscription(SUB_Event_Feed, {
     variables: {fromNow}, fetchPolicy: "no-cache",
+    ignoreResults: true,
     onData: ({data}) => {
-      const newEvents = data.data.operationeventlog_stream.reduce( (prev, cur) => {
-        let indx = prev.findIndex( ({id}) => id === cur.id);
-        if(indx > -1){
-          let updatingPrev = [...prev];
-          updatingPrev[indx] = cur;
-          return [...updatingPrev];
-        }
-        // only add this if this msg fits into the right current view
-        switch(level){
-          case "All Levels":
-            return [...prev, cur];
-          case "warning (unresolved)":
-            if(isWarningEvent(cur) && cur.resolved === false){
-              return [...prev, cur]
-            } else {
-              return [...prev];
-            }
-          case "warning (resolved)":
-            if(isWarningEvent(cur) && cur.resolved === true){
-              return [...prev, cur];
-            } else {
-              return [...prev];
-            }
-          default:
-            if(cur.level === level && !isWarningEvent(cur)){
-              return [...prev, cur];
-            } else {
-              return [...prev];
-            }
-        }
-        //return [...prev, cur];
-      }, [...operationeventlog]);
-      newEvents.sort((a,b) => (a.id > b.id) ? -1 : ((b.id > a.id) ? 1 : 0));
-      setOperationEventLog(newEvents);
-    }
-  });
-
-  const [getMoreEventFeedWithWarning] = useLazyQuery(GET_Event_Feed_Warnings, {
-      onError: data => {
-          console.error(data)
-      },
-      fetchPolicy: "no-cache",
-      onCompleted: (data) => {
-        snackActions.dismiss();
-        try{
-          let tempPageData = {...pageData};
-          tempPageData.totalCount = data.operationeventlog_aggregate.aggregate.count;
-          setPageData(tempPageData);
-          let newEventLog = [...data.operationeventlog];
-          newEventLog.sort((a,b) => (a.id > b.id) ? -1 : ((b.id > a.id) ? 1 : 0));
-          setOperationEventLog(newEventLog);
-        }catch(error){
-          console.log(error);
-        }
-
+      const incoming = data.data?.operationeventlog_stream || [];
+      const visibleIDs = new Set(operationEventLogRef.current.map((event) => event.id));
+      if(incoming.some((event) => visibleIDs.has(event.id) || eventMatchesFilter(event, filterRef.current))){
+        schedulerRef.current?.schedule();
       }
-  });
-  const [getMoreEventFeed] = useLazyQuery(GET_Event_Feed_No_Warnings, {
-    onError: data => {
-      console.error(data)
-    },
-    fetchPolicy: "no-cache",
-    onCompleted: (data) => {
-      snackActions.dismiss();
-      let tempPageData = {...pageData};
-      tempPageData.totalCount = data.operationeventlog_aggregate.aggregate.count;
-      setPageData(tempPageData);
-      let newEventLog = [...data.operationeventlog];
-      newEventLog.sort((a,b) => (a.id > b.id) ? -1 : ((b.id > a.id) ? 1 : 0));
-      setOperationEventLog(newEventLog);
     }
   });
+
+  const fetchEventPage = React.useCallback(async ({showToast = false} = {}) => {
+    const requestID = ++requestSequenceRef.current;
+    const request = buildEventFeedRequest({page: currentPage, limit: pageData.fetchLimit, search, level});
+    if(showToast){
+      snackActions.info("Fetching page...");
+    }
+    try{
+      const {data} = await apolloClient.query({
+        query: request.warning ? GET_Event_Feed_Warnings : GET_Event_Feed_No_Warnings,
+        variables: request.variables,
+        fetchPolicy: "no-cache",
+      });
+      if(requestID !== requestSequenceRef.current){
+        return;
+      }
+      const nextEvents = capEventPage(data.operationeventlog || [], pageData.fetchLimit);
+      operationEventLogRef.current = nextEvents;
+      setOperationEventLog(nextEvents);
+      setPageData((current) => ({
+        ...current,
+        totalCount: data.operationeventlog_aggregate?.aggregate?.count || 0,
+      }));
+      if(showToast){
+        snackActions.dismiss();
+      }
+    }catch(error){
+      if(requestID === requestSequenceRef.current){
+        console.error(error);
+      }
+    }
+  }, [apolloClient, currentPage, level, pageData.fetchLimit, search]);
+  refreshPageRef.current = fetchEventPage;
+  React.useEffect(() => {
+    const scheduler = createCoalescedScheduler({callback: () => refreshPageRef.current({showToast: false})});
+    schedulerRef.current = scheduler;
+    return () => {
+      scheduler.cancel();
+      if(schedulerRef.current === scheduler){
+        schedulerRef.current = null;
+      }
+    };
+  }, [currentPage, level, search]);
+  React.useEffect(() => {
+    fetchEventPage({showToast: false});
+  }, [fetchEventPage]);
   const [updateResolution] = useMutation(Update_Resolution, {
     update: (cache, {data}) => {
       const updatedMessage = data.update_operationeventlog_by_pk;
@@ -191,6 +185,7 @@ export function EventFeed({}){
         return log;
       });
       setOperationEventLog(updatedMessages);
+      schedulerRef.current?.schedule();
     }
   });
   const [updateLevel] = useMutation(Update_Level, {
@@ -203,6 +198,7 @@ export function EventFeed({}){
         return log;
       });
       setOperationEventLog(updatedMessages);
+      schedulerRef.current?.schedule();
     }
   });
   const [updateResolveViewable] = useMutation(Update_ResolveViewableErrors, {
@@ -219,6 +215,7 @@ export function EventFeed({}){
           }
         });
         setOperationEventLog(updatedMessages);
+        schedulerRef.current?.schedule();
       }else{
         snackActions.info("No Viewable Errors to Resolve");
       }
@@ -239,6 +236,7 @@ export function EventFeed({}){
           }
         });
         setOperationEventLog(updatedMessages);
+        schedulerRef.current?.schedule();
       }else{
         snackActions.info("No Errors to Resolve");
       }
@@ -251,48 +249,9 @@ export function EventFeed({}){
   const onUpdateLevel = useCallback( ({id}) => {
     updateLevel({variables: {id}})
   }, []);
-  const onChangePage = (event, value, newLevel) => {
-    snackActions.info("Fetching page...");
-    let localSearch = "%_%";
-    if(search !== ""){
-      localSearch = "%" + search + "%";
-    }
-    let localLevel = level;
-    if(newLevel){
-      localLevel = newLevel;
-    }
-    let localResolved = undefined;
-    if(localLevel === "All Levels"){
-      localLevel = "%_%";
-    } else if(localLevel === "warning (unresolved)"){
-      localResolved = false;
-      localLevel = "%_%";
-    } else if(localLevel === "warning (resolved)"){
-      localResolved = true;
-      localLevel = "%_%";
-    } else {
-        localLevel = "%" + localLevel + "%";
-    }
-    if(localResolved === undefined){
-      getMoreEventFeed({variables: {offset: (value - 1) * pageData.fetchLimit,
-          limit: pageData.fetchLimit,
-          search: localSearch,
-          level: localLevel
-        }})
-    } else {
-      getMoreEventFeedWithWarning({variables: {offset: (value - 1) * pageData.fetchLimit,
-          limit: pageData.fetchLimit,
-          search: localSearch,
-          resolved: localResolved
-        }})
-    }
-
+  const onChangePage = (event, value) => {
+    setCurrentPage(value);
   }
-  React.useEffect( () => {
-    if( alertCount() === 0 ){
-      getMoreEventFeed({variables: {offset: 0, limit: pageData.fetchLimit, search: "%_%", level: "%info%"}});
-    }
-  }, [])
   const resolveViewableErrors = useCallback( () => {
     snackActions.info("Resolving Errors...");
     const resolveIds = operationeventlog.reduce( (prev, cur) => {
@@ -310,11 +269,11 @@ export function EventFeed({}){
   }, []);
   const onSearchChange = (searchQuery) => {
     setSearch(searchQuery);
-    onChangePage(null, 1);
+    setCurrentPage(1);
   }
   const onLevelChange = (levelValue) => {
     setLevel(levelValue);
-    onChangePage(null, 1, levelValue);
+    setCurrentPage(1);
   }
   return (
       <EventFeedTable operationeventlog={operationeventlog}
@@ -323,6 +282,7 @@ export function EventFeed({}){
                       resolveViewableErrors={resolveViewableErrors}
                       resolveAllErrors={resolveAllErrors}
                       pageData={pageData}
+                      currentPage={currentPage}
                       onChangePage={onChangePage}
                       onSearch={onSearchChange}
                       onLevelChange={onLevelChange}

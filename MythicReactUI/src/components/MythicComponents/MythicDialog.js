@@ -59,7 +59,9 @@ const MythicDraggableDialogPaper = React.forwardRef(function MythicDraggableDial
     );
 });
 
-export function MythicDialog(props) {
+// Kept temporarily for route-level compatibility while consumers migrate to the lightweight base module.
+// eslint-disable-next-line no-unused-vars
+function LegacyMythicDialog(props) {
     const theme = useTheme();
     const dialogIdRef = React.useRef(null);
     if(dialogIdRef.current === null){
@@ -196,6 +198,8 @@ export function MythicDialog(props) {
           </Dialog>
   );
 }
+
+export {MythicDialog} from "./MythicDialogBase";
 
 export function MythicModifyStringDialog(props) {
   const [comment, setComment] = React.useState("");

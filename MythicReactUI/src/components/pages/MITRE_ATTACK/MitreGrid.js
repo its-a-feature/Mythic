@@ -15,6 +15,7 @@ import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import { SelectPayloadTypeDialog } from './SelectPayloadTypeDialog';
 import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/MythicPageHeader";
 import {useTheme} from "@mui/material/styles";
+import {downloadFileFromMemory} from '../../utilities/Clipboard';
 
 
 export function MitreGrid({entries, onGetCommands, onGetTasks, onGetCommandsFiltered, onGetTasksFiltered, onFilterByTags, showCountGrouping}){
@@ -221,20 +222,7 @@ function PoperDropdown({onGetCommands, onGetTasks, onGetCommandsFiltered, onGetT
               }
             }
         }
-        const dataBlob = new Blob([JSON.stringify(baseNavigator, null, 2)], {type: 'application/octet-stream'});
-        const ele = document.getElementById("download_config");
-        if(ele !== null){
-        ele.href = URL.createObjectURL(dataBlob);
-        ele.download = "attack_navigator.json";
-        ele.click();
-        }else{
-        const element = document.createElement("a");
-        element.id = "download_config";
-        element.href = URL.createObjectURL(dataBlob);
-        element.download = "attack_navigator.json";
-        document.body.appendChild(element);
-        element.click();
-        }
+        downloadFileFromMemory(JSON.stringify(baseNavigator, null, 2), "attack_navigator.json");
     }
     const onSubmitGetTasksFiltered = (payload_type) => {
         setBackdropOpen(true);

@@ -32,6 +32,7 @@ import {CallbacksTabsCustomFileBasedBrowserTable} from "./CallbacksTabsCustomFil
 import EditIcon from '@mui/icons-material/Edit';
 import SettingsInputComponentRoundedIcon from '@mui/icons-material/SettingsInputComponentRounded';
 import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
+import {getDefaultBrowserSelection, useCallbackBrowserTree} from "./CallbackBrowserTreeStore";
 
 const fileBrowserDataFragment = gql`
     fragment fileBrowserObjData on mythictree {
@@ -199,6 +200,25 @@ export function CallbacksTabsCustomFileBasedBrowserLabel(props) {
 export const CallbacksTabsCustomFileBasedBrowserPanel = ({ index, value, tabInfo, me, setNewDataForTab }) => {
     const fromNow = React.useRef(getSkewedNow());
     const [treeType, setTreeType] = React.useState(tabInfo.customBrowser.name);
+    const active = index === value;
+    const markInactiveChange = useCallback(() => {
+        setNewDataForTab((previous) => previous[tabInfo.tabID] ? previous : {
+            ...previous,
+            [tabInfo.tabID]: true,
+        });
+    }, [setNewDataForTab, tabInfo.tabID]);
+    const {
+        treeRootDataRef,
+        treeAdjMtx,
+        version: treeVersion,
+        hydrated: treeHydrated,
+        setTreeAdjMtx,
+    } = useCallbackBrowserTree({
+        treeType,
+        mode: "custom",
+        active,
+        onInactiveChange: markInactiveChange,
+    });
     const [treeConfig, setTreeConfig] = React.useState({
         name: tabInfo.customBrowser.name,
         table: {
@@ -216,9 +236,6 @@ export const CallbacksTabsCustomFileBasedBrowserPanel = ({ index, value, tabInfo
         export_function: tabInfo.customBrowser?.export_function || "",
     });
     const [backdropOpen, setBackdropOpen] = React.useState(false);
-    const treeRootDataRef = React.useRef({}); // hold all of the actual data
-    // hold the simple adjacency matrix for parent/child relationships
-    const [treeAdjMtx, setTreeAdjMtx] = React.useState({});
     const [selectedFolderData, setSelectedFolderData] = React.useState({
         full_path_text: '',
         host: tabInfo.host,
@@ -247,6 +264,7 @@ export const CallbacksTabsCustomFileBasedBrowserPanel = ({ index, value, tabInfo
     const loadingCommandsRef = React.useRef(false);
     useQuery(rootFileQuery, {
         variables: {tree_type: treeType},
+        skip: true,
         onCompleted: (data) => {
            // use an adjacency matrix but only for full_path_text -> children, not both directions
            // create the top level data in the treeRootDataRef
@@ -317,6 +335,7 @@ export const CallbacksTabsCustomFileBasedBrowserPanel = ({ index, value, tabInfo
     });
     useSubscription(fileDataSubscription, {
         variables: {now: fromNow.current, tree_type:treeType},
+        skip: true,
         fetchPolicy: "no-cache",
         onData: ({data}) => {
             for(let i = 0; i < data.data.mythictree_stream.length; i++){
@@ -385,9 +404,37 @@ export const CallbacksTabsCustomFileBasedBrowserPanel = ({ index, value, tabInfo
             }
         }
     })
+    const initializedSelectionRef = React.useRef(false);
+    React.useEffect(() => {
+        if(!treeHydrated || initializedSelectionRef.current){return;}
+        const selection = getDefaultBrowserSelection(
+            treeRootDataRef.current,
+            treeAdjMtx,
+            tabInfo.callbackID,
+            tabInfo.host,
+        );
+        setSelectedFolderData({
+            full_path_text: '',
+            host: selection.host,
+            group: selection.group,
+            parent_path_text: "",
+            tree_type: treeType,
+            display_path_text: "",
+        });
+        initializedSelectionRef.current = true;
+    }, [tabInfo.callbackID, tabInfo.host, treeAdjMtx, treeHydrated, treeRootDataRef, treeType, treeVersion]);
+    React.useEffect(() => {
+        if(!active || !initializedSelectionRef.current){return;}
+        setSelectedFolderData((previous) => {
+            const current = treeRootDataRef.current[previous.group]?.[previous.host]?.[previous.full_path_text];
+            if(!current){return previous;}
+            return {...current, group: previous.group, fromHistory: previous.fromHistory};
+        });
+    }, [active, treeRootDataRef, treeVersion]);
     useSubscription(fileBrowserTaskSub, {
         variables: {now: fromNow.current, callback_id: tabInfo.callbackID, tree_type: treeType + "_browser"},
         fetchPolicy: "no-cache",
+        ignoreResults: true,
         onData: ({data}) => {
             for(let i = 0; i < data.data.task_stream.length; i++){
                 if(data.data.task_stream[i].status.toLowerCase().includes("error") && data.data.task_stream[i].completed){
@@ -705,6 +752,7 @@ export const CallbacksTabsCustomFileBasedBrowserPanel = ({ index, value, tabInfo
                     <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minHeight: 0, minWidth: 0, overflow: "hidden" }}>
                         <div style={{ flexGrow: 0 }}>
                             <FileBrowserTableTop
+                                active={active}
                                 tabInfo={tabInfo}
                                 taskingTableTopTypedDataRef={taskingTableTopTypedDataRef}
                                 autoTaskLsOnEmptyDirectoriesRef={autoTaskLsOnEmptyDirectoriesRef}
@@ -725,6 +773,8 @@ export const CallbacksTabsCustomFileBasedBrowserPanel = ({ index, value, tabInfo
                                 <CircularProgress color="inherit" />
                             </Backdrop>
                             <CallbacksTabsCustomFileBasedBrowserTable
+                                active={active}
+                                dataVersion={treeVersion}
                                 tabInfo={tabInfo}
                                 showDeletedFiles={showDeletedFiles}
                                 onRowDoubleClick={fetchFolderData}
@@ -760,6 +810,7 @@ export const CallbacksTabsCustomFileBasedBrowserPanel = ({ index, value, tabInfo
     );
 };
 const FileBrowserTableTop = ({
+    active,
     selectedFolderData,
     taskingTableTopTypedDataRef,
     autoTaskLsOnEmptyDirectoriesRef,
@@ -848,6 +899,8 @@ const FileBrowserTableTop = ({
     }
     useSubscription(subscriptionCallbackTokens, {
         variables: {callback_id: tabInfo.callbackID}, fetchPolicy: "no-cache",
+        skip: !active,
+        ignoreResults: true,
         shouldResubscribe: true,
         onData: ({data}) => {
             setTokenOptions(data.data.callbacktoken);
