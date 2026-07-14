@@ -35,4 +35,5 @@ type Payload struct {
 	APITokensID         structs.NullInt64 `db:"apitokens_id" json:"api_tokens_id" mapstructure:"apitokens_id"`
 	CallbackAllowed     bool              `db:"callback_allowed" json:"callback_allowed" mapstructure:"callback_allowed"`
 	PayloadTypeSemver   string            `db:"payload_type_semver" json:"payload_type_semver" mapstructure:"payload_type_semver"`
+	BuildMetadata       MythicJSONText    `db:"build_metadata" json:"build_metadata" mapstructure:"build_metadata"`
 }

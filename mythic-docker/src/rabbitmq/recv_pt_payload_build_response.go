@@ -46,15 +46,16 @@ const (
 )
 
 type PayloadBuildResponse struct {
-	PayloadUUID        string    `json:"uuid"`
-	Success            bool      `json:"success"`
-	Payload            *[]byte   `json:"payload,omitempty"`
-	AgentFileID        *string   `json:"agent_file_id"`
-	UpdatedFilename    *string   `json:"updated_filename,omitempty"`
-	UpdatedCommandList *[]string `json:"updated_command_list,omitempty"`
-	BuildStdErr        string    `json:"build_stderr"`
-	BuildStdOut        string    `json:"build_stdout"`
-	BuildMessage       string    `json:"build_message"`
+	PayloadUUID        string            `json:"uuid"`
+	Success            bool              `json:"success"`
+	Payload            *[]byte           `json:"payload,omitempty"`
+	AgentFileID        *string           `json:"agent_file_id"`
+	UpdatedFilename    *string           `json:"updated_filename,omitempty"`
+	UpdatedCommandList *[]string         `json:"updated_command_list,omitempty"`
+	BuildStdErr        string            `json:"build_stderr"`
+	BuildStdOut        string            `json:"build_stdout"`
+	BuildMessage       string            `json:"build_message"`
+	BuildMetadata      map[string]string `json:"build_metadata,omitempty"`
 }
 
 func init() {
@@ -70,7 +71,7 @@ func init() {
 
 // handle payload build response messages coming back on the queue
 func processPayloadBuildResponse(msg amqp.Delivery) {
-	logging.LogInfo("got message", "routingKey", msg.RoutingKey)
+	//logging.LogInfo("got message", "routingKey", msg.RoutingKey)
 	payloadBuildResponse := PayloadBuildResponse{}
 	err := json.Unmarshal(msg.Body, &payloadBuildResponse)
 	if err != nil {
@@ -81,7 +82,7 @@ func processPayloadBuildResponse(msg amqp.Delivery) {
 	databasePayload := databaseStructs.Payload{}
 	err = database.DB.Get(&databasePayload, `SELECT 
 			payload.build_message, payload.build_stderr, payload.build_stdout, payload.id, payload.build_phase,
-			payload.eventstepinstance_id, payload.operation_id, payload.operator_id, payload.payload_type_id,
+			payload.eventstepinstance_id, payload.operation_id, payload.operator_id, payload.payload_type_id, payload.os,
 			filemeta.filename "filemeta.filename",
 			filemeta.id "filemeta.id"
 			FROM payload 
@@ -108,6 +109,13 @@ func processPayloadBuildResponse(msg amqp.Delivery) {
 	} else {
 		databasePayload.BuildPhase = PAYLOAD_BUILD_STATUS_ERROR
 	}
+	if payloadBuildResponse.BuildMetadata == nil {
+		payloadBuildResponse.BuildMetadata = map[string]string{}
+	}
+	// payload_type and os fields from builder are controlled by Mythic
+	delete(payloadBuildResponse.BuildMetadata, WrapperPayloadTypeRequirementKey)
+	payloadBuildResponse.BuildMetadata["os"] = databasePayload.Os
+	databasePayload.BuildMetadata = GetMythicJSONTextFromStruct(payloadBuildResponse.BuildMetadata)
 	if payloadBuildResponse.UpdatedFilename != nil {
 		databasePayload.Filemeta.Filename = []byte(*payloadBuildResponse.UpdatedFilename)
 		if _, err := database.DB.NamedExec(`UPDATE filemeta SET 
@@ -118,7 +126,8 @@ func processPayloadBuildResponse(msg amqp.Delivery) {
 	}
 	// update the payload in the database
 	if _, updateError := database.DB.NamedExec(`UPDATE payload SET 
-				build_phase=:build_phase, build_stderr=:build_stderr, build_message=:build_message, build_stdout=:build_stdout
+				build_phase=:build_phase, build_stderr=:build_stderr, build_message=:build_message, build_stdout=:build_stdout,
+				build_metadata=:build_metadata
 				WHERE id=:id`, databasePayload,
 	); updateError != nil {
 		logging.LogError(updateError, "Failed to update payload's build status")

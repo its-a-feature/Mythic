@@ -19,7 +19,8 @@ func RegisterNewPayload(payloadDefinition PayloadConfiguration, operatorOperatio
 	payloadtype := databaseStructs.Payloadtype{}
 	var err error
 	err = database.DB.Get(&payloadtype, `SELECT 
-		payloadtype.id, payloadtype."name", "wrapper", supported_os, supports_dynamic_loading, translation_container_id, mythic_encrypts, semver
+		payloadtype.id, payloadtype."name", "wrapper", supported_os, supports_dynamic_loading, translation_container_id, mythic_encrypts, semver,
+		wrapper_payload_requirements
 		FROM payloadtype 
 		WHERE payloadtype."name"=$1`, payloadDefinition.PayloadType)
 	if err != nil {
@@ -48,11 +49,18 @@ func RegisterNewPayload(payloadDefinition PayloadConfiguration, operatorOperatio
 		return "", 0, err
 	}
 	if payloadtype.Wrapper {
-		// get the wrapped payload
-		err = database.DB.Get(&wrappedPayload, "SELECT id FROM payload WHERE uuid=$1", payloadDefinition.WrappedPayloadUUID)
-		if err != nil {
-			logging.LogError(err, "Failed to find wrapped payload to create payload")
-			return "", 0, errors.New("Failed to find wrapped payload")
+		buildParameters := []PayloadConfigurationBuildParameter{}
+		if payloadDefinition.BuildParameters != nil {
+			buildParameters = *payloadDefinition.BuildParameters
+		}
+		if wrappedPayload.ID, err = ValidateWrappedPayload(
+			payloadtype.ID,
+			operatorOperation.CurrentOperation.ID,
+			buildParameters,
+			payloadDefinition.WrappedPayloadUUID,
+		); err != nil {
+			logging.LogError(err, "Wrapped payload is not compatible with wrapper")
+			return "", 0, err
 		}
 	}
 	stringSupportedOS := payloadtype.SupportedOs.StructStringValue()

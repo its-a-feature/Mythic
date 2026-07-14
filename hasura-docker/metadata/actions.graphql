@@ -534,6 +534,33 @@ type Query {
   getGlobalSettings: globalSettingsOutput
 }
 
+input WrapperBuildParameterInput {
+  name: String!
+  value: jsonb
+}
+
+type Query {
+  getWrappablePayloads(
+    wrapper_payload_type_id: Int!
+    build_parameters: [WrapperBuildParameterInput!]!
+    limit: Int = 25
+    offset: Int = 0
+  ): WrappablePayloadsOutput!
+}
+
+type WrappablePayloadReference {
+  id: Int!
+}
+
+type WrappablePayloadsOutput {
+  status: String!
+  error: String
+  total_count: Int!
+  limit: Int!
+  offset: Int!
+  payloads: [WrappablePayloadReference!]!
+}
+
 type Query {
   getInviteLinks: getInviteLinksOutput
 }

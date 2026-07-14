@@ -34,16 +34,11 @@ const SUB_Payload_Types = gql`
     wrapper
     agent_type
     semver
+    wrapper_payload_requirements
     translationcontainer {
         id
         name
         container_running
-    }
-    wrap_these_payload_types {
-        id
-        wrapped {
-          name
-        }
     }
   }
 }

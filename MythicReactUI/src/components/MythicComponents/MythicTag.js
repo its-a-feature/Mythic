@@ -16,6 +16,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import WebhookIcon from '@mui/icons-material/Webhook';
 import Chip from '@mui/material/Chip';
 import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined';
+import {mythicFetch} from '../utilities/MythicConnection';
 import {MythicStyledTooltip} from "./MythicStyledTooltip";
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import {meState} from "../../cache";
@@ -197,7 +198,7 @@ const StringTagDataEntry = ({name, value}) => {
   const colorRegex = ":color=[\"\'](?<color>.*?)[\"\']";
   const onClick = (e, url) => {
     e.preventDefault();
-    fetch(url).then((response) => {
+    mythicFetch(url).then((response) => {
       if (response.status !== 200) {
         snackActions.warning("HTTP " + response.status + " response");
       } else {

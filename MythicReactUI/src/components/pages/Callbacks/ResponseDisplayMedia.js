@@ -5,6 +5,7 @@ import {GetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import AceEditor from 'react-ace';
 import {useTheme} from '@mui/material/styles';
 import {snackActions} from "../../utilities/Snackbar";
+import {mythicFetch} from "../../utilities/MythicConnection";
 // https://github.com/ajaxorg/ace-builds/tree/master/src-min-noconflict
 import 'ace-builds/src-noconflict/mode-json';
 import 'ace-builds/src-noconflict/mode-csharp';
@@ -492,7 +493,7 @@ const DisplayText = ({agent_file_id, expand, filename, editable=false, fileMetaD
                     setEditedContent(previewText);
                     return;
                 }
-                const response = await fetch('/direct/view/' + agent_file_id, {
+                const response = await mythicFetch('/direct/view/' + agent_file_id, {
                     headers: {
                         Authorization: `Bearer ${localStorage.getItem('access_token')}`,
                     }
@@ -526,7 +527,7 @@ const DisplayText = ({agent_file_id, expand, filename, editable=false, fileMetaD
                     return;
                 }
                 const errorMessage = error.toString() === "TypeError: Failed to fetch" ?
-                    "Please refresh and accept the SSL connection error" :
+                    "Unable to reach Mythic. Check the server, network, or certificate approval." :
                     "Error talking to server: " + error.toString();
                 setLoadError(errorMessage);
                 snackActions.warning(errorMessage);
@@ -798,7 +799,7 @@ const DisplayDatabase = ({agent_file_id, expand, fileMetaData}) => {
     React.useEffect( () => {
         async function initialize(){
             const newSQL = await initSQLJS({locateFile: () => sqlWasm});
-            fetch('/direct/view/' + agent_file_id, {
+            mythicFetch('/direct/view/' + agent_file_id, {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem('access_token')}`
                 }
@@ -821,7 +822,7 @@ const DisplayDatabase = ({agent_file_id, expand, fileMetaData}) => {
                     });
             }).catch(error => {
                 if(error.toString() === "TypeError: Failed to fetch"){
-                    snackActions.warning("Please refresh and accept the SSL connection error");
+                    snackActions.warning("Unable to reach Mythic. Check the server, network, or certificate approval.");
                 } else {
                     snackActions.warning("Error talking to server: " + error.toString());
                 }

@@ -40,15 +40,29 @@ func MythicRPCDirectFileTokenCreate(input MythicRPCDirectFileTokenCreateMessage,
 		response.Error = "file_uuid is required"
 		return response
 	}
-	file := databaseStructs.Filemeta{}
+	file := databaseStructs.Filemeta{
+		AgentFileID: input.FileUUID,
+	}
 	err := database.DB.Get(&file, `SELECT 
 		id
 		FROM filemeta 
 		WHERE agent_file_id=$1 AND operation_id=$2`,
 		input.FileUUID, authContext.OperationID)
 	if err != nil {
-		response.Error = err.Error()
-		return response
+		payload := databaseStructs.Payload{}
+		err = database.DB.Get(&payload, `SELECT
+			filemeta.path "filemeta.path",
+			filemeta.filename "filemeta.filename",
+			filemeta.id "filemeta.id",
+			filemeta.operation_id "filemeta.operation_id"
+			FROM payload
+			JOIN filemeta ON payload.file_id = filemeta.id
+			WHERE payload.uuid=$1 and payload.operation_id=$2`, input.FileUUID, authContext.OperationID)
+		if err != nil {
+			logging.LogError(err, "Failed to find file for direct file access", "file_uuid", input.FileUUID, "operation_id", authContext.OperationID)
+			response.Error = err.Error()
+			return response
+		}
 	}
 	user := databaseStructs.Operator{
 		ID: authContext.OperatorID,
@@ -63,6 +77,7 @@ func MythicRPCDirectFileTokenCreate(input MythicRPCDirectFileTokenCreateMessage,
 	}
 	token, _, err := mythicjwt.GenerateScopedJWT(user, []string{scope}, input.FileUUID, directFileScopedTokenTTL, authContext.EventStepInstanceID, authContext.APITokensID)
 	if err != nil {
+		logging.LogError(err, "Failed to generate JWT for direct file access")
 		response.Error = err.Error()
 		return response
 	}

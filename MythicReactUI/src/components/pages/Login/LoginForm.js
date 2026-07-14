@@ -15,6 +15,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import KeyIcon from '@mui/icons-material/Key';
 import LoginIcon from '@mui/icons-material/Login';
 import {AuthFormStack, AuthMenuPaper, AuthMethodNote, LoginLayout} from './LoginLayout';
+import {mythicFetch} from '../../utilities/MythicConnection';
 
 export function LoginForm(props){
     const me = useReactiveVar(meState);
@@ -36,7 +37,7 @@ export function LoginForm(props){
             method: "GET",
             headers: {'Content-Type': 'application/json', MythicSource: "web"},
         };
-        fetch('/auth_services', requestOptions).then((response) => {
+        mythicFetch('/auth_services', requestOptions).then((response) => {
             if(response.status !== 200){
                 snackActions.warning("HTTP " + response.status + " Error: Check Mythic logs");
                 return;
@@ -54,7 +55,7 @@ export function LoginForm(props){
             });
         }).catch(error => {
             if(error.toString() === "TypeError: Failed to fetch"){
-                snackActions.warning("Please refresh and accept the SSL connection error");
+                snackActions.warning("Unable to reach Mythic. Check the server, network, or certificate approval.");
             } else {
                 snackActions.warning("Error talking to server: " + error.toString());
             }
@@ -73,7 +74,7 @@ export function LoginForm(props){
             headers: {'Content-Type': 'application/json', MythicSource: "web"},
             body: JSON.stringify({username, password})
         };
-        fetch('/auth', requestOptions).then((response) => {
+        mythicFetch('/auth', requestOptions).then((response) => {
             if(response.status === 403){
                 snackActions.warning("Invalid username or password");
                 return;
@@ -105,7 +106,7 @@ export function LoginForm(props){
             });
         }).catch(error => {
             if(error.toString() === "TypeError: Failed to fetch"){
-                snackActions.warning("Please refresh and accept the SSL connection error");
+                snackActions.warning("Unable to reach Mythic. Check the server, network, or certificate approval.");
             } else {
                 snackActions.warning("Error talking to server: " + error.toString());
             }
@@ -122,7 +123,7 @@ export function LoginForm(props){
             headers: {'Content-Type': 'application/json', MythicSource: "web"},
             body: JSON.stringify({"request_fields": finalRequestFields})
         };
-        fetch(`/auth_acs/${selectedAuthOptionRef.current.container}/${selectedAuthOptionRef.current.idp}`, requestOptions).then((response) => {
+        mythicFetch(`/auth_acs/${selectedAuthOptionRef.current.container}/${selectedAuthOptionRef.current.idp}`, requestOptions).then((response) => {
             if(response.redirected){
                 window.location.href = response.url;
             } else {
@@ -161,7 +162,7 @@ export function LoginForm(props){
         };
         let authOptionsPieces = authOptions[index].split(" - ");
         selectedAuthOptionRef.current = {"container": authOptionsPieces[1], "idp": authOptionsPieces[0]};
-        fetch(`/auth_redirect/${authOptionsPieces[1]}/${authOptionsPieces[0]}`, requestOptions).then((response) => {
+        mythicFetch(`/auth_redirect/${authOptionsPieces[1]}/${authOptionsPieces[0]}`, requestOptions).then((response) => {
             if(response.status !== 200){
                 snackActions.warning("HTTP " + response.status + " Error: Check Mythic logs");
                 return;
@@ -184,7 +185,7 @@ export function LoginForm(props){
             });
         }).catch(error => {
             if(error.toString() === "TypeError: Failed to fetch"){
-                snackActions.warning("Please refresh and accept the SSL connection error");
+                snackActions.warning("Unable to reach Mythic. Check the server, network, or certificate approval.");
             } else {
                 snackActions.warning("Error talking to server: " + error.toString());
             }

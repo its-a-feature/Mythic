@@ -15,6 +15,7 @@ import {jwtDecode} from 'jwt-decode';
 import {meState} from './cache';
 import {getSkewedNow} from "./components/utilities/Time";
 import {createTokenRefreshCoordinator, shouldInvalidateSessionAfterRefreshFailure} from "./tokenRefresh";
+import {mythicFetch, reportMythicConnectionError, reportMythicConnectionSuccess} from "./components/utilities/MythicConnection";
 
 export const mythicUIVersion = "0.4.0.7";
 
@@ -66,6 +67,7 @@ let retryLink = new RetryLink({
 });
 let httpLink = new HttpLink({
     uri: window.location.origin + "/graphql/",
+    fetch: mythicFetch,
     options: {
         reconnect: true,   
         connectionParams: {
@@ -208,7 +210,6 @@ const errorLink = onError(({ graphQLErrors, networkError, operation }) => {
       }
       
       if(networkError.extensions === undefined){
-        meState({...meState(), badConnection: true});
         //FailedRefresh();
         //window.location = "/new/login";
         return;
@@ -238,7 +239,7 @@ const errorLink = onError(({ graphQLErrors, networkError, operation }) => {
 });
 
 export const GetNewToken = createTokenRefreshCoordinator({
-  fetchImpl: (...args) => fetch(...args),
+  fetchImpl: mythicFetch,
   getTokens: () => ({
     accessToken: localStorage.getItem("access_token"),
     refreshToken: localStorage.getItem("refresh_token"),
@@ -259,11 +260,11 @@ const wsClient = createClient({
     on: {
       error: (err) => {
           //console.log("in on.error", err);
-          meState({...meState(), badConnection: true});
+          reportMythicConnectionError("websocket");
       },
       connected: (socket) => {
           //console.log("in on.connected", socket);
-          meState({...meState(), badConnection: false});
+          reportMythicConnectionSuccess("websocket");
       }
     },
     connectionParams: () => {

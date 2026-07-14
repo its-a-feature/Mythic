@@ -16,6 +16,7 @@ import {CallbackDataCard, DashboardEmptyCard, GaugeCard, getDashboardColors, Lin
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {b64DecodeUnicode} from "../Callbacks/ResponseDisplay";
+import {mythicFetch} from "../../utilities/MythicConnection";
 import {PayloadsTableRowBuildStatus} from "../Payloads/PayloadsTableRowBuildStatus";
 import InfoIconOutline from '@mui/icons-material/InfoOutlined';
 import {MythicDialog, MythicModifyStringDialog} from "../../MythicComponents/MythicDialog";
@@ -356,7 +357,7 @@ const HealthInstalledServicesDashboardElement = ({me, data, editing, removeEleme
             method: "GET",
             headers: {'Content-Type': 'application/json', MythicSource: "web"},
         };
-        fetch('/healthDetailed', requestOptions).then((response) => {
+        mythicFetch('/healthDetailed', requestOptions).then((response) => {
             response.json().then(data => {
                 //console.log(data);
                 let total = 0;
@@ -374,7 +375,7 @@ const HealthInstalledServicesDashboardElement = ({me, data, editing, removeEleme
             });
         }).catch(error => {
             if(error.toString() === "TypeError: Failed to fetch"){
-                snackActions.warning("Please refresh and accept the SSL connection error");
+                snackActions.warning("Unable to reach Mythic. Check the server, network, or certificate approval.");
             } else {
                 snackActions.warning("Error talking to server: " + error.toString());
             }

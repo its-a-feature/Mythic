@@ -55,20 +55,6 @@ array_relationships:
         table:
           name: payloadtypec2profile
           schema: public
-  - name: wrap_these_payload_types
-    using:
-      foreign_key_constraint_on:
-        column: wrapper_id
-        table:
-          name: wrappedpayloadtypes
-          schema: public
-  - name: wrapped_by_these_payload_types
-    using:
-      foreign_key_constraint_on:
-        column: wrapped_id
-        table:
-          name: wrappedpayloadtypes
-          schema: public
 select_permissions:
   - role: mythic_admin
     permission:
@@ -92,7 +78,7 @@ select_permissions:
         - supported_c2
         - supported_os
         - supported_translation_container
-        - supported_wrapping
+        - wrapper_payload_requirements
         - supports_dynamic_loading
         - supports_multiple_c2_in_build
         - supports_multiple_c2_instances_in_build
@@ -122,7 +108,7 @@ select_permissions:
         - supported_c2
         - supported_os
         - supported_translation_container
-        - supported_wrapping
+        - wrapper_payload_requirements
         - supports_dynamic_loading
         - supports_multiple_c2_in_build
         - supports_multiple_c2_instances_in_build
@@ -152,7 +138,7 @@ select_permissions:
         - supported_c2
         - supported_os
         - supported_translation_container
-        - supported_wrapping
+        - wrapper_payload_requirements
         - supports_dynamic_loading
         - supports_multiple_c2_in_build
         - supports_multiple_c2_instances_in_build
@@ -182,7 +168,7 @@ select_permissions:
         - supported_c2
         - supported_os
         - supported_translation_container
-        - supported_wrapping
+        - wrapper_payload_requirements
         - supports_dynamic_loading
         - supports_multiple_c2_in_build
         - supports_multiple_c2_instances_in_build

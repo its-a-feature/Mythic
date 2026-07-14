@@ -1,6 +1,6 @@
 import { LoggedInRoute } from './utilities/LoggedInRoute';
 import React, {createContext} from 'react';
-import { Typography } from '@mui/material';
+import {Button, Typography} from '@mui/material';
 import { useReactiveVar } from '@apollo/client';
 import { useDarkMode } from './utilities/useDarkMode';
 import { createTheme, ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
@@ -21,6 +21,7 @@ import {snackActions} from "./utilities/Snackbar";
 import {TopAppBarVertical} from "./TopAppBarVertical";
 import {MythicLoadingState} from "./MythicComponents/MythicStateDisplay";
 import { library } from '@fortawesome/fontawesome-svg-core';
+import {hasMythicConnectionError, mythicConnectionState} from "./utilities/MythicConnection";
 
 const lazyNamed = (importer, exportName) => React.lazy(() =>
     importer().then((module) => ({default: module[exportName]}))
@@ -660,6 +661,7 @@ export function App(props) {
         return () => {mounted = false;};
     }, []);
     const me = useReactiveVar(meState);
+    const connectionState = useReactiveVar(mythicConnectionState);
     const preferences = useReactiveVar(mePreferences);
     const [loadingPreference, setLoadingPreferences] = React.useState(true);
     const [themeMode, themeToggler] = useDarkMode();
@@ -1020,20 +1022,37 @@ export function App(props) {
                                     {me?.user?.current_operation_banner_text}
                                 </Typography>
                             }
-                            {me.loggedIn && me?.badConnection
-                                &&
-                                <Typography style={{
+                            {hasMythicConnectionError(connectionState) &&
+                                <div role="alert" style={{
                                     backgroundColor: theme.palette.error.main,
                                     width: "100%",
-                                    textAlign: "center",
-                                    fontWeight: "600",
                                     color: "white",
                                     borderBottom: `1px solid ${theme.borderColor}`,
-                                    fontSize: theme.typography.pxToRem(12),
-                                    lineHeight: "24px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    flexWrap: "wrap",
+                                    gap: "4px 12px",
+                                    padding: "4px 12px",
                                 }}>
-                                    {"Can't connect to Mythic. Please check connection and refresh"}
-                                </Typography>
+                                    <Typography component="span" style={{
+                                        textAlign: "center",
+                                        fontWeight: "600",
+                                        fontSize: theme.typography.pxToRem(12),
+                                        lineHeight: "24px",
+                                    }}>
+                                        {navigator.onLine === false
+                                            ? "Your browser is offline. Reconnect to the network, then reload Mythic."
+                                            : window.location.protocol === "https:"
+                                                ? "Connection to Mythic was lost. Check the server or network. If this deployment uses a self-signed certificate, Chrome may require approval again."
+                                                : "Connection to Mythic was lost. Check the server or network, then reload Mythic."}
+                                    </Typography>
+                                    <Button color="inherit" size="small" variant="outlined"
+                                            onClick={() => window.location.reload()}
+                                            sx={{fontWeight: 700, minWidth: "auto", py: 0.25}}>
+                                        Reload Mythic
+                                    </Button>
+                                </div>
                             }
                             <div style={{
                                 margin: '0px 0px 0px 0px',

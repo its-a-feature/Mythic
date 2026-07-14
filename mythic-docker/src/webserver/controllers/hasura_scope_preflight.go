@@ -846,15 +846,13 @@ var hasuraTableScopePolicies = map[string]hasuraTableScopePolicy{
 	},
 	"payloadtype": {
 		Relationships: map[string]string{
-			"browserscripts":                 "browserscript",
-			"buildparameters":                "buildparameter",
-			"commands":                       "command",
-			"operator_aliases":               "operator_alias",
-			"payload_build_steps":            "payload_build_step",
-			"payloads":                       "payload",
-			"payloadtypec2profiles":          "payloadtypec2profile",
-			"wrap_these_payload_types":       "wrappedpayloadtypes",
-			"wrapped_by_these_payload_types": "wrappedpayloadtypes",
+			"browserscripts":        "browserscript",
+			"buildparameters":       "buildparameter",
+			"commands":              "command",
+			"operator_aliases":      "operator_alias",
+			"payload_build_steps":   "payload_build_step",
+			"payloads":              "payload",
+			"payloadtypec2profiles": "payloadtypec2profile",
 		},
 	},
 	"payloadtypec2profile": {},
@@ -919,5 +917,4 @@ var hasuraTableScopePolicies = map[string]hasuraTableScopePolicy{
 			"payloadtypes": "payloadtype",
 		},
 	},
-	"wrappedpayloadtypes": {},
 }

@@ -1,4 +1,5 @@
 import React from 'react';
+import {mythicFetch} from "./MythicConnection";
 
 export const ImageWithAuth = ({ src, onError, alt = "", ...props }) => {
     const [imageSrc, setImageSrc] = React.useState('');
@@ -22,7 +23,7 @@ export const ImageWithAuth = ({ src, onError, alt = "", ...props }) => {
                 MythicSource: "web"
             };
             try {
-                const response = await fetch(src, { headers });
+                const response = await mythicFetch(src, { headers });
                 if(!response.ok){
                     throw new Error(`Failed to fetch image: ${response.status}`);
                 }
