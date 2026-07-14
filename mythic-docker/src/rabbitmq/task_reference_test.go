@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 )
 
 type testTaskReferenceProvider struct{}
@@ -226,18 +228,20 @@ func TestTaskReferenceJSONScalarAndStructuredReplacement(t *testing.T) {
 }
 
 func TestTaskReferenceStructuredKeywordResolutionIncludesParameterAliases(t *testing.T) {
+	context := taskReferenceResolveContext{OperationID: 42}
+	addTaskReferenceParameterMetadata(
+		&context,
+		[]databaseStructs.Commandparameters{{
+			Name:        "cred",
+			CliName:     "cli_cred",
+			DisplayName: "Credential",
+			Type:        "TestReference",
+		}},
+		map[string]taskReferenceProvider{"TestReference": testTaskReferenceProvider{}},
+	)
 	_, changed, keywordResolution, _, err := resolveTaskReferencesInParams(
 		`{"cli_cred":"@testref:alpha"}`,
-		taskReferenceResolveContext{
-			OperationID: 42,
-			StructuredParameterProviders: map[string]taskReferenceStructuredParameterProvider{
-				"cli_cred": {
-					Keyword:        "testref",
-					ParameterType:  "TestReference",
-					ParameterNames: []string{"cred", "cli_cred", "Credential"},
-				},
-			},
-		},
+		context,
 	)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -258,6 +262,126 @@ func TestTaskReferenceStructuredKeywordResolutionIncludesParameterAliases(t *tes
 	}
 	if !reflect.DeepEqual(keywordResolution, expectedResolution) {
 		t.Fatalf("keyword resolution = %#v, want %#v", keywordResolution, expectedResolution)
+	}
+}
+
+func TestTaskReferenceScalarKeywordResolutionIncludesParameterAliases(t *testing.T) {
+	context := taskReferenceResolveContext{OperationID: 42}
+	addTaskReferenceParameterMetadata(
+		&context,
+		[]databaseStructs.Commandparameters{{
+			Name:        "arguments",
+			CliName:     "Arguments",
+			DisplayName: "Command Arguments",
+			Type:        COMMAND_PARAMETER_TYPE_STRING,
+		}},
+		nil,
+	)
+	expectedParameterNames := []string{"Arguments", "Command Arguments", "arguments"}
+	for _, parameterName := range expectedParameterNames {
+		t.Run(parameterName, func(t *testing.T) {
+			paramsBytes, err := json.Marshal(map[string]interface{}{
+				parameterName: `/user:@testref:143.name`,
+			})
+			if err != nil {
+				t.Fatalf("failed to marshal params: %v", err)
+			}
+			updated, changed, keywordResolution, _, err := resolveTaskReferencesInParams(string(paramsBytes), context)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if !changed {
+				t.Fatal("expected params to change")
+			}
+			updatedParams := map[string]interface{}{}
+			if err := json.Unmarshal([]byte(updated), &updatedParams); err != nil {
+				t.Fatalf("failed to unmarshal updated params: %v", err)
+			}
+			if updatedParams[parameterName] != "/user:143:name" {
+				t.Fatalf("updated parameter = %#v", updatedParams[parameterName])
+			}
+			expectedResolution := []PTTaskKeywordResolution{{
+				Raw:            "@testref:143.name",
+				Keyword:        "testref",
+				Selector:       "143",
+				Field:          "name",
+				ValueType:      taskReferenceValueTypeString,
+				ExpandedValue:  "143:name",
+				ParameterNames: expectedParameterNames,
+			}}
+			if !reflect.DeepEqual(keywordResolution, expectedResolution) {
+				t.Fatalf("keyword resolution = %#v, want %#v", keywordResolution, expectedResolution)
+			}
+		})
+	}
+}
+
+func TestTaskReferenceScalarAliasesPropagateThroughNestedValuesAndMerge(t *testing.T) {
+	context := taskReferenceResolveContext{OperationID: 42}
+	addTaskReferenceParameterMetadata(
+		&context,
+		[]databaseStructs.Commandparameters{
+			{
+				Name:        "arguments",
+				CliName:     "Arguments",
+				DisplayName: "Command Arguments",
+				Type:        COMMAND_PARAMETER_TYPE_STRING,
+			},
+			{
+				Name:        "other",
+				CliName:     "Other",
+				DisplayName: "Other Value",
+				Type:        COMMAND_PARAMETER_TYPE_ARRAY,
+			},
+		},
+		nil,
+	)
+	_, changed, keywordResolution, _, err := resolveTaskReferencesInParams(
+		`{"Arguments":{"nested":["first=@testref:alpha.value"]},"Other":["second=@testref:alpha.value"]}`,
+		context,
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !changed {
+		t.Fatal("expected params to change")
+	}
+	expectedResolution := []PTTaskKeywordResolution{{
+		Raw:           "@testref:alpha.value",
+		Keyword:       "testref",
+		Selector:      "alpha",
+		Field:         "value",
+		ValueType:     taskReferenceValueTypeString,
+		ExpandedValue: "alpha:value",
+		ParameterNames: []string{
+			"Arguments",
+			"Command Arguments",
+			"Other",
+			"Other Value",
+			"arguments",
+			"other",
+		},
+	}}
+	if !reflect.DeepEqual(keywordResolution, expectedResolution) {
+		t.Fatalf("keyword resolution = %#v, want %#v", keywordResolution, expectedResolution)
+	}
+}
+
+func TestTaskReferenceParameterMetadataDropsBlankAndDuplicateAliases(t *testing.T) {
+	context := taskReferenceResolveContext{}
+	addTaskReferenceParameterMetadata(
+		&context,
+		[]databaseStructs.Commandparameters{{
+			Name:        "same",
+			CliName:     " same ",
+			DisplayName: "",
+			Type:        COMMAND_PARAMETER_TYPE_STRING,
+		}},
+		nil,
+	)
+	expectedAliases := []string{"same"}
+	if !reflect.DeepEqual(context.ParameterAliases["same"], expectedAliases) {
+		t.Fatalf("parameter aliases = %#v, want %#v", context.ParameterAliases["same"], expectedAliases)
 	}
 }
 
@@ -599,7 +723,7 @@ func TestTaskReferenceLinkStructuredCollection(t *testing.T) {
 }
 
 func TestTaskReferenceLinkNamedArgsAreNotScalarReferences(t *testing.T) {
-	matches, err := collectTaskReferencesFromString(`connect @link:payload=payload-uuid,host=TARGET,c2=mesh`, "")
+	matches, err := collectTaskReferencesFromString(`connect @link:payload=payload-uuid,host=TARGET,c2=mesh`, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
