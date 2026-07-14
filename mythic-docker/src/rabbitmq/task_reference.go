@@ -120,10 +120,11 @@ type taskReferenceStructuredParameterProvider struct {
 type taskReferenceResolveContext struct {
 	OperationID                  int
 	CallbackID                   int
+	ParameterAliases             map[string][]string
 	StructuredParameterProviders map[string]taskReferenceStructuredParameterProvider
 }
 
-func expandTaskReferenceParameters(commandID int, operationID int, callbackID int, params string) (string, bool, []PTTaskKeywordResolution, []taskReferencePostCreateAction, error) {
+func expandTaskReferenceParameters(commandID int, operationID int, callbackID int, parameterGroupName string, params string) (string, bool, []PTTaskKeywordResolution, []taskReferencePostCreateAction, error) {
 	if commandID <= 0 || operationID <= 0 {
 		logging.LogError(nil, "expandTaskReferenceParameters", "invalid command ID or operation ID")
 		return params, false, nil, nil, nil
@@ -139,8 +140,9 @@ func expandTaskReferenceParameters(commandID int, operationID int, callbackID in
 	}
 	taskReferenceProviderRegistry.RUnlock()
 	context := taskReferenceResolveContext{
-		OperationID: operationID,
-		CallbackID:  callbackID,
+		OperationID:      operationID,
+		CallbackID:       callbackID,
+		ParameterAliases: make(map[string][]string),
 		// StructuredParameterProviders maps parameter names, CLI names, and
 		// display names to the provider that can hydrate that top-level value.
 		StructuredParameterProviders: make(map[string]taskReferenceStructuredParameterProvider),
@@ -162,41 +164,46 @@ func expandTaskReferenceParameters(commandID int, operationID int, callbackID in
 	if !paramsContainTaskReference && len(parameterTypes) == 0 {
 		return params, false, nil, nil, nil
 	}
-	if len(parameterTypes) > 0 {
-		structuredParameters := []databaseStructs.Commandparameters{}
-		query, args, err := sqlx.In(`SELECT
-				DISTINCT ON ("name")
-				"name", display_name, cli_name, "type"
-				FROM commandparameters
-				WHERE command_id=? AND "type" IN (?)`,
-			commandID, parameterTypes)
-		if err != nil {
-			logging.LogError(err, "expandTaskReferenceParameters", "failed to build parameter query")
-			return params, false, nil, nil, fmt.Errorf("failed to build parameter query: %w", err)
+	commandParameters := []databaseStructs.Commandparameters{}
+	err := database.DB.Select(&commandParameters, `SELECT
+			"name", display_name, cli_name, "type"
+			FROM commandparameters
+			WHERE command_id=$1 AND parameter_group_name=$2
+			ORDER BY id`,
+		commandID, parameterGroupName)
+	if err != nil {
+		logging.LogError(err, "expandTaskReferenceParameters", "failed to query parameters")
+		return params, false, nil, nil, fmt.Errorf("failed to query parameters: %w", err)
+	}
+	addTaskReferenceParameterMetadata(&context, commandParameters, providersByParameterType)
+	return resolveTaskReferencesInParams(params, context)
+}
+
+func addTaskReferenceParameterMetadata(context *taskReferenceResolveContext, commandParameters []databaseStructs.Commandparameters, providersByParameterType map[string]taskReferenceProvider) {
+	if context.ParameterAliases == nil {
+		context.ParameterAliases = make(map[string][]string)
+	}
+	if context.StructuredParameterProviders == nil {
+		context.StructuredParameterProviders = make(map[string]taskReferenceStructuredParameterProvider)
+	}
+	for _, parameter := range commandParameters {
+		parameterNames := taskReferenceUniqueParameterNames(parameter.Name, parameter.CliName, parameter.DisplayName)
+		for _, parameterKey := range parameterNames {
+			context.ParameterAliases[parameterKey] = parameterNames
 		}
-		query = database.DB.Rebind(query)
-		err = database.DB.Select(&structuredParameters, query, args...)
-		if err != nil {
-			logging.LogError(err, "expandTaskReferenceParameters", "failed to query parameters")
-			return params, false, nil, nil, fmt.Errorf("failed to query parameters: %w", err)
+		provider, ok := providersByParameterType[parameter.Type]
+		if !ok {
+			continue
 		}
-		for _, parameter := range structuredParameters {
-			provider, ok := providersByParameterType[parameter.Type]
-			if !ok {
-				continue
-			}
-			parameterNames := taskReferenceUniqueParameterNames(parameter.Name, parameter.CliName, parameter.DisplayName)
-			structuredProvider := taskReferenceStructuredParameterProvider{
-				Keyword:        provider.Keyword(),
-				ParameterType:  parameter.Type,
-				ParameterNames: parameterNames,
-			}
-			for _, parameterKey := range parameterNames {
-				context.StructuredParameterProviders[parameterKey] = structuredProvider
-			}
+		structuredProvider := taskReferenceStructuredParameterProvider{
+			Keyword:        provider.Keyword(),
+			ParameterType:  parameter.Type,
+			ParameterNames: parameterNames,
+		}
+		for _, parameterKey := range parameterNames {
+			context.StructuredParameterProviders[parameterKey] = structuredProvider
 		}
 	}
-	return resolveTaskReferencesInParams(params, context)
 }
 
 func taskReferenceUniqueParameterNames(parameterNames ...string) []string {
@@ -256,7 +263,7 @@ func resolveTaskReferencesInParams(params string, context taskReferenceResolveCo
 		}
 		return string(updatedBytes), true, buildTaskKeywordResolution(matches, resolved), collectTaskReferencePostCreateActions(matches, resolved), nil
 	}
-	matches, err := collectTaskReferencesFromString(params, "")
+	matches, err := collectTaskReferencesFromString(params, nil)
 	if err != nil {
 		return params, false, nil, nil, err
 	}
@@ -312,10 +319,17 @@ func collectTaskReferencesFromJSON(value interface{}, context taskReferenceResol
 		}
 		return matches, nil
 	case string:
-		return collectTaskReferencesFromString(typed, parameterName)
+		return collectTaskReferencesFromString(typed, taskReferenceParameterNames(context, parameterName))
 	default:
 		return nil, nil
 	}
+}
+
+func taskReferenceParameterNames(context taskReferenceResolveContext, parameterName string) []string {
+	if parameterNames, ok := context.ParameterAliases[parameterName]; ok {
+		return parameterNames
+	}
+	return taskReferenceUniqueParameterNames(parameterName)
 }
 
 func collectStructuredTaskReference(value interface{}, structuredProvider taskReferenceStructuredParameterProvider, parameterName string) (taskReferenceMatch, error) {
@@ -330,7 +344,7 @@ func collectStructuredTaskReference(value interface{}, structuredProvider taskRe
 	}, nil
 }
 
-func collectTaskReferencesFromString(value string, parameterName string) ([]taskReferenceMatch, error) {
+func collectTaskReferencesFromString(value string, parameterNames []string) ([]taskReferenceMatch, error) {
 	if !strings.Contains(value, "@") {
 		return nil, nil
 	}
@@ -349,7 +363,7 @@ func collectTaskReferencesFromString(value string, parameterName string) ([]task
 		}
 		references = append(references, taskReferenceMatch{
 			Reference:      reference,
-			ParameterNames: taskReferenceUniqueParameterNames(parameterName),
+			ParameterNames: taskReferenceUniqueParameterNames(parameterNames...),
 			ValueType:      taskReferenceValueTypeString,
 		})
 	}

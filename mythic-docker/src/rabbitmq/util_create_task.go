@@ -676,8 +676,8 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 	ensureCreateTaskOriginalParams(&createTaskInput)
 	taskReferenceExpansionError := ""
 	selectedParameterGroupName := "Default"
-	if createTaskInput.ParameterGroupName != nil {
-		selectedParameterGroupName = *createTaskInput.ParameterGroupName
+	if createTaskInput.ParameterGroupName != nil && strings.TrimSpace(*createTaskInput.ParameterGroupName) != "" {
+		selectedParameterGroupName = strings.TrimSpace(*createTaskInput.ParameterGroupName)
 	}
 	task.MythicParsedParams = createTaskInput.Params
 	displayParams := createTaskInput.Params
@@ -689,6 +689,7 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 			task.Command.ID,
 			createTaskInput.CurrentOperationID,
 			callback.ID,
+			selectedParameterGroupName,
 			createTaskInput.Params,
 		)
 		if err != nil {

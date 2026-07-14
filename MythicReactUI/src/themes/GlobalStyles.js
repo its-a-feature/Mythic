@@ -7310,6 +7310,9 @@ tspan {
     height: 100%;
     min-height: 0;
 }
+.mythic-create-flow-shell > .mythic-detail-section-header {
+    flex: 0 0 auto;
+}
 .mythic-create-flow-content {
     display: flex;
     flex: 1 1 auto;
