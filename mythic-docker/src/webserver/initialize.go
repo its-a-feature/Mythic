@@ -304,6 +304,11 @@ func setRoutes(r *gin.Engine) {
 						mythicjwt.SCOPE_PAYLOAD_READ,
 					}),
 					webcontroller.ExportPayloadConfigWebhook)
+				allOperationMembers.POST("get_wrappable_payloads_webhook",
+					authentication.TokenScopeMiddleware([]string{
+						mythicjwt.SCOPE_PAYLOAD_READ,
+					}),
+					webcontroller.GetWrappablePayloadsWebhook)
 				allOperationMembers.POST("export_callback_config_webhook",
 					authentication.TokenScopeMiddleware([]string{
 						mythicjwt.SCOPE_CALLBACK_READ,

@@ -52,7 +52,7 @@ export function PayloadTypeRow({service, showDeleted}){
     const [openCommandsDialog, setOpenCommandsDialog] = React.useState(false);
     const [openListFilesDialog, setOpenListFilesDialog] = React.useState(false);
     const typeLabel = service.wrapper ? "Wrapper" : service.agent_type === "agent" ? "Agent" : service.agent_type === "service" ? "3rd Party Service" : "Command Augmentation";
-    const wrappedPayloadNames = React.useMemo(() => (service.wrap_these_payload_types || []).map((cur) => cur.wrapped.name), [service.wrap_these_payload_types]);
+    const wrapperRuleCount = service.wrapper_payload_requirements?.length || 0;
     const supportedOS = React.useMemo(() => service.supported_os || [], [service.supported_os]);
     const onAcceptDelete = () => {
         updateDeleted({variables: {payloadtype_id: service.id, deleted: !service.deleted}})
@@ -92,7 +92,7 @@ export function PayloadTypeRow({service, showDeleted}){
                             {label: "Author", value: service.author},
                             {label: "Version", value: service.semver, chip: true},
                             {label: "Supported OS", value: supportedOS},
-                            {label: "Wraps", value: wrappedPayloadNames},
+                            {label: "Wrapper rules", value: service.wrapper ? `${wrapperRuleCount} configured` : undefined},
                         ]}
                         description={service.note}
                     />

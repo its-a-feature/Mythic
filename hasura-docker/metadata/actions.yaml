@@ -763,6 +763,18 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: getWrappablePayloads
+    definition:
+      kind: ""
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/get_wrappable_payloads_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: spectator
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
+    comment: Return one page of successful payloads that exactly match the active wrapper requirements
   - name: getInviteLinks
     definition:
       kind: ""
@@ -1153,6 +1165,7 @@ custom_types:
     - name: NewCallbackConfig
     - name: newCallbackConfig
     - name: disabledCommand
+    - name: WrapperBuildParameterInput
   objects:
     - name: createAPITokenResponse
     - name: ScopeCheckOutput
@@ -1294,4 +1307,15 @@ custom_types:
     - name: custombrowserExportFunctionOutput
     - name: ChatActionOutput
     - name: ChatSearchResult
+    - name: WrappablePayloadsOutput
+    - name: WrappablePayloadReference
+      relationships:
+        - field_mapping:
+            id: id
+          name: payload
+          remote_table:
+            name: payload
+            schema: public
+          source: default
+          type: object
   scalars: []

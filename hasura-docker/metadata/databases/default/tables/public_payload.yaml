@@ -129,6 +129,7 @@ select_permissions:
         - task_id
         - wrapped_payload_id
         - build_container
+        - build_metadata
         - build_message
         - build_phase
         - build_stderr
@@ -163,6 +164,7 @@ select_permissions:
         - task_id
         - wrapped_payload_id
         - build_container
+        - build_metadata
         - build_message
         - build_phase
         - build_stderr
@@ -197,6 +199,7 @@ select_permissions:
         - task_id
         - wrapped_payload_id
         - build_container
+        - build_metadata
         - build_message
         - build_phase
         - build_stderr
@@ -231,6 +234,7 @@ select_permissions:
         - task_id
         - wrapped_payload_id
         - build_container
+        - build_metadata
         - build_message
         - build_phase
         - build_stderr

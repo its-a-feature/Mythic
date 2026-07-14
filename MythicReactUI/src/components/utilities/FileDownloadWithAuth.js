@@ -1,10 +1,11 @@
 import {Button, Link} from '@mui/material';
 import {snackActions} from "./Snackbar";
+import {mythicFetch} from "./MythicConnection";
 
 export const handleAuthLink = async (event, href) => {
     event.preventDefault(); // Prevent default anchor link navigation
     try {
-        const response = await fetch(href, {
+        const response = await mythicFetch(href, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`,

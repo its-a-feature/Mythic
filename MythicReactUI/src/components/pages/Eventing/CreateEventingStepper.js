@@ -16,6 +16,7 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import {CreatePayloadParameter} from "../CreatePayload/CreatePayloadParameter";
+import {mythicFetch} from "../../utilities/MythicConnection";
 import MythicTextField from "../../MythicComponents/MythicTextField";
 import {ResponseDisplayPlaintext} from "../Callbacks/ResponseDisplayPlaintext";
 import {snackActions} from "../../utilities/Snackbar";
@@ -790,7 +791,7 @@ const copyExistingEventGroupFiles = async (sourceFiles, destinationEventGroupID)
             continue;
         }
         try{
-            const response = await fetch(`/direct/download/${sourceFile.agent_file_id}`, {
+            const response = await mythicFetch(`/direct/download/${sourceFile.agent_file_id}`, {
                 method: "GET",
                 headers: {
                     "Authorization": `Bearer ${localStorage.getItem("access_token")}`,

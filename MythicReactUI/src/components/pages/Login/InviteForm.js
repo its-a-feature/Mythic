@@ -6,6 +6,7 @@ import {restartWebsockets} from '../../../index';
 import { snackActions } from '../../utilities/Snackbar';
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import {AuthFormStack, LoginLayout} from './LoginLayout';
+import {mythicFetch} from '../../utilities/MythicConnection';
 
 export function InviteForm(props){
     const [username, setUsername] = React.useState("");
@@ -31,7 +32,7 @@ export function InviteForm(props){
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({username, password, code: inviteCode, email})
         };
-        fetch('/invite', requestOptions).then((response) => {
+        mythicFetch('/invite', requestOptions).then((response) => {
             if(response.status !== 200){
                 snackActions.warning("HTTP " + response.status + " Error: Check Mythic logs");
                 return;
@@ -52,7 +53,7 @@ export function InviteForm(props){
             });
         }).catch(error => {
             if(error.toString() === "TypeError: Failed to fetch"){
-                snackActions.warning("Please refresh and accept the SSL connection error");
+                snackActions.warning("Unable to reach Mythic. Check the server, network, or certificate approval.");
             } else {
                 snackActions.warning("Error talking to server: " + error.toString());
             }

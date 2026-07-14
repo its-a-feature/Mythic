@@ -9,6 +9,7 @@ import 'ace-builds/src-noconflict/theme-xcode';
 import "ace-builds/src-noconflict/ext-searchbox";
 import {useTheme} from '@mui/material/styles';
 import {MythicDialogBody, MythicDialogButton, MythicDialogFooter, MythicDialogSection} from "../../MythicComponents/MythicDialogLayout";
+import {mythicFetch} from "../../utilities/MythicConnection";
 
 
 export function ConsumingServicesGetIDPMetadataDialog(props) {
@@ -19,7 +20,7 @@ export function ConsumingServicesGetIDPMetadataDialog(props) {
             method: "GET",
             headers: {'Content-Type': 'application/json', MythicSource: "web"},
         };
-        fetch(`/auth_metadata/${props.container}/${props.idp}`, requestOptions).then((response) => {
+        mythicFetch(`/auth_metadata/${props.container}/${props.idp}`, requestOptions).then((response) => {
             if(response.status !== 200){
                 snackActions.warning("HTTP " + response.status + " Error: Check Mythic logs");
                 return;
@@ -36,7 +37,7 @@ export function ConsumingServicesGetIDPMetadataDialog(props) {
             });
         }).catch(error => {
             if(error.toString() === "TypeError: Failed to fetch"){
-                snackActions.warning("Please refresh and accept the SSL connection error");
+                snackActions.warning("Unable to reach Mythic. Check the server, network, or certificate approval.");
             } else {
                 snackActions.warning("Error talking to server: " + error.toString());
             }

@@ -58,4 +58,3 @@
 - "!include public_taskartifact.yaml"
 - "!include public_token.yaml"
 - "!include public_translationcontainer.yaml"
-- "!include public_wrappedpayloadtypes.yaml"

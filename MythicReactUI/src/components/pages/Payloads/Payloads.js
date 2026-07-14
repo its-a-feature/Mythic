@@ -8,6 +8,7 @@ import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
 export const payloadFragment = gql`
 fragment payloadData on payload {
   build_message
+  build_metadata
   build_phase
   build_stderr
   callback_alert

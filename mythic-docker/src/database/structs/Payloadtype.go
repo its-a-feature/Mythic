@@ -33,6 +33,6 @@ type Payloadtype struct {
 	C2ParameterDeviations              MythicJSONText       `db:"c2_parameter_deviations"`
 	SupportedC2                        MythicJSONArray      `db:"supported_c2"`
 	CommandHelpFunction                string               `db:"command_help_function"`
-	SupportedWrapping                  MythicJSONArray      `db:"supported_wrapping"`
+	WrapperPayloadRequirements         MythicJSONArray      `db:"wrapper_payload_requirements"`
 	SupportedTranslationContainer      string               `db:"supported_translation_container"`
 }

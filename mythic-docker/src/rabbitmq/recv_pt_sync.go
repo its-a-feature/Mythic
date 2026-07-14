@@ -85,13 +85,22 @@ type C2ParameterDeviation struct {
 	DefaultValue      interface{}           `json:"default_value" mapstructure:"default_value"`
 	DictionaryChoices []ParameterDictionary `json:"dictionary_choices" mapstructure:"dictionary_choices"`
 }
+
+// WrapperPayloadRequirement is a single OR branch.
+//
+//	Fields within When and Requires are exact, case-sensitive AND comparisons.
+type WrapperPayloadRequirement struct {
+	When     map[string]string `json:"when,omitempty"`
+	Requires map[string]string `json:"requires"`
+}
+
 type PayloadType struct {
 	Name                               string                                     `json:"name"`
 	FileExtension                      string                                     `json:"file_extension"`
 	Author                             string                                     `json:"author"`
 	SupportedOS                        []string                                   `json:"supported_os"`
 	Wrapper                            bool                                       `json:"wrapper"`
-	SupportedWrapperPayloadTypes       []string                                   `json:"supported_wrapper_payload_types"`
+	WrapperPayloadRequirements         []WrapperPayloadRequirement                `json:"wrapper_payload_requirements"`
 	SupportsDynamicLoading             bool                                       `json:"supports_dynamic_load"`
 	Description                        string                                     `json:"description"`
 	SupportedC2Profiles                []string                                   `json:"supported_c2_profiles"`
@@ -235,6 +244,52 @@ var buildParameterMutex sync.Mutex
 var c2ProfileMutex sync.Mutex
 var commandsMutex sync.Mutex
 
+func validateWrapperPayloadRequirements(payloadType PayloadType) error {
+	if len(payloadType.WrapperPayloadRequirements) == 0 {
+		return nil
+	}
+	if !payloadType.Wrapper {
+		return errors.New("wrapper_payload_requirements can only be set on wrapper payload types")
+	}
+
+	buildParameters := make(map[string]BuildParameter, len(payloadType.BuildParameters))
+	for _, parameter := range payloadType.BuildParameters {
+		buildParameters[parameter.Name] = parameter
+	}
+	for ruleIndex, rule := range payloadType.WrapperPayloadRequirements {
+		// A missing Requires field is invalid. An explicit empty object is the
+		// intentional wildcard rule and must remain distinct from omission.
+		if rule.Requires == nil {
+			return fmt.Errorf("wrapper_payload_requirements[%d].requires is required", ruleIndex)
+		}
+		for key := range rule.Requires {
+			if key == "" {
+				return fmt.Errorf("wrapper_payload_requirements[%d].requires contains an empty key", ruleIndex)
+			}
+		}
+		for parameterName := range rule.When {
+			parameter, ok := buildParameters[parameterName]
+			if !ok {
+				return fmt.Errorf("wrapper_payload_requirements[%d].when references unknown build parameter %q", ruleIndex, parameterName)
+			}
+			if parameter.Randomize {
+				return fmt.Errorf("wrapper_payload_requirements[%d].when cannot use randomized build parameter %q", ruleIndex, parameterName)
+			}
+			switch parameter.ParameterType {
+			case BUILD_PARAMETER_TYPE_STRING,
+				BUILD_PARAMETER_TYPE_BOOLEAN,
+				BUILD_PARAMETER_TYPE_CHOOSE_ONE,
+				BUILD_PARAMETER_TYPE_CHOOSE_ONE_CUSTOM,
+				BUILD_PARAMETER_TYPE_DATE,
+				BUILD_PARAMETER_TYPE_NUMBER:
+			default:
+				return fmt.Errorf("wrapper_payload_requirements[%d].when cannot use %s build parameter %q", ruleIndex, parameter.ParameterType, parameterName)
+			}
+		}
+	}
+	return nil
+}
+
 func payloadTypeSync(in PayloadTypeSyncMessage) error {
 	//logging.LogDebug("Received connection to PayloadTypeSync", "syncMessage", in)
 	payloadtype := databaseStructs.Payloadtype{}
@@ -246,7 +301,12 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 		logging.LogError(nil, "attempting to sync bad payload container version")
 		return errors.New(fmt.Sprintf("Version, %s, isn't supported. The max supported version is < %s. \nThis likely means your PyPi or Golang library is out of date and should be updated.", in.ContainerVersion, validContainerVersionMax))
 	}
-	if err := database.DB.Get(&payloadtype, `SELECT * FROM payloadtype WHERE "name"=$1`, in.PayloadType.Name); errors.Is(err, sql.ErrNoRows) {
+	err := validateWrapperPayloadRequirements(in.PayloadType)
+	if err != nil {
+		return err
+	}
+	err = database.DB.Get(&payloadtype, `SELECT * FROM payloadtype WHERE "name"=$1`, in.PayloadType.Name)
+	if errors.Is(err, sql.ErrNoRows) {
 		// this means we don't have the payload, so we need to create it and all the associated components
 		logging.LogDebug("Failed to find payload type, syncing new data", "payload", payloadtype)
 		payloadtype.Name = in.PayloadType.Name
@@ -291,27 +351,29 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 		payloadtype.CommandHelpFunction = in.PayloadType.CommandHelpFunction
 		payloadtype.SemVer = in.PayloadType.SemVer
 		payloadtype.SupportedC2 = GetMythicJSONArrayFromStruct(in.PayloadType.SupportedC2Profiles)
-		payloadtype.SupportedWrapping = GetMythicJSONArrayFromStruct(in.PayloadType.SupportedWrapperPayloadTypes)
+		payloadtype.WrapperPayloadRequirements = GetMythicJSONArrayFromStruct(in.PayloadType.WrapperPayloadRequirements)
 		payloadtype.SupportsMultipleC2InBuild = in.PayloadType.SupportsMultipleC2InBuild
 		payloadtype.SupportsMultipleC2InstancesInBuild = in.PayloadType.SupportsMultipleC2InstancesInBuild
 		payloadtype.SupportedTranslationContainer = in.PayloadType.TranslationContainerName
-		if statement, err := database.DB.PrepareNamed(`INSERT INTO payloadtype 
+		statement, err := database.DB.PrepareNamed(`INSERT INTO payloadtype 
 			("name",author,container_running,file_extension,mythic_encrypts,note,supported_os,supports_dynamic_loading,wrapper,agent_type,message_format,command_augment_supported_agents,message_uuid_length,use_display_params_for_cli_history,
-			 c2_parameter_deviations, command_help_function, supports_multiple_c2_in_build, supports_multiple_c2_instances_in_build, supported_c2, semver, supported_wrapping, supported_translation_container) 
+			 c2_parameter_deviations, command_help_function, supports_multiple_c2_in_build, supports_multiple_c2_instances_in_build, supported_c2, semver, wrapper_payload_requirements, supported_translation_container)
 			VALUES (:name, :author, :container_running, :file_extension, :mythic_encrypts, :note, :supported_os, :supports_dynamic_loading, :wrapper,:agent_type, :message_format, :command_augment_supported_agents, :message_uuid_length, :use_display_params_for_cli_history,
-			        :c2_parameter_deviations, :command_help_function, :supports_multiple_c2_in_build, :supports_multiple_c2_instances_in_build, :supported_c2, :semver, :supported_wrapping, :supported_translation_container) 
+			        :c2_parameter_deviations, :command_help_function, :supports_multiple_c2_in_build, :supports_multiple_c2_instances_in_build, :supported_c2, :semver, :wrapper_payload_requirements, :supported_translation_container)
 			RETURNING id`,
-		); err != nil {
+		)
+		if err != nil {
 			logging.LogError(err, "Failed to create new payloadtype statement")
 			return err
-		} else {
-			if err = statement.Get(&payloadtype.ID, payloadtype); err != nil {
-				logging.LogError(err, "Failed to create new payloadtype")
-				return err
-			}
-			// resync payloads that might support it
-			go reSyncPayloadTypes()
 		}
+		err = statement.Get(&payloadtype.ID, payloadtype)
+		if err != nil {
+			logging.LogError(err, "Failed to create new payloadtype")
+			return err
+		}
+		// resync payloads that might support it
+		go reSyncPayloadTypes()
+
 	} else if err == nil {
 		// the payload exists in the database, so we need to go down the track of updating/adding/removing information
 		//logging.LogDebug("Found payload", "payload", payloadtype)
@@ -358,7 +420,7 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 		payloadtype.CommandHelpFunction = in.PayloadType.CommandHelpFunction
 		payloadtype.SemVer = in.PayloadType.SemVer
 		payloadtype.SupportedC2 = GetMythicJSONArrayFromStruct(in.PayloadType.SupportedC2Profiles)
-		payloadtype.SupportedWrapping = GetMythicJSONArrayFromStruct(in.PayloadType.SupportedWrapperPayloadTypes)
+		payloadtype.WrapperPayloadRequirements = GetMythicJSONArrayFromStruct(in.PayloadType.WrapperPayloadRequirements)
 		payloadtype.SupportsMultipleC2InBuild = in.PayloadType.SupportsMultipleC2InBuild
 		payloadtype.SupportsMultipleC2InstancesInBuild = in.PayloadType.SupportsMultipleC2InstancesInBuild
 		payloadtype.SupportedTranslationContainer = in.PayloadType.TranslationContainerName
@@ -369,7 +431,7 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 			message_uuid_length=:message_uuid_length, use_display_params_for_cli_history=:use_display_params_for_cli_history,
 			c2_parameter_deviations=:c2_parameter_deviations, command_help_function=:command_help_function, 
 			supports_multiple_c2_in_build=:supports_multiple_c2_in_build, supports_multiple_c2_instances_in_build=:supports_multiple_c2_instances_in_build, 
-			supported_c2=:supported_c2, semver=:semver, supported_wrapping=:supported_wrapping, supported_translation_container=:supported_translation_container
+			supported_c2=:supported_c2, semver=:semver, wrapper_payload_requirements=:wrapper_payload_requirements, supported_translation_container=:supported_translation_container
 			WHERE id=:id`, payloadtype,
 		)
 		if err != nil {
@@ -380,11 +442,7 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 		logging.LogError(err, "Failed to fetch payloadtype in database while syncing")
 		return err
 	}
-	err := updatePayloadTypeC2Profiles(in, payloadtype)
-	if err != nil {
-		return err
-	}
-	err = updatePayloadTypeWrappers(in, payloadtype)
+	err = updatePayloadTypeC2Profiles(in, payloadtype)
 	if err != nil {
 		return err
 	}
@@ -678,113 +736,6 @@ func updatePayloadTypeC2Profiles(in PayloadTypeSyncMessage, payloadtype database
 			if err != nil {
 				logging.LogError(err, "Failed to create new payloadtypec2profile mapping")
 			}
-		}
-	}
-	return nil
-}
-
-func updatePayloadTypeWrappers(in PayloadTypeSyncMessage, payloadtype databaseStructs.Payloadtype) error {
-	// get all currently associated payloadtype wrappers from the database
-	// if payloadtype in database but not in sync message, delete it
-	// if payloadtype in sync message, but not database, add it
-	syncingWrappers := in.PayloadType.SupportedWrapperPayloadTypes
-	databaseWrapper := databaseStructs.Wrappedpayloadtypes{}
-	if payloadtype.Wrapper {
-		rows, err := database.DB.NamedQuery(`SELECT
-		wrappedpayloadtypes.id,
-		payloadtype.name "wrapped.name",
-		payloadtype.id "wrapped.id"
-		FROM wrappedpayloadtypes
-		JOIN payloadtype ON wrappedpayloadtypes.wrapped_id = payloadtype.id
-		WHERE
-		wrapper_id = :id
-	`, payloadtype)
-		if err != nil {
-			logging.LogError(err, "Failed to get wrappedpayloadtypes from database")
-			return err
-		}
-		defer rows.Close()
-		for rows.Next() {
-			err = rows.StructScan(&databaseWrapper)
-			if err != nil {
-				logging.LogError(err, "Failed to get row from wrappedpayloadtypes for importing new payloadtype")
-				return err
-			}
-			logging.LogDebug("Got row from wrappedpayloadtypes", "row", databaseWrapper)
-			if utils.SliceContains(syncingWrappers, databaseWrapper.Wrapped.Name) {
-				syncingWrappers = utils.RemoveStringFromSliceNoOrder(syncingWrappers, databaseWrapper.Wrapped.Name)
-			} else {
-				// got a current wrapper payload type that shouldn't exist anymore, delete it from the database
-				//if _, err = database.DB.NamedExec("DELETE FROM wrappedpayloadtypes WHERE id=:id", databaseWrapper); err != nil {
-				//	logging.LogError(err, "Failed to delete wrappedpayloadtypes mapping")
-				//	return err
-				//}
-			}
-		}
-	} else {
-		rows, err := database.DB.NamedQuery(`SELECT
-		wrappedpayloadtypes.id,
-		payloadtype.name "wrapper.name",
-		payloadtype.id "wrapper.id"
-		FROM wrappedpayloadtypes
-		JOIN payloadtype ON wrappedpayloadtypes.wrapper_id = payloadtype.id
-		WHERE
-		wrapped_id = :id
-	`, payloadtype)
-		if err != nil {
-			logging.LogError(err, "Failed to get wrappedpayloadtypes from database")
-			return err
-		}
-		defer rows.Close()
-		for rows.Next() {
-			err = rows.StructScan(&databaseWrapper)
-			if err != nil {
-				logging.LogError(err, "Failed to get row from wrappedpayloadtypes for importing new payloadtype")
-				return err
-			}
-			logging.LogDebug("Got row from wrappedpayloadtypes", "row", databaseWrapper)
-			if utils.SliceContains(syncingWrappers, databaseWrapper.Wrapper.Name) {
-				syncingWrappers = utils.RemoveStringFromSliceNoOrder(syncingWrappers, databaseWrapper.Wrapper.Name)
-			} else {
-				// got a current wrapper payload type that shouldn't exist anymore, delete it from the database
-				//if _, err = database.DB.NamedExec("DELETE FROM wrappedpayloadtypes WHERE id=:id", databaseWrapper); err != nil {
-				//	logging.LogError(err, "Failed to delete wrappedpayloadtypes mapping")
-				//	return err
-				//}
-			}
-		}
-	}
-
-	// everything else left in syncingWrappers needs to be added
-	for _, name := range syncingWrappers {
-		targetWrapper := databaseStructs.Payloadtype{Name: name}
-		err := database.DB.Get(&targetWrapper, "SELECT id FROM payloadtype WHERE name=$1", name)
-		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				logging.LogError(nil, "Payload Type supports wrapper that's not yet installed", "wrapper", name, "wrapped", payloadtype.Name)
-			} else {
-				logging.LogError(err, "Failed to find payloadtype to associate for wrapping", "wrapper", name, "wrapped", payloadtype.Name)
-			}
-		} else {
-			databaseWrapper = databaseStructs.Wrappedpayloadtypes{WrapperID: targetWrapper.ID, WrappedID: payloadtype.ID}
-			if payloadtype.Wrapper {
-				databaseWrapper = databaseStructs.Wrappedpayloadtypes{WrapperID: payloadtype.ID, WrappedID: targetWrapper.ID}
-			}
-			err = database.DB.Get(&databaseWrapper, `SELECT id FROM wrappedpayloadtypes WHERE wrapper_id=$1 AND wrapped_id=$2`,
-				databaseWrapper.WrapperID, databaseWrapper.WrappedID)
-			if errors.Is(err, sql.ErrNoRows) {
-				_, err := database.DB.NamedExec(`INSERT INTO
-				wrappedpayloadtypes (wrapper_id, wrapped_id)
-				VALUES (:wrapper_id, :wrapped_id)`,
-					databaseWrapper)
-				if err != nil {
-					logging.LogError(err, "Failed to create new wrappedpayloadtype mapping")
-					continue // don't bail out on one, keep going
-				}
-			} else if err != nil {
-				logging.LogError(err, "failed to fetch wrapper maps")
-			}
-
 		}
 	}
 	return nil
@@ -1452,7 +1403,7 @@ func updateAllCallbacksWithCommandAugments() {
 func reSyncPayloadTypes() {
 	payloadTypes := []databaseStructs.Payloadtype{}
 	err := database.DB.Select(&payloadTypes, `SELECT
-		"name", supported_wrapping, supported_c2, id, supported_translation_container, translation_container_id
+		"name", supported_c2, id, supported_translation_container, translation_container_id
 		FROM payloadtype`)
 	if err != nil {
 		logging.LogError(err, "Failed to fetch payload types from database")
@@ -1470,16 +1421,6 @@ func reSyncPayloadTypes() {
 			)
 			if err != nil {
 				logging.LogError(err, "Failed to update payload type c2 mapping")
-			}
-		}
-		if len(pt.SupportedWrapping.StructValue()) > 0 {
-			err = updatePayloadTypeWrappers(PayloadTypeSyncMessage{
-				PayloadType: PayloadType{
-					Name:                         pt.Name,
-					SupportedWrapperPayloadTypes: pt.SupportedWrapping.StructStringValue(),
-				}}, pt)
-			if err != nil {
-				logging.LogError(err, "Failed to update payload type wrapper mapping")
 			}
 		}
 		err = updatePayloadTypeTranslationContainer(PayloadTypeSyncMessage{
