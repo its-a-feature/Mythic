@@ -4860,7 +4860,7 @@ tspan {
     padding: 0.5rem 0.25rem;
 }
 .mythic-compact-icon-action:hover, .mythic-compact-action:hover {
-    background-color: var(--mythic-color-neutral-level-3) !important;
+    background-color: var(--mythic-color-surface-hover) !important;
     border-color: var(--mythic-color-border-base) !important;
 }
 .mythic-compact-action.Mui-disabled, .mythic-compact-icon-action.Mui-disabled {
@@ -6136,10 +6136,10 @@ tspan {
     padding: 0.75rem;
 }
 .mythic-compact-icon-action {
-    background-color: var(--mythic-color-neutral-level-2) !important;
-    border: 1px solid var(--mythic-color-border-subtle) !important;
+    background-color: var(--mythic-color-surface-raised) !important;
+    border: 1px solid var(--mythic-color-border-base) !important;
     border-radius: var(--mythic-radius-base) !important;
-    box-shadow: none !important;
+    box-shadow: var(--mythic-shadow-level-1) !important;
     color: var(--mythic-color-text-base) !important;
     height: 30px;
     padding: 0;
@@ -6153,10 +6153,10 @@ tspan {
     min-width: 5.6rem !important;
 }
 .mythic-compact-action {
-    background-color: var(--mythic-color-neutral-level-2) !important;
-    border: 1px solid var(--mythic-color-border-subtle) !important;
+    background-color: var(--mythic-color-surface-raised) !important;
+    border: 1px solid var(--mythic-color-border-base) !important;
     border-radius: var(--mythic-radius-base) !important;
-    box-shadow: none !important;
+    box-shadow: var(--mythic-shadow-level-1) !important;
     color: var(--mythic-color-text-base) !important;
     font-size: 0.74rem;
     font-weight: 750;

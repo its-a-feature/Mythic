@@ -33,10 +33,13 @@ import NumbersIcon from '@mui/icons-material/Numbers';
 import {getMythicStatusFromTaskStatus, MythicStatusChip} from '../../MythicComponents/MythicStatusChip';
 import {TaskReferenceDisplay} from './taskingReferences';
 import {mergeTasksByID} from "./CallbackTaskingStreamUtils";
+import TerminalIcon from "@mui/icons-material/Terminal";
+import {PersonOff} from "@mui/icons-material";
 
 
 const PREFIX = 'TaskDisplay';
 const ACCORDION_PREFIX = 'TaskDisplayAccordion';
+const TASK_META_ITEM_HEIGHT = 22;
 export const classes = {
   root: `${PREFIX}-root`,
   heading: `${PREFIX}-heading`,
@@ -175,14 +178,16 @@ export const StyledPaper = styled(Paper)((
     backgroundColor: theme.palette.mode === "dark" ? alpha(theme.palette.common.white, 0.05) : alpha(theme.palette.common.black, 0.035),
     border: `1px solid ${theme.palette.mode === "dark" ? alpha(theme.palette.common.white, 0.08) : alpha(theme.palette.common.black, 0.07)}`,
     borderRadius: 5,
+    boxSizing: "border-box",
     color: theme.palette.text.secondary,
     display: "inline-flex",
     fontSize: theme.typography.pxToRem(11.5),
     fontWeight: 600,
     gap: 4,
+    height: TASK_META_ITEM_HEIGHT,
     lineHeight: 1.2,
     maxWidth: "18rem",
-    minHeight: 22,
+    minHeight: TASK_META_ITEM_HEIGHT,
     minWidth: 0,
     padding: "2px 6px",
     whiteSpace: "nowrap",
@@ -217,10 +222,12 @@ export const StyledPaper = styled(Paper)((
     flexWrap: "nowrap",
   },
   [`& .${classes.taskIconButton}`]: {
-    border: `1px solid ${theme.palette.mode === "dark" ? alpha(theme.palette.common.white, 0.08) : alpha(theme.palette.common.black, 0.08)}`,
+    backgroundColor: theme.palette.mode === "dark" ? alpha(theme.palette.common.white, 0.05) : alpha(theme.palette.common.black, 0.035),
+    border: `1px solid ${theme.palette.mode === "dark" ? alpha(theme.palette.common.white, 0.08) : alpha(theme.palette.common.black, 0.07)}`,
     borderRadius: 5,
+    boxSizing: "border-box",
     color: theme.palette.text.secondary,
-    height: 24,
+    height: TASK_META_ITEM_HEIGHT,
     padding: 0,
     width: 24,
     "& svg": {
@@ -425,8 +432,8 @@ const TaskStatusDisplay = ({task}) => {
     return null//return (<Typography size="small" style={{padding: "0", color: theme.palette.success.main, marginLeft: "5%", display: "inline-block", fontSize: theme.typography.pxToRem(15)}}>completed</Typography>)
   }else if(task.opsec_pre_blocked && !task.opsec_pre_bypassed){
     return <MythicStatusChip component="span" label="OPSEC blocked pre" status="blocked" sx={chipSx} />
-  }else if(task.opsec_post_blocked && !task.opsec_post_bypassed){
-    return <MythicStatusChip component="span" label="OPSEC blocked post" status="blocked" sx={chipSx} />
+  }else if(task.opsec_post_blocked && !task.opsec_post_bypassed) {
+    return <MythicStatusChip component="span" label="OPSEC blocked post" status="blocked" sx={chipSx}/>
   }else{
       return (
         <MythicStatusChip
@@ -541,7 +548,7 @@ const TaskMetaItem = ({children, icon, title, style}) => {
   );
   if(title){
     return (
-      <MythicStyledTooltip title={title}>
+      <MythicStyledTooltip title={title} tooltipStyle={{alignItems: "center", display: "inline-flex", height: TASK_META_ITEM_HEIGHT}}>
         {item}
       </MythicStyledTooltip>
     )
@@ -673,6 +680,11 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
                                   target={"_blank"}>
                   <PlayCircleFilledTwoToneIcon />
                 </TaskHeaderAction>
+              }
+              {task?.apitokens_id &&
+                  <TaskMetaItem title={"This task was created via an API Token"} icon={<PersonOff />}>
+                    APIToken
+                  </TaskMetaItem>
               }
               {!task.completed && task.status_timestamp_processing &&
                 <TaskHeaderAction title={"Task the agent to kill this task"} onClick={(e) => onClickKillIcon(e, true)}>

@@ -45,7 +45,7 @@ export function getMythicStatusFromTaskStatus(status) {
         return "success";
     }
     if(normalized.includes("processing") || normalized.includes("building")){
-        return "building";
+        return "warning";
     }
     return "info";
 }

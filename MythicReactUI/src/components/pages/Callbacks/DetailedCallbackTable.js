@@ -26,6 +26,7 @@ import {DetailedPayloadTable, ParseForDisplay} from "../Payloads/DetailedPayload
 import {Button, Link, IconButton} from '@mui/material';
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import MenuBookIcon from '@mui/icons-material/MenuBook';
+import PlayCircleFilledTwoToneIcon from '@mui/icons-material/PlayCircleFilledTwoTone';
 import InfoIconOutline from '@mui/icons-material/InfoOutlined';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {HostFileDialog} from "../Payloads/HostFileDialog";
@@ -34,6 +35,7 @@ import {payloadsCallbackAllowed} from "../Payloads/Payloads";
 import Switch from '@mui/material/Switch';
 import {MythicSectionHeader} from "../../MythicComponents/MythicPageHeader";
 import {FileDownloadLinkWithAuth} from "../../utilities/FileDownloadWithAuth";
+import {ScriptingCommandDialog} from "../PayloadTypesC2Profiles/PayloadTypeCommandsDialog";
 
 const GET_Payload_Details = gql`
 query GetCallbackDetails($callback_id: Int!) {
@@ -188,6 +190,11 @@ export function DetailedCallbackTable(props){
     const [openHostDialog, setOpenHostDialog] = React.useState(false);
     const [openDetailedView, setOpenDetailedView] = React.useState(false);
     const [openAddRemoveCommandsDialog, setOpenAddRemoveCommandsDialog] = React.useState(false);
+    const [openScriptDialog, setOpenScriptDialog] = React.useState({
+      open: false,
+      command_id: 0,
+      command_name: "",
+    });
     const [commands, setCommands] = React.useState([]);
     const [buildParameters, setBuildParameters] = React.useState([]);
     const [c2Profiles, setC2Profiles] = React.useState([]);
@@ -264,7 +271,13 @@ export function DetailedCallbackTable(props){
         onCompleted: data => {
             const commandState = data.callback_by_pk.loadedcommands.map( (c) => 
             { 
-                return {cmd: c.command.cmd, mythic: c.command.version, payload: c.version, payload_type: c.command.payloadtype.name}
+                return {
+                  cmd: c.command.cmd,
+                  command_id: c.command.id,
+                  mythic: c.command.version,
+                  payload: c.version,
+                  payload_type: c.command.payloadtype.name,
+                }
             }).sort((a,b) => (a.cmd > b.cmd) ? 1: ((b.cmd > a.cmd) ? -1 : 0));
             setCommands(commandState);
             const buildParametersState = data.callback_by_pk.payload.buildparameterinstances.map( (b) =>
@@ -558,7 +571,7 @@ export function DetailedCallbackTable(props){
                 <TableCell>Command Name</TableCell>
                 <TableCell>Mythic Version</TableCell>
                 <TableCell>Loaded Version</TableCell>
-                <TableCell style={{width: "5rem"}}>Documentation</TableCell>
+                <TableCell style={{width: "6.5rem"}}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -572,7 +585,8 @@ export function DetailedCallbackTable(props){
                         <TableCell>{cmd.mythic}</TableCell>
                         <TableCell>{cmd.payload}</TableCell>
                         <TableCell>
-                          <MythicStyledTooltip title="Open command documentation">
+                          <div className="mythic-compact-actions mythic-compact-actions-nowrap">
+                            <MythicStyledTooltip title="Open command documentation">
                               <IconButton
                                   className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
                                   size="small"
@@ -581,7 +595,21 @@ export function DetailedCallbackTable(props){
                               >
                                   <MenuBookIcon fontSize="small" />
                               </IconButton>
-                          </MythicStyledTooltip>
+                            </MythicStyledTooltip>
+                            <MythicStyledTooltip title="Scripting parameters">
+                              <IconButton
+                                  className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
+                                  size="small"
+                                  onClick={() => setOpenScriptDialog({
+                                    open: true,
+                                    command_id: cmd.command_id,
+                                    command_name: cmd.cmd,
+                                  })}
+                              >
+                                <PlayCircleFilledTwoToneIcon fontSize="small" />
+                              </IconButton>
+                            </MythicStyledTooltip>
+                          </div>
                         </TableCell>
                     </TableRow>
                 ))
@@ -631,8 +659,23 @@ export function DetailedCallbackTable(props){
                     
                   }
             </TableBody>
-          </Table>
-          </TableContainer>
+            </Table>
+            </TableContainer>
+            {openScriptDialog.open &&
+              <MythicDialog
+                  fullWidth={true}
+                  maxWidth="lg"
+                  open={openScriptDialog.open}
+                  onClose={() => setOpenScriptDialog({open: false, command_id: 0, command_name: ""})}
+                  innerDialog={
+                    <ScriptingCommandDialog
+                        command_id={openScriptDialog.command_id}
+                        command_name={openScriptDialog.command_name}
+                        onClose={() => setOpenScriptDialog({open: false, command_id: 0, command_name: ""})}
+                    />
+                  }
+              />
+            }
           </DialogContent>
           <DialogActions>
             <Button onClick={props.onClose} variant="contained" color="primary">

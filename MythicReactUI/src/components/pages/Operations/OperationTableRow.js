@@ -149,9 +149,12 @@ export function OperationTableRow(props){
                       acceptColor={props.deleted ? "success": "error"} />
                   }
                 </TableCell>
-                <TableCell><Button className="mythic-compact-action" size="small" onClick={()=>{setOpenUpdateNotifications(true);}} startIcon={<EditIcon/>}
+                <TableCell>
+                    <Button className="mythic-compact-action" size="small" onClick={()=>{setOpenUpdateNotifications(true);}} startIcon={<EditIcon/>}
                                    disabled={me?.user?.current_operation_id !== props.id}
-                                   variant="outlined">Edit</Button>
+                                   variant="outlined">
+                        Edit
+                    </Button>
                 {openUpdateNotifications && 
                     <MythicDialog open={openUpdateNotifications} fullWidth maxWidth={"lg"}
                         onClose={()=>{setOpenUpdateNotifications(false);}} 

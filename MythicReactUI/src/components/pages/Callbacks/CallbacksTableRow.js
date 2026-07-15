@@ -142,7 +142,7 @@ export const CallbacksTableIDCell = React.memo(({rowData, callbackDropdown, onOp
             {rowDataStatic.locked &&
                 <MythicStyledTooltip title={`Locked by ${lockOwner}`}>
                     <button type="button"
-                            className="mythic-callback-statusBadge mythic-callback-statusBadgeButton mythic-action-tone-hover mythic-tone-warning"
+                            className="mythic-callback-statusBadge mythic-callback-statusBadgeButton mythic-action-tone mythic-tone-warning"
                             aria-label={`Unlock callback ${rowDataStatic.display_id}`}
                             onClick={handleOpenUnlockDialog}>
                         <LockIcon fontSize="inherit" />
@@ -152,7 +152,7 @@ export const CallbacksTableIDCell = React.memo(({rowData, callbackDropdown, onOp
             {rowDataStatic.trigger_on_checkin_after_time > 0 &&
                 <MythicStyledTooltip title={`Alert on callback after no checkin for ${rowDataStatic.trigger_on_checkin_after_time} minutes`}>
                     <button type="button"
-                            className="mythic-callback-statusBadge mythic-callback-statusBadgeButton mythic-action-tone-hover mythic-tone-warning"
+                            className="mythic-callback-statusBadge mythic-callback-statusBadgeButton mythic-action-tone mythic-tone-warning"
                             aria-label={`Adjust alert trigger for callback ${rowDataStatic.display_id}`}
                             onClick={handleOpenTriggerDialog}>
                         <NotificationsActiveTwoToneIcon fontSize="inherit" />
@@ -300,7 +300,7 @@ export const CallbacksTableIPCell = React.memo(({cellData, rowData}) => {
         
     )
 }, areEqual)
-export const CallbacksTableC2Cell = React.memo(({rowData}) => {
+export const CallbacksTableC2Cell = React.memo(({rowData, centered = true}) => {
     const [localRowData, setLocalRowData] = React.useState(rowData);
     const initialCallbackGraphEdges = useContext(CallbackGraphEdgesContext);
     const onOpenTab = useContext(OnOpenTabContext);
@@ -382,12 +382,12 @@ export const CallbacksTableC2Cell = React.memo(({rowData}) => {
         !edge.c2profile?.is_p2p && edge.end_timestamp === null
     );
     const c2RouteActive = hasDirectEgressRoute ? directEgressActive : p2pRouteActive;
-    const c2ButtonClass = `mythic-callback-iconButton mythic-callback-cellIconButton ${c2RouteActive ? "mythic-action-tone mythic-tone-success" : "mythic-action-tone mythic-tone-error"}`;
+    const c2ButtonClass = `mythic-callback-iconButton mythic-callback-cellIconButton ${c2RouteActive ? "mythic-action-tone-hover mythic-tone-success" : "mythic-action-tone mythic-tone-error"}`;
     const c2Tooltip = hasDirectEgressRoute ?
         (directEgressActive ? "Direct C2 route active. View C2 path information" : "Direct C2 route inactive. View C2 path information") :
         (p2pRouteActive ? "Active P2P route to Mythic. View C2 path information" : "No active route to Mythic. View C2 path information");
     return (
-        <div className="mythic-callback-cellInline mythic-callback-cellInlineCenter">
+        <div className={`mythic-callback-cellInline${centered ? " mythic-callback-cellInlineCenter" : ""}`}>
             <MythicStyledTooltip title={c2Tooltip}>
                 <IconButton className={c2ButtonClass} onClick={onOpenC2Dialog}>
                     {hasDirectEgressRoute ?
@@ -473,7 +473,7 @@ export const CallbacksTableOSCell = React.memo( ({rowData, cellData}) => {
                 
     )
 }, areEqual);
-export const CallbacksTableSleepCell = React.memo( ({rowData, cellData, updateSleepInfo}) => {
+export const CallbacksTableSleepCell = React.memo( ({rowData, cellData, updateSleepInfo, centered = true}) => {
     const [openSleepDialog, setOpenSleepDialog] = React.useState(false);
     const editSleepSubmit = (sleep) => {
         updateSleepInfo({sleep_info: sleep, callback_display_id: rowData.display_id});
@@ -486,10 +486,10 @@ export const CallbacksTableSleepCell = React.memo( ({rowData, cellData, updateSl
         return null
     }
     return (
-        <div className="mythic-callback-cellInline mythic-callback-cellInlineCenter">
+        <div className={`mythic-callback-cellInline${centered ? " mythic-callback-cellInlineCenter" : ""}`}>
             <MythicStyledTooltip title={cellData === "" ? "No sleep information set" : "View or edit sleep information"}>
                 <IconButton
-                    className={`mythic-callback-iconButton mythic-callback-cellIconButton ${cellData === "" ? "mythic-action-tone-hover mythic-tone-warning" : "mythic-action-tone-hover mythic-tone-info"}`}
+                    className={`mythic-callback-iconButton mythic-callback-cellIconButton ${cellData === "" ? "mythic-action-tone mythic-tone-warning" : "mythic-action-tone-hover mythic-tone-info"}`}
                     onClick={onOpenSleepDialog}
                 >
                     <SnoozeIcon fontSize="small" />

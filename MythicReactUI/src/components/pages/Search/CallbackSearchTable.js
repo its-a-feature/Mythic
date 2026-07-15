@@ -108,7 +108,7 @@ function CallbackSearchTableRow(props){
                 <MythicStyledTableCell>
                     <div className="mythic-status-stack">
                         <MythicStatusChip
-                            label={props.active ? "Active" : "Inactive"}
+                            label={props.active ? "Visible" : "Hidden"}
                             status={props.active ? "active" : "inactive"}
                         />
                         {props.locked &&
