@@ -1,7 +1,7 @@
 BINARY_NAME=mythic-cli
 GO_BUILD_FLAGS?=-trimpath -ldflags="-s -w"
 LOCAL_PATH=$(shell pwd)
-BUILDER_IMAGE=ghcr.io/its-a-feature/mythic_cli:v3.4.0.60
+BUILDER_IMAGE=ghcr.io/its-a-feature/mythic_cli:v4.0.0rc2
 .PHONY: default
 default: build_linux ;
 
