@@ -11,6 +11,23 @@ import (
 	"github.com/MythicMeta/Mythic_CLI/cmd/utils"
 )
 
+func mythicReactNonDebugVolumes(useBuildContext bool, useVolume bool) []string {
+	if useVolume {
+		return []string{
+			"mythic_react_volume_config:/etc/nginx",
+			"mythic_react_volume_public:/mythic/new",
+		}
+	}
+
+	reactVolumes := []string{
+		"./mythic-react-docker/config:/etc/nginx",
+	}
+	if useBuildContext {
+		reactVolumes = append(reactVolumes, "./mythic-react-docker/mythic/public:/mythic/new")
+	}
+	return reactVolumes
+}
+
 func AddMythicService(service string, removeVolume bool) {
 	pStruct, err := manager.GetManager().GetServiceConfiguration(service)
 	if err != nil {
@@ -507,10 +524,7 @@ func AddMythicService(service string, removeVolume bool) {
 			}
 
 			if !mythicEnv.GetBool("mythic_react_use_volume") {
-				pStruct["volumes"] = []string{
-					"./mythic-react-docker/config:/etc/nginx",
-					"./mythic-react-docker/mythic/public:/mythic/new",
-				}
+				pStruct["volumes"] = mythicReactNonDebugVolumes(mythicEnv.GetBool("mythic_react_use_build_context"), false)
 			} else {
 				if removeVolume {
 					log.Printf("[*] Removing old volume, %s, if it exists to make room for updated configs", "mythic_react_volume_config")
@@ -518,10 +532,7 @@ func AddMythicService(service string, removeVolume bool) {
 					log.Printf("[*] Removing old volume, %s, if it exists to make room for updated UI", "mythic_react_volume_public")
 					manager.GetManager().RemoveVolume("mythic_react_volume_public")
 				}
-				pStruct["volumes"] = []string{
-					"mythic_react_volume_config:/etc/nginx",
-					"mythic_react_volume_public:/mythic/new",
-				}
+				pStruct["volumes"] = mythicReactNonDebugVolumes(mythicEnv.GetBool("mythic_react_use_build_context"), true)
 			}
 		}
 		if _, ok := volumes["mythic_react"]; !ok {

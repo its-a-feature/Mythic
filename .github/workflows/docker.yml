@@ -75,7 +75,7 @@ jobs:
       - name: Copy version file over
         run: cp VERSION mythic-docker/src/VERSION
       - name: Build and push the server container image
-        uses: docker/build-push-action@v6 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
+        uses: docker/build-push-action@v7 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
         with:
           context: mythic-docker
           file: mythic-docker/.docker/Dockerfile
@@ -117,7 +117,7 @@ jobs:
       - name: Lowercase the postgres container image name
         run: echo "MYTHIC_POSTGRES_IMAGE_NAME=${MYTHIC_POSTGRES_IMAGE_NAME,,}" >> ${GITHUB_ENV}
       - name: Build and push the postgres container image
-        uses: docker/build-push-action@v6 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
+        uses: docker/build-push-action@v7 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
         with:
           context: postgres-docker
           file: postgres-docker/Dockerfile
@@ -159,7 +159,7 @@ jobs:
       - name: Lowercase the rabbitmq container image name
         run: echo "MYTHIC_RABBITMQ_IMAGE_NAME=${MYTHIC_RABBITMQ_IMAGE_NAME,,}" >> ${GITHUB_ENV}
       - name: Build and push the rabbitmq container image
-        uses: docker/build-push-action@v6 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
+        uses: docker/build-push-action@v7 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
         with:
           context: rabbitmq-docker
           file: rabbitmq-docker/Dockerfile
@@ -201,7 +201,7 @@ jobs:
       - name: Lowercase the documentation container image name
         run: echo "MYTHIC_DOCUMENTATION_IMAGE_NAME=${MYTHIC_DOCUMENTATION_IMAGE_NAME,,}" >> ${GITHUB_ENV}
       - name: Build and push the documentation container image
-        uses: docker/build-push-action@v6 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
+        uses: docker/build-push-action@v7 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
         with:
           context: documentation-docker
           file: documentation-docker/Dockerfile
@@ -245,7 +245,7 @@ jobs:
       - name: Lowercase the jupyter container image name
         run: echo "MYTHIC_JUPYTER_IMAGE_NAME=${MYTHIC_JUPYTER_IMAGE_NAME,,}" >> ${GITHUB_ENV}
       - name: Build and push the jupyter container image
-        uses: docker/build-push-action@v6 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
+        uses: docker/build-push-action@v7 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
         with:
           context: jupyter-docker
           file: jupyter-docker/Dockerfile
@@ -289,7 +289,7 @@ jobs:
       - name: Lowercase the graphql container image name
         run: echo "MYTHIC_GRAPHQL_IMAGE_NAME=${MYTHIC_GRAPHQL_IMAGE_NAME,,}" >> ${GITHUB_ENV}
       - name: Build and push the graphql container image
-        uses: docker/build-push-action@v6 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
+        uses: docker/build-push-action@v7 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
         with:
           context: hasura-docker
           file: hasura-docker/Dockerfile
@@ -333,7 +333,7 @@ jobs:
       - name: Lowercase the nginx container image name
         run: echo "MYTHIC_NGINX_IMAGE_NAME=${MYTHIC_NGINX_IMAGE_NAME,,}" >> ${GITHUB_ENV}
       - name: Build and push the nginx container image
-        uses: docker/build-push-action@v6 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
+        uses: docker/build-push-action@v7 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
         with:
           context: nginx-docker
           file: nginx-docker/Dockerfile
@@ -358,8 +358,6 @@ jobs:
       # Pull in the repository code
       - name: Checkout the repository
         uses: actions/checkout@v5 # ref: https://github.com/marketplace/actions/checkout
-        with:
-          lfs: true
       - name: Log in to the container registry
         uses: docker/login-action@v4 # ref: https://github.com/marketplace/actions/docker-login
         with:
@@ -379,10 +377,10 @@ jobs:
       - name: Lowercase the react container image name
         run: echo "MYTHIC_REACT_IMAGE_NAME=${MYTHIC_REACT_IMAGE_NAME,,}" >> ${GITHUB_ENV}
       - name: Build and push the react container image
-        uses: docker/build-push-action@v6 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
+        uses: docker/build-push-action@v7 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
         with:
-          context: mythic-react-docker
-          file: mythic-react-docker/Dockerfile
+          context: .
+          file: mythic-react-docker/.docker/Dockerfile
           tags: |
             ${{ env.REGISTRY }}/${{ env.MYTHIC_REACT_IMAGE_NAME }}:${{ env.VERSION }}
             ${{ env.REGISTRY }}/${{ env.MYTHIC_REACT_IMAGE_NAME }}:latest
@@ -437,7 +435,7 @@ jobs:
           sed -i "s|^const MythicDockerLatest =.*$|const MythicDockerLatest = \"${VERSION}\"|" constants.go
 
       - name: Build and push the cli container image
-        uses: docker/build-push-action@v6 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
+        uses: docker/build-push-action@v7 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
         with:
           context: Mythic_CLI
           file: Mythic_CLI/Dockerfile
