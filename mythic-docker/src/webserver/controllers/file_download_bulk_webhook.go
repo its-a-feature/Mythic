@@ -36,7 +36,8 @@ type DownloadBulkFilesResponse struct {
 func DownloadBulkFilesWebhook(c *gin.Context) {
 	// get variables from the POST request
 	var input DownloadBulkFilesInput
-	if err := c.ShouldBindJSON(&input); err != nil {
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
 		logging.LogError(err, "Failed to get required parameters")
 		c.JSON(http.StatusOK, DownloadBulkFilesResponse{
 			Status: "error",
@@ -111,6 +112,7 @@ func DownloadBulkFilesWebhook(c *gin.Context) {
 				Status: "error",
 				Error:  "Failed to create file entry in zip",
 			})
+			file.Close()
 			return
 		}
 		_, err = io.Copy(fileWriter, file)
@@ -120,8 +122,10 @@ func DownloadBulkFilesWebhook(c *gin.Context) {
 				Status: "error",
 				Error:  "Failed to write file entry in zip",
 			})
+			file.Close()
 			return
 		}
+		file.Close()
 	}
 	zipWriter.Close()
 	zipFileMeta := databaseStructs.Filemeta{

@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkmythic=self.webpackChunkmythic||[]).push([[983],{82983(e,s,t){t.r(s),t.d(s,{Hasura:()=>a});var r=t(70579);const a=()=>(0,r.jsx)("iframe",{height:"100%",width:"100%",style:{border:"none"},src:"/console",title:"Hasura Console"})}}]);
+//# sourceMappingURL=983.1b496258.chunk.js.map

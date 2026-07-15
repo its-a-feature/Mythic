@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkmythic=self.webpackChunkmythic||[]).push([[261],{82261(e,t,r){r.r(t),r.d(t,{Jupyter:()=>h});var s=r(70579);const h=()=>(0,s.jsx)("iframe",{height:"100%",width:"100%",style:{border:"none"},src:"/jupyter",title:"Jupyter Notebooks"})}}]);
+//# sourceMappingURL=261.999b50d9.chunk.js.map
