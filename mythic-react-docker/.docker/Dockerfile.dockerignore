@@ -1,0 +1,15 @@
+*
+
+!MythicReactUI/
+!MythicReactUI/package.json
+!MythicReactUI/package-lock.json
+!MythicReactUI/config-overrides.js
+!MythicReactUI/.env
+!MythicReactUI/public/
+!MythicReactUI/public/**
+!MythicReactUI/src/
+!MythicReactUI/src/**
+
+!mythic-react-docker/
+!mythic-react-docker/config/
+!mythic-react-docker/config/**
