@@ -2,9 +2,11 @@ version: 2
 updates:
   - package-ecosystem: "npm"
     directory: "/"
+    target-branch: "Mythic-v4.0.0"
     schedule:
       interval: "weekly"
   - package-ecosystem: "gomod"
     directory: "/"
+    target-branch: "Mythic-v4.0.0"
     schedule:
       interval: "weekly"
