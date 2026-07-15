@@ -26,6 +26,7 @@ import {HostFileDialog, HostedFileLocationsTable} from "./HostFileDialog";
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {MythicFileContext} from "../../MythicComponents/MythicFileContext";
 import MenuBookIcon from '@mui/icons-material/MenuBook';
+import PlayCircleFilledTwoToneIcon from '@mui/icons-material/PlayCircleFilledTwoTone';
 import {TableRowSizeCell} from "../Callbacks/CallbacksTabsFileBrowserTable";
 import {payloadsCallbackAllowed} from "./Payloads";
 import Switch from '@mui/material/Switch';
@@ -39,6 +40,7 @@ import { useReactiveVar } from '@apollo/client';
 import {MythicErrorState, MythicLoadingState} from "../../MythicComponents/MythicStateDisplay";
 import {MythicSectionHeader} from "../../MythicComponents/MythicPageHeader";
 import {FileDownloadLinkWithAuth} from "../../utilities/FileDownloadWithAuth";
+import {ScriptingCommandDialog} from "../PayloadTypesC2Profiles/PayloadTypeCommandsDialog";
 
 
 const GET_Payload_Details = gql`
@@ -408,6 +410,11 @@ function DetailedPayloadInnerTable(props){
     const [c2Profiles, setC2Profiles] = React.useState([]);
     const [buildSteps, setBuildSteps] = React.useState([]);
     const [openAddRemoveCommandsDialog, setOpenAddRemoveCommandsDialog] = React.useState(false);
+    const [openScriptDialog, setOpenScriptDialog] = React.useState({
+        open: false,
+        command_id: 0,
+        command_name: "",
+    });
     const [openProgressIndicator, setOpenProgressIndicator] = React.useState(false);
     const [addProgress, setAddProgress] = React.useState(0);
     const [openHostDialog, setOpenHostDialog] = React.useState(false);
@@ -425,7 +432,12 @@ function DetailedPayloadInnerTable(props){
         onCompleted: data => {
             const commandState = data.payload[0].payloadcommands.map( (c) => 
             { 
-                return {cmd: c.command.cmd, mythic: c.command.version, payload: c.version} 
+                return {
+                    cmd: c.command.cmd,
+                    command_id: c.command.id,
+                    mythic: c.command.version,
+                    payload: c.version,
+                }
             }).sort((a,b) => (a.cmd > b.cmd) ? 1: ((b.cmd > a.cmd) ? -1 : 0));
             setCommands(commandState);
             const buildParametersState = data.payload[0].buildparameterinstances.map( (b) =>
@@ -805,7 +817,7 @@ function DetailedPayloadInnerTable(props){
                           <TableCell>Command Name</TableCell>
                           <TableCell>Mythic Version</TableCell>
                           <TableCell>Loaded Version</TableCell>
-                          <TableCell style={{width: "5rem"}}>Documentation</TableCell>
+                          <TableCell style={{width: "6.5rem"}}>Actions</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -816,16 +828,31 @@ function DetailedPayloadInnerTable(props){
                                   <TableCell>{cmd.mythic}</TableCell>
                                   <TableCell>{cmd.payload}</TableCell>
                                   <TableCell>
-                                  <MythicStyledTooltip title="Open command documentation">
-                                      <IconButton
-                                          className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
-                                          size="small"
-                                          target="_blank"
-                                          href={"/docs/agents/" + data.payload[0].payloadtype.name + "/commands/" + cmd.cmd}
-                                      >
-                                          <MenuBookIcon fontSize="small" />
-                                      </IconButton>
-                                  </MythicStyledTooltip>
+                                    <div className="mythic-compact-actions mythic-compact-actions-nowrap">
+                                      <MythicStyledTooltip title="Open command documentation">
+                                          <IconButton
+                                              className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
+                                              size="small"
+                                              target="_blank"
+                                              href={"/docs/agents/" + data.payload[0].payloadtype.name + "/commands/" + cmd.cmd}
+                                          >
+                                              <MenuBookIcon fontSize="small" />
+                                          </IconButton>
+                                      </MythicStyledTooltip>
+                                      <MythicStyledTooltip title="Scripting parameters">
+                                        <IconButton
+                                            className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
+                                            size="small"
+                                            onClick={() => setOpenScriptDialog({
+                                                open: true,
+                                                command_id: cmd.command_id,
+                                                command_name: cmd.cmd,
+                                            })}
+                                        >
+                                          <PlayCircleFilledTwoToneIcon fontSize="small" />
+                                        </IconButton>
+                                      </MythicStyledTooltip>
+                                    </div>
                                   </TableCell>
                               </TableRow>
                           ))
@@ -836,6 +863,22 @@ function DetailedPayloadInnerTable(props){
                         </TableContainer>
                       }
                 </React.Fragment>
+
+                {openScriptDialog.open &&
+                  <MythicDialog
+                      fullWidth={true}
+                      maxWidth="lg"
+                      open={openScriptDialog.open}
+                      onClose={() => setOpenScriptDialog({open: false, command_id: 0, command_name: ""})}
+                      innerDialog={
+                        <ScriptingCommandDialog
+                            command_id={openScriptDialog.command_id}
+                            command_name={openScriptDialog.command_name}
+                            onClose={() => setOpenScriptDialog({open: false, command_id: 0, command_name: ""})}
+                        />
+                      }
+                  />
+                }
                 
                 {openAddRemoveCommandsDialog &&
                   <MythicDialog fullWidth={true} maxWidth="md" open={openAddRemoveCommandsDialog} 

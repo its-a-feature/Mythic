@@ -246,6 +246,7 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
             },
             MuiButton: {
                 defaultProps: {
+                    color: "inherit",
                     disableElevation: true,
                     size: "small",
                 },

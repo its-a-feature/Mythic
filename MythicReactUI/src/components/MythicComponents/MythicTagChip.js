@@ -1,16 +1,10 @@
 import React from 'react';
 import Chip from '@mui/material/Chip';
 import {useTheme} from '@mui/material/styles';
+import {getReadableTextColor, isValidHexColor} from './MythicColorInput';
 
 export const getTagReadableTextColor = (theme, color) => {
-  if(!color){
-    return theme.palette.text.primary;
-  }
-  try {
-    return theme.palette.getContrastText(color);
-  } catch (error) {
-    return theme.palette.text.primary;
-  }
+  return isValidHexColor(color) ? getReadableTextColor(color) : theme.palette.text.primary;
 }
 
 export const TagTypeChip = ({tagtype, label, sx={}, ...props}) => {

@@ -135,7 +135,7 @@ export function ExpandedCallbackSideDetailsTable(props){
                 <TableRow hover>
                     <TableCell>Sleep Info</TableCell>
                     <TableCell>
-                        <CallbacksTableSleepCell rowData={props} cellData={props.sleep_info} updateSleepInfo={updateSleepInfo} />
+                        <CallbacksTableSleepCell rowData={props} cellData={props.sleep_info} updateSleepInfo={updateSleepInfo} centered={false} />
                     </TableCell>
 
                 </TableRow>
@@ -146,7 +146,7 @@ export function ExpandedCallbackSideDetailsTable(props){
                 <TableRow hover>
                     <TableCell>Egress Route</TableCell>
                     <TableCell>
-                        <CallbacksTableC2Cell rowData={props} />
+                        <CallbacksTableC2Cell rowData={props} centered={false} />
                     </TableCell>
                 </TableRow>
                 <TableRow hover>

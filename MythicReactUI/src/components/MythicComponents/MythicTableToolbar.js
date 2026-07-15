@@ -95,7 +95,7 @@ export const MythicSearchField = ({
 
 export const MythicToolbarButton = ({children, className = "", ...props}) => {
     return (
-        <Button className={`mythic-toolbar-button ${className}`.trim()} size="small" {...props}>
+        <Button className={`mythic-toolbar-toggle ${className}`.trim()} size="small" {...props}>
             {children}
         </Button>
     );

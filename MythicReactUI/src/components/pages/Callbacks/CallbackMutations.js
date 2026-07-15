@@ -97,6 +97,7 @@ export const taskingDataFragment = gql`
         parent_task_id
         agent_task_id
         tasking_location
+        apitokens_id
         callback {
             display_id
             id
@@ -164,6 +165,7 @@ export const taskingDataFragment = gql`
             id
             comment
             agent_task_id
+            apitokens_id
             commentOperator{
                 username
             }
