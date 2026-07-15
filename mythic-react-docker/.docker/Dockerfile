@@ -7,7 +7,7 @@ WORKDIR /app
 COPY ["MythicReactUI/package.json", "MythicReactUI/package-lock.json", "./"]
 RUN npm ci --legacy-peer-deps
 
-COPY ["MythicReactUI/config-overrides.js", "MythicReactUI/.env", "./"]
+COPY ["MythicReactUI/config-overrides.js", "./"]
 COPY ["MythicReactUI/public/", "./public/"]
 COPY ["MythicReactUI/src/", "./src/"]
 
