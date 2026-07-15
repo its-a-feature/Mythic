@@ -281,9 +281,9 @@ function CreateEventingStepperNavigationButtons(props){
     return (
 
         <DialogActions className="mythic-eventing-wizard-actions">
-            <Button className="mythic-table-row-action mythic-table-row-action-hover-warning" onClick={props.cancel} variant="outlined">Cancel</Button>
+            <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-warning" onClick={props.cancel} variant="outlined">Cancel</Button>
             <Button
-                className="mythic-table-row-action"
+                className="mythic-compact-action"
                 variant={"outlined"}
                 disabled={props.first}
                 onClick={props.back}
@@ -291,7 +291,7 @@ function CreateEventingStepperNavigationButtons(props){
                 Back
             </Button>
                 <Button
-                    className={`mythic-table-row-action ${props.last ? "mythic-table-row-action-hover-success" : "mythic-table-row-action-hover-info"}`}
+                    className={`mythic-compact-action ${props.last ? "mythic-action-tone-hover mythic-tone-success" : "mythic-action-tone-hover mythic-tone-info"}`}
                     variant="outlined"
                     onClick={props.finished}
                     disabled={disabledButtons}
@@ -894,7 +894,7 @@ const GetArrayValues = ({prevData, updateData, textFieldPlaceholder, textFieldNa
         <div className="mythic-eventing-array-list">
             {arrayValues.map( (a, i) => (
                 <div className="mythic-eventing-array-row" key={"arrayentry" + i}>
-                    <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={() => removeElement(i)}>
+                    <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={() => removeElement(i)}>
                         <DeleteIcon fontSize="small" />
                     </IconButton>
                     <MythicTextField onChange={(name, value, error) => updateElement(i, value)} value={a}
@@ -902,7 +902,7 @@ const GetArrayValues = ({prevData, updateData, textFieldPlaceholder, textFieldNa
                 </div>
                 )
             )}
-            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-success" size="small" onClick={addElement}>
+            <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-success" size="small" onClick={addElement}>
                 <AddCircleOutlineIcon fontSize="small" />
             </IconButton>
         </div>
@@ -939,16 +939,16 @@ const GetMultipleFileSelect = ({prevData, updateData}) => {
     }
     return (
         <div className="mythic-eventing-file-select">
-            <Button className="mythic-table-row-action mythic-table-row-action-hover-success" variant="outlined" component="label" style={{display: "inline-block"}}>
+            <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" variant="outlined" component="label" style={{display: "inline-block"}}>
                 Select files
                 <input onChange={onFileMultChange} type="file" hidden multiple />
             </Button>
             { files.length > 0 &&
                 <div className="mythic-eventing-file-chip-list">
                     {files?.map((f, i) => (
-                        <span className="mythic-eventing-file-chip" key={"selected-file" + f.name + i}>
+                        <span className="mythic-status-chip mythic-tone-info" key={"selected-file" + f.name + i}>
                             <span className="mythic-eventing-file-chip-name">{f.name}</span>
-                            <IconButton className="mythic-eventing-file-chip-remove" size="small" aria-label={"Remove " + f.name} onClick={() => removeFile(i)}>
+                            <IconButton className="mythic-eventing-file-chip-remove mythic-action-tone-hover mythic-tone-error" size="small" aria-label={"Remove " + f.name} onClick={() => removeFile(i)}>
                                 <DeleteIcon fontSize="small" />
                             </IconButton>
                         </span>
@@ -1223,7 +1223,7 @@ const EventingActionDataField = ({label, description, required = false, children
                     {label}
                 </Typography>
                 {required &&
-                    <span className="mythic-eventing-action-data-chip">Required</span>
+                    <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-warning">Required</span>
                 }
             </div>
             {description &&
@@ -1322,7 +1322,7 @@ const EventingStepInputs = ({updateStep, index, localInputOptions, step1Data, pr
                 {localInputs.map( (d, i) => (
                     <div className="mythic-eventing-step-list-item mythic-eventing-step-list-item-editable" key={"localinputs" + i}>
                         <div className="mythic-eventing-step-input-grid">
-                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger mythic-eventing-step-row-action" size="small" onClick={() => removeLocalInput(i)}>
+                            <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error mythic-eventing-step-row-action" size="small" onClick={() => removeLocalInput(i)}>
                                 <DeleteIcon fontSize="small" />
                             </IconButton>
                             <MythicTextField name={"Input name"} placeholder={"Input name"}
@@ -1401,7 +1401,7 @@ const EventingStepInputs = ({updateStep, index, localInputOptions, step1Data, pr
                     </div>
                 ))}
             </div>
-            <Button className="mythic-table-row-action mythic-table-row-action-hover-success" onClick={addLocalInput} variant="outlined" startIcon={<AddCircleIcon fontSize="small" />}>
+            <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" onClick={addLocalInput} variant="outlined" startIcon={<AddCircleIcon fontSize="small" />}>
                 Add input
             </Button>
         </div>
@@ -1456,7 +1456,7 @@ const EventingStepOutputs = ({updateStep, index, selectedAction, prevData}) => {
                 {localOutputs.map( (d, i) => (
                     <div className="mythic-eventing-step-list-item mythic-eventing-step-list-item-editable" key={"localoutputs" + i}>
                         <div className="mythic-eventing-step-output-grid">
-                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger mythic-eventing-step-row-action" size="small" onClick={() => removeLocalOutput(i)}>
+                            <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error mythic-eventing-step-row-action" size="small" onClick={() => removeLocalOutput(i)}>
                                 <DeleteIcon fontSize="small" />
                             </IconButton>
                             <MythicTextField name={"Output name"} placeholder={"Output name"}
@@ -1502,7 +1502,7 @@ const EventingStepOutputs = ({updateStep, index, selectedAction, prevData}) => {
                     </div>
                 ))}
             </div>
-            <Button className="mythic-table-row-action mythic-table-row-action-hover-success" onClick={addLocalOutput} variant="outlined" startIcon={<AddCircleIcon fontSize="small" />}>
+            <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" onClick={addLocalOutput} variant="outlined" startIcon={<AddCircleIcon fontSize="small" />}>
                 Add output
             </Button>
         </div>
@@ -1600,7 +1600,7 @@ const EventingTaskCreateExistingTaskDialog = ({loading, onClose, onSelect, tasks
                 }
             </DialogContent>
             <DialogActions>
-                <Button className="mythic-table-row-action" onClick={onClose} variant="outlined">Close</Button>
+                <Button className="mythic-compact-action" onClick={onClose} variant="outlined">Close</Button>
             </DialogActions>
         </>
     )
@@ -1697,7 +1697,7 @@ const EventingTaskCreateCallbackDialog = ({callbacks, loading, onClose, onSelect
                 }
             </DialogContent>
             <DialogActions>
-                <Button className="mythic-table-row-action" onClick={onClose} variant="outlined">Close</Button>
+                <Button className="mythic-compact-action" onClick={onClose} variant="outlined">Close</Button>
             </DialogActions>
         </>
     )
@@ -1988,7 +1988,7 @@ const EventingStepActionDataTaskCreate = ({updateStep, index, prevData, step1Dat
                         <MythicStyledTooltip title="Use the parsed parameters from a previous execution of this command">
                             <span>
                                 <Button
-                                    className="mythic-table-row-action mythic-table-row-action-hover-info"
+                                    className="mythic-compact-action mythic-action-tone-hover mythic-tone-info"
                                     disabled={actionData.command_name.trim() === ""}
                                     onClick={fetchExistingTasks}
                                     size="small"
@@ -2002,7 +2002,7 @@ const EventingStepActionDataTaskCreate = ({updateStep, index, prevData, step1Dat
                         <MythicStyledTooltip title="Open the normal tasking modal on a selected callback and capture the final parameters">
                             <span>
                                 <Button
-                                    className="mythic-table-row-action mythic-table-row-action-hover-info"
+                                    className="mythic-compact-action mythic-action-tone-hover mythic-tone-info"
                                     disabled={actionData.command_name.trim() === ""}
                                     onClick={fetchTaskingCallbacks}
                                     size="small"
@@ -2264,7 +2264,7 @@ const EventingStepActionDataConditionalCheck = ({allSteps, updateStep, index, pr
                 <div className="mythic-eventing-action-array-list">
                     {actionData.steps.map( (s, i) => (
                         <div className="mythic-eventing-action-array-row" key={"step" + s + i}>
-                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={() => removeStep(i)}>
+                            <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={() => removeStep(i)}>
                                 <DeleteIcon fontSize="small" />
                             </IconButton>
                             <FormControl sx={{display: "inline-block", width: "100%"}} size="small">
@@ -2285,7 +2285,7 @@ const EventingStepActionDataConditionalCheck = ({allSteps, updateStep, index, pr
                             </FormControl>
                         </div>
                     ))}
-                    <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-success" size="small" onClick={addStep}>
+                    <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-success" size="small" onClick={addStep}>
                         <AddCircleOutlineIcon fontSize="small" />
                     </IconButton>
                 </div>
@@ -2749,7 +2749,7 @@ const EventingUserInteractionChoicesEditor = ({input, index, updateInputFields})
                 }
                 {choices.map((choice, choiceIndex) => (
                     <div className="mythic-eventing-user-input-choice-row" key={`choice-${index}-${choiceIndex}`}>
-                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={() => removeChoice(choiceIndex)}>
+                        <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={() => removeChoice(choiceIndex)}>
                             <DeleteIcon fontSize="small" />
                         </IconButton>
                         <MythicTextField
@@ -2760,7 +2760,7 @@ const EventingUserInteractionChoicesEditor = ({input, index, updateInputFields})
                         />
                     </div>
                 ))}
-                <Button className="mythic-table-row-action mythic-table-row-action-hover-success" onClick={addChoice} size="small" variant="outlined" startIcon={<AddCircleIcon fontSize="small" />}>
+                <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" onClick={addChoice} size="small" variant="outlined" startIcon={<AddCircleIcon fontSize="small" />}>
                     Add choice
                 </Button>
             </div>
@@ -2881,7 +2881,7 @@ const EventingStepUserInteraction = ({config, localInputOptions, onChange}) => {
                     }
                     {userInteraction.inputs.map((input, index) => (
                         <div className="mythic-eventing-step-list-item mythic-eventing-step-list-item-editable mythic-eventing-user-input-field-row" key={`user-interaction-input-${index}`}>
-                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={() => removeInputField(index)}>
+                            <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={() => removeInputField(index)}>
                                 <DeleteIcon fontSize="small" />
                             </IconButton>
                             <div className="mythic-eventing-step-list-content">
@@ -2970,7 +2970,7 @@ const EventingStepUserInteraction = ({config, localInputOptions, onChange}) => {
                 </div>
             }
             {(userInteraction.input_required || userInteraction.inputs.length > 0) &&
-                <Button className="mythic-table-row-action mythic-table-row-action-hover-success" onClick={addInputField} variant="outlined" startIcon={<AddCircleIcon fontSize="small" />}>
+                <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" onClick={addInputField} variant="outlined" startIcon={<AddCircleIcon fontSize="small" />}>
                     Add input field
                 </Button>
             }
@@ -3091,9 +3091,9 @@ const EventingStep = ({step, allSteps, updateStep, index, step1Data, updateStep1
                     <div className="mythic-eventing-step-config-summary-subtitle">{description || "Describe what this step does and how it should run."}</div>
                 </div>
                 <div className="mythic-eventing-step-config-summary-actions">
-                    <span className="mythic-eventing-step-action-chip">{selectedAction}</span>
+                    <span className="mythic-status-chip mythic-tone-info">{selectedAction}</span>
                     {hasUserInteractionConfig(userInteraction) &&
-                        <span className="mythic-eventing-step-action-chip mythic-eventing-step-action-chip-warning">user interaction</span>
+                        <span className="mythic-status-chip mythic-tone-warning">user interaction</span>
                     }
                     <label className="mythic-eventing-step-switch-row">
                         <span className="mythic-eventing-step-switch-copy">
@@ -3203,7 +3203,7 @@ const EventingStep = ({step, allSteps, updateStep, index, step1Data, updateStep1
                             }
                             {dependsOn.map((d, i) => (
                                 <div className="mythic-eventing-step-list-item" key={"dependson" + i}>
-                                    <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={() => removeDependsOn(i)}>
+                                    <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={() => removeDependsOn(i)}>
                                         <DeleteIcon fontSize="small" />
                                     </IconButton>
                                     <div className="mythic-eventing-step-list-content">
@@ -3229,7 +3229,7 @@ const EventingStep = ({step, allSteps, updateStep, index, step1Data, updateStep1
                                 </div>
                             ))}
                         </div>
-                        <Button className="mythic-table-row-action mythic-table-row-action-hover-success" onClick={addDependsOn} variant="outlined" startIcon={<AddCircleIcon fontSize="small" />}>
+                        <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" onClick={addDependsOn} variant="outlined" startIcon={<AddCircleIcon fontSize="small" />}>
                             Add dependency
                         </Button>
                     </div>
@@ -3334,11 +3334,11 @@ const CreateEventingStep2 = ({finished, back, first, last, cancel, prevData, ste
                     <div className="mythic-eventing-wizard-toolbar-subtitle">{step1Data?.trigger || "manual"} trigger</div>
                 </div>
                 <div className="mythic-eventing-wizard-toolbar-actions">
-                    <Button className="mythic-table-row-action mythic-table-row-action-hover-info" onClick={() => setDisplayHelp(true)} variant={"outlined"}
+                    <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-info" onClick={() => setDisplayHelp(true)} variant={"outlined"}
                             size={"small"}>
                         Display Help
                     </Button>
-                    <Button className="mythic-table-row-action mythic-table-row-action-hover-success" size={"small"} onClick={addStep} variant="outlined" startIcon={<AddCircleIcon fontSize="small" />}>
+                    <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" size={"small"} onClick={addStep} variant="outlined" startIcon={<AddCircleIcon fontSize="small" />}>
                         Add Step
                     </Button>
                 </div>
@@ -3401,7 +3401,7 @@ const CreateEventingStep2 = ({finished, back, first, last, cancel, prevData, ste
                                     <div className="mythic-eventing-step-shell-title">Step {i + 1}</div>
                                     <div className="mythic-eventing-step-shell-subtitle">{s.name || "Unnamed step"}</div>
                                 </div>
-                                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={() => removeStep(i)}>
+                                <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={() => removeStep(i)}>
                                     <DeleteIcon fontSize="small" />
                                 </IconButton>
                             </div>
@@ -3624,8 +3624,8 @@ const CreateEventingStep3 = ({finished, back, first, last, cancel, prevData, ste
                             ))}
                         </TextField>
                     </FormControl>
-                    <Button className="mythic-table-row-action mythic-table-row-action-hover-info" onClick={testOutput} size={"small"} variant="outlined">Test output</Button>
-                    <Button className="mythic-table-row-action mythic-table-row-action-hover-info" onClick={previewGraph} size={"small"} variant="outlined" startIcon={<AccountTreeIcon fontSize="small" />}>
+                    <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-info" onClick={testOutput} size={"small"} variant="outlined">Test output</Button>
+                    <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-info" onClick={previewGraph} size={"small"} variant="outlined" startIcon={<AccountTreeIcon fontSize="small" />}>
                         Graph
                     </Button>
                     {openEventStepRender.open &&
@@ -3724,7 +3724,7 @@ export function CreateEventingStepper(props){
                             <div className="mythic-eventing-wizard-title">{wizardTitle}</div>
                             <div className="mythic-eventing-wizard-subtitle">{wizardSubtitle}</div>
                         </div>
-                        <span className="mythic-eventing-wizard-progress-chip">Step {activeStep + 1} of {steps.length}</span>
+                        <span className="mythic-status-chip mythic-tone-primary">Step {activeStep + 1} of {steps.length}</span>
                     </div>
                 </div>
                 <div className="mythic-eventing-wizard-content">

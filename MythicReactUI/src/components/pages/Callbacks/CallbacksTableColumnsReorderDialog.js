@@ -110,7 +110,7 @@ export const DraggableListItem = ({ item, index, onToggleVisibility }) => {
                         <div className="mythic-reorder-row-actions">
                             <IconButton
                                 aria-label={item.visible ? `Hide ${item.name}` : `Show ${item.name}`}
-                                className={`mythic-table-row-icon-action ${item.visible ? "mythic-table-row-icon-action-hover-danger" : "mythic-table-row-icon-action-hover-info"}`}
+                                className={`mythic-compact-icon-action ${item.visible ? "mythic-action-tone-hover mythic-tone-error" : "mythic-action-tone-hover mythic-tone-info"}`}
                                 size="small"
                                 onClick={() => onToggleVisibility(index)}
                             >

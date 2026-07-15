@@ -1032,7 +1032,7 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
                                     <DropdownMenuItem
                                         key={option.name}
                                         disabled={option.disabled}
-                                        className={option.danger ? "mythic-menu-item-hover-danger" : undefined}
+                                        className={option.danger ? "mythic-action-tone-hover mythic-tone-error" : undefined}
                                         onClick={(event) => handleMenuItemClick(event, option.click)}
                                     >
                                         {option.icon} {option.name}
@@ -1046,7 +1046,7 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
                                                 <DropdownMenuItem
                                                     key={menuOption.name}
                                                     disabled={menuOption.disabled}
-                                                    className={menuOption.danger ? "mythic-menu-item-hover-danger" : undefined}
+                                                    className={menuOption.danger ? "mythic-action-tone-hover mythic-tone-error" : undefined}
                                                     onClick={(event) => handleMenuItemClick(event, menuOption.click)}
                                                 >
                                                     {menuOption.icon}{menuOption.name}

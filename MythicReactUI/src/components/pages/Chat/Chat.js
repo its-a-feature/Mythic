@@ -1289,7 +1289,7 @@ const getChannelConfigChips = (channel, chatContainers) => {
                 label: option.displayName || option.name,
                 value: formatConfigChipValue(option, rawValue),
                 tooltip: option.description,
-                color: "neutral",
+                color: "secondary",
             }];
         }, []);
 };
@@ -1304,7 +1304,7 @@ const getChannelModelChip = (channel, chatContainers) => {
         label: "Model",
         value: model?.displayName || channel.chat_model,
         tooltip: model?.description || "Selected chat container model.",
-        color: "neutral",
+        color: "secondary",
     };
 };
 
@@ -1315,7 +1315,7 @@ const getChannelListChips = (channel, chatContainers) => {
 };
 
 const metadataDisplayKeyPattern = /^[A-Za-z0-9_.-]+$/;
-const metadataDisplayColorPattern = /^(neutral|info|success|warning|error|danger|#[0-9a-fA-F]{6})$/;
+const metadataDisplayColorPattern = /^(secondary|neutral|info|success|warning|error|danger|#[0-9a-fA-F]{6})$/;
 const metadataScaleColorPattern = /^scale\((.+)\)$/i;
 
 const normalizeChipColor = (color) => {
@@ -1323,7 +1323,11 @@ const normalizeChipColor = (color) => {
     if(text === ""){
         return "";
     }
-    return metadataDisplayColorPattern.test(text) ? text.toLowerCase() : "";
+    if(!metadataDisplayColorPattern.test(text)){
+        return "";
+    }
+    const normalized = text.toLowerCase();
+    return normalized === "neutral" ? "secondary" : normalized;
 };
 
 const parseMetadataScaleColor = (rawColor) => {
@@ -1580,9 +1584,9 @@ const resolveScaledChipColor = (color, item) => {
 };
 
 const resolveMetadataChipColor = (item, colorOverride) => {
-    const selectedColor = colorOverride || item.color || "neutral";
+    const selectedColor = colorOverride || item.color || "secondary";
     const color = typeof selectedColor === "string" ? normalizeChipColor(selectedColor) : resolveScaledChipColor(selectedColor, item);
-    return color || "neutral";
+    return color || "secondary";
 };
 
 const chipColorStyle = (color) => {
@@ -1669,7 +1673,7 @@ const getAvailableChannelMetadataItems = (channel) => (
 );
 
 const metadataDisplayExample = "expanded; max=6; chips: 5hr=five_hour_tokens, Cost=total_cost:currency; colors: total_cost=warning";
-const metadataNamedColorOptions = ["neutral", "info", "success", "warning", "error", "danger"];
+const metadataNamedColorOptions = ["secondary", "info", "success", "warning", "error", "danger"];
 const metadataDefaultScaleStops = [
     {at: 0, color: "success"},
     {at: 75, color: "warning"},
@@ -1796,21 +1800,21 @@ const buildMetadataDisplayStringFromWizard = (rows, hiddenInitially, maxVisible)
 const metadataColorEditorStateFromString = (colorValue) => {
     const text = `${colorValue || ""}`.trim();
     if(text === ""){
-        return {mode: "default", named: "neutral", custom: "#4f46e5", scaleStops: metadataDefaultScaleStops};
+        return {mode: "default", named: "secondary", custom: "#4f46e5", scaleStops: metadataDefaultScaleStops};
     }
     const scale = parseMetadataScaleColor(text);
     if(scale){
         return {
             mode: "scale",
-            named: "neutral",
+            named: "secondary",
             custom: "#4f46e5",
             scaleStops: scale.stops.length > 0 ? scale.stops : metadataDefaultScaleStops,
         };
     }
     if(text.startsWith("#")){
-        return {mode: "custom", named: "neutral", custom: normalizeChipColor(text) || "#4f46e5", scaleStops: metadataDefaultScaleStops};
+        return {mode: "custom", named: "secondary", custom: normalizeChipColor(text) || "#4f46e5", scaleStops: metadataDefaultScaleStops};
     }
-    return {mode: "named", named: normalizeChipColor(text) || "neutral", custom: "#4f46e5", scaleStops: metadataDefaultScaleStops};
+    return {mode: "named", named: normalizeChipColor(text) || "secondary", custom: "#4f46e5", scaleStops: metadataDefaultScaleStops};
 };
 
 const metadataColorEditorStringFromState = (state) => {
@@ -1919,7 +1923,7 @@ const ChatMetadataColorEditor = ({value, fallback, onChange}) => {
                             </Select>
                             <IconButton
                                 aria-label="Remove cutoff"
-                                className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger"
+                                className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error"
                                 size="small"
                                 onClick={() => removeScaleStop(index)}
                                 disabled={state.scaleStops.length <= 1}
@@ -2213,9 +2217,10 @@ const ChatEmptyState = ({icon, title, detail}) => (
 );
 
 const ChatDisplayChip = ({chip, className = ""}) => {
-    const chipColor = chip.color || "neutral";
+    const chipColor = chip.color || "secondary";
+    const chipTone = chipColor === "danger" ? "error" : ["primary", "secondary", "info", "success", "warning", "error"].includes(chipColor) ? chipColor : "secondary";
     const clickable = Boolean(chip.click);
-    const chipClassName = `mythic-chat-display-chip mythic-chat-display-chip-${chipColor}${clickable ? " mythic-chat-display-chip-clickable" : ""}${className ? ` ${className}` : ""}`;
+    const chipClassName = `mythic-status-chip mythic-tone-${chipTone}${chipColor === "custom" ? " mythic-chat-display-chip-custom" : ""}${clickable ? " mythic-chat-display-chip-clickable" : ""}${className ? ` ${className}` : ""}`;
     const children = (
         <>
             <span className="mythic-chat-display-chip-label">{chip.label}:</span>
@@ -2284,7 +2289,7 @@ const ChatChannelMetadataBar = ({channel, displayStringOverride, onChipClick}) =
                 <Box className="mythic-chat-metadata-content">
                     <ChatDisplayChipRow chips={visibleChips} onChipClick={onChipClick} />
                     {overflowCount > 0 &&
-                        <span className="mythic-chat-display-chip mythic-chat-display-chip-neutral">
+                        <span className="mythic-status-chip mythic-tone-secondary">
                             <span className="mythic-chat-display-chip-value">+{overflowCount} more</span>
                         </span>
                     }
@@ -2315,7 +2320,7 @@ const ChatMetadataDisplayPreview = ({channel, displayString}) => {
             <Box sx={{display: "flex", flexWrap: "wrap", gap: 0.5, alignItems: "center"}}>
                 <ChatDisplayChipRow chips={metadataState.chips.slice(0, metadataState.maxVisible)} />
                 {metadataState.chips.length > metadataState.maxVisible &&
-                    <span className="mythic-chat-display-chip mythic-chat-display-chip-neutral">
+                    <span className="mythic-status-chip mythic-tone-secondary">
                         <span className="mythic-chat-display-chip-value">+{metadataState.chips.length - metadataState.maxVisible}</span>
                     </span>
                 }
@@ -2391,7 +2396,7 @@ const ChatMetadataWizardDraggableRow = ({row, index, updateRow}) => (
                         </Select>
                         <ChatMetadataColorEditor
                             value={row.colorOverride}
-                            fallback={row.color || "neutral"}
+                            fallback={row.color || "secondary"}
                             onChange={(colorOverride) => updateRow(row.key, {colorOverride})}
                         />
                         <Typography className="mythic-chat-metadata-wizard-row-detail" variant="caption" color="text.secondary">
@@ -2401,7 +2406,7 @@ const ChatMetadataWizardDraggableRow = ({row, index, updateRow}) => (
                     <div className="mythic-reorder-row-actions">
                         <IconButton
                             aria-label={row.visible ? `Hide ${row.key}` : `Show ${row.key}`}
-                            className={`mythic-table-row-icon-action ${row.visible ? "mythic-table-row-icon-action-hover-danger" : "mythic-table-row-icon-action-hover-info"}`}
+                            className={`mythic-compact-icon-action ${row.visible ? "mythic-action-tone-hover mythic-tone-error" : "mythic-action-tone-hover mythic-tone-info"}`}
                             size="small"
                             onClick={() => updateRow(row.key, {visible: !row.visible})}
                         >
@@ -2584,22 +2589,24 @@ const ChannelButtonComponent = ({channel, selected, unread, muted, chatContainer
     ].filter(Boolean);
     return (
         <Box
-            className="mythic-chat-channel-row"
+            className={`mythic-chat-channel-row${selected ? " mythic-chat-channel-selected" : ""}`}
             style={{
                 "--mythic-chat-channel-accent": accentColor,
                 "--mythic-chat-channel-warning": theme.palette.warning.main,
                 "--mythic-chat-channel-error": theme.palette.error.main,
                 "--mythic-chat-channel-muted": theme.palette.text.secondary,
                 "--mythic-chat-channel-info": theme.palette.info.main,
+                borderColor: selected ? alpha(accentColor, 0.28) : "transparent",
+                backgroundColor: selected ? alpha(accentColor, theme.palette.mode === "dark" ? 0.18 : 0.1) : "transparent",
             }}
         >
             <button
                 type="button"
                 onClick={() => onSelect(channel.id)}
-                className={`mythic-chat-channel-button${selected ? " mythic-chat-channel-button-selected" : ""}${channel.archived ? " mythic-chat-channel-button-archived" : ""}`}
+                className={`mythic-chat-channel-button${channel.archived ? " mythic-chat-channel-button-archived" : ""}`}
                 style={{
-                    borderColor: selected ? alpha(accentColor, 0.28) : "transparent",
-                    backgroundColor: selected ? alpha(accentColor, theme.palette.mode === "dark" ? 0.18 : 0.1) : channel.archived ? alpha(theme.palette.text.secondary, 0.06) : "transparent",
+                    borderColor: "transparent",
+                    backgroundColor: selected ? "transparent" : channel.archived ? alpha(theme.palette.text.secondary, 0.06) : "transparent",
                     color: theme.palette.text.primary,
                 }}
             >
@@ -3532,14 +3539,14 @@ const ChatDelegationPane = ({
                             </MythicStyledTooltip>
                             <Chip
                                 size="small"
-                                className={`mythic-chat-special-status mythic-chat-special-status-${stateClass}`.trim()}
+                                className={`mythic-status-chip mythic-tone-${getChatStateTone(stateClass)}`}
                                 label={getSubagentStatusText(snapshot)}
                                 variant="outlined"
                             />
                             {hasProgress &&
                                 <Chip
                                     size="small"
-                                    className={`mythic-chat-special-status mythic-chat-special-status-${stateClass}`.trim()}
+                                    className={`mythic-status-chip mythic-tone-${getChatStateTone(stateClass)}`}
                                     label={`${toolCount}/${toolTotal} tools`}
                                     variant="outlined"
                                 />
@@ -4558,8 +4565,8 @@ export function Chat({me}) {
                 meta={metaChips}
                 actions={
                     <Box sx={{display: "flex", gap: 1}}>
-                        <Button size="small" className="mythic-table-row-action-hover-info" startIcon={<SearchIcon />} onClick={() => setSearchOpen(true)}>Search</Button>
-                        <Button size="small" className="mythic-table-row-action-hover-success" variant="contained" startIcon={<AddIcon />} onClick={openNewChannelDialog}>New channel</Button>
+                        <Button size="small" className="mythic-action-tone-hover mythic-tone-info" startIcon={<SearchIcon />} onClick={() => setSearchOpen(true)}>Search</Button>
+                        <Button size="small" className="mythic-action-tone-hover mythic-tone-success" variant="contained" startIcon={<AddIcon />} onClick={openNewChannelDialog}>New channel</Button>
                     </Box>
                 }
             />
@@ -4632,7 +4639,7 @@ export function Chat({me}) {
                 </Box>
                 <Box className="mythic-chat-main">
                     <Box className="mythic-chat-conversation-header">
-                        <Box sx={{display: "flex", alignItems: "center", gap: 1, minWidth: 0}}>
+                        <Box sx={{display: "flex", flex: "1 1 auto", alignItems: "center", gap: 1, minWidth: 0}}>
                             <Box
                                 className="mythic-chat-conversation-icon"
                                 sx={{
@@ -5218,12 +5225,12 @@ const ChatEventingUserInteractionEvent = ({message, me, onRefresh, onReview, ref
         }
     }, [waiting]);
     return (
-        <Box className={`mythic-chat-inline-event mythic-chat-inline-event-${stateClass}`.trim()}>
+        <Box className={`mythic-chat-inline-event mythic-tone-${getChatStateTone(stateClass)}`}>
             <Box className="mythic-chat-inline-event-summary">
                 <Box className="mythic-chat-inline-event-main">
                     <Chip
                         size="small"
-                        className={`mythic-chat-special-status mythic-chat-special-status-${stateClass}`.trim()}
+                        className={`mythic-status-chip mythic-tone-${getChatStateTone(stateClass)}`}
                         label={statusText}
                         variant="outlined"
                     />
@@ -5249,7 +5256,7 @@ const ChatEventingUserInteractionEvent = ({message, me, onRefresh, onReview, ref
                         <Button
                             size="small"
                             variant="contained"
-                            className="mythic-table-row-action mythic-table-row-action-hover-success"
+                            className="mythic-compact-action mythic-action-tone-hover mythic-tone-success"
                             onClick={() => onReview(message)}
                         >
                             Review
@@ -5356,12 +5363,12 @@ const ChatInputRequestedEvent = ({message, me, onSubmit, submitting}) => {
     const dataText = jsonTextForConfigValue(snapshot.data || {});
     const responseText = response ? jsonTextForConfigValue(response) : "";
     return (
-        <Box className={`mythic-chat-inline-event mythic-chat-inline-event-${stateClass}`.trim()}>
+        <Box className={`mythic-chat-inline-event mythic-tone-${getChatStateTone(stateClass)}`}>
             <Box className="mythic-chat-inline-event-summary">
                 <Box className="mythic-chat-inline-event-main">
                     <Chip
                         size="small"
-                        className={`mythic-chat-special-status mythic-chat-special-status-${stateClass}`.trim()}
+                        className={`mythic-status-chip mythic-tone-${getChatStateTone(stateClass)}`}
                         label={statusText}
                         variant="outlined"
                     />
@@ -5375,7 +5382,7 @@ const ChatInputRequestedEvent = ({message, me, onSubmit, submitting}) => {
                             <Button
                                 size="small"
                                 variant="contained"
-                                className="mythic-table-row-action mythic-table-row-action-hover-success"
+                                className="mythic-compact-action mythic-action-tone-hover mythic-tone-success"
                                 disabled={submitting}
                                 onClick={() => onSubmit(message, "accept")}
                             >
@@ -5403,7 +5410,7 @@ const ChatInputRequestedEvent = ({message, me, onSubmit, submitting}) => {
                         <Button
                             size="small"
                             variant="contained"
-                            className="mythic-table-row-action mythic-table-row-action-hover-success"
+                            className="mythic-compact-action mythic-action-tone-hover mythic-tone-success"
                             disabled={submitting}
                             onClick={() => onSubmit(message, "respond")}
                         >
@@ -5551,6 +5558,9 @@ const getSubagentStateClass = (snapshot) => {
     }
 };
 
+const getChatStateTone = (state) => state === "waiting" ? "warning" :
+    state === "running" ? "info" : state === "queued" || state === "neutral" ? "primary" : state;
+
 const isTerminalSubagentSnapshot = (snapshot) => ["finished", "completed", "complete", "failed", "error", "cancelled"].includes(`${snapshot.status || ""}`.toLowerCase());
 
 const normalizeFontAwesomeIconName = (value) => {
@@ -5667,20 +5677,20 @@ const ChatSubagentEvent = ({message, me, onOpenDelegation}) => {
         message.updated_at ? {label: terminal ? "End" : "Updated", value: formatTimestamp(message.updated_at, me?.user?.view_utc_time)} : null,
     ].filter(Boolean);
     return (
-        <Box className={`mythic-chat-inline-event mythic-chat-inline-event-${stateClass}`.trim()}>
+        <Box className={`mythic-chat-inline-event mythic-tone-${getChatStateTone(stateClass)}`}>
             <Box className="mythic-chat-inline-event-summary">
                 <Box className="mythic-chat-inline-event-main">
                     <ChatSubagentAvatar visual={visual} />
                     <Chip
                         size="small"
-                        className={`mythic-chat-special-status mythic-chat-special-status-${stateClass}`.trim()}
+                        className={`mythic-status-chip mythic-tone-${getChatStateTone(stateClass)}`}
                         label={getSubagentStatusText(snapshot)}
                         variant="outlined"
                     />
                     {hasProgress &&
                         <Chip
                             size="small"
-                            className={`mythic-chat-special-status mythic-chat-special-status-${stateClass}`.trim()}
+                            className={`mythic-status-chip mythic-tone-${getChatStateTone(stateClass)}`}
                             label={`${toolCount}/${toolTotal} tools`}
                             variant="outlined"
                         />
@@ -5764,12 +5774,12 @@ const ChatToolUseEvent = ({message, me, onViewToolOutput}) => {
         return null;
     }
     return (
-        <Box className={`mythic-chat-inline-event mythic-chat-inline-event-${stateClass}`.trim()}>
+        <Box className={`mythic-chat-inline-event mythic-tone-${getChatStateTone(stateClass)}`}>
             <Box className="mythic-chat-inline-event-summary">
                 <Box className="mythic-chat-inline-event-main">
                     <Chip
                         size="small"
-                        className={`mythic-chat-special-status mythic-chat-special-status-${stateClass}`.trim()}
+                        className={`mythic-status-chip mythic-tone-${getChatStateTone(stateClass)}`}
                         label={getToolUseStatusText(snapshot)}
                         variant="outlined"
                     />

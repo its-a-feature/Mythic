@@ -556,7 +556,7 @@ You can extend this auth capability to support your own LDAP, SSO, or otherwise 
                                 <MythicTableCell style={{width: "3rem"}}></MythicTableCell>
                                 <MythicTableCell style={{width: "24%"}}>Service</MythicTableCell>
                                 <MythicTableCell>Metadata</MythicTableCell>
-                                <MythicTableCell>Actions</MythicTableCell>
+                                <MythicTableCell style={{width: "6rem"}}>Actions</MythicTableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>

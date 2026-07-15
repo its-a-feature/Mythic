@@ -253,7 +253,7 @@ export function C2ProfileListFilesDialog(props) {
         <div className="mythic-dialog-title-row">
           <span>{props.container_name}'s Current Files</span>
           <Button
-            className="mythic-dialog-title-action mythic-dialog-button-success"
+            className="mythic-dialog-title-action mythic-action-tone-hover mythic-tone-success"
             component="label"
             size="small"
             startIcon={<FileUploadIcon fontSize="small" />}
@@ -274,7 +274,7 @@ export function C2ProfileListFilesDialog(props) {
                 <MythicStyledTooltip title="Parent folder">
                   <span>
                     <IconButton
-                      className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                      className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
                       disabled={normalizedCurrentPath === ""}
                       onClick={() => onChangePath(parentPath(normalizedCurrentPath))}
                       size="small"
@@ -285,7 +285,7 @@ export function C2ProfileListFilesDialog(props) {
                 </MythicStyledTooltip>
                 <MythicStyledTooltip title="Refresh folder">
                   <IconButton
-                    className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                    className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
                     onClick={onRefresh}
                     size="small"
                   >
@@ -440,17 +440,17 @@ const C2ProfileListFilesDialogTableRow = ({container_name, id, filename, display
         <TableCell>File</TableCell>
         <TableCell align="right">
           <MythicStyledTooltip title="Remove file">
-            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={()=>{setOpenDeleteDialog(true);}} >
+            <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={()=>{setOpenDeleteDialog(true);}} >
               <DeleteIcon fontSize="small" />
             </IconButton>
           </MythicStyledTooltip>
           <MythicStyledTooltip title="Download file">
-            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-success" size="small" onClick={downloadFile}>
+            <IconButton className="mythic-compact-icon-action mythic-icon-tone mythic-tone-success" size="small" onClick={downloadFile}>
               <DownloadIcon fontSize="small" />
             </IconButton>
           </MythicStyledTooltip>
           <MythicStyledTooltip title="Edit file">
-            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={() => {setOpenProfileConfigDialog(true);}}>
+            <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" size="small" onClick={() => {setOpenProfileConfigDialog(true);}}>
               <EditIcon fontSize="small" />
             </IconButton>
           </MythicStyledTooltip>

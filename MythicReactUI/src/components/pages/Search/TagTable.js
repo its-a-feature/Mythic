@@ -103,7 +103,7 @@ function TagTableRow(props){
                 <MythicStyledTableCell>
                     <MythicStyledTooltip title="Remove tag">
                         <IconButton
-                            className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger"
+                            className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error"
                             size="small"
                             onClick={()=>{setOpenDeleteDialog(true);}}
                         >
@@ -229,7 +229,7 @@ function TagTableRowElement(props){
                         actions={
                             <MythicStyledTooltip title="View metadata">
                                 <IconButton
-                                    className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                                    className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
                                     size="small"
                                     onClick={() => setViewPermissionsDialogOpen(true)}
                                 >
@@ -268,7 +268,7 @@ function TagTableRowElement(props){
                         actions={
                             <MythicStyledTooltip title={"Host Payload Through C2"} >
                                 <IconButton
-                                    className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                                    className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
                                     size="small"
                                     onClick={()=>{setOpenHostDialog(true);}}
                                 >
@@ -319,7 +319,7 @@ function TagTableRowElement(props){
                     actions={
                         <MythicStyledTooltip title="View payload details">
                             <IconButton
-                                className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                                className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
                                 onClick={()=>setOpenDetailedView(true)}
                                 size="small"
                             >

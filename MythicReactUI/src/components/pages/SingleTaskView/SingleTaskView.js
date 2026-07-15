@@ -289,20 +289,20 @@ export function SingleTaskView(props){
             }
             actions={
                 <>
-                    <MythicToolbarButton className="mythic-table-row-action-hover-info" variant="outlined" onClick={getShareableLink} startIcon={<ContentCopyIcon fontSize="small" />}>
+                    <MythicToolbarButton className="mythic-action-tone-hover mythic-tone-info" variant="outlined" onClick={getShareableLink} startIcon={<ContentCopyIcon fontSize="small" />}>
                         Share Link
                     </MythicToolbarButton>
                     {removing ? (
                         <>
-                            <MythicToolbarButton className="mythic-table-row-action-hover-warning" variant="outlined" onClick={cancelRemoveMode} startIcon={<CloseIcon fontSize="small" />}>
+                            <MythicToolbarButton className="mythic-action-tone-hover mythic-tone-warning" variant="outlined" onClick={cancelRemoveMode} startIcon={<CloseIcon fontSize="small" />}>
                                 Cancel
                             </MythicToolbarButton>
-                            <MythicToolbarButton className="mythic-table-row-action-hover-danger" disabled={selectedRemoveCount === 0} variant="outlined" onClick={removeSelectedTasks} startIcon={<DeleteIcon fontSize="small" />}>
+                            <MythicToolbarButton className="mythic-action-tone-hover mythic-tone-error" disabled={selectedRemoveCount === 0} variant="outlined" onClick={removeSelectedTasks} startIcon={<DeleteIcon fontSize="small" />}>
                                 Remove Selected
                             </MythicToolbarButton>
                         </>
                     ) : (
-                        <MythicToolbarButton className="mythic-table-row-action-hover-warning" variant="outlined" onClick={enterRemoveMode} startIcon={<PlaylistRemoveIcon fontSize="small" />}>
+                        <MythicToolbarButton className="mythic-action-tone-hover mythic-tone-warning" variant="outlined" onClick={enterRemoveMode} startIcon={<PlaylistRemoveIcon fontSize="small" />}>
                             Remove Tasks
                         </MythicToolbarButton>
                     )}
@@ -348,7 +348,7 @@ export function SingleTaskView(props){
                             </>
                         }
                         actions={
-                            <MythicToolbarButton className="mythic-table-row-action-hover-info" variant="outlined" onClick={() => {setTaskSearchInfo(task.display_id)}} startIcon={<PlaylistAddIcon fontSize="small" />}>
+                            <MythicToolbarButton className="mythic-action-tone-hover mythic-tone-info" variant="outlined" onClick={() => {setTaskSearchInfo(task.display_id)}} startIcon={<PlaylistAddIcon fontSize="small" />}>
                                 Include Tasks
                             </MythicToolbarButton>
                         }

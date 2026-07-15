@@ -158,10 +158,10 @@ export function PayloadTypeCommandDialog({service, payload_name, onClose}) {
                                 <TableCell>{param.version}</TableCell>
                                 <TableCell>{param.description}</TableCell>
                                 <TableCell>
-                                    <div className="mythic-table-row-actions mythic-table-row-actions-nowrap">
+                                    <div className="mythic-compact-actions mythic-compact-actions-nowrap">
                                         <MythicStyledTooltip title="Documentation">
                                             <IconButton
-                                                className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                                                className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
                                                 href={service.wrapper ? "/docs/wrappers/" + service.name : "/docs/agents/" + service.name}
                                                 target="_blank"
                                                 size="small">
@@ -169,7 +169,7 @@ export function PayloadTypeCommandDialog({service, payload_name, onClose}) {
                                             </IconButton>
                                         </MythicStyledTooltip>
                                         <MythicStyledTooltip title="Scripting parameters">
-                                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" onClick={(e) => onClickOpenScriptDialog(e, param)} size="small">
+                                            <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" onClick={(e) => onClickOpenScriptDialog(e, param)} size="small">
                                                 <PlayCircleFilledTwoToneIcon fontSize="small" />
                                             </IconButton>
                                         </MythicStyledTooltip>
@@ -319,7 +319,7 @@ const ScriptingParameterCard = ({commandName, param}) => {
                     </div>
                 </div>
                 <div className="mythic-status-stack">
-                    <MythicStatusChip label={param.type} status="neutral" showIcon={false} />
+                    <MythicStatusChip label={param.type} status="secondary" showIcon={false} />
                     {param.required &&
                         <MythicStatusChip label="Required" status="warning" />
                     }

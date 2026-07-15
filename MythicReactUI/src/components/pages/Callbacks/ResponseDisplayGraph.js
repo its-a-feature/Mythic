@@ -85,7 +85,7 @@ export const ResponseDisplayGraph = ({graph, task, expand}) =>{
                     <Typography component="div" className="mythic-graph-empty-description">
                         {`This response contains ${graph.nodes.length} nodes and ${graph.edges.length} edges.`}
                     </Typography>
-                    <Button className="mythic-graph-empty-action" variant={"contained"} onClick={() => {setShowGraph(!showGraph)}}>
+                    <Button className="mythic-graph-empty-action mythic-action-tone-hover mythic-tone-info" variant={"contained"} onClick={() => {setShowGraph(!showGraph)}}>
                         Show Graph
                     </Button>
                 </div>

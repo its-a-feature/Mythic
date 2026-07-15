@@ -277,7 +277,7 @@ const TaskingParameterPreviewChip = ({parameter, required=false, active=false, o
         <Chip
             aria-label={onClick ? `Insert ${getTaskingParameterLabel(parameter)}` : getTaskingParameterLabel(parameter)}
             clickable={Boolean(onClick)}
-            className={`mythic-tasking-parameter-preview-chip${required ? " mythic-tasking-parameter-preview-chip-required" : ""}${active ? " mythic-tasking-parameter-preview-chip-active" : ""}`}
+            className={`mythic-status-chip mythic-tasking-parameter-preview-chip mythic-tone-${required ? "warning" : active ? "info" : "neutral"}`}
             label={
                 <span className="mythic-tasking-parameter-preview-chip-label">
                     {active &&
@@ -2556,7 +2556,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                                 {props.filterTasks &&
                                     <MythicStyledTooltip title={activeFiltering ? "Adjust active task filters" : "Filter task history"}>
                                         <IconButton
-                                            className={`mythic-tasking-action-button ${activeFiltering ? "mythic-tasking-action-button-warning" : "mythic-tasking-action-button-neutral"}`}
+                                            className={`mythic-tasking-action-button ${activeFiltering ? "mythic-action-tone-hover mythic-tone-warning" : "mythic-action-tone-hover mythic-tone-info"}`}
                                             onClick={onClickFilter}
                                             disableRipple={true}
                                             disableFocusRipple={true}
@@ -2566,7 +2566,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                                 }
                                 <MythicStyledTooltip title={"Manage aliases"}>
                                     <IconButton
-                                        className="mythic-tasking-action-button mythic-tasking-action-button-neutral"
+                                        className="mythic-tasking-action-button mythic-action-tone-hover mythic-tone-info"
                                         onClick={() => setOpenAliasesDialog(true)}
                                         disableRipple={true}
                                         disableFocusRipple={true}
@@ -2575,7 +2575,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                                 </MythicStyledTooltip>
                                 <MythicStyledTooltip title={"Submit task"}>
                                     <IconButton
-                                        className="mythic-tasking-action-button mythic-tasking-action-button-success"
+                                        className="mythic-tasking-action-button mythic-action-tone-hover mythic-tone-success"
                                         disableRipple={true}
                                         disableFocusRipple={true}
                                         onClick={onSubmitCommandLine}

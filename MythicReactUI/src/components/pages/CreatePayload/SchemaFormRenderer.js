@@ -238,7 +238,7 @@ const ArrayOfPrimitiveField = ({schema, value, onChange, depth = 0}) => {
                         />
                     </Box>
                     <IconButton
-                        className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger"
+                        className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error"
                         size="small"
                         onClick={() => {
                             const next = [...arr];
@@ -251,7 +251,7 @@ const ArrayOfPrimitiveField = ({schema, value, onChange, depth = 0}) => {
                 </Box>
             ))}
             <Button
-                className="mythic-table-row-action mythic-table-row-action-hover-success"
+                className="mythic-compact-action mythic-action-tone-hover mythic-tone-success"
                 size="small"
                 variant="contained"
                 startIcon={<AddCircleIcon fontSize="small" />}
@@ -316,7 +316,7 @@ const ArrayOfObjectField = ({schema, value, onChange, depth = 0}) => {
                             })}
                         </SchemaStack>
                         <IconButton
-                            className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger"
+                            className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error"
                             size="small"
                             onClick={() => {
                                 const next = [...arr];
@@ -330,7 +330,7 @@ const ArrayOfObjectField = ({schema, value, onChange, depth = 0}) => {
                 );
             })}
             <Button
-                className="mythic-table-row-action mythic-table-row-action-hover-success"
+                className="mythic-compact-action mythic-action-tone-hover mythic-tone-success"
                 size="small"
                 variant="contained"
                 startIcon={<AddCircleIcon fontSize="small" />}
@@ -405,7 +405,7 @@ const StringMapField = ({schema, value, onChange}) => {
                                 </TableCell>
                                 <TableCell sx={{borderBottom: 0, p: 0.5, width: "2.5rem"}}>
                                     <IconButton
-                                        className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger"
+                                        className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error"
                                         size="small"
                                         onClick={() => {
                                             const next = {...obj};
@@ -422,7 +422,7 @@ const StringMapField = ({schema, value, onChange}) => {
                 </Table>
             }
             <Button
-                className="mythic-table-row-action mythic-table-row-action-hover-success"
+                className="mythic-compact-action mythic-action-tone-hover mythic-tone-success"
                 size="small"
                 variant="contained"
                 startIcon={<AddCircleIcon fontSize="small" />}

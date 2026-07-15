@@ -116,7 +116,7 @@ const ParameterLoadingOverlay = ({open}) => (
 );
 const ParameterRefreshButton = ({onClick}) => (
     <MythicStyledTooltip title={"Refresh dynamic options"} tooltipStyle={{display: "inline-flex"}}>
-        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info mythic-task-parameter-refresh" size="small" onClick={onClick}>
+        <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info mythic-task-parameter-refresh" size="small" onClick={onClick}>
             <RefreshIcon fontSize="small" />
         </IconButton>
     </MythicStyledTooltip>
@@ -954,7 +954,7 @@ export function TaskParametersDialogRow(props){
                             {arrayValue.map( (a, i) => (
                                 <Box className="mythic-task-array-entry" key={'array' + props.name + i}>
                                     <MythicStyledTooltip title={"Remove array element"}>
-                                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger mythic-task-array-delete" size="small" onClick={(e) => {removeArrayValue(i)}}>
+                                        <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error mythic-task-array-delete" size="small" onClick={(e) => {removeArrayValue(i)}}>
                                             <DeleteIcon fontSize="small" />
                                         </IconButton>
                                     </MythicStyledTooltip>
@@ -986,7 +986,7 @@ export function TaskParametersDialogRow(props){
                             {typedArrayValue.map( (a, i) => (
                                 <Box className="mythic-task-typed-array-entry" key={'typedarray' + props.name + i}>
                                     <MythicStyledTooltip title={"Remove typed array element"}>
-                                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger mythic-task-array-delete" size="small" onClick={(e) => {removeTypedArrayValue(i)}}><DeleteIcon fontSize="small" /> </IconButton>
+                                        <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error mythic-task-array-delete" size="small" onClick={(e) => {removeTypedArrayValue(i)}}><DeleteIcon fontSize="small" /> </IconButton>
                                     </MythicStyledTooltip>
                                     <FormControl className="mythic-task-typed-array-choice">
                                         <Select
@@ -1038,7 +1038,7 @@ export function TaskParametersDialogRow(props){
                 return (
                     <Box className="mythic-task-parameter-boolean-row">
                         <Switch checked={boolValue} onChange={onSwitchChange} color={"info"} />
-                        <Chip size="small" className={`mythic-task-parameter-boolean-chip${boolValue ? " mythic-task-parameter-boolean-chip-enabled" : ""}`} label={boolValue ? "True" : "False"} />
+                        <Chip size="small" className={`mythic-status-chip mythic-tone-${boolValue ? "success" : "warning"}`} label={boolValue ? "True" : "False"} />
                     </Box>
                 )
             case "File":
@@ -1146,9 +1146,9 @@ export function TaskParametersDialogRow(props){
                                     )}
                                 </ParameterFieldRow>
                                 <Box className="mythic-task-agent-connect-actions">
-                                    <Button className="mythic-table-row-action mythic-table-row-action-hover-success" component="span" size="small" disabled={!props.payload_choices || props.payload_choices.length === 0}
+                                    <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" component="span" size="small" disabled={!props.payload_choices || props.payload_choices.length === 0}
                                             startIcon={<AddCircleIcon fontSize="small" />} onClick={onAgentConnectAddNewPayloadOnHost}>Confirm</Button>
-                                    <Button className="mythic-table-row-action mythic-table-row-action-hover-warning" component="span" size="small"
+                                    <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-warning" component="span" size="small"
                                             startIcon={<CancelIcon fontSize="small" />} onClick={() =>{
                                         setOpenAdditionalPayloadOnHostmenu(false);
                                         props.setSubmenuOpenPreventTasking(false);
@@ -1210,7 +1210,7 @@ export function TaskParametersDialogRow(props){
                                 </ParameterFieldRow>
                                 <Box className="mythic-task-agent-connect-actions">
                                     <MythicStyledTooltip title={"Associate new payload with a specific host for linking"}>
-                                        <Button className="mythic-table-row-action mythic-table-row-action-hover-success" component="span" size="small"
+                                        <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" component="span" size="small"
                                                 startIcon={<AddCircleIcon fontSize="small" />} onClick={() =>{
                                             setOpenAdditionalPayloadOnHostmenu(true);
                                             props.setSubmenuOpenPreventTasking(true);
@@ -1218,7 +1218,7 @@ export function TaskParametersDialogRow(props){
                                         }}>Register New</Button>
                                     </MythicStyledTooltip>
                                     <MythicStyledTooltip title={"Mark associated payload as no longer on host and not available for linking"}>
-                                        <Button className="mythic-table-row-action mythic-table-row-action-hover-danger" component="span" size="small"
+                                        <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-error" component="span" size="small"
                                                 startIcon={<DeleteIcon fontSize="small" />} onClick={onAgentConnectRemovePayloadOnHost}>Remove Listed</Button>
                                     </MythicStyledTooltip>
                                 </Box>
@@ -1312,10 +1312,10 @@ export function TaskParametersDialogRow(props){
                             </FormControl>
                         )}
                         <Box className="mythic-task-credential-actions">
-                            <Button className="mythic-table-row-action mythic-table-row-action-hover-success" variant="outlined" component="span" size="small" startIcon={<AddCircleIcon fontSize="small" />} onClick={() =>{
+                            <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" variant="outlined" component="span" size="small" startIcon={<AddCircleIcon fontSize="small" />} onClick={() =>{
                                 setCreateCredentialDialogOpen(true)
                             }}>New Credential</Button>
-                            <Button className="mythic-table-row-action mythic-table-row-action-hover-danger" variant="outlined" component="span" size="small" disabled={ChoiceOptions.length === 0 || ChoiceOptions[value]?.id === undefined} startIcon={<DeleteIcon fontSize="small" />} onClick={() =>{
+                            <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-error" variant="outlined" component="span" size="small" disabled={ChoiceOptions.length === 0 || ChoiceOptions[value]?.id === undefined} startIcon={<DeleteIcon fontSize="small" />} onClick={() =>{
                                 onDeleteCredential();
                             }}>Remove Credential</Button>
                         </Box>
@@ -1334,8 +1334,8 @@ export function TaskParametersDialogRow(props){
                         {props.display_name || props.name}
                     </Typography>
                     <Box className="mythic-task-parameter-chip-row">
-                        <Chip size="small" className={`mythic-task-parameter-chip${props.required ? " mythic-task-parameter-chip-required" : ""}`} label={props.required ? "Required" : "Optional"} />
-                        <Chip size="small" className="mythic-task-parameter-chip" label={props.type} />
+                        <Chip size="small" className={`mythic-status-chip mythic-tone-${props.required ? "warning" : "neutral"}`} label={props.required ? "Required" : "Optional"} />
+                        <Chip size="small" className="mythic-status-chip mythic-tone-neutral" label={props.type} />
                     </Box>
                 </Box>
                 <Typography component="div" className={`mythic-task-parameter-description${props.description ? "" : " mythic-task-parameter-description-muted"}`}>

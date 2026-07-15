@@ -134,7 +134,7 @@ function FileBrowserTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <IconButton
-                        className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
+                        className="mythic-compact-icon-action mythic-icon-tone mythic-tone-info"
                         onClick={() => setEditCommentDialogOpen(true)}
                         size="small"
                     >
@@ -149,7 +149,7 @@ function FileBrowserTableRow(props){
                 <MythicStyledTableCell>
                     <MythicStyledTooltip title="View permissions data">
                         <IconButton
-                            className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
+                            className="mythic-compact-icon-action mythic-icon-tone mythic-tone-info"
                             size="small"
                             onClick={() => setViewPermissionsDialogOpen(true)}
                         >
@@ -161,7 +161,7 @@ function FileBrowserTableRow(props){
                     {props.filemeta.length > 0 ? (
                         <MythicStyledTooltip title="View Download History and Download Files">
                             <IconButton
-                                className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
+                                className="mythic-compact-icon-action mythic-icon-tone mythic-tone-info"
                                 size="small"
                                 onClick={() => setFileHistoryDialogOpen(true)}
                             >

@@ -465,7 +465,7 @@ export function EditScriptDialog(props) {
               <MythicDialogButton intent="warning" onClick={onRevert}>
                 Revert
               </MythicDialogButton>
-                <MythicDialogButton className="mythic-table-row-action-hover-info" intent="info" disabled={selectedCommand === "" || selectedPayloadType === ""} onClick={onTest}>
+                <MythicDialogButton intent="info" disabled={selectedCommand === "" || selectedPayloadType === ""} onClick={onTest}>
                     Save For Testing
                 </MythicDialogButton>
               <MythicDialogButton disabled={selectedCommand === "" || selectedPayloadType === ""} intent="primary" onClick={onSubmit}>

@@ -27,14 +27,6 @@ export const MythicPageHeader = ({
     const actionSurfaceActive = alpha(headerTextColor, 0.23);
     const actionBorder = alpha(headerTextColor, 0.24);
     const actionBorderHover = alpha(headerTextColor, 0.42);
-    const getIntentHoverStyles = (paletteName) => {
-        const paletteColor = theme.palette[paletteName]?.main || headerTextColor;
-        return {
-            backgroundColor: `${alpha(paletteColor, theme.palette.mode === "dark" ? 0.28 : 0.16)} !important`,
-            borderColor: `${alpha(paletteColor, theme.palette.mode === "dark" ? 0.78 : 0.55)} !important`,
-            color: `${paletteColor} !important`,
-        };
-    };
     return (
         <Paper
             className={`mythic-page-header${className ? ` ${className}` : ""}`}
@@ -130,10 +122,6 @@ export const MythicPageHeader = ({
                         color: `${alpha(headerTextColor, 0.38)} !important`,
                     },
                 },
-                "& .MuiButton-root.mythic-table-row-action-hover-info:hover, & .MuiToggleButton-root.mythic-table-row-action-hover-info:hover, & .MuiIconButton-root.mythic-table-row-icon-action-hover-info:hover": getIntentHoverStyles("info"),
-                "& .MuiButton-root.mythic-table-row-action-hover-success:hover, & .MuiToggleButton-root.mythic-table-row-action-hover-success:hover, & .MuiIconButton-root.mythic-table-row-icon-action-hover-success:hover": getIntentHoverStyles("success"),
-                "& .MuiButton-root.mythic-table-row-action-hover-warning:hover, & .MuiToggleButton-root.mythic-table-row-action-hover-warning:hover, & .MuiIconButton-root.mythic-table-row-icon-action-hover-warning:hover": getIntentHoverStyles("warning"),
-                "& .MuiButton-root.mythic-table-row-action-hover-danger:hover, & .MuiToggleButton-root.mythic-table-row-action-hover-danger:hover, & .MuiIconButton-root.mythic-table-row-icon-action-hover-danger:hover": getIntentHoverStyles("error"),
                 ...sx,
             }}
         >
@@ -213,19 +201,17 @@ export const MythicPageHeaderChip = ({status, sx = {}, ...props}) => {
     const headerTextColor = theme.pageHeaderText?.main || theme.palette.text.primary;
     const normalizedStatus = status === "active" || status === "enabled" ? "success" :
         status === "inactive" || status === "disabled" ? "warning" :
-        status === "neutral" ? "neutral" : status;
-    const statusColor = normalizedStatus && normalizedStatus !== "neutral" ? theme.palette[normalizedStatus]?.main : null;
+        status === "neutral" ? "secondary" : status;
+    const statusColor = normalizedStatus ? theme.palette[normalizedStatus]?.main : null;
     const chipColor = statusColor || alpha(headerTextColor, 0.88);
-    const neutralBackground = theme.palette.mode === "dark" ? alpha(theme.palette.common.white, 0.06) : alpha(theme.palette.common.black, 0.035);
-    const neutralBorder = theme.table?.borderSoft || alpha(headerTextColor, 0.2);
     return (
         <Chip
             size="small"
             variant="outlined"
             {...props}
             sx={{
-                backgroundColor: statusColor ? alpha(statusColor, theme.palette.mode === "dark" ? 0.22 : 0.13) : (normalizedStatus === "neutral" ? neutralBackground : alpha(headerTextColor, 0.08)),
-                borderColor: statusColor ? alpha(statusColor, theme.palette.mode === "dark" ? 0.55 : 0.38) : (normalizedStatus === "neutral" ? neutralBorder : alpha(headerTextColor, 0.2)),
+                backgroundColor: statusColor ? alpha(statusColor, theme.palette.mode === "dark" ? 0.22 : 0.13) : alpha(headerTextColor, 0.08),
+                borderColor: statusColor ? alpha(statusColor, theme.palette.mode === "dark" ? 0.55 : 0.38) : alpha(headerTextColor, 0.2),
                 color: chipColor,
                 fontSize: "0.72rem",
                 fontWeight: 750,

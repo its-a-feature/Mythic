@@ -741,11 +741,11 @@ const SearchTabFilesSearchPanel = (props) => {
                 </MythicToolbarSelect>
             </MythicTableToolbarGroup>
             <MythicTableToolbarGroup label="Actions">
-                <MythicToolbarButton className="mythic-toolbar-button-hover-success" variant="outlined" component="label" startIcon={<BackupIcon />}>
+                <MythicToolbarButton className="mythic-action-tone-hover mythic-tone-success" variant="outlined" component="label" startIcon={<BackupIcon />}>
                     Files
                     <input onChange={onFileChange} type="file" multiple hidden/>
                 </MythicToolbarButton>
-                <MythicToolbarButton className="mythic-toolbar-button-hover-info" variant="outlined" startIcon={<NoteAddIcon />} onClick={()=>{setOpenCreateTextFileDialog(true);}}>
+                <MythicToolbarButton className="mythic-action-tone-hover mythic-tone-info" variant="outlined" startIcon={<NoteAddIcon />} onClick={()=>{setOpenCreateTextFileDialog(true);}}>
                     Text
                 </MythicToolbarButton>
                 <MythicToolbarToggle

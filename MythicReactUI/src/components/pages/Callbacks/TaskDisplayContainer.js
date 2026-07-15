@@ -69,10 +69,10 @@ query subResponsesQuery($task_id: Int!) {
 }`;
 
 const responseActionClass = (tone = "info") => {
-  return `mythic-response-action-button mythic-response-action-hover-${tone}`;
+  return `mythic-response-action-button mythic-action-tone-hover mythic-tone-${tone === "danger" ? "error" : tone}`;
 };
 const responseMenuItemClass = (tone = "info") => {
-  return `mythic-response-action-menu-item mythic-response-action-hover-${tone}`;
+  return `mythic-response-action-menu-item mythic-action-tone-hover mythic-tone-${tone === "danger" ? "error" : tone}`;
 };
 
 export const TaskDisplayContainer = ({task, me}) => {

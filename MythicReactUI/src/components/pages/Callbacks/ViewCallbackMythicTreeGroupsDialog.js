@@ -105,7 +105,7 @@ const CallbackGroupStatusCell = ({callback}) => {
     return (
         <div className="mythic-tree-groups-callback-icons">
             <MythicStyledTooltip title={callback.active ? "Callback is active" : "Callback is not active"}>
-                <span className={`mythic-tree-groups-status ${callback.active ? "mythic-tree-groups-statusActive" : "mythic-tree-groups-statusInactive"}`}>
+                <span className={`mythic-status-chip mythic-status-chip-icon-only mythic-tone-${callback.active ? "success" : "warning"}`}>
                     {callback.active ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
                 </span>
             </MythicStyledTooltip>
@@ -255,7 +255,7 @@ export function ViewCallbackMythicTreeGroupsDialog(props){
                   </div>
                   <MythicStyledTooltip title="View all groups" >
                       <IconButton
-                          className="mythic-file-browser-iconButton mythic-file-browser-hoverInfo"
+                          className="mythic-file-browser-iconButton mythic-action-tone-hover mythic-tone-info"
                           size="small"
                           onClick={()=>{setOpenViewAllCallbacksDialog(true);}}>
                           <LayersIcon fontSize="small" />

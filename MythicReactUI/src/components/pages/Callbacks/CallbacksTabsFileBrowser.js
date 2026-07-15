@@ -822,7 +822,7 @@ const FileBrowserTableTop = ({
                             <div className="mythic-file-browser-toolbarGroup mythic-file-browser-toolbarGroupEnd">
                                 <MythicStyledTooltip title={`Task current callback (${tabInfo["displayID"]}) to list contents`}>
                                     <IconButton
-                                        className="mythic-file-browser-iconButton mythic-file-browser-hoverInfo"
+                                        className="mythic-file-browser-iconButton mythic-action-tone-hover mythic-tone-info"
                                         onClick={onLocalListFilesButton}
                                         size="small">
                                         <RefreshIcon fontSize="small" />
@@ -830,7 +830,7 @@ const FileBrowserTableTop = ({
                                 </MythicStyledTooltip>
                                 <MythicStyledTooltip title={`Upload file to folder via current callback (${tabInfo["displayID"]})`}>
                                     <IconButton
-                                        className="mythic-file-browser-iconButton mythic-file-browser-hoverInfo"
+                                        className="mythic-file-browser-iconButton mythic-action-tone-hover mythic-tone-info"
                                         onClick={onLocalUploadFileButton}
                                         size="small">
                                         <CloudUploadIcon fontSize="small" />
@@ -839,7 +839,7 @@ const FileBrowserTableTop = ({
                                 {autoTaskLsOnEmptyDirectories ? (
                                     <MythicStyledTooltip title={"Currently tasking listing on empty directories, click to toggle off"} >
                                         <IconButton
-                                            className="mythic-file-browser-iconButton mythic-file-browser-activeSuccess mythic-file-browser-hoverSuccess"
+                                            className="mythic-file-browser-iconButton mythic-action-tone mythic-tone-success mythic-action-tone-hover mythic-tone-success"
                                             onClick={onToggleAutoTaskLsOnEmptyDirectories}
                                             size="small">
                                             <PlaylistAddIcon fontSize="small" />
@@ -848,7 +848,7 @@ const FileBrowserTableTop = ({
                                 ) : (
                                     <MythicStyledTooltip title={"Currently not tasking listing on empty directories, click to toggle on"} >
                                         <IconButton
-                                            className="mythic-file-browser-iconButton mythic-file-browser-hoverWarning"
+                                            className="mythic-file-browser-iconButton mythic-action-tone-hover mythic-tone-warning"
                                             onClick={onToggleAutoTaskLsOnEmptyDirectories}
                                             size="small">
                                             <PlaylistRemoveIcon fontSize="small" />
@@ -857,7 +857,7 @@ const FileBrowserTableTop = ({
                                 )}
                                 <MythicStyledTooltip title={showDeletedFiles ? 'Hide Deleted Files' : 'Show Deleted Files'}>
                                     <IconButton
-                                        className={`mythic-file-browser-iconButton mythic-file-browser-hoverWarning ${showDeletedFiles ? "mythic-file-browser-activeWarning" : ""}`}
+                                        className={`mythic-file-browser-iconButton mythic-action-tone-hover mythic-tone-warning ${showDeletedFiles ? "mythic-action-tone mythic-tone-warning" : ""}`}
                                         onClick={onLocalToggleShowDeletedFiles}
                                         size="small">
                                         {showDeletedFiles ? (
@@ -879,7 +879,7 @@ const FileBrowserTableTop = ({
                                 }
                                 <MythicStyledTooltip title={`Move back to previous listing`}>
                                     <IconButton
-                                        className="mythic-file-browser-iconButton mythic-file-browser-hoverInfo"
+                                        className="mythic-file-browser-iconButton mythic-action-tone-hover mythic-tone-info"
                                         disabled={historyIndex >= history.length -1 }
                                         onClick={moveIndexToPreviousListing}
                                         size="small">
@@ -888,7 +888,7 @@ const FileBrowserTableTop = ({
                                 </MythicStyledTooltip>
                                 <MythicStyledTooltip title={`Move to next listing`}>
                                     <IconButton
-                                        className="mythic-file-browser-iconButton mythic-file-browser-hoverInfo"
+                                        className="mythic-file-browser-iconButton mythic-action-tone-hover mythic-tone-info"
                                         disabled={historyIndex <= 0}
                                         onClick={moveIndexToNextListing}
                                         size="small">
@@ -897,7 +897,7 @@ const FileBrowserTableTop = ({
                                 </MythicStyledTooltip>
                                 <MythicStyledTooltip title={"Move up a directory"} >
                                     <IconButton
-                                        className="mythic-file-browser-iconButton mythic-file-browser-hoverInfo"
+                                        className="mythic-file-browser-iconButton mythic-action-tone-hover mythic-tone-info"
                                         onClick={onLocalMoveUpDirectoryButton}
                                         disabled={!selectedFolderData?.parent_path_text || selectedFolderData?.parent_path_text?.length === 0 || selectedFolderData.root || fullPath === ""}
                                     >

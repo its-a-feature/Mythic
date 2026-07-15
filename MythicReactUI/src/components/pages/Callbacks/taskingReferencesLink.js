@@ -534,14 +534,14 @@ function LinkInfoEdgeOptionSummary({option, icon}) {
                 <Typography component="span" className="mythic-link-reference-edge-host">
                     {edgeSummary.host}
                 </Typography>
-                <Chip size="small" variant="outlined" label={edgeSummary.callbackLabel} className="mythic-link-reference-edge-chip" />
-                <Chip size="small" variant="outlined" label={edgeSummary.userPidLabel} className="mythic-link-reference-edge-chip" />
-                <Chip size="small" variant="outlined" label={edgeSummary.payloadType} className="mythic-link-reference-edge-chip" />
+                <Chip size="small" variant="outlined" label={edgeSummary.callbackLabel} className="mythic-status-chip mythic-tone-neutral" />
+                <Chip size="small" variant="outlined" label={edgeSummary.userPidLabel} className="mythic-status-chip mythic-tone-neutral" />
+                <Chip size="small" variant="outlined" label={edgeSummary.payloadType} className="mythic-status-chip mythic-tone-neutral" />
                 <Chip
                     size="small"
                     variant="outlined"
                     label={edgeSummary.connectionLabel}
-                    className={`mythic-link-reference-edge-chip mythic-link-reference-edge-state-${edgeSummary.connectionActive ? "active" : "inactive"}`}
+                    className={`mythic-status-chip mythic-tone-${edgeSummary.connectionActive ? "success" : "warning"}`}
                 />
             </Box>
             <Typography component="span" className="mythic-link-reference-edge-secondary">
@@ -694,7 +694,7 @@ export function LinkReferencePickerDialog({operation_id, callback_id, parameterT
                             placeholder={searchPlaceholder}
                             className="mythic-link-reference-search-field"
                         />
-                        <Chip size="small" variant="outlined" label={loading ? "Loading" : `${visibleOptions.length} shown`} className="mythic-tasking-reference-chip" />
+                        <Chip size="small" variant="outlined" label={loading ? "Loading" : `${visibleOptions.length} shown`} className="mythic-status-chip mythic-tone-neutral" />
                     </Box>
                     {isAgentConnect && agentConnectTab === linkReferenceKinds.payload &&
                         <Box className="mythic-link-reference-host-row">

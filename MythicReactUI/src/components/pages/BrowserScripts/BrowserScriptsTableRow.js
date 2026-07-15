@@ -56,8 +56,8 @@ export function BrowserScriptsTableRow(props){
                     <MythicStateChip label={props.user_modified ? "User modified" : "Container default"} state={props.user_modified ? "warning" : "neutral"} />
                 </MythicStyledTableCell>
                 <MythicStyledTableCell style={{textAlign: "center"}}>
-                    <Box className="mythic-table-row-actions mythic-table-row-actions-nowrap mythic-browser-script-actions">
-                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={()=>{setOpenEdit(true);}}>
+                    <Box className="mythic-compact-actions mythic-compact-actions-nowrap mythic-browser-script-actions">
+                        <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" size="small" onClick={()=>{setOpenEdit(true);}}>
                             <EditIcon fontSize="small" />
                         </IconButton>
                     </Box>

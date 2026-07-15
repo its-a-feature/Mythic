@@ -237,7 +237,7 @@ export function EventTriggerContextSelectDialog({onClose, triggerContext}) {
                         {dictionaryData.map( (e, index) => (
                             <TableRow key={"dictionarydata" + index}>
                                 <MythicStyledTableCell style={{display: "flex"}} >
-                                    <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={() => removeRow(index)} >
+                                    <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={() => removeRow(index)} >
                                         <DeleteIcon fontSize="small" />
                                     </IconButton>
                                     <Select
@@ -264,7 +264,7 @@ export function EventTriggerContextSelectDialog({onClose, triggerContext}) {
                         ))}
                         <TableRow>
                             <MythicStyledTableCell>
-                                <Button className="mythic-table-row-action mythic-table-row-action-hover-success" onClick={addRow} variant="contained" startIcon={<AddCircleIcon fontSize="small" />}>
+                                <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" onClick={addRow} variant="contained" startIcon={<AddCircleIcon fontSize="small" />}>
                                     Add Entry
                                 </Button>
                             </MythicStyledTableCell>
@@ -276,10 +276,10 @@ export function EventTriggerContextSelectDialog({onClose, triggerContext}) {
 
             </DialogContent>
             <DialogActions>
-                <Button className="mythic-table-row-action" onClick={onClose} variant="contained">
+                <Button className="mythic-compact-action" onClick={onClose} variant="contained">
                     Close
                 </Button>
-                <Button className="mythic-table-row-action mythic-table-row-action-hover-success" onClick={onSubmit} variant="contained">
+                <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" onClick={onSubmit} variant="contained">
                     Submit
                 </Button>
             </DialogActions>

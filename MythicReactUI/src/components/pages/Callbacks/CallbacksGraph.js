@@ -100,14 +100,14 @@ const GraphViewOptions = ({viewConfig, setViewConfig}) => {
                     <div className="mythic-callback-graph-options-actions">
                         <Button
                             size="small"
-                            className={`mythic-callback-graph-option-button ${!viewConfig["include_disconnected"] ? "mythic-callback-graph-option-button-active" : ""}`}
+                            className={`mythic-callback-graph-option-button${!viewConfig["include_disconnected"] ? " mythic-action-tone mythic-tone-success" : ""}`}
                             onClick={() => toggleViewConfig("include_disconnected")}
                         >
                             {viewConfig["include_disconnected"] ? "All Edges" : "Active Edges"}
                         </Button>
                         <Button
                             size="small"
-                            className={`mythic-callback-graph-option-button ${viewConfig["show_all_nodes"] ? "mythic-callback-graph-option-button-warning" : ""}`}
+                            className={`mythic-callback-graph-option-button${viewConfig["show_all_nodes"] ? " mythic-action-tone mythic-tone-warning" : ""}`}
                             onClick={() => toggleViewConfig("show_all_nodes")}
                         >
                             {viewConfig["show_all_nodes"] ? "All Callbacks" : "Connected Callbacks"}

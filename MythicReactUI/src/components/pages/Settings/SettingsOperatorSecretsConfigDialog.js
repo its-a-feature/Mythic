@@ -126,7 +126,7 @@ export function SettingsOperatorSecretsConfigDialog(props) {
                               {settings.map( (s, index) => (
                                   <TableRow hover key={"secret" + index}>
                                       <MythicStyledTableCell>
-                                          <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={() => removeSecret(index)}>
+                                          <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={() => removeSecret(index)}>
                                               <DeleteIcon fontSize="small" />
                                           </IconButton>
                                       </MythicStyledTableCell>

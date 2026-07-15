@@ -3,7 +3,7 @@ import React from 'react';
 const getServiceStatusTone = (isOnline, fallbackTone = "success") => isOnline ? fallbackTone : "error";
 
 const InstalledServiceStatusSummary = ({label, tone, details = []}) => (
-    <div className={`mythic-service-status-summary mythic-service-status-summary-${tone}`.trim()}>
+    <div className={`mythic-service-status-summary mythic-tone-${tone}`}>
         <div className="mythic-service-status-primary">
             <span className="mythic-service-status-dot" />
             <span className="mythic-service-status-primary-label">{label}</span>
@@ -12,7 +12,7 @@ const InstalledServiceStatusSummary = ({label, tone, details = []}) => (
             <div className="mythic-service-status-details">
                 {details.map((detail) => (
                     <span
-                        className={`mythic-service-status-detail mythic-service-status-detail-${detail.tone || "neutral"}`.trim()}
+                        className={`mythic-service-status-detail mythic-tone-${detail.tone || "secondary"}`}
                         key={`${detail.label}-${detail.value}`}
                     >
                         <span className="mythic-service-status-mini-dot" />
@@ -50,9 +50,9 @@ const getC2ProfileStatusDetails = (service) => {
         return [];
     }
     if(!service.container_running){
-        return [{label: "Server", value: "unavailable", tone: "neutral"}];
+        return [{label: "Server", value: "unavailable", tone: "secondary"}];
     }
-    return [{label: "Container", value: "online", tone: getServiceStatusTone(service.container_running, "neutral")}];
+    return [{label: "Container", value: "online", tone: getServiceStatusTone(service.container_running, "secondary")}];
 }
 
 export const C2ProfileStatusSummary = ({service}) => {

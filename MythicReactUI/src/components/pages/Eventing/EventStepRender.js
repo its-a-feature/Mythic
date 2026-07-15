@@ -480,10 +480,26 @@ const getStatusClass = (status) => {
 }
 const hasEventingStatus = (status) => status !== undefined && status !== null && status !== "";
 const getEventingStatusClass = (status) => hasEventingStatus(status) ? getStatusClass(status) : "configured";
+const getEventingStatusTone = (status) => {
+    switch(status || ""){
+        case "success":
+            return "success";
+        case "running":
+            return "info";
+        case "error":
+            return "error";
+        case "cancelled":
+        case "awaiting_approval":
+        case "input_needed":
+            return "warning";
+        default:
+            return "neutral";
+    }
+};
 export const EventingStatusChip = ({data}) => {
     const hasStatus = hasEventingStatus(data?.status);
     return (
-        <span className={`mythic-eventing-status-chip mythic-eventing-status-chip-${getEventingStatusClass(data?.status)}`.trim()}>
+        <span className={`mythic-status-chip mythic-tone-${getEventingStatusTone(data?.status)}`}>
             {hasStatus ? <GetStatusSymbol data={data}/> : <PanoramaFishEyeIcon/>}
             <span>{hasStatus ? getStatusLabel(data?.status) : "Configured"}</span>
         </span>
@@ -759,7 +775,7 @@ export const EventStepUserInteractionDialog = ({onClose, onResolved, selectedEve
                     <MythicLoadingState compact title="Loading interaction request" description="Fetching waiting step details." minHeight={180} />
                 </DialogContent>
                 <DialogActions className="mythic-eventing-detail-dialog-actions">
-                    <Button className="mythic-table-row-action" onClick={onClose} variant="outlined">Close</Button>
+                    <Button className="mythic-compact-action" onClick={onClose} variant="outlined">Close</Button>
                 </DialogActions>
             </>
         )
@@ -772,7 +788,7 @@ export const EventStepUserInteractionDialog = ({onClose, onResolved, selectedEve
                     <MythicEmptyState compact title="Nothing waiting" description="This workflow instance no longer has a step waiting for user interaction." minHeight={180} />
                 </DialogContent>
                 <DialogActions className="mythic-eventing-detail-dialog-actions">
-                    <Button className="mythic-table-row-action" onClick={onClose} variant="outlined">Close</Button>
+                    <Button className="mythic-compact-action" onClick={onClose} variant="outlined">Close</Button>
                 </DialogActions>
             </>
         )
@@ -879,7 +895,7 @@ export const EventStepUserInteractionDialog = ({onClose, onResolved, selectedEve
                             <div className="mythic-eventing-user-interaction-summary-chips">
                                 <EventingStatusChip data={activeStep} />
                                 {stepAction &&
-                                    <span className="mythic-eventing-flow-node-action">{stepAction}</span>
+                                    <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-info">{stepAction}</span>
                                 }
                             </div>
                         </div>
@@ -909,7 +925,7 @@ export const EventStepUserInteractionDialog = ({onClose, onResolved, selectedEve
                                                         <div className="mythic-eventing-user-interaction-input-name">
                                                             {field.name || "Input"}
                                                             {field.required &&
-                                                                <span className="mythic-eventing-user-interaction-required">required</span>
+                                                                <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-warning">required</span>
                                                             }
                                                         </div>
                                                         <div className="mythic-eventing-user-interaction-input-description">
@@ -987,7 +1003,7 @@ export const EventStepUserInteractionDialog = ({onClose, onResolved, selectedEve
             <DialogActions className="mythic-eventing-detail-dialog-actions">
                 {approvalRequired &&
                     <Button
-                        className="mythic-table-row-action mythic-table-row-action-hover-warning"
+                        className="mythic-compact-action mythic-action-tone-hover mythic-tone-warning"
                         disabled={!canRespond}
                         onClick={() => submitResponse(false)}
                         size="small"
@@ -996,11 +1012,11 @@ export const EventStepUserInteractionDialog = ({onClose, onResolved, selectedEve
                         Deny
                     </Button>
                 }
-                <Button className="mythic-table-row-action" onClick={onClose} size="small" variant="outlined">
+                <Button className="mythic-compact-action" onClick={onClose} size="small" variant="outlined">
                     Close
                 </Button>
                 <Button
-                    className="mythic-table-row-action mythic-table-row-action-hover-success"
+                    className="mythic-compact-action mythic-action-tone-hover mythic-tone-success"
                     disabled={!canRespond}
                     onClick={() => submitResponse(true)}
                     size="small"
@@ -1115,7 +1131,7 @@ const EventingDialogState = ({description, onClose, title, type = "loading"}) =>
                 <StateComponent compact title={title} description={description} minHeight={190} />
             </DialogContent>
             <DialogActions className="mythic-eventing-detail-dialog-actions">
-                <Button className="mythic-table-row-action" onClick={onClose} variant="outlined">
+                <Button className="mythic-compact-action" onClick={onClose} variant="outlined">
                     Close
                 </Button>
             </DialogActions>
@@ -1134,7 +1150,7 @@ function EventNode({data}) {
                 <div className="mythic-eventing-flow-node-main">
                     <EventingStatusChip data={data}/>
                     {data.action &&
-                        <span className="mythic-eventing-flow-node-action" title={data.action}>{data.action}</span>
+                        <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-info" title={data.action}>{data.action}</span>
                     }
                 </div>
                 {data.status &&
@@ -1400,7 +1416,7 @@ function EventStepRender({selectedEventGroup, useSuppliedData}) {
             {openContextMenu && typeof document !== "undefined" && createPortal(
                 <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu mythic-graph-context-menu">
                     {contextMenu.map( (m) => (
-                        <Button key={m.title} className="context-menu-button mythic-graph-context-menu-button mythic-table-row-action mythic-table-row-action-hover-info" variant="outlined" onClick={() => {
+                        <Button key={m.title} className="context-menu-button mythic-graph-context-menu-button mythic-compact-action mythic-action-tone-hover mythic-tone-info" variant="outlined" onClick={() => {
                             m.onClick(contextMenuNode.current);
                             setOpenContextMenu(false);
                         }}>{m.title}</Button>
@@ -1498,7 +1514,7 @@ function EventStepInstanceRender({selectedEventGroupInstance}) {
     const contextMenu = React.useMemo(() => {return [
         {
             title: 'Respond to approval / input',
-            className: 'mythic-table-row-action-hover-success',
+            className: 'mythic-action-tone-hover mythic-tone-success',
             shouldShow: function(node) {
                 return eventStepNeedsUserInteraction(node);
             },
@@ -1718,7 +1734,7 @@ function EventStepInstanceRender({selectedEventGroupInstance}) {
             {openContextMenu && typeof document !== "undefined" && createPortal(
                 <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu mythic-graph-context-menu">
                     {contextMenu.filter((m) => !m.shouldShow || m.shouldShow(contextMenuNode.current)).map( (m) => (
-                        <Button key={m.title} className={`context-menu-button mythic-graph-context-menu-button mythic-table-row-action ${m.className || "mythic-table-row-action-hover-info"}`.trim()} variant="outlined" onClick={() => {
+                        <Button key={m.title} className={`context-menu-button mythic-graph-context-menu-button mythic-compact-action ${m.className || "mythic-action-tone-hover mythic-tone-info"}`.trim()} variant="outlined" onClick={() => {
                             m.onClick(contextMenuNode.current);
                             setOpenContextMenu(false);
                         }}>{m.title}</Button>
@@ -1777,7 +1793,7 @@ export function EventStepRenderDialog({selectedEventGroup, onClose, useSuppliedD
                 <EventStepRenderFlowWithProvider selectedEventGroup={selectedEventGroup} useSuppliedData={useSuppliedData}/>
             </DialogContent>
             <DialogActions className="mythic-eventing-detail-dialog-actions">
-                <Button className="mythic-table-row-action" onClick={onClose} variant="outlined">
+                <Button className="mythic-compact-action" onClick={onClose} variant="outlined">
                     Close
                 </Button>
             </DialogActions>
@@ -1796,7 +1812,7 @@ export function EventStepInstanceRenderDialog({selectedEventGroup, selectedEvent
                 <EventStepInstanceRenderFlowWithProvider selectedEventGroupInstance={selectedEventGroupInstance}/>
             </DialogContent>
             <DialogActions className="mythic-eventing-detail-dialog-actions">
-                <Button className="mythic-table-row-action" onClick={onClose} variant="outlined">
+                <Button className="mythic-compact-action" onClick={onClose} variant="outlined">
                     Close
                 </Button>
             </DialogActions>
@@ -1976,7 +1992,7 @@ function EventStepInstanceDetailDialog({selectedEventStepInstance, onClose}) {
                 <EventDetailsAPITokensTable tokens={stepInstance.apitokens} />
             </DialogContent>
             <DialogActions className="mythic-eventing-detail-dialog-actions">
-                <Button className="mythic-table-row-action" onClick={onClose} variant="outlined">
+                <Button className="mythic-compact-action" onClick={onClose} variant="outlined">
                     Close
                 </Button>
             </DialogActions>
@@ -2053,7 +2069,7 @@ function EventGroupInstanceDetailDialog({selectedEventGroupInstance, onClose}) {
                 <EventDetailsAPITokensTable tokens={data?.apitokens} />
             </DialogContent>
             <DialogActions className="mythic-eventing-detail-dialog-actions">
-                <Button className="mythic-table-row-action" onClick={onClose} variant="outlined">
+                <Button className="mythic-compact-action" onClick={onClose} variant="outlined">
                     Close
                 </Button>
             </DialogActions>
@@ -2119,7 +2135,7 @@ function EventStepDetailDialog({selectedEventStep, onClose}) {
                 </EventingDetailSection>
             </DialogContent>
             <DialogActions className="mythic-eventing-detail-dialog-actions">
-                <Button className="mythic-table-row-action" onClick={onClose} variant="outlined">
+                <Button className="mythic-compact-action" onClick={onClose} variant="outlined">
                     Close
                 </Button>
             </DialogActions>
@@ -2286,7 +2302,7 @@ function EventDetailsPayloadsTable({payloads, deletePayload}){
                 count={payloadCount}
                 actions={
                     payloadCount > 0 &&
-                    <Button className="mythic-table-row-action mythic-table-row-action-hover-info" size="small" onClick={onDownloadBulkPayloads}
+                    <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-info" size="small" onClick={onDownloadBulkPayloads}
                             variant="outlined" startIcon={<ArchiveIcon fontSize="small" />}
                     >
                         Zip and download
@@ -2317,7 +2333,7 @@ function EventDetailsPayloadsTable({payloads, deletePayload}){
                                         <MythicStyledTableCell style={{width: "2rem"}}>
                                             {!trackedData.deleted &&
                                                 <MythicStyledTooltip title={"Delete the payload from disk and mark as deleted. No new callbacks can be generated from this payload"}>
-                                                    <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" disableFocusRipple={true}
+                                                    <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" disableFocusRipple={true}
                                                                 disableRipple={true} onClick={()=>{onDeletePayload(trackedData)}}><DeleteIcon fontSize="small" /></IconButton>
                                                 </MythicStyledTooltip>
                                             }
@@ -2332,7 +2348,7 @@ function EventDetailsPayloadsTable({payloads, deletePayload}){
                                             <PayloadsTableRowBuildStatus {...trackedData} />
                                         </MythicStyledTableCell>
                                         <MythicStyledTableCell style={{width: "3rem"}}>
-                                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" disableFocusRipple={true}
+                                            <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" disableFocusRipple={true}
                                                         disableRipple={true} size="small" onClick={() => onViewDetailedData(trackedData)}>
                                                 <InfoIconOutline fontSize="small" />
                                             </IconButton>
@@ -2444,7 +2460,7 @@ function EventDetailsFilesTable({files}){
             count={fileCount}
             actions={
                 fileCount > 0 &&
-                <Button className="mythic-table-row-action mythic-table-row-action-hover-info" size="small" onClick={onDownloadBulkPayloads}
+                <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-info" size="small" onClick={onDownloadBulkPayloads}
                         variant="outlined" startIcon={<ArchiveIcon fontSize="small" />}
                 >
                     Zip and download

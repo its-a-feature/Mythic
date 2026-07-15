@@ -105,7 +105,7 @@ function ProcessTableRow(props){
                 <MythicStyledTableCell>
                     <MythicStyledTooltip title="View permissions data">
                         <IconButton
-                            className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                            className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
                             size="small"
                             onClick={() => setViewPermissionsDialogOpen(true)}
                         >
@@ -167,7 +167,7 @@ function ProcessTableRow(props){
                 <MythicStyledTableCell>
                     <div className="mythic-search-result-action-row">
                         <IconButton
-                            className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                            className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
                             onClick={() => setEditCommentDialogOpen(true)}
                             size="small"
                         >

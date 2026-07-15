@@ -27,7 +27,7 @@ export function EventFeedTableEventsActions(props){
             <IconButton
                 aria-controls={"eventmenu" + props.id}
                 aria-haspopup="true"
-                className="mythic-table-row-icon-action"
+                className="mythic-compact-icon-action"
                 onClick={handleClick}
                 size="small"><MoreVertIcon fontSize="small" />
             </IconButton>

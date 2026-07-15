@@ -101,7 +101,7 @@ const EventingInstanceIdCell = ({onOpenMenu, rowData}) => (
         <span className="mythic-eventing-instance-id">{rowData.id}</span>
         <IconButton
             aria-haspopup="menu"
-            className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info mythic-eventing-instance-id-menu-button"
+            className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info mythic-eventing-instance-id-menu-button"
             onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();

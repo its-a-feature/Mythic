@@ -234,7 +234,7 @@ const ResponseDisplayTableSizeCell = ({cellData, rowData}) => {
 }
 const actionCellButtonStyle = {paddingTop: 0, paddingBottom: 0};
 const getActionButtonClassName = (intent = "info") => {
-  return `mythic-table-row-action mythic-table-row-action-hover-${intent}`;
+  return `mythic-compact-action mythic-action-tone-hover mythic-tone-${intent === "danger" ? "error" : intent}`;
 }
 const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData, task}) => {
   return (

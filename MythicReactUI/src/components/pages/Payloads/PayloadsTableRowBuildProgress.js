@@ -20,15 +20,15 @@ import DialogContent from '@mui/material/DialogContent';
 import {MythicStatusChip} from '../../MythicComponents/MythicStatusChip';
 
 const buildStepToneClasses = {
-    info: "mythic-table-row-icon-action-info",
-    success: "mythic-table-row-icon-action-success",
-    error: "mythic-table-row-icon-action-danger",
+    info: "mythic-icon-tone mythic-tone-info",
+    success: "mythic-icon-tone mythic-tone-success",
+    error: "mythic-icon-tone mythic-tone-error",
 };
 
 function BuildStepIconButton({children, muted = false, onClick, tone = "info"}) {
     return (
         <IconButton
-            className={`mythic-table-row-icon-action ${buildStepToneClasses[tone] || ""}`}
+            className={`mythic-compact-icon-action ${buildStepToneClasses[tone] || ""}`}
             onClick={onClick}
             size="small"
             style={muted ? {filter: "grayscale(1)", opacity: 0.3} : undefined}
@@ -132,7 +132,7 @@ export function PayloadsTableRowBuildProgress(props){
     }
     return (
         <>
-            <span className="mythic-table-row-actions" style={props.build_phase === "success" ? {
+            <span className="mythic-compact-actions" style={props.build_phase === "success" ? {
                 filter: "grayscale(1)",
                 opacity: 0.5} : {}}>
                 {buildProgressData.total_steps > 0 &&

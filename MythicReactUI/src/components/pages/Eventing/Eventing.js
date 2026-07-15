@@ -195,6 +195,8 @@ const getEventGroupStateChipState = (statusKey) => {
             return "neutral";
     }
 }
+const getEventGroupTone = (statusKey) => statusKey === "runnable" ? "success" :
+    statusKey === "needs_approval" ? "warning" : statusKey === "deleted" ? "error" : statusKey === "all" ? "info" : "neutral";
 export function Eventing({me}){
     const [openTestModal, setOpenTestModal] = React.useState(false);
     const [openCreateEventingStepper, setOpenCreateEventingStepper] = React.useState(false);
@@ -354,18 +356,18 @@ export function Eventing({me}){
                 }
                 actions={
                     <>
-                        <MythicToolbarButton className="mythic-table-row-action-hover-info" variant="outlined" component="label" startIcon={<CloudUploadIcon fontSize="small" />}>
+                        <MythicToolbarButton className="mythic-action-tone-hover mythic-tone-info" variant="outlined" component="label" startIcon={<CloudUploadIcon fontSize="small" />}>
                             Upload
                             <input onChange={onFileChange} type="file" multiple hidden/>
                         </MythicToolbarButton>
-                        <MythicToolbarButton className="mythic-table-row-action-hover-success" variant="outlined" onClick={()=>setOpenTestModal(true)} startIcon={<AddCircleIcon fontSize="small" />}>
+                        <MythicToolbarButton className="mythic-action-tone-hover mythic-tone-success" variant="outlined" onClick={()=>setOpenTestModal(true)} startIcon={<AddCircleIcon fontSize="small" />}>
                             Text
                         </MythicToolbarButton>
-                        <MythicToolbarButton className="mythic-table-row-action-hover-success" variant="outlined" onClick={()=>setOpenCreateEventingStepper(true)} startIcon={<CategoryIcon fontSize="small" />}>
+                        <MythicToolbarButton className="mythic-action-tone-hover mythic-tone-success" variant="outlined" onClick={()=>setOpenCreateEventingStepper(true)} startIcon={<CategoryIcon fontSize="small" />}>
                             Wizard
                         </MythicToolbarButton>
                         <MythicToolbarToggle
-                            className={showDeleted ? "mythic-table-row-action-hover-warning" : "mythic-table-row-action-hover-info"}
+                            className={showDeleted ? "mythic-action-tone-hover mythic-tone-warning" : "mythic-action-tone-hover mythic-tone-info"}
                             checked={showDeleted}
                             onClick={() => setShowDeleted(!showDeleted)}
                             label="Deleted"
@@ -428,7 +430,7 @@ export function Eventing({me}){
                                                 key={filterOption.key}
                                                 type="button"
                                                 onClick={() => setSidebarFilter(filterOption.key)}
-                                                className={`mythic-eventing-filter-button ${sidebarFilter === filterOption.key ? "mythic-eventing-filter-button-active" : ""}`.trim()}
+                                                className={`mythic-eventing-filter-button ${sidebarFilter === filterOption.key ? "mythic-action-tone mythic-tone-primary" : ""}`.trim()}
                                             >
                                                 <span>{filterOption.label}</span>
                                                 <span className="mythic-eventing-filter-count">{filterCount || 0}</span>
@@ -439,7 +441,7 @@ export function Eventing({me}){
                             </div>
                             <ListItem onClick={() => setSelectedEventGroup({id: 0})}
                                       className={`mythic-eventing-list-item mythic-eventing-list-item-all ${selectedEventGroup.id === 0 ? "mythic-eventing-list-item-selected" : ""}`.trim()}>
-                                <div className="mythic-eventing-status-dot mythic-eventing-status-all" />
+                                <div className="mythic-eventing-status-dot mythic-tone-info" />
                                 <div className="mythic-eventing-list-item-content">
                                     <div className="mythic-eventing-list-item-main">
                                         <span className="mythic-eventing-list-item-name">All workflow runs</span>
@@ -457,7 +459,7 @@ export function Eventing({me}){
                                         return (
                                             <ListItem key={eventGroup.id + eventGroup.name} onClick={() => setSelectedEventGroup(eventGroup)}
                                                       className={`mythic-eventing-list-item ${selectedEventGroup.id === eventGroup.id ? "mythic-eventing-list-item-selected" : ""} mythic-eventing-list-item-${status.key}`.trim()}>
-                                                <div className={`mythic-eventing-status-dot mythic-eventing-status-${status.key}`} />
+                                                <div className={`mythic-eventing-status-dot mythic-tone-${getEventGroupTone(status.key)}${status.key === "needs_approval" || status.key === "disabled" ? ` mythic-eventing-status-${status.key}` : ""}`} />
                                                 <div className="mythic-eventing-list-item-content">
                                                     <div className="mythic-eventing-list-item-main">
                                                         <span className={`mythic-eventing-list-item-name ${eventGroup.deleted ? "mythic-eventing-list-item-name-deleted" : ""}`.trim()}>{eventGroup.name}</span>

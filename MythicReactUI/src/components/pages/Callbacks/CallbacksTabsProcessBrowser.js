@@ -566,7 +566,7 @@ const ProcessBrowserTableTop = ({
                     </FormControl>
                     <MythicStyledTooltip title="View callbacks associated with this group">
                         <IconButton
-                            className="mythic-file-browser-iconButton mythic-file-browser-hoverInfo"
+                            className="mythic-file-browser-iconButton mythic-action-tone-hover mythic-tone-info"
                             onClick={() => {setOpenViewGroupDialog(true);}}
                             size="small">
                             <WidgetsIcon fontSize="small" />
@@ -603,7 +603,7 @@ const ProcessBrowserTableTop = ({
                         endAdornment: quickFilter ? (
                             <InputAdornment position="end">
                                 <IconButton
-                                    className="mythic-file-browser-iconButton mythic-file-browser-hoverError"
+                                    className="mythic-file-browser-iconButton mythic-action-tone-hover mythic-tone-error"
                                     onClick={onClearQuickFilter}
                                     size="small">
                                     <ClearIcon fontSize="small" />
@@ -615,7 +615,7 @@ const ProcessBrowserTableTop = ({
                 <div className="mythic-file-browser-toolbarGroup mythic-process-browser-actions">
                     <MythicStyledTooltip title="Task current callback to list processes">
                         <IconButton
-                            className="mythic-file-browser-iconButton mythic-file-browser-hoverInfo"
+                            className="mythic-file-browser-iconButton mythic-action-tone-hover mythic-tone-info"
                             onClick={onLocalListFilesButton}
                             size="small">
                             <RefreshIcon fontSize="small" />
@@ -623,7 +623,7 @@ const ProcessBrowserTableTop = ({
                     </MythicStyledTooltip>
                     <MythicStyledTooltip title={expandOrCollapseAll ? "Collapse all processes" : "Expand all processes"} >
                         <IconButton
-                            className={`mythic-file-browser-iconButton mythic-file-browser-hoverInfo ${expandOrCollapseAll ? "mythic-file-browser-activeSuccess" : ""}`}
+                            className={`mythic-file-browser-iconButton mythic-action-tone-hover mythic-tone-info ${expandOrCollapseAll ? "mythic-action-tone mythic-tone-success" : ""}`}
                             onClick={onLocalExpandOrCollapseAllButton}
                             size="small">
                             <ExpandIcon fontSize="small" />
@@ -631,7 +631,7 @@ const ProcessBrowserTableTop = ({
                     </MythicStyledTooltip>
                     <MythicStyledTooltip title={showDeletedFiles ? 'Hide deleted processes' : 'Show deleted processes'}>
                         <IconButton
-                            className={`mythic-file-browser-iconButton mythic-file-browser-hoverWarning ${showDeletedFiles ? "mythic-file-browser-activeWarning" : ""}`}
+                            className={`mythic-file-browser-iconButton mythic-action-tone-hover mythic-tone-warning ${showDeletedFiles ? "mythic-action-tone mythic-tone-warning" : ""}`}
                             onClick={onLocalToggleShowDeletedFiles}
                             size="small">
                             {showDeletedFiles ? (

@@ -90,9 +90,9 @@ export function EventGroupTableRunAsDialog({eventgroupapprovals, me, onClose, se
                                     <TableCell>{e.operator.username}</TableCell>
                                     <TableCell>
                                         {e.approved ? (
-                                            <div className="mythic-table-row-actions">
+                                            <div className="mythic-compact-actions">
                                                 <MythicStatusChip label="Approved" status="success" icon={<CheckCircleTwoToneIcon />} />
-                                                <Button className="mythic-table-row-action mythic-table-row-action-hover-warning" disabled={e.operator.id !== me?.user?.id} variant={"contained"}
+                                                <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-warning" disabled={e.operator.id !== me?.user?.id} variant={"contained"}
                                                         startIcon={<CancelTwoToneIcon fontSize="small" />}
                                                         onClick={() => onApprovalClick({id: e.id, approved: false})}>
                                                     Deny
@@ -100,22 +100,22 @@ export function EventGroupTableRunAsDialog({eventgroupapprovals, me, onClose, se
                                             </div>
 
                                         ) : e.created_at === e.updated_at ? (
-                                            <div className="mythic-table-row-actions">
-                                                <Button className="mythic-table-row-action mythic-table-row-action-hover-success" disabled={e.operator.id !== me?.user?.id}
+                                            <div className="mythic-compact-actions">
+                                                <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" disabled={e.operator.id !== me?.user?.id}
                                                         variant={"contained"}
                                                         startIcon={<CheckCircleTwoToneIcon fontSize="small" />}
                                                         onClick={() => onApprovalClick({id: e.id, approved: true})}>
                                                     Approve
                                                 </Button>
-                                                <Button className="mythic-table-row-action mythic-table-row-action-hover-warning" disabled={e.operator.id !== me?.user?.id} variant={"contained"}
+                                                <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-warning" disabled={e.operator.id !== me?.user?.id} variant={"contained"}
                                                         startIcon={<CancelTwoToneIcon fontSize="small" />}
                                                         onClick={() => onApprovalClick({id: e.id, approved: false})}>
                                                     Deny
                                                 </Button>
                                             </div>
                                         ) : (
-                                            <div className="mythic-table-row-actions">
-                                                <Button className="mythic-table-row-action mythic-table-row-action-hover-success" variant={"contained"}
+                                            <div className="mythic-compact-actions">
+                                                <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" variant={"contained"}
                                                         disabled={e.operator.id !== me?.user?.id}
                                                         startIcon={<CheckCircleTwoToneIcon fontSize="small" />}
                                                         onClick={() => onApprovalClick({id: e.id, approved: true})}>
@@ -140,7 +140,7 @@ export function EventGroupTableRunAsDialog({eventgroupapprovals, me, onClose, se
 
             </DialogContent>
             <DialogActions>
-                <Button className="mythic-table-row-action" onClick={onClose} variant="contained">
+                <Button className="mythic-compact-action" onClick={onClose} variant="contained">
                     Close
                 </Button>
             </DialogActions>

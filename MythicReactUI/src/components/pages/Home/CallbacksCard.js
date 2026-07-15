@@ -266,7 +266,7 @@ const ActiveCallbackRecentHoursControl = ({recentHours, onChangeRecent}) => {
     return (
         <>
             <MythicStyledTooltip title={`Recent check-in window: ${recentHours} ${recentHours === 1 ? "hour" : "hours"}`}>
-                <IconButton className="mythic-dashboard-icon-button mythic-dashboard-icon-button-hover-info" onClick={onOpen} size="small">
+                <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" onClick={onOpen} size="small">
                     <TuneIcon fontSize="small" />
                 </IconButton>
             </MythicStyledTooltip>
@@ -742,10 +742,10 @@ const Top10RecentPayloadsDashboardElement = ({me, data, editing, removeElement})
                     </MythicStyledTooltip>
                     <span className="mythic-dashboard-table-primary-text">{b64DecodeUnicode(p.filemetum.filename_text)}</span>
                 </div>,
-                value: <div className="mythic-dashboard-table-actions-inline">
+                value: <div className="mythic-compact-actions mythic-dashboard-table-actions-inline">
                     <PayloadsTableRowBuildStatus {...p} />
                     <MythicStyledTooltip title={"View Payload Configuration"} tooltipStyle={{marginRight: "5px"}}>
-                        <InfoIconOutline className="mythic-dashboard-table-icon-action mythic-dashboard-table-icon-action-info" onClick={(e)=> clickDetail(e, p)} />
+                        <InfoIconOutline className="mythic-dashboard-table-icon-action mythic-icon-tone mythic-tone-info" onClick={(e)=> clickDetail(e, p)} />
                     </MythicStyledTooltip>
                 </div>
             }
@@ -763,10 +763,9 @@ const Top10RecentPayloadsDashboardElement = ({me, data, editing, removeElement})
                 emptyDescription="Build a payload to start populating this view."
                 emptyAction={
                     <Button
-                        className="mythic-dashboard-primary-button"
                         onClick={() => navigate("/new/createpayload")}
                         startIcon={<AddCircleIcon fontSize="small" />}
-                        variant="outlined"
+                        variant="contained"
                     >
                         Create Your First Payload
                     </Button>
@@ -800,7 +799,7 @@ const Top10RecentPayloadsDashboardElement = ({me, data, editing, removeElement})
                            removeElement={removeElement}
                            customizeElement={
                                 <MythicStyledTooltip title={"Create new Payload"}>
-                                    <IconButton className="mythic-dashboard-icon-button" size={"small"} onClick={() => navigate("/new/createpayload")}>
+                                    <IconButton className="mythic-compact-icon-action" size={"small"} onClick={() => navigate("/new/createpayload")}>
                                         <AddCircleIcon fontSize="small" />
                                     </IconButton>
                                 </MythicStyledTooltip>
@@ -844,7 +843,7 @@ const Top10RecentWorkflowsDashboardElement = ({me, data, editing, removeElement}
                         {p.eventgroup.name}
                     </Typography>
                 </div>,
-                value: <div className="mythic-dashboard-table-actions-inline">
+                value: <div className="mythic-compact-actions mythic-dashboard-table-actions-inline">
                     <GetStatusSymbol data={p} />
                     <MythicStyledTooltip title={"Open Graph in Modal"}>
                         <OpenInNewTwoToneIcon className="mythic-dashboard-table-icon-action" onClick={(e) => clickDetail(e, p)} />
@@ -866,10 +865,9 @@ const Top10RecentWorkflowsDashboardElement = ({me, data, editing, removeElement}
                     emptyDescription="Create a workflow to see recent eventing executions here."
                     emptyAction={
                         <Button
-                            className="mythic-dashboard-primary-button"
                             onClick={() => setOpenNewWorkflowModal(true)}
                             startIcon={<AddCircleIcon fontSize="small" />}
-                            variant="outlined"
+                            variant="contained"
                         >
                             Create a Workflow
                         </Button>
@@ -916,7 +914,7 @@ const Top10RecentWorkflowsDashboardElement = ({me, data, editing, removeElement}
                            removeElement={removeElement}
                            customizeElement={
                                <MythicStyledTooltip title={"Create new Workflow"}>
-                                   <IconButton className="mythic-dashboard-icon-button" size={"small"} onClick={() => setOpenNewWorkflowModal(true)}>
+                                   <IconButton className="mythic-compact-icon-action" size={"small"} onClick={() => setOpenNewWorkflowModal(true)}>
                                        <AddCircleIcon fontSize="small" />
                                    </IconButton>
                                </MythicStyledTooltip>
@@ -1069,10 +1067,9 @@ const MyOperationsDashboardElement = ({me, data, reloadDashboard, editing, remov
                     title={"You Belong to No Operations"}
                     action={data?.operator[0]?.admin ? (
                         <Button
-                            className="mythic-dashboard-primary-button"
                             onClick={() => setOpenNewOperationDialog(true)}
                             startIcon={<AddCircleIcon fontSize="small" />}
-                            variant="outlined"
+                            variant="contained"
                         >
                             Create Operation
                         </Button>
@@ -1126,7 +1123,7 @@ const MyOperationsDashboardElement = ({me, data, reloadDashboard, editing, remov
 	                                                   </div>
 	                                               </MythicTableCell>
 	                                               <MythicTableCell className="mythic-dashboard-table-cell-actions">
-	                                                   <Button className="mythic-dashboard-table-action" size="small" onClick={()=>{setOpenUpdateNotifications(true);}} startIcon={<EditIcon/>}
+	                                                   <Button className="mythic-compact-action" size="small" onClick={()=>{setOpenUpdateNotifications(true);}} startIcon={<EditIcon/>}
 	                                                                  disabled={me?.user?.current_operation_id !== d.operation.id}
                                                                   variant="outlined">Edit</Button>
                                                    {openUpdateNotifications &&
@@ -1137,7 +1134,7 @@ const MyOperationsDashboardElement = ({me, data, reloadDashboard, editing, remov
                                                    }
                                                </MythicTableCell>
                                                <MythicTableCell className="mythic-dashboard-table-cell-actions">
-                                                   <Button className="mythic-dashboard-table-action" size="small" onClick={()=>{setOpenUpdateOperators(true);}}
+                                                   <Button className="mythic-compact-action" size="small" onClick={()=>{setOpenUpdateOperators(true);}}
                                                                   disabled={me?.user?.current_operation_id !== d.operation.id}
                                                                   startIcon={<AssignmentIndIcon/>} variant="outlined">Edit</Button>
                                                    {openUpdateOperators &&
@@ -1151,7 +1148,7 @@ const MyOperationsDashboardElement = ({me, data, reloadDashboard, editing, remov
 	                                                   {d.id === me.user.current_operation_id ? (
 	                                                       <MythicStatusChip label="Current" status="active" />
 	                                                   ) : (
-	                                                       <Button className="mythic-dashboard-table-action" size="small" startIcon={<PlayArrowIcon/>}
+	                                                       <Button className="mythic-compact-action" size="small" startIcon={<PlayArrowIcon/>}
 	                                                               onClick={()=>makeCurrentOperation(d.operation)}
 	                                                               variant="outlined">
 	                                                           Make Current
@@ -1167,7 +1164,7 @@ const MyOperationsDashboardElement = ({me, data, reloadDashboard, editing, remov
                            removeElement={removeElement}
                            customizeElement={
                                <MythicStyledTooltip title={"Create new Operation"}>
-                                   <IconButton className="mythic-dashboard-icon-button" size={"small"} onClick={() => setOpenNewOperationDialog(true)}>
+                                   <IconButton className="mythic-compact-icon-action" size={"small"} onClick={() => setOpenNewOperationDialog(true)}>
                                        <AddCircleIcon fontSize="small" />
                                    </IconButton>
                                </MythicStyledTooltip>
@@ -1480,7 +1477,7 @@ const Top10RecentFileDownloadsDashboardElement = ({me, data, editing, removeElem
                 </div>,
                 value: <div className="mythic-dashboard-table-file-row">
                     <MythicStyledTooltip title={"Preview Media"}>
-                        <FontAwesomeIcon className="mythic-dashboard-table-icon-action mythic-dashboard-table-icon-action-info" icon={faPhotoVideo}
+                        <FontAwesomeIcon className="mythic-dashboard-table-icon-action mythic-icon-tone mythic-tone-info" icon={faPhotoVideo}
                                          onClick={(e) => onPreviewMedia(e, newFile)} />
                     </MythicStyledTooltip>
                     <FileDownloadLinkWithAuth className="mythic-dashboard-table-link" color="textPrimary" underline="always" href={"/direct/download/" + newFile.agent_file_id}>{newFile.filename_text}</FileDownloadLinkWithAuth>
@@ -1567,7 +1564,7 @@ const Top10RecentScreenshotsDashboardElement = ({me, data, editing, removeElemen
                                    {files.length > 0 &&
 	                                       <TableRow className="mythic-dashboard-screenshot-row">
 	                                           <MythicTableCell className="mythic-dashboard-screenshot-nav-cell">
-	                                               <IconButton className="mythic-dashboard-icon-button" onClick={handleBack} disabled={activeStep === 0} size="small">
+	                                               <IconButton className="mythic-compact-icon-action" onClick={handleBack} disabled={activeStep === 0} size="small">
 	                                                   <KeyboardArrowLeft fontSize="small" />
 	                                               </IconButton>
 	                                           </MythicTableCell>
@@ -1579,7 +1576,7 @@ const Top10RecentScreenshotsDashboardElement = ({me, data, editing, removeElemen
 	                                           </MythicTableCell>
 	                                            <MythicTableCell className="mythic-dashboard-screenshot-nav-cell">
 	                                                <IconButton
-	                                                    className="mythic-dashboard-icon-button"
+	                                                    className="mythic-compact-icon-action"
 	                                                    onClick={handleNext}
                                                     disabled={activeStep === maxSteps - 1}
                                                     size="small"
@@ -1702,7 +1699,7 @@ const Top10RecentCredentialsDashboardElement = ({me, data, editing, removeElemen
                                            <MythicStyledTableCell className="mythic-dashboard-table-cell-wrap mythic-dashboard-table-cell-account">
                                                <div className="mythic-dashboard-credential-account">
                                                    <MythicStyledTooltip title={"Copy Credential to clipboard"}>
-                                                       <IconButton className="mythic-dashboard-icon-button" onClick={() => onCopyToClipboard(c.credential_text)} size="small">
+                                                       <IconButton className="mythic-compact-icon-action" onClick={() => onCopyToClipboard(c.credential_text)} size="small">
                                                            <FontAwesomeIcon icon={faCopy}/>
                                                        </IconButton>
                                                    </MythicStyledTooltip>
@@ -1925,11 +1922,11 @@ const DashboardWidgetSelectDialog = ({onClose, onSubmit, rowIndex}) => {
                     })}
                 </div>
             </DialogContent>
-            <DialogActions className="mythic-dialog-actions">
+            <DialogActions>
                 <Button onClick={onClose} variant="outlined">
                     Close
                 </Button>
-                <Button className="mythic-dialog-button-primary" disabled={selected === ""} onClick={() => submitSelection()} variant="contained">
+                <Button className="mythic-action-tone mythic-tone-primary" disabled={selected === ""} onClick={() => submitSelection()} variant="contained">
                     Add widget
                 </Button>
             </DialogActions>
@@ -2080,13 +2077,13 @@ const CustomDashboard = ({me, setLoading, loading, editing}) => {
                         <div className="mythic-dashboard-edit-toolbar">
                             <span className="mythic-dashboard-edit-toolbar-title">Row {i + 1}</span>
                             <div className="mythic-dashboard-edit-toolbar-actions">
-                                <Button className="mythic-dashboard-table-action mythic-table-row-action-hover-info" onClick={() => setOpenAddElement({open: true, row: i})} size="small" startIcon={<AddchartIcon fontSize="small" />}>
+                                <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-info" onClick={() => setOpenAddElement({open: true, row: i})} size="small" startIcon={<AddchartIcon fontSize="small" />}>
                                     Add widget
                                 </Button>
-                                <Button className="mythic-dashboard-table-action" onClick={() => addDashboardRow(i)} size="small" startIcon={<FormatListBulletedAddIcon fontSize="small" />}>
+                                <Button className="mythic-compact-action" onClick={() => addDashboardRow(i)} size="small" startIcon={<FormatListBulletedAddIcon fontSize="small" />}>
                                     Add row
                                 </Button>
-                                <Button className="mythic-dashboard-table-action mythic-dashboard-table-action-hover-danger" onClick={() => removeDashboardRow(i)} size="small" startIcon={<PlaylistRemoveIcon fontSize="small" />}>
+                                <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-error" onClick={() => removeDashboardRow(i)} size="small" startIcon={<PlaylistRemoveIcon fontSize="small" />}>
                                     Remove row
                                 </Button>
                             </div>
@@ -2161,13 +2158,13 @@ export function CallbacksCard({me}) {
                             ))}
                         </ToggleButtonGroup>
                         <MythicStyledTooltip title={"Analyze Operation Data Again"} tooltipStyle={{display: "inline-block"}}>
-                            <Button className="mythic-table-row-action-hover-info" onClick={() => setLoading(true)} size="small" startIcon={<ReplayIcon fontSize="small" />} variant="outlined">
+                            <Button className="mythic-action-tone-hover mythic-tone-info" onClick={() => setLoading(true)} size="small" startIcon={<ReplayIcon fontSize="small" />} variant="outlined">
                                 Refresh
                             </Button>
                         </MythicStyledTooltip>
                         {dashboard === "custom" &&
                             <MythicStyledTooltip title={editing ? "Stop Editing Dashboard Contents":"Edit Dashboard Contents"}>
-                                <Button className={editing ? "mythic-table-row-action-hover-success" : "mythic-table-row-action-hover-info"} onClick={() => setEditing(!editing)} size="small" startIcon={<EditIcon fontSize="small" />} variant="outlined">
+                                <Button className={editing ? "mythic-action-tone-hover mythic-tone-success" : "mythic-action-tone-hover mythic-tone-info"} onClick={() => setEditing(!editing)} size="small" startIcon={<EditIcon fontSize="small" />} variant="outlined">
                                     {editing ? "Done editing" : "Edit layout"}
                                 </Button>
                             </MythicStyledTooltip>

@@ -54,7 +54,7 @@ const updateFileComment = gql`
     }
 `;
 const ProcessMenuIcon = ({children, tone="neutral"}) => (
-    <span className={`mythic-process-menu-icon mythic-process-menu-icon-${tone}`}>
+    <span className={`mythic-process-menu-icon mythic-tone-${tone}`}>
         {children}
     </span>
 );
@@ -1261,7 +1261,7 @@ const ProcessBrowserSummaryStrip = ({summary, quickFilter}) => {
         <div className="mythic-process-summary-strip">
             {chips.map((chip) => (
                 <span
-                    className={`mythic-process-summary-chip mythic-process-summary-chip-${chip.tone}`}
+                    className={`mythic-status-chip mythic-tone-${chip.tone === "muted" ? "neutral" : chip.tone}${chip.tone === "muted" ? " mythic-status-chip-muted" : ""}`}
                     key={chip.label}
                     title={chip.label}>
                     {chip.label}
@@ -1298,13 +1298,13 @@ const ProcessBrowserInspector = ({nodeData, rowData, treeRootData, host, group, 
                     <TerminalIcon fontSize="small" />
                     <span title={nodeData?.name_text || ""}>{nodeData?.name_text || "Selected process"}</span>
                     {getProcessIntegrity(nodeData) > 3 &&
-                        <span className="mythic-process-indicator mythic-process-indicator-warning" title={`Integrity ${getProcessIntegrity(nodeData)}`}>
+                        <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-warning" title={`Integrity ${getProcessIntegrity(nodeData)}`}>
                             <WarningAmberIcon fontSize="inherit" />
                             Elevated
                         </span>
                     }
                     {nodeData?.deleted &&
-                        <span className="mythic-process-indicator mythic-process-indicator-deleted">
+                        <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-error">
                             <DeleteOutlineIcon fontSize="inherit" />
                             Deleted
                         </span>
@@ -1319,7 +1319,7 @@ const ProcessBrowserInspector = ({nodeData, rowData, treeRootData, host, group, 
                         getProcessRowMenuOptions={getProcessRowMenuOptions}
                     />
                     <IconButton
-                        className="mythic-file-browser-iconButton mythic-file-browser-hoverError"
+                        className="mythic-file-browser-iconButton mythic-action-tone-hover mythic-tone-error"
                         onClick={onClose}
                         size="small">
                         <CloseIcon fontSize="small" />
@@ -1388,27 +1388,27 @@ const FileBrowserTableRowNameCell = ({ rowData, treeRootData, host, children, ha
                 {displayName}
             </span>
             {elevated &&
-                <span className="mythic-process-indicator mythic-process-indicator-warning" title={`Integrity ${getProcessIntegrity(nodeData)}`}>
+                <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-warning" title={`Integrity ${getProcessIntegrity(nodeData)}`}>
                     <WarningAmberIcon fontSize="inherit" />
                 </span>
             }
             {nodeData?.deleted &&
-                <span className="mythic-process-indicator mythic-process-indicator-deleted" title="Deleted process entry">
+                <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-error" title="Deleted process entry">
                     <DeleteOutlineIcon fontSize="inherit" />
                 </span>
             }
             {matchLabels.length > 0 &&
                 <span className="mythic-process-match-chips" title={`Matched: ${matchLabels.join(", ")}`}>
                     {matchLabels.slice(0, 3).map((label) => (
-                        <span className="mythic-process-match-chip" key={label}>{label}</span>
+                        <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-info" key={label}>{label}</span>
                     ))}
                     {extraMatchCount > 0 &&
-                        <span className="mythic-process-match-chip">+{extraMatchCount}</span>
+                        <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-info">+{extraMatchCount}</span>
                     }
                 </span>
             }
             {rowData.filterAncestor &&
-                <span className="mythic-process-match-chip mythic-process-match-chip-ancestor" title="Visible because a descendant matched the quick filter">
+                <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-neutral" title="Visible because a descendant matched the quick filter">
                     ancestor
                 </span>
             }
@@ -1480,7 +1480,7 @@ const FileBrowserTableRowActionCell = ({rowData, treeRootData, host, getProcessR
         <React.Fragment>
             <IconButton
                 size="small"
-                className="mythic-process-action-button"
+                className="mythic-process-action-button mythic-action-tone-hover mythic-tone-info"
                 aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
                 aria-expanded={dropdownOpen ? 'true' : undefined}
                 aria-haspopup="menu"

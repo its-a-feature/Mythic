@@ -54,7 +54,7 @@ const DashboardCard = ({
                             {editing &&
                                 <MythicStyledTooltip title={"Remove element"}>
                                     <IconButton
-                                        className="mythic-dashboard-icon-button mythic-dashboard-icon-button-hover-danger"
+                                        className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error"
                                         onClick={removeElement}
                                         size="small"
                                     >
@@ -132,7 +132,7 @@ export const PieChartCard = ({
                 <>
                     {customizeElement}
                     <MythicStyledTooltip title={showLegend ? "Hide Legend" : "Show Legend"}>
-                        <IconButton className="mythic-dashboard-icon-button mythic-dashboard-icon-button-hover-info" onClick={toggleLegend} size="small">
+                        <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" onClick={toggleLegend} size="small">
                             {showLegend ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
                         </IconButton>
                     </MythicStyledTooltip>
@@ -232,7 +232,7 @@ export const GaugeCard = ({data, width = "100%", title = "", editing, removeElem
             <div className="mythic-dashboard-service-kpi">
                 <div className="mythic-dashboard-kpi-main">
                     <div className="mythic-dashboard-kpi-status-row">
-                        <span className={`mythic-dashboard-kpi-chip mythic-dashboard-kpi-chip-${statusLevel}`}>
+                        <span className={`mythic-status-chip mythic-tone-${statusLevel === "danger" ? "error" : statusLevel}`}>
                             {statusLabel}
                         </span>
                         <span className="mythic-dashboard-kpi-percent">{percentOnline}%</span>
@@ -303,7 +303,7 @@ export const CallbackDataCard = ({mainTitle, primaryValue, totalValue, primaryLa
                 >
                     <div className="mythic-dashboard-kpi-main">
                         <div className="mythic-dashboard-kpi-status-row">
-                            <span className={`mythic-dashboard-kpi-chip mythic-dashboard-kpi-chip-${statusLevel}`}>
+                            <span className={`mythic-status-chip mythic-tone-${statusLevel === "danger" ? "error" : statusLevel}`}>
                                 {statusLabel}
                             </span>
                         </div>
@@ -511,7 +511,7 @@ export const LineTimeMultiChartCard = ({data, additionalStyles, colors, view_utc
                 <>
                     {customizeElement}
                     <MythicStyledTooltip title={showLegend ? "Hide Legend" : "Show Legend"}>
-                        <IconButton className="mythic-dashboard-icon-button mythic-dashboard-icon-button-hover-info" onClick={toggleLegend} size="small">
+                        <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" onClick={toggleLegend} size="small">
                             {showLegend ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
                         </IconButton>
                     </MythicStyledTooltip>

@@ -1,6 +1,6 @@
 import {MythicTabPanel, MythicSearchTabLabel} from '../../MythicComponents/MythicTabPanel';
 import React from 'react';
-import { gql, useSubscription} from '@apollo/client';
+import {gql, useQuery, useSubscription} from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
 import {ProxySearchTable} from './ProxySearchTable';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
@@ -13,6 +13,40 @@ import {MythicSearchEmptyState} from "../../MythicComponents/MythicStateDisplay"
 const callbackPortsSub = gql`
 subscription portsSub{
     callbackport_stream(cursor: {initial_value: {updated_at: "1970-01-01"}, ordering: ASC}, batch_size: 100, where: {}) {
+        callback {
+            user
+            host
+            description
+            domain
+            id
+            display_id
+            integrity_level
+            ip
+            process_name
+            active
+            init_callback
+            last_checkin
+        }
+        updated_at
+        local_port
+        remote_port
+        remote_ip
+        port_type
+        bytes_received
+        bytes_sent
+        username
+        password
+        task {
+            display_id
+        }
+        id
+        deleted
+    }
+}
+`;
+const callbackPortsQuery = gql`
+query portsSub{
+    callbackport(where: {deleted: {_eq: false}}) {
         callback {
             user
             host
@@ -78,21 +112,36 @@ export const SearchTabSocksPanel = (props) =>{
             }
         }
     }, [props.value, props.index]);
+    const updateCallbackData = (data) => {
+        setCallbackData( (prev) => {
+            const updated = prev.reduce( (prev2, cur) => {
+                const index = prev2.findIndex( (p) => p.id === cur.id );
+                if(index > -1){
+                    prev2[index] = {...cur};
+                    return [...prev2];
+                }else{
+                    return [cur, ...prev2];
+                }
+            }, [...data])
+            updated.sort( (a,b) => a.id > b.id ? -1 : 1);
+            return updated;
+        })
+
+    }
+    useQuery(callbackPortsQuery, {
+        fetchPolicy: "no-cache",
+        onCompleted: (data) => {
+            updateCallbackData(data.callbackport);
+        },
+        onError: (data) => {
+            snackActions.warning("Failed to get callback ports");
+            console.log(data);
+        }
+    })
     useSubscription(callbackPortsSub, {
         fetchPolicy: "no-cache",
         onData: ({data}) => {
-            //console.log("got data", subscriptionData.data.payload_stream)
-            const updated = data.data.callbackport_stream.reduce( (prev, cur) => {
-                const index = prev.findIndex( (p) => p.id === cur.id );
-                if(index > -1){
-                    prev[index] = {...cur};
-                    return [...prev];
-                }else{
-                    return [cur, ...prev];
-                }
-            }, [...callbackData])
-            updated.sort( (a,b) => a.id > b.id ? -1 : 1);
-            setCallbackData(updated);
+            updateCallbackData(data.data.callbackport_stream);
         },
         onCompleted: (data) => {
             console.log("completed")

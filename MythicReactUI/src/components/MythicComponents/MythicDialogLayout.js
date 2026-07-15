@@ -76,16 +76,17 @@ export function MythicDialogChoiceDivider({children = "OR", className, ...props}
 
 export function MythicDialogFooter({children, className, ...props}) {
     return (
-        <DialogActions className={joinClasses("mythic-dialog-actions", className)} {...props}>
+        <DialogActions className={className} {...props}>
             {children}
         </DialogActions>
     );
 }
 
 export function MythicDialogButton({children, className, intent = "secondary", ...props}) {
+    const tone = intent === "destructive" ? "error" : intent;
     return (
         <Button
-            className={joinClasses("mythic-dialog-button", `mythic-dialog-button-${intent}`, className)}
+            className={joinClasses("mythic-dialog-button", "mythic-action-tone", `mythic-tone-${tone}`, className)}
             size="small"
             variant="contained"
             {...props}

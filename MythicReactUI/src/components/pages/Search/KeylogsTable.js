@@ -201,7 +201,7 @@ function KeylogTableRow(props){
                         <div className="mythic-search-result-action-row">
                             <MythicStyledTooltip title={"View current page data grouped together for this program"}>
                                 <IconButton
-                                    className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                                    className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
                                     onClick={() => props.onGroupKeylogData(props.window, props.user, props.task.callback.host)}
                                     size="small"
                                 >
@@ -217,7 +217,7 @@ function KeylogTableRow(props){
                         <div className="mythic-search-result-action-row">
                             <MythicStyledTooltip title={"Copy to clipboard"}>
                                 <IconButton
-                                    className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                                    className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
                                     onClick={() => onCopyToClipboard(keylogData)}
                                     size="small"
                                 >
@@ -227,7 +227,7 @@ function KeylogTableRow(props){
                             {keylogData.length > 500 ? (
                                 <MythicStyledTooltip title={"Open full keylog data"}>
                                     <IconButton
-                                        className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                                        className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
                                         onClick={() => {setOpenDisplayKeylogData(true);}}
                                         size="small"
                                     >

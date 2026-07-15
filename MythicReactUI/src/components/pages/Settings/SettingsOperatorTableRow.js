@@ -256,7 +256,7 @@ export function SettingsOperatorTableRow(props){
         <React.Fragment>
             <TableRow key={props.id}>
                 <MythicStyledTableCell >
-                    <IconButton className={`mythic-table-row-icon-action ${props.deleted ? "mythic-table-row-icon-action-success" : "mythic-table-row-icon-action-hover-danger"}`} size="small" onClick={()=>{setOpenDeleteDialog(true);}}
+                    <IconButton className={`mythic-compact-icon-action ${props.deleted ? "mythic-icon-tone mythic-tone-success" : "mythic-action-tone-hover mythic-tone-error"}`} size="small" onClick={()=>{setOpenDeleteDialog(true);}}
                               disabled={(isMe || !props.userIsAdmin)}>
                         {props.deleted ? <RestoreFromTrashIcon fontSize="small" /> : <DeleteIcon fontSize="small" />}
                     </IconButton>
@@ -507,7 +507,7 @@ const APITokenValueDialog = ({tokenValue, onClose}) => {
                 </MythicDialogBody>
             </DialogContent>
             <MythicDialogFooter>
-                <MythicDialogButton className="mythic-table-row-action-hover-info" onClick={onCopyTokenValue} startIcon={<ContentCopyIcon />}>
+                <MythicDialogButton intent="info" onClick={onCopyTokenValue} startIcon={<ContentCopyIcon />}>
                     Copy
                 </MythicDialogButton>
                 <MythicDialogButton intent="primary" onClick={onClose}>

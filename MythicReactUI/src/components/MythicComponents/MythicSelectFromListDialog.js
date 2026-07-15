@@ -112,7 +112,7 @@ return (
                           <Typography className="mythic-raw-select-value" title={String(choice)}>
                               {String(choice)}
                           </Typography>
-                          <Button className="mythic-dialog-button-info mythic-raw-select-action" variant="outlined" size="small" tabIndex={-1}>
+                          <Button className="mythic-raw-select-action mythic-action-tone mythic-tone-info" variant="outlined" size="small" tabIndex={-1}>
                               {actionText}
                           </Button>
                       </Box>

@@ -150,7 +150,7 @@ const SnackMessageError = (props) => {
                     tabSize: 4
                 }}/>
         <DialogActions>
-          <Button className="mythic-table-row-action" variant="contained" onClick={props.onClose}>
+          <Button className="mythic-compact-action" variant="contained" onClick={props.onClose}>
             Close
           </Button>
         </DialogActions>

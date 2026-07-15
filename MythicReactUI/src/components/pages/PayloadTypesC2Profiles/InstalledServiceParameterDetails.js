@@ -57,7 +57,7 @@ export function BuildParameterList({parameters}) {
                             </div>
                         </div>
                         <div className="mythic-status-stack">
-                            <MythicStatusChip label={param.parameter_type} status="neutral" showIcon={false} />
+                            <MythicStatusChip label={param.parameter_type} status="secondary" showIcon={false} />
                             {param.required &&
                                 <MythicStatusChip label="Required" status="warning" />
                             }

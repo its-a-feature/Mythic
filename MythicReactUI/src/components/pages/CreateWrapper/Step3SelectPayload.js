@@ -295,7 +295,7 @@ export function PayloadsTableRow(props){
         <React.Fragment>
             <TableRow key={`payload${props.payload.uuid}`} hover onClick={onSelected} style={{cursor: 'pointer'}}>
                 <MythicStyledTableCell>
-                    <Button className="mythic-table-row-action mythic-table-row-action-hover-info" size="small" onClick={(event) => {event.stopPropagation(); onSelected();}} variant="contained">Select</Button>
+                    <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-info" size="small" onClick={(event) => {event.stopPropagation(); onSelected();}} variant="contained">Select</Button>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>{toLocalTime(props.payload.creation_time, me.user.view_utc_time)}</MythicStyledTableCell>
                 <MythicStyledTableCell>{b64DecodeUnicode(props.payload.filemetum.filename_text)}</MythicStyledTableCell>
@@ -310,7 +310,7 @@ export function PayloadsTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>{props.payload.description}</MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={(event) => {event.stopPropagation(); setOpenDetailedView(true);}}>
+                    <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" size="small" onClick={(event) => {event.stopPropagation(); setOpenDetailedView(true);}}>
                         <InfoIconOutline fontSize="small" />
                     </IconButton>
                 </MythicStyledTableCell>

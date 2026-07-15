@@ -26,7 +26,7 @@ export function InstalledServiceIdentity({name, typeLabel, status, deleted}) {
             <div className="mythic-installed-service-name-row">
                 <span className="mythic-installed-service-name">{name}</span>
                 {typeLabel &&
-                    <MythicStatusChip label={typeLabel} status={deleted ? "deleted" : "neutral"} showIcon={deleted} />
+                    <MythicStatusChip label={typeLabel} status={deleted ? "deleted" : "secondary"} showIcon={deleted} />
                 }
             </div>
             {status}
@@ -44,10 +44,10 @@ export function InstalledServiceListValue({value, limit = 4}) {
     return (
         <span className="mythic-installed-service-chip-list" title={getInstalledServiceListTitle(values)}>
             {visibleValues.map((entry, index) => (
-                <span className="mythic-installed-service-chip" key={`${entry}-${index}`}>{entry}</span>
+                <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-secondary" key={`${entry}-${index}`}>{entry}</span>
             ))}
             {hiddenCount > 0 &&
-                <span className="mythic-installed-service-chip mythic-installed-service-chip-more">+{hiddenCount}</span>
+                <span className="mythic-status-chip mythic-status-chip-compact mythic-status-chip-muted mythic-tone-secondary">+{hiddenCount}</span>
             }
         </span>
     );
@@ -103,7 +103,7 @@ export function InstalledServiceDetailToggle({open, onClick, label = "details"})
             <IconButton
                 aria-label={open ? `hide ${label}` : `show ${label}`}
                 aria-expanded={open}
-                className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
                 onClick={onClick}
                 size="small"
             >
@@ -133,7 +133,7 @@ export function InstalledServiceDetailSection({title, count, children}) {
             <div className="mythic-installed-service-detail-section-header">
                 <span>{title}</span>
                 {count !== undefined &&
-                    <MythicStatusChip label={`${count}`} status={count > 0 ? "info" : "neutral"} showIcon={false} />
+                    <MythicStatusChip label={`${count}`} status={count > 0 ? "info" : "secondary"} showIcon={false} />
                 }
             </div>
             <div className="mythic-installed-service-detail-section-body">

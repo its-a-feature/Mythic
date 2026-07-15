@@ -16,7 +16,7 @@ export function CreatePayloadNavigationButtons(props){
       
         <div className="mythic-table-toolbar mythic-create-flow-footer">
             <Button
-                className="mythic-table-row-action"
+                className="mythic-compact-action"
                 disabled={props.first}
                 variant="contained"
                 onClick={props.canceled}
@@ -24,7 +24,7 @@ export function CreatePayloadNavigationButtons(props){
                 Back
               </Button>
               <Button
-                  className={`mythic-table-row-action ${props.last ? "mythic-table-row-action-hover-success" : "mythic-table-row-action-hover-info"}`}
+                  className={`mythic-compact-action ${props.last ? "mythic-action-tone-hover mythic-tone-success" : "mythic-action-tone-hover mythic-tone-info"}`}
                   variant="contained"
                   onClick={props.finished}
                   disabled={disabledButtons}
@@ -35,7 +35,7 @@ export function CreatePayloadNavigationButtons(props){
               {props.last && props.showExtraOptions &&
               <React.Fragment>
                   <Button
-                  className="mythic-table-row-action mythic-table-row-action-hover-warning"
+                  className="mythic-compact-action mythic-action-tone-hover mythic-tone-warning"
                   variant="contained"
                   onClick={props.startOver}
                   >
@@ -43,7 +43,7 @@ export function CreatePayloadNavigationButtons(props){
                   </Button>
                 {props.showExtraOptions &&
                     <Button
-                        className="mythic-table-row-action mythic-table-row-action-hover-info"
+                        className="mythic-compact-action mythic-action-tone-hover mythic-tone-info"
                         variant="contained"
                         component={Link}
                         to={"/new/createwrapper"}

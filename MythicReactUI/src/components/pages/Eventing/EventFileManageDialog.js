@@ -43,7 +43,7 @@ export function EventFileManageDialog({onClose, selectedEventGroup}) {
                 <div className="mythic-dialog-title-row">
                     <span>Add or Remove Files associated with this workflow</span>
                     <Button
-                        className="mythic-table-row-action mythic-table-row-action-hover-success"
+                        className="mythic-compact-action mythic-action-tone-hover mythic-tone-success"
                         component="label"
                         size="small"
                         startIcon={<CloudUploadIcon fontSize="small" />}
@@ -79,7 +79,7 @@ export function EventFileManageDialog({onClose, selectedEventGroup}) {
                 </TableContainer>
             </DialogContent>
             <DialogActions>
-                <Button className="mythic-table-row-action" onClick={onClose} variant="contained">
+                <Button className="mythic-compact-action" onClick={onClose} variant="contained">
                     Close
                 </Button>
             </DialogActions>
@@ -118,12 +118,12 @@ function EventFileManageDialogTableRow({eventFile}) {
                             <MythicConfirmDialog onClose={() => {setOpenDelete(false);}} onSubmit={onAcceptDelete} open={openDelete}/>
                         }
                         <MythicStyledTooltip title={"Delete file"}>
-                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={()=>{setOpenDelete(true);}}>
+                            <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={()=>{setOpenDelete(true);}}>
                                 <DeleteIcon fontSize="small" />
                             </IconButton>
                         </MythicStyledTooltip>
                         <MythicStyledTooltip title={"Preview Media"}>
-                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={onPreviewMedia}>
+                            <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" size="small" onClick={onPreviewMedia}>
                                 <FontAwesomeIcon icon={faPhotoVideo} />
                             </IconButton>
                         </MythicStyledTooltip>

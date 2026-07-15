@@ -83,7 +83,7 @@ const CredentialTableRow = ({cred}) => {
           (
               <div className="mythic-single-task-credential-cell">
                   <MythicStyledTooltip title={"Copy to clipboard"}>
-                      <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" onClick={() => onCopyToClipboard(cred.credential_text)} size="small">
+                      <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" onClick={() => onCopyToClipboard(cred.credential_text)} size="small">
                           <ContentCopyIcon fontSize="small" />
                       </IconButton>
                   </MythicStyledTooltip>

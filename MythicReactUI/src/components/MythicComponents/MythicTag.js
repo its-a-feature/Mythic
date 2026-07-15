@@ -558,7 +558,7 @@ return (
               description={existingTags.length === 0 ? "No tags are attached yet." : "Choose the tag you want to update."}
               actions={
                 <MythicStyledTooltip title={"Add New Tag"}>
-                  <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-success" size="small" onClick={() => setOpenNewDialog(true)}>
+                  <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-success" size="small" onClick={() => setOpenNewDialog(true)}>
                     <AddCircleOutlineIcon fontSize="small" />
                   </IconButton>
                 </MythicStyledTooltip>
@@ -588,7 +588,7 @@ return (
                 {selectedTag.id &&
                   <MythicStyledTooltip title={"Delete Tag"}>
                     <Box sx={{alignItems: "center", alignSelf: "end", display: "flex", height: 38}}>
-                      <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={()=>{setOpenDeleteDialog(true);}}>
+                      <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={()=>{setOpenDeleteDialog(true);}}>
                         <DeleteIcon fontSize="small" />
                       </IconButton>
                     </Box>
@@ -743,7 +743,7 @@ export function NewTagDialog(props) {
                 title="Tag Type"
                 description="Select the taxonomy entry this tag should use."
                 actions={
-                  <Button className="mythic-table-row-action mythic-table-row-action-hover-info" size="small" variant="outlined" onClick={() => setOpenNewTagTypeDialog(true)}>
+                  <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-info" size="small" variant="outlined" onClick={() => setOpenNewTagTypeDialog(true)}>
                     Manage Tag Types
                   </Button>
                 }
