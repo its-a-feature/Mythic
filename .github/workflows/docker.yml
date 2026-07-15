@@ -44,7 +44,7 @@ env:
   VERSION: ${{ github.ref_name }}
 
   # Branch for pushing release changes
-  RELEASE_BRANCH: master
+  RELEASE_BRANCH: ${{ github.head_ref }}
 
 jobs:
   # Builds the base container image and pushes it to the container registry
@@ -55,27 +55,27 @@ jobs:
       packages: write
     steps:
       - name: Checkout the repository
-        uses: actions/checkout@v4 # ref: https://github.com/marketplace/actions/checkout
+        uses: actions/checkout@v5 # ref: https://github.com/marketplace/actions/checkout
       - name: Log in to the container registry
-        uses: docker/login-action@v3 # ref: https://github.com/marketplace/actions/docker-login
+        uses: docker/login-action@v4 # ref: https://github.com/marketplace/actions/docker-login
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: 'arm64,arm'
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
       # the following are unique to this job
       - name: Lowercase the server container image name
         run: echo "MYTHIC_SERVER_IMAGE_NAME=${MYTHIC_SERVER_IMAGE_NAME,,}" >> ${GITHUB_ENV}
       - name: Copy version file over
         run: cp VERSION mythic-docker/src/VERSION
       - name: Build and push the server container image
-        uses: docker/build-push-action@v5 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
+        uses: docker/build-push-action@v6 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
         with:
           context: mythic-docker
           file: mythic-docker/.docker/Dockerfile
@@ -99,25 +99,25 @@ jobs:
     steps:
       # Pull in the repository code
       - name: Checkout the repository
-        uses: actions/checkout@v4 # ref: https://github.com/marketplace/actions/checkout
+        uses: actions/checkout@v5 # ref: https://github.com/marketplace/actions/checkout
       - name: Log in to the container registry
-        uses: docker/login-action@v3 # ref: https://github.com/marketplace/actions/docker-login
+        uses: docker/login-action@v4 # ref: https://github.com/marketplace/actions/docker-login
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: 'arm64,arm'
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
       # the following are unique to this job
       - name: Lowercase the postgres container image name
         run: echo "MYTHIC_POSTGRES_IMAGE_NAME=${MYTHIC_POSTGRES_IMAGE_NAME,,}" >> ${GITHUB_ENV}
       - name: Build and push the postgres container image
-        uses: docker/build-push-action@v5 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
+        uses: docker/build-push-action@v6 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
         with:
           context: postgres-docker
           file: postgres-docker/Dockerfile
@@ -141,25 +141,25 @@ jobs:
     steps:
       # Pull in the repository code
       - name: Checkout the repository
-        uses: actions/checkout@v4 # ref: https://github.com/marketplace/actions/checkout
+        uses: actions/checkout@v5 # ref: https://github.com/marketplace/actions/checkout
       - name: Log in to the container registry
-        uses: docker/login-action@v3 # ref: https://github.com/marketplace/actions/docker-login
+        uses: docker/login-action@v4 # ref: https://github.com/marketplace/actions/docker-login
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: 'arm64,arm'
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
       # the following are unique to this job
       - name: Lowercase the rabbitmq container image name
         run: echo "MYTHIC_RABBITMQ_IMAGE_NAME=${MYTHIC_RABBITMQ_IMAGE_NAME,,}" >> ${GITHUB_ENV}
       - name: Build and push the rabbitmq container image
-        uses: docker/build-push-action@v5 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
+        uses: docker/build-push-action@v6 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
         with:
           context: rabbitmq-docker
           file: rabbitmq-docker/Dockerfile
@@ -183,25 +183,25 @@ jobs:
     steps:
       # Pull in the repository code
       - name: Checkout the repository
-        uses: actions/checkout@v4 # ref: https://github.com/marketplace/actions/checkout
+        uses: actions/checkout@v5 # ref: https://github.com/marketplace/actions/checkout
       - name: Log in to the container registry
-        uses: docker/login-action@v3 # ref: https://github.com/marketplace/actions/docker-login
+        uses: docker/login-action@v4 # ref: https://github.com/marketplace/actions/docker-login
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: 'arm64,arm'
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
       # the following are unique to this job
       - name: Lowercase the documentation container image name
         run: echo "MYTHIC_DOCUMENTATION_IMAGE_NAME=${MYTHIC_DOCUMENTATION_IMAGE_NAME,,}" >> ${GITHUB_ENV}
       - name: Build and push the documentation container image
-        uses: docker/build-push-action@v5 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
+        uses: docker/build-push-action@v6 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
         with:
           context: documentation-docker
           file: documentation-docker/Dockerfile
@@ -225,27 +225,27 @@ jobs:
     steps:
       # Pull in the repository code
       - name: Checkout the repository
-        uses: actions/checkout@v4 # ref: https://github.com/marketplace/actions/checkout
+        uses: actions/checkout@v5 # ref: https://github.com/marketplace/actions/checkout
       - name: Log in to the container registry
-        uses: docker/login-action@v3 # ref: https://github.com/marketplace/actions/docker-login
+        uses: docker/login-action@v4 # ref: https://github.com/marketplace/actions/docker-login
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: 'arm64,arm'
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       # these two are unique
 
       - name: Lowercase the jupyter container image name
         run: echo "MYTHIC_JUPYTER_IMAGE_NAME=${MYTHIC_JUPYTER_IMAGE_NAME,,}" >> ${GITHUB_ENV}
       - name: Build and push the jupyter container image
-        uses: docker/build-push-action@v5 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
+        uses: docker/build-push-action@v6 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
         with:
           context: jupyter-docker
           file: jupyter-docker/Dockerfile
@@ -269,27 +269,27 @@ jobs:
     steps:
       # Pull in the repository code
       - name: Checkout the repository
-        uses: actions/checkout@v4 # ref: https://github.com/marketplace/actions/checkout
+        uses: actions/checkout@v5 # ref: https://github.com/marketplace/actions/checkout
       - name: Log in to the container registry
-        uses: docker/login-action@v3 # ref: https://github.com/marketplace/actions/docker-login
+        uses: docker/login-action@v4 # ref: https://github.com/marketplace/actions/docker-login
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: 'arm64,arm'
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       # these two are unique
 
       - name: Lowercase the graphql container image name
         run: echo "MYTHIC_GRAPHQL_IMAGE_NAME=${MYTHIC_GRAPHQL_IMAGE_NAME,,}" >> ${GITHUB_ENV}
       - name: Build and push the graphql container image
-        uses: docker/build-push-action@v5 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
+        uses: docker/build-push-action@v6 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
         with:
           context: hasura-docker
           file: hasura-docker/Dockerfile
@@ -313,27 +313,27 @@ jobs:
     steps:
       # Pull in the repository code
       - name: Checkout the repository
-        uses: actions/checkout@v4 # ref: https://github.com/marketplace/actions/checkout
+        uses: actions/checkout@v5 # ref: https://github.com/marketplace/actions/checkout
       - name: Log in to the container registry
-        uses: docker/login-action@v3 # ref: https://github.com/marketplace/actions/docker-login
+        uses: docker/login-action@v4 # ref: https://github.com/marketplace/actions/docker-login
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: 'arm64,arm'
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       # these two are unique
 
       - name: Lowercase the nginx container image name
         run: echo "MYTHIC_NGINX_IMAGE_NAME=${MYTHIC_NGINX_IMAGE_NAME,,}" >> ${GITHUB_ENV}
       - name: Build and push the nginx container image
-        uses: docker/build-push-action@v5 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
+        uses: docker/build-push-action@v6 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
         with:
           context: nginx-docker
           file: nginx-docker/Dockerfile
@@ -357,29 +357,29 @@ jobs:
     steps:
       # Pull in the repository code
       - name: Checkout the repository
-        uses: actions/checkout@v4 # ref: https://github.com/marketplace/actions/checkout
+        uses: actions/checkout@v5 # ref: https://github.com/marketplace/actions/checkout
         with:
           lfs: true
       - name: Log in to the container registry
-        uses: docker/login-action@v3 # ref: https://github.com/marketplace/actions/docker-login
+        uses: docker/login-action@v4 # ref: https://github.com/marketplace/actions/docker-login
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: 'arm64,arm'
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       # these two are unique
 
       - name: Lowercase the react container image name
         run: echo "MYTHIC_REACT_IMAGE_NAME=${MYTHIC_REACT_IMAGE_NAME,,}" >> ${GITHUB_ENV}
       - name: Build and push the react container image
-        uses: docker/build-push-action@v5 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
+        uses: docker/build-push-action@v6 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
         with:
           context: mythic-react-docker
           file: mythic-react-docker/Dockerfile
@@ -413,20 +413,20 @@ jobs:
     steps:
       # Pull in the repository code
       - name: Checkout the repository
-        uses: actions/checkout@v4 # ref: https://github.com/marketplace/actions/checkout
+        uses: actions/checkout@v5 # ref: https://github.com/marketplace/actions/checkout
       - name: Log in to the container registry
-        uses: docker/login-action@v3 # ref: https://github.com/marketplace/actions/docker-login
+        uses: docker/login-action@v4 # ref: https://github.com/marketplace/actions/docker-login
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: 'arm64,arm'
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
       # the following are unique to this job
       - name: Lowercase the cli container image name
         run: echo "MYTHIC_CLI_IMAGE_NAME=${MYTHIC_CLI_IMAGE_NAME,,}" >> ${GITHUB_ENV}
@@ -437,7 +437,7 @@ jobs:
           sed -i "s|^const MythicDockerLatest =.*$|const MythicDockerLatest = \"${VERSION}\"|" constants.go
 
       - name: Build and push the cli container image
-        uses: docker/build-push-action@v5 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
+        uses: docker/build-push-action@v6 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
         with:
           context: Mythic_CLI
           file: Mythic_CLI/Dockerfile
@@ -472,7 +472,7 @@ jobs:
     steps:
       # Pull in the repository code
       - name: Checkout the repository
-        uses: actions/checkout@v4 # ref: https://github.com/marketplace/actions/checkout
+        uses: actions/checkout@v5 # ref: https://github.com/marketplace/actions/checkout
 
       # update names to lowercase
       - name: Lowercase the server container image name

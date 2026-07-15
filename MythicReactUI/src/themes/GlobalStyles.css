@@ -614,7 +614,7 @@ tspan {
     min-width: 0;
     padding: 0.375rem 0.5rem;
 }
-.mythic-process-inspector-detailWide, .mythic-dashboard-card-wide {
+.mythic-process-inspector-detailWide {
     grid-column: span 2;
 }
 .mythic-process-inspector-detail span {
@@ -6068,6 +6068,9 @@ tspan {
 .mythic-dashboard-card:hover {
     border-color: var(--mythic-color-primary-level-2);
     box-shadow: var(--mythic-shadow-level-2) !important;
+}
+.mythic-dashboard-card-wide {
+    grid-column: span 2;
 }
 .mythic-dashboard-card-table {
     grid-column: span 2;
