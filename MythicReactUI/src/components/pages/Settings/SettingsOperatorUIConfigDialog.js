@@ -117,7 +117,7 @@ const TaskingMetadataSummary = ({value, onChange}) => {
                 <Box className="mythic-tasking-visibility-chip-row">
                     {selectedOptions.length > 0 ? (
                         selectedOptions.map((option, index) => (
-                            <span className="mythic-tasking-visibility-chip" key={option.name}>
+                            <span className="mythic-status-chip mythic-tone-info" key={option.name}>
                                 <span className="mythic-tasking-visibility-chip-index">{index + 1}</span>
                                 {option.display}
                             </span>
@@ -236,7 +236,7 @@ const TaskingMetadataDraggableListItem = ({item, index, onToggleVisibility}) => 
                         <div className="mythic-reorder-row-actions">
                             <IconButton
                                 aria-label={item.visible ? `Hide ${item.display}` : `Show ${item.display}`}
-                                className={`mythic-table-row-icon-action ${item.visible ? "mythic-table-row-icon-action-hover-danger" : "mythic-table-row-icon-action-hover-info"}`}
+                                className={`mythic-compact-icon-action ${item.visible ? "mythic-action-tone-hover mythic-tone-error" : "mythic-action-tone-hover mythic-tone-info"}`}
                                 size="small"
                                 onClick={() => onToggleVisibility(index)}
                             >
@@ -333,8 +333,8 @@ const COLOR_EDITOR_SECTIONS = [
         description: "Table headers, hover states, and selected callback emphasis.",
         colors: [
             {name: "tableHeader", display: "Table Header", description: "Sticky header rows in tables and data grids.", preview: "table"},
-            {name: "tableHover", display: "Table Hover", description: "Rows when hovered or softly emphasized.", preview: "table"},
-            {name: "selectedCallbackColor", display: "Active Callback", description: "Currently active callback row highlight.", preview: "table"},
+            {name: "tableHover", display: "Hover Surface", description: "Table rows and compact interactive controls when hovered or softly emphasized.", preview: "table"},
+            {name: "selectedCallbackColor", display: "Primary Selection", description: "Selected rows and the currently active callback highlight.", preview: "table"},
             {name: "selectedCallbackHierarchyColor", display: "Tree Host Highlight", description: "Current host highlight in tree views.", preview: "table"},
         ],
     },
@@ -590,14 +590,14 @@ const ColorUsagePreview = ({option, palette, mode}) => {
                     <Box sx={{height: 18, px: 1, display: "flex", alignItems: "center", borderTop: `1px solid ${addAlpha(border, "99")}`, backgroundColor: paper}}>
                         <PreviewLabel color={text}>Normal row</PreviewLabel>
                     </Box>
-                    <Box sx={{height: 18, px: 1, display: "flex", alignItems: "center", backgroundColor: addAlpha(tableHover, "CC")}}>
+                    <Box sx={{height: 18, px: 1, display: "flex", alignItems: "center", backgroundColor: tableHover}}>
                         <PreviewLabel color={text}>Hover row</PreviewLabel>
                     </Box>
                     <Box sx={{height: 18, display: "grid", gridTemplateColumns: "1fr 1fr"}}>
-                        <Box sx={{px: 1, backgroundColor: addAlpha(selectedCallback, "CC")}}>
+                        <Box sx={{px: 1, backgroundColor: selectedCallback}}>
                             <PreviewLabel color={text}>Active</PreviewLabel>
                         </Box>
-                        <Box sx={{px: 1, backgroundColor: addAlpha(selectedHierarchy, "CC")}}>
+                        <Box sx={{px: 1, backgroundColor: selectedHierarchy}}>
                             <PreviewLabel color={text}>Tree</PreviewLabel>
                         </Box>
                     </Box>
@@ -1160,7 +1160,7 @@ export function SettingsOperatorUIConfigDialog(props) {
                 <Box className="mythic-ui-settings-title-actions">
                     <MythicStyledTooltip title={"Copy all preferences as JSON"}>
                         <Button
-                            className="mythic-dialog-title-action mythic-ui-settings-title-button mythic-ui-settings-title-button-info"
+                            className="mythic-dialog-title-action mythic-ui-settings-title-button mythic-action-tone-hover mythic-tone-info"
                             onClick={getCurrentPreferences}
                             size="small"
                             variant="outlined"
@@ -1171,7 +1171,7 @@ export function SettingsOperatorUIConfigDialog(props) {
                     </MythicStyledTooltip>
                     <MythicStyledTooltip title={"Copy only color preferences as JSON"}>
                         <Button
-                            className="mythic-dialog-title-action mythic-ui-settings-title-button mythic-ui-settings-title-button-info"
+                            className="mythic-dialog-title-action mythic-ui-settings-title-button mythic-action-tone-hover mythic-tone-info"
                             onClick={getCurrentColorPreferences}
                             size="small"
                             variant="outlined"
@@ -1184,7 +1184,7 @@ export function SettingsOperatorUIConfigDialog(props) {
                     </MythicStyledTooltip>
                     <MythicStyledTooltip title={"Import preferences from a JSON file"}>
                         <Button
-                            className="mythic-dialog-title-action mythic-ui-settings-title-button mythic-ui-settings-title-button-success"
+                            className="mythic-dialog-title-action mythic-ui-settings-title-button mythic-action-tone-hover mythic-tone-success"
                             onClick={()=>fileInputRef.current.click()}
                             size="small"
                             variant="outlined"

@@ -52,7 +52,7 @@ export function EventGroupConsumingContainersDialog({onClose, selectedEventGroup
                 </TableContainer>
             </DialogContent>
             <DialogActions>
-                <Button className="mythic-table-row-action" onClick={onClose} variant="contained">
+                <Button className="mythic-compact-action" onClick={onClose} variant="contained">
                     Close
                 </Button>
             </DialogActions>

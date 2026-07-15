@@ -6,7 +6,6 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import FormControl from '@mui/material/FormControl';
-import FormControlLabel from '@mui/material/FormControlLabel';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
 import InputLabel from '@mui/material/InputLabel';
@@ -129,7 +128,6 @@ export function SettingsOperatorAliasesDialog(props) {
     const [scopeType, setScopeType] = React.useState(props.initialScopeType || "global");
     const [payloadTypeID, setPayloadTypeID] = React.useState("");
     const [containerID, setContainerID] = React.useState("");
-    const [active, setActive] = React.useState(true);
     const {data, loading, refetch} = useQuery(OPERATOR_ALIAS_QUERY, {
         variables: {operator_id: operatorID},
         fetchPolicy: "no-cache",
@@ -160,7 +158,6 @@ export function SettingsOperatorAliasesDialog(props) {
         setScopeType(props.initialScopeType || "global");
         setPayloadTypeID(props.initialPayloadTypeID ? `${props.initialPayloadTypeID}` : "");
         setContainerID(props.initialContainerID ? `${props.initialContainerID}` : "");
-        setActive(true);
     };
     const editAlias = (alias) => {
         setEditingID(alias.id);
@@ -180,17 +177,17 @@ export function SettingsOperatorAliasesDialog(props) {
             setPayloadTypeID("");
             setContainerID("");
         }
-        setActive(Boolean(alias.active));
     };
     const variablesForSubmit = () => {
         const normalizedName = normalizeAliasName(aliasName);
+        const existingAlias = editingID === null ? undefined : aliases.find((alias) => alias.id === editingID);
         return {
             name: normalizedName,
             alias: aliasText.trim(),
             alias_type: aliasType,
             payloadtype_id: scopeType === "callback" ? Number(payloadTypeID) : null,
             consuming_container_id: scopeType === "chat" ? Number(containerID) : null,
-            active,
+            active: existingAlias ? Boolean(existingAlias.active) : true,
         };
     };
     const submitAlias = () => {
@@ -243,9 +240,6 @@ export function SettingsOperatorAliasesDialog(props) {
             const result = mutationData?.operatorAliasUpdate;
             if(result?.status === "success"){
                 snackActions.success(nextActive ? "Alias activated" : "Alias deactivated");
-                if(editingID === alias.id){
-                    setActive(nextActive);
-                }
                 refetch();
             } else {
                 snackActions.error(result?.error || "Failed to update alias");
@@ -293,12 +287,12 @@ export function SettingsOperatorAliasesDialog(props) {
                     <Typography component="div" variant="h6">Operator Aliases</Typography>
                     <Box sx={{display: "flex", gap: 1}}>
                         <MythicStyledTooltip title="Export aliases">
-                            <Button size="small" variant="outlined" startIcon={<CloudDownloadIcon fontSize="small" />} onClick={exportOperatorAliases}>
+                            <Button className="mythic-alias-transfer-action mythic-action-tone-hover mythic-tone-secondary" size="small" variant="text" startIcon={<CloudDownloadIcon fontSize="small" />} onClick={exportOperatorAliases}>
                                 Export
                             </Button>
                         </MythicStyledTooltip>
                         <MythicStyledTooltip title="Import aliases">
-                            <Button size="small" variant="outlined" startIcon={<CloudUploadIcon fontSize="small" />} onClick={() => fileInputRef.current?.click()}>
+                            <Button className="mythic-alias-transfer-action mythic-action-tone-hover mythic-tone-secondary" size="small" variant="text" startIcon={<CloudUploadIcon fontSize="small" />} onClick={() => fileInputRef.current?.click()}>
                                 Import
                                 <input ref={fileInputRef} onChange={importOperatorAliases} type="file" accept="application/json,.json" hidden />
                             </Button>
@@ -359,10 +353,6 @@ export function SettingsOperatorAliasesDialog(props) {
                     ) : (
                         <Box />
                     )}
-                    <FormControlLabel
-                        control={<Switch checked={active} onChange={(e) => setActive(e.target.checked)} />}
-                        label="Active"
-                    />
                     <Box sx={{display: "flex", justifyContent: "flex-end", gap: 1}}>
                         {editingID &&
                             <Button startIcon={<RestartAltIcon />} onClick={resetForm}>Reset</Button>

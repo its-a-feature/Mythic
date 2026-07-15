@@ -574,7 +574,7 @@ export function DetailedCallbackTable(props){
                         <TableCell>
                           <MythicStyledTooltip title="Open command documentation">
                               <IconButton
-                                  className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                                  className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
                                   size="small"
                                   target="_blank"
                                   href={"/docs/agents/" + cmd.payload_type + "/commands/" + cmd.cmd}

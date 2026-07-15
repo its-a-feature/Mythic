@@ -661,7 +661,7 @@ export const StartFromExistingPayloadOrStartFresh = (
                 </div>
                 <div className="mythic-create-section-actions">
                     <Button
-                            className="mythic-table-row-action mythic-table-row-action-hover-success"
+                            className="mythic-compact-action mythic-action-tone-hover mythic-tone-success"
                             size="small"
                             variant="contained"
                             onClick={onStartFresh}

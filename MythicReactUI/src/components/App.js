@@ -3,8 +3,9 @@ import React, {createContext} from 'react';
 import {Button, Typography} from '@mui/material';
 import { useReactiveVar } from '@apollo/client';
 import { useDarkMode } from './utilities/useDarkMode';
-import { createTheme, ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
-import { GlobalStyles, ThemeVariables } from '../themes/GlobalStyles';
+import { alpha, createTheme, ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
+import { COLOR_LEVELS, ThemeVariables } from '../themes/GlobalStyles';
+import '../themes/GlobalStyles.css';
 import CssBaseline from '@mui/material/CssBaseline';
 import {FailedRefresh, mePreferences, meState, operatorSettingDefaults} from '../cache';
 import { Tooltip } from 'react-tooltip';
@@ -94,20 +95,17 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
     const isDark = themeMode === "dark";
     const mode = isDark ? "dark" : "light";
     const safePreferences = preferences || operatorSettingDefaults;
+    const [colorLevel1, colorLevel2, colorLevel3] = COLOR_LEVELS[mode];
     const getColor = (key) => {
         return safePreferences?.palette?.[key]?.[mode] || operatorSettingDefaults.palette[key][mode];
-    };
-    const withAlpha = (color, alphaHex) => {
-        if(typeof color === "string" && color.startsWith("#") && color.length === 7){
-            return `${color}${alphaHex}`;
-        }
-        return color;
     };
     const textPrimary = getColor("text");
     const textSecondary = getColor("textSecondary");
     const borderColor = getColor("borderColor");
     const backgroundDefault = getColor("background");
     const backgroundPaper = getColor("paper");
+    const backgroundContrast = safePreferences?.palette?.background?.[isDark ? "light" : "dark"] ||
+        operatorSettingDefaults.palette.background[isDark ? "light" : "dark"];
     const surfaceRaised = getColor("surfaceRaised");
     const surfaceMuted = getColor("surfaceMuted");
     const navBackground = getColor("navBarColor");
@@ -115,6 +113,9 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
     const navText = getColor("navBarText");
     const navIcon = getColor("navBarIcons");
     const primary = getColor("primary");
+    const info = getColor("info");
+    const warning = getColor("warning");
+    const error = getColor("error");
     const sectionHeaderAccent = getColor("sectionHeaderAccent");
     const sectionHeaderGradientStart = getColor("sectionHeaderGradientStart");
     const sectionHeaderGradientMiddle = getColor("sectionHeaderGradientMiddle");
@@ -124,12 +125,12 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
     const chartSeriesColors = Array.from({length: 10}, (_, index) => getColor(`chartSeries${index + 1}`));
     const tableHeaderColor = getColor("tableHeader");
     const tableHoverColor = getColor("tableHover");
-    const tableRowStripeColor = withAlpha(tableHoverColor, isDark ? "55" : "66");
-    const tableRowHoverColor = withAlpha(tableHoverColor, "CC");
+    const tableRowStripeColor = alpha(tableHoverColor, colorLevel2);
+    const tableRowHoverColor = tableHoverColor;
     const hoverColor = tableRowHoverColor;
-    const tableSelectedColor = withAlpha(getColor("selectedCallbackColor"), "CC");
-    const tableSelectedHierarchyColor = withAlpha(getColor("selectedCallbackHierarchyColor"), "CC");
-    const tableBorderSoft = withAlpha(borderColor, isDark ? "AA" : "CC");
+    const tableSelectedColor = getColor("selectedCallbackColor");
+    const tableSelectedHierarchyColor = getColor("selectedCallbackHierarchyColor");
+    const tableBorderSoft = alpha(borderColor, isDark ? 0.67 : 0.8);
 
     return {
         shape: {
@@ -147,11 +148,11 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
             background: `linear-gradient(180deg, ${navBackground}, ${navAccent})`,
             backgroundColor: navBackground,
             border: borderColor,
-            hover: withAlpha(getColor("tableHover"), "66"),
-            selected: withAlpha(getColor("selectedCallbackColor"), "99"),
+            hover: alpha(navText, colorLevel1),
+            selected: alpha(primary, colorLevel2),
             text: navText,
             icon: navIcon,
-            muted: withAlpha(navText, "B3"),
+            muted: alpha(navText, 0.7),
             accent: navAccent,
         },
         sectionHeader: {
@@ -225,8 +226,21 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                 },
                 styleOverrides: {
                     root: {
+                        backgroundColor: backgroundPaper,
                         backgroundImage: "none",
+                        border: `1px solid ${borderColor}`,
+                        borderRadius: 6,
                         boxShadow: "none",
+                        "& > .MuiBox-root:first-of-type": {
+                            margin: 0,
+                            minHeight: "2rem",
+                            padding: "0 0 0 0.25rem",
+                        },
+                        "& > .MuiBox-root > *": {
+                            margin: 0,
+                            minHeight: "2rem",
+                            padding: "0 3.75rem 0 0.25rem",
+                        },
                     },
                 },
             },
@@ -266,6 +280,7 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         backgroundImage: "none",
                         boxShadow: "none",
                         borderBottom: `1px solid ${borderColor}`,
+                        zIndex: 1,
                     },
                 },
             },
@@ -282,7 +297,7 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
             MuiDialogTitle: {
                 styleOverrides: {
                     root: {
-                        padding: "10px 14px",
+                        padding: "0.625rem 0.875rem",
                         fontSize: "1rem",
                         fontWeight: 650,
                         borderBottom: `1px solid ${borderColor}`,
@@ -292,7 +307,7 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
             MuiDialogContent: {
                 styleOverrides: {
                     root: {
-                        padding: "12px 14px",
+                        padding: "0.75rem 0.875rem",
                     },
                 },
             },
@@ -302,16 +317,72 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         color: textSecondary,
                         fontSize: "0.88rem",
                         lineHeight: 1.45,
-                        margin: "0 0 10px",
+                        margin: "0 0 0.625rem",
                     },
                 },
             },
             MuiDialogActions: {
                 styleOverrides: {
                     root: {
-                        gap: 8,
-                        padding: "10px 14px",
+                        alignItems: "center",
+                        backgroundColor: surfaceMuted,
                         borderTop: `1px solid ${borderColor}`,
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: "0.5rem",
+                        justifyContent: "flex-end",
+                        margin: 0,
+                        padding: "0.625rem 0.875rem",
+                        "& > :not(style) ~ :not(style)": {
+                            marginLeft: 0,
+                        },
+                        "& .MuiButton-root": {
+                            alignItems: "center",
+                            backgroundColor: alpha(textPrimary, isDark ? 0.06 : 0.04),
+                            border: `1px solid ${tableBorderSoft}`,
+                            borderRadius: 6,
+                            boxShadow: "none",
+                            color: textPrimary,
+                            fontSize: "0.78rem",
+                            fontWeight: 750,
+                            justifyContent: "center",
+                            letterSpacing: 0,
+                            lineHeight: 1.2,
+                            minHeight: 34,
+                            minWidth: "min(100%, 7rem)",
+                            padding: "0.375rem 0.875rem",
+                            textTransform: "none",
+                            whiteSpace: "nowrap",
+                        },
+                        "& .MuiButton-root:hover": {
+                            backgroundColor: alpha(textPrimary, isDark ? 0.10 : 0.07),
+                            borderColor,
+                        },
+                        "& .MuiButton-root.MuiButton-colorSuccess, & .MuiButton-root.MuiButton-containedSuccess, & .MuiButton-root.MuiButton-outlinedSuccess": {
+                            backgroundColor: primary,
+                            borderColor: primary,
+                            color: "var(--mythic-color-on-primary)",
+                        },
+                        "& .MuiButton-root.MuiButton-colorWarning, & .MuiButton-root.MuiButton-containedWarning, & .MuiButton-root.MuiButton-outlinedWarning": {
+                            backgroundColor: alpha(warning, colorLevel1),
+                            borderColor: alpha(warning, colorLevel3),
+                            color: warning,
+                        },
+                        "& .MuiButton-root.MuiButton-colorError, & .MuiButton-root.MuiButton-containedError, & .MuiButton-root.MuiButton-outlinedError": {
+                            backgroundColor: alpha(error, colorLevel1),
+                            borderColor: alpha(error, colorLevel3),
+                            color: error,
+                        },
+                        "& .MuiButton-root.MuiButton-colorInfo, & .MuiButton-root.MuiButton-containedInfo, & .MuiButton-root.MuiButton-outlinedInfo": {
+                            backgroundColor: alpha(info, colorLevel1),
+                            borderColor: alpha(info, colorLevel2),
+                            color: info,
+                        },
+                        "& .MuiButton-root.Mui-disabled": {
+                            backgroundColor: alpha(textPrimary, isDark ? 0.035 : 0.025),
+                            borderColor: tableBorderSoft,
+                            color: getColor("textDisabled"),
+                        },
                     },
                 },
             },
@@ -349,6 +420,16 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                 styleOverrides: {
                     root: {
                         fontSize: "0.92rem",
+                    },
+                    input: {
+                        borderColor,
+                    },
+                },
+            },
+            MuiFormLabel: {
+                styleOverrides: {
+                    root: {
+                        background: "transparent",
                     },
                 },
             },
@@ -393,17 +474,29 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         height: 2,
                         borderRadius: 2,
                     },
+                    flexContainer: {
+                        flexWrap: "wrap",
+                    },
+                    scrollButtons: {
+                        width: "unset",
+                        "&.Mui-disabled": {
+                            opacity: 0.3,
+                        },
+                    },
                 },
             },
             MuiTab: {
                 styleOverrides: {
                     root: {
                         minHeight: 34,
-                        padding: "6px 10px",
+                        minWidth: "unset",
+                        maxWidth: "unset",
+                        padding: "0.375rem 0.625rem",
                         textTransform: "none",
                         fontSize: "0.82rem",
                         fontWeight: 650,
                         letterSpacing: 0,
+                        whiteSpace: "unset",
                     },
                 },
             },
@@ -419,24 +512,68 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
             MuiList: {
                 styleOverrides: {
                     root: {
+                        backgroundColor: backgroundPaper,
                         backgroundImage: "none",
+                        border: `1px solid ${borderColor}`,
+                        borderRadius: 6,
+                        lineHeight: "1.75rem",
+                    },
+                },
+            },
+            MuiListItem: {
+                styleOverrides: {
+                    root: {
+                        "&:hover": {
+                            backgroundColor: tableRowHoverColor,
+                            color: textPrimary,
+                        },
                     },
                 },
             },
             MuiTooltip: {
                 styleOverrides: {
                     tooltip: {
+                        backgroundColor: backgroundContrast,
                         borderRadius: 6,
-                        fontSize: 12,
+                        boxShadow: isDark ? "0 8px 18px rgba(0,0,0,0.22)" : "0 8px 18px rgba(15,23,42,0.10)",
+                        color: isDark ? "#000" : "#fff",
+                        fontSize: 13,
+                    },
+                    arrow: {
+                        color: backgroundContrast,
                     },
                 },
             },
             MuiAccordion: {
                 styleOverrides: {
                     root: {
+                        border: 0,
                         boxShadow: "none",
                         "&:before": {
                             display: "none",
+                        },
+                    },
+                },
+            },
+            MuiAccordionDetails: {
+                styleOverrides: {
+                    root: {
+                        paddingBottom: 0,
+                        paddingTop: 0,
+                    },
+                },
+            },
+            MuiAccordionSummary: {
+                styleOverrides: {
+                    root: {
+                        "&.Mui-expanded": {
+                            minHeight: "unset",
+                        },
+                    },
+                    content: {
+                        "&.Mui-expanded": {
+                            margin: 0,
+                            minHeight: "unset",
                         },
                     },
                 },
@@ -446,6 +583,25 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                     root: {
                         borderRadius: 5,
                         fontWeight: 650,
+                    },
+                },
+            },
+            MuiSelect: {
+                styleOverrides: {
+                    select: {
+                        paddingLeft: "0.625rem",
+                    },
+                    outlined: {
+                        borderColor,
+                    },
+                },
+            },
+            MuiTreeItem: {
+                styleOverrides: {
+                    label: {
+                        ".MuiTreeItem-root.Mui-selected > .MuiTreeItem-content &, .MuiTreeItem-root.Mui-selected:hover > .MuiTreeItem-content &, .MuiTreeItem-root:hover > .MuiTreeItem-content &": {
+                            backgroundColor: "transparent",
+                        },
                     },
                 },
             },
@@ -487,13 +643,13 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         fontVariantNumeric: "tabular-nums",
                         fontSize: "0.86rem",
                         lineHeight: 1.35,
-                        padding: "6px 10px",
+                        padding: "0.375rem 0.625rem",
                         verticalAlign: "middle",
                         "&:first-of-type": {
-                            paddingLeft: 12,
+                            paddingLeft: "0.75rem",
                         },
                         "&:last-of-type": {
-                            paddingRight: 12,
+                            paddingRight: "0.75rem",
                         },
                     },
                     head: {
@@ -508,8 +664,8 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         whiteSpace: "nowrap",
                     },
                     paddingCheckbox: {
-                        paddingLeft: 6,
-                        paddingRight: 6,
+                        paddingLeft: "0.375rem",
+                        paddingRight: "0.375rem",
                         width: 36,
                     },
                     stickyHeader: {
@@ -580,7 +736,7 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         display: "flex",
                     },
                     ul: {
-                        gap: 4,
+                        gap: "0.25rem",
                     },
                 },
             },
@@ -594,11 +750,11 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         fontSize: "0.78rem",
                         fontWeight: 650,
                         "&.Mui-selected": {
-                            backgroundColor: withAlpha(primary, isDark ? "44" : "1F"),
+                            backgroundColor: alpha(primary, colorLevel1),
                             borderColor: primary,
                             color: textPrimary,
                             "&:hover": {
-                                backgroundColor: withAlpha(primary, isDark ? "55" : "2B"),
+                                backgroundColor: alpha(primary, colorLevel2),
                             },
                         },
                         "&:hover": {
@@ -622,20 +778,20 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         color: textSecondary,
                         fontSize: "0.78rem",
                         fontWeight: 650,
-                        gap: 6,
+                        gap: "0.375rem",
                         minHeight: 32,
-                        padding: "5px 9px",
+                        padding: "0.375rem 0.625rem",
                         textTransform: "none",
                         "&:hover": {
                             backgroundColor: tableRowHoverColor,
                             color: textPrimary,
                         },
                         "&.Mui-selected": {
-                            backgroundColor: withAlpha(primary, isDark ? "44" : "1F"),
+                            backgroundColor: alpha(primary, colorLevel1),
                             borderColor: primary,
                             color: textPrimary,
                             "&:hover": {
-                                backgroundColor: withAlpha(primary, isDark ? "55" : "2B"),
+                                backgroundColor: alpha(primary, colorLevel2),
                             },
                         },
                     },
@@ -724,12 +880,15 @@ export function App(props) {
                             contrast: themeMode === 'dark' ? '#000' : '#fff',
                         },
                         action: {
-                            hover: themeMode === 'dark' ? `${preferences?.palette?.tableHover?.dark || operatorSettingDefaults.palette.tableHover.dark}CC` :
-                                `${preferences?.palette?.tableHover?.light || operatorSettingDefaults.palette.tableHover.light}CC`,
-                            selected: themeMode === 'dark' ? `${preferences?.palette?.selectedCallbackColor?.dark || operatorSettingDefaults.palette.selectedCallbackColor.dark}99` :
-                                `${preferences?.palette?.selectedCallbackColor?.light || operatorSettingDefaults.palette.selectedCallbackColor.light}99`,
-                            focus: themeMode === 'dark' ? `${preferences?.palette?.primary?.dark || operatorSettingDefaults.palette.primary.dark}55` :
-                                `${preferences?.palette?.primary?.light || operatorSettingDefaults.palette.primary.light}33`,
+                            hover: themeMode === 'dark' ? preferences?.palette?.tableHover?.dark || operatorSettingDefaults.palette.tableHover.dark :
+                                preferences?.palette?.tableHover?.light || operatorSettingDefaults.palette.tableHover.light,
+                            selected: themeMode === 'dark' ? preferences?.palette?.selectedCallbackColor?.dark || operatorSettingDefaults.palette.selectedCallbackColor.dark :
+                                preferences?.palette?.selectedCallbackColor?.light || operatorSettingDefaults.palette.selectedCallbackColor.light,
+                            focus: alpha(
+                                themeMode === 'dark' ? preferences?.palette?.primary?.dark || operatorSettingDefaults.palette.primary.dark :
+                                    preferences?.palette?.primary?.light || operatorSettingDefaults.palette.primary.light,
+                                COLOR_LEVELS[themeMode][1],
+                            ),
                         },
                         divider: themeMode === 'dark' ? preferences?.palette?.borderColor?.dark || operatorSettingDefaults.palette.borderColor.dark :
                             preferences?.palette?.borderColor?.light || operatorSettingDefaults.palette.borderColor.light,
@@ -842,12 +1001,14 @@ export function App(props) {
                             contrast: themeMode === 'dark' ? '#000' : '#fff',
                         },
                         action: {
-                            hover: themeMode === 'dark' ? `${operatorSettingDefaults.palette.tableHover.dark}CC` :
-                                `${operatorSettingDefaults.palette.tableHover.light}CC`,
-                            selected: themeMode === 'dark' ? `${operatorSettingDefaults.palette.selectedCallbackColor.dark}99` :
-                                `${operatorSettingDefaults.palette.selectedCallbackColor.light}99`,
-                            focus: themeMode === 'dark' ? `${operatorSettingDefaults.palette.primary.dark}55` :
-                                `${operatorSettingDefaults.palette.primary.light}33`,
+                            hover: themeMode === 'dark' ? operatorSettingDefaults.palette.tableHover.dark :
+                                operatorSettingDefaults.palette.tableHover.light,
+                            selected: themeMode === 'dark' ? operatorSettingDefaults.palette.selectedCallbackColor.dark :
+                                operatorSettingDefaults.palette.selectedCallbackColor.light,
+                            focus: alpha(
+                                themeMode === 'dark' ? operatorSettingDefaults.palette.primary.dark : operatorSettingDefaults.palette.primary.light,
+                                COLOR_LEVELS[themeMode][1],
+                            ),
                         },
                         divider: themeMode === 'dark' ? operatorSettingDefaults.palette.borderColor.dark :
                             operatorSettingDefaults.palette.borderColor.light,
@@ -955,7 +1116,6 @@ export function App(props) {
             <StyledEngineProvider injectFirst>
                 <ThemeProvider theme={theme}>
                     <ThemeVariables theme={theme} />
-                    <GlobalStyles />
                     <CssBaseline />
                     <div style={{width: '100%', height: '100%', display: "flex", position: "relative",}}>
                         <MythicLoadingState compact title="Loading Preferences" description="Fetching user preferences." sx={{color: "inherit"}} />
@@ -965,7 +1125,7 @@ export function App(props) {
         )
     }
     const background = theme.palette.background.image !== null ? {
-        backgroundImage: "linear-gradient(" + theme.palette.background.default + "99" + "," + theme.palette.background.default + "99" + ")," + theme.palette.background.image ,
+        backgroundImage: `linear-gradient(${alpha(theme.palette.background.default, 0.6)}, ${alpha(theme.palette.background.default, 0.6)}), ${theme.palette.background.image}`,
         backgroundRepeat: "no-repeat",
         backgroundSize: "100% 100%"
     } : {
@@ -975,7 +1135,6 @@ export function App(props) {
         <StyledEngineProvider injectFirst>
             <ThemeProvider theme={theme}>
                 <ThemeVariables theme={theme} />
-                <GlobalStyles />
                 <CssBaseline />
                 <MeContext.Provider value={me}>
                     <Tooltip id={"my-tooltip"} style={{zIndex: 100000, wordBreak: "break-word", maxWidth: "80%", whiteSpace: "pre-wrap"}}/>
@@ -1032,8 +1191,8 @@ export function App(props) {
                                     alignItems: "center",
                                     justifyContent: "center",
                                     flexWrap: "wrap",
-                                    gap: "4px 12px",
-                                    padding: "4px 12px",
+                                    gap: "0.25rem 0.75rem",
+                                    padding: "0.25rem 0.75rem",
                                 }}>
                                     <Typography component="span" style={{
                                         textAlign: "center",
@@ -1055,7 +1214,7 @@ export function App(props) {
                                 </div>
                             }
                             <div style={{
-                                margin: '0px 0px 0px 0px',
+                                margin: 0,
                                 flexGrow: 1,
                                 display: "flex",
                                 flexDirection: 'column',

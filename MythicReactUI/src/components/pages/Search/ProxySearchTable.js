@@ -149,7 +149,7 @@ function ProxySearchTableRow(props){
                         {props.deleted ? (
                             <MythicStyledTooltip title="Start Proxy Port on Mythic Server">
                                 <IconButton
-                                    className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-success"
+                                    className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-success"
                                     size="small"
                                     onClick={()=>{setOpenDeleteDialog(true);}}
                                 >
@@ -159,7 +159,7 @@ function ProxySearchTableRow(props){
                         ) :
                             (<MythicStyledTooltip title="Stop Proxy Port on Mythic Server">
                                 <IconButton
-                                    className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger"
+                                    className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error"
                                     size="small"
                                     onClick={()=>{setOpenDeleteDialog(true);}}
                                 >
@@ -233,7 +233,7 @@ function ProxySearchTableRow(props){
                     </div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <MythicStateChip compact label={props.port_type} state="neutral" />
+                    <MythicStateChip compact label={props.port_type} />
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <Moment filter={(newTime) => adjustOutput(props, newTime)} interval={1000}
@@ -249,7 +249,7 @@ function ProxySearchTableRow(props){
                     {props.remote_port !== 0 &&
                         <MythicStyledTooltip title={"Test Remote Connection"} >
                             <IconButton
-                                className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-success"
+                                className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-success"
                                 size="small"
                                 onClick={onTestProxy}
                             >

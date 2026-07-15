@@ -557,11 +557,11 @@ export function SavedParameterInstancesDialog(props) {
                     </Grid>
                     <Grid size={{xs: 12, md: 4}}>
                         <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center" style={{minHeight: "56px"}}>
-                            <Button className="mythic-table-row-action mythic-table-row-action-hover-danger" disabled={selectedInstance.length === 0} startIcon={<DeleteIcon fontSize="small" />} variant="outlined" onClick={deleteInstanceButton}>
+                            <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-error" disabled={selectedInstance.length === 0} startIcon={<DeleteIcon fontSize="small" />} variant="outlined" onClick={deleteInstanceButton}>
                                 Delete</Button>
-                            <Button className="mythic-table-row-action mythic-table-row-action-success" disabled={selectedInstance.length === 0} startIcon={<IosShareIcon fontSize="small" />} variant="outlined" onClick={exportInstanceButton}>
+                            <Button className="mythic-compact-action mythic-action-tone mythic-tone-success" disabled={selectedInstance.length === 0} startIcon={<IosShareIcon fontSize="small" />} variant="outlined" onClick={exportInstanceButton}>
                                 Export</Button>
-                            <Button className="mythic-table-row-action mythic-table-row-action-hover-info" component="label" startIcon={<SystemUpdateAltIcon fontSize="small" />} variant="outlined">
+                            <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-info" component="label" startIcon={<SystemUpdateAltIcon fontSize="small" />} variant="outlined">
                                 Import
                                 <input onChange={onFileChange} type="file" hidden />
                             </Button>

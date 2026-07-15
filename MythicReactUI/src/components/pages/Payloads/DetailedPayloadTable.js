@@ -605,7 +605,7 @@ function DetailedPayloadInnerTable(props){
                             </FileDownloadLinkWithAuth>
                             <MythicStyledTooltip title={"Host Payload Through C2"} >
                                 <IconButton
-                                    className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
+                                    className="mythic-compact-icon-action mythic-icon-tone mythic-tone-info"
                                     size="small"
                                     onClick={()=>{setOpenHostDialog(true);}}
                                 >
@@ -818,7 +818,7 @@ function DetailedPayloadInnerTable(props){
                                   <TableCell>
                                   <MythicStyledTooltip title="Open command documentation">
                                       <IconButton
-                                          className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                                          className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
                                           size="small"
                                           target="_blank"
                                           href={"/docs/agents/" + data.payload[0].payloadtype.name + "/commands/" + cmd.cmd}

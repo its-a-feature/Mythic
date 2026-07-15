@@ -1072,14 +1072,14 @@ const InteractiveTerminalToolbar = ({
             <div className="mythic-interactive-terminal-toolbar-row">
                 <button
                     type="button"
-                    className="mythic-interactive-terminal-config-chip"
+                    className="mythic-status-chip mythic-tone-neutral mythic-action-tone-hover"
                     onClick={toggleInputMode}
                     style={{color: theme.outputTextColor}}>
                     {inputMode === "raw" ? "Raw key mode" : "Line mode"}
                 </button>
                 <button
                     type="button"
-                    className="mythic-interactive-terminal-config-chip mythic-interactive-terminal-enter-chip"
+                    className="mythic-status-chip mythic-tone-neutral mythic-action-tone-hover mythic-interactive-terminal-enter-chip"
                     onClick={openEnterMenu}
                     style={{color: theme.outputTextColor}}>
                     Enter: {selectedEnter.name}
@@ -1101,7 +1101,7 @@ const InteractiveTerminalToolbar = ({
                     <div className="mythic-interactive-terminal-pending">
                         <span>Awaiting output</span>
                         {pendingInputEvents.map((event) => (
-                            <span className="mythic-interactive-terminal-pending-chip" key={event.id}>{event.label}</span>
+                            <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-info" key={event.id}>{event.label}</span>
                         ))}
                     </div>
                 }
@@ -1110,7 +1110,7 @@ const InteractiveTerminalToolbar = ({
                     <MythicStyledTooltip title={useASNIColor ?  "Disable ANSI Color" : "Enable ANSI Color"} >
                         <button
                             aria-pressed={useASNIColor}
-                            className={`mythic-interactive-terminal-toggle-button${useASNIColor ? "" : " is-off"}`}
+                            className={`mythic-interactive-terminal-toggle-button${useASNIColor ? "" : " mythic-action-tone mythic-tone-warning"}`}
                             onClick={toggleANSIColor}
                             type="button">
                             <PaletteIcon fontSize="small" />
@@ -1119,7 +1119,7 @@ const InteractiveTerminalToolbar = ({
                     <MythicStyledTooltip title={wrapText ?  "Unwrap Text" : "Wrap Text"} >
                         <button
                             aria-pressed={wrapText}
-                            className={`mythic-interactive-terminal-toggle-button${wrapText ? "" : " is-off"}`}
+                            className={`mythic-interactive-terminal-toggle-button${wrapText ? "" : " mythic-action-tone mythic-tone-warning"}`}
                             onClick={toggleWrapText}
                             type="button">
                             <WrapTextIcon fontSize="small" />
@@ -1128,7 +1128,7 @@ const InteractiveTerminalToolbar = ({
                     <MythicStyledTooltip title={autoScroll ?  "Stop Auto Scroll" : "Auto Scroll"} >
                         <button
                             aria-pressed={autoScroll}
-                            className={`mythic-interactive-terminal-toggle-button${autoScroll ? "" : " is-off"}`}
+                            className={`mythic-interactive-terminal-toggle-button${autoScroll ? "" : " mythic-action-tone mythic-tone-warning"}`}
                             onClick={toggleAutoScroll}
                             type="button">
                             <HeightIcon fontSize="small" />

@@ -358,7 +358,7 @@ export function FileMetaDownloadTable(props){
         <TableContainer className="mythicElement" style={{display: "flex", flexDirection: "column", height: "100%"}} >
             <span className="mythic-table-bulk-actions">
                 <Button size="small" onClick={onDownloadBulk}
-                        className="mythic-table-row-action mythic-table-row-action-info"
+                        className="mythic-compact-action mythic-action-tone mythic-tone-info"
                         startIcon={<ArchiveIcon fontSize="small" />}
                         variant="outlined"
                         disabled={disabled}
@@ -366,7 +366,7 @@ export function FileMetaDownloadTable(props){
                     Zip & Download Selected
                 </Button>
                 <Button size="small" onClick={onDeleteBulk}
-                        className="mythic-table-row-action mythic-table-row-action-hover-danger"
+                        className="mythic-compact-action mythic-action-tone-hover mythic-tone-error"
                         startIcon={<DeleteIcon fontSize="small" />}
                         variant="outlined"
                         disabled={disabled}
@@ -486,10 +486,10 @@ function FileMetaDownloadTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     {props.deleted || props.size === 0  ? null : (
-                        <div className="mythic-table-row-actions mythic-table-row-actions-nowrap">
+                        <div className="mythic-compact-actions mythic-compact-actions-nowrap">
                             <MythicStyledTooltip title="Delete file">
                                 <IconButton
-                                    className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger"
+                                    className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error"
                                     size="small"
                                     onClick={()=>{setOpenDelete(true);}}
                                 >
@@ -498,7 +498,7 @@ function FileMetaDownloadTableRow(props){
                             </MythicStyledTooltip>
                             <MythicStyledTooltip title={"Preview Media"}>
                                 <IconButton
-                                    className="mythic-table-row-icon-action"
+                                    className="mythic-compact-icon-action"
                                     size="small"
                                     onClick={onPreviewMedia}
                                 >
@@ -531,7 +531,7 @@ function FileMetaDownloadTableRow(props){
                         )
                     }
                 </MythicStyledTableCell>
-                <MythicStyledTableCell>{props.comment}<IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-info" onClick={(e) => onOpenCloseComment(e, true)} size="small"><EditIcon fontSize="small" /></IconButton>
+                <MythicStyledTableCell>{props.comment}<IconButton className="mythic-compact-icon-action mythic-icon-tone mythic-tone-info" onClick={(e) => onOpenCloseComment(e, true)} size="small"><EditIcon fontSize="small" /></IconButton>
                     {editCommentDialogOpen &&
                         <MythicDialog fullWidth={true} maxWidth="md" open={editCommentDialogOpen}
                                       onClose={(e)=>{onOpenCloseComment(e, false);}}
@@ -548,7 +548,7 @@ function FileMetaDownloadTableRow(props){
                     <TagsDisplay tags={props.tags} />
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <IconButton className="mythic-table-row-icon-action" size="small" aria-label="expand row" onClick={expandRowButton}>
+                    <IconButton className="mythic-compact-icon-action" size="small" aria-label="expand row" onClick={expandRowButton}>
                             {openDetails ? <KeyboardArrowUpIcon className="mythicElement"/> : <KeyboardArrowDownIcon className="mythicElement"/>}
                         </IconButton>
                 </MythicStyledTableCell>
@@ -601,7 +601,7 @@ function FileMetaDownloadTableRow(props){
                                                 <MythicStyledTableCell>
                                                     <MythicStyledTooltip title={"Host Payload Through C2"} >
                                                         <IconButton
-                                                            className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
+                                                            className="mythic-compact-icon-action mythic-icon-tone mythic-tone-info"
                                                             size="small"
                                                             onClick={()=>{setOpenHostDialog(true);}}
                                                         >
@@ -768,7 +768,7 @@ export function FileMetaUploadTable(props){
         <TableContainer className="mythicElement" style={{display: "flex", flexDirection: "column", height: "100%"}} >
             <span className="mythic-table-bulk-actions">
                 <Button size="small" onClick={onDownloadBulk}
-                        className="mythic-table-row-action mythic-table-row-action-info"
+                        className="mythic-compact-action mythic-action-tone mythic-tone-info"
                         startIcon={<ArchiveIcon fontSize="small" />}
                         variant="outlined"
                         disabled={disabled}
@@ -776,7 +776,7 @@ export function FileMetaUploadTable(props){
                     Zip & Download Selected
                 </Button>
                 <Button size="small" onClick={onDeleteBulk}
-                        className="mythic-table-row-action mythic-table-row-action-hover-danger"
+                        className="mythic-compact-action mythic-action-tone-hover mythic-tone-error"
                         startIcon={<DeleteIcon fontSize="small" />}
                         variant="outlined"
                         disabled={disabled}
@@ -895,10 +895,10 @@ function FileMetaUploadTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     {props.deleted ? null : (
-                        <div className="mythic-table-row-actions mythic-table-row-actions-nowrap">
+                        <div className="mythic-compact-actions mythic-compact-actions-nowrap">
                             <MythicStyledTooltip title="Delete file">
                                 <IconButton
-                                    className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger"
+                                    className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error"
                                     size="small"
                                     onClick={()=>{setOpenDelete(true);}}
                                 >
@@ -907,7 +907,7 @@ function FileMetaUploadTableRow(props){
                             </MythicStyledTooltip>
                             <MythicStyledTooltip title={"Preview Media"}>
                                 <IconButton
-                                    className="mythic-table-row-icon-action"
+                                    className="mythic-compact-icon-action"
                                     size="small"
                                     onClick={onPreviewMedia}
                                 >
@@ -952,7 +952,7 @@ function FileMetaUploadTableRow(props){
                     )}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    {props.comment}<IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-info" onClick={(e) => onOpenCloseComment(e, true)} size="small"><EditIcon fontSize="small" /></IconButton>
+                    {props.comment}<IconButton className="mythic-compact-icon-action mythic-icon-tone mythic-tone-info" onClick={(e) => onOpenCloseComment(e, true)} size="small"><EditIcon fontSize="small" /></IconButton>
                     <MythicDialog fullWidth={true} maxWidth="md" open={editCommentDialogOpen} 
                         onClose={(e)=>{onOpenCloseComment(e, false)}}
                         innerDialog={<MythicModifyStringDialog title="Edit File Comment" onSubmit={onSubmitUpdatedComment} value={props.comment} onClose={(e)=>{onOpenCloseComment(e, false)}} />}
@@ -966,7 +966,7 @@ function FileMetaUploadTableRow(props){
                     <TagsDisplay tags={props.tags} />
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <IconButton className="mythic-table-row-icon-action" size="small" aria-label="expand row" onClick={expandRowButton}>
+                    <IconButton className="mythic-compact-icon-action" size="small" aria-label="expand row" onClick={expandRowButton}>
                             {openDetails ? <KeyboardArrowUpIcon className="mythicElement"/> : <KeyboardArrowDownIcon className="mythicElement"/>}
                         </IconButton>
                 </MythicStyledTableCell>
@@ -1018,7 +1018,7 @@ function FileMetaUploadTableRow(props){
                                                 <MythicStyledTableCell>
                                                     <MythicStyledTooltip title={"Host Payload Through C2"} >
                                                         <IconButton
-                                                            className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
+                                                            className="mythic-compact-icon-action mythic-icon-tone mythic-tone-info"
                                                             size="small"
                                                             onClick={()=>{setOpenHostDialog(true);}}
                                                         >
@@ -1218,7 +1218,7 @@ function FileMetaScreenshotTableRow(props){
                     {props.deleted ? null : (
                         <MythicStyledTooltip title="Delete screenshot">
                             <IconButton
-                                className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger"
+                                className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error"
                                 size="small"
                                 onClick={()=>{setOpenDelete(true);}}
                             >
@@ -1241,7 +1241,7 @@ function FileMetaScreenshotTableRow(props){
                 <MythicStyledTableCell><Typography variant="body2" style={{wordBreak: "break-all"}}>{toLocalTime(props.timestamp, me.user.view_utc_time)}</Typography></MythicStyledTableCell>
                 <MythicStyledTableCell><Typography variant="body2" style={{wordBreak: "break-all"}}>{props.host}</Typography></MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    {props.comment}<IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-info" onClick={() => setEditCommentDialogOpen(true)} size="small"><EditIcon fontSize="small" /></IconButton>
+                    {props.comment}<IconButton className="mythic-compact-icon-action mythic-icon-tone mythic-tone-info" onClick={() => setEditCommentDialogOpen(true)} size="small"><EditIcon fontSize="small" /></IconButton>
                     <MythicDialog fullWidth={true} maxWidth="md" open={editCommentDialogOpen} 
                         onClose={()=>{setEditCommentDialogOpen(false);}} 
                         innerDialog={<MythicModifyStringDialog title="Edit File Comment" onSubmit={onSubmitUpdatedComment} value={props.comment} onClose={()=>{setEditCommentDialogOpen(false);}} />}
@@ -1255,7 +1255,7 @@ function FileMetaScreenshotTableRow(props){
                     <TagsDisplay tags={props.tags} />
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <IconButton className="mythic-table-row-icon-action" size="small" aria-label="expand row" onClick={() => setOpenDetails(!openDetails)}>
+                    <IconButton className="mythic-compact-icon-action" size="small" aria-label="expand row" onClick={() => setOpenDetails(!openDetails)}>
                             {openDetails ? <KeyboardArrowUpIcon className="mythicElement"/> : <KeyboardArrowDownIcon className="mythicElement"/>}
                         </IconButton>
                 </MythicStyledTableCell>
@@ -1444,7 +1444,7 @@ export function FileMetaEventingWorkflowsTable(props){
         <TableContainer className="mythicElement" style={{display: "flex", flexDirection: "column", height: "100%"}} >
             <span className="mythic-table-bulk-actions">
                 <Button size="small" onClick={onDownloadBulk}
-                        className="mythic-table-row-action mythic-table-row-action-info"
+                        className="mythic-compact-action mythic-action-tone mythic-tone-info"
                         startIcon={<ArchiveIcon fontSize="small" />}
                         variant="outlined"
                         disabled={disabled}
@@ -1452,7 +1452,7 @@ export function FileMetaEventingWorkflowsTable(props){
                     Zip & Download Selected
                 </Button>
                 <Button size="small" onClick={onDeleteBulk}
-                        className="mythic-table-row-action mythic-table-row-action-hover-danger"
+                        className="mythic-compact-action mythic-action-tone-hover mythic-tone-error"
                         startIcon={<DeleteIcon fontSize="small" />}
                         variant="outlined"
                         disabled={disabled}
@@ -1554,10 +1554,10 @@ function FileMetaEventingWorkflowsTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     {props.deleted ? null : (
-                        <div className="mythic-table-row-actions mythic-table-row-actions-nowrap">
+                        <div className="mythic-compact-actions mythic-compact-actions-nowrap">
                             <MythicStyledTooltip title="Delete file">
                                 <IconButton
-                                    className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger"
+                                    className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error"
                                     size="small"
                                     onClick={()=>{setOpenDelete(true);}}
                                 >
@@ -1566,7 +1566,7 @@ function FileMetaEventingWorkflowsTableRow(props){
                             </MythicStyledTooltip>
                             <MythicStyledTooltip title={"Preview Media"}>
                                 <IconButton
-                                    className="mythic-table-row-icon-action"
+                                    className="mythic-compact-icon-action"
                                     size="small"
                                     onClick={onPreviewMedia}
                                 >
@@ -1599,7 +1599,7 @@ function FileMetaEventingWorkflowsTableRow(props){
                     <TagsDisplay tags={props.tags} />
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <IconButton className="mythic-table-row-icon-action" size="small" aria-label="expand row" onClick={expandRowButton}>
+                    <IconButton className="mythic-compact-icon-action" size="small" aria-label="expand row" onClick={expandRowButton}>
                         {openDetails ? <KeyboardArrowUpIcon className="mythicElement"/> : <KeyboardArrowDownIcon className="mythicElement"/>}
                     </IconButton>
                 </MythicStyledTableCell>
@@ -1634,7 +1634,7 @@ function FileMetaEventingWorkflowsTableRow(props){
                                                 <MythicStyledTableCell>
                                                     <MythicStyledTooltip title={"Host Payload Through C2"} >
                                                         <IconButton
-                                                            className="mythic-table-row-icon-action mythic-table-row-icon-action-info"
+                                                            className="mythic-compact-icon-action mythic-icon-tone mythic-tone-info"
                                                             size="small"
                                                             onClick={()=>{setOpenHostDialog(true);}}
                                                         >

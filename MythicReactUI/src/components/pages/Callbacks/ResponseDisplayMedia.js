@@ -587,7 +587,7 @@ const DisplayText = ({agent_file_id, expand, filename, editable=false, fileMetaD
             <span>
                 <button
                     aria-label="Save file"
-                    className="mythic-response-render-action-button mythic-response-render-action-button-save"
+                    className="mythic-response-render-action-button mythic-action-tone mythic-tone-success"
                     disabled={!canSave || saving}
                     onClick={onSave}
                     type="button">

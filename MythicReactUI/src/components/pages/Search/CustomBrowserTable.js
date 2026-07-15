@@ -118,7 +118,7 @@ function CustomBrowserTableRow(props){
                         <div className="mythic-search-result-action-row">
                             <MythicStyledTooltip title="View metadata">
                                 <IconButton
-                                    className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                                    className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
                                     size="small"
                                     onClick={() => setViewPermissionsDialogOpen(true)}
                                 >
@@ -184,7 +184,7 @@ function CustomBrowserTableRow(props){
                     <div className="mythic-search-result-action-row">
                         <MythicStyledTooltip title="Edit comment">
                             <IconButton
-                                className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                                className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
                                 onClick={() => setEditCommentDialogOpen(true)}
                                 size="small"
                             >

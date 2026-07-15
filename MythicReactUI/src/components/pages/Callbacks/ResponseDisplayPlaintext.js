@@ -366,7 +366,7 @@ export const ResponseDisplayPlaintext = (props) =>{
                               {renderModeOptions.map(({value, label, Icon}) => (
                                   <button
                                       aria-pressed={renderMode === value}
-                                      className={`mythic-response-render-mode-button${renderMode === value ? " is-selected" : ""}`}
+                                      className={`mythic-response-render-mode-button${renderMode === value ? " mythic-action-tone mythic-tone-info" : ""}`}
                                       key={value}
                                       onClick={() => onChangeRenderMode(value)}
                                       type="button">
@@ -389,7 +389,7 @@ export const ResponseDisplayPlaintext = (props) =>{
                                           <button
                                               aria-label={wrapText ? "Unwrap Text" : "Wrap Text"}
                                               aria-pressed={wrapText}
-                                              className={`mythic-response-render-action-button${wrapText ? " is-selected" : ""}`}
+                                              className={`mythic-response-render-action-button${wrapText ? " mythic-action-tone mythic-tone-info" : ""}`}
                                               onClick={toggleWrapText}
                                               type="button">
                                               <WrapTextIcon fontSize="small" />

@@ -220,7 +220,7 @@ export function Step5Build(props){
                                     <div className="mythic-create-meta-value">{props.buildOptions[1].description}</div>
                                 </div>
                                 <MythicStyledTooltip title={"Edit OS / Payload Type"}>
-                                    <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={() => props.moveToStep(0)}>
+                                    <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" size="small" onClick={() => props.moveToStep(0)}>
                                         <DriveFileRenameOutlineIcon />
                                     </IconButton>
                                 </MythicStyledTooltip>
@@ -252,7 +252,7 @@ export function Step5Build(props){
                         <Typography component="div" className="mythic-create-section-title" style={{textAlign: "center"}}>
                             Build parameter configuration
                             <MythicStyledTooltip title={"Edit Build Parameters"}>
-                                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={() => props.moveToStep(1)}>
+                                <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" size="small" onClick={() => props.moveToStep(1)}>
                                     <DriveFileRenameOutlineIcon />
                                 </IconButton>
                             </MythicStyledTooltip>
@@ -263,7 +263,7 @@ export function Step5Build(props){
                         <Typography component="div" className="mythic-create-section-title" style={{textAlign: "center"}}>
                             Command selection
                             <MythicStyledTooltip title={"Edit Commands"}>
-                                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={() => props.moveToStep(2)}>
+                                <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" size="small" onClick={() => props.moveToStep(2)}>
                                     <DriveFileRenameOutlineIcon />
                                 </IconButton>
                             </MythicStyledTooltip>
@@ -271,7 +271,7 @@ export function Step5Build(props){
                         {props.buildOptions[2]?.map(c => (
                             <div key={c} style={{display: "flex", alignItems: "center", justifyContent: "space-between"}}>
                                 {c}
-                                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={(e) => e.stopPropagation()}
+                                <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" size="small" onClick={(e) => e.stopPropagation()}
                                             href={"/docs/agents/" + props.buildOptions[1].payload_type + "/commands/" + c}
                                             style={{marginLeft: "10px", float: "right"}} target="_blank">
                                     <MenuBookIcon fontSize="small"/>
@@ -284,7 +284,7 @@ export function Step5Build(props){
                         <Typography component="div" className="mythic-create-section-title" style={{textAlign: "center"}}>
                             C2 configuration
                             <MythicStyledTooltip title={"Edit C2 Parameters"}>
-                                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={() => props.moveToStep(3)}>
+                                <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" size="small" onClick={() => props.moveToStep(3)}>
                                     <DriveFileRenameOutlineIcon />
                                 </IconButton>
                             </MythicStyledTooltip>

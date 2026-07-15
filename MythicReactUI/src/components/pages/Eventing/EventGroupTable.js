@@ -366,20 +366,20 @@ function EventGroupWorkflowOverview({
                 </div>
                 <div className="mythic-eventing-workflow-overview-header-actions">
                     {selectedEventGroup?.deleted ? (
-                        <Button className="mythic-table-row-action mythic-table-row-action-hover-success" variant="outlined" size="small" startIcon={<RestoreFromTrashIcon fontSize="small" />} onClick={onRestore}>
+                        <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" variant="outlined" size="small" startIcon={<RestoreFromTrashIcon fontSize="small" />} onClick={onRestore}>
                             Restore
                         </Button>
                     ) : (
-                        <Button className="mythic-table-row-action mythic-table-row-action-hover-danger" variant="outlined" size="small" startIcon={<DeleteIcon fontSize="small" />} onClick={onDelete}>
+                        <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-error" variant="outlined" size="small" startIcon={<DeleteIcon fontSize="small" />} onClick={onDelete}>
                             Delete
                         </Button>
                     )}
                     {selectedEventGroup?.active ? (
-                        <Button className="mythic-table-row-action mythic-table-row-action-hover-warning" variant="outlined" size="small" startIcon={<NotificationsActiveTwoToneIcon fontSize="small" />} onClick={onDisable}>
+                        <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-warning" variant="outlined" size="small" startIcon={<NotificationsActiveTwoToneIcon fontSize="small" />} onClick={onDisable}>
                             Disable
                         </Button>
                     ) : (
-                        <Button className="mythic-table-row-action mythic-table-row-action-hover-success" variant="outlined" size="small" startIcon={<NotificationsOffTwoToneIcon fontSize="small" />} onClick={onEnable}>
+                        <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" variant="outlined" size="small" startIcon={<NotificationsOffTwoToneIcon fontSize="small" />} onClick={onEnable}>
                             Enable
                         </Button>
                     )}
@@ -430,7 +430,7 @@ function EventGroupWorkflowOverview({
                     <div className="mythic-eventing-workflow-chip-row">
                         <MythicStateChip compact label={selectedEventGroup?.run_as || "unknown"} state="neutral" />
                         <Button
-                            className={`mythic-eventing-workflow-approval-button mythic-eventing-workflow-approval-${isApproved ? "approved" : "needs-approval"}`.trim()}
+                            className={`mythic-eventing-workflow-approval-button mythic-action-tone mythic-tone-${isApproved ? "success" : "warning"}`}
                             size="small"
                             startIcon={isApproved ? <ChecklistRtlTwoToneIcon fontSize="small" /> : <RuleTwoToneIcon fontSize="small" />}
                             onClick={onOpenApproval}
@@ -446,7 +446,7 @@ function EventGroupWorkflowOverview({
                     <span className="mythic-eventing-workflow-overview-label">Attached details</span>
                     <div className="mythic-eventing-workflow-button-row">
                         <Button
-                            className="mythic-table-row-action mythic-table-row-action-hover-info"
+                            className="mythic-compact-action mythic-action-tone-hover mythic-tone-info"
                             disabled={!hasTriggerData}
                             size="small"
                             startIcon={<InfoTwoToneIcon fontSize="small" />}
@@ -455,7 +455,7 @@ function EventGroupWorkflowOverview({
                             Trigger data
                         </Button>
                         <Button
-                            className="mythic-table-row-action mythic-table-row-action-hover-info"
+                            className="mythic-compact-action mythic-action-tone-hover mythic-tone-info"
                             disabled={!hasEnvironment}
                             size="small"
                             startIcon={<InfoTwoToneIcon fontSize="small" />}
@@ -464,7 +464,7 @@ function EventGroupWorkflowOverview({
                             Environment
                         </Button>
                         <Button
-                            className="mythic-table-row-action mythic-table-row-action-hover-info"
+                            className="mythic-compact-action mythic-action-tone-hover mythic-tone-info"
                             size="small"
                             startIcon={
                                 <Badge badgeContent={fileCount} color="secondary">
@@ -477,7 +477,7 @@ function EventGroupWorkflowOverview({
                         </Button>
                         {consumingContainers.length > 0 &&
                             <Button
-                                className={`mythic-table-row-action ${consumingContainersErrors > 0 ? "mythic-table-row-action-hover-danger" : "mythic-table-row-action-hover-info"}`.trim()}
+                                className={`mythic-compact-action ${consumingContainersErrors > 0 ? "mythic-action-tone-hover mythic-tone-error" : "mythic-action-tone-hover mythic-tone-info"}`.trim()}
                                 size="small"
                                 startIcon={
                                     <Badge badgeContent={consumingContainersErrors} color="error">
@@ -496,7 +496,7 @@ function EventGroupWorkflowOverview({
                     <div className="mythic-eventing-workflow-button-row">
                         {selectedEventGroup?.trigger === "manual" &&
                             <Button
-                                className="mythic-table-row-action mythic-table-row-action-hover-success"
+                                className="mythic-compact-action mythic-action-tone-hover mythic-tone-success"
                                 size="small"
                                 startIcon={<PlayCircleFilledTwoToneIcon fontSize="small" />}
                                 onClick={onTriggerManual}
@@ -506,7 +506,7 @@ function EventGroupWorkflowOverview({
                         }
                         {keywords.length > 0 &&
                             <Button
-                                className="mythic-table-row-action mythic-table-row-action-hover-success"
+                                className="mythic-compact-action mythic-action-tone-hover mythic-tone-success"
                                 size="small"
                                 startIcon={<SpellcheckIcon fontSize="small" />}
                                 onClick={onOpenKeywordTrigger}
@@ -516,7 +516,7 @@ function EventGroupWorkflowOverview({
                         }
                         <MythicStyledTooltip title="Edit workflow metadata, settings, and steps">
                             <Button
-                                className="mythic-table-row-action mythic-table-row-action-hover-info"
+                                className="mythic-compact-action mythic-action-tone-hover mythic-tone-info"
                                 size="small"
                                 startIcon={<EditNoteTwoToneIcon fontSize="small" />}
                                 onClick={onEdit}
@@ -526,7 +526,7 @@ function EventGroupWorkflowOverview({
                         </MythicStyledTooltip>
                         <MythicStyledTooltip title="Large graph view">
                             <Button
-                                className="mythic-table-row-action mythic-table-row-action-hover-info"
+                                className="mythic-compact-action mythic-action-tone-hover mythic-tone-info"
                                 size="small"
                                 startIcon={<OpenInNewTwoToneIcon fontSize="small" />}
                                 onClick={onOpenGraph}
@@ -536,7 +536,7 @@ function EventGroupWorkflowOverview({
                         </MythicStyledTooltip>
                         <MythicStyledTooltip title="Create a new workflow using this workflow as the starting point">
                             <Button
-                                className="mythic-table-row-action mythic-table-row-action-hover-success"
+                                className="mythic-compact-action mythic-action-tone-hover mythic-tone-success"
                                 size="small"
                                 startIcon={<ContentCopyTwoToneIcon fontSize="small" />}
                                 onClick={onClone}

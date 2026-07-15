@@ -98,11 +98,11 @@ function CallbackSearchTableRow(props){
                 }
                 <MythicStyledTableCell>{!props.active ? (
                     <MythicStyledTooltip title="Restore Callback for Tasking">
-                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-danger" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><VisibilityOffIcon fontSize="small" /></IconButton>
+                        <IconButton className="mythic-compact-icon-action mythic-icon-tone mythic-tone-error" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><VisibilityOffIcon fontSize="small" /></IconButton>
                     </MythicStyledTooltip>
                 ) : (
                     <MythicStyledTooltip title="Hide Callback so it can't be used in Tasking">
-                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-success" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><VisibilityIcon fontSize="small" /></IconButton>
+                        <IconButton className="mythic-compact-icon-action mythic-icon-tone mythic-tone-success" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><VisibilityIcon fontSize="small" /></IconButton>
                     </MythicStyledTooltip>
                 )} </MythicStyledTableCell>
                 <MythicStyledTableCell>
@@ -147,7 +147,7 @@ function CallbackSearchTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <MythicStyledTooltip title="View callback details">
-                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-info" size="small" onClick={() => setOpenMetaDialog(true)}>
+                        <IconButton className="mythic-compact-icon-action mythic-icon-tone mythic-tone-info" size="small" onClick={() => setOpenMetaDialog(true)}>
                             <InfoIconOutline fontSize="small" />
                         </IconButton>
                     </MythicStyledTooltip>

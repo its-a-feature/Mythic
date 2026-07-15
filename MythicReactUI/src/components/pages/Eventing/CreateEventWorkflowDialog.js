@@ -92,12 +92,12 @@ export function TestEventGroupFileDialog({onClose, initialWorkflow}){
                 </div>
                 <div className="mythic-eventing-editor-title-actions">
                     <MythicStyledTooltip title={"Preview graph"}>
-                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={previewGraph}>
+                        <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" size="small" onClick={previewGraph}>
                             <AccountTreeIcon fontSize="small" />
                         </IconButton>
                     </MythicStyledTooltip>
                     <MythicStyledTooltip title={"Create with GUI wizard"} >
-                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-success" size="small"
+                        <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-success" size="small"
                         onClick={() => setOpenCreateEventingStepper(true)}>
                             <CategoryIcon fontSize="small" />
                         </IconButton>
@@ -124,13 +124,13 @@ export function TestEventGroupFileDialog({onClose, initialWorkflow}){
                 <ResponseDisplayPlaintext plaintext={fileText.current} onChangeContent={onChangeFileText} initial_mode={"yaml"} expand={true} />
             </DialogContent>
             <DialogActions className="mythic-eventing-wizard-actions">
-                <Button className="mythic-table-row-action" variant="outlined" onClick={onClose}>
+                <Button className="mythic-compact-action" variant="outlined" onClick={onClose}>
                     Close
                 </Button>
-                <Button className="mythic-table-row-action mythic-table-row-action-hover-info" variant={"outlined"} onClick={testFile}>
+                <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-info" variant={"outlined"} onClick={testFile}>
                     Test
                 </Button>
-                <Button className="mythic-table-row-action mythic-table-row-action-hover-success" variant={"outlined"} onClick={submitAsFile}>
+                <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" variant={"outlined"} onClick={submitAsFile}>
                     Save and Submit
                 </Button>
             </DialogActions>

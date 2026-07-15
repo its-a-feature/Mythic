@@ -59,7 +59,7 @@ const selectedLabel = (values, singular, plural = singular) => {
 
 const FilterSummaryChip = ({icon, label, muted=false}) => (
   <Chip
-    className={`mythic-tasking-filter-summary-chip${muted ? " mythic-tasking-filter-summary-chip-muted" : ""}`}
+    className={`mythic-status-chip mythic-tone-${muted ? "neutral" : "primary"}`}
     icon={icon}
     label={label}
     size="small"
@@ -297,7 +297,7 @@ export function CallbacksTabsTaskingFilterDialog(props) {
                 />
                 {onlyCommands.length > 0 &&
                   <Button
-                    className="mythic-tasking-filter-clear-button"
+                    className="mythic-tasking-filter-clear-button mythic-action-tone-hover mythic-tone-warning"
                     onClick={clearAllOnlyCommands}
                     size="small"
                     startIcon={<ClearIcon fontSize="small" />}
@@ -321,7 +321,7 @@ export function CallbacksTabsTaskingFilterDialog(props) {
                 />
                 {everythingBut.length > 0 &&
                   <Button
-                    className="mythic-tasking-filter-clear-button"
+                    className="mythic-tasking-filter-clear-button mythic-action-tone-hover mythic-tone-warning"
                     onClick={clearAllEverythingBut}
                     size="small"
                     startIcon={<ClearIcon fontSize="small" />}

@@ -66,11 +66,11 @@ export function PayloadTypeRow({service, showDeleted}){
             <TableRow hover>
                 <MythicTableCell>
                     {service.deleted ? (
-                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-success" size="small" onClick={()=>{setOpenDeleteDialog(true);}} >
+                        <IconButton className="mythic-compact-icon-action mythic-icon-tone mythic-tone-success" size="small" onClick={()=>{setOpenDeleteDialog(true);}} >
                             <RestoreFromTrashOutlinedIcon fontSize="small" />
                         </IconButton>
                     ) : (
-                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={()=>{setOpenDeleteDialog(true);}} >
+                        <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={()=>{setOpenDeleteDialog(true);}} >
                             <DeleteIcon fontSize="small" />
                         </IconButton>
                     )}
@@ -98,10 +98,10 @@ export function PayloadTypeRow({service, showDeleted}){
                     />
                 </MythicTableCell>
                 <MythicTableCell>
-                    <div className="mythic-table-row-actions">
+                    <div className="mythic-compact-actions">
                     <MythicStyledTooltip title={"Documentation"}>
                         <IconButton
-                            className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                            className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
                             href={service.wrapper ? "/docs/wrappers/" + service.name : "/docs/agents/" + service.name}
                             target="_blank"
                             size="small">
@@ -110,7 +110,7 @@ export function PayloadTypeRow({service, showDeleted}){
                     </MythicStyledTooltip>
                     <MythicStyledTooltip title={"Build Parameters"}>
                         <IconButton
-                            className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                            className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
                             onClick={()=>{setOpenBuildingDialog(true);}}
                             size="small">
                             <TuneIcon fontSize="small" />
@@ -118,7 +118,7 @@ export function PayloadTypeRow({service, showDeleted}){
                     </MythicStyledTooltip>
                     <MythicStyledTooltip title={"Save/Edit Build Parameter Instances"}>
                         <IconButton
-                            className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                            className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
                             onClick={()=>{setOpenBuildParameterInstancesDialog(true);}}
                             size="small">
                             <SaveIcon fontSize="small" />
@@ -126,7 +126,7 @@ export function PayloadTypeRow({service, showDeleted}){
                     </MythicStyledTooltip>
                     <MythicStyledTooltip title={"Commands"}>
                         <IconButton
-                            className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                            className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
                             onClick={()=>{setOpenCommandsDialog(true)}}
                             size="small">
                             <TerminalIcon fontSize="small" />
@@ -134,7 +134,7 @@ export function PayloadTypeRow({service, showDeleted}){
                     </MythicStyledTooltip>
                     <MythicStyledTooltip title={service.container_running ? "View Files" : "Unable to view files because container is offline"}>
                         <IconButton
-                            className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                            className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
                             disabled={!service.container_running}
                             onClick={()=>{setOpenListFilesDialog(true);}}
                             size="small">

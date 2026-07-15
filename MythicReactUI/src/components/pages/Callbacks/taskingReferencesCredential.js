@@ -370,9 +370,9 @@ export function CredentialReferencePickerDialog({operation_id, credentialTypes, 
                         onChange={(event) => setSearch(event.target.value)}
                         placeholder="Search credentials"
                     />
-                    <Chip size="small" variant="outlined" label={loading ? "Loading" : `${credentials.length} shown`} className="mythic-tasking-reference-chip" />
+                    <Chip size="small" variant="outlined" label={loading ? "Loading" : `${credentials.length} shown`} className="mythic-status-chip mythic-tone-neutral" />
                     {Array.isArray(credentialTypes) && credentialTypes.length > 0 &&
-                        <Chip size="small" variant="outlined" label={credentialTypes.join(", ")} className="mythic-tasking-reference-chip" />
+                        <Chip size="small" variant="outlined" label={credentialTypes.join(", ")} className="mythic-status-chip mythic-tone-neutral" />
                     }
                 </Box>
                 <Box className="mythic-reference-picker-body">

@@ -439,7 +439,7 @@ export function Step4C2Profiles(props){
                             }
                         </Select>
                         <Button
-                                className="mythic-table-row-action mythic-table-row-action-hover-success"
+                                className="mythic-compact-action mythic-action-tone-hover mythic-tone-success"
                                 size="small"
                                 variant="contained"
                                 onClick={addC2}
@@ -636,7 +636,7 @@ const C2ProfileTabs = ({includedC2Profiles, onChange, os, onCloseTab, onChangeCr
                     <Tab key={c.name + index} label={
                         <div style={{display: "flex", alignItems: "center"}}>
                                 {c.name}
-                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size='small' onClick={(e) => onCloseTabLocal(e, index)} >
+                            <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size='small' onClick={(e) => onCloseTabLocal(e, index)} >
                                 <CloseIcon fontSize="small" />
                             </IconButton>
                         </div>

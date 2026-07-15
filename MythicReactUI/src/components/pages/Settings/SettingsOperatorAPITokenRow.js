@@ -13,7 +13,7 @@ export function APITokenRow(props){
             <TableRow hover >
                 <MythicStyledTableCell>
                     {props.deleted ? null : (
-                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={() => {props.onDeleteAPIToken(props.id)}}>
+                        <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={() => {props.onDeleteAPIToken(props.id)}}>
                             <DeleteIcon fontSize="small" />
                         </IconButton>
                     )}

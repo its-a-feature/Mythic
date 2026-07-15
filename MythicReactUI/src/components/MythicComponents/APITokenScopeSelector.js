@@ -256,7 +256,7 @@ export function APITokenScopeSelector({
                                                         <Box className="mythic-api-token-scope-card-title-row">
                                                             <Typography className="mythic-api-token-scope-card-title">{scope.display_name || scope.name}</Typography>
                                                             <Chip
-                                                                className={`mythic-api-token-access-chip mythic-api-token-access-chip-${scope.access || "unknown"}`}
+                                                                className={`mythic-status-chip mythic-status-chip-compact mythic-tone-${scope.access === "read" ? "info" : ["write", "create", "update"].includes(scope.access) ? "success" : ["delete", "admin"].includes(scope.access) ? "error" : "neutral"}`}
                                                                 label={scope.access || "scope"}
                                                                 size="small"
                                                             />

@@ -405,7 +405,7 @@ function CallbacksTablePreMemo(props){
         return await getCustomBrowsers({}).then(result => {return result.data?.custombrowser});
     }
     const callbackMenuIcon = (icon, intent = "neutral") => (
-        <span className={`mythic-callback-action-menu-icon mythic-callback-action-menu-icon-${intent}`}>
+        <span className={`mythic-callback-action-menu-icon mythic-tone-${intent}`}>
             {icon}
         </span>
     );

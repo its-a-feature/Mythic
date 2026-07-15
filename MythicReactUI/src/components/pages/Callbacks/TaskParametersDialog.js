@@ -1075,11 +1075,11 @@ export function TaskParametersDialog(props) {
                     }
                     <Chip size="small" className="mythic-task-parameters-title-chip" icon={<FactCheckIcon />} label={`${parameters.length} parameter${parameters.length === 1 ? "" : "s"}`} />
                     {requiredCount > 0 &&
-                        <Chip size="small" className="mythic-task-parameters-title-chip mythic-task-parameters-title-chip-warning" label={`${requiredCount} required`} />
+                        <Chip size="small" className="mythic-task-parameters-title-chip mythic-status-chip mythic-tone-warning" label={`${requiredCount} required`} />
                     }
                     <Chip
                         size="small"
-                        className={`mythic-task-parameters-title-chip${commandInfo.needs_admin ? " mythic-task-parameters-title-chip-warning" : ""}`}
+                        className={`mythic-task-parameters-title-chip${commandInfo.needs_admin ? " mythic-status-chip mythic-tone-warning" : ""}`}
                         icon={<AdminPanelSettingsIcon />}
                         label={commandInfo.needs_admin ? "Admin required" : "No admin"}
                     />

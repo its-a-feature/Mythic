@@ -172,7 +172,7 @@ const C2ActionRoute = ({edge}) => {
     return (
         <div className="mythic-c2-action-route">
             <span>{route.source}</span>
-            <span className="mythic-c2-action-route-profile">{route.profile}</span>
+            <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-primary">{route.profile}</span>
             <span>{route.destination}</span>
         </div>
     );
@@ -279,13 +279,13 @@ const C2CollapsedGroupEdgeDialog = ({details, onClose, onOpenCallbackTasking}) =
             <DialogContent dividers={true}>
                 <div className="mythic-c2-action-body">
                     <div className="mythic-c2-collapsed-edge-summary">
-                        <span className={`mythic-c2-collapsed-edge-chip mythic-c2-collapsed-edge-chip-${routeSummary.tone}`}>
+                        <span className={`mythic-status-chip mythic-tone-${routeSummary.tone}`}>
                             {routeSummary.label}
                         </span>
-                        <span className="mythic-c2-collapsed-edge-chip">{routeSummary.activeEdgeCount} active links</span>
-                        <span className="mythic-c2-collapsed-edge-chip">{routeSummary.endedEdgeCount} ended links</span>
-                        <span className="mythic-c2-collapsed-edge-chip">{routeSummary.egressEdgeCount} egress</span>
-                        <span className="mythic-c2-collapsed-edge-chip">{routeSummary.p2pEdgeCount} p2p</span>
+                        <span className="mythic-status-chip mythic-tone-neutral">{routeSummary.activeEdgeCount} active links</span>
+                        <span className="mythic-status-chip mythic-tone-neutral">{routeSummary.endedEdgeCount} ended links</span>
+                        <span className="mythic-status-chip mythic-tone-neutral">{routeSummary.egressEdgeCount} egress</span>
+                        <span className="mythic-status-chip mythic-tone-neutral">{routeSummary.p2pEdgeCount} p2p</span>
                     </div>
                     {routeSummary.profileNames.length > 0 &&
                         <Typography component="div" className="mythic-c2-collapsed-edge-profiles">
@@ -316,7 +316,7 @@ const C2CollapsedGroupEdgeDialog = ({details, onClose, onOpenCallbackTasking}) =
                                     <div className="mythic-c2-action-card-main">
                                         <div className="mythic-c2-action-route">
                                             <span>{edge.source}</span>
-                                            <span className="mythic-c2-action-route-profile">{edge.profile}</span>
+                                            <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-primary">{edge.profile}</span>
                                             <span>{edge.destination}</span>
                                         </div>
                                         <Typography component="div" className="mythic-c2-action-card-description">
@@ -329,7 +329,7 @@ const C2CollapsedGroupEdgeDialog = ({details, onClose, onOpenCallbackTasking}) =
                                                 <Button
                                                     size="small"
                                                     variant="outlined"
-                                                    className="mythic-c2-collapsed-edge-action mythic-table-row-action mythic-table-row-action-hover-info"
+                                                    className="mythic-c2-collapsed-edge-action mythic-compact-action mythic-action-tone-hover mythic-tone-info"
                                                     onClick={() => openCallbackTasking(edge.sourceCallbackId)}
                                                 >
                                                     Task {edge.source}
@@ -339,7 +339,7 @@ const C2CollapsedGroupEdgeDialog = ({details, onClose, onOpenCallbackTasking}) =
                                                 <Button
                                                     size="small"
                                                     variant="outlined"
-                                                    className="mythic-c2-collapsed-edge-action mythic-table-row-action mythic-table-row-action-hover-info"
+                                                    className="mythic-c2-collapsed-edge-action mythic-compact-action mythic-action-tone-hover mythic-tone-info"
                                                     onClick={() => openCallbackTasking(edge.destinationCallbackId)}
                                                 >
                                                     Task {edge.destination}
@@ -349,7 +349,7 @@ const C2CollapsedGroupEdgeDialog = ({details, onClose, onOpenCallbackTasking}) =
                                                 <Button
                                                     size="small"
                                                     variant="outlined"
-                                                    className="mythic-c2-collapsed-edge-action mythic-table-row-action mythic-table-row-action-hover-error"
+                                                    className="mythic-c2-collapsed-edge-action mythic-compact-action mythic-action-tone-hover mythic-tone-error"
                                                     onClick={() => removeRepresentedEdge(edge)}
                                                 >
                                                     Remove edge
@@ -357,7 +357,7 @@ const C2CollapsedGroupEdgeDialog = ({details, onClose, onOpenCallbackTasking}) =
                                             }
                                         </div>
                                     </div>
-                                    <span className={`mythic-c2-action-state ${edge.active ? "mythic-c2-action-state-active" : "mythic-c2-action-state-ended"}`}>
+                                    <span className={`mythic-status-chip mythic-status-chip-compact mythic-tone-${edge.active ? "success" : "warning"}`}>
                                         {edge.active ? "Active" : "Ended"}
                                     </span>
                                 </div>
@@ -417,7 +417,7 @@ const C2ManualRemoveEdgeDialog = ({options = [], onSubmit, onClose}) => {
                                                 {route.isP2P ? "Peer-to-peer link" : "Direct egress link"} from {route.source} through {route.profile}.
                                             </Typography>
                                         </div>
-                                        <span className={`mythic-c2-action-state ${route.active ? "mythic-c2-action-state-active" : "mythic-c2-action-state-ended"}`}>
+                                        <span className={`mythic-status-chip mythic-status-chip-compact mythic-tone-${route.active ? "success" : "warning"}`}>
                                             {route.active ? "Active" : "Ended"}
                                         </span>
                                     </button>
@@ -474,7 +474,7 @@ const C2SelectLinkCommandDialog = ({options = [], callback, onSubmit, onClose}) 
                                             <div className="mythic-c2-action-command-row">
                                                 <span className="mythic-c2-action-command-name">{command.cmd}</span>
                                                 {command.needs_admin &&
-                                                    <span className="mythic-c2-action-state mythic-c2-action-state-warning">Admin</span>
+                                                    <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-warning">Admin</span>
                                                 }
                                             </div>
                                             <Typography component="div" className="mythic-c2-action-card-description">
@@ -726,14 +726,14 @@ export function C2PathDialog({callback, callbackgraphedges, onClose, onOpenTab})
                     </Typography>
                 </div>
                 <div className="mythic-c2-path-summary">
-                    <span className={`mythic-c2-path-summary-chip mythic-c2-path-summary-chip-${routeSummary.tone}`}>
+                    <span className={`mythic-status-chip mythic-tone-${routeSummary.tone}`}>
                         <RouteSummaryIcon fontSize="inherit" />
                         {routeSummary.label}
                     </span>
-                    <span className="mythic-c2-path-summary-chip">{routeSummary.activeEdgeCount} active</span>
-                    <span className="mythic-c2-path-summary-chip">{routeSummary.endedEdgeCount} ended</span>
-                    <span className="mythic-c2-path-summary-chip">{routeSummary.egressEdgeCount} egress</span>
-                    <span className="mythic-c2-path-summary-chip">{routeSummary.p2pEdgeCount} p2p</span>
+                    <span className="mythic-status-chip mythic-tone-neutral">{routeSummary.activeEdgeCount} active</span>
+                    <span className="mythic-status-chip mythic-tone-neutral">{routeSummary.endedEdgeCount} ended</span>
+                    <span className="mythic-status-chip mythic-tone-neutral">{routeSummary.egressEdgeCount} egress</span>
+                    <span className="mythic-status-chip mythic-tone-neutral">{routeSummary.p2pEdgeCount} p2p</span>
                 </div>
             </div>
         </DialogTitle>
@@ -2724,7 +2724,7 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
             {openContextMenu && typeof document !== "undefined" && createPortal(
                 <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu mythic-graph-context-menu">
                     {contextMenu.map( (m) => (
-                        <Button key={m.title} color={"info"} className="context-menu-button mythic-graph-context-menu-button" onClick={() => {
+                        <Button key={m.title} color={"info"} className="context-menu-button mythic-graph-context-menu-button mythic-action-tone-hover mythic-tone-info" onClick={() => {
                             m.onClick(contextMenuNode.current);
                             setOpenContextMenu(false);
                         }}>{m.title}</Button>
@@ -3443,7 +3443,7 @@ export const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme,
             {openContextMenu && typeof document !== "undefined" && createPortal(
                 <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu mythic-graph-context-menu">
                     {localContextMenu.map( (m) => (
-                        <Button key={m?.key ? m.key : m.title} color={"info"} className="context-menu-button mythic-graph-context-menu-button" onClick={() => {
+                        <Button key={m?.key ? m.key : m.title} color={"info"} className="context-menu-button mythic-graph-context-menu-button mythic-action-tone-hover mythic-tone-info" onClick={() => {
                             m.onClick(contextMenuNode.current);
                             setOpenContextMenu(false);
                         }}>{m.title}</Button>

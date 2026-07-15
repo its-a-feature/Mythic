@@ -125,21 +125,21 @@ function ArtifactTableRow(props){
                     <div className="mythic-search-result-action-row">
                         {props.needs_cleanup && !props.resolved &&
                             <MythicStyledTooltip title={"Mark artifact as cleaned up"}>
-                                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-success" onClick={MarkResolved} size="small">
+                                <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-success" onClick={MarkResolved} size="small">
                                     <CleanHandsTwoToneIcon fontSize="small" />
                                 </IconButton>
                             </MythicStyledTooltip>
                         }
                         {props.needs_cleanup && props.resolved &&
                             <MythicStyledTooltip title={"Mark artifact as unresolved"}>
-                                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-warning" onClick={MarkUnresolved} size="small">
+                                <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-warning" onClick={MarkUnresolved} size="small">
                                     <CleanHandsTwoToneIcon fontSize="small" />
                                 </IconButton>
                             </MythicStyledTooltip>
                         }
                         {!props.needs_cleanup &&
                             <MythicStyledTooltip title={"Mark artifact as needs cleanup"} >
-                                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-warning" onClick={MarkNeedsCleanup} size="small">
+                                <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-warning" onClick={MarkNeedsCleanup} size="small">
                                     <AddAlertTwoToneIcon fontSize="small" />
                                 </IconButton>
                             </MythicStyledTooltip>

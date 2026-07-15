@@ -164,7 +164,7 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
     const renderDeleteButton = (w) => (
         <MythicStyledTooltip title={w.deleted ? "Restore service" : "Remove service"}>
             <IconButton
-                className={`mythic-table-row-icon-action ${w.deleted ? "mythic-table-row-icon-action-success" : "mythic-table-row-icon-action-hover-danger"}`}
+                className={`mythic-compact-icon-action ${w.deleted ? "mythic-icon-tone mythic-tone-success" : "mythic-action-tone-hover mythic-tone-error"}`}
                 onClick={() => adjustingDelete(w)}
                 size="small"
             >
@@ -175,7 +175,7 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
     const renderFileButton = (w) => (
         <MythicStyledTooltip title={w.container_running ? "View Files" : "Unable to view files since container is offline"}>
             <IconButton
-                className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
                 disabled={!w.container_running}
                 onClick={()=>{onOpenListFilesDialog(w.name);}}
                 size="small"
@@ -188,7 +188,7 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
         events.map(s => (
             <MythicStyledTooltip title={`${prefix} ${s}`} key={`${w.id}-${prefix}-${s}`}>
                 <IconButton
-                    className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info"
+                    className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
                     disabled={!getSubscriptionNames(w).includes(s) || !w.container_running}
                     onClick={() => onClick(s)}
                     size="small">
@@ -213,7 +213,7 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
                     return (
                         <MythicStyledTooltip title={w.container_running ? "Fetch container metadata" : "Container is offline"} key={`${w.name}-${providerName}`}>
                             <button
-                                className="mythic-installed-service-action-chip"
+                                className="mythic-installed-service-action-chip mythic-action-tone-hover mythic-tone-info"
                                 disabled={!w.container_running}
                                 onClick={() => getIDPMetadata(w.name, providerName)}
                                 type="button"
@@ -233,14 +233,16 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
             <MythicTableCell>
                 {renderDeleteButton(w)}
             </MythicTableCell>
-            <MythicTableCell style={{display: "inline-flex"}}>
-                <MythicAgentSVGIcon payload_type={w.name} style={{width: "80px", padding: "5px", objectFit: "unset"}} />
-                <InstalledServiceIdentity
-                    name={w.name}
-                    typeLabel={typeLabel}
-                    deleted={w.deleted}
-                    status={<InstalledServiceContainerStatus isOnline={w.container_running} />}
-                />
+            <MythicTableCell>
+                <div className="mythic-installed-service-identity-cell">
+                    <MythicAgentSVGIcon payload_type={w.name} style={{width: "80px", padding: "5px", objectFit: "unset"}} />
+                    <InstalledServiceIdentity
+                        name={w.name}
+                        typeLabel={typeLabel}
+                        deleted={w.deleted}
+                        status={<InstalledServiceContainerStatus isOnline={w.container_running} />}
+                    />
+                </div>
             </MythicTableCell>
             <MythicTableCell>
                 <InstalledServiceMetadataSummary
@@ -249,7 +251,7 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
                 />
             </MythicTableCell>
             <MythicTableCell>
-                <div className="mythic-table-row-actions mythic-service-actions">
+                <div className="mythic-compact-actions mythic-service-actions mythic-compact-actions-nowrap">
                     {renderFileButton(w)}
                     {actions}
                     {hasDetails &&

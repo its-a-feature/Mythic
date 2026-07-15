@@ -100,10 +100,10 @@ export function IncludeMoreTasksDialog(props) {
             </div>
         </DialogContent>
         <DialogActions>
-          <Button className="mythic-table-row-action" onClick={props.onClose} variant="contained">
+          <Button className="mythic-compact-action" onClick={props.onClose} variant="contained">
             Close
           </Button>
-          <Button className="mythic-table-row-action mythic-table-row-action-hover-success" disabled={taskOptions.length === 0} onClick={onRequestSubmit} variant="contained" color="success">Fetch Tasks</Button>
+          <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" disabled={taskOptions.length === 0} onClick={onRequestSubmit} variant="contained" color="success">Fetch Tasks</Button>
         </DialogActions>
   </React.Fragment>
   );

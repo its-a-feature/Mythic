@@ -94,16 +94,16 @@ const openedMixin = () => ({
     overflowX: 'hidden',
     borderRadius: "0 !important",
     border: "0px !important",
-    background: "var(--mythic-nav-background) !important",
-    backgroundColor: "var(--mythic-nav-background-color) !important",
+    background: "var(--mythic-color-nav-background) !important",
+    backgroundColor: "var(--mythic-color-nav-base) !important",
 });
 const closedMixin = () => ({
     overflowX: 'hidden',
     width: "60px",
     borderRadius: "0 !important",
     border: "0px !important",
-    background: "var(--mythic-nav-background) !important",
-    backgroundColor: "var(--mythic-nav-background-color) !important",
+    background: "var(--mythic-color-nav-background) !important",
+    backgroundColor: "var(--mythic-color-nav-base) !important",
     '@media (min-width: 600px)': {
       width: "60px",
       borderRadius: "0 !important",
@@ -116,9 +116,9 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
       flexShrink: 0,
       whiteSpace: 'nowrap',
       boxSizing: 'border-box',
-      background: "var(--mythic-nav-background) !important",
-      backgroundColor: "var(--mythic-nav-background-color) !important",
-      color: "var(--mythic-nav-text)",
+      background: "var(--mythic-color-nav-background) !important",
+      backgroundColor: "var(--mythic-color-nav-base) !important",
+      color: "var(--mythic-color-nav-text)",
       '& .MuiDrawer-paper': {
         border: "0 !important",
         borderRight: "0 !important",
@@ -136,8 +136,8 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
         width: "auto",
       },
       [`& .${classes.listSubHeader}:hover`]: {
-        color: "var(--mythic-nav-text) !important",
-        backgroundColor: "var(--mythic-nav-hover) !important",
+        color: "var(--mythic-color-nav-text) !important",
+        backgroundColor: "var(--mythic-color-nav-hover) !important",
       },
       variants: [
         {
@@ -146,8 +146,8 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
             ...openedMixin(),
             '& .MuiDrawer-paper': {
                 ...openedMixin(),
-                background: "var(--mythic-nav-background) !important",
-                backgroundColor: "var(--mythic-nav-background-color) !important",
+                background: "var(--mythic-color-nav-background) !important",
+                backgroundColor: "var(--mythic-color-nav-base) !important",
                 border: "0 !important",
                 borderRight: "0 !important",
                 borderRadius: "0 !important",
@@ -166,8 +166,8 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
             ...closedMixin(),
             '& .MuiDrawer-paper': {
                 ...closedMixin(),
-                background: "var(--mythic-nav-background) !important",
-                backgroundColor: "var(--mythic-nav-background-color) !important",
+                background: "var(--mythic-color-nav-background) !important",
+                backgroundColor: "var(--mythic-color-nav-base) !important",
                 border: "0 !important",
                 borderRight: "0 !important",
                 borderRadius: "0 !important",
@@ -202,8 +202,8 @@ export const StyledListItem = styled(ListItem)(
       paddingRight: "8px",
       margin: "2px 4px",
       paddingBottom: "4px",
-      borderRadius: "var(--mythic-radius)",
-      color: "var(--mythic-nav-text)",
+      borderRadius: "var(--mythic-radius-base)",
+      color: "var(--mythic-color-nav-text)",
       backgroundColor: "transparent !important",
       boxSizing: "border-box",
       maxWidth: "calc(100% - 8px)",
@@ -217,7 +217,7 @@ export const StyledListItem = styled(ListItem)(
         fontWeight: 600,
       },
       "&:hover": {
-        backgroundColor: "var(--mythic-nav-hover) !important",
+        backgroundColor: "var(--mythic-color-nav-hover) !important",
       },
     }),
 );
@@ -229,7 +229,7 @@ export const StyledListItemIcon = styled(ListItemIcon)(
         minWidth: "36px",
         width: "36px",
         justifyContent: "center",
-        color: "var(--mythic-nav-icon)",
+        color: "var(--mythic-color-nav-icon)",
         backgroundColor: "transparent !important",
         overflow: "visible",
     }),
@@ -809,7 +809,7 @@ const TopAppBarVerticalAdjustShortcutsDialog = ({onClose, onSave, sideShortcuts}
                                                             <div className="mythic-reorder-row-actions">
                                                                 <IconButton
                                                                     aria-label={`Remove ${c}`}
-                                                                    className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger"
+                                                                    className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error"
                                                                     size="small"
                                                                     onClick={() => removeShortcut(i)}
                                                                 >
@@ -971,7 +971,7 @@ export function TopAppBarVertical(props) {
               paddingLeft: "8px",
               paddingRight: "8px",
               paddingBottom: "5px",
-              borderRadius: "var(--mythic-radius)",
+              borderRadius: "var(--mythic-radius-base)",
           }}>
             <StyledListItemIcon>
                 <img src={ReactLogo} onClick={()=>navigate('/new')} width={"35px"} height={"35px"} alt="Mythic" style={{cursor: "pointer"}}/>
@@ -984,7 +984,13 @@ export function TopAppBarVertical(props) {
                         <b>Mythic:</b> v{serverVersion}<br/>
                         <b>UI:</b> v{mythicUIVersion}<br/>
                     </Typography>
-                    <IconButton onClick={props.toggleTheme} size="small" style={{float:"right", display: menuOpen ? "" : "none"}} >
+                    <IconButton
+                        aria-label={`Switch to ${props.themeMode === 'light' ? 'dark' : 'light'} mode`}
+                        className="mythic-navigation-theme-toggle"
+                        onClick={props.toggleTheme}
+                        size="small"
+                        style={{float:"right", display: menuOpen ? "" : "none"}}
+                    >
                         {props.themeMode === 'light' &&
                             <DarkModeTwoToneIcon fontSize={"medium"} className="mythicElement mythic-navigation-icon" />
                         }
@@ -995,8 +1001,8 @@ export function TopAppBarVertical(props) {
                 </>
             } />
           </ListItem>
-          <StyledListItem className={classes.listSubHeader} onClick={toggleDrawerOpen} style={{height: "32px"}} >
-            <StyledListItemIcon ><MenuIcon onClick={toggleDrawerOpen} fontSize={"medium"} className="mythicElement mythic-navigation-icon" /></StyledListItemIcon>
+          <StyledListItem className={`${classes.listSubHeader} mythic-navigation-drawer-toggle`} onClick={toggleDrawerOpen} style={{height: "32px"}} >
+            <StyledListItemIcon ><MenuIcon fontSize={"medium"} className="mythicElement mythic-navigation-icon" /></StyledListItemIcon>
             <ListItemText primary={
               <>
                 <MythicStyledTooltip title={"Edit Shortcuts"} tooltipStyle={{float: menuOpen ? 'right' : '', margin: 0, padding: 0}}>
@@ -1020,7 +1026,7 @@ export function TopAppBarVertical(props) {
         <StyledListItem className={classes.listSubHeader} style={{display: me?.user?.current_operation_id === 0 ? "" : "none"}}>
             <ListItemText primary={
                 <>
-                    <Link style={{display: "inline-flex", alignItems: "center", paddingRight: "10px", color: "var(--mythic-error-main)",
+                    <Link style={{display: "inline-flex", alignItems: "center", paddingRight: "10px", color: "var(--mythic-color-error-base)",
                         fontWeight: "bold",}} to="/new/operations">
                         {"CLICK TO SET OPERATION!"}
                     </Link>
@@ -1028,10 +1034,10 @@ export function TopAppBarVertical(props) {
 
             } />
         </StyledListItem>
-            <Divider style={{borderColor: "var(--mythic-nav-muted)", margin: "4px 8px"}} />
+            <Divider style={{borderColor: "var(--mythic-color-nav-muted)", margin: "4px 8px"}} />
             <div style={{flexGrow: 1, overflowY: "auto", overflowX: "hidden"}}>
                 {getShortcuts({shortcuts: sideShortcuts})}
-                <Divider style={{borderColor: "var(--mythic-nav-muted)", margin: "4px 8px"}} />
+                <Divider style={{borderColor: "var(--mythic-color-nav-muted)", margin: "4px 8px"}} />
                 <StyledListItem className={classes.listSubHeader} onClick={handleToggleExtra}>
                     <StyledListItemIcon>
                         <MoreHorizIcon className="mythic-navigation-icon" fontSize={"medium"} />
@@ -1040,7 +1046,7 @@ export function TopAppBarVertical(props) {
                     {openExtra ? <ExpandLess /> : <ExpandMore />}
                 </StyledListItem>
                 {openExtra &&  getExtraShortcuts()}
-                <Divider style={{borderColor: "var(--mythic-nav-muted)", margin: "4px 8px"}} />
+                <Divider style={{borderColor: "var(--mythic-color-nav-muted)", margin: "4px 8px"}} />
                 <div className={classes.listSubHeader} style={{ flexGrow: 1}}></div>
             </div>
           <TopBarRightShortcutsVertical me={me} menuOpen={menuOpen} serverName={serverName} />

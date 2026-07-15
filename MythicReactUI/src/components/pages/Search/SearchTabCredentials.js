@@ -244,7 +244,7 @@ const SearchTabCredentialsSearchPanel = (props) => {
                     />
                 }
                 
-                <MythicToolbarButton className="mythic-toolbar-button-hover-success" onClick={ () => {setCreateCredentialDialogOpen(true);}} variant="outlined" startIcon={<VpnKeyIcon />}>
+                <MythicToolbarButton className="mythic-action-tone-hover mythic-tone-success" onClick={ () => {setCreateCredentialDialogOpen(true);}} variant="outlined" startIcon={<VpnKeyIcon />}>
                     New
                 </MythicToolbarButton>
                 <MythicToolbarToggle

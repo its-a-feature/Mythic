@@ -301,8 +301,8 @@ export function CredentialSearchRow({credential, selected, onSelect}){
                     <span title={secondaryLabel}>{secondaryLabel}</span>
                     <span className="mythic-credential-search-row-flags">
                         {hasComment && <Chip size="small" variant="outlined" label="comment" className="mythic-credential-search-mini-chip" />}
-                        {hasMetadata && <Chip size="small" variant="outlined" label="metadata" className="mythic-credential-search-mini-chip mythic-credential-search-metadata-chip" />}
-                        {hasIdentity && <Chip size="small" variant="outlined" label="identity" className="mythic-credential-search-mini-chip mythic-credential-search-identity-chip" />}
+                        {hasMetadata && <Chip size="small" variant="outlined" label="metadata" className="mythic-status-chip mythic-tone-info" />}
+                        {hasIdentity && <Chip size="small" variant="outlined" label="identity" className="mythic-status-chip mythic-tone-primary" />}
                     </span>
                 </div>
             </TableCell>
@@ -449,16 +449,16 @@ export function CredentialInspector(props){
                 </div>
                 {!props.readOnly &&
                 <div className="mythic-credential-search-inspector-actions">
-                    <Button className="mythic-table-row-action" size="small" variant="outlined"
+                    <Button className="mythic-compact-action" size="small" variant="outlined"
                         startIcon={<EditIcon fontSize="small" />}
                         onClick={() => setEditCredentialDialogOpen(true)} >Edit</Button>
                     {credential.deleted ? (
                         <MythicStyledTooltip title="Restore Credential for use in Tasking">
-                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-success" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><RestoreFromTrashIcon fontSize="small" /></IconButton>
+                            <IconButton className="mythic-compact-icon-action mythic-icon-tone mythic-tone-success" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><RestoreFromTrashIcon fontSize="small" /></IconButton>
                         </MythicStyledTooltip>
                     ) : (
                         <MythicStyledTooltip title="Delete Credential so it can't be used in Tasking">
-                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><DeleteIcon fontSize="small" /></IconButton>
+                            <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><DeleteIcon fontSize="small" /></IconButton>
                         </MythicStyledTooltip>
                     )}
                 </div>
@@ -473,7 +473,7 @@ export function CredentialInspector(props){
                         code
                         action={
                             <MythicStyledTooltip title={"Copy credential ID for tasking"}>
-                                <IconButton className="mythic-credential-search-field-action mythic-table-row-icon-action mythic-table-row-icon-action-info" onClick={() => onCopyToClipboard(String(credential.id))} size="small">
+                                <IconButton className="mythic-credential-search-field-action mythic-compact-icon-action mythic-icon-tone mythic-tone-info" onClick={() => onCopyToClipboard(String(credential.id))} size="small">
                                     <FontAwesomeIcon icon={faCopy}/>
                                 </IconButton>
                             </MythicStyledTooltip>
@@ -514,7 +514,7 @@ export function CredentialInspector(props){
                         tone="metadata"
                         actions={
                             <MythicStyledTooltip title={"Copy metadata JSON"}>
-                                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-info" onClick={() => onCopyToClipboard(JSON.stringify(pureMetadata, null, 2))} size="small">
+                                <IconButton className="mythic-compact-icon-action mythic-icon-tone mythic-tone-info" onClick={() => onCopyToClipboard(JSON.stringify(pureMetadata, null, 2))} size="small">
                                     <FontAwesomeIcon icon={faCopy}/>
                                 </IconButton>
                             </MythicStyledTooltip>
@@ -532,7 +532,7 @@ export function CredentialInspector(props){
                         tone="identity"
                         actions={
                             <MythicStyledTooltip title={"Copy identity JSON"}>
-                                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-info" onClick={() => onCopyToClipboard(JSON.stringify(pureIdentity, null, 2))} size="small">
+                                <IconButton className="mythic-compact-icon-action mythic-icon-tone mythic-tone-info" onClick={() => onCopyToClipboard(JSON.stringify(pureIdentity, null, 2))} size="small">
                                     <FontAwesomeIcon icon={faCopy}/>
                                 </IconButton>
                             </MythicStyledTooltip>
@@ -572,7 +572,7 @@ export function CredentialInspector(props){
                             {credential.credential_text || "-"}
                         </div>
                         <MythicStyledTooltip title={"Copy credential value"}>
-                            <IconButton className="mythic-credential-search-secret-copy mythic-table-row-icon-action mythic-table-row-icon-action-info" onClick={() => onCopyToClipboard(credential.credential_text || "")} size="small">
+                            <IconButton className="mythic-credential-search-secret-copy mythic-compact-icon-action mythic-icon-tone mythic-tone-info" onClick={() => onCopyToClipboard(credential.credential_text || "")} size="small">
                                 <FontAwesomeIcon icon={faCopy}/>
                             </IconButton>
                         </MythicStyledTooltip>

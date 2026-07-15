@@ -383,7 +383,7 @@ function CommandTransferSelect(props) {
                                 <ListItemText id={labelId} primary={
                                     <div style={{display: "flex", alignItems: "center", justifyContent: "space-between"}}>
                                         {value}
-                                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" size="small" onClick={(e) => e.stopPropagation()}
+                                        <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" size="small" onClick={(e) => e.stopPropagation()}
                                                 href={"/docs/agents/" + props.payload_type + "/commands/" + value}
                                                 style={{marginLeft: "10px", float: "right"}} target="_blank">
                                             <MenuBookIcon fontSize="small"/>
@@ -406,7 +406,7 @@ function CommandTransferSelect(props) {
                     <StyledButton
                         variant="contained"
                         size="small"
-                        className={`${classes.button} mythic-table-row-action`}
+                        className={`${classes.button} mythic-compact-action`}
                         onClick={handleAllRight}
                         disabled={commands.filter(c => c.left && !c.disabled).length === 0}
                         aria-label="move all right"
@@ -416,7 +416,7 @@ function CommandTransferSelect(props) {
                     <StyledButton
                         variant="contained"
                         size="small"
-                        className={`${classes.button} mythic-table-row-action`}
+                        className={`${classes.button} mythic-compact-action`}
                         onClick={handleCheckedRight}
                         disabled={commands.filter(c => c.left && c.selected).length === 0}
                         aria-label="move selected right"
@@ -426,7 +426,7 @@ function CommandTransferSelect(props) {
                     <StyledButton
                         variant="contained"
                         size="small"
-                        className={`${classes.button} mythic-table-row-action`}
+                        className={`${classes.button} mythic-compact-action`}
                         onClick={handleCheckedLeft}
                         disabled={commands.filter( c => c.right && c.selected).length === 0}
                         aria-label="move selected left"
@@ -436,7 +436,7 @@ function CommandTransferSelect(props) {
                     <StyledButton
                         variant="contained"
                         size="small"
-                        className={`${classes.button} mythic-table-row-action`}
+                        className={`${classes.button} mythic-compact-action`}
                         onClick={handleAllLeft}
                         disabled={commands.filter(c => c.right && !c.disabled).length === 0}
                         aria-label="move all left"
