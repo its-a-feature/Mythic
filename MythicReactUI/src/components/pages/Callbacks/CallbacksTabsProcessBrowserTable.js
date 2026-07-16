@@ -496,7 +496,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         }
 
         setSingleTreeData(singleTreeAdjMatrix);
-        onSubmitFilterOptions({});
+        onSubmitFilterOptions(undefined);
     }
     const toggleViewSingleTreeData = () => {
         setViewSingleTreeData(!viewSingleTreeData);
@@ -768,7 +768,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                                   <MythicModifyStringDialog
                                       title='Filter Column'
                                       onSubmit={onSubmitFilterOptions}
-                                      value={filterOptions[selectedColumn.current.key]}
+                                      value={String(filterOptions[selectedColumn.current.key])}
                                       onClose={() => {
                                           setOpenContextMenu(false);
                                       }}
