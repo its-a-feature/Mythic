@@ -104,6 +104,7 @@ func DownloadBulkFilesWebhook(c *gin.Context) {
 		newFileName := fmt.Sprintf("%s_%s_%s%s", hostName, justFileName, filemeta.AgentFileID, justFileExtension)
 		fileWriter, err := zipWriter.Create(newFileName)
 		if err != nil {
+			file.Close()
 			logging.LogError(err, "Failed to create file entry in zip")
 			c.JSON(http.StatusOK, DownloadBulkFilesResponse{
 				Status: "error",
@@ -112,6 +113,7 @@ func DownloadBulkFilesWebhook(c *gin.Context) {
 			return
 		}
 		_, err = io.Copy(fileWriter, file)
+		file.Close()
 		if err != nil {
 			logging.LogError(err, "Failed to write file entry in zip")
 			c.JSON(http.StatusOK, DownloadBulkFilesResponse{
