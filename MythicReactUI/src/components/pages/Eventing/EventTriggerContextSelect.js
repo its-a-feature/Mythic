@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React, {useContext} from 'react';
 import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
@@ -11,7 +12,6 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import {IconButton} from '@mui/material';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
@@ -237,9 +237,9 @@ export function EventTriggerContextSelectDialog({onClose, triggerContext}) {
                         {dictionaryData.map( (e, index) => (
                             <TableRow key={"dictionarydata" + index}>
                                 <MythicStyledTableCell style={{display: "flex"}} >
-                                    <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={() => removeRow(index)} >
+                                    <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={() => removeRow(index)} >
                                         <DeleteIcon fontSize="small" />
-                                    </IconButton>
+                                    </MythicActionButton>
                                     <Select
                                         style={{}}
                                         value={e.type}

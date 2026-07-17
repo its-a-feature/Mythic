@@ -1,5 +1,5 @@
 import React from 'react';
-import {Chip} from '@mui/material';
+import {MythicChip} from '../../MythicComponents/MythicChip';
 
 export const parseCredentialMetadata = (metadata) => {
     if(metadata === undefined || metadata === null){
@@ -89,7 +89,7 @@ export function CredentialDetail({label, value, chip, wide=false, code=false, ac
                 {action && <div className="mythic-credential-search-detail-action">{action}</div>}
             </div>
             {chip &&
-                <Chip size="small" color={chip.color} variant="outlined" label={chip.label} className="mythic-credential-search-inline-chip" />
+                <MythicChip size="small" color={chip.color} variant="outlined" label={chip.label} className="mythic-credential-search-inline-chip" />
             }
         </div>
     )
@@ -112,7 +112,7 @@ export function CredentialMetadataPair({name, value, tone=""}){
 
 export function MetadataValue({value}){
     if(Array.isArray(value)){
-        return <Chip size="small" variant="outlined" label={`array[${value.length}]`} className="mythic-credential-search-mini-chip" />
+        return <MythicChip size="small" variant="outlined" label={`array[${value.length}]`} className="mythic-credential-search-mini-chip" />
     }
     if(isPlainObject(value)){
         const entries = Object.entries(value);

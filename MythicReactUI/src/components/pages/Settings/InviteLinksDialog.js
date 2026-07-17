@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import Button from '@mui/material/Button';
 import DialogContent from '@mui/material/DialogContent';
@@ -11,7 +12,6 @@ import TableContainer from '@mui/material/TableContainer';
 import Typography from '@mui/material/Typography';
 import {useMutation, useQuery, useLazyQuery, gql} from '@apollo/client';
 import {snackActions} from "../../utilities/Snackbar";
-import IconButton from '@mui/material/IconButton';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import MythicTextField from "../../MythicComponents/MythicTextField";
 import {copyStringToClipboard} from "../../utilities/Clipboard";
@@ -187,15 +187,15 @@ export function InviteLinksDialog(props) {
                                             <Typography style={{display: "inline-block"}} color={"secondary"}>
                                                 {" /"} {l.total}
                                             </Typography>
-                                            <IconButton size="small" onClick={() => updateInviteLink(l)}>
+                                            <MythicActionButton iconOnly size="small" onClick={() => updateInviteLink(l)}>
                                                 <EditIcon fontSize="small"/>
-                                            </IconButton>
+                                            </MythicActionButton>
                                         </TableCell>
                                         <TableCell>
                                             {l.valid &&
-                                                <IconButton size={"small"} color={"success"} onClick={() => copyStringToClipboard(l.link)}>
+                                                <MythicActionButton colorMode="always" tone="success" iconOnly size={"small"}  onClick={() => copyStringToClipboard(l.link)}>
                                                     <ContentCopyIcon fontSize="small"/>
-                                                </IconButton>
+                                                </MythicActionButton>
                                             }
 
                                         </TableCell>

@@ -1,7 +1,7 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import TableRow from '@mui/material/TableRow';
 import PublicIcon from '@mui/icons-material/Public';
-import {IconButton} from '@mui/material';
 import {gql, useMutation} from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
 import SyncAltIcon from '@mui/icons-material/SyncAlt';
@@ -26,6 +26,7 @@ import {
     InstalledServiceMetadataSummary
 } from "./InstalledServiceTableComponents";
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
+import {SquareChip} from "../../MythicComponents/MythicChip";
 
 const testWebhookMutation = gql`
 mutation testWebhookWorks($service_type: String!){
@@ -163,37 +164,37 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
     }, [service]);
     const renderDeleteButton = (w) => (
         <MythicStyledTooltip title={w.deleted ? "Restore service" : "Remove service"}>
-            <IconButton
-                className={`mythic-compact-icon-action ${w.deleted ? "mythic-icon-tone mythic-tone-success" : "mythic-action-tone-hover mythic-tone-error"}`}
+            <MythicActionButton iconOnly
+                appearance="raised" colorMode={w.deleted ? "always" : "hover"} tone={w.deleted ? "success" : "error"}
                 onClick={() => adjustingDelete(w)}
                 size="small"
             >
                 {w.deleted ? <RestoreFromTrashOutlinedIcon fontSize="small" /> : <DeleteIcon fontSize="small" />}
-            </IconButton>
+            </MythicActionButton>
         </MythicStyledTooltip>
     );
     const renderFileButton = (w) => (
         <MythicStyledTooltip title={w.container_running ? "View Files" : "Unable to view files since container is offline"}>
-            <IconButton
-                className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
+            <MythicActionButton iconOnly
+                appearance="raised" colorMode="hover" tone="info"
                 disabled={!w.container_running}
                 onClick={()=>{onOpenListFilesDialog(w.name);}}
                 size="small"
             >
                 <AttachFileIcon fontSize="small" />
-            </IconButton>
+            </MythicActionButton>
         </MythicStyledTooltip>
     );
     const renderSubscriptionTestButtons = (w, events, icon, onClick, prefix) => (
         events.map(s => (
             <MythicStyledTooltip title={`${prefix} ${s}`} key={`${w.id}-${prefix}-${s}`}>
-                <IconButton
-                    className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
+                <MythicActionButton iconOnly
+                    appearance="raised" colorMode="hover" tone="info"
                     disabled={!getSubscriptionNames(w).includes(s) || !w.container_running}
                     onClick={() => onClick(s)}
                     size="small">
                     {icon}
-                </IconButton>
+                </MythicActionButton>
             </MythicStyledTooltip>
         ))
     );
@@ -212,15 +213,18 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
                     const providerName = subscription?.name || subscription;
                     return (
                         <MythicStyledTooltip title={w.container_running ? "Fetch container metadata" : "Container is offline"} key={`${w.name}-${providerName}`}>
-                            <button
-                                className="mythic-installed-service-action-chip mythic-action-tone-hover mythic-tone-info"
+                            <SquareChip
+                                className="mythic-installed-service-action-chip mythic-action-tone-hover"
                                 disabled={!w.container_running}
+                                label={
+                                    <>
+                                        <span>{providerName}</span>
+                                        <PermIdentityTwoToneIcon fontSize="small" />
+                                    </>
+                                }
                                 onClick={() => getIDPMetadata(w.name, providerName)}
-                                type="button"
-                            >
-                                <span>{providerName}</span>
-                                <PermIdentityTwoToneIcon fontSize="small" />
-                            </button>
+                                tone="info"
+                            />
                         </MythicStyledTooltip>
                     );
                 })}

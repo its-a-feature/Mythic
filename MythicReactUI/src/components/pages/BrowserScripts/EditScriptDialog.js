@@ -1,10 +1,9 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React, {useEffect, useRef} from 'react';
 import Box from '@mui/material/Box';
-import Chip from '@mui/material/Chip';
 import Collapse from '@mui/material/Collapse';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import IconButton from '@mui/material/IconButton';
 import AceEditor from 'react-ace';
 import "ace-builds/src-noconflict/mode-javascript";
 import "ace-builds/src-noconflict/theme-github";
@@ -21,6 +20,7 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import Split from 'react-split';
 import {TaskDisplay} from "../Callbacks/TaskDisplay";
+import {MythicChip} from "../../MythicComponents/MythicChip";
 import {taskingDataFragment} from '../Callbacks/CallbackMutations'
 import {
     MythicDialogBody,
@@ -283,20 +283,20 @@ export function EditScriptDialog(props) {
                         <Box className="mythic-browser-script-target-copy">
                             <Box component="span" className="mythic-browser-script-target-label">Script Target</Box>
                             <Box className="mythic-browser-script-target-chips">
-                                <Chip size="small" label={selectedPayloadTypeOption?.name || (targetLoading ? "Loading payload types" : "No payload type")} />
-                                <Chip size="small" label={selectedCommandOption?.cmd || "No command"} />
+                                <MythicChip size="small" label={selectedPayloadTypeOption?.name || (targetLoading ? "Loading payload types" : "No payload type")} />
+                                <MythicChip size="small" label={selectedCommandOption?.cmd || "No command"} />
                             </Box>
                         </Box>
                         <Tooltip title={targetOpen ? "Collapse target settings" : "Edit target settings"}>
-                            <IconButton
+                            <MythicActionButton iconOnly
                                 aria-expanded={targetOpen}
                                 aria-label={targetOpen ? "Collapse target settings" : "Edit target settings"}
-                                className="mythic-browser-script-target-toggle"
+                                appearance="raised" colorMode="hover" tone="primary"
                                 onClick={onToggleTargetOpen}
                                 size="small"
                             >
                                 {targetOpen ? <KeyboardArrowUpIcon fontSize="small" /> : <KeyboardArrowDownIcon fontSize="small" />}
-                            </IconButton>
+                            </MythicActionButton>
                         </Tooltip>
                     </Box>
                     <Collapse

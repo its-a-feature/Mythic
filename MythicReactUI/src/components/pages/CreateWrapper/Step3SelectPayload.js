@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import {gql, useQuery, useReactiveVar} from '@apollo/client';
 import Typography from '@mui/material/Typography';
@@ -8,7 +9,6 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import InfoIconOutline from '@mui/icons-material/InfoOutlined';
-import IconButton from '@mui/material/IconButton';
 import {Backdrop} from '@mui/material';
 import {CreatePayloadNavigationButtons} from './CreatePayloadNavigationButtons';
 import {snackActions} from '../../utilities/Snackbar';
@@ -310,9 +310,9 @@ export function PayloadsTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>{props.payload.description}</MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" size="small" onClick={(event) => {event.stopPropagation(); setOpenDetailedView(true);}}>
+                    <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" size="small" onClick={(event) => {event.stopPropagation(); setOpenDetailedView(true);}}>
                         <InfoIconOutline fontSize="small" />
-                    </IconButton>
+                    </MythicActionButton>
                 </MythicStyledTableCell>
             </TableRow>
             {openDetailedView ? (

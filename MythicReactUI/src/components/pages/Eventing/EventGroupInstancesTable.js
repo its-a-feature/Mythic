@@ -1,10 +1,11 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React, {} from 'react';
 import {
-    EventingStatusChip,
     EventStepInstanceRenderDialog,
     EventStepUserInteractionDialog,
     eventingUserInteractionStatuses
 } from "./EventStepRender";
+import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
 import {toLocalTime} from "../../utilities/Time";
 import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
 import { gql, useMutation } from '@apollo/client';
@@ -13,7 +14,6 @@ import AccessAlarmTwoToneIcon from '@mui/icons-material/AccessAlarmTwoTone';
 import CancelTwoToneIcon from '@mui/icons-material/CancelTwoTone';
 import ReplayIcon from '@mui/icons-material/Replay';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
-import IconButton from '@mui/material/IconButton';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import Moment from 'react-moment';
 import moment from 'moment';
@@ -99,9 +99,9 @@ const eventingInstanceMenuIconStyle = {fontSize: "1rem", marginRight: "8px"};
 const EventingInstanceIdCell = ({onOpenMenu, rowData}) => (
     <EventingGridCell className="mythic-eventing-instance-id-cell" rowData={rowData}>
         <span className="mythic-eventing-instance-id">{rowData.id}</span>
-        <IconButton
+        <MythicActionButton iconOnly
             aria-haspopup="menu"
-            className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info mythic-eventing-instance-id-menu-button"
+            appearance="raised" colorMode="hover" tone="info"
             onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -110,7 +110,7 @@ const EventingInstanceIdCell = ({onOpenMenu, rowData}) => (
             size="small"
         >
             <ArrowDropDownIcon fontSize="small" />
-        </IconButton>
+        </MythicActionButton>
     </EventingGridCell>
 );
 
@@ -425,7 +425,7 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
                     case "Status":
                         return (
                             <EventingGridCell className="mythic-eventing-instance-status-cell" rowData={selectedRow}>
-                                <EventingStatusChip data={row} />
+                                <MythicStatusChip status={row.status || "configured"} variant="outlined" />
                             </EventingGridCell>
                         )
                     case "Event Group":

@@ -43,6 +43,7 @@ import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { MythicAgentSVGIconNoTooltip} from "../../MythicComponents/MythicAgentSVGIcon";
 import {ImageWithAuth} from "../../utilities/ImageWithAuth";
 import {MythicDialogButton, MythicDialogFooter} from "../../MythicComponents/MythicDialogLayout";
+import {MythicChip} from "../../MythicComponents/MythicChip";
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -172,7 +173,7 @@ const C2ActionRoute = ({edge}) => {
     return (
         <div className="mythic-c2-action-route">
             <span>{route.source}</span>
-            <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-primary">{route.profile}</span>
+            <MythicChip compact label={route.profile} tone="primary" />
             <span>{route.destination}</span>
         </div>
     );
@@ -279,13 +280,11 @@ const C2CollapsedGroupEdgeDialog = ({details, onClose, onOpenCallbackTasking}) =
             <DialogContent dividers={true}>
                 <div className="mythic-c2-action-body">
                     <div className="mythic-c2-collapsed-edge-summary">
-                        <span className={`mythic-status-chip mythic-tone-${routeSummary.tone}`}>
-                            {routeSummary.label}
-                        </span>
-                        <span className="mythic-status-chip mythic-tone-neutral">{routeSummary.activeEdgeCount} active links</span>
-                        <span className="mythic-status-chip mythic-tone-neutral">{routeSummary.endedEdgeCount} ended links</span>
-                        <span className="mythic-status-chip mythic-tone-neutral">{routeSummary.egressEdgeCount} egress</span>
-                        <span className="mythic-status-chip mythic-tone-neutral">{routeSummary.p2pEdgeCount} p2p</span>
+                        <MythicChip label={routeSummary.label} tone={routeSummary.tone} />
+                        <MythicChip label={`${routeSummary.activeEdgeCount} active links`} />
+                        <MythicChip label={`${routeSummary.endedEdgeCount} ended links`} />
+                        <MythicChip label={`${routeSummary.egressEdgeCount} egress`} />
+                        <MythicChip label={`${routeSummary.p2pEdgeCount} p2p`} />
                     </div>
                     {routeSummary.profileNames.length > 0 &&
                         <Typography component="div" className="mythic-c2-collapsed-edge-profiles">
@@ -316,7 +315,7 @@ const C2CollapsedGroupEdgeDialog = ({details, onClose, onOpenCallbackTasking}) =
                                     <div className="mythic-c2-action-card-main">
                                         <div className="mythic-c2-action-route">
                                             <span>{edge.source}</span>
-                                            <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-primary">{edge.profile}</span>
+                                            <MythicChip compact label={edge.profile} tone="primary" />
                                             <span>{edge.destination}</span>
                                         </div>
                                         <Typography component="div" className="mythic-c2-action-card-description">
@@ -357,9 +356,7 @@ const C2CollapsedGroupEdgeDialog = ({details, onClose, onOpenCallbackTasking}) =
                                             }
                                         </div>
                                     </div>
-                                    <span className={`mythic-status-chip mythic-status-chip-compact mythic-tone-${edge.active ? "success" : "warning"}`}>
-                                        {edge.active ? "Active" : "Ended"}
-                                    </span>
+                                    <MythicChip compact label={edge.active ? "Active" : "Ended"} tone={edge.active ? "success" : "warning"} />
                                 </div>
                             ))}
                             {filteredEdges.length > visibleEdges.length &&
@@ -417,9 +414,7 @@ const C2ManualRemoveEdgeDialog = ({options = [], onSubmit, onClose}) => {
                                                 {route.isP2P ? "Peer-to-peer link" : "Direct egress link"} from {route.source} through {route.profile}.
                                             </Typography>
                                         </div>
-                                        <span className={`mythic-status-chip mythic-status-chip-compact mythic-tone-${route.active ? "success" : "warning"}`}>
-                                            {route.active ? "Active" : "Ended"}
-                                        </span>
+                                        <MythicChip compact label={route.active ? "Active" : "Ended"} tone={route.active ? "success" : "warning"} />
                                     </button>
                                 );
                             })}
@@ -474,7 +469,7 @@ const C2SelectLinkCommandDialog = ({options = [], callback, onSubmit, onClose}) 
                                             <div className="mythic-c2-action-command-row">
                                                 <span className="mythic-c2-action-command-name">{command.cmd}</span>
                                                 {command.needs_admin &&
-                                                    <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-warning">Admin</span>
+                                                    <MythicChip compact label="Admin" tone="warning" />
                                                 }
                                             </div>
                                             <Typography component="div" className="mythic-c2-action-card-description">
@@ -726,14 +721,11 @@ export function C2PathDialog({callback, callbackgraphedges, onClose, onOpenTab})
                     </Typography>
                 </div>
                 <div className="mythic-c2-path-summary">
-                    <span className={`mythic-status-chip mythic-tone-${routeSummary.tone}`}>
-                        <RouteSummaryIcon fontSize="inherit" />
-                        {routeSummary.label}
-                    </span>
-                    <span className="mythic-status-chip mythic-tone-neutral">{routeSummary.activeEdgeCount} active</span>
-                    <span className="mythic-status-chip mythic-tone-neutral">{routeSummary.endedEdgeCount} ended</span>
-                    <span className="mythic-status-chip mythic-tone-neutral">{routeSummary.egressEdgeCount} egress</span>
-                    <span className="mythic-status-chip mythic-tone-neutral">{routeSummary.p2pEdgeCount} p2p</span>
+                    <MythicChip icon={<RouteSummaryIcon />} label={routeSummary.label} tone={routeSummary.tone} />
+                    <MythicChip label={`${routeSummary.activeEdgeCount} active`} />
+                    <MythicChip label={`${routeSummary.endedEdgeCount} ended`} />
+                    <MythicChip label={`${routeSummary.egressEdgeCount} egress`} />
+                    <MythicChip label={`${routeSummary.p2pEdgeCount} p2p`} />
                 </div>
             </div>
         </DialogTitle>
@@ -1194,16 +1186,17 @@ export function C2LabelEdge({  id,  sourceX, sourceY, targetX, targetY, sourcePo
                             <span>{data.routeSummary?.endedEdgeCount || 0} ended</span>
                         </button> :
                         showProfileLabel &&
-                            <span className={`mythic-c2-edge-profile-chip ${data?.has_logo ? "mythic-c2-edge-profile-chip-with-icon" : ""}`}>
-                                {data?.has_logo &&
-                                    <MythicAgentSVGIconNoTooltip payload_type={label}
-                                                                    is_p2p={data.is_p2p}
-                                                                    className={"mythic-c2-edge-profile-icon"}/>
+                            <MythicChip
+                                className={`mythic-c2-edge-profile-chip${data?.has_logo ? " mythic-c2-edge-profile-chip-with-icon" : ""}`}
+                                icon={data?.has_logo ?
+                                    <MythicAgentSVGIconNoTooltip
+                                        payload_type={label}
+                                        is_p2p={data.is_p2p}
+                                        className="mythic-c2-edge-profile-icon"
+                                    /> : undefined
                                 }
-                                <span className="mythic-c2-edge-profile-name">
-                                    {label}
-                                </span>
-                            </span>
+                                label={<span className="mythic-c2-edge-profile-name">{label}</span>}
+                            />
                     }
                 </div>
             </EdgeLabelRenderer>

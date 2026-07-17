@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import TableCell from '@mui/material/TableCell';
 import TableRow from '@mui/material/TableRow';
@@ -23,7 +24,7 @@ import { snackActions } from '../../utilities/Snackbar';
 import Box from '@mui/material/Box';
 import Dialog from '@mui/material/Dialog';
 import {DetailedPayloadTable, ParseForDisplay} from "../Payloads/DetailedPayloadTable";
-import {Button, Link, IconButton} from '@mui/material';
+import {Button, Link} from '@mui/material';
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import PlayCircleFilledTwoToneIcon from '@mui/icons-material/PlayCircleFilledTwoTone';
@@ -372,10 +373,10 @@ export function DetailedCallbackTable(props){
                         <TableCell>UUID</TableCell>
                         <TableCell>
                             {data.callback_by_pk.payload.uuid}
-                            <IconButton disableFocusRipple={true}
-                                        disableRipple={true} size="small" color="info" onClick={() => setOpenDetailedView(true)}>
+                            <MythicActionButton colorMode="always" tone="info" iconOnly disableFocusRipple={true}
+                                        disableRipple={true} size="small"  onClick={() => setOpenDetailedView(true)}>
                                 <InfoIconOutline />
-                            </IconButton>
+                            </MythicActionButton>
                         </TableCell>
                         {openDetailedView ? (
                             <MythicDialog fullWidth={true} maxWidth="lg" open={openDetailedView}
@@ -587,18 +588,18 @@ export function DetailedCallbackTable(props){
                         <TableCell>
                           <div className="mythic-compact-actions mythic-compact-actions-nowrap">
                             <MythicStyledTooltip title="Open command documentation">
-                              <IconButton
-                                  className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
+                              <MythicActionButton iconOnly
+                                  appearance="raised" colorMode="hover" tone="info"
                                   size="small"
                                   target="_blank"
                                   href={"/docs/agents/" + cmd.payload_type + "/commands/" + cmd.cmd}
                               >
                                   <MenuBookIcon fontSize="small" />
-                              </IconButton>
+                              </MythicActionButton>
                             </MythicStyledTooltip>
                             <MythicStyledTooltip title="Scripting parameters">
-                              <IconButton
-                                  className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
+                              <MythicActionButton iconOnly
+                                  appearance="raised" colorMode="hover" tone="info"
                                   size="small"
                                   onClick={() => setOpenScriptDialog({
                                     open: true,
@@ -607,7 +608,7 @@ export function DetailedCallbackTable(props){
                                   })}
                               >
                                 <PlayCircleFilledTwoToneIcon fontSize="small" />
-                              </IconButton>
+                              </MythicActionButton>
                             </MythicStyledTooltip>
                           </div>
                         </TableCell>

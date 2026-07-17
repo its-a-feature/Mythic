@@ -1,6 +1,6 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import TableRow from '@mui/material/TableRow';
-import IconButton from '@mui/material/IconButton';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
@@ -27,7 +27,7 @@ export function TagtypesTableRow(props){
                 <MythicStyledTableCell>
 
                   <MythicStyledTooltip title={"Delete the tag type and all associated tags"}>
-                    <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><DeleteIcon fontSize="small" /></IconButton>
+                    <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><DeleteIcon fontSize="small" /></MythicActionButton>
                   </MythicStyledTooltip>
                   
                   {openDelete && 
@@ -36,9 +36,9 @@ export function TagtypesTableRow(props){
                   
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" size="small" onClick={()=>{setOpenUpdateDialog(true);}}>
+                    <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" size="small" onClick={()=>{setOpenUpdateDialog(true);}}>
                         <EditIcon fontSize="small" />
-                    </IconButton>
+                    </MythicActionButton>
                   {openUpdate && 
                     <MythicDialog fullWidth={true} maxWidth="md" open={openUpdate}
                       onClose={()=>{setOpenUpdateDialog(false);}} 

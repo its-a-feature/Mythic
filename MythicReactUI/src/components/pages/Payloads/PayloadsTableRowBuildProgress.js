@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import TimelapseIcon from '@mui/icons-material/Timelapse';
 import PanoramaFishEyeIcon from '@mui/icons-material/PanoramaFishEye';
@@ -6,7 +7,6 @@ import HideSourceIcon from '@mui/icons-material/HideSource';
 import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 import {MythicStyledTooltip} from '../../MythicComponents/MythicStyledTooltip';
 import Button from '@mui/material/Button';
-import IconButton from '@mui/material/IconButton';
 import DialogActions from '@mui/material/DialogActions';
 import DialogTitle from '@mui/material/DialogTitle';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
@@ -19,22 +19,15 @@ import TableHead from '@mui/material/TableHead';
 import DialogContent from '@mui/material/DialogContent';
 import {MythicStatusChip} from '../../MythicComponents/MythicStatusChip';
 
-const buildStepToneClasses = {
-    info: "mythic-icon-tone mythic-tone-info",
-    success: "mythic-icon-tone mythic-tone-success",
-    error: "mythic-icon-tone mythic-tone-error",
-};
-
 function BuildStepIconButton({children, muted = false, onClick, tone = "info"}) {
     return (
-        <IconButton
-            className={`mythic-compact-icon-action ${buildStepToneClasses[tone] || ""}`}
+        <MythicActionButton iconOnly
+            appearance="raised" colorMode="always" muted={muted} tone={tone}
             onClick={onClick}
             size="small"
-            style={muted ? {filter: "grayscale(1)", opacity: 0.3} : undefined}
         >
             {children}
-        </IconButton>
+        </MythicActionButton>
     );
 }
 

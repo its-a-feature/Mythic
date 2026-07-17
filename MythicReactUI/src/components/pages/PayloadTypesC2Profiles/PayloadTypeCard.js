@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {PayloadTypeBuildDialog} from './PayloadTypeBuildDialog';
@@ -5,7 +6,6 @@ import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RestoreFromTrashOutlinedIcon from '@mui/icons-material/RestoreFromTrashOutlined';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
-import IconButton from '@mui/material/IconButton';
 import TuneIcon from '@mui/icons-material/Tune';
 import SaveIcon from '@mui/icons-material/Save';
 import TableRow from '@mui/material/TableRow';
@@ -66,13 +66,13 @@ export function PayloadTypeRow({service, showDeleted}){
             <TableRow hover>
                 <MythicTableCell>
                     {service.deleted ? (
-                        <IconButton className="mythic-compact-icon-action mythic-icon-tone mythic-tone-success" size="small" onClick={()=>{setOpenDeleteDialog(true);}} >
+                        <MythicActionButton iconOnly appearance="raised" colorMode="always" tone="success" size="small" onClick={()=>{setOpenDeleteDialog(true);}} >
                             <RestoreFromTrashOutlinedIcon fontSize="small" />
-                        </IconButton>
+                        </MythicActionButton>
                     ) : (
-                        <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={()=>{setOpenDeleteDialog(true);}} >
+                        <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={()=>{setOpenDeleteDialog(true);}} >
                             <DeleteIcon fontSize="small" />
-                        </IconButton>
+                        </MythicActionButton>
                     )}
                 </MythicTableCell>
                 <MythicTableCell>
@@ -100,46 +100,46 @@ export function PayloadTypeRow({service, showDeleted}){
                 <MythicTableCell>
                     <div className="mythic-compact-actions">
                     <MythicStyledTooltip title={"Documentation"}>
-                        <IconButton
-                            className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
+                        <MythicActionButton iconOnly
+                            appearance="raised" colorMode="hover" tone="info"
                             href={service.wrapper ? "/docs/wrappers/" + service.name : "/docs/agents/" + service.name}
                             target="_blank"
                             size="small">
                             <MenuBookIcon fontSize="small" />
-                        </IconButton>
+                        </MythicActionButton>
                     </MythicStyledTooltip>
                     <MythicStyledTooltip title={"Build Parameters"}>
-                        <IconButton
-                            className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
+                        <MythicActionButton iconOnly
+                            appearance="raised" colorMode="hover" tone="info"
                             onClick={()=>{setOpenBuildingDialog(true);}}
                             size="small">
                             <TuneIcon fontSize="small" />
-                        </IconButton>
+                        </MythicActionButton>
                     </MythicStyledTooltip>
                     <MythicStyledTooltip title={"Save/Edit Build Parameter Instances"}>
-                        <IconButton
-                            className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
+                        <MythicActionButton iconOnly
+                            appearance="raised" colorMode="hover" tone="info"
                             onClick={()=>{setOpenBuildParameterInstancesDialog(true);}}
                             size="small">
                             <SaveIcon fontSize="small" />
-                        </IconButton>
+                        </MythicActionButton>
                     </MythicStyledTooltip>
                     <MythicStyledTooltip title={"Commands"}>
-                        <IconButton
-                            className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
+                        <MythicActionButton iconOnly
+                            appearance="raised" colorMode="hover" tone="info"
                             onClick={()=>{setOpenCommandsDialog(true)}}
                             size="small">
                             <TerminalIcon fontSize="small" />
-                        </IconButton>
+                        </MythicActionButton>
                     </MythicStyledTooltip>
                     <MythicStyledTooltip title={service.container_running ? "View Files" : "Unable to view files because container is offline"}>
-                        <IconButton
-                            className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
+                        <MythicActionButton iconOnly
+                            appearance="raised" colorMode="hover" tone="info"
                             disabled={!service.container_running}
                             onClick={()=>{setOpenListFilesDialog(true);}}
                             size="small">
                             <AttachFileIcon fontSize="small" />
-                        </IconButton>
+                        </MythicActionButton>
                     </MythicStyledTooltip>
                     </div>
                 </MythicTableCell>

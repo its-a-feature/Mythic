@@ -69,7 +69,7 @@ export function BrowserScriptsTable(props){
                     </>
                 }
                 actions={
-                    <MythicToolbarButton variant="contained" color="primary" onClick={() => setOpenNewScriptDialog(true)} startIcon={<AddCircleIcon />}>
+                    <MythicToolbarButton variant="contained" colorMode="hover" tone="success" onClick={() => setOpenNewScriptDialog(true)} startIcon={<AddCircleIcon />}>
                         Script
                     </MythicToolbarButton>
                 }

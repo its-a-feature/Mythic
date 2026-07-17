@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import {Button, DialogContent, DialogTitle, TextField} from '@mui/material';
 import Table from '@mui/material/Table';
@@ -8,7 +9,6 @@ import TableRow from '@mui/material/TableRow';
 import Switch from '@mui/material/Switch';
 import Box from '@mui/material/Box';
 import Collapse from '@mui/material/Collapse';
-import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
@@ -49,7 +49,7 @@ import {
     MythicDialogSection,
     MythicFormNote
 } from "../../MythicComponents/MythicDialogLayout";
-import {MythicStateChip} from "../../MythicComponents/MythicStateChip";
+import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
 import {SettingsOperatorAliasesDialog} from "./SettingsOperatorAliasesDialog";
 
 const createAPITokenMutation = gql`
@@ -256,10 +256,10 @@ export function SettingsOperatorTableRow(props){
         <React.Fragment>
             <TableRow key={props.id}>
                 <MythicStyledTableCell >
-                    <IconButton className={`mythic-compact-icon-action ${props.deleted ? "mythic-icon-tone mythic-tone-success" : "mythic-action-tone-hover mythic-tone-error"}`} size="small" onClick={()=>{setOpenDeleteDialog(true);}}
+                    <MythicActionButton iconOnly appearance="raised" colorMode={props.deleted ? "always" : "hover"} tone={props.deleted ? "success" : "error"} size="small" onClick={()=>{setOpenDeleteDialog(true);}}
                               disabled={(isMe || !props.userIsAdmin)}>
                         {props.deleted ? <RestoreFromTrashIcon fontSize="small" /> : <DeleteIcon fontSize="small" />}
-                    </IconButton>
+                    </MythicActionButton>
                   {openDelete && 
                       <MythicDialog open={openDelete} 
                       onClose={()=>{setOpenDeleteDialog(false);}} 
@@ -285,10 +285,10 @@ export function SettingsOperatorTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <MythicStyledTooltip title={"Adjust Username/Password"}>
-                        <IconButton size="medium"
+                        <MythicActionButton colorMode="hover" tone="error" iconOnly size="medium"
                                     disabled={!(isMe || props.userIsAdmin)}
                                     onClick={()=>{setOpenUpdateDialog(true);}}
-                                    color="error" ><PasswordIcon /></IconButton>
+                                     ><PasswordIcon /></MythicActionButton>
                     </MythicStyledTooltip>
                   {openUpdate &&
                     <MythicDialog open={openUpdate} 
@@ -314,12 +314,12 @@ export function SettingsOperatorTableRow(props){
                   {((props.id === me.user.id) || (props.userIsAdmin && props.account_type === "bot")) &&
                       <>
                           <MythicStyledTooltip title={"Configure UI preferences"} tooltipStyle={{display: "inline-block"}}>
-                              <IconButton size="medium"
+                              <MythicActionButton colorMode="hover" tone="info" iconOnly size="medium"
                                           disabled={props.account_type === "bot"}
                                           onClick={()=>{setOpenUIConfig(true);}}
-                                          color="info" variant='contained'>
+                                           variant='contained'>
                                   <SettingsIcon />
-                              </IconButton>
+                              </MythicActionButton>
                           </MythicStyledTooltip>
 
                         {openUIConfig &&
@@ -328,10 +328,10 @@ export function SettingsOperatorTableRow(props){
                           />
                         }
                           <MythicStyledTooltip title={"Secrets"} >
-                              <IconButton size="medium" onClick={()=>{setOpenSecretsConfig(true);}}
-                                          color="error" variant='contained'>
+                              <MythicActionButton colorMode="hover" tone="error" iconOnly size="medium" onClick={()=>{setOpenSecretsConfig(true);}}
+                                           variant='contained'>
                                   <VpnKeyIcon />
-                              </IconButton>
+                              </MythicActionButton>
                           </MythicStyledTooltip>
                           {openSecretsConfig &&
                               <MythicDialog open={openSecretsConfig} onClose={()=>{setOpenSecretsConfig(false)}} maxWidth={"xl"} fullWidth
@@ -339,11 +339,11 @@ export function SettingsOperatorTableRow(props){
                               />
                           }
                           <MythicStyledTooltip title={"Operator Aliases"} >
-                              <IconButton size="medium" onClick={()=>{setOpenAliasesConfig(true);}}
-                                          color="info" variant='contained'
+                              <MythicActionButton colorMode="hover" tone="info" iconOnly size="medium" onClick={()=>{setOpenAliasesConfig(true);}}
+                                           variant='contained'
                                           disabled={props.account_type === "bot"}>
                                   <TerminalIcon />
-                              </IconButton>
+                              </MythicActionButton>
                           </MythicStyledTooltip>
                           {openAliasesConfig &&
                               <MythicDialog open={openAliasesConfig} onClose={()=>{setOpenAliasesConfig(false)}} maxWidth={"lg"} fullWidth
@@ -351,12 +351,12 @@ export function SettingsOperatorTableRow(props){
                               />
                           }
                         <MythicStyledTooltip title={"Experimental UI Settings"} >
-                            <IconButton size="medium" onClick={()=>{setOpenExperimentalUIConfig(true);}}
-                                        color="warning" variant='contained'
+                            <MythicActionButton colorMode="hover" tone="warning" iconOnly size="medium" onClick={()=>{setOpenExperimentalUIConfig(true);}}
+                                         variant='contained'
                                         disabled={props.account_type === "bot"}
                             >
                                 <RocketLaunchIcon />
-                            </IconButton>
+                            </MythicActionButton>
                         </MythicStyledTooltip>
                           {openExperimentalUIConfig &&
                               <MythicDialog open={openExperimentalUIConfig} onClose={()=>{setOpenExperimentalUIConfig(false)}} maxWidth={"md"} fullWidth
@@ -377,7 +377,6 @@ export function SettingsOperatorTableRow(props){
                             name="active"
                             size="small"
                           />
-                        <MythicStateChip label={props.active ? "Active" : "Disabled"} state={props.active ? "active" : "disabled"} />
                     </Box>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
@@ -389,7 +388,7 @@ export function SettingsOperatorTableRow(props){
                 <MythicStyledTableCell>{props.email}</MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <Switch
-                        color={ isMe || !props.userIsAdmin ? "secondary" : "info"}
+                        color={"success"}
                         checked={props.admin}
                         disabled={isMe || !props.userIsAdmin || props.account_type === "bot"}
                         onChange={onAdminChanged}
@@ -399,9 +398,9 @@ export function SettingsOperatorTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                   { ((props.id === me.user.id) || (props.userIsAdmin && props.account_type === "bot")) &&
-                    <IconButton aria-label="expand row" size="small" onClick={() => setOpen(!open)}>
+                    <MythicActionButton iconOnly aria-label="expand row" size="small" onClick={() => setOpen(!open)}>
                       {open ? <KeyboardArrowUpIcon className="mythicElement"/> : <KeyboardArrowDownIcon className="mythicElement"/>}
-                    </IconButton>
+                    </MythicActionButton>
                   }
                     
                 </MythicStyledTableCell>
@@ -418,12 +417,12 @@ export function SettingsOperatorTableRow(props){
                               <>
                               {showDeleted ? (
                                   <MythicStyledTooltip title={"Hide API Tokens"}>
-                                      <IconButton className="mythic-dialog-title-action" size="small" onClick={() => setShowDeleted(!showDeleted)}><VisibilityIcon fontSize="small" /></IconButton>
+                                      <MythicActionButton iconOnly appearance="raised" size="small" onClick={() => setShowDeleted(!showDeleted)}><VisibilityIcon fontSize="small" /></MythicActionButton>
                                   </MythicStyledTooltip>
 
                               ) : (
                                   <MythicStyledTooltip title={"Show Deleted API Tokens"}>
-                                      <IconButton className="mythic-dialog-title-action" size="small" onClick={() => setShowDeleted(!showDeleted)}><VisibilityOffIcon fontSize="small" /></IconButton>
+                                      <MythicActionButton iconOnly appearance="raised" size="small" onClick={() => setShowDeleted(!showDeleted)}><VisibilityOffIcon fontSize="small" /></MythicActionButton>
                                   </MythicStyledTooltip>
                               )}
                               <Button

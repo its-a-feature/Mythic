@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React, { useEffect } from 'react';
 import { useMutation, useLazyQuery, gql } from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
@@ -12,7 +13,6 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ErrorIcon from '@mui/icons-material/Error';
 import { useTheme } from '@mui/material/styles';
-import { IconButton } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ListIcon from '@mui/icons-material/List';
@@ -804,11 +804,11 @@ export const CallbacksTabsCustomFileBasedBrowserTable = (props) => {
                     }}>
                         {"Only PARTIAL data has been collected for this path.  "}<br/>
                         {"Task this callback to list the contents"}
-                        <IconButton style={{margin: 0, padding: 0, marginRight: "10px"}}
+                        <MythicActionButton iconOnly style={{margin: 0, padding: 0, marginRight: "10px"}}
                                     onClick={props.onListFilesButtonFromTableWithNoEntries}>
                             <RefreshIcon color={"info"} fontSize={"large"}
                                          style={{display: "inline-block",}}/>
-                        </IconButton>
+                        </MythicActionButton>
                     </div>
                 </div>
             }
@@ -843,10 +843,10 @@ export const CallbacksTabsCustomFileBasedBrowserTable = (props) => {
                         {"No data has been collected for this path.  "}
                         <div style={{display: "flex", alignItems: "center"}}>
                             {"Task this callback to list the contents"}
-                            <IconButton style={{margin: 0, padding: 0, marginRight: "10px"}} onClick={props.onListFilesButtonFromTableWithNoEntries} >
+                            <MythicActionButton iconOnly style={{margin: 0, padding: 0, marginRight: "10px"}} onClick={props.onListFilesButtonFromTableWithNoEntries} >
                                 <RefreshIcon color={"info"} fontSize={"large"}
                                              style={{ display: "inline-block",}} />
-                            </IconButton>
+                            </MythicActionButton>
                         </div>
                     </div>
                 </div>

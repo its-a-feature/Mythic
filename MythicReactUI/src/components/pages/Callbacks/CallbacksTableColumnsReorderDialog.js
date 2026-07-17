@@ -1,7 +1,7 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import IconButton from '@mui/material/IconButton';
 import {MythicDraggablePortal, reorder} from "../../MythicComponents/MythicDraggableList";
 import {
     Draggable,
@@ -108,9 +108,9 @@ export const DraggableListItem = ({ item, index, onToggleVisibility }) => {
                             <span className="mythic-reorder-row-title">{item.name}</span>
                         </div>
                         <div className="mythic-reorder-row-actions">
-                            <IconButton
+                            <MythicActionButton iconOnly
                                 aria-label={item.visible ? `Hide ${item.name}` : `Show ${item.name}`}
-                                className={`mythic-compact-icon-action ${item.visible ? "mythic-action-tone-hover mythic-tone-error" : "mythic-action-tone-hover mythic-tone-info"}`}
+                                appearance="raised" colorMode="hover" tone={item.visible ? "error" : "info"}
                                 size="small"
                                 onClick={() => onToggleVisibility(index)}
                             >
@@ -119,7 +119,7 @@ export const DraggableListItem = ({ item, index, onToggleVisibility }) => {
                                 ) : (
                                     <VisibilityOffIcon fontSize="small" />
                                 )}
-                            </IconButton>
+                            </MythicActionButton>
                         </div>
                     </div>
                 );

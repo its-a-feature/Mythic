@@ -33,6 +33,7 @@ func TestValidateWrapperPayloadRequirements(t *testing.T) {
 				AgentType:                  "wrapper",
 				WrapperPayloadRequirements: []WrapperPayloadRequirement{{Requires: map[string]string{}}},
 			},
+			wantError: "wrapper_payload_requirements can only be set on wrapper payload types",
 		},
 		{
 			name: "rules on non-wrapper",

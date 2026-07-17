@@ -1,8 +1,8 @@
+import {MythicActionButton} from "./MythicComponents/MythicActionButton";
 import React from 'react';
 import { styled } from '@mui/material/styles';
 import CameraAltTwoToneIcon from '@mui/icons-material/CameraAltTwoTone';
 import MuiDrawer from '@mui/material/Drawer';
-import IconButton from '@mui/material/IconButton';
 import MenuIcon from '@mui/icons-material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import ManageAccountsTwoToneIcon from '@mui/icons-material/ManageAccountsTwoTone';
@@ -28,7 +28,7 @@ import ExpandMore from '@mui/icons-material/ExpandMore';
 import TableChartTwoToneIcon from '@mui/icons-material/TableChartTwoTone';
 import PostAddIcon from '@mui/icons-material/PostAdd';
 import EditIcon from '@mui/icons-material/Edit';
-import { Typography } from '@mui/material';
+import {Typography} from '@mui/material';
 import KeyboardIcon from '@mui/icons-material/Keyboard';
 import HeadsetTwoToneIcon from '@mui/icons-material/HeadsetTwoTone';
 import CodeOffIcon from '@mui/icons-material/CodeOff';
@@ -807,14 +807,14 @@ const TopAppBarVerticalAdjustShortcutsDialog = ({onClose, onSave, sideShortcuts}
                                                                 </Select>
                                                             </div>
                                                             <div className="mythic-reorder-row-actions">
-                                                                <IconButton
+                                                                <MythicActionButton iconOnly
                                                                     aria-label={`Remove ${c}`}
-                                                                    className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error"
+                                                                    appearance="raised" colorMode="hover" tone="error"
                                                                     size="small"
                                                                     onClick={() => removeShortcut(i)}
                                                                 >
                                                                     <DeleteIcon fontSize="small" />
-                                                                </IconButton>
+                                                                </MythicActionButton>
                                                             </div>
                                                         </div>
                                                     );
@@ -984,9 +984,9 @@ export function TopAppBarVertical(props) {
                         <b>Mythic:</b> v{serverVersion}<br/>
                         <b>UI:</b> v{mythicUIVersion}<br/>
                     </Typography>
-                    <IconButton
+                    <MythicActionButton iconOnly
                         aria-label={`Switch to ${props.themeMode === 'light' ? 'dark' : 'light'} mode`}
-                        className="mythic-navigation-theme-toggle"
+                        appearance="plain" tone="secondary"
                         onClick={props.toggleTheme}
                         size="small"
                         style={{float:"right", display: menuOpen ? "" : "none"}}
@@ -997,7 +997,7 @@ export function TopAppBarVertical(props) {
                         {props.themeMode === 'dark' &&
                             <LightModeTwoToneIcon fontSize={"medium"} className="mythicElement mythic-navigation-warning-icon" />
                         }
-                    </IconButton>
+                    </MythicActionButton>
                 </>
             } />
           </ListItem>

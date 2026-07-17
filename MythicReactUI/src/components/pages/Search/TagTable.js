@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import {Link, IconButton} from '@mui/material';
+import {Link} from '@mui/material';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -16,13 +16,13 @@ import {deleteTagMutation} from '../../MythicComponents/MythicTag';
 import {useMutation} from '@apollo/client';
 import {snackActions} from "../../utilities/Snackbar";
 import {b64DecodeUnicode} from '../Callbacks/ResponseDisplay';
-import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {HostFileDialog} from "../Payloads/HostFileDialog";
 import PublicIcon from '@mui/icons-material/Public';
 import {DetailedPayloadTable} from "../Payloads/DetailedPayloadTable";
 import InfoIconOutline from '@mui/icons-material/InfoOutlined';
 import {getReadableTextColor, isValidHexColor} from "../../MythicComponents/MythicColorInput";
 import {FileDownloadLinkWithAuth} from "../../utilities/FileDownloadWithAuth";
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 
 const singleLineCellStyle = {
     minWidth: 0,
@@ -101,15 +101,7 @@ function TagTableRow(props){
         <React.Fragment>
             <TableRow hover>
                 <MythicStyledTableCell>
-                    <MythicStyledTooltip title="Remove tag">
-                        <IconButton
-                            className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error"
-                            size="small"
-                            onClick={()=>{setOpenDeleteDialog(true);}}
-                        >
-                            <DeleteIcon fontSize="small" />
-                        </IconButton>
-                    </MythicStyledTooltip>
+                    <MythicActionButton appearance="raised" icon={<DeleteIcon />} iconOnly onClick={()=>{setOpenDeleteDialog(true);}} tone="error" tooltip="Remove tag" />
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <div className="mythic-tag-search-tag-cell"><TagsDisplay expand={true} tags={[props]} /></div>
@@ -227,15 +219,7 @@ function TagTableRowElement(props){
                     <TagElementPanel
                         type={treeType}
                         actions={
-                            <MythicStyledTooltip title="View metadata">
-                                <IconButton
-                                    className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
-                                    size="small"
-                                    onClick={() => setViewPermissionsDialogOpen(true)}
-                                >
-                                    <PlaylistAddCheckIcon fontSize="small" />
-                                </IconButton>
-                            </MythicStyledTooltip>
+                            <MythicActionButton appearance="raised" icon={<PlaylistAddCheckIcon />} iconOnly onClick={() => setViewPermissionsDialogOpen(true)} tone="info" tooltip="View metadata" />
                         }
                     >
                         <TagDetailItem label="Name">{props.mythictree.name_text}</TagDetailItem>
@@ -266,15 +250,7 @@ function TagTableRowElement(props){
                     <TagElementPanel
                         type={fileKind}
                         actions={
-                            <MythicStyledTooltip title={"Host Payload Through C2"} >
-                                <IconButton
-                                    className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
-                                    size="small"
-                                    onClick={()=>{setOpenHostDialog(true);}}
-                                >
-                                    <PublicIcon fontSize="small" />
-                                </IconButton>
-                            </MythicStyledTooltip>
+                            <MythicActionButton appearance="raised" icon={<PublicIcon />} iconOnly onClick={()=>{setOpenHostDialog(true);}} tone="info" tooltip="Host Payload Through C2" />
                         }
                     >
                         <TagDetailItem label="Filename" wide>
@@ -317,15 +293,7 @@ function TagTableRowElement(props){
                     type="Payload"
                     summary={props.payload.payloadtype?.name ? <span className="mythic-search-result-secondary">{props.payload.payloadtype.name}</span> : null}
                     actions={
-                        <MythicStyledTooltip title="View payload details">
-                            <IconButton
-                                className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
-                                onClick={()=>setOpenDetailedView(true)}
-                                size="small"
-                            >
-                                <InfoIconOutline fontSize="small" />
-                            </IconButton>
-                        </MythicStyledTooltip>
+                        <MythicActionButton appearance="raised" icon={<InfoIconOutline />} iconOnly onClick={()=>setOpenDetailedView(true)} tone="info" tooltip="View payload details" />
                     }
                 >
                     <TagDetailItem label="Filename" wide>{safeDecode(props.payload.filemetum?.filename_text)}</TagDetailItem>

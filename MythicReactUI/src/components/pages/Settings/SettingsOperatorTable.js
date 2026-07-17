@@ -99,17 +99,24 @@ export function SettingsOperatorTable(props){
                         disabled={!inviteLinksEnabled || !userIsAdmin}
                         onClick={()=>{setOpenInviteLinksDialog(true);}}
                         startIcon={<ForwardToInboxTwoToneIcon />}
+                        colorMode={"hover"} tone={"primary"}
                         variant="outlined"
                     >
                         Invites
                     </MythicToolbarButton>
-                    <MythicToolbarButton onClick={()=>{setOpenNewDialog(true);}} startIcon={<PersonAddIcon />} variant="contained">
+                    <MythicToolbarButton onClick={()=>{setOpenNewDialog(true);}} startIcon={<PersonAddIcon />} variant="contained"
+                                         colorMode={"hover"} tone={"success"}
+                    >
                         User
                     </MythicToolbarButton>
-                    <MythicToolbarButton onClick={()=>{setOpenNewBotDialog(true);}} startIcon={<SmartToyTwoToneIcon />} variant="outlined">
+                    <MythicToolbarButton onClick={()=>{setOpenNewBotDialog(true);}} startIcon={<SmartToyTwoToneIcon />} variant="outlined"
+                                         colorMode={"hover"} tone={"success"}
+                    >
                         Bot
                     </MythicToolbarButton>
-                    <MythicToolbarButton onClick={() => setOpenGlobalSettingsDialog(!openGlobalSettingsDialog)} startIcon={<TuneIcon />} variant="outlined">
+                    <MythicToolbarButton onClick={() => setOpenGlobalSettingsDialog(!openGlobalSettingsDialog)} startIcon={<TuneIcon />} variant="outlined"
+                                         colorMode={"hover"} tone={"warning"}
+                    >
                         Global
                     </MythicToolbarButton>
                     <MythicToolbarToggle

@@ -1,6 +1,6 @@
 import React from 'react';
 import {gql, useQuery} from '@apollo/client';
-import {Autocomplete, Box, Button, Chip, CircularProgress, DialogActions, DialogContent, DialogTitle, Tab, Tabs, TextField, Typography} from '@mui/material';
+import {Autocomplete, Box, Button, CircularProgress, DialogActions, DialogContent, DialogTitle, Tab, Tabs, TextField, Typography} from '@mui/material';
 import LinkIcon from '@mui/icons-material/Link';
 import DeviceHubIcon from '@mui/icons-material/DeviceHub';
 import MemoryIcon from '@mui/icons-material/Memory';
@@ -8,6 +8,7 @@ import RouteIcon from '@mui/icons-material/AltRoute';
 import {b64DecodeUnicode} from './ResponseDisplay';
 import {MythicStyledTooltip} from '../../MythicComponents/MythicStyledTooltip';
 import {snackActions} from '../../utilities/Snackbar';
+import {MythicChip} from '../../MythicComponents/MythicChip';
 
 export const linkReferenceKeyword = "link";
 export const linkReferenceKinds = {
@@ -246,7 +247,7 @@ export const getLinkTaskReferenceReviewValue = (reference, context={}) => {
 export function LinkReferenceToken({reference, linkReferences}) {
     return (
         <MythicStyledTooltip title={reference.raw}>
-            <span className="mythic-reference-token mythic-reference-token-link">
+            <span className="mythic-reference-token">
                 {getLinkTaskReferenceReviewValue(reference, {linkReferences})}
             </span>
         </MythicStyledTooltip>
@@ -534,14 +535,14 @@ function LinkInfoEdgeOptionSummary({option, icon}) {
                 <Typography component="span" className="mythic-link-reference-edge-host">
                     {edgeSummary.host}
                 </Typography>
-                <Chip size="small" variant="outlined" label={edgeSummary.callbackLabel} className="mythic-status-chip mythic-tone-neutral" />
-                <Chip size="small" variant="outlined" label={edgeSummary.userPidLabel} className="mythic-status-chip mythic-tone-neutral" />
-                <Chip size="small" variant="outlined" label={edgeSummary.payloadType} className="mythic-status-chip mythic-tone-neutral" />
-                <Chip
+                <MythicChip size="small" variant="outlined" label={edgeSummary.callbackLabel} />
+                <MythicChip size="small" variant="outlined" label={edgeSummary.userPidLabel} />
+                <MythicChip size="small" variant="outlined" label={edgeSummary.payloadType} />
+                <MythicChip
                     size="small"
                     variant="outlined"
                     label={edgeSummary.connectionLabel}
-                    className={`mythic-status-chip mythic-tone-${edgeSummary.connectionActive ? "success" : "warning"}`}
+                    tone={edgeSummary.connectionActive ? "success" : "warning"}
                 />
             </Box>
             <Typography component="span" className="mythic-link-reference-edge-secondary">
@@ -694,7 +695,7 @@ export function LinkReferencePickerDialog({operation_id, callback_id, parameterT
                             placeholder={searchPlaceholder}
                             className="mythic-link-reference-search-field"
                         />
-                        <Chip size="small" variant="outlined" label={loading ? "Loading" : `${visibleOptions.length} shown`} className="mythic-status-chip mythic-tone-neutral" />
+                        <MythicChip size="small" variant="outlined" label={loading ? "Loading" : `${visibleOptions.length} shown`} />
                     </Box>
                     {isAgentConnect && agentConnectTab === linkReferenceKinds.payload &&
                         <Box className="mythic-link-reference-host-row">

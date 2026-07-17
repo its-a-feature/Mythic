@@ -1,6 +1,6 @@
 import React from 'react';
 import {gql, useLazyQuery, useMutation} from '@apollo/client';
-import {Box, Button, Chip, DialogActions, DialogContent, DialogTitle, TextField, Typography} from '@mui/material';
+import {Box, Button, DialogActions, DialogContent, DialogTitle, TextField, Typography} from '@mui/material';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import {CredentialInspector, CredentialTable, credentialSearchDataFragment} from '../Search/CredentialTable';
@@ -8,6 +8,7 @@ import {CredentialTableNewCredentialDialog} from '../Search/CredentialTableNewCr
 import {MythicDialog} from '../../MythicComponents/MythicDialog';
 import {MythicStyledTooltip} from '../../MythicComponents/MythicStyledTooltip';
 import {snackActions} from "../../utilities/Snackbar";
+import {MythicChip} from '../../MythicComponents/MythicChip';
 
 export const credentialReferenceKeyword = "cred";
 export const credentialReferenceFields = ["credential", "account", "realm", "type", "subtype", "comment", "id", "custom_display", "credential_identity", "metadata"];
@@ -370,9 +371,9 @@ export function CredentialReferencePickerDialog({operation_id, credentialTypes, 
                         onChange={(event) => setSearch(event.target.value)}
                         placeholder="Search credentials"
                     />
-                    <Chip size="small" variant="outlined" label={loading ? "Loading" : `${credentials.length} shown`} className="mythic-status-chip mythic-tone-neutral" />
+                    <MythicChip size="small" variant="outlined" label={loading ? "Loading" : `${credentials.length} shown`} />
                     {Array.isArray(credentialTypes) && credentialTypes.length > 0 &&
-                        <Chip size="small" variant="outlined" label={credentialTypes.join(", ")} className="mythic-status-chip mythic-tone-neutral" />
+                        <MythicChip size="small" variant="outlined" label={credentialTypes.join(", ")} />
                     }
                 </Box>
                 <Box className="mythic-reference-picker-body">

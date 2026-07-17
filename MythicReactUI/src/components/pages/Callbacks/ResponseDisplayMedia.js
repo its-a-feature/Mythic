@@ -1,6 +1,7 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import {Typography, Link} from '@mui/material';
-import { Button, IconButton } from '@mui/material';
+import {Button} from '@mui/material';
 import {GetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import AceEditor from 'react-ace';
 import {useTheme} from '@mui/material/styles';
@@ -884,11 +885,10 @@ const DisplayDatabase = ({agent_file_id, expand, fileMetaData}) => {
                         <Tab key={result.query + index} style={{padding: 0, paddingLeft: "10px", paddingRight: "10px"}} label={
                             <div style={{display: "inline-block"}}>
                                 {result.name}
-                                <IconButton style={{padding: 0, marginLeft: "5px", marginRight: "5px", marginBottom: "5px"}}
-                                            color={"error"}
+                                <MythicActionButton colorMode="always" tone="error" iconOnly style={{padding: 0, marginLeft: "5px", marginRight: "5px", marginBottom: "5px"}}
                                             onClick={(e) => removeQuery(e, index)}>
                                     x
-                                </IconButton>
+                                </MythicActionButton>
                             </div>} value={index} className={selectedTab === index ? "selectedCallback" : ""} />
                     ))}
                 </TabList>

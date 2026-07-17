@@ -33,7 +33,7 @@ import {EventGroupConsumingContainersDialog} from "./EventGroupConsumingContaine
 import CalendarMonthTwoToneIcon from '@mui/icons-material/CalendarMonthTwoTone';
 import EditNoteTwoToneIcon from '@mui/icons-material/EditNoteTwoTone';
 import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/MythicPageHeader";
-import {MythicStateChip} from "../../MythicComponents/MythicStateChip";
+import {MythicChip, SquareChip} from "../../MythicComponents/MythicChip";
 import {CreateEventingStepper, getWizardPayloadFromWorkflow} from "./CreateEventingStepper";
 
 const updateDeleteStatusMutation = gql(`
@@ -394,7 +394,7 @@ function EventGroupWorkflowOverview({
                 <div className="mythic-eventing-workflow-overview-field">
                     <span className="mythic-eventing-workflow-overview-label">Trigger behavior</span>
                     <div className="mythic-eventing-workflow-chip-row">
-                        <MythicStateChip compact label={selectedEventGroup?.trigger || "unknown"} state="info" />
+                        <SquareChip compact label={selectedEventGroup?.trigger || "unknown"} tone="info" />
                     </div>
                     {selectedEventGroup?.trigger === "cron" &&
                         <span className="mythic-eventing-workflow-overview-subvalue mythic-eventing-workflow-overview-icon-line">
@@ -410,15 +410,15 @@ function EventGroupWorkflowOverview({
                     <span className="mythic-eventing-workflow-overview-label">Keywords</span>
                     <div className="mythic-eventing-workflow-chip-row">
                         {keywords.length === 0 ? (
-                            <MythicStateChip compact label="No keywords" state="neutral" />
+                            <MythicChip compact label="No keywords" />
                         ) : (
                             <>
                                 {visibleKeywords.map((keyword, index) => (
-                                    <span className="mythic-eventing-workflow-keyword-chip" key={`${keyword}-${index}`}>{keyword}</span>
+                                    <MythicChip compact key={`${keyword}-${index}`} label={keyword} />
                                 ))}
                                 {hiddenKeywordCount > 0 &&
                                     <MythicStyledTooltip title={keywords.join(", ")}>
-                                        <span className="mythic-eventing-workflow-keyword-chip mythic-eventing-workflow-keyword-more">+{hiddenKeywordCount} more</span>
+                                        <MythicChip compact label={`+${hiddenKeywordCount} more`} muted />
                                     </MythicStyledTooltip>
                                 }
                             </>
@@ -428,7 +428,7 @@ function EventGroupWorkflowOverview({
                 <div className="mythic-eventing-workflow-overview-field">
                     <span className="mythic-eventing-workflow-overview-label">Run context</span>
                     <div className="mythic-eventing-workflow-chip-row">
-                        <MythicStateChip compact label={selectedEventGroup?.run_as || "unknown"} state="neutral" />
+                        <SquareChip compact label={selectedEventGroup?.run_as || "unknown"} />
                         <Button
                             className={`mythic-eventing-workflow-approval-button mythic-action-tone mythic-tone-${isApproved ? "success" : "warning"}`}
                             size="small"

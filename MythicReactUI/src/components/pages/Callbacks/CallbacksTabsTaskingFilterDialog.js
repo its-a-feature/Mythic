@@ -2,7 +2,6 @@ import React, {useEffect} from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Checkbox from '@mui/material/Checkbox';
-import Chip from '@mui/material/Chip';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import FormControl from '@mui/material/FormControl';
@@ -15,6 +14,7 @@ import Typography from '@mui/material/Typography';
 import ClearIcon from '@mui/icons-material/Clear';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import MythicTextField from '../../MythicComponents/MythicTextField';
+import {MythicChip, SquareChip} from '../../MythicComponents/MythicChip';
 import {useQuery, gql } from '@apollo/client';
 import { meState } from '../../../cache';
 import {useReactiveVar} from '@apollo/client';
@@ -58,11 +58,11 @@ const selectedLabel = (values, singular, plural = singular) => {
 }
 
 const FilterSummaryChip = ({icon, label, muted=false}) => (
-  <Chip
-    className={`mythic-status-chip mythic-tone-${muted ? "neutral" : "primary"}`}
+  <MythicChip
     icon={icon}
     label={label}
     size="small"
+    tone={muted ? "neutral" : "primary"}
   />
 )
 
@@ -74,7 +74,7 @@ const MultiSelectField = ({label, value, options, onChange, emptyLabel}) => {
     return (
       <Box className="mythic-tasking-filter-select-chips">
         {selected.map((selectedValue) => (
-          <Chip key={selectedValue} label={selectedValue} size="small" className="mythic-tasking-filter-selected-chip" />
+          <SquareChip key={selectedValue} label={selectedValue} size="small" className="mythic-tasking-filter-selected-chip" />
         ))}
       </Box>
     );

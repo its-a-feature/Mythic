@@ -42,6 +42,11 @@ func addTestGraphEdge(graph *cbGraph, sourceID int, destinationID int) {
 	graph.Add(testCallback(sourceID), testCallback(destinationID), testC2ProfileName, true)
 }
 
+func addTestBidirectionalGraphEdge(graph *cbGraph, sourceID int, destinationID int) {
+	addTestGraphEdge(graph, sourceID, destinationID)
+	addTestGraphEdge(graph, destinationID, sourceID)
+}
+
 func assertBFSPath(t *testing.T, path []cbGraphAdjMatrixEntry, expectedEdges [][2]int) {
 	t.Helper()
 	if len(path) != len(expectedEdges) {
@@ -147,6 +152,43 @@ func TestCanHaveDelegatesUsesCurrentGraphState(t *testing.T) {
 	graph.Remove(1, 2, testC2ProfileName)
 	if graph.CanHaveDelegates(1) {
 		t.Fatalf("expected callback with removed edge to have no delegates")
+	}
+}
+
+func TestAddExistingEdgeDoesNotChangeGraphVersion(t *testing.T) {
+	graph := newTestCallbackGraph(t)
+	addTestGraphEdge(graph, 1, 2)
+	versionAfterAdd := graph.version
+
+	addTestGraphEdge(graph, 1, 2)
+
+	if graph.version != versionAfterAdd {
+		t.Fatalf("expected duplicate edge to leave graph version at %d, got %d", versionAfterAdd, graph.version)
+	}
+}
+
+func TestIsReachableFromAnyReturnsFalseForDetachedDestination(t *testing.T) {
+	graph := newTestCallbackGraph(t)
+	addTestBidirectionalGraphEdge(graph, 1, 2)
+
+	graph.Remove(1, 2, testC2ProfileName)
+	graph.Remove(2, 1, testC2ProfileName)
+
+	if graph.isReachableFromAny([]int{1}, 2) {
+		t.Fatalf("expected callback 2 to be detached from streaming callback 1")
+	}
+}
+
+func TestIsReachableFromAnyPreservesAlternateStreamingRoute(t *testing.T) {
+	graph := newTestCallbackGraph(t)
+	addTestBidirectionalGraphEdge(graph, 1, 2)
+	addTestBidirectionalGraphEdge(graph, 3, 2)
+
+	graph.Remove(1, 2, testC2ProfileName)
+	graph.Remove(2, 1, testC2ProfileName)
+
+	if !graph.isReachableFromAny([]int{1, 3}, 2) {
+		t.Fatalf("expected callback 2 to remain reachable from streaming callback 3")
 	}
 }
 

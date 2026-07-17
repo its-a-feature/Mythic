@@ -1,4 +1,5 @@
-import { Chip, IconButton, Typography } from '@mui/material';
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
+import {Typography} from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import React from 'react';
 import {TextField} from '@mui/material';
@@ -13,7 +14,7 @@ import {meState, operatorSettingDefaults} from '../../../cache';
 import {useReactiveVar} from '@apollo/client';
 import { validate as uuidValidate } from 'uuid';
 import {MythicSelectFromListDialog} from "../../MythicComponents/MythicSelectFromListDialog";
-import { Backdrop } from '@mui/material';
+import {Backdrop} from '@mui/material';
 import {CircularProgress} from '@mui/material';
 import {getDynamicQueryParams} from "./TaskParametersDialogRow";
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
@@ -22,6 +23,7 @@ import { useTheme } from '@mui/material/styles';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {getReadableTextColor, isValidHexColor} from "../../MythicComponents/MythicColorInput";
 import {copyStringToClipboard} from "../../utilities/Clipboard";
+import {MythicChip, SquareChip} from "../../MythicComponents/MythicChip";
 import {
     CredentialReferenceFieldDialog,
     CredentialReferencePickerDialog,
@@ -234,28 +236,23 @@ const TaskingContextChip = ({title, label, value, color, callbackColor, emphasiz
             snackActions.error("Failed to copy tasking context");
         }
     }
-    const onCopyKeyDown = (event) => {
-        if(event.key === "Enter" || event.key === " "){
-            onCopyValue(event);
-        }
-    }
     return (
-        <span className={`mythic-tasking-context-chip${emphasized ? " mythic-tasking-context-chip-emphasized" : ""}`}
-              aria-label={copyLabel}
-              onClick={onCopyValue}
-              onKeyDown={onCopyKeyDown}
-              role="button"
-              style={{
-                  backgroundColor: safeColor,
-                  borderColor: borderColor,
-                  color: getReadableTextColor(safeColor),
-              }}
-              tabIndex={0}>
-            {label !== "" &&
-                <span className="mythic-tasking-context-chip-label">{label}</span>
+        <SquareChip
+            aria-label={copyLabel}
+            className={emphasized ? "mythic-tasking-context-chip mythic-tasking-context-chip-emphasized" : "mythic-tasking-context-chip"}
+            label={
+                <>
+                    {label !== "" && <span className="mythic-tasking-context-chip-label">{label}</span>}
+                    <span className="mythic-tasking-context-chip-value">{copyValue}</span>
+                </>
             }
-            <span className="mythic-tasking-context-chip-value">{copyValue}</span>
-        </span>
+            onClick={onCopyValue}
+            style={{
+                backgroundColor: safeColor,
+                borderColor: borderColor,
+                color: getReadableTextColor(safeColor),
+            }}
+        />
     )
 }
 const getTaskingParameterLabel = (parameter) => {
@@ -274,10 +271,10 @@ const getTaskingParameterTooltip = (parameter) => {
 }
 const TaskingParameterPreviewChip = ({parameter, required=false, active=false, onClick}) => (
     <MythicStyledTooltip title={getTaskingParameterTooltip(parameter)}>
-        <Chip
+        <MythicChip
             aria-label={onClick ? `Insert ${getTaskingParameterLabel(parameter)}` : getTaskingParameterLabel(parameter)}
             clickable={Boolean(onClick)}
-            className={`mythic-status-chip mythic-tasking-parameter-preview-chip mythic-tone-${required ? "warning" : active ? "info" : "neutral"}`}
+            className="mythic-tasking-parameter-preview-chip"
             label={
                 <span className="mythic-tasking-parameter-preview-chip-label">
                     {active &&
@@ -296,6 +293,7 @@ const TaskingParameterPreviewChip = ({parameter, required=false, active=false, o
                 event.preventDefault();
             } : undefined}
             size="small"
+            tone={required ? "warning" : active ? "info" : "neutral"}
         />
     </MythicStyledTooltip>
 )
@@ -2547,41 +2545,43 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                             <div className="mythic-tasking-action-row">
                                 {commandPayloadType !== "" &&
                                     <MythicStyledTooltip title={commandPayloadType}>
-                                        <span className="mythic-tasking-payload-chip">
-                                            <MythicAgentSVGIcon payload_type={commandPayloadType}
-                                                                style={{width: "20px", height: "20px"}}/>
-                                        </span>
+                                        <SquareChip
+                                            className="mythic-tasking-payload-chip"
+                                            icon={<MythicAgentSVGIcon payload_type={commandPayloadType} style={{width: "20px", height: "20px"}}/>}
+                                            iconOnly
+                                            label={commandPayloadType}
+                                        />
                                     </MythicStyledTooltip>
                                 }
                                 {props.filterTasks &&
                                     <MythicStyledTooltip title={activeFiltering ? "Adjust active task filters" : "Filter task history"}>
-                                        <IconButton
-                                            className={`mythic-tasking-action-button ${activeFiltering ? "mythic-action-tone-hover mythic-tone-warning" : "mythic-action-tone-hover mythic-tone-info"}`}
+                                        <MythicActionButton iconOnly
+                                            appearance="raised" colorMode="hover" tone={activeFiltering ? "warning" : "info"}
                                             onClick={onClickFilter}
                                             disableRipple={true}
                                             disableFocusRipple={true}
                                             size="small"
-                                            aria-label="Filter task history"><TuneIcon fontSize="small"/></IconButton>
+                                            aria-label="Filter task history"><TuneIcon fontSize="small"/></MythicActionButton>
                                     </MythicStyledTooltip>
                                 }
                                 <MythicStyledTooltip title={"Manage aliases"}>
-                                    <IconButton
-                                        className="mythic-tasking-action-button mythic-action-tone-hover mythic-tone-info"
+                                    <MythicActionButton iconOnly
+                                        appearance="raised" colorMode="hover" tone="info"
                                         onClick={() => setOpenAliasesDialog(true)}
                                         disableRipple={true}
                                         disableFocusRipple={true}
                                         size="small"
-                                        aria-label="Manage aliases"><TerminalIcon fontSize="small"/></IconButton>
+                                        aria-label="Manage aliases"><TerminalIcon fontSize="small"/></MythicActionButton>
                                 </MythicStyledTooltip>
                                 <MythicStyledTooltip title={"Submit task"}>
-                                    <IconButton
-                                        className="mythic-tasking-action-button mythic-action-tone-hover mythic-tone-success"
+                                    <MythicActionButton iconOnly
+                                        appearance="raised" colorMode="hover" tone="success"
                                         disableRipple={true}
                                         disableFocusRipple={true}
                                         onClick={onSubmitCommandLine}
                                         size="small"
                                         aria-label="Submit task"><SendIcon fontSize="small"/>
-                                    </IconButton>
+                                    </MythicActionButton>
                                 </MythicStyledTooltip>
                             </div>
                     }}

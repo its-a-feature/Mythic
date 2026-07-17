@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React, { useEffect } from 'react';
 import Typography from '@mui/material/Typography';
 import Table from '@mui/material/Table';
@@ -7,7 +8,6 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import { copyStringToClipboard } from '../../utilities/Clipboard';
-import {IconButton} from '@mui/material';
 import {snackActions} from '../../utilities/Snackbar';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {MythicPageHeaderChip, MythicSectionHeader} from "../../MythicComponents/MythicPageHeader";
@@ -83,9 +83,9 @@ const CredentialTableRow = ({cred}) => {
           (
               <div className="mythic-single-task-credential-cell">
                   <MythicStyledTooltip title={"Copy to clipboard"}>
-                      <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" onClick={() => onCopyToClipboard(cred.credential_text)} size="small">
+                      <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" onClick={() => onCopyToClipboard(cred.credential_text)} size="small">
                           <ContentCopyIcon fontSize="small" />
-                      </IconButton>
+                      </MythicActionButton>
                   </MythicStyledTooltip>
                   <Typography className="mythic-single-task-credential-text" variant="body2">{displayCred}</Typography>
               </div>

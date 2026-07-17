@@ -1,8 +1,8 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import { faLanguage } from '@fortawesome/free-solid-svg-icons';
-import IconButton from '@mui/material/IconButton';
 import {useMutation, gql} from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
@@ -55,9 +55,9 @@ export function TranslationContainerRow({service, showDeleted}) {
         <TableRow hover>
             <MythicTableCell>
                 {service.deleted ? (
-                    <IconButton className="mythic-compact-icon-action mythic-icon-tone mythic-tone-success" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><RestoreFromTrashOutlinedIcon fontSize="small" /></IconButton>
+                    <MythicActionButton iconOnly appearance="raised" colorMode="always" tone="success" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><RestoreFromTrashOutlinedIcon fontSize="small" /></MythicActionButton>
                 ) : (
-                    <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><DeleteIcon fontSize="small" /></IconButton>
+                    <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><DeleteIcon fontSize="small" /></MythicActionButton>
                 )}
                 {openDelete &&
                     <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete}
@@ -90,22 +90,22 @@ export function TranslationContainerRow({service, showDeleted}) {
             <MythicTableCell>
                 <div className="mythic-compact-actions">
                 <MythicStyledTooltip title={"Documentation"}>
-                    <IconButton
-                        className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
+                    <MythicActionButton iconOnly
+                        appearance="raised" colorMode="hover" tone="info"
                         href={"/docs/c2-profiles/" + service.name.toLowerCase()}
                         target="_blank"
                         size="small">
                         <MenuBookIcon fontSize="small" />
-                    </IconButton>
+                    </MythicActionButton>
                 </MythicStyledTooltip>
                 <MythicStyledTooltip title={service.container_running ? "View Files" : "Unable to view files because container is offline"}>
-                    <IconButton
-                        className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
+                    <MythicActionButton iconOnly
+                        appearance="raised" colorMode="hover" tone="info"
                         disabled={!service.container_running}
                         onClick={()=>{setOpenListFilesDialog(true);}}
                         size="small">
                         <AttachFileIcon fontSize="small" />
-                    </IconButton>
+                    </MythicActionButton>
                 </MythicStyledTooltip>
                 </div>
             </MythicTableCell>

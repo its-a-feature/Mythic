@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import { MythicTabPanel, MythicTabLabel } from '../../MythicComponents/MythicTabPanel';
 import React, { useEffect, useCallback } from 'react';
 import { gql, useLazyQuery, useQuery, useSubscription, useMutation } from '@apollo/client';
@@ -6,13 +7,12 @@ import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import Grid from '@mui/material/Grid';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import IconButton from '@mui/material/IconButton';
 import { CallbacksTabsFileBrowserTree } from './CallbacksTabsFileBrowserTree';
 import IosShareIcon from '@mui/icons-material/IosShare';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { MythicModifyStringDialog } from '../../MythicComponents/MythicDialog';
-import { Backdrop } from '@mui/material';
+import {Backdrop} from '@mui/material';
 import {CircularProgress} from '@mui/material';
 import {TaskFromUIButton} from './TaskFromUIButton';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
@@ -1077,12 +1077,12 @@ const FileBrowserTableTop = ({
                     name={<>
                         {placeHolder}
                         <MythicStyledTooltip title={`Edit the supplied Host field`}>
-                            <IconButton
-                                className="mythic-file-browser-iconButton mythic-file-browser-labelButton mythic-action-tone-hover mythic-tone-info"
+                            <MythicActionButton iconOnly
+                                appearance="plain" colorMode="hover" compact shape="square" tone="info"
                                 onClick={() => {setOpenEditHostDialog(true);}}
                                 size="small">
                                 <EditIcon fontSize="small" />
-                            </IconButton>
+                            </MythicActionButton>
                         </MythicStyledTooltip>
                         {placeHolderGroups}
                     </>}
@@ -1093,37 +1093,37 @@ const FileBrowserTableTop = ({
                         endAdornment: (
                             <div className="mythic-file-browser-toolbarGroup mythic-file-browser-toolbarGroupEnd">
                                 <MythicStyledTooltip title={`Task current callback (${tabInfo["displayID"]}) to list contents`}>
-                                    <IconButton
-                                        className="mythic-file-browser-iconButton mythic-action-tone-hover mythic-tone-info"
+                                    <MythicActionButton iconOnly
+                                        appearance="plain" colorMode="hover" shape="square" tone="info"
                                         onClick={onLocalListFilesButton}
                                         size="small">
                                         <RefreshIcon fontSize="small" />
-                                    </IconButton>
+                                    </MythicActionButton>
                                 </MythicStyledTooltip>
                                 {autoTaskLsOnEmptyDirectories ? (
                                     <MythicStyledTooltip title={"Currently tasking listing on empty directories, click to toggle off"} >
-                                        <IconButton
-                                            className="mythic-file-browser-iconButton mythic-action-tone mythic-tone-success mythic-action-tone-hover mythic-tone-success"
+                                        <MythicActionButton iconOnly
+                                            appearance="plain" active colorMode="hover" shape="square" tone="success"
                                             onClick={onToggleAutoTaskLsOnEmptyDirectories}
                                             disabled={!treeConfig.show_current_path}
                                             size="small">
                                             <PlaylistAddIcon fontSize="small" />
-                                        </IconButton>
+                                        </MythicActionButton>
                                     </MythicStyledTooltip>
                                 ) : (
                                     <MythicStyledTooltip title={"Currently not tasking listing on empty directories, click to toggle on"} >
-                                        <IconButton
-                                            className="mythic-file-browser-iconButton mythic-action-tone-hover mythic-tone-warning"
+                                        <MythicActionButton iconOnly
+                                            appearance="plain" colorMode="hover" shape="square" tone="warning"
                                             disabled={!treeConfig.show_current_path}
                                             onClick={onToggleAutoTaskLsOnEmptyDirectories}
                                             size="small">
                                             <PlaylistRemoveIcon fontSize="small" />
-                                        </IconButton>
+                                        </MythicActionButton>
                                     </MythicStyledTooltip>
                                 )}
                                 <MythicStyledTooltip title={showDeletedFiles ? 'Hide Deleted Entries' : 'Show Deleted Entries'}>
-                                    <IconButton
-                                        className={`mythic-file-browser-iconButton mythic-action-tone-hover mythic-tone-warning ${showDeletedFiles ? "mythic-action-tone mythic-tone-warning" : ""}`}
+                                    <MythicActionButton iconOnly
+                                        appearance="plain" active={showDeletedFiles} colorMode="hover" shape="square" tone="warning"
                                         onClick={onLocalToggleShowDeletedFiles}
                                         size="small">
                                         {showDeletedFiles ? (
@@ -1131,16 +1131,16 @@ const FileBrowserTableTop = ({
                                         ) : (
                                             <VisibilityOffIcon fontSize="small" />
                                         )}
-                                    </IconButton>
+                                    </MythicActionButton>
                                 </MythicStyledTooltip>
                                 <MythicStyledTooltip title={`Export Current Path and Children`}>
-                                    <IconButton
-                                        className="mythic-file-browser-iconButton mythic-action-tone-hover mythic-tone-info"
+                                    <MythicActionButton iconOnly
+                                        appearance="plain" colorMode="hover" shape="square" tone="info"
                                         disabled={treeConfig.export_function === ""}
                                         onClick={onLocalExportButton}
                                         size="small">
                                         <IosShareIcon fontSize="small" />
-                                    </IconButton>
+                                    </MythicActionButton>
                                 </MythicStyledTooltip>
                                 {treeConfig.extra_table_inputs?.length > 0 &&
                                     <MythicStyledTooltip title={
@@ -1148,8 +1148,8 @@ const FileBrowserTableTop = ({
                                         showExtraInputs ?
                                         `Hide Extra Browser Inputs ${extraDataSet ? "( Extra Data Currently Set )" : ""}` :
                                         `Show Extra Browser Inputs ${extraDataSet ? "( Extra Data Currently Set )" : ""}`}>
-                                        <IconButton
-                                            className={`mythic-file-browser-iconButton mythic-file-browser-iconButtonCompound ${extraDataRequired ? "mythic-action-tone mythic-tone-error mythic-action-tone-hover mythic-tone-error" : extraDataSet ? "mythic-action-tone mythic-tone-warning mythic-action-tone-hover mythic-tone-warning" : "mythic-action-tone-hover mythic-tone-info"}`}
+                                        <MythicActionButton iconOnly
+                                            appearance="plain" active={extraDataRequired || extraDataSet} autoWidth colorMode="hover" shape="square" tone={extraDataRequired ? "error" : extraDataSet ? "warning" : "info"}
                                             onClick={() => {setShowExtraInputs(!showExtraInputs)}}
                                             disableFocusRipple={true}
                                             disableRipple={true}
@@ -1160,7 +1160,7 @@ const FileBrowserTableTop = ({
                                             ) : (
                                                 <KeyboardArrowDownRoundedIcon style={{}} />
                                             ) }
-                                        </IconButton>
+                                        </MythicActionButton>
                                     </MythicStyledTooltip>
                                 }
                             </div>
@@ -1174,31 +1174,31 @@ const FileBrowserTableTop = ({
                                     </div>
                                 }
                                 <MythicStyledTooltip title={`Move back to previous listing`}>
-                                    <IconButton
-                                        className="mythic-file-browser-iconButton mythic-action-tone-hover mythic-tone-info"
+                                    <MythicActionButton iconOnly
+                                        appearance="plain" colorMode="hover" shape="square" tone="info"
                                         disabled={historyIndex >= history.length -1 }
                                         onClick={moveIndexToPreviousListing}
                                         size="small">
                                         <ArrowBackIcon fontSize="small" />
-                                    </IconButton>
+                                    </MythicActionButton>
                                 </MythicStyledTooltip>
                                 <MythicStyledTooltip title={`Move to next listing`}>
-                                    <IconButton
-                                        className="mythic-file-browser-iconButton mythic-action-tone-hover mythic-tone-info"
+                                    <MythicActionButton iconOnly
+                                        appearance="plain" colorMode="hover" shape="square" tone="info"
                                         disabled={historyIndex <= 0}
                                         onClick={moveIndexToNextListing}
                                         size="small">
                                         <ArrowForwardIcon fontSize="small" />
-                                    </IconButton>
+                                    </MythicActionButton>
                                 </MythicStyledTooltip>
                                 <MythicStyledTooltip title={"Move up a directory"} >
-                                    <IconButton
-                                        className="mythic-file-browser-iconButton mythic-action-tone-hover mythic-tone-info"
+                                    <MythicActionButton iconOnly
+                                        appearance="plain" colorMode="hover" shape="square" tone="info"
                                         onClick={onLocalMoveUpDirectoryButton}
                                         disabled={!selectedFolderData?.parent_path_text || selectedFolderData?.parent_path_text?.length === 0 || selectedFolderData.root || fullPath === ""}
                                     >
                                         <KeyboardReturnIcon fontSize="small" style={{rotate: "90deg"}} />
-                                    </IconButton>
+                                    </MythicActionButton>
                                 </MythicStyledTooltip>
 
                         </div>),

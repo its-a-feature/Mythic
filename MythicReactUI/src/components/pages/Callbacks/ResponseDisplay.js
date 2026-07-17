@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React, {useEffect} from 'react';
 import {gql, useLazyQuery, useSubscription} from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
@@ -6,7 +7,7 @@ import {ResponseDisplayTable} from './ResponseDisplayTable';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import SearchIcon from '@mui/icons-material/Search';
 import {useTheme} from '@mui/material/styles';
-import {Backdrop, CircularProgress, IconButton, Typography} from '@mui/material';
+import {Backdrop, CircularProgress, Typography} from '@mui/material';
 import {MythicStyledTooltip} from '../../MythicComponents/MythicStyledTooltip';
 import Pagination from '@mui/material/Pagination';
 import {ResponseDisplayInteractive} from "./ResponseDisplayInteractive";
@@ -500,7 +501,7 @@ export const SearchBar = ({onSubmitSearch}) => {
           endAdornment: 
           <React.Fragment>
               <MythicStyledTooltip title="Search">
-                  <IconButton onClick={onSubmitLocalSearch} size="large"><SearchIcon style={{color: theme.palette.info.main}}/></IconButton>
+                  <MythicActionButton iconOnly onClick={onSubmitLocalSearch} size="large"><SearchIcon style={{color: theme.palette.info.main}}/></MythicActionButton>
               </MythicStyledTooltip>
           </React.Fragment>,
           style: {padding: 0}

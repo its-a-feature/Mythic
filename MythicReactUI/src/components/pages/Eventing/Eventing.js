@@ -21,7 +21,8 @@ import CategoryIcon from '@mui/icons-material/Category';
 import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
 import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/MythicPageHeader";
 import {MythicToolbarButton, MythicToolbarToggle} from "../../MythicComponents/MythicTableToolbar";
-import {MythicStateChip} from "../../MythicComponents/MythicStateChip";
+import {MythicChip, SquareChip} from "../../MythicComponents/MythicChip";
+import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
 
 const get_eventgroups = gql`
 query GetEventGroups {
@@ -181,20 +182,6 @@ const getEventGroupStatus = (eventGroup) => {
     }
     return {key: "runnable", label: "Runnable", rank: 0};
 };
-const getEventGroupStateChipState = (statusKey) => {
-    switch(statusKey){
-        case "runnable":
-            return "enabled";
-        case "needs_approval":
-            return "warning";
-        case "disabled":
-            return "disabled";
-        case "deleted":
-            return "error";
-        default:
-            return "neutral";
-    }
-}
 const getEventGroupTone = (statusKey) => statusKey === "runnable" ? "success" :
     statusKey === "needs_approval" ? "warning" : statusKey === "deleted" ? "error" : statusKey === "all" ? "info" : "neutral";
 export function Eventing({me}){
@@ -356,14 +343,14 @@ export function Eventing({me}){
                 }
                 actions={
                     <>
-                        <MythicToolbarButton className="mythic-action-tone-hover mythic-tone-info" variant="outlined" component="label" startIcon={<CloudUploadIcon fontSize="small" />}>
+                        <MythicToolbarButton tone="info" variant="outlined" component="label" startIcon={<CloudUploadIcon fontSize="small" />}>
                             Upload
                             <input onChange={onFileChange} type="file" multiple hidden/>
                         </MythicToolbarButton>
-                        <MythicToolbarButton className="mythic-action-tone-hover mythic-tone-success" variant="outlined" onClick={()=>setOpenTestModal(true)} startIcon={<AddCircleIcon fontSize="small" />}>
+                        <MythicToolbarButton tone="success" variant="outlined" onClick={()=>setOpenTestModal(true)} startIcon={<AddCircleIcon fontSize="small" />}>
                             Text
                         </MythicToolbarButton>
-                        <MythicToolbarButton className="mythic-action-tone-hover mythic-tone-success" variant="outlined" onClick={()=>setOpenCreateEventingStepper(true)} startIcon={<CategoryIcon fontSize="small" />}>
+                        <MythicToolbarButton tone="success" variant="outlined" onClick={()=>setOpenCreateEventingStepper(true)} startIcon={<CategoryIcon fontSize="small" />}>
                             Wizard
                         </MythicToolbarButton>
                         <MythicToolbarToggle
@@ -445,7 +432,7 @@ export function Eventing({me}){
                                 <div className="mythic-eventing-list-item-content">
                                     <div className="mythic-eventing-list-item-main">
                                         <span className="mythic-eventing-list-item-name">All workflow runs</span>
-                                        <MythicStateChip compact label={visibleEventGroups.length} state="info" />
+                                        <MythicChip compact label={visibleEventGroups.length} tone="info" />
                                     </div>
                                     <div className="mythic-eventing-list-item-meta">Review instances across all event groups</div>
                                 </div>
@@ -463,11 +450,11 @@ export function Eventing({me}){
                                                 <div className="mythic-eventing-list-item-content">
                                                     <div className="mythic-eventing-list-item-main">
                                                         <span className={`mythic-eventing-list-item-name ${eventGroup.deleted ? "mythic-eventing-list-item-name-deleted" : ""}`.trim()}>{eventGroup.name}</span>
-                                                        <MythicStateChip compact label={status.label} state={getEventGroupStateChipState(status.key)} />
+                                                        <MythicStatusChip compact status={status.key} />
                                                     </div>
                                                     <div className="mythic-eventing-list-item-meta">
                                                         <span>{eventGroup.trigger || "No trigger"}</span>
-                                                        <span className="mythic-eventing-runas-chip">{eventGroup.run_as || "unknown"}</span>
+                                                        <SquareChip compact label={eventGroup.run_as || "unknown"} />
                                                     </div>
                                                 </div>
                                             </ListItem>

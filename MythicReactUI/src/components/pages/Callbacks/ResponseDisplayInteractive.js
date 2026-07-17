@@ -15,6 +15,7 @@ import '@xterm/xterm/css/xterm.css';
 import WrapTextIcon from '@mui/icons-material/WrapText';
 import {useTheme} from '@mui/material/styles';
 import HeightIcon from '@mui/icons-material/Height';
+import {MythicChip} from "../../MythicComponents/MythicChip";
 
 const subResponsesQuery = gql`
 subscription subResponsesQuery($task_id: Int!) {
@@ -1070,20 +1071,18 @@ const InteractiveTerminalToolbar = ({
     return (
         <div className="mythic-interactive-terminal-toolbar">
             <div className="mythic-interactive-terminal-toolbar-row">
-                <button
-                    type="button"
-                    className="mythic-status-chip mythic-tone-neutral mythic-action-tone-hover"
+                <MythicChip
+                    className="mythic-action-tone-hover"
+                    label={inputMode === "raw" ? "Raw key mode" : "Line mode"}
                     onClick={toggleInputMode}
-                    style={{color: theme.outputTextColor}}>
-                    {inputMode === "raw" ? "Raw key mode" : "Line mode"}
-                </button>
-                <button
-                    type="button"
-                    className="mythic-status-chip mythic-tone-neutral mythic-action-tone-hover mythic-interactive-terminal-enter-chip"
+                    style={{color: theme.outputTextColor}}
+                />
+                <MythicChip
+                    className="mythic-action-tone-hover mythic-interactive-terminal-enter-chip"
+                    label={`Enter: ${selectedEnter.name}`}
                     onClick={openEnterMenu}
-                    style={{color: theme.outputTextColor}}>
-                    Enter: {selectedEnter.name}
-                </button>
+                    style={{color: theme.outputTextColor}}
+                />
                 <Menu
                     anchorEl={enterAnchorEl}
                     open={Boolean(enterAnchorEl)}
@@ -1101,7 +1100,7 @@ const InteractiveTerminalToolbar = ({
                     <div className="mythic-interactive-terminal-pending">
                         <span>Awaiting output</span>
                         {pendingInputEvents.map((event) => (
-                            <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-info" key={event.id}>{event.label}</span>
+                            <MythicChip compact key={event.id} label={event.label} tone="info" />
                         ))}
                     </div>
                 }

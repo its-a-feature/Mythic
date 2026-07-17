@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
@@ -21,7 +22,7 @@ import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
 import {faPhotoVideo} from '@fortawesome/free-solid-svg-icons';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import DeleteIcon from '@mui/icons-material/Delete';
-import {IconButton, Typography} from '@mui/material';
+import {Typography} from '@mui/material';
 import {MythicConfirmDialog} from "../../MythicComponents/MythicConfirmDialog";
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import {MythicTableEmptyState} from "../../MythicComponents/MythicStateDisplay";
@@ -118,14 +119,14 @@ function EventFileManageDialogTableRow({eventFile}) {
                             <MythicConfirmDialog onClose={() => {setOpenDelete(false);}} onSubmit={onAcceptDelete} open={openDelete}/>
                         }
                         <MythicStyledTooltip title={"Delete file"}>
-                            <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={()=>{setOpenDelete(true);}}>
+                            <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={()=>{setOpenDelete(true);}}>
                                 <DeleteIcon fontSize="small" />
-                            </IconButton>
+                            </MythicActionButton>
                         </MythicStyledTooltip>
                         <MythicStyledTooltip title={"Preview Media"}>
-                            <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" size="small" onClick={onPreviewMedia}>
+                            <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" size="small" onClick={onPreviewMedia}>
                                 <FontAwesomeIcon icon={faPhotoVideo} />
-                            </IconButton>
+                            </MythicActionButton>
                         </MythicStyledTooltip>
                         {openPreviewMediaDialog &&
                             <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewMediaDialog}

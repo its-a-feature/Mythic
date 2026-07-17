@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React, {useState} from 'react';
 import DialogContent from '@mui/material/DialogContent';
 import PlayCircleFilledTwoToneIcon from '@mui/icons-material/PlayCircleFilledTwoTone';
@@ -10,7 +11,6 @@ import TableBody from '@mui/material/TableBody';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
-import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import { useTheme } from '@mui/material/styles';
 import {MythicDialog} from "../../MythicComponents/MythicDialog";
@@ -160,18 +160,18 @@ export function PayloadTypeCommandDialog({service, payload_name, onClose}) {
                                 <TableCell>
                                     <div className="mythic-compact-actions mythic-compact-actions-nowrap">
                                         <MythicStyledTooltip title="Documentation">
-                                            <IconButton
-                                                className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
+                                            <MythicActionButton iconOnly
+                                                appearance="raised" colorMode="hover" tone="info"
                                                 href={service.wrapper ? "/docs/wrappers/" + service.name : "/docs/agents/" + service.name}
                                                 target="_blank"
                                                 size="small">
                                                 <MenuBookIcon fontSize="small" />
-                                            </IconButton>
+                                            </MythicActionButton>
                                         </MythicStyledTooltip>
                                         <MythicStyledTooltip title="Scripting parameters">
-                                            <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" onClick={(e) => onClickOpenScriptDialog(e, param)} size="small">
+                                            <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" onClick={(e) => onClickOpenScriptDialog(e, param)} size="small">
                                                 <PlayCircleFilledTwoToneIcon fontSize="small" />
-                                            </IconButton>
+                                            </MythicActionButton>
                                         </MythicStyledTooltip>
                                     </div>
                                 </TableCell>

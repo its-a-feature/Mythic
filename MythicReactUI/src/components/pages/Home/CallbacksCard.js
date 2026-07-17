@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import {gql, useLazyQuery, useMutation} from '@apollo/client';
 import {useTheme} from '@mui/material/styles';
@@ -24,8 +25,8 @@ import {DetailedPayloadTable} from "../Payloads/DetailedPayloadTable";
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import {TestEventGroupFileDialog} from "../Eventing/CreateEventWorkflowDialog";
 import {initialWorkflow} from "../Eventing/Eventing";
-import {EventStepInstanceRenderDialog, GetStatusSymbol} from "../Eventing/EventStepRender";
-import IconButton from '@mui/material/IconButton';
+import {EventStepInstanceRenderDialog} from "../Eventing/EventStepRender";
+import {MythicStatusIcon} from "../../MythicComponents/MythicStatusChip";
 import ReplayIcon from '@mui/icons-material/Replay';
 import OpenInNewTwoToneIcon from '@mui/icons-material/OpenInNewTwoTone';
 import {snackActions} from "../../utilities/Snackbar";
@@ -65,6 +66,9 @@ import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/Myt
 import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
 import {MythicLoadingState} from "../../MythicComponents/MythicStateDisplay";
 import TuneIcon from '@mui/icons-material/Tune';
+import {PayloadBuildMetadataChips} from "../Payloads/PayloadsTableRow";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import {CredentialInspector, CredentialSearchRow} from "../Search/CredentialTable";
 
 const LeadDashboardQuery = gql`
 ${taskingDataFragment}
@@ -125,6 +129,7 @@ query GetDashboardData($operator_id: Int!) {
   eventgroupinstance(order_by: {id: desc}, limit: 10) {
     eventgroup {
       name
+      description
       id
     }
     status
@@ -137,6 +142,7 @@ query GetDashboardData($operator_id: Int!) {
     build_phase
     uuid
     id
+    build_metadata
     filemetum {
       filename_text
       agent_file_id
@@ -170,9 +176,24 @@ query GetDashboardData($operator_id: Int!) {
     account
     realm
     type
-    credential_text
+    subtype
+    metadata
+    credential_identity
+    timestamp
     comment
+    credential_text
+    custom_display
     id
+    task {
+        display_id
+        id
+        callback {
+            id
+            host
+            display_id
+            mythictree_groups
+        }
+    }
   }
 }
 `;
@@ -266,9 +287,9 @@ const ActiveCallbackRecentHoursControl = ({recentHours, onChangeRecent}) => {
     return (
         <>
             <MythicStyledTooltip title={`Recent check-in window: ${recentHours} ${recentHours === 1 ? "hour" : "hours"}`}>
-                <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" onClick={onOpen} size="small">
+                <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" onClick={onOpen} size="small">
                     <TuneIcon fontSize="small" />
-                </IconButton>
+                </MythicActionButton>
             </MythicStyledTooltip>
             <Popover
                 anchorEl={anchorEl}
@@ -741,12 +762,20 @@ const Top10RecentPayloadsDashboardElement = ({me, data, editing, removeElement})
                         <MythicAgentSVGIcon payload_type={p.payloadtype.name} style={{width: "20px", height: "20px"}} />
                     </MythicStyledTooltip>
                     <span className="mythic-dashboard-table-primary-text">{b64DecodeUnicode(p.filemetum.filename_text)}</span>
+                    <PayloadBuildMetadataChips buildMetadata={p.build_metadata} />
                 </div>,
                 value: <div className="mythic-compact-actions mythic-dashboard-table-actions-inline">
                     <PayloadsTableRowBuildStatus {...p} />
-                    <MythicStyledTooltip title={"View Payload Configuration"} tooltipStyle={{marginRight: "5px"}}>
-                        <InfoIconOutline className="mythic-dashboard-table-icon-action mythic-icon-tone mythic-tone-info" onClick={(e)=> clickDetail(e, p)} />
-                    </MythicStyledTooltip>
+                    <MythicActionButton tooltip={"View Payload Configuration"}
+                                        tooltipStyle={{marginRight: "5px"}}
+                                        icon={<InfoIconOutline />}
+                                        colorMode={"hover"}
+                                        tone={"info"}
+                                        iconOnly={true}
+                                        onClick={(e)=> clickDetail(e, p)}
+                                        >
+
+                    </MythicActionButton>
                 </div>
             }
         }) || [];
@@ -762,13 +791,15 @@ const Top10RecentPayloadsDashboardElement = ({me, data, editing, removeElement})
                 emptyTitle="No payloads created"
                 emptyDescription="Build a payload to start populating this view."
                 emptyAction={
-                    <Button
+                    <MythicActionButton
                         onClick={() => navigate("/new/createpayload")}
-                        startIcon={<AddCircleIcon fontSize="small" />}
+                        icon={<AddCircleIcon />}
+                        colorMode={"hover"}
+                        tone={"success"}
                         variant="contained"
                     >
                         Create Your First Payload
-                    </Button>
+                    </MythicActionButton>
                 }
             />
         )
@@ -780,7 +811,7 @@ const Top10RecentPayloadsDashboardElement = ({me, data, editing, removeElement})
                                <TableHead>
                                    <TableRow>
                                        <MythicTableCell>{"Payload"}</MythicTableCell>
-                                       <MythicTableCell align="right">{"Actions"}</MythicTableCell>
+                                       <MythicTableCell align="right" style={{width: "10rem"}}>{"Actions"}</MythicTableCell>
                                    </TableRow>
                                </TableHead>
                            }
@@ -799,9 +830,11 @@ const Top10RecentPayloadsDashboardElement = ({me, data, editing, removeElement})
                            removeElement={removeElement}
                            customizeElement={
                                 <MythicStyledTooltip title={"Create new Payload"}>
-                                    <IconButton className="mythic-compact-icon-action" size={"small"} onClick={() => navigate("/new/createpayload")}>
+                                    <MythicActionButton iconOnly appearance="raised" size={"small"}
+                                                        colorMode={"hover"} tone={"success"}
+                                                        onClick={() => navigate("/new/createpayload")}>
                                         <AddCircleIcon fontSize="small" />
-                                    </IconButton>
+                                    </MythicActionButton>
                                 </MythicStyledTooltip>
                            }
             />
@@ -844,10 +877,13 @@ const Top10RecentWorkflowsDashboardElement = ({me, data, editing, removeElement}
                     </Typography>
                 </div>,
                 value: <div className="mythic-compact-actions mythic-dashboard-table-actions-inline">
-                    <GetStatusSymbol data={p} />
-                    <MythicStyledTooltip title={"Open Graph in Modal"}>
-                        <OpenInNewTwoToneIcon className="mythic-dashboard-table-icon-action" onClick={(e) => clickDetail(e, p)} />
-                    </MythicStyledTooltip>
+                    <MythicStatusIcon status={p.status || "configured"} tooltip />
+                    <MythicActionButton tooltip={"Open Graph in Modal"}
+                                        icon={<OpenInNewIcon />}
+                                        iconOnly={true}
+                                        colorMode={"hover"}
+                                        tone={"info"}
+                                        onClick={(e) => clickDetail(e, p)} />
                 </div>
             }
         }) || [];
@@ -864,13 +900,15 @@ const Top10RecentWorkflowsDashboardElement = ({me, data, editing, removeElement}
                     emptyTitle="No workflows created"
                     emptyDescription="Create a workflow to see recent eventing executions here."
                     emptyAction={
-                        <Button
+                        <MythicActionButton
                             onClick={() => setOpenNewWorkflowModal(true)}
-                            startIcon={<AddCircleIcon fontSize="small" />}
+                            icon={<AddCircleIcon  />}
+                            colorMode={"hover"}
+                            tone={"success"}
                             variant="contained"
                         >
                             Create a Workflow
-                        </Button>
+                        </MythicActionButton>
                     }
                 />
                 {openNewWorkflowModal &&
@@ -895,7 +933,7 @@ const Top10RecentWorkflowsDashboardElement = ({me, data, editing, removeElement}
                                <TableHead>
                                    <TableRow>
                                        <MythicTableCell>{"Workflow"}</MythicTableCell>
-                                       <MythicTableCell align="right">{"Status"}</MythicTableCell>
+                                       <MythicTableCell align="right" style={{width: "8rem"}}>{"Status"}</MythicTableCell>
                                    </TableRow>
                                </TableHead>
                            }
@@ -914,9 +952,9 @@ const Top10RecentWorkflowsDashboardElement = ({me, data, editing, removeElement}
                            removeElement={removeElement}
                            customizeElement={
                                <MythicStyledTooltip title={"Create new Workflow"}>
-                                   <IconButton className="mythic-compact-icon-action" size={"small"} onClick={() => setOpenNewWorkflowModal(true)}>
+                                   <MythicActionButton iconOnly appearance="raised" colorMode={"hover"} tone={"success"} size={"small"} onClick={() => setOpenNewWorkflowModal(true)}>
                                        <AddCircleIcon fontSize="small" />
-                                   </IconButton>
+                                   </MythicActionButton>
                                </MythicStyledTooltip>
                            }
             />
@@ -928,7 +966,7 @@ const Top10RecentWorkflowsDashboardElement = ({me, data, editing, removeElement}
                               innerDialog={
                                   <EventStepInstanceRenderDialog onClose={() => { setViewWorkflow({open: false, workflow: {}}); }}
                                                                  selectedEventGroupInstance={viewWorkflow.workflow.id}
-                                                                 selectedEventGroup={viewWorkflow.workflow.eventgroup.id}
+                                                                 selectedEventGroup={viewWorkflow.workflow.eventgroup}
                                   />}
                 />
             }
@@ -1066,13 +1104,15 @@ const MyOperationsDashboardElement = ({me, data, reloadDashboard, editing, remov
                     removeElement={removeElement}
                     title={"You Belong to No Operations"}
                     action={data?.operator[0]?.admin ? (
-                        <Button
+                        <MythicActionButton
                             onClick={() => setOpenNewOperationDialog(true)}
-                            startIcon={<AddCircleIcon fontSize="small" />}
+                            icon={<AddCircleIcon  />}
                             variant="contained"
+                            colorMode={"hover"}
+                            tone={"success"}
                         >
                             Create Operation
-                        </Button>
+                        </MythicActionButton>
                     ) : null}
                 >
                     {data?.operator[0]?.admin ?
@@ -1104,9 +1144,9 @@ const MyOperationsDashboardElement = ({me, data, reloadDashboard, editing, remov
                                <TableHead>
                                    <TableRow>
                                        <MythicTableCell>{"Operation"}</MythicTableCell>
-                                       <MythicTableCell align="right">{"Configure"}</MythicTableCell>
-                                       <MythicTableCell align="right">{"Operators"}</MythicTableCell>
-                                       <MythicTableCell align="right">{"Status"}</MythicTableCell>
+                                       <MythicTableCell align="right" style={{width: "7rem"}}>{"Configure"}</MythicTableCell>
+                                       <MythicTableCell align="right" style={{width: "7rem"}}>{"Operators"}</MythicTableCell>
+                                       <MythicTableCell align="right" style={{width: "10rem"}}>{"Status"}</MythicTableCell>
                                    </TableRow>
                                </TableHead>
                            }
@@ -1123,9 +1163,11 @@ const MyOperationsDashboardElement = ({me, data, reloadDashboard, editing, remov
 	                                                   </div>
 	                                               </MythicTableCell>
 	                                               <MythicTableCell className="mythic-dashboard-table-cell-actions">
-	                                                   <Button className="mythic-compact-action" size="small" onClick={()=>{setOpenUpdateNotifications(true);}} startIcon={<EditIcon/>}
+	                                                   <MythicActionButton onClick={()=>{setOpenUpdateNotifications(true);}} icon={<EditIcon/>}
 	                                                                  disabled={me?.user?.current_operation_id !== d.operation.id}
-                                                                  variant="outlined">Edit</Button>
+                                                                      colorMode={"hover"} tone={"warning"}
+                                                                           variant="outlined"
+                                                       >Edit</MythicActionButton>
                                                    {openUpdateNotifications &&
                                                        <MythicDialog open={openUpdateNotifications} fullWidth maxWidth={"lg"}
                                                                      onClose={()=>{setOpenUpdateNotifications(false);}}
@@ -1134,9 +1176,10 @@ const MyOperationsDashboardElement = ({me, data, reloadDashboard, editing, remov
                                                    }
                                                </MythicTableCell>
                                                <MythicTableCell className="mythic-dashboard-table-cell-actions">
-                                                   <Button className="mythic-compact-action" size="small" onClick={()=>{setOpenUpdateOperators(true);}}
+                                                   <MythicActionButton onClick={()=>{setOpenUpdateOperators(true);}}
                                                                   disabled={me?.user?.current_operation_id !== d.operation.id}
-                                                                  startIcon={<AssignmentIndIcon/>} variant="outlined">Edit</Button>
+                                                                       colorMode={"hover"} tone={"info"}
+                                                                  icon={<AssignmentIndIcon/>} variant="outlined">Edit</MythicActionButton>
                                                    {openUpdateOperators &&
                                                        <MythicDialog open={openUpdateOperators} maxHeight={"calc(80vh)"} fullWidth maxWidth={"lg"}
                                                                      onClose={()=>{setOpenUpdateOperators(false);}}
@@ -1148,11 +1191,13 @@ const MyOperationsDashboardElement = ({me, data, reloadDashboard, editing, remov
 	                                                   {d.id === me.user.current_operation_id ? (
 	                                                       <MythicStatusChip label="Current" status="active" />
 	                                                   ) : (
-	                                                       <Button className="mythic-compact-action" size="small" startIcon={<PlayArrowIcon/>}
+	                                                       <MythicActionButton icon={<PlayArrowIcon/>}
 	                                                               onClick={()=>makeCurrentOperation(d.operation)}
-	                                                               variant="outlined">
+	                                                               variant="outlined"
+                                                                               colorMode={"hover"} tone={"success"}
+                                                           >
 	                                                           Make Current
-	                                                       </Button>
+	                                                       </MythicActionButton>
 	                                                   )}
 	                                               </MythicTableCell>
 	                                           </TableRow>
@@ -1164,9 +1209,11 @@ const MyOperationsDashboardElement = ({me, data, reloadDashboard, editing, remov
                            removeElement={removeElement}
                            customizeElement={
                                <MythicStyledTooltip title={"Create new Operation"}>
-                                   <IconButton className="mythic-compact-icon-action" size={"small"} onClick={() => setOpenNewOperationDialog(true)}>
+                                   <MythicActionButton iconOnly appearance="raised" size={"small"}
+                                                       colorMode={"hover"} tone={"success"}
+                                                       onClick={() => setOpenNewOperationDialog(true)}>
                                        <AddCircleIcon fontSize="small" />
-                                   </IconButton>
+                                   </MythicActionButton>
                                </MythicStyledTooltip>
                            }
             />
@@ -1476,11 +1523,12 @@ const Top10RecentFileDownloadsDashboardElement = ({me, data, editing, removeElem
                     <span className="mythic-dashboard-table-primary-text">{newFile.host}</span>
                 </div>,
                 value: <div className="mythic-dashboard-table-file-row">
-                    <MythicStyledTooltip title={"Preview Media"}>
-                        <FontAwesomeIcon className="mythic-dashboard-table-icon-action mythic-icon-tone mythic-tone-info" icon={faPhotoVideo}
-                                         onClick={(e) => onPreviewMedia(e, newFile)} />
-                    </MythicStyledTooltip>
-                    <FileDownloadLinkWithAuth className="mythic-dashboard-table-link" color="textPrimary" underline="always" href={"/direct/download/" + newFile.agent_file_id}>{newFile.filename_text}</FileDownloadLinkWithAuth>
+                    <MythicActionButton icon={<FontAwesomeIcon icon={faPhotoVideo}/>} colorMode={"hover"} tone={"info"}
+                                        onClick={(e) => onPreviewMedia(e, newFile)}
+                                        iconOnly={true}
+                                        tootip={"Preview Media"}
+                                        />
+                    <FileDownloadLinkWithAuth color="textPrimary" underline="always" href={"/direct/download/" + newFile.agent_file_id}>{newFile.filename_text}</FileDownloadLinkWithAuth>
                     {!newFile.complete &&
                         <Typography className="mythic-dashboard-table-secondary" color="secondary" >({newFile.chunks_received} / <b>{newFile.total_chunks}</b>) Chunks</Typography>
                     }
@@ -1564,9 +1612,9 @@ const Top10RecentScreenshotsDashboardElement = ({me, data, editing, removeElemen
                                    {files.length > 0 &&
 	                                       <TableRow className="mythic-dashboard-screenshot-row">
 	                                           <MythicTableCell className="mythic-dashboard-screenshot-nav-cell">
-	                                               <IconButton className="mythic-compact-icon-action" onClick={handleBack} disabled={activeStep === 0} size="small">
+	                                               <MythicActionButton iconOnly appearance="raised" onClick={handleBack} disabled={activeStep === 0} size="small">
 	                                                   <KeyboardArrowLeft fontSize="small" />
-	                                               </IconButton>
+	                                               </MythicActionButton>
 	                                           </MythicTableCell>
 	                                           <MythicTableCell className="mythic-dashboard-screenshot-preview-cell">
 	                                               <ImageWithAuth src={"/screencaptures/" + files[activeStep] + "?" + now}
@@ -1575,14 +1623,14 @@ const Top10RecentScreenshotsDashboardElement = ({me, data, editing, removeElemen
 	                                                              />
 	                                           </MythicTableCell>
 	                                            <MythicTableCell className="mythic-dashboard-screenshot-nav-cell">
-	                                                <IconButton
-	                                                    className="mythic-compact-icon-action"
+	                                                <MythicActionButton iconOnly
+	                                                    appearance="raised"
 	                                                    onClick={handleNext}
                                                     disabled={activeStep === maxSteps - 1}
                                                     size="small"
                                                 >
                                                     <KeyboardArrowRight fontSize="small" />
-                                                </IconButton>
+                                                </MythicActionButton>
                                             </MythicTableCell>
                                        </TableRow>
                                    }
@@ -1668,18 +1716,13 @@ const Top10RecentTasksDashboardElement = ({me, data, editing, removeElement}) =>
 }
 const Top10RecentCredentialsDashboardElement = ({me, data, editing, removeElement}) => {
     const [credentials, setCredentials] = React.useState([]);
-
+    const [openCredentialDialog, setOpenCredentialDialog] = React.useState({open: false, credential: {}});
     React.useEffect(() => {
         let newPayloadData = data?.credential || [];
         setCredentials(newPayloadData);
     }, [data]);
-    const onCopyToClipboard = (data) => {
-        let result = copyStringToClipboard(data);
-        if(result){
-            snackActions.success("Copied text!");
-        }else{
-            snackActions.error("Failed to copy text");
-        }
+    const onClick = (e, c) => {
+        setOpenCredentialDialog({open: true, credential: c});
     }
     return (
         <>
@@ -1687,33 +1730,18 @@ const Top10RecentCredentialsDashboardElement = ({me, data, editing, removeElemen
                            tableHead={
                                <TableHead>
                                    <TableRow>
-                                       <MythicTableCell className="mythic-dashboard-table-cell-account">Account</MythicTableCell>
-                                       <MythicTableCell>Comment</MythicTableCell>
+                                       <MythicTableCell>ID</MythicTableCell>
+                                       <MythicTableCell>Account</MythicTableCell>
+                                       <MythicTableCell>Type</MythicTableCell>
+                                       <MythicTableCell>Validity</MythicTableCell>
+                                       <MythicTableCell>Source</MythicTableCell>
                                    </TableRow>
                                </TableHead>
                            }
                            tableBody={
                                <TableBody>
                                    {credentials.map(c => (
-                                       <TableRow key={c.id} hover>
-                                           <MythicStyledTableCell className="mythic-dashboard-table-cell-wrap mythic-dashboard-table-cell-account">
-                                               <div className="mythic-dashboard-credential-account">
-                                                   <MythicStyledTooltip title={"Copy Credential to clipboard"}>
-                                                       <IconButton className="mythic-compact-icon-action" onClick={() => onCopyToClipboard(c.credential_text)} size="small">
-                                                           <FontAwesomeIcon icon={faCopy}/>
-                                                       </IconButton>
-                                                   </MythicStyledTooltip>
-                                                   <span className="mythic-dashboard-table-stack">
-                                                        <Typography className="mythic-dashboard-table-primary-text" variant="body2"><b>Account: </b>{c.account}</Typography>
-                                                        <Typography className="mythic-dashboard-table-secondary" variant="body2"><b>Realm: </b>{c.realm}</Typography>
-                                                        <Typography className="mythic-dashboard-table-secondary" variant="body2"><b>Type: </b>{c.type}</Typography>
-                                                   </span>
-                                               </div>
-                                           </MythicStyledTableCell>
-                                           <MythicTableCell className="mythic-dashboard-table-cell-wrap">
-                                               <Typography className="mythic-dashboard-table-comment" variant="body2">{c.comment}</Typography>
-                                           </MythicTableCell>
-                                       </TableRow>
+                                       <CredentialSearchRow credential={c} key={c.id} selected={false} onSelect={(e)=>onClick(e, c)}/>
                                    ))}
                                </TableBody>
                            }
@@ -1729,6 +1757,20 @@ const Top10RecentCredentialsDashboardElement = ({me, data, editing, removeElemen
                            summary={false}
                            tableClassName="mythic-dashboard-credentials-table"
             />
+            {openCredentialDialog.open &&
+                <MythicDialog fullWidth={true} maxWidth="lg" open={openCredentialDialog.open}
+                              onClose={() => {
+                                 setOpenCredentialDialog({open: false, credential: {}});
+                              }}
+                              innerDialog={
+                                  <CredentialInspector
+                                      credential={openCredentialDialog.credential}
+                                      me={me}
+                                      onEditCredential={()=>{}}
+                                      readOnly={true}
+                                  />
+                              } />
+            }
         </>
 
     )

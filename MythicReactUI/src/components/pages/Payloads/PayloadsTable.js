@@ -43,13 +43,13 @@ export function PayloadsTable({payload, onDeletePayload, onUpdateCallbackAlert, 
                 subtitle={"Build, import, and manage payload artifacts for the current operation."}
                 actions={
                     <>
-                        <MythicToolbarButton variant="contained" color="primary" startIcon={<AddCircleIcon />} onClick={() => navigate("/new/createpayload")}>
+                        <MythicToolbarButton variant="contained" colorMode="always" tone="primary" startIcon={<AddCircleIcon />} onClick={() => navigate("/new/createpayload")}>
                             Payload
                         </MythicToolbarButton>
-                        <MythicToolbarButton variant="outlined" color="primary" startIcon={<Inventory2Icon />} onClick={() => navigate("/new/createwrapper")}>
+                        <MythicToolbarButton variant="outlined" colorMode="always" tone="primary" startIcon={<Inventory2Icon />} onClick={() => navigate("/new/createwrapper")}>
                             Wrapper
                         </MythicToolbarButton>
-                        <MythicToolbarButton variant="outlined" color="primary" startIcon={<FileUploadIcon />} onClick={() => setOpenPayloadImport(true)}>
+                        <MythicToolbarButton variant="outlined" colorMode="always" tone="primary" startIcon={<FileUploadIcon />} onClick={() => setOpenPayloadImport(true)}>
                             Import Config
                         </MythicToolbarButton>
                         <MythicToolbarToggle

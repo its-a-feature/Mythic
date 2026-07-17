@@ -1,9 +1,9 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import FormControl from '@mui/material/FormControl';
 import FormControlLabel from '@mui/material/FormControlLabel';
-import IconButton from '@mui/material/IconButton';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import Switch from '@mui/material/Switch';
@@ -237,8 +237,8 @@ const ArrayOfPrimitiveField = ({schema, value, onChange, depth = 0}) => {
                             }}
                         />
                     </Box>
-                    <IconButton
-                        className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error"
+                    <MythicActionButton iconOnly
+                        appearance="raised" colorMode="hover" tone="error"
                         size="small"
                         onClick={() => {
                             const next = [...arr];
@@ -247,7 +247,7 @@ const ArrayOfPrimitiveField = ({schema, value, onChange, depth = 0}) => {
                         }}
                     >
                         <DeleteIcon fontSize="small" />
-                    </IconButton>
+                    </MythicActionButton>
                 </Box>
             ))}
             <Button
@@ -315,8 +315,8 @@ const ArrayOfObjectField = ({schema, value, onChange, depth = 0}) => {
                                 );
                             })}
                         </SchemaStack>
-                        <IconButton
-                            className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error"
+                        <MythicActionButton iconOnly
+                            appearance="raised" colorMode="hover" tone="error"
                             size="small"
                             onClick={() => {
                                 const next = [...arr];
@@ -325,7 +325,7 @@ const ArrayOfObjectField = ({schema, value, onChange, depth = 0}) => {
                             }}
                         >
                             <DeleteIcon fontSize="small" />
-                        </IconButton>
+                        </MythicActionButton>
                     </Box>
                 );
             })}
@@ -404,8 +404,8 @@ const StringMapField = ({schema, value, onChange}) => {
                                     />
                                 </TableCell>
                                 <TableCell sx={{borderBottom: 0, p: 0.5, width: "2.5rem"}}>
-                                    <IconButton
-                                        className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error"
+                                    <MythicActionButton iconOnly
+                                        appearance="raised" colorMode="hover" tone="error"
                                         size="small"
                                         onClick={() => {
                                             const next = {...obj};
@@ -414,7 +414,7 @@ const StringMapField = ({schema, value, onChange}) => {
                                         }}
                                     >
                                         <DeleteIcon fontSize="small" />
-                                    </IconButton>
+                                    </MythicActionButton>
                                 </TableCell>
                             </TableRow>
                         ))}

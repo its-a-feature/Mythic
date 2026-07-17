@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React, { useEffect } from 'react';
 import { useMutation, useLazyQuery, gql } from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
@@ -12,7 +13,6 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ErrorIcon from '@mui/icons-material/Error';
 import { useTheme } from '@mui/material/styles';
-import { IconButton } from '@mui/material';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import EditIcon from '@mui/icons-material/Edit';
 import { DownloadHistoryDialog } from './DownloadHistoryDialog';
@@ -695,11 +695,11 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                     }}>
                         {"Only PARTIAL data has been collected for this path.  "}<br/>
                         {"Task this callback to list the contents"}
-                        <IconButton style={{margin: 0, padding: 0, marginRight: "10px"}}
+                        <MythicActionButton iconOnly style={{margin: 0, padding: 0, marginRight: "10px"}}
                                     onClick={props.onListFilesButtonFromTableWithNoEntries}>
                             <RefreshIcon color={"info"} fontSize={"large"}
                                          style={{display: "inline-block",}}/>
-                        </IconButton>
+                        </MythicActionButton>
                     </div>
                 </div>
             }
@@ -734,10 +734,10 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                         {"No data has been collected for this path.  "}
                         <div style={{display: "flex", alignItems: "center"}}>
                             {"Task this callback to list the contents"}
-                            <IconButton style={{margin: 0, padding: 0, marginRight: "10px"}} onClick={props.onListFilesButtonFromTableWithNoEntries} >
+                            <MythicActionButton iconOnly style={{margin: 0, padding: 0, marginRight: "10px"}} onClick={props.onListFilesButtonFromTableWithNoEntries} >
                                 <RefreshIcon color={"info"} fontSize={"large"}
                                              style={{ display: "inline-block",}} />
-                            </IconButton>
+                            </MythicActionButton>
                         </div>
                     </div>
                 </div>
@@ -990,18 +990,17 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
     }
     return (
         <React.Fragment>
-            <IconButton
+            <MythicActionButton colorMode="always" tone="info" iconOnly
                 style={{height: "100%" }}
                 size='small'
                 aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
                 aria-expanded={dropdownOpen ? 'true' : undefined}
                 aria-haspopup='menu'
                 onClick={handleDropdownToggle}
-                color='info'
                 variant='contained'
                 ref={dropdownAnchorRef}>
                 <SettingsIcon />
-            </IconButton>
+            </MythicActionButton>
             {treeRootData[selectedFolderData.host][rowData.full_path_text]?.filemeta.length > 0 ?
                 <MythicStyledTooltip title={treeRootData[selectedFolderData.host][rowData.full_path_text]?.filemeta[0]?.complete ?
                     "Preview Media" : "Preview Partial Media"}>

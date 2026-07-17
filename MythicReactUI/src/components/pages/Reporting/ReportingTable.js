@@ -225,7 +225,7 @@ export function ReportingTable(){
                 </MythicTableToolbarGroup>
                 <MythicTableToolbarGroup label="Actions">
                     <MythicToolbarButton
-                        className="mythic-action-tone-hover mythic-tone-success"
+                        tone="success"
                         disabled={generating}
                         onClick={onGenerateReport}
                         startIcon={<PlayCircleOutlineIcon fontSize="small" />}

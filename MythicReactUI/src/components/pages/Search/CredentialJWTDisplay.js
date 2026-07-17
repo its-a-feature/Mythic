@@ -1,5 +1,5 @@
 import React from 'react';
-import {Chip} from '@mui/material';
+import {MythicChip} from '../../MythicComponents/MythicChip';
 import {
     compactMetadataValue,
     CredentialInspectorSection,
@@ -132,26 +132,26 @@ export function CredentialJWTDisplay({credential, metadata, identity, validityCh
     return (
         <>
             {showSummary &&
-                <CredentialInspectorSection title="JWT Metadata" tone="metadata">
+                <CredentialInspectorSection title="JWT Metadata">
                     <div className="mythic-credential-search-chip-list mythic-credential-search-section-chips">
                         {summaryEntries.map(([key, value]) => (
-                            <Chip key={key} size="small" variant="outlined" label={`${key}: ${compactMetadataValue(value)}`} className="mythic-credential-search-mini-chip" />
+                            <MythicChip key={key} size="small" variant="outlined" label={`${key}: ${compactMetadataValue(value)}`} className="mythic-credential-search-mini-chip" />
                         ))}
                         {validityChips.map((chip) => (
-                            <Chip key={chip.label} size="small" color={chip.color} variant="outlined" label={chip.label} className="mythic-credential-search-mini-chip" />
+                            <MythicChip key={chip.label} size="small" color={chip.color} variant="outlined" label={chip.label} className="mythic-credential-search-mini-chip" />
                         ))}
                     </div>
                     {warningValues.length > 0 &&
                         <div className="mythic-credential-search-warning-list">
                             {warningValues.map((warning, index) => (
-                                <Chip key={`warning-${index}`} size="small" color="warning" variant="outlined" label={compactMetadataValue(warning)} className="mythic-credential-search-warning-chip" />
+                                <MythicChip key={`warning-${index}`} size="small" color="warning" variant="outlined" label={compactMetadataValue(warning)} className="mythic-credential-search-warning-chip" />
                             ))}
                         </div>
                     }
                 </CredentialInspectorSection>
             }
             {hasJWTIdentity &&
-                <CredentialInspectorSection title="JWT Identity" tone="identity">
+                <CredentialInspectorSection title="JWT Identity">
                     <JWTJSONBlock title="Header" value={header} />
                     <JWTJSONBlock title="Claims" value={claims} />
                 </CredentialInspectorSection>

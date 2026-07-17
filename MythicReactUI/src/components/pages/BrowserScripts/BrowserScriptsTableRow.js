@@ -1,15 +1,15 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import Box from '@mui/material/Box';
-import { Switch } from '@mui/material';
+import {Switch} from '@mui/material';
 import TableRow from '@mui/material/TableRow';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {EditScriptDialog} from './EditScriptDialog';
 import EditIcon from '@mui/icons-material/Edit';
-import IconButton from '@mui/material/IconButton';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
-import {MythicStateChip} from "../../MythicComponents/MythicStateChip";
+import {MythicChip} from "../../MythicComponents/MythicChip";
 
 export function BrowserScriptsTableRow(props){
     const [openEdit, setOpenEdit] = React.useState(false);
@@ -49,17 +49,16 @@ export function BrowserScriptsTableRow(props){
                             name="Active"
                             size="small"
                           />
-                        <MythicStateChip label={props.active ? "Active" : "Disabled"} state={props.active ? "active" : "disabled"} />
                     </Box>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <MythicStateChip label={props.user_modified ? "User modified" : "Container default"} state={props.user_modified ? "warning" : "neutral"} />
+                    <MythicChip label={props.user_modified ? "User modified" : "Container default"} tone={props.user_modified ? "warning" : "secondary"} />
                 </MythicStyledTableCell>
                 <MythicStyledTableCell style={{textAlign: "center"}}>
                     <Box className="mythic-compact-actions mythic-compact-actions-nowrap mythic-browser-script-actions">
-                        <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" size="small" onClick={()=>{setOpenEdit(true);}}>
+                        <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" size="small" onClick={()=>{setOpenEdit(true);}}>
                             <EditIcon fontSize="small" />
-                        </IconButton>
+                        </MythicActionButton>
                     </Box>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell className="mythic-browser-script-spacer-cell" />

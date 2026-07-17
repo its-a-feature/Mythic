@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React, {useEffect, useRef} from 'react';
 import {Button} from '@mui/material';
 import {MythicViewJSONAsTableDialog, MythicDialog} from '../../MythicComponents/MythicDialog';
@@ -8,7 +9,6 @@ import 'react-virtualized/styles.css';
 import {TaskFromUIButton} from './TaskFromUIButton';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import { copyStringToClipboard } from '../../utilities/Clipboard';
-import IconButton from '@mui/material/IconButton';
 import {snackActions} from '../../utilities/Snackbar';
 import {MythicStyledTooltip} from '../../MythicComponents/MythicStyledTooltip';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
@@ -112,9 +112,9 @@ const ResponseDisplayTableStringCellCopy = ({cellData}) => {
   return (
       cellData?.copyIcon &&
       <MythicStyledTooltip title={"Copy to clipboard"}>
-        <IconButton onClick={() => onCopyToClipboard(cellData["plaintext"])} size="small">
+        <MythicActionButton iconOnly onClick={() => onCopyToClipboard(cellData["plaintext"])} size="small">
           <FontAwesomeIcon icon={faCopy} />
-        </IconButton>
+        </MythicActionButton>
       </MythicStyledTooltip>
   )
 }
@@ -162,9 +162,9 @@ const ResponseDisplayTableNumberCell = ({cellData, rowData}) => {
     <div className="mythic-response-table-cell" style={{...(cellData?.cellStyle || null), height: "100%"}}>
       {cellData?.copyIcon? 
         <MythicStyledTooltip title={"Copy to clipboard"}>
-            <IconButton onClick={() => onCopyToClipboard(cellData["plaintext"])} size="small">
+            <MythicActionButton iconOnly onClick={() => onCopyToClipboard(cellData["plaintext"])} size="small">
                 <FontAwesomeIcon icon={faCopy} />
-            </IconButton>
+            </MythicActionButton>
         </MythicStyledTooltip> : null}
       {cellData?.startIcon? 
         <MythicStyledTooltip title={cellData?.startIconHoverText || ""} >

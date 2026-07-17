@@ -5,7 +5,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import {gql, useMutation} from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
 import MythicTextField from '../../MythicComponents/MythicTextField';
-import {Typography, Box, Chip} from '@mui/material';
+import {Typography, Box} from '@mui/material';
 import {useTheme} from '@mui/material/styles';
 import {
   MythicDialogBody,
@@ -17,6 +17,7 @@ import {
 } from "../../MythicComponents/MythicDialogLayout";
 import {isValidHexColor, MythicColorSwatchInput} from "../../MythicComponents/MythicColorInput";
 import {getTagReadableTextColor} from "../../MythicComponents/MythicTagChip";
+import {MythicChip} from "../../MythicComponents/MythicChip";
 
 const newTagtypeMutation = gql`
 mutation newTagType($name: String!, $description: String!, $color: String!) {
@@ -62,7 +63,8 @@ const TagColorPreview = ({mode, color, label}) => {
       <Typography variant="caption" sx={{color: textColor, fontWeight: 800, flex: "0 0 auto"}}>
         {darkMode ? "Dark mode" : "Light mode"}
       </Typography>
-      <Chip
+      <MythicChip
+          customColor
           label={label || "Sample Tag"}
           size="small"
           sx={{

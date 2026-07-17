@@ -1,7 +1,8 @@
 import React from 'react';
-import {Box, Button, Checkbox, Chip, InputAdornment, TextField, Typography} from '@mui/material';
+import {Box, Button, Checkbox, InputAdornment, TextField, Typography} from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import {gql, useQuery} from "@apollo/client";
+import {MythicChip} from './MythicChip';
 
 export const defaultAPITokenScopes = ["*"];
 
@@ -145,8 +146,8 @@ export function APITokenScopeSelector({
     return (
         <Box className={className} sx={sx}>
             <Box sx={{alignItems: "center", display: "flex", flexWrap: "wrap", gap: 0.75, mb: 1}}>
-                <Chip className="mythic-api-token-scope-count" size="small" label={`${visibleScopeCount} visible`} />
-                <Chip className="mythic-api-token-scope-count" size="small" label={selectedScopesLabel} />
+                <MythicChip className="mythic-api-token-scope-count" size="small" label={`${visibleScopeCount} visible`} />
+                <MythicChip className="mythic-api-token-scope-count" size="small" label={selectedScopesLabel} />
                 <Button disabled={scopesUnavailable || visibleScopeCount === 0 || scopeIsSelected("*")} size="small" onClick={selectVisibleScopes}>
                     Select Visible
                 </Button>
@@ -255,10 +256,11 @@ export function APITokenScopeSelector({
                                                     <Box className="mythic-api-token-scope-card-copy">
                                                         <Box className="mythic-api-token-scope-card-title-row">
                                                             <Typography className="mythic-api-token-scope-card-title">{scope.display_name || scope.name}</Typography>
-                                                            <Chip
-                                                                className={`mythic-status-chip mythic-status-chip-compact mythic-tone-${scope.access === "read" ? "info" : ["write", "create", "update"].includes(scope.access) ? "success" : ["delete", "admin"].includes(scope.access) ? "error" : "neutral"}`}
+                                                            <MythicChip
+                                                                compact
                                                                 label={scope.access || "scope"}
                                                                 size="small"
+                                                                tone={scope.access === "read" ? "info" : ["write", "create", "update"].includes(scope.access) ? "success" : ["delete", "admin"].includes(scope.access) ? "error" : "neutral"}
                                                             />
                                                         </Box>
                                                         <Typography className="mythic-api-token-scope-name">

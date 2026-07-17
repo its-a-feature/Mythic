@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import {IconButton, Link} from '@mui/material';
+import {Link} from '@mui/material';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -17,7 +17,9 @@ import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {adjustOutput} from "../Eventing/EventGroupInstancesTable";
 import SpeedIcon from '@mui/icons-material/Speed';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
-import {MythicStateChip} from "../../MythicComponents/MythicStateChip";
+import {MythicChip} from "../../MythicComponents/MythicChip";
+import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 
 const toggleProxy = gql`
 mutation ToggleProxyMutation($callbackport_id: Int!, $action: String!){
@@ -58,7 +60,7 @@ export function ProxySearchTable(props){
             <Table stickyHeader size="small" style={{tableLayout: "fixed"}}>
                 <TableHead>
                     <TableRow>
-                        <TableCell style={{width: "8rem"}}>State</TableCell>
+                        <TableCell style={{width: "9rem"}}>State</TableCell>
                         <TableCell >User@Host</TableCell>
                         <TableCell style={{width: "9rem"}}>Task Info</TableCell>
                         <TableCell style={{width: "7rem"}}>Bound Port</TableCell>
@@ -147,27 +149,11 @@ function ProxySearchTableRow(props){
                 <MythicStyledTableCell>
                     <div className="mythic-search-result-action-row">
                         {props.deleted ? (
-                            <MythicStyledTooltip title="Start Proxy Port on Mythic Server">
-                                <IconButton
-                                    className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-success"
-                                    size="small"
-                                    onClick={()=>{setOpenDeleteDialog(true);}}
-                                >
-                                    <RestoreFromTrashIcon fontSize="small" />
-                                </IconButton>
-                            </MythicStyledTooltip>
+                            <MythicActionButton appearance="raised" icon={<RestoreFromTrashIcon />} iconOnly onClick={()=>{setOpenDeleteDialog(true);}} tone="success" tooltip="Start Proxy Port on Mythic Server" />
                         ) :
-                            (<MythicStyledTooltip title="Stop Proxy Port on Mythic Server">
-                                <IconButton
-                                    className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error"
-                                    size="small"
-                                    onClick={()=>{setOpenDeleteDialog(true);}}
-                                >
-                                    <DeleteIcon fontSize="small" />
-                                </IconButton>
-                            </MythicStyledTooltip>
+                            (<MythicActionButton appearance="raised" icon={<DeleteIcon />} iconOnly onClick={()=>{setOpenDeleteDialog(true);}} tone="error" tooltip="Stop Proxy Port on Mythic Server" />
                             )}
-                        <MythicStateChip compact label={props.deleted ? "Stopped" : "Running"} state={props.deleted ? "disabled" : "active"} />
+                        <MythicStatusChip compact status={props.deleted ? "stopped" : "running"} />
                     </div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
@@ -233,7 +219,7 @@ function ProxySearchTableRow(props){
                     </div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <MythicStateChip compact label={props.port_type} />
+                    <MythicChip compact label={props.port_type} />
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <Moment filter={(newTime) => adjustOutput(props, newTime)} interval={1000}
@@ -247,15 +233,7 @@ function ProxySearchTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     {props.remote_port !== 0 &&
-                        <MythicStyledTooltip title={"Test Remote Connection"} >
-                            <IconButton
-                                className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-success"
-                                size="small"
-                                onClick={onTestProxy}
-                            >
-                                <SpeedIcon fontSize="small" />
-                            </IconButton>
-                        </MythicStyledTooltip>
+                        <MythicActionButton appearance="raised" icon={<SpeedIcon />} iconOnly onClick={onTestProxy} tone="success" tooltip="Test Remote Connection" />
                     }
                 </MythicStyledTableCell>
             </TableRow>
