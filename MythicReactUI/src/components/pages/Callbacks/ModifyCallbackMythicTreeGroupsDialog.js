@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import TableRow from '@mui/material/TableRow';
 import Table from '@mui/material/Table';
@@ -10,7 +11,7 @@ import Select from '@mui/material/Select';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import {Button, IconButton} from '@mui/material';
+import {Button} from '@mui/material';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { snackActions } from '../../utilities/Snackbar';
@@ -115,7 +116,7 @@ export function ModifyCallbackMythicTreeGroupsDialog(props){
           <DialogTitle id="form-dialog-title" style={{display: "flex", justifyContent: "space-between"}}>
               Updating Callback Groups for Callback {callbackDisplayID.current}
               <MythicStyledTooltip title="View all groups" >
-                  <IconButton size="small" onClick={()=>{setOpenViewAllCallbacksDialog(true);}} style={{color: theme.palette.info.main}} variant="contained"><LayersIcon/></IconButton>
+                  <MythicActionButton iconOnly size="small" onClick={()=>{setOpenViewAllCallbacksDialog(true);}} style={{color: theme.palette.info.main}} variant="contained"><LayersIcon/></MythicActionButton>
               </MythicStyledTooltip>
           </DialogTitle>
             <div style={{paddingLeft: "30px"}}>
@@ -144,14 +145,14 @@ export function ModifyCallbackMythicTreeGroupsDialog(props){
                                         }
                                     </Select>
                                 </FormControl>
-                                <IconButton onClick={addArrayOption} size="large"> <AddCircleIcon color="success"  /> </IconButton>
+                                <MythicActionButton iconOnly onClick={addArrayOption} size="large"> <AddCircleIcon color="success"  /> </MythicActionButton>
                             </MythicStyledTableCell>
                         </TableRow>
                     }
                     {groups.map( (a, i) => (
                         <TableRow key={'array' + props.name + i} >
                             <MythicStyledTableCell style={{width: "2rem", paddingLeft:"0"}}>
-                                <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={(e) => {removeArrayValue(i)}}><DeleteIcon fontSize="small" /> </IconButton>
+                                <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={(e) => {removeArrayValue(i)}}><DeleteIcon fontSize="small" /> </MythicActionButton>
                             </MythicStyledTableCell>
                             <MythicStyledTableCell>
                                 <MythicTextField required={props.required} fullWidth={true} placeholder={""} value={a} multiline={true} autoFocus={ i > 0}
@@ -162,7 +163,7 @@ export function ModifyCallbackMythicTreeGroupsDialog(props){
                     ))}
                     <TableRow >
                         <MythicStyledTableCell style={{width: "5rem", paddingLeft:"0"}}>
-                            <IconButton onClick={addNewArrayValue} size="large"> <AddCircleIcon color="success"  /> </IconButton>
+                            <MythicActionButton iconOnly onClick={addNewArrayValue} size="large"> <AddCircleIcon color="success"  /> </MythicActionButton>
                         </MythicStyledTableCell>
                         <MythicStyledTableCell></MythicStyledTableCell>
                     </TableRow>

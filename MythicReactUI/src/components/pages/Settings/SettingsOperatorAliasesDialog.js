@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import {gql, useLazyQuery, useMutation, useQuery} from '@apollo/client';
 import Box from '@mui/material/Box';
@@ -6,7 +7,6 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import FormControl from '@mui/material/FormControl';
-import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
@@ -286,17 +286,21 @@ export function SettingsOperatorAliasesDialog(props) {
                 <Box sx={{display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1}}>
                     <Typography component="div" variant="h6">Operator Aliases</Typography>
                     <Box sx={{display: "flex", gap: 1}}>
-                        <MythicStyledTooltip title="Export aliases">
-                            <Button className="mythic-alias-transfer-action mythic-action-tone-hover mythic-tone-secondary" size="small" variant="text" startIcon={<CloudDownloadIcon fontSize="small" />} onClick={exportOperatorAliases}>
+                            <MythicActionButton tooltip={"Export aliases"}
+                                                colorMode={"hover"}
+                                                icon={<CloudDownloadIcon />}
+                                                onClick={exportOperatorAliases}>
                                 Export
-                            </Button>
-                        </MythicStyledTooltip>
-                        <MythicStyledTooltip title="Import aliases">
-                            <Button className="mythic-alias-transfer-action mythic-action-tone-hover mythic-tone-secondary" size="small" variant="text" startIcon={<CloudUploadIcon fontSize="small" />} onClick={() => fileInputRef.current?.click()}>
+                            </MythicActionButton>
+                            <MythicActionButton
+                                tooltip={"Import aliases"}
+                                colorMode={"hover"}
+                                appearance={"raised"}
+                                tone={"success"}
+                                icon={<CloudUploadIcon  />} onClick={() => fileInputRef.current?.click()}>
                                 Import
                                 <input ref={fileInputRef} onChange={importOperatorAliases} type="file" accept="application/json,.json" hidden />
-                            </Button>
-                        </MythicStyledTooltip>
+                            </MythicActionButton>
                     </Box>
                 </Box>
             </DialogTitle>
@@ -355,11 +359,18 @@ export function SettingsOperatorAliasesDialog(props) {
                     )}
                     <Box sx={{display: "flex", justifyContent: "flex-end", gap: 1}}>
                         {editingID &&
-                            <Button startIcon={<RestartAltIcon />} onClick={resetForm}>Reset</Button>
+                            <MythicActionButton icon={<RestartAltIcon />}
+                                                colorMode={"hover"}
+                                                appearance={"raised"}
+                                                tone={"warning"}
+                                                onClick={resetForm}>Reset</MythicActionButton>
                         }
-                        <Button variant="contained" disabled={formDisabled} onClick={submitAlias}>
+                        <MythicActionButton variant="contained"
+                                            colorMode={"hover"}
+                                            tone={editingID ? "warning" : "success"}
+                                            disabled={formDisabled} onClick={submitAlias}>
                             {editingID ? "Update" : "Add"}
-                        </Button>
+                        </MythicActionButton>
                     </Box>
                 </Box>
                 {loading ? (
@@ -404,14 +415,14 @@ export function SettingsOperatorAliasesDialog(props) {
                                     </TableCell>
                                     <TableCell align="right">
                                         <MythicStyledTooltip title="Edit alias">
-                                            <IconButton size="small" onClick={() => editAlias(alias)}>
+                                            <MythicActionButton tone={"warning"} iconOnly size="small" onClick={() => editAlias(alias)}>
                                                 <EditIcon fontSize="small" />
-                                            </IconButton>
+                                            </MythicActionButton>
                                         </MythicStyledTooltip>
                                         <MythicStyledTooltip title="Delete alias">
-                                            <IconButton size="small" color="error" onClick={() => removeAlias(alias)}>
+                                            <MythicActionButton colorMode="hover" tone="error" iconOnly size="small"  onClick={() => removeAlias(alias)}>
                                                 <DeleteIcon fontSize="small" />
-                                            </IconButton>
+                                            </MythicActionButton>
                                         </MythicStyledTooltip>
                                     </TableCell>
                                 </TableRow>

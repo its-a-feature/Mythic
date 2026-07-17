@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React, {useEffect} from 'react';
 import {useQuery, gql} from '@apollo/client';
 import { CreatePayloadNavigationButtons} from './CreatePayloadNavigationButtons';
@@ -9,7 +10,6 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Checkbox from '@mui/material/Checkbox';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
-import IconButton from '@mui/material/IconButton';
 import {classes, StyledButton, StyledDivider} from '../../MythicComponents/MythicTransferList';
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import MythicTextField from "../../MythicComponents/MythicTextField";
@@ -383,11 +383,11 @@ function CommandTransferSelect(props) {
                                 <ListItemText id={labelId} primary={
                                     <div style={{display: "flex", alignItems: "center", justifyContent: "space-between"}}>
                                         {value}
-                                        <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" size="small" onClick={(e) => e.stopPropagation()}
+                                        <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" size="small" onClick={(e) => e.stopPropagation()}
                                                 href={"/docs/agents/" + props.payload_type + "/commands/" + value}
                                                 style={{marginLeft: "10px", float: "right"}} target="_blank">
                                             <MenuBookIcon fontSize="small"/>
-                                        </IconButton>
+                                        </MythicActionButton>
                                     </div>
                                 } />
                             </ListItem>

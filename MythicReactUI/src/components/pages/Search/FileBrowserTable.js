@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import {IconButton, Typography, Link} from '@mui/material';
+import {Typography, Link} from '@mui/material';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -13,9 +13,9 @@ import PlaylistAddCheckIcon from '@mui/icons-material/PlaylistAddCheck';
 import { gql, useMutation } from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
 import EditIcon from '@mui/icons-material/Edit';
-import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {TagsDisplay, ViewEditTags} from '../../MythicComponents/MythicTag';
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 
 const updateFileComment = gql`
 mutation updateCommentMutation($mythictree_id: Int!, $comment: String!){
@@ -133,13 +133,7 @@ function FileBrowserTableRow(props){
 
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <IconButton
-                        className="mythic-compact-icon-action mythic-icon-tone mythic-tone-info"
-                        onClick={() => setEditCommentDialogOpen(true)}
-                        size="small"
-                    >
-                        <EditIcon fontSize="small" />
-                    </IconButton>
+                    <MythicActionButton appearance="raised" colorMode="always" icon={<EditIcon />} iconOnly onClick={() => setEditCommentDialogOpen(true)} tone="info" tooltip="Edit comment" />
                     <Typography variant="body2" style={{wordBreak: "break-all", display: "inline-block"}}>{props.comment}</Typography>
                     </MythicStyledTableCell>
                 <MythicStyledTableCell>
@@ -147,27 +141,11 @@ function FileBrowserTableRow(props){
                     <TagsDisplay tags={props.tags} />
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <MythicStyledTooltip title="View permissions data">
-                        <IconButton
-                            className="mythic-compact-icon-action mythic-icon-tone mythic-tone-info"
-                            size="small"
-                            onClick={() => setViewPermissionsDialogOpen(true)}
-                        >
-                            <PlaylistAddCheckIcon fontSize="small" />
-                        </IconButton>
-                    </MythicStyledTooltip>
+                    <MythicActionButton appearance="raised" colorMode="always" icon={<PlaylistAddCheckIcon />} iconOnly onClick={() => setViewPermissionsDialogOpen(true)} tone="info" tooltip="View permissions data" />
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     {props.filemeta.length > 0 ? (
-                        <MythicStyledTooltip title="View Download History and Download Files">
-                            <IconButton
-                                className="mythic-compact-icon-action mythic-icon-tone mythic-tone-info"
-                                size="small"
-                                onClick={() => setFileHistoryDialogOpen(true)}
-                            >
-                                <HistoryIcon fontSize="small" />
-                            </IconButton>
-                        </MythicStyledTooltip>
+                        <MythicActionButton appearance="raised" colorMode="always" icon={<HistoryIcon />} iconOnly onClick={() => setFileHistoryDialogOpen(true)} tone="info" tooltip="View Download History and Download Files" />
                     ): (null)}
                 </MythicStyledTableCell>
             </TableRow>

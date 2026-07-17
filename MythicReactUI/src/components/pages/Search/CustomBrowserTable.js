@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import {IconButton, Link} from '@mui/material';
+import {Link} from '@mui/material';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -13,7 +13,7 @@ import {snackActions} from '../../utilities/Snackbar';
 import EditIcon from '@mui/icons-material/Edit';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {TagsDisplay, ViewEditTags} from '../../MythicComponents/MythicTag';
-import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 
 const singleLineCellStyle = {
     minWidth: 0,
@@ -116,15 +116,7 @@ function CustomBrowserTableRow(props){
                 <MythicStyledTableCell>
                     <div className="mythic-search-result-stack mythic-search-result-stack-spacious">
                         <div className="mythic-search-result-action-row">
-                            <MythicStyledTooltip title="View metadata">
-                                <IconButton
-                                    className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
-                                    size="small"
-                                    onClick={() => setViewPermissionsDialogOpen(true)}
-                                >
-                                    <PlaylistAddCheckIcon fontSize="small" />
-                                </IconButton>
-                            </MythicStyledTooltip>
+                            <MythicActionButton appearance="raised" icon={<PlaylistAddCheckIcon />} iconOnly onClick={() => setViewPermissionsDialogOpen(true)} tone="info" tooltip="View metadata" />
                             <span
                                 className="mythic-search-result-primary"
                                 style={{...singleLineCellStyle, textDecoration: props.deleted ? "line-through" : ""}}
@@ -182,15 +174,7 @@ function CustomBrowserTableRow(props){
                 ))}
                 <MythicStyledTableCell>
                     <div className="mythic-search-result-action-row">
-                        <MythicStyledTooltip title="Edit comment">
-                            <IconButton
-                                className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
-                                onClick={() => setEditCommentDialogOpen(true)}
-                                size="small"
-                            >
-                                <EditIcon fontSize="small" />
-                            </IconButton>
-                        </MythicStyledTooltip>
+                        <MythicActionButton appearance="raised" icon={<EditIcon />} iconOnly onClick={() => setEditCommentDialogOpen(true)} tone="info" tooltip="Edit comment" />
                         <span className="mythic-search-result-secondary" style={singleLineCellStyle} title={props.comment}>
                             {props.comment || "No comment"}
                         </span>

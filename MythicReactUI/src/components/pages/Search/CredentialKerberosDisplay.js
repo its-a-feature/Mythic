@@ -1,5 +1,5 @@
 import React from 'react';
-import {Chip} from '@mui/material';
+import {MythicChip} from '../../MythicComponents/MythicChip';
 import {
     compactMetadataValue,
     CredentialInspectorSection,
@@ -61,7 +61,7 @@ function KerberosPrincipal({label, principal, realm, service=false}){
                 <strong>{principal}</strong>
             }
             {hasValue(realm) &&
-                <Chip size="small" variant="outlined" label={realm} className="mythic-credential-search-mini-chip" />
+                <MythicChip size="small" variant="outlined" label={realm} className="mythic-credential-search-mini-chip" />
             }
         </div>
     )
@@ -81,7 +81,7 @@ function KerberosLifecycle({ticket, validity, highlightLifecycle}){
                         <span>{field.label}</span>
                         <strong title={ticket[field.key]}>{ticket[field.key]}</strong>
                         {chip &&
-                            <Chip size="small" color={chip.color} variant="outlined" label={chip.label} className="mythic-credential-search-inline-chip" />
+                            <MythicChip size="small" color={chip.color} variant="outlined" label={chip.label} className="mythic-credential-search-inline-chip" />
                         }
                     </div>
                 )
@@ -155,26 +155,26 @@ export function CredentialKerberosDisplay({metadata, identity, validity={}, vali
     return (
         <>
             {showSummary &&
-                <CredentialInspectorSection title="Kerberos Metadata" tone="metadata">
+                <CredentialInspectorSection title="Kerberos Metadata" >
                     <div className="mythic-credential-search-chip-list mythic-credential-search-section-chips">
                         {summaryEntries.map(([key, value]) => (
-                            <Chip key={key} size="small" variant="outlined" label={`${key}: ${compactMetadataValue(value)}`} className="mythic-credential-search-mini-chip" />
+                            <MythicChip key={key} size="small" variant="outlined" label={`${key}: ${compactMetadataValue(value)}`} className="mythic-credential-search-mini-chip" />
                         ))}
                         {validityChips.map((chip) => (
-                            <Chip key={chip.label} size="small" color={chip.color} variant="outlined" label={chip.label} className="mythic-credential-search-mini-chip" />
+                            <MythicChip key={chip.label} size="small" color={chip.color} variant="outlined" label={chip.label} className="mythic-credential-search-mini-chip" />
                         ))}
                     </div>
                     {warningValues.length > 0 &&
                         <div className="mythic-credential-search-warning-list">
                             {warningValues.map((warning, index) => (
-                                <Chip key={`warning-${index}`} size="small" color="warning" variant="outlined" label={compactMetadataValue(warning)} className="mythic-credential-search-warning-chip" />
+                                <MythicChip key={`warning-${index}`} size="small" color="warning" variant="outlined" label={compactMetadataValue(warning)} className="mythic-credential-search-warning-chip" />
                             ))}
                         </div>
                     }
                 </CredentialInspectorSection>
             }
             {tickets.length > 0 &&
-                <CredentialInspectorSection title={`Kerberos Tickets (${tickets.length})`} tone="identity">
+                <CredentialInspectorSection title={`Kerberos Tickets (${tickets.length})`}>
                     {tickets.map((ticket, index) => (
                         <KerberosTicket key={`kerberos-ticket-${index}`} ticket={ticket} index={index} validity={validity} />
                     ))}

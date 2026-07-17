@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React, {useCallback} from 'react';
 import {createPortal} from 'react-dom';
 import {gql, useQuery, useSubscription, useMutation, useLazyQuery, useReactiveVar} from '@apollo/client';
@@ -20,11 +21,6 @@ import {ReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import {useTheme} from '@mui/material/styles';
-import TimelapseIcon from '@mui/icons-material/Timelapse';
-import PanoramaFishEyeIcon from '@mui/icons-material/PanoramaFishEye';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import HideSourceIcon from '@mui/icons-material/HideSource';
-import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 import {adjustDurationOutput, adjustOutput} from "./EventGroupInstancesTable";
 import Moment from 'react-moment';
 import {MythicDialog} from "../../MythicComponents/MythicDialog";
@@ -41,7 +37,6 @@ import {APITokenRow} from "../Settings/SettingsOperatorAPITokenRow";
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import {DetailedPayloadTable} from "../Payloads/DetailedPayloadTable";
 import InfoIconOutline from '@mui/icons-material/InfoOutlined';
-import IconButton from '@mui/material/IconButton';
 import {snackActions} from "../../utilities/Snackbar";
 import AceEditor from 'react-ace';
 import 'ace-builds/src-noconflict/mode-json';
@@ -62,6 +57,8 @@ import {getStringSize} from "../Callbacks/ResponseDisplayTable";
 import {MythicPageHeader} from "../../MythicComponents/MythicPageHeader";
 import {MythicEmptyState, MythicErrorState, MythicLoadingState} from "../../MythicComponents/MythicStateDisplay";
 import {MythicClientSideTablePagination, useMythicClientPagination} from "../../MythicComponents/MythicTablePagination";
+import {getMythicStatusConfig, MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
+import {MythicChip, SquareChip} from "../../MythicComponents/MythicChip";
 import TextField from '@mui/material/TextField';
 import {meState} from "../../../cache";
 
@@ -352,43 +349,6 @@ query getEventStepInstancesForUserInteraction($eventgroupinstance_id: Int!, $sta
 }
 `;
 
-export const GetStatusSymbol = ({data}) => {
-    let style = {marginRight: "5px"};
-    switch (data?.status || "") {
-        case "success":
-            return (<MythicStyledTooltip title={"Completed Successfully"}>
-                        <CheckCircleOutlineIcon color={"success"} style={{...style}}/>
-                    </MythicStyledTooltip>)
-        case "running":
-            return (<MythicStyledTooltip title={"Running..."}>
-                        <TimelapseIcon color={"info"} style={{...style}}/>
-                    </MythicStyledTooltip>)
-        case "error":
-            return (<MythicStyledTooltip title={"Errored"}>
-                        <HighlightOffIcon color={"error"} style={{...style}}/>
-                    </MythicStyledTooltip>)
-        case "cancelled":
-            return (<MythicStyledTooltip title={"Canceled"}>
-                        <HideSourceIcon color={"warning"} style={{...style}}/>
-                    </MythicStyledTooltip>)
-        case "skipped":
-            return (<MythicStyledTooltip title={"Skipped"}>
-                        <HideSourceIcon color={"info"} style={{...style}}/>
-                    </MythicStyledTooltip>)
-        case "awaiting_approval":
-            return (<MythicStyledTooltip title={"Awaiting approval"}>
-                        <TimelapseIcon color={"warning"} style={{...style}}/>
-                    </MythicStyledTooltip>)
-        case "input_needed":
-            return (<MythicStyledTooltip title={"Input needed"}>
-                        <InfoIconOutline color={"warning"} style={{...style}}/>
-                    </MythicStyledTooltip>)
-        default:
-            return (<MythicStyledTooltip title={"Waiting..."}>
-                        <PanoramaFishEyeIcon style={{...style}}/>
-                    </MythicStyledTooltip>)
-    }
-}
 const GetTimeDuration = ({data, customStyle}) => {
     const theme = useTheme();
     if(!data){
@@ -436,28 +396,6 @@ const GetTimeDuration = ({data, customStyle}) => {
         </Typography>
     )
 }
-const getStatusLabel = (status) => {
-    switch(status || ""){
-        case "success":
-            return "Success";
-        case "running":
-            return "Running";
-        case "error":
-            return "Error";
-        case "cancelled":
-            return "Cancelled";
-        case "skipped":
-            return "Skipped";
-        case "awaiting_approval":
-            return "Awaiting approval";
-        case "input_needed":
-            return "Input needed";
-        case "queued":
-            return "Queued";
-        default:
-            return "Waiting";
-    }
-}
 const getStatusClass = (status) => {
     switch(status || ""){
         case "success":
@@ -479,38 +417,19 @@ const getStatusClass = (status) => {
     }
 }
 const hasEventingStatus = (status) => status !== undefined && status !== null && status !== "";
+const getEventingDisplayStatus = (status) => hasEventingStatus(status) ? status : "configured";
 const getEventingStatusClass = (status) => hasEventingStatus(status) ? getStatusClass(status) : "configured";
-const getEventingStatusTone = (status) => {
-    switch(status || ""){
-        case "success":
-            return "success";
-        case "running":
-            return "info";
-        case "error":
-            return "error";
-        case "cancelled":
-        case "awaiting_approval":
-        case "input_needed":
-            return "warning";
-        default:
-            return "neutral";
-    }
-};
-export const EventingStatusChip = ({data}) => {
-    const hasStatus = hasEventingStatus(data?.status);
-    return (
-        <span className={`mythic-status-chip mythic-tone-${getEventingStatusTone(data?.status)}`}>
-            {hasStatus ? <GetStatusSymbol data={data}/> : <PanoramaFishEyeIcon/>}
-            <span>{hasStatus ? getStatusLabel(data?.status) : "Configured"}</span>
-        </span>
-    )
-}
 const EventingDetailChip = ({label, value}) => (
     value === undefined || value === null || value === "" ? null :
-        <span className="mythic-eventing-detail-chip">
-            <span className="mythic-eventing-detail-chip-label">{label}</span>
-            <span className="mythic-eventing-detail-chip-value">{value}</span>
-        </span>
+        <SquareChip
+            className="mythic-eventing-detail-chip"
+            label={
+                <>
+                    <span className="mythic-eventing-detail-chip-label">{label}</span>
+                    <span className="mythic-eventing-detail-chip-value">{value}</span>
+                </>
+            }
+        />
 )
 const stringifyEventingValue = (value) => {
     if(value === undefined || value === null || value === ""){
@@ -881,7 +800,7 @@ export const EventStepUserInteractionDialog = ({onClose, onResolved, selectedEve
                                     type="button"
                                 >
                                     <span className="mythic-eventing-user-interaction-step-name">{getUserInteractionStepName(step)}</span>
-                                    <span className="mythic-eventing-user-interaction-step-meta">{getStatusLabel(step.status)}{getUserInteractionStepAction(step) ? ` - ${getUserInteractionStepAction(step)}` : ""}</span>
+                                    <span className="mythic-eventing-user-interaction-step-meta">{getMythicStatusConfig(getEventingDisplayStatus(step.status)).label}{getUserInteractionStepAction(step) ? ` - ${getUserInteractionStepAction(step)}` : ""}</span>
                                 </button>
                             ))}
                         </div>
@@ -893,9 +812,9 @@ export const EventStepUserInteractionDialog = ({onClose, onResolved, selectedEve
                                 <div className="mythic-eventing-user-interaction-title">{stepName}</div>
                             </div>
                             <div className="mythic-eventing-user-interaction-summary-chips">
-                                <EventingStatusChip data={activeStep} />
+                                <MythicStatusChip status={getEventingDisplayStatus(activeStep?.status)} variant="outlined" />
                                 {stepAction &&
-                                    <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-info">{stepAction}</span>
+                                    <MythicChip compact label={stepAction} tone="info" />
                                 }
                             </div>
                         </div>
@@ -925,7 +844,7 @@ export const EventStepUserInteractionDialog = ({onClose, onResolved, selectedEve
                                                         <div className="mythic-eventing-user-interaction-input-name">
                                                             {field.name || "Input"}
                                                             {field.required &&
-                                                                <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-warning">required</span>
+                                                                <MythicChip compact label="required" tone="warning" />
                                                             }
                                                         </div>
                                                         <div className="mythic-eventing-user-interaction-input-description">
@@ -1101,7 +1020,7 @@ const EventingMetadataPair = ({label, original, instance, originalLabel="Configu
 )
 const EventingHeaderTitle = ({statusData, title}) => (
     <span className="mythic-eventing-header-title">
-        {statusData && <EventingStatusChip data={statusData}/>}
+        {statusData && <MythicStatusChip status={getEventingDisplayStatus(statusData?.status)} variant="outlined" />}
         <span>{title}</span>
     </span>
 )
@@ -1148,9 +1067,9 @@ function EventNode({data}) {
             <div className={`mythic-eventing-flow-node mythic-eventing-flow-node-${getEventingStatusClass(data?.status)}`.trim()}>
                 <Typography className="mythic-eventing-flow-node-title" title={data.name}>{data.name}</Typography>
                 <div className="mythic-eventing-flow-node-main">
-                    <EventingStatusChip data={data}/>
+                    <MythicStatusChip status={getEventingDisplayStatus(data?.status)} variant="outlined" />
                     {data.action &&
-                        <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-info" title={data.action}>{data.action}</span>
+                        <MythicChip compact label={data.action} title={data.action} tone="info" />
                     }
                 </div>
                 {data.status &&
@@ -2333,8 +2252,8 @@ function EventDetailsPayloadsTable({payloads, deletePayload}){
                                         <MythicStyledTableCell style={{width: "2rem"}}>
                                             {!trackedData.deleted &&
                                                 <MythicStyledTooltip title={"Delete the payload from disk and mark as deleted. No new callbacks can be generated from this payload"}>
-                                                    <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" disableFocusRipple={true}
-                                                                disableRipple={true} onClick={()=>{onDeletePayload(trackedData)}}><DeleteIcon fontSize="small" /></IconButton>
+                                                    <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" disableFocusRipple={true}
+                                                                disableRipple={true} onClick={()=>{onDeletePayload(trackedData)}}><DeleteIcon fontSize="small" /></MythicActionButton>
                                                 </MythicStyledTooltip>
                                             }
                                         </MythicStyledTableCell>
@@ -2348,10 +2267,10 @@ function EventDetailsPayloadsTable({payloads, deletePayload}){
                                             <PayloadsTableRowBuildStatus {...trackedData} />
                                         </MythicStyledTableCell>
                                         <MythicStyledTableCell style={{width: "3rem"}}>
-                                            <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" disableFocusRipple={true}
+                                            <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" disableFocusRipple={true}
                                                         disableRipple={true} size="small" onClick={() => onViewDetailedData(trackedData)}>
                                                 <InfoIconOutline fontSize="small" />
-                                            </IconButton>
+                                            </MythicActionButton>
                                         </MythicStyledTableCell>
                                     </TableRow>
                                 ))}

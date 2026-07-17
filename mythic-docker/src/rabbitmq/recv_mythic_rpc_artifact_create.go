@@ -16,6 +16,7 @@ type MythicRPCArtifactCreateMessage struct {
 	ArtifactMessage  string  `json:"message"`
 	BaseArtifactType string  `json:"base_artifact"`
 	ArtifactHost     *string `json:"host,omitempty"`
+	NeedsCleanup     bool    `json:"needs_cleanup"`
 }
 type MythicRPCArtifactCreateMessageResponse struct {
 	Success bool   `json:"success"`
@@ -42,6 +43,7 @@ func MythicRPCArtifactCreate(input MythicRPCArtifactCreateMessage, authContext R
 	taskArtifact.TaskID.Valid = true
 	taskArtifact.Artifact = []byte(input.ArtifactMessage)
 	taskArtifact.BaseArtifact = input.BaseArtifactType
+	taskArtifact.NeedsCleanup = input.NeedsCleanup
 	task := databaseStructs.Task{}
 	err := database.DB.Get(&task, `SELECT
 	callback.host "callback.host"
@@ -67,8 +69,8 @@ func MythicRPCArtifactCreate(input MythicRPCArtifactCreateMessage, authContext R
 		taskArtifact.EventStepInstanceID.Int64 = int64(authContext.EventStepInstanceID)
 	}
 	statement, err := database.DB.PrepareNamed(`INSERT INTO taskartifact 
-			(task_id, artifact, base_artifact, host, operation_id, apitokens_id, eventstepinstance_id)
-			VALUES (:task_id, :artifact, :base_artifact, :host, :operation_id, :apitokens_id, :eventstepinstance_id)
+			(task_id, artifact, base_artifact, host, operation_id, apitokens_id, eventstepinstance_id, needs_cleanup)
+			VALUES (:task_id, :artifact, :base_artifact, :host, :operation_id, :apitokens_id, :eventstepinstance_id, :needs_cleanup)
 			RETURNING id`)
 	if err != nil {
 		logging.LogError(err, "Failed to save taskartifact data to database")

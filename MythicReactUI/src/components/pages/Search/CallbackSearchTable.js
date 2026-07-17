@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import {IconButton, Typography, Link} from '@mui/material';
+import {Typography, Link} from '@mui/material';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -19,7 +19,9 @@ import InfoIconOutline from '@mui/icons-material/InfoOutlined';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import {CallbacksTableLastCheckinCell} from "../Callbacks/CallbacksTableRow";
-import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
+import {getTagReadableTextColor} from "../../MythicComponents/MythicTagChip";
+import {useTheme} from "@mui/material/styles";
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 
 
 
@@ -46,7 +48,6 @@ export function CallbackSearchTable(props){
                 <TableHead>
                     <TableRow>
                         <TableCell style={{width: "3rem"}}>View</TableCell>
-                        <TableCell style={{width: "11rem"}}>Status</TableCell>
                         <TableCell >User</TableCell>
                         <TableCell >Domain</TableCell>
                         <TableCell >Host</TableCell>
@@ -75,6 +76,7 @@ export function CallbackSearchTable(props){
 }
 
 function CallbackSearchTableRow(props){
+    const theme = useTheme();
     const [openDeleteDialog, setOpenDeleteDialog] = React.useState(false);
     const [openMetaDialog, setOpenMetaDialog] = React.useState(false);
     const [updateDeleted] = useMutation(toggleHideCallbackMutations, {
@@ -90,6 +92,7 @@ function CallbackSearchTableRow(props){
     const onAcceptDelete = () => {
         updateDeleted({variables: {callback_display_id: props.display_id, active: !props.active}})
     }
+    const textColor = getTagReadableTextColor(theme, props.color);
     return (
         <React.Fragment>
             <TableRow hover style={{backgroundColor: props.color}}>
@@ -97,60 +100,45 @@ function CallbackSearchTableRow(props){
                     <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} open={openDeleteDialog} acceptText={props.active ? "Hide" : "Restore" }/>
                 }
                 <MythicStyledTableCell>{!props.active ? (
-                    <MythicStyledTooltip title="Restore Callback for Tasking">
-                        <IconButton className="mythic-compact-icon-action mythic-icon-tone mythic-tone-error" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><VisibilityOffIcon fontSize="small" /></IconButton>
-                    </MythicStyledTooltip>
+                    <MythicActionButton appearance="raised" colorMode="always" icon={<VisibilityOffIcon />} iconOnly onClick={()=>{setOpenDeleteDialog(true);}} tone="error" tooltip="Restore Callback for Tasking" />
                 ) : (
-                    <MythicStyledTooltip title="Hide Callback so it can't be used in Tasking">
-                        <IconButton className="mythic-compact-icon-action mythic-icon-tone mythic-tone-success" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><VisibilityIcon fontSize="small" /></IconButton>
-                    </MythicStyledTooltip>
+                    <MythicActionButton appearance="raised" colorMode="hover" icon={<VisibilityIcon />} iconOnly onClick={()=>{setOpenDeleteDialog(true);}} tone="success" tooltip="Hide Callback so it can't be used in Tasking" />
                 )} </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <div className="mythic-status-stack">
-                        <MythicStatusChip
-                            label={props.active ? "Visible" : "Hidden"}
-                            status={props.active ? "active" : "inactive"}
-                        />
-                        {props.locked &&
-                            <MythicStatusChip label="Locked" status="locked" />
-                        }
-                    </div>
-                </MythicStyledTableCell>
-                <MythicStyledTableCell>
-                    <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.user}</Typography>
+                    <Typography variant="body2" style={{wordBreak: "break-all", color: textColor}}>{props.user}</Typography>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell >
-                    <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.domain}</Typography>
+                    <Typography variant="body2" style={{wordBreak: "break-all", color: textColor}}>{props.domain}</Typography>
                 </MythicStyledTableCell>
-                <MythicStyledTableCell>{props.host}</MythicStyledTableCell>
-                <MythicStyledTableCell>{props.pid}</MythicStyledTableCell>
-                <MythicStyledTableCell style={{whiteSpace: "pre"}}>
+                <MythicStyledTableCell>
+                    <Typography variant="body2" style={{wordBreak: "break-all", color: textColor}}>{props.host}</Typography>
+                </MythicStyledTableCell>
+                <MythicStyledTableCell>
+                    <Typography variant="body2" style={{wordBreak: "break-all", color: textColor}}>{props.pid}</Typography>
+                </MythicStyledTableCell>
+                <MythicStyledTableCell style={{whiteSpace: "pre", color: textColor}}>
                     <CallbacksTableLastCheckinCell rowData={{...props}} ></CallbacksTableLastCheckinCell>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell >
-                    <Typography variant="body2" style={{wordBreak: "break-all", display: "inline-block"}}>{props.description}</Typography>
+                    <Typography variant="body2" style={{wordBreak: "break-all", display: "inline-block", color: textColor}}>{props.description}</Typography>
                 </MythicStyledTableCell>
-                <MythicStyledTableCell style={{whiteSpace: "pre"}}>
+                <MythicStyledTableCell style={{whiteSpace: "pre", color: textColor}}>
                     {ips.slice(0,1).join("\n")}
                     {ips.length > 1 ? "\n..." : null}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" 
+                <Link style={{wordBreak: "break-all", color: textColor}} color="textPrimary" underline="always" target="_blank"
                         href={"/new/callbacks/" + props.display_id}>
                             C-{props.display_id}
                     </Link>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                <MythicStyledTooltip title={props.payload.payloadtype.name}>
-                    <MythicAgentSVGIcon payload_type={props.payload.payloadtype.name} style={{width: "35px", height: "35px"}} />
-                </MythicStyledTooltip>
+                    <MythicStyledTooltip title={props.payload.payloadtype.name}>
+                        <MythicAgentSVGIcon payload_type={props.payload.payloadtype.name} style={{width: "35px", height: "35px"}} />
+                    </MythicStyledTooltip>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <MythicStyledTooltip title="View callback details">
-                        <IconButton className="mythic-compact-icon-action mythic-icon-tone mythic-tone-info" size="small" onClick={() => setOpenMetaDialog(true)}>
-                            <InfoIconOutline fontSize="small" />
-                        </IconButton>
-                    </MythicStyledTooltip>
+                    <MythicActionButton appearance="raised" colorMode="hover" icon={<InfoIconOutline />} iconOnly onClick={() => setOpenMetaDialog(true)} tone="info" tooltip="View callback details" />
                     {openMetaDialog && 
                         <MythicDialog fullWidth={true} maxWidth="lg" open={openMetaDialog}
                             onClose={()=>{setOpenMetaDialog(false);}} 

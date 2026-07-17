@@ -5,13 +5,11 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import { copyStringToClipboard } from '../../utilities/Clipboard';
 import {Link} from '@mui/material';
 import {snackActions} from '../../utilities/Snackbar';
 import { meState } from '../../../cache';
 import {useReactiveVar} from '@apollo/client';
-import {IconButton} from '@mui/material';
 import { toLocalTime } from '../../utilities/Time';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {b64DecodeUnicode} from "../Callbacks/ResponseDisplay";
@@ -20,6 +18,7 @@ import {MythicTextEditDialog} from "../../MythicComponents/MythicTextEditDialog"
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 
 /*
 export function KeylogsTableOld(props){
@@ -199,15 +198,13 @@ function KeylogTableRow(props){
                             <span className="mythic-search-result-value">{toLocalTime(props.timestamp, me?.user?.view_utc_time || false)}</span>
                         </div>
                         <div className="mythic-search-result-action-row">
-                            <MythicStyledTooltip title={"View current page data grouped together for this program"}>
-                                <IconButton
-                                    className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
-                                    onClick={() => props.onGroupKeylogData(props.window, props.user, props.task.callback.host)}
-                                    size="small"
-                                >
-                                    <FullscreenIcon fontSize="small" />
-                                </IconButton>
-                            </MythicStyledTooltip>
+                            <MythicActionButton appearance="raised"
+                                icon={<FullscreenIcon />}
+                                iconOnly
+                                onClick={() => props.onGroupKeylogData(props.window, props.user, props.task.callback.host)}
+                                tone="info"
+                                tooltip="View current page data grouped together for this program"
+                            />
                             <span className="mythic-search-result-secondary">View window together</span>
                         </div>
                     </div>
@@ -215,25 +212,9 @@ function KeylogTableRow(props){
                 <MythicStyledTableCell >
                     <div className="mythic-search-result-stack">
                         <div className="mythic-search-result-action-row">
-                            <MythicStyledTooltip title={"Copy to clipboard"}>
-                                <IconButton
-                                    className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
-                                    onClick={() => onCopyToClipboard(keylogData)}
-                                    size="small"
-                                >
-                                    <ContentCopyIcon fontSize="small" />
-                                </IconButton>
-                            </MythicStyledTooltip>
+                            <MythicActionButton appearance="raised" icon={<ContentCopyIcon />} iconOnly onClick={() => onCopyToClipboard(keylogData)} tone="info" tooltip="Copy to clipboard" />
                             {keylogData.length > 500 ? (
-                                <MythicStyledTooltip title={"Open full keylog data"}>
-                                    <IconButton
-                                        className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
-                                        onClick={() => {setOpenDisplayKeylogData(true);}}
-                                        size="small"
-                                    >
-                                        <OpenInNewIcon fontSize="small" />
-                                    </IconButton>
-                                </MythicStyledTooltip>
+                                <MythicActionButton appearance="raised" icon={<OpenInNewIcon />} iconOnly onClick={() => {setOpenDisplayKeylogData(true);}} tone="info" tooltip="Open full keylog data" />
                             ) : null}
                         </div>
                         <pre className="mythic-search-result-code mythic-search-result-code-compact">{keylogData.slice(0, 500)}{keylogData.length > 500 ? "..." : null}</pre>

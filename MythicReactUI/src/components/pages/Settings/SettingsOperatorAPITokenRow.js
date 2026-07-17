@@ -1,11 +1,11 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
-import {Box, IconButton, Typography, Link} from '@mui/material';
+import {Box, Typography, Link} from '@mui/material';
 import TableRow from '@mui/material/TableRow';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Switch from '@mui/material/Switch';
 import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
 import {toLocalTime} from "../../utilities/Time";
-import {MythicStateChip} from "../../MythicComponents/MythicStateChip";
 
 export function APITokenRow(props){
     return (
@@ -13,9 +13,9 @@ export function APITokenRow(props){
             <TableRow hover >
                 <MythicStyledTableCell>
                     {props.deleted ? null : (
-                        <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={() => {props.onDeleteAPIToken(props.id)}}>
+                        <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={() => {props.onDeleteAPIToken(props.id)}}>
                             <DeleteIcon fontSize="small" />
-                        </IconButton>
+                        </MythicActionButton>
                     )}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
@@ -28,10 +28,6 @@ export function APITokenRow(props){
                             inputProps={{ 'aria-label': 'Toggle API token active state' }}
                             name="active"
                             size="small"
-                        />
-                        <MythicStateChip
-                            label={props.deleted ? "Deleted" : props.active ? "Active" : "Disabled"}
-                            state={props.deleted ? "error" : props.active ? "active" : "disabled"}
                         />
                     </Box>
                 </MythicStyledTableCell>

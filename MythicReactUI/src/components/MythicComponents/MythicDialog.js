@@ -1,3 +1,4 @@
+import {MythicActionButton} from "./MythicActionButton";
 import React, {useEffect} from 'react';
 import Dialog from '@mui/material/Dialog';
 import DialogContent from '@mui/material/DialogContent';
@@ -17,7 +18,6 @@ import "ace-builds/src-noconflict/theme-monokai";
 import "ace-builds/src-noconflict/ext-searchbox";
 import {useTheme} from '@mui/material/styles';
 import WrapTextIcon from '@mui/icons-material/WrapText';
-import {IconButton} from '@mui/material';
 import {MythicStyledTooltip} from "./MythicStyledTooltip";
 import Draggable from 'react-draggable';
 import {MythicDraggableDialogTitle} from "./MythicDraggableDialogTitle";
@@ -229,9 +229,9 @@ export function MythicModifyStringDialog(props) {
             <MythicDraggableDialogTitle>{props.title}
                 <MythicStyledTooltip title={wrap ? "Toggle off word wrap" : "Toggl on word wrap"}
                 tooltipStyle={{float: "right"}}>
-                    <IconButton onClick={() => {setWrap(!wrap)}}>
+                    <MythicActionButton iconOnly onClick={() => {setWrap(!wrap)}}>
                         <WrapTextIcon color={wrap ? "success" : "secondary"} />
-                    </IconButton>
+                    </MythicActionButton>
                 </MythicStyledTooltip>
             </MythicDraggableDialogTitle>
         }

@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import {Button} from '@mui/material';
 import Table from '@mui/material/Table';
@@ -12,7 +13,6 @@ import {EditBlockListDialog} from './EditBlockListDialog';
 import {snackActions} from '../../utilities/Snackbar';
 import {useMutation, gql} from '@apollo/client';
 import DeleteIcon from '@mui/icons-material/Delete';
-import IconButton from '@mui/material/IconButton';
 import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
 import EditIcon from '@mui/icons-material/Edit';
 import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/MythicPageHeader";
@@ -206,7 +206,7 @@ export function CommandBlockListTable(props){
             subtitle={"Control which commands are blocked for selected payload types."}
             meta={<MythicPageHeaderChip label={blockListCountLabel} />}
             actions={
-                <MythicToolbarButton variant="contained" color="primary" onClick={()=>{setOpenNewDialog(true);}} startIcon={<AddCircleIcon />}>
+                <MythicToolbarButton variant="contained" colorMode="hover" tone="success" onClick={()=>{setOpenNewDialog(true);}} startIcon={<AddCircleIcon />}>
                     Block List
                 </MythicToolbarButton>
             }
@@ -276,13 +276,15 @@ function CommandBlockListTableRow(props){
     return (
         <TableRow hover>
             <TableCell>
-                <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><DeleteIcon fontSize="small" /></IconButton>
+                <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><DeleteIcon fontSize="small" /></MythicActionButton>
                 {openDelete &&
                     <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} open={openDelete}/>
                 }
             </TableCell>
             <TableCell>
-                <Button className="mythic-compact-action" size="small" onClick={()=>{setOpenUpdateDialog(true);}} startIcon={<EditIcon/>} variant="outlined">Edit</Button>
+                <MythicActionButton onClick={()=>{setOpenUpdateDialog(true);}}
+                                    colorMode={"hover"} tone={"warning"}
+                                    icon={<EditIcon/>} variant="outlined">Edit</MythicActionButton>
                 {openUpdate &&
                     <MythicDialog open={openUpdate} fullWidth maxWidth={"lg"}
                         onClose={()=>{setOpenUpdateDialog(false);}} 

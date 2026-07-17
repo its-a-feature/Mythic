@@ -70,10 +70,10 @@ export function EventFeedTable(props){
                 }
                 actions={
                     <>
-                        <MythicToolbarButton onClick={props.resolveViewableErrors} color="success" variant="outlined" startIcon={<AutoFixHighIcon />}>
+                        <MythicToolbarButton onClick={props.resolveViewableErrors} colorMode="hover" tone="success" variant="outlined" startIcon={<AutoFixHighIcon />}>
                             Resolve Viewable
                         </MythicToolbarButton>
-                        <MythicToolbarButton onClick={props.resolveAllErrors} color="success" variant="outlined" startIcon={<HealingIcon />}>
+                        <MythicToolbarButton onClick={props.resolveAllErrors} colorMode="hover" tone="success" variant="outlined" startIcon={<HealingIcon />}>
                             Resolve All
                         </MythicToolbarButton>
                     </>

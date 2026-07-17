@@ -5,8 +5,6 @@ import (
 	"fmt"
 
 	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
-	"github.com/mitchellh/mapstructure"
-
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -22,10 +20,11 @@ type MythicRPCArtifactSearchMessageResponse struct {
 	Artifacts []MythicRPCArtifactSearchArtifactData `json:"artifacts"`
 }
 type MythicRPCArtifactSearchArtifactData struct {
-	Host            *string `json:"host" `            // optional
-	ArtifactType    *string `json:"artifact_type"`    //optional
-	ArtifactMessage *string `json:"artifact_message"` //optional
-	TaskID          *int    `json:"task_id"`          //optional
+	Host            *string `json:"host" mapstructure:"host" `                        // optional
+	ArtifactType    *string `json:"artifact_type" mapstructure:"artifact_type"`       //optional
+	ArtifactMessage *string `json:"artifact_message" mapstructure:"artifact_message"` //optional
+	TaskID          *int    `json:"task_id" mapstructure:"task_id"`                   //optional
+	NeedsCleanup    *bool   `json:"needs_cleanup" mapstructure:"needs_cleanup"`       // optional
 }
 
 func init() {
@@ -49,19 +48,23 @@ func MythicRPCArtifactSearch(input MythicRPCArtifactSearchMessage, authContext R
 	searchString := `SELECT * FROM taskartifact WHERE operation_id=:operation_id `
 	if input.SearchArtifacts.Host != nil {
 		paramDict["host"] = fmt.Sprintf("%%%s%%", *input.SearchArtifacts.Host)
-		searchString += "AND host ILIKE :host "
+		searchString += " AND host ILIKE :host "
 	}
 	if input.SearchArtifacts.ArtifactMessage != nil {
 		paramDict["artifact"] = fmt.Sprintf("%%%s%%", *input.SearchArtifacts.ArtifactMessage)
-		searchString += "AND artifact LIKE :artifact "
+		searchString += " AND artifact LIKE :artifact "
 	}
 	if input.SearchArtifacts.TaskID != nil {
 		paramDict["task_id"] = *input.SearchArtifacts.TaskID
-		searchString += "AND task_id=:task_id "
+		searchString += " AND task_id=:task_id "
 	}
 	if input.SearchArtifacts.ArtifactType != nil {
 		paramDict["base_artifact"] = fmt.Sprintf("%%%s%%", *input.SearchArtifacts.ArtifactType)
-		searchString += "AND base_artifact LIKE :base_artifact "
+		searchString += " AND base_artifact LIKE :base_artifact "
+	}
+	if input.SearchArtifacts.NeedsCleanup != nil {
+		paramDict["needs_cleanup"] = *input.SearchArtifacts.NeedsCleanup
+		searchString += " AND needs_cleanup=:needs_cleanup "
 	}
 	searchString += " ORDER BY task_id DESC"
 	rows, err := database.DB.NamedQuery(searchString, paramDict)
@@ -76,11 +79,16 @@ func MythicRPCArtifactSearch(input MythicRPCArtifactSearchMessage, authContext R
 		searchResult := databaseStructs.Taskartifact{}
 		if err = rows.StructScan(&searchResult); err != nil {
 			logging.LogError(err, "Failed to get row from artifacts for search")
-		} else if err = mapstructure.Decode(searchResult, &result); err != nil {
-			logging.LogError(err, "Failed to map artifact search results into array")
-		} else {
-			response.Artifacts = append(response.Artifacts, result)
+			continue
 		}
+		result.NeedsCleanup = &searchResult.NeedsCleanup
+		taskID := int(searchResult.TaskID.Int64)
+		result.TaskID = &taskID
+		result.Host = &searchResult.Host
+		artifactMessage := string(searchResult.Artifact)
+		result.ArtifactMessage = &artifactMessage
+		result.ArtifactType = &searchResult.BaseArtifact
+		response.Artifacts = append(response.Artifacts, result)
 	}
 	response.Success = true
 	return response

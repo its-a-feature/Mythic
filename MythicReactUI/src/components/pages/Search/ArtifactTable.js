@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import {Link, IconButton} from '@mui/material';
+import {Link} from '@mui/material';
 import { gql, useMutation} from '@apollo/client';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -11,7 +11,8 @@ import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import CleanHandsTwoToneIcon from '@mui/icons-material/CleanHandsTwoTone';
 import AddAlertTwoToneIcon from '@mui/icons-material/AddAlertTwoTone';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
-import {MythicStateChip} from "../../MythicComponents/MythicStateChip";
+import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 
 const singleLineCellStyle = {
     minWidth: 0,
@@ -81,7 +82,7 @@ export function ArtifactTable(props){
             <Table stickyHeader size="small" style={{tableLayout: "fixed"}}>
                 <TableHead>
                     <TableRow>
-                        <TableCell style={{width: "7rem"}}>Cleanup</TableCell>
+                        <TableCell style={{width: "8rem"}}>Cleanup</TableCell>
                         <TableCell style={{width: "9rem"}}>Type</TableCell>
                         <TableCell style={{width: "9rem"}}>Command</TableCell>
                         <TableCell style={{width: "11rem"}}>Task</TableCell>
@@ -106,7 +107,7 @@ export function ArtifactTable(props){
 }
 
 function ArtifactTableRow(props){
-    const cleanupState = !props.needs_cleanup ? "neutral" : props.resolved ? "active" : "warning";
+    const cleanupStatus = !props.needs_cleanup ? "secondary" : props.resolved ? "success" : "warning";
     const cleanupLabel = !props.needs_cleanup ? "None" : props.resolved ? "Done" : "Needed";
     const cleanupTooltip = !props.needs_cleanup ? "No cleanup needed" : props.resolved ? "Cleanup resolved" : "Artifact needs cleanup";
     const MarkNeedsCleanup = () => {
@@ -124,29 +125,17 @@ function ArtifactTableRow(props){
                 <MythicStyledTableCell>
                     <div className="mythic-search-result-action-row">
                         {props.needs_cleanup && !props.resolved &&
-                            <MythicStyledTooltip title={"Mark artifact as cleaned up"}>
-                                <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-success" onClick={MarkResolved} size="small">
-                                    <CleanHandsTwoToneIcon fontSize="small" />
-                                </IconButton>
-                            </MythicStyledTooltip>
+                            <MythicActionButton appearance="raised" icon={<CleanHandsTwoToneIcon />} iconOnly onClick={MarkResolved} tone="success" tooltip="Mark artifact as cleaned up" />
                         }
                         {props.needs_cleanup && props.resolved &&
-                            <MythicStyledTooltip title={"Mark artifact as unresolved"}>
-                                <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-warning" onClick={MarkUnresolved} size="small">
-                                    <CleanHandsTwoToneIcon fontSize="small" />
-                                </IconButton>
-                            </MythicStyledTooltip>
+                            <MythicActionButton appearance="raised" icon={<CleanHandsTwoToneIcon />} iconOnly onClick={MarkUnresolved} tone="warning" tooltip="Mark artifact as unresolved" />
                         }
                         {!props.needs_cleanup &&
-                            <MythicStyledTooltip title={"Mark artifact as needs cleanup"} >
-                                <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-warning" onClick={MarkNeedsCleanup} size="small">
-                                    <AddAlertTwoToneIcon fontSize="small" />
-                                </IconButton>
-                            </MythicStyledTooltip>
+                            <MythicActionButton appearance="raised" icon={<AddAlertTwoToneIcon />} iconOnly onClick={MarkNeedsCleanup} tone="warning" tooltip="Mark artifact as needs cleanup" />
                         }
                         <MythicStyledTooltip title={cleanupTooltip}>
                             <span>
-                                <MythicStateChip compact label={cleanupLabel} state={cleanupState} />
+                                <MythicStatusChip compact label={cleanupLabel} status={cleanupStatus} />
                             </span>
                         </MythicStyledTooltip>
                     </div>

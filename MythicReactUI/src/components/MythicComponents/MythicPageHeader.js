@@ -1,9 +1,9 @@
 import Box from '@mui/material/Box';
-import Chip from '@mui/material/Chip';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import {alpha, useTheme} from '@mui/material/styles';
+import {MythicChip} from './MythicChip';
 
 export const MythicPageHeader = ({
     actions,
@@ -205,8 +205,9 @@ export const MythicPageHeaderChip = ({status, sx = {}, ...props}) => {
     const statusColor = normalizedStatus ? theme.palette[normalizedStatus]?.main : null;
     const chipColor = statusColor || alpha(headerTextColor, 0.88);
     return (
-        <Chip
+        <MythicChip
             size="small"
+            tone={normalizedStatus || "secondary"}
             variant="outlined"
             {...props}
             sx={{

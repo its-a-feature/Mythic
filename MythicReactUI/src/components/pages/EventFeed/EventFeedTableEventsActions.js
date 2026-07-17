@@ -1,5 +1,5 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
-import IconButton from '@mui/material/IconButton';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import MenuItem from '@mui/material/MenuItem';
 import Menu from '@mui/material/Menu';
@@ -24,13 +24,13 @@ export function EventFeedTableEventsActions(props){
     }, []);
     return (
         <ListItemSecondaryAction >
-            <IconButton
+            <MythicActionButton iconOnly
                 aria-controls={"eventmenu" + props.id}
                 aria-haspopup="true"
-                className="mythic-compact-icon-action"
+                appearance="raised"
                 onClick={handleClick}
                 size="small"><MoreVertIcon fontSize="small" />
-            </IconButton>
+            </MythicActionButton>
                 <Menu elevation={5} id={"eventmenu" + props.id} anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleClose} >
                     {
                         props.warning && props.resolved ? (

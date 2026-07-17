@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
@@ -6,7 +7,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { gql, useLazyQuery, useMutation, useReactiveVar } from '@apollo/client';
 import {meState} from "../../../cache";
-import {IconButton, Switch, Typography} from '@mui/material';
+import {Switch, Typography} from '@mui/material';
 import FormControl from '@mui/material/FormControl';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
@@ -37,6 +38,7 @@ import {MythicClientSideTablePagination, useMythicClientPagination} from "../../
 import {TaskParametersDialog} from "../Callbacks/TaskParametersDialog";
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {APITokenScopeSelector, defaultAPITokenScopes, normalizeAPITokenScopeSelection} from "../../MythicComponents/APITokenScopeSelector";
+import {MythicChip} from "../../MythicComponents/MythicChip";
 
 function getSteps(){
     return ['Trigger Metadata', 'Steps', 'Confirm']
@@ -894,17 +896,17 @@ const GetArrayValues = ({prevData, updateData, textFieldPlaceholder, textFieldNa
         <div className="mythic-eventing-array-list">
             {arrayValues.map( (a, i) => (
                 <div className="mythic-eventing-array-row" key={"arrayentry" + i}>
-                    <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={() => removeElement(i)}>
+                    <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={() => removeElement(i)}>
                         <DeleteIcon fontSize="small" />
-                    </IconButton>
+                    </MythicActionButton>
                     <MythicTextField onChange={(name, value, error) => updateElement(i, value)} value={a}
                     name={textFieldName} placeholder={textFieldPlaceholder} marginBottom={"0px"}/>
                 </div>
                 )
             )}
-            <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-success" size="small" onClick={addElement}>
+            <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="success" size="small" onClick={addElement}>
                 <AddCircleOutlineIcon fontSize="small" />
-            </IconButton>
+            </MythicActionButton>
         </div>
     )
 }
@@ -946,12 +948,13 @@ const GetMultipleFileSelect = ({prevData, updateData}) => {
             { files.length > 0 &&
                 <div className="mythic-eventing-file-chip-list">
                     {files?.map((f, i) => (
-                        <span className="mythic-status-chip mythic-tone-info" key={"selected-file" + f.name + i}>
-                            <span className="mythic-eventing-file-chip-name">{f.name}</span>
-                            <IconButton className="mythic-eventing-file-chip-remove mythic-action-tone-hover mythic-tone-error" size="small" aria-label={"Remove " + f.name} onClick={() => removeFile(i)}>
-                                <DeleteIcon fontSize="small" />
-                            </IconButton>
-                        </span>
+                        <MythicChip
+                            deleteIcon={<DeleteIcon fontSize="small" />}
+                            key={"selected-file" + f.name + i}
+                            label={f.name}
+                            onDelete={() => removeFile(i)}
+                            tone="info"
+                        />
                     ))}
                 </div>
             }
@@ -1223,7 +1226,7 @@ const EventingActionDataField = ({label, description, required = false, children
                     {label}
                 </Typography>
                 {required &&
-                    <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-warning">Required</span>
+                    <MythicChip compact label="Required" tone="warning" />
                 }
             </div>
             {description &&
@@ -1322,9 +1325,9 @@ const EventingStepInputs = ({updateStep, index, localInputOptions, step1Data, pr
                 {localInputs.map( (d, i) => (
                     <div className="mythic-eventing-step-list-item mythic-eventing-step-list-item-editable" key={"localinputs" + i}>
                         <div className="mythic-eventing-step-input-grid">
-                            <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error mythic-eventing-step-row-action" size="small" onClick={() => removeLocalInput(i)}>
+                            <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={() => removeLocalInput(i)}>
                                 <DeleteIcon fontSize="small" />
-                            </IconButton>
+                            </MythicActionButton>
                             <MythicTextField name={"Input name"} placeholder={"Input name"}
                                              onChange={(name, value, error) => onChangeLocalInputName(i, value)}
                                              value={localInputs[i].name}
@@ -1456,9 +1459,9 @@ const EventingStepOutputs = ({updateStep, index, selectedAction, prevData}) => {
                 {localOutputs.map( (d, i) => (
                     <div className="mythic-eventing-step-list-item mythic-eventing-step-list-item-editable" key={"localoutputs" + i}>
                         <div className="mythic-eventing-step-output-grid">
-                            <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error mythic-eventing-step-row-action" size="small" onClick={() => removeLocalOutput(i)}>
+                            <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={() => removeLocalOutput(i)}>
                                 <DeleteIcon fontSize="small" />
-                            </IconButton>
+                            </MythicActionButton>
                             <MythicTextField name={"Output name"} placeholder={"Output name"}
                                              onChange={(name, value, error) => onChangeLocalOutputName(i, value)}
                                              value={localOutputs[i].name}
@@ -2264,9 +2267,9 @@ const EventingStepActionDataConditionalCheck = ({allSteps, updateStep, index, pr
                 <div className="mythic-eventing-action-array-list">
                     {actionData.steps.map( (s, i) => (
                         <div className="mythic-eventing-action-array-row" key={"step" + s + i}>
-                            <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={() => removeStep(i)}>
+                            <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={() => removeStep(i)}>
                                 <DeleteIcon fontSize="small" />
-                            </IconButton>
+                            </MythicActionButton>
                             <FormControl sx={{display: "inline-block", width: "100%"}} size="small">
                                 <TextField
                                     label={"Step to potentially skip"}
@@ -2285,9 +2288,9 @@ const EventingStepActionDataConditionalCheck = ({allSteps, updateStep, index, pr
                             </FormControl>
                         </div>
                     ))}
-                    <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-success" size="small" onClick={addStep}>
+                    <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="success" size="small" onClick={addStep}>
                         <AddCircleOutlineIcon fontSize="small" />
-                    </IconButton>
+                    </MythicActionButton>
                 </div>
             </EventingActionDataField>
         </EventingActionDataShell>
@@ -2749,9 +2752,9 @@ const EventingUserInteractionChoicesEditor = ({input, index, updateInputFields})
                 }
                 {choices.map((choice, choiceIndex) => (
                     <div className="mythic-eventing-user-input-choice-row" key={`choice-${index}-${choiceIndex}`}>
-                        <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={() => removeChoice(choiceIndex)}>
+                        <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={() => removeChoice(choiceIndex)}>
                             <DeleteIcon fontSize="small" />
-                        </IconButton>
+                        </MythicActionButton>
                         <MythicTextField
                             placeholder={`Choice ${choiceIndex + 1}`}
                             onChange={(name, value) => updateChoice(choiceIndex, value)}
@@ -2881,9 +2884,9 @@ const EventingStepUserInteraction = ({config, localInputOptions, onChange}) => {
                     }
                     {userInteraction.inputs.map((input, index) => (
                         <div className="mythic-eventing-step-list-item mythic-eventing-step-list-item-editable mythic-eventing-user-input-field-row" key={`user-interaction-input-${index}`}>
-                            <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={() => removeInputField(index)}>
+                            <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={() => removeInputField(index)}>
                                 <DeleteIcon fontSize="small" />
-                            </IconButton>
+                            </MythicActionButton>
                             <div className="mythic-eventing-step-list-content">
                                 <div className="mythic-eventing-step-field-grid">
                                     <MythicTextField
@@ -3091,9 +3094,9 @@ const EventingStep = ({step, allSteps, updateStep, index, step1Data, updateStep1
                     <div className="mythic-eventing-step-config-summary-subtitle">{description || "Describe what this step does and how it should run."}</div>
                 </div>
                 <div className="mythic-eventing-step-config-summary-actions">
-                    <span className="mythic-status-chip mythic-tone-info">{selectedAction}</span>
+                    <MythicChip label={selectedAction} tone="info" />
                     {hasUserInteractionConfig(userInteraction) &&
-                        <span className="mythic-status-chip mythic-tone-warning">user interaction</span>
+                        <MythicChip label="user interaction" tone="warning" />
                     }
                     <label className="mythic-eventing-step-switch-row">
                         <span className="mythic-eventing-step-switch-copy">
@@ -3203,9 +3206,9 @@ const EventingStep = ({step, allSteps, updateStep, index, step1Data, updateStep1
                             }
                             {dependsOn.map((d, i) => (
                                 <div className="mythic-eventing-step-list-item" key={"dependson" + i}>
-                                    <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={() => removeDependsOn(i)}>
+                                    <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={() => removeDependsOn(i)}>
                                         <DeleteIcon fontSize="small" />
-                                    </IconButton>
+                                    </MythicActionButton>
                                     <div className="mythic-eventing-step-list-content">
                                         <FormControl sx={{display: "inline-block", width: "100%"}} size="small">
                                             <TextField
@@ -3401,9 +3404,9 @@ const CreateEventingStep2 = ({finished, back, first, last, cancel, prevData, ste
                                     <div className="mythic-eventing-step-shell-title">Step {i + 1}</div>
                                     <div className="mythic-eventing-step-shell-subtitle">{s.name || "Unnamed step"}</div>
                                 </div>
-                                <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={() => removeStep(i)}>
+                                <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={() => removeStep(i)}>
                                     <DeleteIcon fontSize="small" />
-                                </IconButton>
+                                </MythicActionButton>
                             </div>
                             <EventingStep step={s} allSteps={steps} updateStep={updateStep} index={i}
                                           step1Data={step1Data} updateStep1Data={updateStep1Data}/>
@@ -3724,7 +3727,7 @@ export function CreateEventingStepper(props){
                             <div className="mythic-eventing-wizard-title">{wizardTitle}</div>
                             <div className="mythic-eventing-wizard-subtitle">{wizardSubtitle}</div>
                         </div>
-                        <span className="mythic-status-chip mythic-tone-primary">Step {activeStep + 1} of {steps.length}</span>
+                        <MythicChip label={`Step ${activeStep + 1} of ${steps.length}`} tone="primary" />
                     </div>
                 </div>
                 <div className="mythic-eventing-wizard-content">

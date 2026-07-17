@@ -1,6 +1,7 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React, {useEffect, useLayoutEffect, useRef} from 'react';
 import { alpha, styled } from '@mui/material/styles';
-import {IconButton, Link} from '@mui/material';
+import {Link} from '@mui/material';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import {getSkewedNow, toLocalTime, toLocalTimeShort} from '../../utilities/Time';
@@ -55,14 +56,12 @@ export const classes = {
   taskMetaIcon: `${PREFIX}-taskMetaIcon`,
   taskHeaderBodyCompact: `${PREFIX}-taskHeaderBodyCompact`,
   taskHeaderActions: `${PREFIX}-taskHeaderActions`,
-  taskIconButton: `${PREFIX}-taskIconButton`,
   taskCommandRow: `${PREFIX}-taskCommandRow`,
   taskCommandText: `${PREFIX}-taskCommandText`,
   taskCommandTextCompact: `${PREFIX}-taskCommandTextCompact`,
   taskCommandName: `${PREFIX}-taskCommandName`,
   taskCommandParams: `${PREFIX}-taskCommandParams`,
   taskTags: `${PREFIX}-taskTags`,
-  taskChildToggle: `${PREFIX}-taskChildToggle`,
   taskCommentBlock: `${PREFIX}-taskCommentBlock`,
   consolePrompt: `${PREFIX}-consolePrompt`
 };
@@ -221,19 +220,6 @@ export const StyledPaper = styled(Paper)((
     flex: "0 0 auto",
     flexWrap: "nowrap",
   },
-  [`& .${classes.taskIconButton}`]: {
-    backgroundColor: theme.palette.mode === "dark" ? alpha(theme.palette.common.white, 0.05) : alpha(theme.palette.common.black, 0.035),
-    border: `1px solid ${theme.palette.mode === "dark" ? alpha(theme.palette.common.white, 0.08) : alpha(theme.palette.common.black, 0.07)}`,
-    borderRadius: 5,
-    boxSizing: "border-box",
-    color: theme.palette.text.secondary,
-    height: TASK_META_ITEM_HEIGHT,
-    padding: 0,
-    width: 24,
-    "& svg": {
-      fontSize: "1rem",
-    },
-  },
   [`& .${classes.taskCommandRow}`]: {
     alignItems: "flex-start",
     display: "flex",
@@ -291,13 +277,6 @@ export const StyledPaper = styled(Paper)((
     flexWrap: "nowrap",
     maxHeight: 20,
     overflow: "hidden",
-  },
-  [`& .${classes.taskChildToggle}`]: {
-    color: theme.palette.text.secondary,
-    height: 24,
-    marginTop: -2,
-    padding: 0,
-    width: 24,
   },
   [`& .${classes.taskCommentBlock}`]: {
     backgroundColor: theme.palette.mode === "dark" ? alpha(theme.palette.common.white, 0.045) : alpha(theme.palette.common.black, 0.025),
@@ -425,15 +404,15 @@ const TaskStatusDisplay = ({task}) => {
     },
   };
   if(task.status.toLowerCase().includes("error")){
-    return <MythicStatusChip component="span" label={task.status.toLowerCase()} status="error" sx={{...chipSx, maxWidth: "16rem"}} />
+    return <MythicStatusChip label={task.status.toLowerCase()} status="error" sx={{...chipSx, maxWidth: "16rem"}} />
   }else if(task.status === "cleared"){
-    return <MythicStatusChip component="span" label="cleared" status="warning" sx={chipSx} />
+    return <MythicStatusChip label="cleared" status="warning" sx={chipSx} />
   }else if(task.status === "completed" || task.status === "success"){
     return null//return (<Typography size="small" style={{padding: "0", color: theme.palette.success.main, marginLeft: "5%", display: "inline-block", fontSize: theme.typography.pxToRem(15)}}>completed</Typography>)
   }else if(task.opsec_pre_blocked && !task.opsec_pre_bypassed){
-    return <MythicStatusChip component="span" label="OPSEC blocked pre" status="blocked" sx={chipSx} />
+    return <MythicStatusChip label="OPSEC blocked pre" status="blocked" sx={chipSx} />
   }else if(task.opsec_post_blocked && !task.opsec_post_bypassed) {
-    return <MythicStatusChip component="span" label="OPSEC blocked post" status="blocked" sx={chipSx}/>
+    return <MythicStatusChip label="OPSEC blocked post" status="blocked" sx={chipSx}/>
   }else{
       return (
         <MythicStatusChip
@@ -557,10 +536,10 @@ const TaskMetaItem = ({children, icon, title, style}) => {
 }
 const TaskHeaderAction = ({title, children, ...props}) => (
   <MythicStyledTooltip title={title}>
-    <IconButton className={classes.taskIconButton} size="small" color="inherit"
+    <MythicActionButton iconOnly appearance="raised" colorMode="always" compact tone="warning" size="small"
                 disableFocusRipple={true} disableRipple={true} {...props}>
       {children}
-    </IconButton>
+    </MythicActionButton>
   </MythicStyledTooltip>
 )
 const TaskTagDisplay = ({task}) => {
@@ -701,9 +680,9 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
           </div>
           <div className={classes.taskCommandRow}>
             {(hasChildren ?? task.tasks.length > 0) &&
-              <IconButton className={classes.taskChildToggle} size="small" onClick={toggleDisplayChildren}>
+              <MythicActionButton iconOnly appearance="plain" compact shape="square" size="small" onClick={toggleDisplayChildren}>
                 {displayChildren ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-              </IconButton>
+              </MythicActionButton>
             }
             <MythicStyledTooltip maxWidth={"calc(80vw)"}
                                  enterDelay={2000}

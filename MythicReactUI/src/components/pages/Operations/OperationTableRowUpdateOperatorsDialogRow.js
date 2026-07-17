@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React, { useEffect, useRef } from 'react';
 import TableCell from '@mui/material/TableCell';
 import TableRow from '@mui/material/TableRow';
@@ -10,7 +11,6 @@ import MenuItem from '@mui/material/MenuItem';
 import SmartToyTwoToneIcon from '@mui/icons-material/SmartToyTwoTone';
 import GroupAddTwoToneIcon from '@mui/icons-material/GroupAddTwoTone';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
-import IconButton from '@mui/material/IconButton';
 import {useMutation, gql} from '@apollo/client';
 import {meState} from "../../../cache";
 import {snackActions} from "../../utilities/Snackbar";
@@ -130,9 +130,9 @@ export function OperationTableRowUpdateOperatorsDialogRow(props){
                 <TableCell>
                     {checked && props.operation_id !== props.operator?.operation?.id && props.operator.id !== meState().user.id ? (
                         <MythicStyledTooltip title={"Update current operation to this operation"}>
-                            <IconButton onClick={makeCurrentOperation}>
+                            <MythicActionButton iconOnly onClick={makeCurrentOperation}>
                                 <GroupAddTwoToneIcon />
-                            </IconButton>
+                            </MythicActionButton>
                         </MythicStyledTooltip>
                     ) : null}
                 </TableCell>

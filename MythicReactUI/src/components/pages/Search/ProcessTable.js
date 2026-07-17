@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import {IconButton, Link} from '@mui/material';
+import {Link} from '@mui/material';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -13,8 +13,8 @@ import {snackActions} from '../../utilities/Snackbar';
 import EditIcon from '@mui/icons-material/Edit';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {TagsDisplay, ViewEditTags} from '../../MythicComponents/MythicTag';
-import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
-import {MythicStateChip} from "../../MythicComponents/MythicStateChip";
+import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 
 const singleLineCellStyle = {
     minWidth: 0,
@@ -103,15 +103,7 @@ function ProcessTableRow(props){
                 />
                 }
                 <MythicStyledTableCell>
-                    <MythicStyledTooltip title="View permissions data">
-                        <IconButton
-                            className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
-                            size="small"
-                            onClick={() => setViewPermissionsDialogOpen(true)}
-                        >
-                            <PlaylistAddCheckIcon fontSize="small" />
-                        </IconButton>
-                    </MythicStyledTooltip>
+                    <MythicActionButton appearance="raised" icon={<PlaylistAddCheckIcon />} iconOnly onClick={() => setViewPermissionsDialogOpen(true)} tone="info" tooltip="View permissions data" />
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <div
@@ -160,19 +152,13 @@ function ProcessTableRow(props){
                             {props.name_text}
                         </div>
                         {props.deleted &&
-                            <MythicStateChip compact label="Deleted" state="disabled" />
+                            <MythicStatusChip compact status="deleted" />
                         }
                     </div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <div className="mythic-search-result-action-row">
-                        <IconButton
-                            className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
-                            onClick={() => setEditCommentDialogOpen(true)}
-                            size="small"
-                        >
-                            <EditIcon fontSize="small" />
-                        </IconButton>
+                        <MythicActionButton appearance="raised" icon={<EditIcon />} iconOnly onClick={() => setEditCommentDialogOpen(true)} tone="info" tooltip="Edit comment" />
                         <span className="mythic-search-result-secondary">{props.comment || "No comment"}</span>
                     </div>
                     </MythicStyledTableCell>

@@ -1,13 +1,11 @@
 import React from 'react';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import IconButton from '@mui/material/IconButton';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import ToggleButton from '@mui/material/ToggleButton';
-import Tooltip from '@mui/material/Tooltip';
 import SearchIcon from '@mui/icons-material/Search';
 import MythicTextField from './MythicTextField';
+import {MythicActionButton} from './MythicActionButton';
 
 export const MythicTableToolbar = ({children, className = "", style = {}, variant}) => {
     return (
@@ -72,18 +70,7 @@ export const MythicSearchField = ({
                 endAdornment: onSearch ? (
                     <React.Fragment>
                         {endAdornment}
-                        <Tooltip title="Search">
-                            <span>
-                                <IconButton
-                                    className="mythic-toolbar-icon-button"
-                                    disabled={disabled}
-                                    onClick={onSearch}
-                                    size="small"
-                                >
-                                    <SearchIcon fontSize="small" />
-                                </IconButton>
-                            </span>
-                        </Tooltip>
+                        <MythicActionButton appearance="raised" compact disabled={disabled} icon={<SearchIcon />} iconOnly onClick={onSearch} tone="primary" tooltip="Search" />
                     </React.Fragment>
                 ) : endAdornment,
                 style: {padding: 0},
@@ -93,11 +80,11 @@ export const MythicSearchField = ({
     );
 };
 
-export const MythicToolbarButton = ({children, className = "", ...props}) => {
+export const MythicToolbarButton = ({children, tone, ...props}) => {
     return (
-        <Button className={`mythic-toolbar-toggle ${className}`.trim()} size="small" {...props}>
+        <MythicActionButton tone={tone} {...props}>
             {children}
-        </Button>
+        </MythicActionButton>
     );
 };
 

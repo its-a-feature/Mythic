@@ -1,6 +1,5 @@
 import React, {useEffect} from 'react';
 import Box from '@mui/material/Box';
-import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -17,6 +16,7 @@ import {useQuery, gql} from '@apollo/client';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import { snackActions } from '../../utilities/Snackbar';
 import {classes, StyledButton} from '../../MythicComponents/MythicTransferList';
+import {MythicChip} from '../../MythicComponents/MythicChip';
 import {
   MythicDialogBody,
   MythicDialogButton,
@@ -297,7 +297,7 @@ export function EditBlockListDialog({dialogTitle, onSubmit, blockListName: propB
           </MythicDialogSection>
           <MythicDialogSection
             title="Commands"
-            actions={<Chip size="small" label={`${selectedCommandCount} blocked`} />}
+            actions={<MythicChip size="small" label={`${selectedCommandCount} blocked`} />}
           >
             {loading && payloadtypes.length === 0 ? (
               <Box className="mythic-block-list-loading">

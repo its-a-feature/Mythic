@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import DialogActions from '@mui/material/DialogActions';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -12,7 +13,6 @@ import {snackActions} from "../../utilities/Snackbar";
 import {useMutation, useQuery, gql} from '@apollo/client';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
-import IconButton from '@mui/material/IconButton';
 import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
 import MythicTextField from "../../MythicComponents/MythicTextField";
 import {
@@ -126,9 +126,9 @@ export function SettingsOperatorSecretsConfigDialog(props) {
                               {settings.map( (s, index) => (
                                   <TableRow hover key={"secret" + index}>
                                       <MythicStyledTableCell>
-                                          <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={() => removeSecret(index)}>
+                                          <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={() => removeSecret(index)}>
                                               <DeleteIcon fontSize="small" />
-                                          </IconButton>
+                                          </MythicActionButton>
                                       </MythicStyledTableCell>
                                     <MythicStyledTableCell>
                                         <MythicTextField
@@ -154,9 +154,9 @@ export function SettingsOperatorSecretsConfigDialog(props) {
                               ))}
                               <TableRow>
                                   <MythicStyledTableCell colSpan={2}>
-                                      <IconButton color={"success"} onClick={addSecret}>
+                                      <MythicActionButton colorMode="always" tone="success" iconOnly  onClick={addSecret}>
                                           <AddCircleOutlineOutlinedIcon    />
-                                      </IconButton>
+                                      </MythicActionButton>
 
                                   </MythicStyledTableCell>
                                   <MythicStyledTableCell>

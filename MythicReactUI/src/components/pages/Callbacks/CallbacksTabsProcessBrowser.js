@@ -1,10 +1,10 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import {MythicTabPanel, MythicTabLabel} from '../../MythicComponents/MythicTabPanel';
 import React, {useCallback, useEffect} from 'react';
 import {gql, useQuery, useSubscription } from '@apollo/client';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {useTheme} from '@mui/material/styles';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import IconButton from '@mui/material/IconButton';
 import {CallbacksTabsProcessBrowserTable} from './CallbacksTabsProcessBrowserTable';
 import {MythicModifyStringDialog} from '../../MythicComponents/MythicDialog';
 import {TaskFromUIButton} from './TaskFromUIButton';
@@ -17,7 +17,7 @@ import InputAdornment from '@mui/material/InputAdornment';
 import {ViewCallbackMythicTreeGroupsDialog} from "./ViewCallbackMythicTreeGroupsDialog";
 import WidgetsIcon from '@mui/icons-material/Widgets';
 import {snackActions} from "../../utilities/Snackbar";
-import { Backdrop, Typography } from '@mui/material';
+import {Backdrop, Typography} from '@mui/material';
 import {CircularProgress} from '@mui/material';
 import ExpandIcon from '@mui/icons-material/Expand';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -565,12 +565,12 @@ const ProcessBrowserTableTop = ({
                         </Select>
                     </FormControl>
                     <MythicStyledTooltip title="View callbacks associated with this group">
-                        <IconButton
-                            className="mythic-file-browser-iconButton mythic-action-tone-hover mythic-tone-info"
+                        <MythicActionButton iconOnly
+                            appearance="plain" colorMode="hover" shape="square" tone="info"
                             onClick={() => {setOpenViewGroupDialog(true);}}
                             size="small">
                             <WidgetsIcon fontSize="small" />
-                        </IconButton>
+                        </MythicActionButton>
                     </MythicStyledTooltip>
                 </div>
                 <div className="mythic-process-browser-control mythic-process-browser-controlHost">
@@ -602,36 +602,36 @@ const ProcessBrowserTableTop = ({
                         ),
                         endAdornment: quickFilter ? (
                             <InputAdornment position="end">
-                                <IconButton
-                                    className="mythic-file-browser-iconButton mythic-action-tone-hover mythic-tone-error"
+                                <MythicActionButton iconOnly
+                                    appearance="plain" colorMode="hover" shape="square" tone="error"
                                     onClick={onClearQuickFilter}
                                     size="small">
                                     <ClearIcon fontSize="small" />
-                                </IconButton>
+                                </MythicActionButton>
                             </InputAdornment>
                         ) : null
                     }}
                 />
                 <div className="mythic-file-browser-toolbarGroup mythic-process-browser-actions">
                     <MythicStyledTooltip title="Task current callback to list processes">
-                        <IconButton
-                            className="mythic-file-browser-iconButton mythic-action-tone-hover mythic-tone-info"
+                        <MythicActionButton iconOnly
+                            appearance="plain" colorMode="hover" shape="square" tone="info"
                             onClick={onLocalListFilesButton}
                             size="small">
                             <RefreshIcon fontSize="small" />
-                        </IconButton>
+                        </MythicActionButton>
                     </MythicStyledTooltip>
                     <MythicStyledTooltip title={expandOrCollapseAll ? "Collapse all processes" : "Expand all processes"} >
-                        <IconButton
-                            className={`mythic-file-browser-iconButton mythic-action-tone-hover mythic-tone-info ${expandOrCollapseAll ? "mythic-action-tone mythic-tone-success" : ""}`}
+                        <MythicActionButton iconOnly
+                            appearance="plain" active={expandOrCollapseAll} colorMode="hover" shape="square" tone={expandOrCollapseAll ? "success" : "info"}
                             onClick={onLocalExpandOrCollapseAllButton}
                             size="small">
                             <ExpandIcon fontSize="small" />
-                        </IconButton>
+                        </MythicActionButton>
                     </MythicStyledTooltip>
                     <MythicStyledTooltip title={showDeletedFiles ? 'Hide deleted processes' : 'Show deleted processes'}>
-                        <IconButton
-                            className={`mythic-file-browser-iconButton mythic-action-tone-hover mythic-tone-warning ${showDeletedFiles ? "mythic-action-tone mythic-tone-warning" : ""}`}
+                        <MythicActionButton iconOnly
+                            appearance="plain" active={showDeletedFiles} colorMode="hover" shape="square" tone="warning"
                             onClick={onLocalToggleShowDeletedFiles}
                             size="small">
                             {showDeletedFiles ? (
@@ -639,7 +639,7 @@ const ProcessBrowserTableTop = ({
                             ) : (
                                 <VisibilityOffIcon fontSize="small" />
                             )}
-                        </IconButton>
+                        </MythicActionButton>
                     </MythicStyledTooltip>
                 </div>
                 {openViewGroupsDialog &&

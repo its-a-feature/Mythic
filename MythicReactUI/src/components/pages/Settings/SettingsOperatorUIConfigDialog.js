@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
@@ -7,7 +8,6 @@ import MythicTextField from '../../MythicComponents/MythicTextField';
 import TableRow from '@mui/material/TableRow';
 import Switch from '@mui/material/Switch';
 import Box from '@mui/material/Box';
-import IconButton from '@mui/material/IconButton';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import Link from '@mui/material/Link';
@@ -27,6 +27,7 @@ import {snackActions} from "../../utilities/Snackbar";
 import {userSettingsQuery} from "../../App";
 import {copyStringToClipboard} from "../../utilities/Clipboard";
 import {useLazyQuery } from '@apollo/client';
+import {MythicChip} from "../../MythicComponents/MythicChip";
 import PhoneCallbackIcon from '@mui/icons-material/PhoneCallback';
 import ColorLensIcon from '@mui/icons-material/ColorLens';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
@@ -46,6 +47,7 @@ import {
     DragDropContext,
     Droppable,
 } from "@hello-pangea/dnd";
+import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
 
 const interactTypeOptions = [
     {value: "interact", display: "Accordions"},
@@ -102,25 +104,31 @@ const TaskingMetadataSummary = ({value, onChange}) => {
                     </Typography>
                 </Box>
                 <Box className="mythic-tasking-visibility-summary-actions">
-                    <Typography component="div" className="mythic-tasking-visibility-count">
-                        {selectedOptions.length} shown{hiddenCount > 0 ? `, ${hiddenCount} hidden` : ""}
-                    </Typography>
-                    <Button
-                        className="mythic-dialog-title-action mythic-tasking-visibility-manage-button"
+                    <MythicChip tone={"secondary"} label={`${selectedOptions.length} shown` + (hiddenCount > 0 ? `, ${hiddenCount} hidden`: "")}/>
+
+                    <MythicActionButton
                         onClick={() => setOpenLayoutDialog(true)}
                         size="small"
                         variant="outlined"
+                        colorMode={"hover"}
+                        tone={"info"}
                     >
                         Manage
-                    </Button>
+                    </MythicActionButton>
                 </Box>
                 <Box className="mythic-tasking-visibility-chip-row">
                     {selectedOptions.length > 0 ? (
                         selectedOptions.map((option, index) => (
-                            <span className="mythic-status-chip mythic-tone-info" key={option.name}>
-                                <span className="mythic-tasking-visibility-chip-index">{index + 1}</span>
-                                {option.display}
-                            </span>
+                            <MythicChip
+                                key={option.name}
+                                label={
+                                    <>
+                                        <span >{index + 1} - </span>
+                                        {option.display}
+                                    </>
+                                }
+                                tone="secondary"
+                            />
                         ))
                     ) : (
                         <Typography component="div" className="mythic-tasking-visibility-empty">
@@ -234,9 +242,9 @@ const TaskingMetadataDraggableListItem = ({item, index, onToggleVisibility}) => 
                             <span className="mythic-reorder-row-description">{item.description}</span>
                         </div>
                         <div className="mythic-reorder-row-actions">
-                            <IconButton
+                            <MythicActionButton iconOnly
                                 aria-label={item.visible ? `Hide ${item.display}` : `Show ${item.display}`}
-                                className={`mythic-compact-icon-action ${item.visible ? "mythic-action-tone-hover mythic-tone-error" : "mythic-action-tone-hover mythic-tone-info"}`}
+                                appearance="raised" colorMode="hover" tone={item.visible ? "error" : "info"}
                                 size="small"
                                 onClick={() => onToggleVisibility(index)}
                             >
@@ -245,7 +253,7 @@ const TaskingMetadataDraggableListItem = ({item, index, onToggleVisibility}) => 
                                 ) : (
                                     <VisibilityOffIcon fontSize="small" />
                                 )}
-                            </IconButton>
+                            </MythicActionButton>
                         </div>
                     </div>
                 );
@@ -471,7 +479,7 @@ const ModeColorControl = ({mode, name, display, color, defaultColor, onChange}) 
                 </Typography>
                 <MythicStyledTooltip title={`Reset ${display} ${modeLabel.toLowerCase()} color to default`}>
                     <span>
-                        <IconButton
+                        <MythicActionButton iconOnly
                             aria-label={`Reset ${display} ${modeLabel.toLowerCase()} color to default`}
                             disabled={resetDisabled}
                             onClick={() => onChange(name, mode, defaultColor)}
@@ -487,7 +495,7 @@ const ModeColorControl = ({mode, name, display, color, defaultColor, onChange}) 
                             }}
                         >
                             <RestartAltIcon sx={{fontSize: "1rem"}} />
-                        </IconButton>
+                        </MythicActionButton>
                     </span>
                 </MythicStyledTooltip>
             </Box>
@@ -1364,14 +1372,14 @@ export function SettingsOperatorUIConfigDialog(props) {
             <Button onClick={props.onClose} variant="contained" color="primary">
                 Cancel
             </Button>
-            <Button onClick={clearAllUserSettings} variant="contained" color="error">
+            <Button onClick={clearAllUserSettings} variant="outlined" color="error">
                 Clear ALL User Settings
             </Button>
-            <Button onClick={setDefaults} variant="contained" color="warning">
+            <Button onClick={setDefaults} variant="outlined" color="warning">
                 Reset ALL
             </Button>
-            <Button onClick={() => setColorDefaults("dark")} variant={"contained"} color={"info"}>Reset Dark Mode</Button>
-            <Button onClick={() => setColorDefaults("light")} variant={"contained"} color={"info"}>Reset Light Mode</Button>
+            <Button onClick={() => setColorDefaults("dark")} variant={"contained"} color={"secondary"}>Reset Dark Mode</Button>
+            <Button onClick={() => setColorDefaults("light")} variant={"contained"} color={"secondary"}>Reset Light Mode</Button>
             <Button onClick={onAccept} variant="contained" color="success">
                 Update
             </Button>

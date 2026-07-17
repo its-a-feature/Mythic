@@ -1,5 +1,5 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React, {useCallback, useMemo} from 'react';
-import { IconButton } from "@mui/material";
 import {useLazyQuery, gql, useMutation } from '@apollo/client';
 import { MythicDialog, MythicViewJSONAsTableDialog, MythicModifyStringDialog } from '../../MythicComponents/MythicDialog';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
@@ -36,6 +36,7 @@ import {
     gridValuePassesFilter,
     isGridColumnFilterActive
 } from "../../MythicComponents/MythicResizableGrid/GridColumnFilterDialog";
+import {MythicChip} from "../../MythicComponents/MythicChip";
 
 const getPermissionsDataQuery = gql`
     query getPermissionsQuery($mythictree_id: Int!) {
@@ -1260,12 +1261,13 @@ const ProcessBrowserSummaryStrip = ({summary, quickFilter}) => {
     return (
         <div className="mythic-process-summary-strip">
             {chips.map((chip) => (
-                <span
-                    className={`mythic-status-chip mythic-tone-${chip.tone === "muted" ? "neutral" : chip.tone}${chip.tone === "muted" ? " mythic-status-chip-muted" : ""}`}
+                <MythicChip
                     key={chip.label}
-                    title={chip.label}>
-                    {chip.label}
-                </span>
+                    label={chip.label}
+                    muted={chip.tone === "muted"}
+                    title={chip.label}
+                    tone={chip.tone === "muted" ? "neutral" : chip.tone}
+                />
             ))}
         </div>
     );
@@ -1298,16 +1300,10 @@ const ProcessBrowserInspector = ({nodeData, rowData, treeRootData, host, group, 
                     <TerminalIcon fontSize="small" />
                     <span title={nodeData?.name_text || ""}>{nodeData?.name_text || "Selected process"}</span>
                     {getProcessIntegrity(nodeData) > 3 &&
-                        <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-warning" title={`Integrity ${getProcessIntegrity(nodeData)}`}>
-                            <WarningAmberIcon fontSize="inherit" />
-                            Elevated
-                        </span>
+                        <MythicChip compact icon={<WarningAmberIcon />} label="Elevated" title={`Integrity ${getProcessIntegrity(nodeData)}`} tone="warning" />
                     }
                     {nodeData?.deleted &&
-                        <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-error">
-                            <DeleteOutlineIcon fontSize="inherit" />
-                            Deleted
-                        </span>
+                        <MythicChip compact icon={<DeleteOutlineIcon />} label="Deleted" tone="error" />
                     }
                 </div>
                 <div className="mythic-process-inspector-actions">
@@ -1318,12 +1314,12 @@ const ProcessBrowserInspector = ({nodeData, rowData, treeRootData, host, group, 
                         rowData={inspectorRowData}
                         getProcessRowMenuOptions={getProcessRowMenuOptions}
                     />
-                    <IconButton
-                        className="mythic-file-browser-iconButton mythic-action-tone-hover mythic-tone-error"
+                    <MythicActionButton iconOnly
+                        appearance="plain" colorMode="hover" shape="square" tone="error"
                         onClick={onClose}
                         size="small">
                         <CloseIcon fontSize="small" />
-                    </IconButton>
+                    </MythicActionButton>
                 </div>
             </div>
             <div className="mythic-process-inspector-body">
@@ -1369,8 +1365,8 @@ const FileBrowserTableRowNameCell = ({ rowData, treeRootData, host, children, ha
         <div className={`mythic-process-name-cell ${nodeData?.deleted ? "mythic-process-row-deleted" : ""}`}>
             <span className="mythic-process-indent" style={{width: `${indentWidth}px`}} />
             {hasChildren ? (
-                <IconButton
-                    className="mythic-process-expand-button"
+                <MythicActionButton iconOnly
+                    appearance="plain" compact shape="square"
                     onClick={(event) => {
                         event.stopPropagation();
                         handleOnClickButton(rowData.full_path_text);
@@ -1379,7 +1375,7 @@ const FileBrowserTableRowNameCell = ({ rowData, treeRootData, host, children, ha
                     tabIndex={-1}
                 >
                     {rowData.isOpen ? <KeyboardArrowDownIcon fontSize="small" /> : <KeyboardArrowRightIcon fontSize="small" />}
-                </IconButton>
+                </MythicActionButton>
             ) : (
                 <span className="mythic-process-expand-spacer" />
             )}
@@ -1388,29 +1384,23 @@ const FileBrowserTableRowNameCell = ({ rowData, treeRootData, host, children, ha
                 {displayName}
             </span>
             {elevated &&
-                <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-warning" title={`Integrity ${getProcessIntegrity(nodeData)}`}>
-                    <WarningAmberIcon fontSize="inherit" />
-                </span>
+                <MythicChip compact icon={<WarningAmberIcon />} iconOnly label="Elevated" title={`Integrity ${getProcessIntegrity(nodeData)}`} tone="warning" />
             }
             {nodeData?.deleted &&
-                <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-error" title="Deleted process entry">
-                    <DeleteOutlineIcon fontSize="inherit" />
-                </span>
+                <MythicChip compact icon={<DeleteOutlineIcon />} iconOnly label="Deleted" title="Deleted process entry" tone="error" />
             }
             {matchLabels.length > 0 &&
                 <span className="mythic-process-match-chips" title={`Matched: ${matchLabels.join(", ")}`}>
                     {matchLabels.slice(0, 3).map((label) => (
-                        <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-info" key={label}>{label}</span>
+                        <MythicChip compact key={label} label={label} tone="info" />
                     ))}
                     {extraMatchCount > 0 &&
-                        <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-info">+{extraMatchCount}</span>
+                        <MythicChip compact label={`+${extraMatchCount}`} tone="info" />
                     }
                 </span>
             }
             {rowData.filterAncestor &&
-                <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-neutral" title="Visible because a descendant matched the quick filter">
-                    ancestor
-                </span>
+                <MythicChip compact label="ancestor" title="Visible because a descendant matched the quick filter" />
             }
         </div>
     );
@@ -1478,9 +1468,9 @@ const FileBrowserTableRowActionCell = ({rowData, treeRootData, host, getProcessR
     return (
         currentNodeData?.id ? (
         <React.Fragment>
-            <IconButton
+            <MythicActionButton iconOnly
                 size="small"
-                className="mythic-process-action-button mythic-action-tone-hover mythic-tone-info"
+                appearance="raised" colorMode="hover" compact tone="info"
                 aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
                 aria-expanded={dropdownOpen ? 'true' : undefined}
                 aria-haspopup="menu"
@@ -1488,7 +1478,7 @@ const FileBrowserTableRowActionCell = ({rowData, treeRootData, host, getProcessR
                 ref={dropdownAnchorRef}
             >
                 <SettingsIcon fontSize="small" />
-            </IconButton>
+            </MythicActionButton>
             {dropdownOpen &&
                 <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
                     <Dropdown

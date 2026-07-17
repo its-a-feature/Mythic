@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React, {useEffect} from 'react';
 import { copyStringToClipboard } from '../../utilities/Clipboard';
 import GetAppIcon from '@mui/icons-material/GetApp';
@@ -39,7 +40,6 @@ import CodeOffIcon from '@mui/icons-material/CodeOff';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import {b64DecodeUnicode} from './ResponseDisplay';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
-import IconButton from '@mui/material/IconButton';
 import Paper from '@mui/material/Paper';
 import {EventTriggerContextSelectDialog} from "../Eventing/EventTriggerContextSelect";
 import PlayCircleFilledTwoToneIcon from '@mui/icons-material/PlayCircleFilledTwoTone';
@@ -68,9 +68,6 @@ query subResponsesQuery($task_id: Int!) {
   }
 }`;
 
-const responseActionClass = (tone = "info") => {
-  return `mythic-response-action-button mythic-action-tone-hover mythic-tone-${tone === "danger" ? "error" : tone}`;
-};
 const responseMenuItemClass = (tone = "info") => {
   return `mythic-response-action-menu-item mythic-action-tone-hover mythic-tone-${tone === "danger" ? "error" : tone}`;
 };
@@ -346,114 +343,114 @@ const SideDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput,
             <Paper className="mythic-response-side-actions" elevation={5} style={{width: "30px", display: "flex", flexDirection: "column", alignItems: "center", overflow: "hidden",
                 backgroundColor: "transparent", height: "100%"}}>
                 <MythicStyledTooltip title={"Toggle BrowserScript"} >
-                    <IconButton className={responseActionClass(viewBrowserScript ? "danger" : "success")} onClick={toggleViewBrowserScript} size="small">
+                    <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone={viewBrowserScript ? "error" : "success"} onClick={toggleViewBrowserScript} size="small">
                         {viewBrowserScript ? <CodeOffIcon fontSize="small" /> : <CodeIcon fontSize="small" />}
-                    </IconButton>
+                    </MythicActionButton>
                 </MythicStyledTooltip>
                 <MythicStyledTooltip title={viewAllOutput ? "View Paginated Output" : "View All Output"}>
-                    <IconButton className={responseActionClass(viewAllOutput ? "danger" : "success")} onClick={toggleSelectAllOutput} size="small">
+                    <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone={viewAllOutput ? "error" : "success"} onClick={toggleSelectAllOutput} size="small">
                         {viewAllOutput ? <CloseFullscreenIcon fontSize="small" /> : <FontAwesomeIcon icon={faExpandArrowsAlt} size="sm" />}
-                    </IconButton>
+                    </MythicActionButton>
                 </MythicStyledTooltip>
                 <MythicStyledTooltip title={"Search Output"}>
-                    <IconButton className={responseActionClass("info")} onClick={toggleOpenSearch} size="small">
+                    <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" onClick={toggleOpenSearch} size="small">
                         <SearchIcon fontSize="small" />
-                    </IconButton>
+                    </MythicActionButton>
                 </MythicStyledTooltip>
                 <MythicStyledTooltip title={"Download output"}>
-                    <IconButton className={responseActionClass("success")} onClick={onDownloadResponses} size="small">
+                    <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="success" onClick={onDownloadResponses} size="small">
                         <GetAppIcon fontSize="small" />
-                    </IconButton>
+                    </MythicActionButton>
                 </MythicStyledTooltip>
                 <MythicStyledTooltip title={"Download screenshot of output"}>
-                    <IconButton className={responseActionClass("success")} onClick={onDownloadImageClickPng} size="small">
+                    <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="success" onClick={onDownloadImageClickPng} size="small">
                         <InsertPhotoIcon fontSize="small" />
-                    </IconButton>
+                    </MythicActionButton>
                 </MythicStyledTooltip>
                 <MythicStyledTooltip title={"Edit Tags"}>
-                    <IconButton className={responseActionClass("info")} onClick={()=>{setOpenTaskTagDialog(true)}} size="small">
+                    <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" onClick={()=>{setOpenTaskTagDialog(true)}} size="small">
                         <LocalOfferOutlinedIcon fontSize="small" />
-                    </IconButton>
+                    </MythicActionButton>
                 </MythicStyledTooltip>
                 <MythicStyledTooltip title={"Open Task in New Window"}>
-                    <IconButton className={responseActionClass("info")} onClick={()=> {window.open('/new/task/' + task.display_id, "_blank")}} size="small">
+                    <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" onClick={()=> {window.open('/new/task/' + task.display_id, "_blank")}} size="small">
                         <FontAwesomeIcon icon={faExternalLinkAlt} size="sm" />
-                    </IconButton>
+                    </MythicActionButton>
                 </MythicStyledTooltip>
                 <MythicStyledTooltip title={"Copy original params to clipboard"}>
-                    <IconButton className={responseActionClass("info")} onClick={copyToClipboard} size="small">
+                    <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" onClick={copyToClipboard} size="small">
                         <FileCopyOutlinedIcon fontSize="small" />
-                    </IconButton>
+                    </MythicActionButton>
                 </MythicStyledTooltip>
                 <MythicStyledTooltip title={"Edit Comment"}>
-                    <IconButton className={responseActionClass("info")} onClick={()=>{setOpenCommentDialog(true)}} size="small">
+                    <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" onClick={()=>{setOpenCommentDialog(true)}} size="small">
                         <RateReviewOutlinedIcon fontSize="small" />
-                    </IconButton>
+                    </MythicActionButton>
                 </MythicStyledTooltip>
                 <MythicStyledTooltip title={"View All Parameters And Timestamps"}>
-                    <IconButton className={responseActionClass("info")} onClick={()=>{setOpenParametersDialog(true);}} size="small">
+                    <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" onClick={()=>{setOpenParametersDialog(true);}} size="small">
                         <KeyboardIcon fontSize="small" />
-                    </IconButton>
+                    </MythicActionButton>
                 </MythicStyledTooltip>
                 <MythicStyledTooltip title={"View Stdout/Stderr of Task"}>
-                    <IconButton className={responseActionClass("danger")} onClick={()=>{setOpenStdoutStderrDialog(true);}} size="small">
+                    <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" onClick={()=>{setOpenStdoutStderrDialog(true);}} size="small">
                         <FontAwesomeIcon icon={faExclamationTriangle} size="sm" />
-                    </IconButton>
+                    </MythicActionButton>
                 </MythicStyledTooltip>
                 <MythicStyledTooltip title={"Trigger Eventing Based on Task"}>
-                    <IconButton className={responseActionClass("info")} onClick={()=>{onTriggerEventing();}} size="small">
+                    <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" onClick={()=>{onTriggerEventing();}} size="small">
                         <PlayCircleFilledTwoToneIcon fontSize="small" />
-                    </IconButton>
+                    </MythicActionButton>
                 </MythicStyledTooltip>
                 {task.opsec_pre_blocked === null ? null : (  task.opsec_pre_bypassed === false ? (
                         <MythicStyledTooltip title={"Submit OPSEC PreCheck Bypass Request"}>
-                            <IconButton className={responseActionClass("danger")} onClick={()=>{setOpenOpsecDialog({open: true, view: "pre"})}} size="small">
+                            <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" onClick={()=>{setOpenOpsecDialog({open: true, view: "pre"})}} size="small">
                                 <LockIcon fontSize="small" />
-                            </IconButton>
+                            </MythicActionButton>
                         </MythicStyledTooltip>
                     ): (
                     <MythicStyledTooltip title={"View OPSEC PreCheck Data"}>
-                        <IconButton className={responseActionClass("success")} onClick={()=>{setOpenOpsecDialog({open: true, view: "pre"})}} size="small">
+                        <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="success" onClick={()=>{setOpenOpsecDialog({open: true, view: "pre"})}} size="small">
                             <LockOpenIcon fontSize="small" />
-                        </IconButton>
+                        </MythicActionButton>
                     </MythicStyledTooltip>
                     )
                 )
                 }
                 {task.opsec_post_blocked === null ? null : (  task.opsec_post_bypassed === false ? (
                         <MythicStyledTooltip title={"Submit OPSEC PostCheck Bypass Request"}>
-                            <IconButton className={responseActionClass("danger")} onClick={()=>{setOpenOpsecDialog({open: true, view: "post"})}} size="small">
+                            <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" onClick={()=>{setOpenOpsecDialog({open: true, view: "post"})}} size="small">
                                 <LockIcon fontSize="small" />
-                            </IconButton>
+                            </MythicActionButton>
                         </MythicStyledTooltip>
                     ): (
                     <MythicStyledTooltip title={"View OPSEC PostCheck Data"}>
-                        <IconButton className={responseActionClass("success")} onClick={()=>{setOpenOpsecDialog({open: true, view: "post"})}} size="small">
+                        <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="success" onClick={()=>{setOpenOpsecDialog({open: true, view: "post"})}} size="small">
                             <LockOpenIcon fontSize="small" />
-                        </IconButton>
+                        </MythicActionButton>
                     </MythicStyledTooltip>
                     )
                 )
                 }
                 {task.token === null ? null : (
                     <MythicStyledTooltip title={"View Token Information"}>
-                        <IconButton className={responseActionClass("info")} onClick={()=>{setOpenTokenDialog(true)}} size="small">
+                        <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" onClick={()=>{setOpenTokenDialog(true)}} size="small">
                             <ConfirmationNumberIcon fontSize="small" />
-                        </IconButton>
+                        </MythicActionButton>
                     </MythicStyledTooltip>
                 )}
                 {task.status.toLowerCase().includes("error: container") &&
                     <MythicStyledTooltip title={"Resubmit Tasking"}>
-                        <IconButton className={responseActionClass("warning")} onClick={onReissueTask} size="small">
+                        <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="warning" onClick={onReissueTask} size="small">
                             <ReplayIcon fontSize="small" />
-                        </IconButton>
+                        </MythicActionButton>
                     </MythicStyledTooltip>
                 }
                 {task.status.toLowerCase().includes("error: task") &&
                     <MythicStyledTooltip title={"Resubmit Task Handler"}>
-                        <IconButton className={responseActionClass("warning")} onClick={onReissueTaskHandler} size="small">
+                        <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="warning" onClick={onReissueTaskHandler} size="small">
                             <ReplayIcon fontSize="small" />
-                        </IconButton>
+                        </MythicActionButton>
                     </MythicStyledTooltip>
                 }
             </Paper>
@@ -636,34 +633,34 @@ const TaskActionsToolbarGeneric = ({toggleViewBrowserScript, toggleSelectAllOutp
           py: 0.5,
         }}>
           <MythicStyledTooltip title={"Toggle BrowserScript"}>
-            <IconButton className={responseActionClass(viewBrowserScript ? "danger" : "success")} size="small" onClick={toggleViewBrowserScript}>
+            <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone={viewBrowserScript ? "error" : "success"} size="small" onClick={toggleViewBrowserScript}>
               {viewBrowserScript ? <CodeOffIcon fontSize="small" /> : <CodeIcon fontSize="small" />}
-            </IconButton>
+            </MythicActionButton>
           </MythicStyledTooltip>
           <MythicStyledTooltip title={viewAllOutput ? "View Paginated Output" : "View All Output"}>
-            <IconButton className={responseActionClass(viewAllOutput ? "danger" : "success")} size="small" onClick={toggleSelectAllOutput}>
+            <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone={viewAllOutput ? "error" : "success"} size="small" onClick={toggleSelectAllOutput}>
               {viewAllOutput ? <CloseFullscreenIcon fontSize="small" /> : <FontAwesomeIcon icon={faExpandArrowsAlt} size="sm" />}
-            </IconButton>
+            </MythicActionButton>
           </MythicStyledTooltip>
           <MythicStyledTooltip title={"Search Output"}>
-            <IconButton className={responseActionClass("info")} size="small" onClick={toggleOpenSearch}>
+            <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" size="small" onClick={toggleOpenSearch}>
               <SearchIcon fontSize="small" />
-            </IconButton>
+            </MythicActionButton>
           </MythicStyledTooltip>
           <MythicStyledTooltip title={"Download output"}>
-            <IconButton className={responseActionClass("success")} size="small" onClick={onDownloadResponses}>
+            <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="success" size="small" onClick={onDownloadResponses}>
               <GetAppIcon fontSize="small" />
-            </IconButton>
+            </MythicActionButton>
           </MythicStyledTooltip>
           <MythicStyledTooltip title={"Download screenshot of output"}>
-            <IconButton className={responseActionClass("success")} size="small" onClick={onDownloadImageClickPng}>
+            <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="success" size="small" onClick={onDownloadImageClickPng}>
               <InsertPhotoIcon fontSize="small" />
-            </IconButton>
+            </MythicActionButton>
           </MythicStyledTooltip>
           <MythicStyledTooltip title={"More response actions"}>
-            <IconButton className={responseActionClass("info")} size="small" onClick={openActionsMenu}>
+            <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" size="small" onClick={openActionsMenu}>
               <MoreHorizIcon fontSize="small" />
-            </IconButton>
+            </MythicActionButton>
           </MythicStyledTooltip>
           <Menu anchorEl={actionsMenuAnchor}
                 open={Boolean(actionsMenuAnchor)}

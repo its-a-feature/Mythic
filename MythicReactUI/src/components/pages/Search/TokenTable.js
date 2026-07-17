@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import {IconButton, Link} from '@mui/material';
+import {Link} from '@mui/material';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -17,9 +17,9 @@ import EditIcon from '@mui/icons-material/Edit';
 import {TaskTokenDialog} from '../Callbacks/TaskTokenDialog';
 import {TokenDescriptionDialog} from './TokenDescriptionDialog';
 import {TokenUserDialog} from './TokenUserDialog';
-import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
-import {MythicStateChip} from "../../MythicComponents/MythicStateChip";
+import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 
 const updateCredentialDeleted = gql`
 mutation updateCredentialDeletedMutation($token_id: Int!, $deleted: Boolean!){
@@ -144,20 +144,16 @@ function TokenTableRow(props){
                 <MythicStyledTableCell>
                     <div className="mythic-search-result-action-row">
                         {props.deleted ? (
-                            <MythicStyledTooltip title="Restore Token for use in Tasking">
-                                <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-success" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><VisibilityOffIcon fontSize="small" /></IconButton>
-                            </MythicStyledTooltip>
+                            <MythicActionButton appearance="raised" icon={<VisibilityOffIcon />} iconOnly onClick={()=>{setOpenDeleteDialog(true);}} tone="success" tooltip="Restore Token for use in Tasking" />
                         ) : (
-                            <MythicStyledTooltip title="Hide Token so it can't be used in Tasking">
-                                <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-warning" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><VisibilityIcon fontSize="small" /></IconButton>
-                            </MythicStyledTooltip>
+                            <MythicActionButton appearance="raised" icon={<VisibilityIcon />} iconOnly onClick={()=>{setOpenDeleteDialog(true);}} tone="warning" tooltip="Hide Token so it can't be used in Tasking" />
                         )}
-                        <MythicStateChip compact label={props.deleted ? "Hidden" : "Available"} state={props.deleted ? "disabled" : "active"} />
+                        <MythicStatusChip compact status={props.deleted ? "hidden" : "available"} />
                     </div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <div className="mythic-search-result-action-row">
-                        <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" onClick={() => setEditUserDialog(true)} size="small"><EditIcon fontSize="small" /></IconButton>
+                        <MythicActionButton appearance="raised" icon={<EditIcon />} iconOnly onClick={() => setEditUserDialog(true)} tone="info" tooltip="Edit token user" />
                         <span className="mythic-search-result-primary">{props.user}</span>
                     </div>
 
@@ -169,9 +165,7 @@ function TokenTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell >
                     <div className="mythic-search-result-action-row">
-                        <MythicStyledTooltip title="View Token Information">
-                            <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" size="small" onClick={()=>{setViewTokenDialog(true);}}><ConfirmationNumberIcon fontSize="small" /></IconButton>
-                        </MythicStyledTooltip>
+                        <MythicActionButton appearance="raised" icon={<ConfirmationNumberIcon />} iconOnly onClick={()=>{setViewTokenDialog(true);}} tone="info" tooltip="View Token Information" />
                         <span className="mythic-search-result-code">{props.token_id}</span>
                     </div>
                     {viewTokenDialog && <MythicDialog fullWidth={true} maxWidth="md" open={viewTokenDialog}
@@ -181,7 +175,7 @@ function TokenTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <div className="mythic-search-result-action-row">
-                        <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" onClick={() => setEditDescriptionDialog(true)} size="small"><EditIcon fontSize="small" /></IconButton>
+                        <MythicActionButton appearance="raised" icon={<EditIcon />} iconOnly onClick={() => setEditDescriptionDialog(true)} tone="info" tooltip="Edit token description" />
                         <span className="mythic-search-result-secondary">{props.description || "No description"}</span>
                     </div>
 

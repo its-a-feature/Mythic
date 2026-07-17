@@ -1,12 +1,13 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import Collapse from '@mui/material/Collapse';
-import IconButton from '@mui/material/IconButton';
 import TableRow from '@mui/material/TableRow';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import MythicTableCell from "../../MythicComponents/MythicTableCell";
 import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
+import {MythicChip} from "../../MythicComponents/MythicChip";
 
 const normalizeValueList = (value) => {
     if(Array.isArray(value)){
@@ -20,13 +21,13 @@ const hasValue = (value) => normalizeValueList(value).length > 0;
 
 export const getInstalledServiceListTitle = (value) => normalizeValueList(value).join(", ");
 
-export function InstalledServiceIdentity({name, typeLabel, status, deleted}) {
+export function InstalledServiceIdentity({name, typeLabel, status}) {
     return (
         <div className="mythic-installed-service-identity">
             <div className="mythic-installed-service-name-row">
                 <span className="mythic-installed-service-name">{name}</span>
                 {typeLabel &&
-                    <MythicStatusChip label={typeLabel} status={deleted ? "deleted" : "secondary"} showIcon={deleted} />
+                    <MythicStatusChip label={typeLabel} status={"secondary"} showIcon={false} />
                 }
             </div>
             {status}
@@ -39,16 +40,11 @@ export function InstalledServiceListValue({value, limit = 4}) {
     if(values.length === 0){
         return <span className="mythic-installed-service-empty-value">Not set</span>;
     }
-    const visibleValues = values.slice(0, limit);
-    const hiddenCount = values.length - visibleValues.length;
     return (
         <span className="mythic-installed-service-chip-list" title={getInstalledServiceListTitle(values)}>
-            {visibleValues.map((entry, index) => (
-                <span className="mythic-status-chip mythic-status-chip-compact mythic-tone-secondary" key={`${entry}-${index}`}>{entry}</span>
+            {values.map((entry, index) => (
+                <MythicChip compact key={`${entry}-${index}`} label={entry} />
             ))}
-            {hiddenCount > 0 &&
-                <span className="mythic-status-chip mythic-status-chip-compact mythic-status-chip-muted mythic-tone-secondary">+{hiddenCount}</span>
-            }
         </span>
     );
 }
@@ -100,15 +96,15 @@ export function InstalledServiceMetadataSummary({items = [], description}) {
 export function InstalledServiceDetailToggle({open, onClick, label = "details"}) {
     return (
         <MythicStyledTooltip title={open ? `Hide ${label}` : `Show ${label}`}>
-            <IconButton
+            <MythicActionButton iconOnly
                 aria-label={open ? `hide ${label}` : `show ${label}`}
                 aria-expanded={open}
-                className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
+                appearance="raised" colorMode="hover" tone="info"
                 onClick={onClick}
                 size="small"
             >
                 {open ? <KeyboardArrowUpIcon fontSize="small" /> : <KeyboardArrowDownIcon fontSize="small" />}
-            </IconButton>
+            </MythicActionButton>
         </MythicStyledTooltip>
     );
 }

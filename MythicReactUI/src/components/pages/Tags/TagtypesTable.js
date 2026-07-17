@@ -96,14 +96,14 @@ export function TagtypesTable({tagtypes, onDeleteTagtype, onNewTag, onUpdateTagt
                 }
                 actions={
                     <>
-                        <MythicToolbarButton component="label" variant="outlined" color="primary" startIcon={<FileUploadIcon />}>
+                        <MythicToolbarButton component="label" variant="outlined" colorMode="hover" tone="success" startIcon={<FileUploadIcon />}>
                             Import
                             <input onChange={onFileChange} value={fileValue.current} type="file" hidden />
                         </MythicToolbarButton>
-                        <MythicToolbarButton variant="outlined" color="primary" onClick={onClickExportTagTypes} startIcon={<FileDownloadIcon />}>
+                        <MythicToolbarButton variant="outlined" colorMode="hover" tone="info" onClick={onClickExportTagTypes} startIcon={<FileDownloadIcon />}>
                             Export
                         </MythicToolbarButton>
-                        <MythicToolbarButton variant="contained" color="primary" onClick={()=>setOpenNewDialog(true)} startIcon={<AddCircleIcon />}>
+                        <MythicToolbarButton variant="contained" colorMode="hover" tone="success" onClick={()=>setOpenNewDialog(true)} startIcon={<AddCircleIcon />}>
                             Tag Type
                         </MythicToolbarButton>
                     </>

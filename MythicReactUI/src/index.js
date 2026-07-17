@@ -17,7 +17,7 @@ import {getSkewedNow} from "./components/utilities/Time";
 import {createTokenRefreshCoordinator, shouldInvalidateSessionAfterRefreshFailure} from "./tokenRefresh";
 import {mythicFetch, reportMythicConnectionError, reportMythicConnectionSuccess} from "./components/utilities/MythicConnection";
 
-export const mythicUIVersion = "0.4.0.8";
+export const mythicUIVersion = "0.4.0.9";
 
 const isResizeObserverLoopError = (message) => {
   return message === "ResizeObserver loop limit exceeded" ||

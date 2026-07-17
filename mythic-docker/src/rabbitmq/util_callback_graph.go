@@ -4,8 +4,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
+	"github.com/its-a-feature/Mythic/grpc"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/jmoiron/sqlx"
 	"slices"
@@ -292,6 +294,7 @@ func (g *cbGraph) Add(source databaseStructs.Callback, destination databaseStruc
 		})
 		g.bumpVersionLocked()
 		g.lock.Unlock()
+		updateNewGraphEdgeCheckin(source.ID, destination.ID, initializing)
 		return
 	}
 	for _, dest := range g.adjMatrix[source.ID] {
@@ -313,9 +316,18 @@ func (g *cbGraph) Add(source databaseStructs.Callback, destination databaseStruc
 	g.bumpVersionLocked()
 
 	g.lock.Unlock()
+	updateNewGraphEdgeCheckin(source.ID, destination.ID, initializing)
 	logging.LogInfo("adding new adjMatrix connection", "source", source.ID, "destination", destination.ID, "c2 profile", c2profileName, "adj", g.adjMatrix[source.ID])
 	return
 }
+
+func updateNewGraphEdgeCheckin(sourceId int, destinationId int, initializing bool) {
+	if initializing || !isCallbackStreaming(sourceId) {
+		return
+	}
+	updateTimes(time.UnixMicro(0), []int{destinationId})
+}
+
 func (g *cbGraph) AddByAgentIds(source string, destination string, c2profileName string) {
 	sourceCallback := databaseStructs.Callback{}
 	destinationCallback := databaseStructs.Callback{}
@@ -479,6 +491,16 @@ func (g *cbGraph) GetBFSPath(sourceId int, destinationId int) []cbGraphAdjMatrix
 	BFSCache.Add(sourceId, destinationId, graphVersion, []cbGraphAdjMatrixEntry{})
 	return []cbGraphAdjMatrixEntry{}
 }
+
+func (g *cbGraph) isReachableFromAny(sourceIds []int, destinationId int) bool {
+	for _, sourceId := range sourceIds {
+		if sourceId == destinationId || len(g.GetBFSPath(sourceId, destinationId)) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
 func (g *cbGraph) Print() {
 	g.lock.RLock()
 	defer g.lock.RUnlock()
@@ -509,6 +531,15 @@ func RemoveEdgeByIds(sourceId int, destinationId int, c2profileName string) erro
 		}
 		callbackGraph.Remove(sourceId, destinationId, c2profileName)
 		callbackGraph.Remove(destinationId, sourceId, c2profileName)
+	}
+	if len(currentEdges) > 0 && !callbackGraph.isReachableFromAny(grpc.PushC2Server.GetConnectedClients(), destinationId) {
+		_, err = database.DB.Exec(`UPDATE callback SET last_checkin=$1 WHERE id=$2 AND last_checkin=$3`,
+			time.Now().UTC(), destinationId, time.UnixMicro(0))
+		if err != nil {
+			logging.LogError(err, "Failed to update streaming callback time after removing its last reachable edge",
+				"callback_id", destinationId)
+			return err
+		}
 	}
 	return nil
 }

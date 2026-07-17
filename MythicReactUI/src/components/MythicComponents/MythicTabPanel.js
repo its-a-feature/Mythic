@@ -1,4 +1,4 @@
-import { IconButton } from '@mui/material';
+import {MythicActionButton} from "./MythicActionButton";
 import CloseIcon from '@mui/icons-material/Close';
 import Tab from '@mui/material/Tab';
 import React from 'react';
@@ -13,6 +13,7 @@ import {alpha, useTheme} from '@mui/material/styles';
 import {
     Draggable,
 } from "@hello-pangea/dnd";
+import IconButton from "@mui/material/IconButton";
 
 export function MythicTabPanel(props) {
     const { children, value, index, maxHeight, tabInfo, getCallbackData, queryParams, changeSearchParam, showDeleted, ...other } =

@@ -1,9 +1,10 @@
+import {MythicActionButton} from "./MythicActionButton";
 import React from 'react';
 import Button from '@mui/material/Button';
 import DialogContent from '@mui/material/DialogContent';
 import MythicTextField from './MythicTextField';
 import {useQuery, gql, useMutation} from '@apollo/client';
-import { Box, Select, MenuItem, Link, IconButton } from '@mui/material';
+import {Box, Select, MenuItem, Link} from '@mui/material';
 import AceEditor from 'react-ace';
 import 'ace-builds/src-noconflict/mode-json';
 import 'ace-builds/src-noconflict/theme-monokai';
@@ -14,7 +15,7 @@ import { MythicDialog } from './MythicDialog';
 import {MythicConfirmDialog} from './MythicConfirmDialog';
 import DeleteIcon from '@mui/icons-material/Delete';
 import WebhookIcon from '@mui/icons-material/Webhook';
-import Chip from '@mui/material/Chip';
+import {MythicChip} from './MythicChip';
 import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined';
 import {mythicFetch} from '../utilities/MythicConnection';
 import {MythicStyledTooltip} from "./MythicStyledTooltip";
@@ -167,7 +168,7 @@ const TagChipDisplay = ({tag, expand}) => {
   }
   return (
     <React.Fragment>
-      <Chip onMouseOver={onMouseOver} onMouseOut={onMouseOut} label={label} size="small" onClick={(e) => onSelectTag(e)}
+      <MythicChip customColor onMouseOver={onMouseOver} onMouseOut={onMouseOut} label={label} size="small" onClick={(e) => onSelectTag(e)}
             sx={{
               backgroundColor: color || "transparent",
               color: textColor,
@@ -558,9 +559,9 @@ return (
               description={existingTags.length === 0 ? "No tags are attached yet." : "Choose the tag you want to update."}
               actions={
                 <MythicStyledTooltip title={"Add New Tag"}>
-                  <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-success" size="small" onClick={() => setOpenNewDialog(true)}>
+                  <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="success" size="small" onClick={() => setOpenNewDialog(true)}>
                     <AddCircleOutlineIcon fontSize="small" />
-                  </IconButton>
+                  </MythicActionButton>
                 </MythicStyledTooltip>
               }
           >
@@ -588,9 +589,9 @@ return (
                 {selectedTag.id &&
                   <MythicStyledTooltip title={"Delete Tag"}>
                     <Box sx={{alignItems: "center", alignSelf: "end", display: "flex", height: 38}}>
-                      <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={()=>{setOpenDeleteDialog(true);}}>
+                      <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={()=>{setOpenDeleteDialog(true);}}>
                         <DeleteIcon fontSize="small" />
-                      </IconButton>
+                      </MythicActionButton>
                     </Box>
                   </MythicStyledTooltip>
                 }
@@ -837,10 +838,10 @@ export const ViewEditTags = ({target_object, target_object_id, target_object_dis
   }
   return(
     <React.Fragment>
-    <IconButton onClick={(e) => toggleTagDialog(e, true)} size="small"
+    <MythicActionButton iconOnly onClick={(e) => toggleTagDialog(e, true)} size="small"
                 style={{display: "inline-block", float: "right", padding: "0px"}}>
       <LocalOfferOutlinedIcon />
-    </IconButton>
+    </MythicActionButton>
     {openTagDialog &&
       <MythicDialog fullWidth={true} maxWidth="xl" open={openTagDialog}
         onClose={(e)=>{toggleTagDialog(e, false)}}

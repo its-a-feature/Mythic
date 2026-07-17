@@ -1,9 +1,10 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import {useQuery, gql} from '@apollo/client';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import {Backdrop, Button, CircularProgress, IconButton} from '@mui/material';
+import {Backdrop, Button, CircularProgress} from '@mui/material';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableContainer from '@mui/material/TableContainer';
@@ -21,6 +22,7 @@ import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
 import {MythicTableEmptyState} from "../../MythicComponents/MythicStateDisplay";
 import {MythicClientSideTablePagination, useMythicClientPagination} from "../../MythicComponents/MythicTablePagination";
+import {MythicChip} from "../../MythicComponents/MythicChip";
 
 
 const getCallbackMythicTreeGroups = gql`
@@ -105,9 +107,12 @@ const CallbackGroupStatusCell = ({callback}) => {
     return (
         <div className="mythic-tree-groups-callback-icons">
             <MythicStyledTooltip title={callback.active ? "Callback is active" : "Callback is not active"}>
-                <span className={`mythic-status-chip mythic-status-chip-icon-only mythic-tone-${callback.active ? "success" : "warning"}`}>
-                    {callback.active ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
-                </span>
+                <MythicChip
+                    icon={callback.active ? <VisibilityIcon /> : <VisibilityOffIcon />}
+                    iconOnly
+                    label={callback.active ? "Active" : "Inactive"}
+                    tone={callback.active ? "success" : "warning"}
+                />
             </MythicStyledTooltip>
             <MythicStyledTooltip title={payloadType}>
                 <span className="mythic-tree-groups-agent-icon">
@@ -254,12 +259,12 @@ export function ViewCallbackMythicTreeGroupsDialog(props){
                       <span>These callbacks contribute aggregated process data for this group.</span>
                   </div>
                   <MythicStyledTooltip title="View all groups" >
-                      <IconButton
-                          className="mythic-file-browser-iconButton mythic-action-tone-hover mythic-tone-info"
+                      <MythicActionButton iconOnly
+                          appearance="plain" colorMode="hover" shape="square" tone="info"
                           size="small"
                           onClick={()=>{setOpenViewAllCallbacksDialog(true);}}>
                           <LayersIcon fontSize="small" />
-                      </IconButton>
+                      </MythicActionButton>
                   </MythicStyledTooltip>
               </div>
           </DialogTitle>

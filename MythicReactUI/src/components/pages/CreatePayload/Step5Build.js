@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React, {useEffect} from 'react';
 import { gql, useMutation} from '@apollo/client';
 import { CreatePayloadNavigationButtons} from './CreatePayloadNavigationButtons';
@@ -10,7 +11,6 @@ import {getSkewedNow} from "../../utilities/Time";
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import {ConfigurationSummary, GetGroupedParameters} from "./Step1SelectOS";
 import MenuBookIcon from '@mui/icons-material/MenuBook';
-import IconButton from '@mui/material/IconButton';
 import DriveFileRenameOutlineIcon from '@mui/icons-material/DriveFileRenameOutline';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 
@@ -220,9 +220,9 @@ export function Step5Build(props){
                                     <div className="mythic-create-meta-value">{props.buildOptions[1].description}</div>
                                 </div>
                                 <MythicStyledTooltip title={"Edit OS / Payload Type"}>
-                                    <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" size="small" onClick={() => props.moveToStep(0)}>
+                                    <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" size="small" onClick={() => props.moveToStep(0)}>
                                         <DriveFileRenameOutlineIcon />
-                                    </IconButton>
+                                    </MythicActionButton>
                                 </MythicStyledTooltip>
                             </div>
                         </div>
@@ -252,9 +252,9 @@ export function Step5Build(props){
                         <Typography component="div" className="mythic-create-section-title" style={{textAlign: "center"}}>
                             Build parameter configuration
                             <MythicStyledTooltip title={"Edit Build Parameters"}>
-                                <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" size="small" onClick={() => props.moveToStep(1)}>
+                                <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" size="small" onClick={() => props.moveToStep(1)}>
                                     <DriveFileRenameOutlineIcon />
-                                </IconButton>
+                                </MythicActionButton>
                             </MythicStyledTooltip>
                         </Typography>
                         <ConfigurationSummary buildParameters={props.buildOptions[1].parameters} os={props.buildOptions[1].os} />
@@ -263,19 +263,19 @@ export function Step5Build(props){
                         <Typography component="div" className="mythic-create-section-title" style={{textAlign: "center"}}>
                             Command selection
                             <MythicStyledTooltip title={"Edit Commands"}>
-                                <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" size="small" onClick={() => props.moveToStep(2)}>
+                                <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" size="small" onClick={() => props.moveToStep(2)}>
                                     <DriveFileRenameOutlineIcon />
-                                </IconButton>
+                                </MythicActionButton>
                             </MythicStyledTooltip>
                         </Typography>
                         {props.buildOptions[2]?.map(c => (
                             <div key={c} style={{display: "flex", alignItems: "center", justifyContent: "space-between"}}>
                                 {c}
-                                <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" size="small" onClick={(e) => e.stopPropagation()}
+                                <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" size="small" onClick={(e) => e.stopPropagation()}
                                             href={"/docs/agents/" + props.buildOptions[1].payload_type + "/commands/" + c}
                                             style={{marginLeft: "10px", float: "right"}} target="_blank">
                                     <MenuBookIcon fontSize="small"/>
-                                </IconButton>
+                                </MythicActionButton>
                             </div>
                         ))}
 
@@ -284,9 +284,9 @@ export function Step5Build(props){
                         <Typography component="div" className="mythic-create-section-title" style={{textAlign: "center"}}>
                             C2 configuration
                             <MythicStyledTooltip title={"Edit C2 Parameters"}>
-                                <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" size="small" onClick={() => props.moveToStep(3)}>
+                                <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" size="small" onClick={() => props.moveToStep(3)}>
                                     <DriveFileRenameOutlineIcon />
-                                </IconButton>
+                                </MythicActionButton>
                             </MythicStyledTooltip>
                         </Typography>
                         {props.buildOptions[3]?.c2?.map( (c, index) => (

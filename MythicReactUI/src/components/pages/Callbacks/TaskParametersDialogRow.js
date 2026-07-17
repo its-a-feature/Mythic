@@ -1,9 +1,10 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React, {useEffect} from 'react';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import Switch from '@mui/material/Switch';
 import Input from '@mui/material/Input';
-import {Box, Button, Chip, IconButton, MenuItem} from '@mui/material';
+import {Box, Button, MenuItem} from '@mui/material';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -14,12 +15,13 @@ import { snackActions } from '../../utilities/Snackbar';
 import {CredentialTableNewCredentialDialog} from '../Search/CredentialTableNewCredentialDialog';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
-import { Backdrop } from '@mui/material';
+import {Backdrop} from '@mui/material';
 import {CircularProgress} from '@mui/material';
 import {MythicFileContext} from "../../MythicComponents/MythicFileContext";
 import RefreshIcon from '@mui/icons-material/Refresh';
 import {updateCredentialDeleted} from "../Search/CredentialTable";
 import CloudUploadTwoToneIcon from '@mui/icons-material/CloudUploadTwoTone';
+import {MythicChip, SquareChip} from '../../MythicComponents/MythicChip';
 
 export const getDynamicQueryParamsString = `
 mutation getDynamicParamsMutation($callback_display_id: Int!, $command: String!, $payload_type: String!, $parameter_name: String!, $other_parameters: jsonb){
@@ -116,9 +118,9 @@ const ParameterLoadingOverlay = ({open}) => (
 );
 const ParameterRefreshButton = ({onClick}) => (
     <MythicStyledTooltip title={"Refresh dynamic options"} tooltipStyle={{display: "inline-flex"}}>
-        <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info mythic-task-parameter-refresh" size="small" onClick={onClick}>
+        <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" size="small" onClick={onClick}>
             <RefreshIcon fontSize="small" />
-        </IconButton>
+        </MythicActionButton>
     </MythicStyledTooltip>
 );
 const ParameterEmptyInline = ({children}) => (
@@ -829,7 +831,7 @@ export function TaskParametersDialogRow(props){
             return (
                 <Box className="mythic-task-parameter-selected-values">
                     {filteredValues.map((v, i) => (
-                        <Chip key={props.name + "selected" + i} className="mythic-task-parameter-selected-chip" size="small" label={String(getChoiceSelectionLabel(v))} />
+                        <SquareChip key={props.name + "selected" + i} className="mythic-task-parameter-selected-chip" size="small" label={String(getChoiceSelectionLabel(v))} />
                     ))}
                 </Box>
             )
@@ -954,9 +956,9 @@ export function TaskParametersDialogRow(props){
                             {arrayValue.map( (a, i) => (
                                 <Box className="mythic-task-array-entry" key={'array' + props.name + i}>
                                     <MythicStyledTooltip title={"Remove array element"}>
-                                        <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error mythic-task-array-delete" size="small" onClick={(e) => {removeArrayValue(i)}}>
+                                        <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={(e) => {removeArrayValue(i)}}>
                                             <DeleteIcon fontSize="small" />
-                                        </IconButton>
+                                        </MythicActionButton>
                                     </MythicStyledTooltip>
                                     <Box className="mythic-task-array-entry-control">
                                         <MythicTextField requiredValue={props.required} fullWidth={true} placeholder={""} value={a} multiline={true} autoFocus={props.autoFocus || i > 0}
@@ -986,7 +988,7 @@ export function TaskParametersDialogRow(props){
                             {typedArrayValue.map( (a, i) => (
                                 <Box className="mythic-task-typed-array-entry" key={'typedarray' + props.name + i}>
                                     <MythicStyledTooltip title={"Remove typed array element"}>
-                                        <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error mythic-task-array-delete" size="small" onClick={(e) => {removeTypedArrayValue(i)}}><DeleteIcon fontSize="small" /> </IconButton>
+                                        <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={(e) => {removeTypedArrayValue(i)}}><DeleteIcon fontSize="small" /> </MythicActionButton>
                                     </MythicStyledTooltip>
                                     <FormControl className="mythic-task-typed-array-choice">
                                         <Select
@@ -1038,7 +1040,7 @@ export function TaskParametersDialogRow(props){
                 return (
                     <Box className="mythic-task-parameter-boolean-row">
                         <Switch checked={boolValue} onChange={onSwitchChange} color={"info"} />
-                        <Chip size="small" className={`mythic-status-chip mythic-tone-${boolValue ? "success" : "warning"}`} label={boolValue ? "True" : "False"} />
+                        <MythicChip size="small" label={boolValue ? "True" : "False"} tone={boolValue ? "success" : "warning"} />
                     </Box>
                 )
             case "File":
@@ -1334,8 +1336,8 @@ export function TaskParametersDialogRow(props){
                         {props.display_name || props.name}
                     </Typography>
                     <Box className="mythic-task-parameter-chip-row">
-                        <Chip size="small" className={`mythic-status-chip mythic-tone-${props.required ? "warning" : "neutral"}`} label={props.required ? "Required" : "Optional"} />
-                        <Chip size="small" className="mythic-status-chip mythic-tone-neutral" label={props.type} />
+                        <MythicChip size="small" label={props.required ? "Required" : "Optional"} tone={props.required ? "warning" : "neutral"} />
+                        <MythicChip size="small" label={props.type} />
                     </Box>
                 </Box>
                 <Typography component="div" className={`mythic-task-parameter-description${props.description ? "" : " mythic-task-parameter-description-muted"}`}>

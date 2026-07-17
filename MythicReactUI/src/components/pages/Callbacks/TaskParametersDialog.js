@@ -3,7 +3,6 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
-import Chip from '@mui/material/Chip';
 import {TaskParametersDialogRow} from './TaskParametersDialogRow';
 import {gql, useLazyQuery, useMutation, useQuery} from '@apollo/client';
 import FormControl from '@mui/material/FormControl';
@@ -18,6 +17,7 @@ import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import SegmentIcon from '@mui/icons-material/Segment';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
 import {MythicDialogButton, MythicDialogFooter} from "../../MythicComponents/MythicDialogLayout";
+import {SquareChip} from "../../MythicComponents/MythicChip";
 
 //if we need to get all the loaded commands for the callback and filter, use this
 const GetLoadedCommandsQuery = gql`
@@ -1071,17 +1071,18 @@ export function TaskParametersDialog(props) {
                 </Box>
                 <Box className="mythic-task-parameters-title-meta">
                     {commandInfo?.payloadtype?.name &&
-                        <Chip size="small" className="mythic-task-parameters-title-chip" icon={<SegmentIcon />} label={commandInfo.payloadtype.name} />
+                        <SquareChip size="small" className="mythic-task-parameters-title-chip" icon={<SegmentIcon />} label={commandInfo.payloadtype.name} />
                     }
-                    <Chip size="small" className="mythic-task-parameters-title-chip" icon={<FactCheckIcon />} label={`${parameters.length} parameter${parameters.length === 1 ? "" : "s"}`} />
+                    <SquareChip size="small" className="mythic-task-parameters-title-chip" icon={<FactCheckIcon />} label={`${parameters.length} parameter${parameters.length === 1 ? "" : "s"}`} />
                     {requiredCount > 0 &&
-                        <Chip size="small" className="mythic-task-parameters-title-chip mythic-status-chip mythic-tone-warning" label={`${requiredCount} required`} />
+                        <SquareChip size="small" className="mythic-task-parameters-title-chip" label={`${requiredCount} required`} tone="warning" />
                     }
-                    <Chip
+                    <SquareChip
                         size="small"
-                        className={`mythic-task-parameters-title-chip${commandInfo.needs_admin ? " mythic-status-chip mythic-tone-warning" : ""}`}
+                        className="mythic-task-parameters-title-chip"
                         icon={<AdminPanelSettingsIcon />}
                         label={commandInfo.needs_admin ? "Admin required" : "No admin"}
+                        tone={commandInfo.needs_admin ? "warning" : "secondary"}
                     />
                 </Box>
             </Box>

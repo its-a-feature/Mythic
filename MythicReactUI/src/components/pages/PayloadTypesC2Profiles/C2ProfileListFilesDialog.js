@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import Box from '@mui/material/Box';
 import Breadcrumbs from '@mui/material/Breadcrumbs';
@@ -16,7 +17,6 @@ import {useQuery, gql, useMutation, useLazyQuery} from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
 import {C2ProfileConfigDialog} from './C2ProfileConfigDialog';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
-import IconButton from '@mui/material/IconButton';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DownloadIcon from '@mui/icons-material/Download';
@@ -273,24 +273,24 @@ export function C2ProfileListFilesDialog(props) {
               <Box sx={{display: "flex", alignItems: "center", gap: 0.5}}>
                 <MythicStyledTooltip title="Parent folder">
                   <span>
-                    <IconButton
-                      className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
+                    <MythicActionButton iconOnly
+                      appearance="raised" colorMode="hover" tone="info"
                       disabled={normalizedCurrentPath === ""}
                       onClick={() => onChangePath(parentPath(normalizedCurrentPath))}
                       size="small"
                     >
                       <ArrowUpwardIcon fontSize="small" />
-                    </IconButton>
+                    </MythicActionButton>
                   </span>
                 </MythicStyledTooltip>
                 <MythicStyledTooltip title="Refresh folder">
-                  <IconButton
-                    className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
+                  <MythicActionButton iconOnly
+                    appearance="raised" colorMode="hover" tone="info"
                     onClick={onRefresh}
                     size="small"
                   >
                     <RefreshIcon fontSize="small" />
-                  </IconButton>
+                  </MythicActionButton>
                 </MythicStyledTooltip>
               </Box>
             }
@@ -440,19 +440,19 @@ const C2ProfileListFilesDialogTableRow = ({container_name, id, filename, display
         <TableCell>File</TableCell>
         <TableCell align="right">
           <MythicStyledTooltip title="Remove file">
-            <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size="small" onClick={()=>{setOpenDeleteDialog(true);}} >
+            <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={()=>{setOpenDeleteDialog(true);}} >
               <DeleteIcon fontSize="small" />
-            </IconButton>
+            </MythicActionButton>
           </MythicStyledTooltip>
           <MythicStyledTooltip title="Download file">
-            <IconButton className="mythic-compact-icon-action mythic-icon-tone mythic-tone-success" size="small" onClick={downloadFile}>
+            <MythicActionButton iconOnly appearance="raised" colorMode="always" tone="success" size="small" onClick={downloadFile}>
               <DownloadIcon fontSize="small" />
-            </IconButton>
+            </MythicActionButton>
           </MythicStyledTooltip>
           <MythicStyledTooltip title="Edit file">
-            <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" size="small" onClick={() => {setOpenProfileConfigDialog(true);}}>
+            <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" size="small" onClick={() => {setOpenProfileConfigDialog(true);}}>
               <EditIcon fontSize="small" />
-            </IconButton>
+            </MythicActionButton>
           </MythicStyledTooltip>
         </TableCell>
       </TableRow>

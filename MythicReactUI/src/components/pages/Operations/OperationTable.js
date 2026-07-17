@@ -155,10 +155,10 @@ export function OperationTable(props){
                 }
                 actions={
                     <>
-                        <MythicToolbarButton variant="contained" color="primary" onClick={() => {setOpenNewOperationDialog(true);}} startIcon={<AddCircleIcon />}>
+                        <MythicToolbarButton variant="contained" colorMode="hover" tone="success" onClick={() => {setOpenNewOperationDialog(true);}} startIcon={<AddCircleIcon />}>
                             Operation
                         </MythicToolbarButton>
-                        <MythicToolbarButton variant="outlined" color="primary" onClick={()=>{setOpenNewOperatorDialog(true);}} startIcon={<PersonAddIcon />}>
+                        <MythicToolbarButton variant="outlined" colorMode="hover" tone="success" onClick={()=>{setOpenNewOperatorDialog(true);}} startIcon={<PersonAddIcon />}>
                             Operator
                         </MythicToolbarButton>
                         <MythicToolbarToggle

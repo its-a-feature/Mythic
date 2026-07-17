@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import {UploadEventFile} from "../../MythicComponents/MythicFileUpload";
 import {snackActions} from "../../utilities/Snackbar";
@@ -7,7 +8,6 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import Button from '@mui/material/Button';
-import IconButton from '@mui/material/IconButton';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import CategoryIcon from '@mui/icons-material/Category';
@@ -92,15 +92,15 @@ export function TestEventGroupFileDialog({onClose, initialWorkflow}){
                 </div>
                 <div className="mythic-eventing-editor-title-actions">
                     <MythicStyledTooltip title={"Preview graph"}>
-                        <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info" size="small" onClick={previewGraph}>
+                        <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" size="small" onClick={previewGraph}>
                             <AccountTreeIcon fontSize="small" />
-                        </IconButton>
+                        </MythicActionButton>
                     </MythicStyledTooltip>
                     <MythicStyledTooltip title={"Create with GUI wizard"} >
-                        <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-success" size="small"
+                        <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="success" size="small"
                         onClick={() => setOpenCreateEventingStepper(true)}>
                             <CategoryIcon fontSize="small" />
-                        </IconButton>
+                        </MythicActionButton>
                     </MythicStyledTooltip>
                 </div>
                 {openEventStepRender.open &&

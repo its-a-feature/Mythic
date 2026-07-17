@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import {MythicTabPanel, MythicTabLabel} from '../../MythicComponents/MythicTabPanel';
 import React, {useEffect, useRef} from 'react';
 import { useMutation } from '@apollo/client';
@@ -7,7 +8,6 @@ import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {TaskParametersDialog} from './TaskParametersDialog';
 import {CallbacksTabsTaskingInput} from './CallbacksTabsTaskingInput';
 import LinearProgress from '@mui/material/LinearProgress';
-import { IconButton} from '@mui/material';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
 import {MythicModifyStringDialog} from '../../MythicComponents/MythicDialog';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
@@ -286,12 +286,10 @@ export const CallbacksTabsTaskingConsolePanel = ({tabInfo, index, value, onClose
             <div style={{overflowY: "auto", flexGrow: 1, width: "100%"}} id={`taskingPanelConsole${tabInfo.callbackID}`}>
                 {!fetchedAllTasks &&
                     <MythicStyledTooltip title="Fetch Older Tasks" style={{marginLeft: "50%"}}>
-                        <IconButton
+                        <MythicActionButton colorMode="always" tone="success" iconOnly
                             onClick={loadMoreTasks}
                             variant="contained"
-                            color="success"
-
-                            size="large"><AutorenewIcon /></IconButton>
+                            size="large"><AutorenewIcon /></MythicActionButton>
                     </MythicStyledTooltip>}
                 {
                     taskingData.task.map((task) => (

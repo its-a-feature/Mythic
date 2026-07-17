@@ -53,7 +53,7 @@ export function PayloadsTableRowC2Status(props){
                         <MythicStyledTooltip title={c2Status.tooltip} key={c2.c2profile.name + props.uuid + i}>
                             <MythicStatusChip
                                 label={c2Status.label}
-                                status={c2Status.status}
+                                status={c2Status.status === "success" ? "secondary" : c2Status.status}
                                 icon={c2Status.icon}
                                 sx={{maxWidth: "11rem"}}
                             />

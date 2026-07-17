@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import TableCell from '@mui/material/TableCell';
 import TableRow from '@mui/material/TableRow';
@@ -12,7 +13,7 @@ import {useTheme} from '@mui/material/styles';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import {Button, Link, IconButton} from '@mui/material';
+import {Button, Link} from '@mui/material';
 import { toLocalTime } from '../../utilities/Time';
 import {PayloadsTableRowBuildProcessPerStep} from './PayloadsTableRowBuildProgress';
 import {b64DecodeUnicode} from '../Callbacks/ResponseDisplay';
@@ -616,13 +617,13 @@ function DetailedPayloadInnerTable(props){
                                 {window.location.origin + "/direct/download/" + data.payload[0].filemetum.agent_file_id}
                             </FileDownloadLinkWithAuth>
                             <MythicStyledTooltip title={"Host Payload Through C2"} >
-                                <IconButton
-                                    className="mythic-compact-icon-action mythic-icon-tone mythic-tone-info"
+                                <MythicActionButton iconOnly
+                                    appearance="raised" colorMode="always" tone="info"
                                     size="small"
                                     onClick={()=>{setOpenHostDialog(true);}}
                                 >
                                     <PublicIcon fontSize="small" />
-                                </IconButton>
+                                </MythicActionButton>
                             </MythicStyledTooltip>
                             {openHostDialog &&
                                 <MythicDialog fullWidth={true} maxWidth="md" open={openHostDialog}
@@ -830,18 +831,18 @@ function DetailedPayloadInnerTable(props){
                                   <TableCell>
                                     <div className="mythic-compact-actions mythic-compact-actions-nowrap">
                                       <MythicStyledTooltip title="Open command documentation">
-                                          <IconButton
-                                              className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
+                                          <MythicActionButton iconOnly
+                                              appearance="raised" colorMode="hover" tone="info"
                                               size="small"
                                               target="_blank"
                                               href={"/docs/agents/" + data.payload[0].payloadtype.name + "/commands/" + cmd.cmd}
                                           >
                                               <MenuBookIcon fontSize="small" />
-                                          </IconButton>
+                                          </MythicActionButton>
                                       </MythicStyledTooltip>
                                       <MythicStyledTooltip title="Scripting parameters">
-                                        <IconButton
-                                            className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-info"
+                                        <MythicActionButton iconOnly
+                                            appearance="raised" colorMode="hover" tone="info"
                                             size="small"
                                             onClick={() => setOpenScriptDialog({
                                                 open: true,
@@ -850,7 +851,7 @@ function DetailedPayloadInnerTable(props){
                                             })}
                                         >
                                           <PlayCircleFilledTwoToneIcon fontSize="small" />
-                                        </IconButton>
+                                        </MythicActionButton>
                                       </MythicStyledTooltip>
                                     </div>
                                   </TableCell>

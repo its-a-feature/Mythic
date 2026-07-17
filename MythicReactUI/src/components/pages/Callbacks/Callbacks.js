@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React, { useEffect } from 'react';
 import { CallbacksTabs } from './CallbacksTabs';
 import TocIcon from '@mui/icons-material/Toc';
@@ -9,7 +10,6 @@ import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import {ImportCallbackConfigDialog} from "./ImportCallbackConfigDialog";
 import {reorder} from "../../MythicComponents/MythicDraggableList";
 import Paper from '@mui/material/Paper';
-import IconButton from '@mui/material/IconButton';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {useTheme} from '@mui/material/styles';
 
@@ -235,16 +235,16 @@ export function Callbacks({me}) {
                     }}>
                         {topDisplay !== 'table' &&
                             <MythicStyledTooltip title={"Table View"}>
-                                <IconButton onClick={() =>setTopDisplay("table")}>
+                                <MythicActionButton iconOnly onClick={() =>setTopDisplay("table")}>
                                     <TocIcon />
-                                </IconButton>
+                                </MythicActionButton>
                             </MythicStyledTooltip>
                         }
                         {topDisplay !== 'graph' &&
                             <MythicStyledTooltip title={"Graph View"} >
-                                <IconButton onClick={() =>setTopDisplay("graph")}>
+                                <MythicActionButton iconOnly onClick={() =>setTopDisplay("graph")}>
                                     <AssessmentIcon />
-                                </IconButton>
+                                </MythicActionButton>
                             </MythicStyledTooltip>
                         }
                         {openCallbackImport &&
@@ -254,9 +254,9 @@ export function Callbacks({me}) {
                             />
                         }
                         <MythicStyledTooltip title={"Import previously exported Callbacks"} >
-                            <IconButton onClick={() =>setOpenCallbackImport(true)}>
+                            <MythicActionButton iconOnly onClick={() =>setOpenCallbackImport(true)}>
                                 <PhoneForwardedIcon />
-                            </IconButton>
+                            </MythicActionButton>
                         </MythicStyledTooltip>
                     </Paper>
                     <CallbacksTop

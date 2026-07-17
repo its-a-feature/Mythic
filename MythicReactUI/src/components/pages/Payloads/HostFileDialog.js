@@ -11,7 +11,6 @@ import InputLabel from '@mui/material/InputLabel';
 import Switch from '@mui/material/Switch';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import IconButton from '@mui/material/IconButton';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -27,8 +26,8 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined';
 import NotificationsOffOutlinedIcon from '@mui/icons-material/NotificationsOffOutlined';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import {
     MythicDialogBody,
     MythicDialogButton,
@@ -92,33 +91,6 @@ query getHostedFiles($file_uuid: String!) {
     }
 }
 `;
-
-const hostedStatusChipStatus = (status) => {
-    if(status === "active"){
-        return "active";
-    } else if(status === "updating"){
-        return "building";
-    } else if(status === "stopped"){
-        return "inactive";
-    }
-    return "error";
-}
-
-const HostedFileActionButton = ({title, disabled, onClick, hoverClass, children}) => (
-    <MythicStyledTooltip title={title}>
-        <span>
-            <IconButton
-                aria-label={title}
-                className={`mythic-compact-icon-action ${hoverClass}`}
-                disabled={disabled}
-                onClick={onClick}
-                size="small"
-            >
-                {children}
-            </IconButton>
-        </span>
-    </MythicStyledTooltip>
-);
 
 export function HostedFileLocationsTable({
     hostedFiles,
@@ -224,8 +196,7 @@ export function HostedFileLocationsTable({
                             </TableCell>
                             <TableCell>
                                 <MythicStatusChip
-                                    label={hostedFile.status || "unknown"}
-                                    status={hostedStatusChipStatus(hostedFile.status)}
+                                    status={hostedFile.status || "unknown"}
                                 />
                             </TableCell>
                             <TableCell>
@@ -244,24 +215,16 @@ export function HostedFileLocationsTable({
                                 <TableCell align="right">
                                     <Stack direction="row" spacing={0.5} justifyContent="flex-end">
                                         {onEdit &&
-                                            <HostedFileActionButton title="Edit hosted file" hoverClass="mythic-action-tone-hover mythic-tone-info" onClick={() => onEdit(hostedFile)}>
-                                                <EditIcon fontSize="small" />
-                                            </HostedFileActionButton>
+                                            <MythicActionButton appearance="raised" icon={<EditIcon />} iconOnly tooltip="Edit hosted file" tone="info" onClick={() => onEdit(hostedFile)} />
                                         }
                                         {onRetry &&
-                                            <HostedFileActionButton title="Retry hosting" hoverClass="mythic-action-tone-hover mythic-tone-success" disabled={hostedFile.status === "active" || hostedFile.status === "updating"} onClick={() => onRetry(hostedFile)}>
-                                                <ReplayIcon fontSize="small" />
-                                            </HostedFileActionButton>
+                                            <MythicActionButton appearance="raised" icon={<ReplayIcon />} iconOnly tooltip="Retry hosting" tone="success" disabled={hostedFile.status === "active" || hostedFile.status === "updating"} onClick={() => onRetry(hostedFile)} />
                                         }
                                         {onStop &&
-                                            <HostedFileActionButton title="Stop hosting" hoverClass="mythic-action-tone-hover mythic-tone-warning" disabled={hostedFile.status === "stopped" || hostedFile.status === "updating"} onClick={() => onStop(hostedFile)}>
-                                                <StopCircleOutlinedIcon fontSize="small" />
-                                            </HostedFileActionButton>
+                                            <MythicActionButton appearance="raised" icon={<StopCircleOutlinedIcon />} iconOnly tooltip="Stop hosting" tone="warning" disabled={hostedFile.status === "stopped" || hostedFile.status === "updating"} onClick={() => onStop(hostedFile)} />
                                         }
                                         {onRemove &&
-                                            <HostedFileActionButton title="Remove hosted file row" hoverClass="mythic-action-tone-hover mythic-tone-error" disabled={hostedFile.status === "updating"} onClick={() => onRemove(hostedFile)}>
-                                                <DeleteOutlineIcon fontSize="small" />
-                                            </HostedFileActionButton>
+                                            <MythicActionButton appearance="raised" icon={<DeleteOutlineIcon />} iconOnly tooltip="Remove hosted file row" tone="error" disabled={hostedFile.status === "updating"} onClick={() => onRemove(hostedFile)} />
                                         }
                                     </Stack>
                                 </TableCell>

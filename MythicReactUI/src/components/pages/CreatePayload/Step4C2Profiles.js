@@ -1,3 +1,4 @@
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import {useQuery, gql, useLazyQuery} from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
@@ -15,7 +16,6 @@ import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import {CreatePayloadBuildParametersTable} from "./CreatePayloadBuildParametersTable";
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
-import { IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 import {ConfigurationSummary} from "./Step1SelectOS";
@@ -636,9 +636,9 @@ const C2ProfileTabs = ({includedC2Profiles, onChange, os, onCloseTab, onChangeCr
                     <Tab key={c.name + index} label={
                         <div style={{display: "flex", alignItems: "center"}}>
                                 {c.name}
-                            <IconButton className="mythic-compact-icon-action mythic-action-tone-hover mythic-tone-error" size='small' onClick={(e) => onCloseTabLocal(e, index)} >
+                            <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size='small' onClick={(e) => onCloseTabLocal(e, index)} >
                                 <CloseIcon fontSize="small" />
-                            </IconButton>
+                            </MythicActionButton>
                         </div>
                     } {...a11yProps(index)} style={{flexShrink: 0}} />
                 ))}
