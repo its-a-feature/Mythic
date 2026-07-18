@@ -1,0 +1,22 @@
+name: Go package
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20'
+
+      - name: Build
+        run: go build -v ./...
+        working-directory: mythic-docker/src
+
+      - name: Test
+        run: go test -v ./...
+        working-directory: mythic-docker/src
