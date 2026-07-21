@@ -1,10 +1,15 @@
 import {
     hasMythicConnectionError,
+    currentOperationSyncGeneration,
     isSameOriginMythicRequest,
     mythicConnectionState,
     mythicFetch,
     reportMythicConnectionError,
     reportMythicConnectionSuccess,
+    reportMythicWebsocketConnected,
+    reconnectGraphQLWebsocket,
+    requestCurrentOperationSync,
+    websocketConnectionGeneration,
 } from "./MythicConnection";
 
 const emptyConnectionState = {httpError: false, websocketError: false};
@@ -14,6 +19,8 @@ describe("Mythic connection tracking", () => {
 
     beforeEach(() => {
         mythicConnectionState(emptyConnectionState);
+        websocketConnectionGeneration(0);
+        currentOperationSyncGeneration(0);
     });
 
     afterEach(() => {
@@ -30,6 +37,29 @@ describe("Mythic connection tracking", () => {
 
         reportMythicConnectionSuccess("websocket");
         expect(hasMythicConnectionError()).toBe(false);
+    });
+
+    test("tracks every websocket connection even when the connection is already healthy", () => {
+        reportMythicWebsocketConnected();
+        reportMythicWebsocketConnected();
+
+        expect(websocketConnectionGeneration()).toBe(2);
+        expect(mythicConnectionState().websocketError).toBe(false);
+    });
+
+    test("signals an on-demand current operation reconciliation", () => {
+        requestCurrentOperationSync();
+
+        expect(currentOperationSyncGeneration()).toBe(1);
+    });
+
+    test("reconnects without permanently disposing the websocket client", () => {
+        const client = {terminate: jest.fn(), dispose: jest.fn()};
+
+        reconnectGraphQLWebsocket(client);
+
+        expect(client.terminate).toHaveBeenCalledTimes(1);
+        expect(client.dispose).not.toHaveBeenCalled();
     });
 
     test("recognizes relative and same-origin requests", () => {

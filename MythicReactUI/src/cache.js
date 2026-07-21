@@ -1,6 +1,7 @@
 import { makeVar } from '@apollo/client';
 import {restartWebsockets} from "./index";
 import {snackActions} from "./components/utilities/Snackbar";
+import {mergeRefreshedUser} from "./userState";
 
 export const meState = makeVar({loggedIn:false, user: null, access_token: null, refresh_token: null});
 export const alertCount = makeVar(0);
@@ -355,7 +356,7 @@ export const successfulRefresh = (data) => {
     let now = new Date();
     let serverNow = new Date(data.user.current_utc_time);
     const difference = (serverNow.getTime() - now.getTime()) ;
-    let me = {...meState().user, ...(data.user || {})};
+    let me = mergeRefreshedUser(meState().user, data.user);
     me.server_skew = difference;
     me.login_time = now;
     meState({

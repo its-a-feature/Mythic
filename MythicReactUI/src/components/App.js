@@ -13,7 +13,7 @@ import {useLazyQuery, gql } from '@apollo/client';
 //background-color: #282c34;
 import { Route, Routes } from 'react-router-dom';
 import { useInterval } from './utilities/Time';
-import { JWTTimeLeft, isJWTValid } from '../index';
+import { JWTTimeLeft, isJWTValid, restartWebsockets } from '../index';
 import { RefreshTokenDialog } from './RefreshTokenDialog';
 import { MythicDialog } from './MythicComponents/MythicDialogBase';
 import { ToastContainer } from 'react-toastify';
@@ -22,7 +22,13 @@ import {snackActions} from "./utilities/Snackbar";
 import {TopAppBarVertical} from "./TopAppBarVertical";
 import {MythicLoadingState} from "./MythicComponents/MythicStateDisplay";
 import { library } from '@fortawesome/fontawesome-svg-core';
-import {hasMythicConnectionError, mythicConnectionState} from "./utilities/MythicConnection";
+import {
+    currentOperationSyncGeneration,
+    hasMythicConnectionError,
+    mythicConnectionState,
+    websocketConnectionGeneration,
+} from "./utilities/MythicConnection";
+import {syncCurrentOperationUser} from "../userState";
 
 const lazyNamed = (importer, exportName) => React.lazy(() =>
     importer().then((module) => ({default: module[exportName]}))
@@ -71,6 +77,20 @@ query getUserSettings {
         status
         error
         preferences
+    }
+}
+`;
+
+const currentOperationQuery = gql`
+query SyncCurrentOperation($operator_id: Int!) {
+    operator_by_pk(id: $operator_id) {
+        current_operation_id
+        operation {
+            name
+            complete
+            banner_text
+            banner_color
+        }
     }
 }
 `;
@@ -818,6 +838,40 @@ export function App(props) {
         return () => {mounted = false;};
     }, []);
     const me = useReactiveVar(meState);
+    const websocketGeneration = useReactiveVar(websocketConnectionGeneration);
+    const operationSyncGeneration = useReactiveVar(currentOperationSyncGeneration);
+    const [getCurrentOperation] = useLazyQuery(currentOperationQuery, {
+        fetchPolicy: "no-cache",
+        context: {suppressErrorSnackbar: true},
+    });
+    React.useEffect(() => {
+        let cancelled = false;
+        if(!me?.loggedIn || !me?.user?.user_id){
+            return () => {cancelled = true;};
+        }
+        getCurrentOperation({variables: {operator_id: me.user.user_id}}).then(({data}) => {
+            if(cancelled){
+                return;
+            }
+            const currentMe = meState();
+            if(currentMe.user?.user_id !== me.user.user_id){
+                return;
+            }
+            const synced = syncCurrentOperationUser(
+                currentMe.user,
+                data?.operator_by_pk,
+            );
+            if(!synced.changed){
+                return;
+            }
+            meState({...currentMe, user: synced.user});
+            localStorage.setItem("user", JSON.stringify(synced.user));
+            if(synced.operationIDChanged){
+                restartWebsockets();
+            }
+        }).catch((error) => console.error("Failed to synchronize current operation", error));
+        return () => {cancelled = true;};
+    }, [getCurrentOperation, me?.loggedIn, me?.user?.user_id, operationSyncGeneration, websocketGeneration]);
     const connectionState = useReactiveVar(mythicConnectionState);
     const preferences = useReactiveVar(mePreferences);
     const [loadingPreference, setLoadingPreferences] = React.useState(true);

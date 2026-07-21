@@ -243,7 +243,9 @@ func RefreshJWT(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Authentication Failed"})
 		return
 	}
+	// current_operation_name is retained as a compatibility alias for older clients.
 	user := map[string]interface{}{
+		"current_operation":              currentOperation.CurrentOperation.Name,
 		"current_operation_name":         currentOperation.CurrentOperation.Name,
 		"current_operation_id":           currentOperation.OperationID,
 		"current_operation_banner_text":  currentOperation.CurrentOperation.BannerText,

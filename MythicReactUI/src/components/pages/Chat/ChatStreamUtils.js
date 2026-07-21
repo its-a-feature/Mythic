@@ -75,11 +75,28 @@ export const getProgressivelyVisibleRows = (rows, visibleCount, preserveRow = ()
     return safeRows.filter((row, index) => index >= startIndex || preserveRow(row));
 };
 
-export const getChatMessagePageVariables = (channelID, pageSize, beforeID = null) => ({
-    where: {
-        channel_id: {_eq: channelID},
-        ...(beforeID ? {id: {_lt: beforeID}} : {}),
-    },
+export const getMainChatMessageWhere = (channelID) => ({
+    _and: [
+        {channel_id: {_eq: channelID}},
+        {
+            _or: [
+                {_not: {metadata: {_has_key: "delegation_id"}}},
+                {metadata: {_contains: {special_type: "subagent"}}},
+            ],
+        },
+    ],
+});
+
+export const getDelegationChatMessageWhere = (channelID, delegationID) => ({
+    _and: [
+        {channel_id: {_eq: channelID}},
+        {metadata: {_contains: {delegation_id: delegationID}}},
+        {_not: {metadata: {_contains: {special_type: "subagent"}}}},
+    ],
+});
+
+export const getChatMessagePageVariables = (where, pageSize, beforeID = null) => ({
+    where: beforeID ? {_and: [where, {id: {_lt: beforeID}}]} : where,
     limit: pageSize,
 });
 

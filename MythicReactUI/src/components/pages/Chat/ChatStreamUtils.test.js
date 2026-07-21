@@ -1,6 +1,8 @@
 import {
+    getDelegationChatMessageWhere,
     getChatMessagePageInfo,
     getChatMessagePageVariables,
+    getMainChatMessageWhere,
     getProgressivelyVisibleRows,
     mergeRowsByID,
 } from "./ChatStreamUtils";
@@ -72,14 +74,39 @@ describe("getProgressivelyVisibleRows", () => {
 });
 
 describe("chat message server pagination", () => {
-    test("builds an initial page and an ID-cursor older page", () => {
-        expect(getChatMessagePageVariables(12, 50)).toEqual({
-            where: {channel_id: {_eq: 12}},
+    test("builds an initial page and an ID-cursor older page from a supplied filter", () => {
+        const where = {channel_id: {_eq: 12}};
+        expect(getChatMessagePageVariables(where, 50)).toEqual({
+            where,
             limit: 50,
         });
-        expect(getChatMessagePageVariables(12, 50, 401)).toEqual({
-            where: {channel_id: {_eq: 12}, id: {_lt: 401}},
+        expect(getChatMessagePageVariables(where, 50, 401)).toEqual({
+            where: {_and: [where, {id: {_lt: 401}}]},
             limit: 50,
+        });
+    });
+
+    test("keeps non-delegated messages and sub-agent summary cards in the main feed", () => {
+        expect(getMainChatMessageWhere(12)).toEqual({
+            _and: [
+                {channel_id: {_eq: 12}},
+                {
+                    _or: [
+                        {_not: {metadata: {_has_key: "delegation_id"}}},
+                        {metadata: {_contains: {special_type: "subagent"}}},
+                    ],
+                },
+            ],
+        });
+    });
+
+    test("loads only one delegation's detail messages for its pane", () => {
+        expect(getDelegationChatMessageWhere(12, "delegate-1")).toEqual({
+            _and: [
+                {channel_id: {_eq: 12}},
+                {metadata: {_contains: {delegation_id: "delegate-1"}}},
+                {_not: {metadata: {_contains: {special_type: "subagent"}}}},
+            ],
         });
     });
 

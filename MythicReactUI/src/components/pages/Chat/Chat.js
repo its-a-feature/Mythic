@@ -74,8 +74,10 @@ import {MythicColorSwatchInput} from "../../MythicComponents/MythicColorInput";
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {findIconDefinition} from '@fortawesome/fontawesome-svg-core';
 import {
+    getDelegationChatMessageWhere,
     getChatMessagePageInfo,
     getChatMessagePageVariables,
+    getMainChatMessageWhere,
     getProgressivelyVisibleRows,
     mergeRowsByID,
 } from "./ChatStreamUtils";
@@ -297,8 +299,8 @@ query ChatMessages($where: chat_message_bool_exp!, $limit: Int!) {
 
 const CHAT_MESSAGES_STREAM_SUBSCRIPTION = gql`
 ${CHAT_MESSAGE_FIELDS}
-subscription ChatMessagesStream($channel_id: Int!, $now: timestamp!) {
-  chat_message_stream(batch_size: 50, cursor: {initial_value: {updated_at: $now}, ordering: ASC}, where: {channel_id: {_eq: $channel_id}}) {
+subscription ChatMessagesStream($where: chat_message_bool_exp!, $now: timestamp!) {
+  chat_message_stream(batch_size: 50, cursor: {initial_value: {updated_at: $now}, ordering: ASC}, where: $where) {
     ...ChatMessageFields
   }
 }
@@ -3560,8 +3562,8 @@ const ChatDelegationPane = ({
                 {messages.length === 0 ? (
                     <ChatEmptyState
                         icon={<SmartToyTwoToneIcon fontSize="large" />}
-                        title="No sub-agent activity"
-                        detail="Delegated messages will appear here."
+                        title={loadingOlderMessages ? "Loading sub-agent activity" : "No sub-agent activity"}
+                        detail={loadingOlderMessages ? "Fetching this delegation's messages." : "Delegated messages will appear here."}
                     />
                 ) : (
                     <>
@@ -3666,22 +3668,40 @@ export function Chat({me}) {
     const [operatorAliases, setOperatorAliases] = React.useState([]);
     const [readState, setReadState] = React.useState({});
     const [messages, setMessages] = React.useState([]);
+    const [delegationMessages, setDelegationMessages] = React.useState([]);
     const [requests, setRequests] = React.useState([]);
-    const [hasOlderMessages, setHasOlderMessages] = React.useState(false);
-    const [loadingOlderMessages, setLoadingOlderMessages] = React.useState(false);
-    const oldestFetchedMessageIDRef = React.useRef(null);
-    const messagePageGenerationRef = React.useRef(0);
-    const loadingMessagePageRef = React.useRef(false);
+    const [hasOlderMainMessages, setHasOlderMainMessages] = React.useState(false);
+    const [loadingOlderMainMessages, setLoadingOlderMainMessages] = React.useState(false);
+    const [hasOlderDelegationMessages, setHasOlderDelegationMessages] = React.useState(false);
+    const [loadingOlderDelegationMessages, setLoadingOlderDelegationMessages] = React.useState(false);
+    const oldestFetchedMainMessageIDRef = React.useRef(null);
+    const mainMessagePageGenerationRef = React.useRef(0);
+    const loadingMainMessagePageRef = React.useRef(false);
+    const oldestFetchedDelegationMessageIDRef = React.useRef(null);
+    const delegationMessagePageGenerationRef = React.useRef(0);
+    const loadingDelegationMessagePageRef = React.useRef(false);
     const selectedChannelIDRef = React.useRef(selectedChannelID);
+    const selectedDelegationID = selectedDelegationSeed?.id || null;
+    const selectedDelegationIDRef = React.useRef(selectedDelegationID);
     const selectedChannelStreamCursor = React.useMemo(() => ({
         channelID: selectedChannelID,
         now: getSkewedNow().toISOString(),
+        where: selectedChannelID ? getMainChatMessageWhere(selectedChannelID) : null,
     }), [selectedChannelID]);
+    const selectedDelegationStreamCursor = React.useMemo(() => ({
+        channelID: selectedChannelID,
+        delegationID: selectedDelegationID,
+        now: getSkewedNow().toISOString(),
+        where: selectedChannelID && selectedDelegationID ?
+            getDelegationChatMessageWhere(selectedChannelID, selectedDelegationID) : null,
+    }), [selectedChannelID, selectedDelegationID]);
     selectedChannelIDRef.current = selectedChannelID;
+    selectedDelegationIDRef.current = selectedDelegationID;
     readStateRef.current = readState;
     const selectChannel = React.useCallback((channelID, persist = true) => {
         const numericChannelID = Number(channelID) || null;
         setSelectedChannelID(numericChannelID);
+        setSelectedDelegationSeed(null);
         if(persist && numericChannelID){
             saveMythicSetting({
                 setting_name: CHAT_SELECTED_CHANNEL_SETTING,
@@ -3814,13 +3834,18 @@ export function Chat({me}) {
 
     React.useEffect(() => {
         setMessages([]);
+        setDelegationMessages([]);
         setRequests([]);
         setSelectedDelegationSeed(null);
         setVisibleMainMessageCount(CHAT_RENDER_BATCH_SIZE);
-        setHasOlderMessages(false);
-        setLoadingOlderMessages(false);
-        oldestFetchedMessageIDRef.current = null;
-        loadingMessagePageRef.current = false;
+        setHasOlderMainMessages(false);
+        setLoadingOlderMainMessages(false);
+        setHasOlderDelegationMessages(false);
+        setLoadingOlderDelegationMessages(false);
+        oldestFetchedMainMessageIDRef.current = null;
+        loadingMainMessagePageRef.current = false;
+        oldestFetchedDelegationMessageIDRef.current = null;
+        loadingDelegationMessagePageRef.current = false;
         messagesNearBottomRef.current = true;
     }, [selectedChannelID]);
 
@@ -3834,53 +3859,53 @@ export function Chat({me}) {
     });
     React.useEffect(() => {
         const channelID = selectedChannelID;
-        const generation = messagePageGenerationRef.current + 1;
-        messagePageGenerationRef.current = generation;
+        const generation = mainMessagePageGenerationRef.current + 1;
+        mainMessagePageGenerationRef.current = generation;
         if(!channelID){return;}
-        loadingMessagePageRef.current = true;
-        setLoadingOlderMessages(true);
+        loadingMainMessagePageRef.current = true;
+        setLoadingOlderMainMessages(true);
         fetchMessagePage({
-            variables: getChatMessagePageVariables(channelID, CHAT_MESSAGE_PAGE_SIZE),
+            variables: getChatMessagePageVariables(getMainChatMessageWhere(channelID), CHAT_MESSAGE_PAGE_SIZE),
         }).then(({data}) => {
-            if(messagePageGenerationRef.current !== generation || selectedChannelIDRef.current !== channelID){return;}
+            if(mainMessagePageGenerationRef.current !== generation || selectedChannelIDRef.current !== channelID){return;}
             const rows = (data?.chat_message || []).filter((message) => message.channel_id === channelID);
             const pageInfo = getChatMessagePageInfo(rows, CHAT_MESSAGE_PAGE_SIZE);
-            oldestFetchedMessageIDRef.current = pageInfo.oldestID;
-            setHasOlderMessages(pageInfo.hasMore);
+            oldestFetchedMainMessageIDRef.current = pageInfo.oldestID;
+            setHasOlderMainMessages(pageInfo.hasMore);
             setMessages((prev) => mergeRowsByID(prev, rows, sortByID, undefined, true));
         }).catch((error) => {
-            if(messagePageGenerationRef.current === generation){console.log(error);}
+            if(mainMessagePageGenerationRef.current === generation){console.log(error);}
         }).finally(() => {
-            if(messagePageGenerationRef.current === generation){
-                loadingMessagePageRef.current = false;
-                setLoadingOlderMessages(false);
+            if(mainMessagePageGenerationRef.current === generation){
+                loadingMainMessagePageRef.current = false;
+                setLoadingOlderMainMessages(false);
             }
         });
         return () => {
-            if(messagePageGenerationRef.current === generation){
-                messagePageGenerationRef.current += 1;
-                loadingMessagePageRef.current = false;
+            if(mainMessagePageGenerationRef.current === generation){
+                mainMessagePageGenerationRef.current += 1;
+                loadingMainMessagePageRef.current = false;
             }
         };
     }, [fetchMessagePage, selectedChannelID]);
-    const loadOlderMessages = React.useCallback(() => {
+    const loadOlderMainMessages = React.useCallback(() => {
         const channelID = selectedChannelIDRef.current;
-        const beforeID = oldestFetchedMessageIDRef.current;
-        if(!channelID || !beforeID || !hasOlderMessages || loadingMessagePageRef.current){
+        const beforeID = oldestFetchedMainMessageIDRef.current;
+        if(!channelID || !beforeID || !hasOlderMainMessages || loadingMainMessagePageRef.current){
             return Promise.resolve(false);
         }
         messagesNearBottomRef.current = false;
-        const generation = messagePageGenerationRef.current;
-        loadingMessagePageRef.current = true;
-        setLoadingOlderMessages(true);
+        const generation = mainMessagePageGenerationRef.current;
+        loadingMainMessagePageRef.current = true;
+        setLoadingOlderMainMessages(true);
         return fetchMessagePage({
-            variables: getChatMessagePageVariables(channelID, CHAT_MESSAGE_PAGE_SIZE, beforeID),
+            variables: getChatMessagePageVariables(getMainChatMessageWhere(channelID), CHAT_MESSAGE_PAGE_SIZE, beforeID),
         }).then(({data}) => {
-            if(messagePageGenerationRef.current !== generation || selectedChannelIDRef.current !== channelID){return false;}
+            if(mainMessagePageGenerationRef.current !== generation || selectedChannelIDRef.current !== channelID){return false;}
             const rows = (data?.chat_message || []).filter((message) => message.channel_id === channelID);
             const pageInfo = getChatMessagePageInfo(rows, CHAT_MESSAGE_PAGE_SIZE, beforeID);
-            oldestFetchedMessageIDRef.current = pageInfo.oldestID;
-            setHasOlderMessages(pageInfo.hasMore);
+            oldestFetchedMainMessageIDRef.current = pageInfo.oldestID;
+            setHasOlderMainMessages(pageInfo.hasMore);
             if(rows.length > 0){
                 setMessages((prev) => mergeRowsByID(prev, rows, sortByID, undefined, true));
             }
@@ -3889,12 +3914,114 @@ export function Chat({me}) {
             console.log(error);
             return false;
         }).finally(() => {
-            if(messagePageGenerationRef.current === generation){
-                loadingMessagePageRef.current = false;
-                setLoadingOlderMessages(false);
+            if(mainMessagePageGenerationRef.current === generation){
+                loadingMainMessagePageRef.current = false;
+                setLoadingOlderMainMessages(false);
             }
         });
-    }, [fetchMessagePage, hasOlderMessages]);
+    }, [fetchMessagePage, hasOlderMainMessages]);
+    React.useEffect(() => {
+        const channelID = selectedChannelID;
+        const delegationID = selectedDelegationID;
+        const generation = delegationMessagePageGenerationRef.current + 1;
+        delegationMessagePageGenerationRef.current = generation;
+        setDelegationMessages([]);
+        setHasOlderDelegationMessages(false);
+        setLoadingOlderDelegationMessages(false);
+        oldestFetchedDelegationMessageIDRef.current = null;
+        loadingDelegationMessagePageRef.current = false;
+        if(!channelID || !delegationID){return;}
+        loadingDelegationMessagePageRef.current = true;
+        setLoadingOlderDelegationMessages(true);
+        fetchMessagePage({
+            variables: getChatMessagePageVariables(
+                getDelegationChatMessageWhere(channelID, delegationID),
+                CHAT_MESSAGE_PAGE_SIZE
+            ),
+        }).then(({data}) => {
+            if(
+                delegationMessagePageGenerationRef.current !== generation ||
+                selectedChannelIDRef.current !== channelID ||
+                selectedDelegationIDRef.current !== delegationID
+            ){
+                return;
+            }
+            const rows = (data?.chat_message || []).filter((message) => (
+                message.channel_id === channelID &&
+                getMessageDelegationID(message) === delegationID &&
+                !getSubagentSnapshot(message)
+            ));
+            const pageInfo = getChatMessagePageInfo(rows, CHAT_MESSAGE_PAGE_SIZE);
+            oldestFetchedDelegationMessageIDRef.current = pageInfo.oldestID;
+            setHasOlderDelegationMessages(pageInfo.hasMore);
+            setDelegationMessages((prev) => mergeRowsByID(prev, rows, sortByID, undefined, true));
+        }).catch((error) => {
+            if(delegationMessagePageGenerationRef.current === generation){console.log(error);}
+        }).finally(() => {
+            if(delegationMessagePageGenerationRef.current === generation){
+                loadingDelegationMessagePageRef.current = false;
+                setLoadingOlderDelegationMessages(false);
+            }
+        });
+        return () => {
+            if(delegationMessagePageGenerationRef.current === generation){
+                delegationMessagePageGenerationRef.current += 1;
+                loadingDelegationMessagePageRef.current = false;
+            }
+        };
+    }, [fetchMessagePage, selectedChannelID, selectedDelegationID]);
+    const loadOlderDelegationMessages = React.useCallback(() => {
+        const channelID = selectedChannelIDRef.current;
+        const delegationID = selectedDelegationIDRef.current;
+        const beforeID = oldestFetchedDelegationMessageIDRef.current;
+        if(
+            !channelID ||
+            !delegationID ||
+            !beforeID ||
+            !hasOlderDelegationMessages ||
+            loadingDelegationMessagePageRef.current
+        ){
+            return Promise.resolve(false);
+        }
+        const generation = delegationMessagePageGenerationRef.current;
+        loadingDelegationMessagePageRef.current = true;
+        setLoadingOlderDelegationMessages(true);
+        return fetchMessagePage({
+            variables: getChatMessagePageVariables(
+                getDelegationChatMessageWhere(channelID, delegationID),
+                CHAT_MESSAGE_PAGE_SIZE,
+                beforeID
+            ),
+        }).then(({data}) => {
+            if(
+                delegationMessagePageGenerationRef.current !== generation ||
+                selectedChannelIDRef.current !== channelID ||
+                selectedDelegationIDRef.current !== delegationID
+            ){
+                return false;
+            }
+            const rows = (data?.chat_message || []).filter((message) => (
+                message.channel_id === channelID &&
+                getMessageDelegationID(message) === delegationID &&
+                !getSubagentSnapshot(message)
+            ));
+            const pageInfo = getChatMessagePageInfo(rows, CHAT_MESSAGE_PAGE_SIZE, beforeID);
+            oldestFetchedDelegationMessageIDRef.current = pageInfo.oldestID;
+            setHasOlderDelegationMessages(pageInfo.hasMore);
+            if(rows.length > 0){
+                setDelegationMessages((prev) => mergeRowsByID(prev, rows, sortByID, undefined, true));
+            }
+            return rows.length > 0;
+        }).catch((error) => {
+            console.log(error);
+            return false;
+        }).finally(() => {
+            if(delegationMessagePageGenerationRef.current === generation){
+                loadingDelegationMessagePageRef.current = false;
+                setLoadingOlderDelegationMessages(false);
+            }
+        });
+    }, [fetchMessagePage, hasOlderDelegationMessages]);
     React.useEffect(() => {
         const currentChannelID = selectedChannelIDRef.current;
         if(currentChannelID && requestData?.chat_request){
@@ -3904,7 +4031,7 @@ export function Chat({me}) {
     }, [requestData, selectedChannelID]);
     useSubscription(CHAT_MESSAGES_STREAM_SUBSCRIPTION, {
         variables: {
-            channel_id: selectedChannelStreamCursor.channelID || 0,
+            where: selectedChannelStreamCursor.where || getMainChatMessageWhere(0),
             now: selectedChannelStreamCursor.now,
         },
         skip: !selectedChannelStreamCursor.channelID,
@@ -3915,6 +4042,28 @@ export function Chat({me}) {
             const updates = (data.data?.chat_message_stream || []).filter((message) => message.channel_id === currentChannelID);
             if(updates.length > 0){
                 setMessages((prev) => mergeRowsByID(prev, updates, sortByID));
+            }
+        },
+        onError: (error) => console.log(error),
+    });
+    useSubscription(CHAT_MESSAGES_STREAM_SUBSCRIPTION, {
+        variables: {
+            where: selectedDelegationStreamCursor.where || getDelegationChatMessageWhere(0, ""),
+            now: selectedDelegationStreamCursor.now,
+        },
+        skip: !selectedDelegationStreamCursor.channelID || !selectedDelegationStreamCursor.delegationID,
+        fetchPolicy: "no-cache",
+        ignoreResults: true,
+        onData: ({data}) => {
+            const currentChannelID = selectedChannelIDRef.current;
+            const currentDelegationID = selectedDelegationIDRef.current;
+            const updates = (data.data?.chat_message_stream || []).filter((message) => (
+                message.channel_id === currentChannelID &&
+                getMessageDelegationID(message) === currentDelegationID &&
+                !getSubagentSnapshot(message)
+            ));
+            if(updates.length > 0){
+                setDelegationMessages((prev) => mergeRowsByID(prev, updates, sortByID));
             }
         },
         onError: (error) => console.log(error),
@@ -4206,10 +4355,12 @@ export function Chat({me}) {
             messagesNearBottomRef.current = true;
         }
 
-        if(selectedChannelID && lastMessageMatchesChannel){
-            queueMarkRead(selectedChannelID, lastMessage.id);
+    }, [messages, selectedChannelID]);
+    React.useEffect(() => {
+        if(selectedChannelID && selectedChannel?.last_message_id){
+            queueMarkRead(selectedChannelID, selectedChannel.last_message_id);
         }
-    }, [messages, selectedChannelID, queueMarkRead]);
+    }, [queueMarkRead, selectedChannel?.last_message_id, selectedChannelID]);
 
     const standardChannels = channels.filter((channel) => channel.channel_type === "standard" && (showArchived || !channel.archived));
     const aiChannels = channels.filter((channel) => channel.channel_type === "ai" && (showArchived || !channel.archived));
@@ -4263,10 +4414,10 @@ export function Chat({me}) {
             setVisibleMainMessageCount((count) => Math.min(mainMessages.length, count + CHAT_RENDER_BATCH_SIZE));
             return;
         }
-        loadOlderMessages().then((loaded) => {
+        loadOlderMainMessages().then((loaded) => {
             if(!loaded){mainScrollAnchorRef.current = null;}
         });
-    }, [hiddenMainMessageCount, loadOlderMessages, mainMessages.length]);
+    }, [hiddenMainMessageCount, loadOlderMainMessages, mainMessages.length]);
     React.useLayoutEffect(() => {
         const anchor = mainScrollAnchorRef.current;
         const container = messagesContainerRef.current;
@@ -4293,15 +4444,6 @@ export function Chat({me}) {
             snapshot: Object.keys(snapshot).length > 0 ? snapshot : (selectedDelegationSeed.snapshot || {}),
         };
     }, [messages, selectedDelegationSeed]);
-    const delegationMessages = React.useMemo(() => {
-        if(!selectedDelegation?.id){
-            return [];
-        }
-        return messages.filter((message) => (
-            getMessageDelegationID(message) === selectedDelegation.id &&
-            !getSubagentSnapshot(message)
-        ));
-    }, [messages, selectedDelegation?.id]);
     const messageHistory = React.useMemo(() => {
         const seenMessages = new Set();
         const history = [];
@@ -4693,12 +4835,12 @@ export function Chat({me}) {
                         <Box sx={{display: "flex", flex: "1 1 auto", flexDirection: "column", minHeight: 0, minWidth: 0, overflow: "hidden"}}>
                             <ChatChannelMetadataBar channel={selectedChannel} onChipClick={handleMetadataChipClick} />
                             <Box className="mythic-chat-messages" ref={messagesContainerRef} onScroll={updateMessagesNearBottom}>
-                                {selectedChannel && (hiddenMainMessageCount > 0 || hasOlderMessages) &&
+                                {selectedChannel && (hiddenMainMessageCount > 0 || hasOlderMainMessages) &&
                                     <Box className="mythic-chat-show-older">
-                                        <Button size="small" variant="text" onClick={showOlderMainMessages} disabled={loadingOlderMessages}>
+                                        <Button size="small" variant="text" onClick={showOlderMainMessages} disabled={loadingOlderMainMessages}>
                                             {hiddenMainMessageCount > 0 ?
                                                 `Show ${Math.min(CHAT_RENDER_BATCH_SIZE, hiddenMainMessageCount)} older messages (${hiddenMainMessageCount} hidden)` :
-                                                loadingOlderMessages ? "Fetching previous messages..." : "Fetch previous messages"
+                                                loadingOlderMainMessages ? "Fetching previous messages..." : "Fetch previous messages"
                                             }
                                         </Button>
                                     </Box>
@@ -4793,9 +4935,9 @@ export function Chat({me}) {
                                 setEditText={setEditText}
                                 saveEdit={saveEdit}
                                 cancelEdit={() => {setEditingID(null); setEditText("");}}
-                                hasOlderMessages={hasOlderMessages}
-                                loadingOlderMessages={loadingOlderMessages}
-                                onLoadOlderMessages={loadOlderMessages}
+                                hasOlderMessages={hasOlderDelegationMessages}
+                                loadingOlderMessages={loadingOlderDelegationMessages}
+                                onLoadOlderMessages={loadOlderDelegationMessages}
                             />
                             }
                         </Box>
@@ -5111,10 +5253,7 @@ const shouldShowMessageInMainChat = (message) => {
     if(!delegationID){
         return true;
     }
-    if(getSubagentSnapshot(message)){
-        return true;
-    }
-    return isPendingChatHumanInteraction(message);
+    return Boolean(getSubagentSnapshot(message));
 };
 
 const getChatEventingPrompt = (snapshot) => {

@@ -15,9 +15,14 @@ import {jwtDecode} from 'jwt-decode';
 import {meState} from './cache';
 import {getSkewedNow} from "./components/utilities/Time";
 import {createTokenRefreshCoordinator, shouldInvalidateSessionAfterRefreshFailure} from "./tokenRefresh";
-import {mythicFetch, reportMythicConnectionError, reportMythicConnectionSuccess} from "./components/utilities/MythicConnection";
+import {
+  mythicFetch,
+  reconnectGraphQLWebsocket,
+  reportMythicConnectionError,
+  reportMythicWebsocketConnected,
+} from "./components/utilities/MythicConnection";
 
-export const mythicUIVersion = "0.4.0.9";
+export const mythicUIVersion = "0.4.0.10";
 
 const isResizeObserverLoopError = (message) => {
   return message === "ResizeObserver loop limit exceeded" ||
@@ -264,7 +269,7 @@ const wsClient = createClient({
       },
       connected: (socket) => {
           //console.log("in on.connected", socket);
-          reportMythicConnectionSuccess("websocket");
+          reportMythicWebsocketConnected();
       }
     },
     connectionParams: () => {
@@ -294,7 +299,7 @@ export const apolloClient = new ApolloClient({
   });
 export function restartWebsockets () {
     console.log("restarting websockets");
-    wsClient.dispose();
+    reconnectGraphQLWebsocket(wsClient);
 }
   // if the user refreshes the page, we lose all react tracking, so try to reload from localstorage first
 if(localStorage.getItem("access_token") !== null){
