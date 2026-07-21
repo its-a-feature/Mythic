@@ -6,6 +6,8 @@ const initialConnectionState = {
 };
 
 export const mythicConnectionState = makeVar(initialConnectionState);
+export const websocketConnectionGeneration = makeVar(0);
+export const currentOperationSyncGeneration = makeVar(0);
 
 const connectionKey = (source) => source === "websocket" ? "websocketError" : "httpError";
 
@@ -21,6 +23,19 @@ const setConnectionError = (source, hasError) => {
 export const reportMythicConnectionError = (source = "http") => setConnectionError(source, true);
 
 export const reportMythicConnectionSuccess = (source = "http") => setConnectionError(source, false);
+
+export const reportMythicWebsocketConnected = () => {
+    reportMythicConnectionSuccess("websocket");
+    websocketConnectionGeneration(websocketConnectionGeneration() + 1);
+};
+
+export const requestCurrentOperationSync = () => {
+    currentOperationSyncGeneration(currentOperationSyncGeneration() + 1);
+};
+
+export const reconnectGraphQLWebsocket = (client) => {
+    client.terminate();
+};
 
 export const hasMythicConnectionError = (state = mythicConnectionState()) =>
     state.httpError || state.websocketError;
