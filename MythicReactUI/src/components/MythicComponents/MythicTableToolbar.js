@@ -70,7 +70,7 @@ export const MythicSearchField = ({
                 endAdornment: onSearch ? (
                     <React.Fragment>
                         {endAdornment}
-                        <MythicActionButton appearance="raised" compact disabled={disabled} icon={<SearchIcon />} iconOnly onClick={onSearch} tone="primary" tooltip="Search" />
+                        <MythicActionButton disabled={disabled} icon={<SearchIcon />} iconOnly onClick={onSearch} tone="primary" tooltip="Search" />
                     </React.Fragment>
                 ) : endAdornment,
                 style: {padding: 0},

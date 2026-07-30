@@ -281,3 +281,21 @@ type PTTaskProcessResponseMessageResponse struct {
 	Success bool   `json:"success"`
 	Error   string `json:"error"`
 }
+
+// PTTaskAgentRPCMessage asks the callback's payload type to run its payload-wide
+// agent RPC hook for a task.
+type PTTaskAgentRPCMessage struct {
+	TaskData  PTTaskMessageAllData `json:"task"`
+	Name      string               `json:"name"`
+	Arguments any                  `json:"arguments"`
+}
+
+// PTTaskAgentRPCMessageResponse is returned asynchronously by the payload type.
+// CallbackID is used only for Mythic's pending-response queue; AgentTaskID is
+// converted back to task_id before the result is returned to the agent.
+type PTTaskAgentRPCMessageResponse struct {
+	CallbackID  int    `json:"callback_id"`
+	AgentTaskID string `json:"agent_task_id"`
+	Status      string `json:"status"`
+	Output      any    `json:"output"`
+}

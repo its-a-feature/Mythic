@@ -437,7 +437,7 @@ const DisplayFileMetaData = ({fileMetaData}) => {
         </TableContainer>
     )
 }
-const getTextSyntaxForFilename = (filename) => {
+export const getTextSyntaxForFilename = (filename) => {
     if(!filename){
         return "html";
     }

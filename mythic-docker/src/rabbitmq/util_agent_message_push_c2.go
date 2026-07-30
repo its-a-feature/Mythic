@@ -285,48 +285,47 @@ func pushC2AgentMessageGetTasking(taskId int) (map[string]interface{}, error) {
 			Data:        base64.StdEncoding.EncodeToString([]byte(task.Params)),
 			MessageType: InteractiveTask.MessageType(task.InteractiveTaskType.Int64),
 		}
-		if _, err := database.DB.Exec(`UPDATE task SET
+		_, err = database.DB.Exec(`UPDATE task SET
 					status=$2, status_timestamp_processing=$3, status_timestamp_processed=$3, completed=true
-					WHERE id=$1`, task.ID, PT_TASK_FUNCTION_STATUS_COMPLETED, time.Now().UTC()); err != nil {
+					WHERE id=$1`, task.ID, PT_TASK_FUNCTION_STATUS_COMPLETED, time.Now().UTC())
+		if err != nil {
 			logging.LogError(err, "Failed to update interactive task status to completed")
 			return nil, err
-		} else {
-			response := map[string]interface{}{
-				"action": "get_tasking",
-			}
-			response[CALLBACK_PORT_TYPE_INTERACTIVE] = []agentMessagePostResponseInteractive{newTask}
-			return response, nil
-		}
-	} else {
-		newTask := agentMessageGetTaskingTask{
-			Command:    task.CommandName,
-			Parameters: task.Params,
-			ID:         task.AgentTaskID,
-			Timestamp:  task.Timestamp.Unix(),
-		}
-		if task.TokenID.Valid {
-			var tokenID int
-			if err := database.DB.Get(&tokenID, `SELECT token_id FROM token WHERE id=$1`, task.TokenID.Int64); err != nil {
-				logging.LogError(err, "failed to get token information")
-			} else {
-				newTask.Token = &tokenID
-			}
-		}
-		if _, err := database.DB.Exec(`UPDATE task SET
-					status=$2, status_timestamp_processing=$3
-					WHERE id=$1`, task.ID, PT_TASK_FUNCTION_STATUS_PROCESSING, time.Now().UTC()); err != nil {
-			logging.LogError(err, "Failed to update task status to processing")
-			return nil, err
-		} else {
-			go addMitreAttackTaskMapping(task.ID)
 		}
 		response := map[string]interface{}{
 			"action": "get_tasking",
 		}
-		response["tasks"] = []agentMessageGetTaskingTask{newTask}
+		response[CALLBACK_PORT_TYPE_INTERACTIVE] = []agentMessagePostResponseInteractive{newTask}
 		return response, nil
-	}
 
+	}
+	newTask := agentMessageGetTaskingTask{
+		Command:    task.CommandName,
+		Parameters: task.Params,
+		ID:         task.AgentTaskID,
+		Timestamp:  task.Timestamp.Unix(),
+	}
+	if task.TokenID.Valid {
+		var tokenID int
+		if err := database.DB.Get(&tokenID, `SELECT token_id FROM token WHERE id=$1`, task.TokenID.Int64); err != nil {
+			logging.LogError(err, "failed to get token information")
+		} else {
+			newTask.Token = &tokenID
+		}
+	}
+	_, err = database.DB.Exec(`UPDATE task SET
+					status=$2, status_timestamp_processing=$3
+					WHERE id=$1`, task.ID, PT_TASK_FUNCTION_STATUS_PROCESSING, time.Now().UTC())
+	if err != nil {
+		logging.LogError(err, "Failed to update task status to processing")
+		return nil, err
+	}
+	go addMitreAttackTaskMapping(task.ID)
+	response := map[string]interface{}{
+		"action": "get_tasking",
+	}
+	response["tasks"] = []agentMessageGetTaskingTask{newTask}
+	return response, nil
 }
 
 // pushC2AgentGetDelegateTaskMessages return a wrapped get_tasking message for a specific task
@@ -339,23 +338,26 @@ func pushC2AgentGetDelegateTaskMessages(taskId int, callbackId int, routablePath
 	taskIDs := submittedTasksAwaitingFetching.getTasksForCallbackId(callbackId)
 	taskIDs = append(taskIDs, submittedTasksAwaitingFetching.getInteractiveTasksForCallbackId(callbackId)...)
 	taskIDs = append(taskIDs, taskId)
-	if query, args, err := sqlx.Named(`SELECT 
+	query, args, err := sqlx.Named(`SELECT 
 						agent_task_id, "timestamp", command_name, params, id, token_id, is_interactive_task,
 						interactive_task_type, parent_task_id
 						FROM task WHERE id IN (:ids) ORDER BY id ASC`, map[string]interface{}{
 		"ids": taskIDs,
-	}); err != nil {
+	})
+	if err != nil {
 		logging.LogError(err, "Failed to make named statement when searching for tasks")
 		return nil
-	} else if query, args, err := sqlx.In(query, args...); err != nil {
+	}
+	query, args, err = sqlx.In(query, args...)
+	if err != nil {
 		logging.LogError(err, "Failed to do sqlx.In")
 		return nil
-	} else {
-		query = database.DB.Rebind(query)
-		if err := database.DB.Select(&currentTasks, query, args...); err != nil {
-			logging.LogError(err, "Failed to exec sqlx.IN modified statement")
-			return nil
-		}
+	}
+	query = database.DB.Rebind(query)
+	err = database.DB.Select(&currentTasks, query, args...)
+	if err != nil {
+		logging.LogError(err, "Failed to exec sqlx.IN modified statement")
+		return nil
 	}
 	for i := 0; i < len(currentTasks); i++ {
 		// now that we have a path, need to recursively encrypt and wrap
@@ -369,7 +371,7 @@ func pushC2AgentGetDelegateTaskMessages(taskId int, callbackId int, routablePath
 		newStatus := PT_TASK_FUNCTION_STATUS_PROCESSING
 		if currentTasks[i].IsInteractiveTask {
 			parentTaskUUID := ""
-			err := database.DB.Get(&parentTaskUUID, `SELECT agent_task_id FROM task WHERE id=$1`, currentTasks[i].ParentTaskID)
+			err = database.DB.Get(&parentTaskUUID, `SELECT agent_task_id FROM task WHERE id=$1`, currentTasks[i].ParentTaskID)
 			if err != nil {
 				logging.LogError(err, "Failed to get parent task id from interactive task")
 				submittedTasksAwaitingFetching.removeTask(currentTasks[i].ID)
@@ -386,9 +388,10 @@ func pushC2AgentGetDelegateTaskMessages(taskId int, callbackId int, routablePath
 				},
 			}
 			newStatus = PT_TASK_FUNCTION_STATUS_COMPLETED
-			if _, err := database.DB.Exec(`UPDATE task SET
+			_, err = database.DB.Exec(`UPDATE task SET
 							status=$2, status_timestamp_processing=$3, status_timestamp_processed=$3, completed=true
-							WHERE id=$1`, currentTasks[i].ID, newStatus, time.Now().UTC()); err != nil {
+							WHERE id=$1`, currentTasks[i].ID, newStatus, time.Now().UTC())
+			if err != nil {
 				logging.LogError(err, "Failed to update task status to processing")
 			}
 		} else {
@@ -404,9 +407,10 @@ func pushC2AgentGetDelegateTaskMessages(taskId int, callbackId int, routablePath
 					},
 				},
 			}
-			if _, err := database.DB.Exec(`UPDATE task SET
+			_, err = database.DB.Exec(`UPDATE task SET
 							status=$2, status_timestamp_processing=$3
-							WHERE id=$1`, currentTasks[i].ID, newStatus, time.Now().UTC()); err != nil {
+							WHERE id=$1`, currentTasks[i].ID, newStatus, time.Now().UTC())
+			if err != nil {
 				logging.LogError(err, "Failed to update task status to processing")
 			}
 		}

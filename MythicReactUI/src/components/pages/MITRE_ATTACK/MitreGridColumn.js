@@ -32,8 +32,10 @@ export function MitreGridColumn({column, showCountGrouping}){
     }
   }, [column.commands, column.rows, column.tasks, showCountGrouping])
   return (
-    <div style={{display: "flex", flexDirection: "column", paddingRight: "15px",}}>
-      <Box width={"100%"} style={{backgroundColor: theme.tableHover}}>
+    <div style={{display: "flex", flexDirection: "column", paddingRight: "15px", marginLeft: "10px"}}>
+      <Box width={"100%"} style={{backgroundColor: theme.tableHover,
+        border: `1px solid ${theme.borderColor}`,
+        borderRadius: theme.shape.borderRadius, padding: "5px"}}>
         <h2 style={{margin: 0, textAlign: "center"}}><b>{column.tactic}</b></h2>
         <p style={{textAlign: "center", margin: 0}}>{techniqueCounts} techniques</p>
         { showCountGrouping === "" ? null : (

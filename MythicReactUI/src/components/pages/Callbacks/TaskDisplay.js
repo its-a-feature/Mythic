@@ -80,7 +80,7 @@ export const StyledPaper = styled(Paper)((
   }
 ) => ({
   [`&.${classes.root}`]: {
-    marginTop: "4px",
+    marginTop: "2px",
     marginRight: "0px",
     height: "auto",
     width: "100%",
@@ -89,10 +89,6 @@ export const StyledPaper = styled(Paper)((
     border: `1px solid ${theme.borderColor}`,
     borderRadius: theme.shape.borderRadius,
     transition: "background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease",
-    "&:hover": {
-      borderColor: theme.palette.mode === "dark" ? alpha(theme.palette.common.white, 0.22) : alpha(theme.palette.common.black, 0.18),
-      backgroundColor:  alpha(theme.palette.background.paper, 0.75),
-    },
   },
 
   [`& .${classes.heading}`]: {
@@ -176,7 +172,7 @@ export const StyledPaper = styled(Paper)((
     alignItems: "center",
     backgroundColor: theme.palette.mode === "dark" ? alpha(theme.palette.common.white, 0.05) : alpha(theme.palette.common.black, 0.035),
     border: `1px solid ${theme.palette.mode === "dark" ? alpha(theme.palette.common.white, 0.08) : alpha(theme.palette.common.black, 0.07)}`,
-    borderRadius: 5,
+    borderRadius: theme.shape.borderRadius,
     boxSizing: "border-box",
     color: theme.palette.text.secondary,
     display: "inline-flex",
@@ -281,7 +277,7 @@ export const StyledPaper = styled(Paper)((
   [`& .${classes.taskCommentBlock}`]: {
     backgroundColor: theme.palette.mode === "dark" ? alpha(theme.palette.common.white, 0.045) : alpha(theme.palette.common.black, 0.025),
     border: `1px solid ${theme.palette.mode === "dark" ? alpha(theme.palette.common.white, 0.08) : alpha(theme.palette.common.black, 0.07)}`,
-    borderRadius: 5,
+    borderRadius: theme.shape.borderRadius,
     color: theme.palette.text.primary,
     fontSize: theme.typography.pxToRem(12.5),
     lineHeight: 1.35,
@@ -373,11 +369,12 @@ function TaskDisplayPreMemo({task, me, filterOptions, newlyIssuedTasks, collapse
   );
 }
 export const TaskDisplay = React.memo(TaskDisplayPreMemo);
-function TaskDisplayFlatPreMemo({task, me, filterOptions, selectedTask, onSelectTask, showOnSelectTask, taskChildrenStore, active=true}){
+function TaskDisplayFlatPreMemo({task, me, filterOptions, selectedTask, onSelectTask, showOnSelectTask, compact=false, taskChildrenStore, active=true}){
   return (
       <TaskRowFlat me={me} indentLevel={0} task={task}
                    filterOptions={filterOptions} onSelectTask={onSelectTask}
                    showOnSelectTask={showOnSelectTask} selectedTask={selectedTask}
+                   compact={compact}
                    taskChildrenStore={taskChildrenStore} active={active}
       />
   )
@@ -534,9 +531,9 @@ const TaskMetaItem = ({children, icon, title, style}) => {
   }
   return item;
 }
-const TaskHeaderAction = ({title, children, ...props}) => (
+const TaskHeaderAction = ({title, children, tone, ...props}) => (
   <MythicStyledTooltip title={title}>
-    <MythicActionButton iconOnly appearance="raised" colorMode="always" compact tone="warning" size="small"
+    <MythicActionButton iconOnly appearance="raised" colorMode="hover" compact tone={tone} size="small"
                 disableFocusRipple={true} disableRipple={true} {...props}>
       {children}
     </MythicActionButton>
@@ -576,7 +573,7 @@ const ColoredTaskDisplay = ({task, theme, children, expanded}) => {
   const themeColor = getTaskAccentColor(task, theme);
   return(
     <span style={{display: "flex", margin: 0, borderWidth: 0, padding: "8px 10px 8px 9px", minHeight: "58px", alignItems: "center",
-      height: "100%", borderLeft: "4px solid " + themeColor, width: "100%", maxWidth: "100%",
+      height: "100%", borderLeft: "5px solid " + themeColor, width: "100%", maxWidth: "100%",
       borderTopLeftRadius: theme.shape.borderRadius, borderBottomLeftRadius: expanded ? 0 : theme.shape.borderRadius}}>
       {children}
     </span>
@@ -645,12 +642,13 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
             }
             <span className={classes.taskHeaderActions}>
               {task.has_intercepted_response &&
-                <TaskHeaderAction title={"This task has responses that have been intercepted and changed due to a workflow container"}>
+                <TaskHeaderAction tone={"warning"} title={"This task has responses that have been intercepted and changed due to a workflow container"}>
                   <CropRotateTwoToneIcon />
                 </TaskHeaderAction>
               }
               {task?.eventstepinstance &&
                 <TaskHeaderAction title={"Task created via Eventing, click to view entire event flow in separate page"}
+                                  tone={"info"}
                                   component={Link}
                                   href={'/new/eventing?eventgroup=' +
                                       task?.eventstepinstance?.eventgroupinstance?.eventgroup?.id +
@@ -666,13 +664,13 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
                   </TaskMetaItem>
               }
               {!task.completed && task.status_timestamp_processing &&
-                <TaskHeaderAction title={"Task the agent to kill this task"} onClick={(e) => onClickKillIcon(e, true)}>
+                <TaskHeaderAction tone={"warning"} title={"Task the agent to kill this task"} onClick={(e) => onClickKillIcon(e, true)}>
                   <FontAwesomeIcon size={"sm"} icon={faSkullCrossbones} style={{height: "0.82rem"}} />
                 </TaskHeaderAction>
               }
               <TaskStatusDisplay task={task}/>
               {task.comment.length > 0 &&
-                <TaskHeaderAction title={displayComment ? "Hide comment" : "Show comment"} onClick={toggleDisplayComment}>
+                <TaskHeaderAction tone={"info"} title={displayComment ? "Hide comment" : "Show comment"} onClick={toggleDisplayComment}>
                   <ChatOutlinedIcon />
                 </TaskHeaderAction>
               }
@@ -848,7 +846,7 @@ const TaskRow = ({task, filterOptions, me, newlyIssuedTasks, indentLevel, collap
       ) : null
     )
 }
-const TaskRowFlat = ({task, filterOptions, me, onSelectTask, showOnSelectTask, selectedTask, indentLevel, taskChildrenStore, active=true}) => {
+const TaskRowFlat = ({task, filterOptions, me, onSelectTask, showOnSelectTask, selectedTask, compact=false, indentLevel, taskChildrenStore, active=true}) => {
   const rawTaskingData = useTaskChildren({taskID: task.id, taskChildrenStore, active});
   const taskingData = React.useMemo(() => rawTaskingData.map((child) => ({
     ...child,
@@ -951,6 +949,7 @@ const TaskRowFlat = ({task, filterOptions, me, onSelectTask, showOnSelectTask, s
             <TaskLabelFlat me={me} task={task}
                            onSelectTask={onLocalSelectTask}
                            showOnSelectTask={showOnSelectTask}
+                           compact={compact}
                            toggleDisplayChildren={toggleDisplayChildren} displayChildren={displayChildren}
                            hasChildren={taskingData.length > 0 || task.tasks.length > 0}
             />
@@ -1048,7 +1047,7 @@ export const getLabelText = (task, graphView) => {
   }
   return (task?.command?.cmd || task.command_name) + " " + task.display_params;
 }
-export const TaskLabelFlat = ({task, me, showOnSelectTask, onSelectTask, graphView, displayChildren, toggleDisplayChildren, hasChildren}) => {
+export const TaskLabelFlat = ({task, me, showOnSelectTask, onSelectTask, graphView, compact=false, displayChildren, toggleDisplayChildren, hasChildren}) => {
   const theme = useTheme();
 
   useLayoutEffect( () => {
@@ -1085,7 +1084,7 @@ export const TaskLabelFlat = ({task, me, showOnSelectTask, onSelectTask, graphVi
         <ColoredTaskLabel theme={theme} task={task} me={me} taskDivID={`scrolltotasksplit${task.id}`} onClick={onClickEntry}
                           displayChildren={displayChildren} toggleDisplayChildren={toggleDisplayChildren} expanded={false}
                           hasChildren={hasChildren}
-                          compact={showOnSelectTask}
+                          compact={compact || showOnSelectTask}
         />
       </StyledPaper>
   )

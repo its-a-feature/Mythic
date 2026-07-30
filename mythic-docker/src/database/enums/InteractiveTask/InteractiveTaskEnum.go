@@ -28,9 +28,24 @@ const (
 	CtrlW     //^W - 0x17 - kill word backwards
 	CtrlY     //^Y - 0x19 - yank
 	CtrlZ     //^Z - 0x1A - suspend process
-	end
+	interactiveEnd
+
+	// Reserve 100-199 for file editor messages. These values intentionally do
+	// not extend the terminal-style interactive message range above.
+	FileEditorRequest  MessageType = 100
+	FileEditorResponse MessageType = 101
+	FileEditorError    MessageType = 102
 )
 
 func IsValid(value int) bool {
-	return value >= 0 && value < int(end)
+	switch MessageType(value) {
+	case FileEditorRequest, FileEditorResponse, FileEditorError:
+		return true
+	default:
+		return value >= 0 && value < int(interactiveEnd)
+	}
+}
+
+func IsError(value MessageType) bool {
+	return value == Error || value == FileEditorError
 }

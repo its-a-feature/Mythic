@@ -6,21 +6,23 @@ import (
 )
 
 // validContainerVersionMax container's version must be strictly less than this value
-const validContainerVersionMax = "v1.5.0"
+const validContainerVersionMax = "v1.6.0"
+
+// validContainerVersionMin container's version must be strictly greater than or equal to this value'
+const validContainerVersionMin = "v1.5.0"
 
 func isValidContainerVersion(version string) bool {
-	if semver.IsValid(validContainerVersionMax) {
-		if semver.IsValid(version) {
-			if semver.Compare(version, validContainerVersionMax) < 0 {
-				return true
-			} else {
-				logging.LogError(nil, "attempt to sync a container out of bounds", "version", version)
-			}
-		} else {
-			logging.LogError(nil, "attempt to sync invalid container version", "version", version)
-		}
-	} else {
-		logging.LogError(nil, "internal container version is not valid, can't sync", "version", validContainerVersionMax)
+	if !semver.IsValid(version) {
+		logging.LogError(nil, "attempt to sync invalid container version", "version", version)
+		return false
 	}
-	return false
+	if semver.Compare(version, validContainerVersionMax) >= 0 {
+		logging.LogError(nil, "attempt to sync a container version that's too great", "version", version, "max", validContainerVersionMax)
+		return false
+	}
+	if semver.Compare(version, validContainerVersionMin) < 0 {
+		logging.LogError(nil, "attempt to sync a container version that's too old", "version", version, "min", validContainerVersionMin)
+		return false
+	}
+	return true
 }

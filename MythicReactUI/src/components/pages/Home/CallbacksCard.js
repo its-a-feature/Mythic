@@ -28,7 +28,6 @@ import {initialWorkflow} from "../Eventing/Eventing";
 import {EventStepInstanceRenderDialog} from "../Eventing/EventStepRender";
 import {MythicStatusIcon} from "../../MythicComponents/MythicStatusChip";
 import ReplayIcon from '@mui/icons-material/Replay';
-import OpenInNewTwoToneIcon from '@mui/icons-material/OpenInNewTwoTone';
 import {snackActions} from "../../utilities/Snackbar";
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import {meState} from "../../../cache";
@@ -57,9 +56,6 @@ import KeyboardArrowLeft from '@mui/icons-material/KeyboardArrowLeft';
 import {taskingDataFragment} from "../Callbacks/CallbackMutations";
 import {TaskDisplayInteractiveSearch} from "../Search/SearchTabInteractiveTasks";
 import {TaskDisplay} from "../Callbacks/TaskDisplay";
-import {copyStringToClipboard} from "../../utilities/Clipboard";
-import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
-import {faCopy} from '@fortawesome/free-solid-svg-icons';
 import MythicTextField from "../../MythicComponents/MythicTextField";
 import {ImageWithAuth} from "../../utilities/ImageWithAuth";
 import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/MythicPageHeader";
@@ -69,6 +65,7 @@ import TuneIcon from '@mui/icons-material/Tune';
 import {PayloadBuildMetadataChips} from "../Payloads/PayloadsTableRow";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import {CredentialInspector, CredentialSearchRow} from "../Search/CredentialTable";
+import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
 
 const LeadDashboardQuery = gql`
 ${taskingDataFragment}
@@ -2170,7 +2167,7 @@ export function CallbacksCard({me}) {
         setLoading(true);
     }
     return (
-        <>
+        <MythicPageBody>
             <MythicPageHeader
                 title={
                     <>
@@ -2238,7 +2235,7 @@ export function CallbacksCard({me}) {
                     me={me} loading={loading} setLoading={setLoading} editing={editing}
                 />}
             </div>
-        </>
+        </MythicPageBody>
 
     );
 }

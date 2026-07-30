@@ -136,6 +136,7 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
     const info = getColor("info");
     const warning = getColor("warning");
     const error = getColor("error");
+    const success = getColor("success");
     const sectionHeaderAccent = getColor("sectionHeaderAccent");
     const sectionHeaderGradientStart = getColor("sectionHeaderGradientStart");
     const sectionHeaderGradientMiddle = getColor("sectionHeaderGradientMiddle");
@@ -151,10 +152,10 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
     const tableSelectedColor = getColor("selectedCallbackColor");
     const tableSelectedHierarchyColor = getColor("selectedCallbackHierarchyColor");
     const tableBorderSoft = alpha(borderColor, isDark ? 0.67 : 0.8);
-
+    const borderRadius = 6;
     return {
         shape: {
-            borderRadius: 6,
+            borderRadius: borderRadius,
         },
         pageHeaderText: {
             main: getColor("pageHeaderText"),
@@ -249,7 +250,7 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         backgroundColor: backgroundPaper,
                         backgroundImage: "none",
                         border: `1px solid ${borderColor}`,
-                        borderRadius: 6,
+                        borderRadius: borderRadius,
                         boxShadow: "none",
                         "& > .MuiBox-root:first-of-type": {
                             margin: 0,
@@ -273,7 +274,7 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                 styleOverrides: {
                     root: {
                         minHeight: 30,
-                        borderRadius: 6,
+                        borderRadius: borderRadius,
                         textTransform: "none",
                         fontWeight: 650,
                     },
@@ -285,7 +286,7 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
             MuiIconButton: {
                 styleOverrides: {
                     root: {
-                        borderRadius: 6,
+                        borderRadius: borderRadius,
                         padding: 5,
                         color: textSecondary,
                         "&:hover": {
@@ -308,7 +309,7 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
             MuiDialog: {
                 styleOverrides: {
                     paper: {
-                        borderRadius: 8,
+                        borderRadius: borderRadius,
                         border: `1px solid ${borderColor}`,
                         backgroundImage: "none",
                         boxShadow: isDark ? "0 24px 80px rgba(0, 0, 0, 0.45)" : "0 24px 80px rgba(15, 23, 42, 0.14)",
@@ -361,7 +362,7 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                             alignItems: "center",
                             backgroundColor: alpha(textPrimary, isDark ? 0.06 : 0.04),
                             border: `1px solid ${tableBorderSoft}`,
-                            borderRadius: 6,
+                            borderRadius: borderRadius,
                             boxShadow: "none",
                             color: textPrimary,
                             fontSize: "0.78rem",
@@ -380,9 +381,9 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                             borderColor,
                         },
                         "& .MuiButton-root.MuiButton-colorSuccess, & .MuiButton-root.MuiButton-containedSuccess, & .MuiButton-root.MuiButton-outlinedSuccess": {
-                            backgroundColor: primary,
-                            borderColor: primary,
-                            color: "var(--mythic-color-on-primary)",
+                            backgroundColor: alpha(success, colorLevel1),
+                            borderColor: alpha(success, colorLevel3),
+                            color: success,
                         },
                         "& .MuiButton-root.MuiButton-colorWarning, & .MuiButton-root.MuiButton-containedWarning, & .MuiButton-root.MuiButton-outlinedWarning": {
                             backgroundColor: alpha(warning, colorLevel1),
@@ -396,7 +397,7 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         },
                         "& .MuiButton-root.MuiButton-colorInfo, & .MuiButton-root.MuiButton-containedInfo, & .MuiButton-root.MuiButton-outlinedInfo": {
                             backgroundColor: alpha(info, colorLevel1),
-                            borderColor: alpha(info, colorLevel2),
+                            borderColor: alpha(info, colorLevel3),
                             color: info,
                         },
                         "& .MuiButton-root.Mui-disabled": {
@@ -410,7 +411,7 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
             MuiOutlinedInput: {
                 styleOverrides: {
                     root: {
-                        borderRadius: 6,
+                        borderRadius: borderRadius,
                         backgroundColor: backgroundPaper,
                         "&:hover .MuiOutlinedInput-notchedOutline": {
                             borderColor: textSecondary,
@@ -459,7 +460,7 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                     root: {
                         color: textSecondary,
                         "&.Mui-focused": {
-                            color: primary,
+                            color: textSecondary,
                         },
                     },
                 },
@@ -493,7 +494,7 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                     },
                     indicator: {
                         height: 2,
-                        borderRadius: 2,
+                        borderRadius: borderRadius,
                     },
                     flexContainer: {
                         flexWrap: "wrap",
@@ -525,7 +526,7 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                 styleOverrides: {
                     paper: {
                         border: `1px solid ${borderColor}`,
-                        borderRadius: 8,
+                        borderRadius: borderRadius,
                         boxShadow: isDark ? "0 18px 48px rgba(0, 0, 0, 0.40)" : "0 18px 48px rgba(15, 23, 42, 0.12)",
                     },
                 },
@@ -536,7 +537,7 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         backgroundColor: backgroundPaper,
                         backgroundImage: "none",
                         border: `1px solid ${borderColor}`,
-                        borderRadius: 6,
+                        borderRadius: borderRadius,
                         lineHeight: "1.75rem",
                     },
                 },
@@ -555,7 +556,7 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                 styleOverrides: {
                     tooltip: {
                         backgroundColor: backgroundContrast,
-                        borderRadius: 6,
+                        borderRadius: borderRadius,
                         boxShadow: isDark ? "0 8px 18px rgba(0,0,0,0.22)" : "0 8px 18px rgba(15,23,42,0.10)",
                         color: isDark ? "#000" : "#fff",
                         fontSize: 13,
@@ -602,7 +603,7 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
             MuiChip: {
                 styleOverrides: {
                     root: {
-                        borderRadius: 5,
+                        borderRadius: borderRadius,
                         fontWeight: 650,
                     },
                 },
@@ -631,7 +632,7 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                     root: {
                         backgroundColor: backgroundPaper,
                         border: `1px solid ${borderColor}`,
-                        borderRadius: 6,
+                        borderRadius: borderRadius,
                         minHeight: 0,
                         overflow: "auto",
                     },
@@ -766,7 +767,7 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                     root: {
                         minWidth: 28,
                         height: 28,
-                        borderRadius: 6,
+                        borderRadius: borderRadius,
                         color: textSecondary,
                         fontSize: "0.78rem",
                         fontWeight: 650,
@@ -795,7 +796,7 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                 styleOverrides: {
                     root: {
                         borderColor: tableBorderSoft,
-                        borderRadius: 6,
+                        borderRadius: borderRadius,
                         color: textSecondary,
                         fontSize: "0.78rem",
                         fontWeight: 650,

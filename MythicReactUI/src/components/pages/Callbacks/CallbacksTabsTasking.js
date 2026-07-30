@@ -290,7 +290,7 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
             {taskReferenceSubmitDialog}
             <div style={{overflowY: "auto", flexGrow: 1, width: "100%"}} id={`taskingPanel${tabInfo.callbackID}`}>
                 {!fetchedAllTasks &&
-                    <MythicStyledTooltip tooltipStyle={{marginLeft: "50%"}} title="Fetch Older Tasks">
+                    <MythicStyledTooltip tooltipStyle={{marginLeft: "50%", width: "100%"}} title="Fetch Older Tasks">
                         <MythicActionButton colorMode="always" tone="success" iconOnly
                             onClick={loadMoreTasks}
                             variant="contained"

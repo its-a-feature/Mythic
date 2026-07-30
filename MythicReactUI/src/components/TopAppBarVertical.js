@@ -974,7 +974,9 @@ export function TopAppBarVertical(props) {
               borderRadius: "var(--mythic-radius-base)",
           }}>
             <StyledListItemIcon>
-                <img src={ReactLogo} onClick={()=>navigate('/new')} width={"35px"} height={"35px"} alt="Mythic" style={{cursor: "pointer"}}/>
+                <img src={ReactLogo} onClick={()=>navigate('/new')}
+                     width={"45px"}
+                     height={"45px"} alt="Mythic" style={{cursor: "pointer"}}/>
             </StyledListItemIcon>
             <ListItemText style={{margin: 0}} primary={
                 <>
@@ -987,6 +989,7 @@ export function TopAppBarVertical(props) {
                     <MythicActionButton iconOnly
                         aria-label={`Switch to ${props.themeMode === 'light' ? 'dark' : 'light'} mode`}
                         appearance="plain" tone="secondary"
+                                        colorMode="always"
                         onClick={props.toggleTheme}
                         size="small"
                         style={{float:"right", display: menuOpen ? "" : "none"}}
@@ -1007,7 +1010,7 @@ export function TopAppBarVertical(props) {
               <>
                 <MythicStyledTooltip title={"Edit Shortcuts"} tooltipStyle={{float: menuOpen ? 'right' : '', margin: 0, padding: 0}}>
                     <Button onClick={openEditShortcuts} className="mythic-navigation-action-text">
-                        <EditIcon className="mythic-navigation-icon" fontSize={"medium"}/> Edit
+                        <EditIcon className="mythic-navigation-icon" fontSize={"medium"}/> Customize
                     </Button>
 
                 </MythicStyledTooltip>

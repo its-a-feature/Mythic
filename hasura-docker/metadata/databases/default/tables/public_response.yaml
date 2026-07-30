@@ -54,6 +54,7 @@ select_permissions:
         - apitokens_id
         - eventstepinstance_id
         - id
+        - interactive_task_type
         - is_error
         - operation_id
         - response
@@ -80,6 +81,7 @@ select_permissions:
         - apitokens_id
         - eventstepinstance_id
         - id
+        - interactive_task_type
         - is_error
         - operation_id
         - response
@@ -106,6 +108,7 @@ select_permissions:
         - apitokens_id
         - eventstepinstance_id
         - id
+        - interactive_task_type
         - is_error
         - operation_id
         - response
@@ -134,6 +137,7 @@ select_permissions:
         - apitokens_id
         - eventstepinstance_id
         - id
+        - interactive_task_type
         - operation_id
         - sequence_number
         - task_id

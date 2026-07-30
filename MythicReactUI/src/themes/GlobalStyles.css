@@ -162,13 +162,13 @@ tspan {
 .groupNode {
     border: 1px solid var(--mythic-color-border-base);
     padding: 0.375rem;
-    border-radius: 5px;
+    border-radius: var(--mythic-radius-base);
     background: var(--mythic-color-graph-group) !important;
 }
 .groupEventNode {
     border: 1px solid var(--mythic-color-border-base);
     padding: 0.125rem;
-    border-radius: 5px;
+    border-radius: var(--mythic-radius-base);
     background: var(--mythic-color-graph-group) !important;
 }
 .circleImageNode {
@@ -369,7 +369,7 @@ tspan {
 }
 
 .selectedTask {
-    background-color: var(--mythic-color-primary-level-1) !important;
+    border: 2px solid var(--mythic-color-primary-base) !important;
 }
 .mythic-file-browser-tableTop {
     background-color: var(--mythic-color-surface-base);
@@ -658,6 +658,266 @@ tspan {
     padding: 0.375rem 0.5rem;
     white-space: pre-wrap;
     word-break: break-word;
+}
+.mythic-file-search {
+    display: flex;
+    flex: 1 1 auto;
+    height: 100%;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+}
+.mythic-file-search-results,
+.mythic-file-inspector {
+    background-color: var(--mythic-color-surface-muted);
+    border: 1px solid var(--mythic-color-border-subtle);
+    border-radius: var(--mythic-radius-base);
+    height: 100%;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+}
+.mythic-file-search-results,
+.mythic-file-search-table-layout,
+.mythic-file-inspector {
+    display: flex;
+    flex-direction: column;
+}
+.mythic-file-search-table-layout {
+    height: 100%;
+    min-height: 0;
+}
+.mythic-file-search-table-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+}
+.mythic-file-search-table {
+    table-layout: fixed;
+    width: 100%;
+}
+.mythic-file-search-row .MuiTableCell-root {
+    border-bottom-color: var(--mythic-color-border-subtle);
+    padding-bottom: 0.35rem;
+    padding-top: 0.35rem;
+    vertical-align: middle;
+}
+.mythic-file-search-row-selected .MuiTableCell-root,
+.mythic-file-search-row.Mui-selected .MuiTableCell-root,
+.mythic-file-search-row.Mui-selected:hover .MuiTableCell-root {
+    background-color: var(--mythic-color-neutral-level-1);
+}
+.mythic-file-search-primary {
+    display: grid;
+    gap: 0.15rem;
+    min-width: 0;
+}
+.mythic-file-search-primary > :first-child {
+    font-size: 0.78rem;
+    font-weight: 800;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-file-search-secondary {
+    color: var(--mythic-color-text-muted);
+    font-size: 0.7rem;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 100%;
+    display: block;
+}
+.mythic-file-search-status {
+    align-items: flex-start;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+.mythic-file-search-status-size {
+    color: var(--mythic-color-text-muted);
+    font-size: 0.7rem;
+}
+.mythic-file-inspector-empty {
+    align-items: center;
+    color: var(--mythic-color-text-muted);
+    gap: 0.5rem;
+    justify-content: center;
+}
+.mythic-file-inspector-header {
+    border-bottom: 1px solid var(--mythic-color-border-subtle);
+    padding: 0.625rem 0.75rem;
+}
+.mythic-file-inspector-title {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 0.92rem;
+    font-weight: 850;
+    gap: 0.375rem;
+    min-width: 0;
+}
+.mythic-file-inspector-title > span:first-of-type {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-file-inspector-body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-height: 0;
+    overflow: auto;
+    padding: 0.625rem;
+}
+.mythic-file-inspector-section {
+    border-bottom: 1px solid var(--mythic-color-border-subtle);
+    min-width: 0;
+    padding-bottom: 0.5rem;
+}
+.mythic-file-inspector-section:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+}
+.mythic-file-inspector-section-header {
+    align-items: center;
+    color: var(--mythic-color-text-muted);
+    display: flex;
+    font-size: 0.69rem;
+    font-weight: 850;
+    gap: 0.5rem;
+    justify-content: space-between;
+    margin-bottom: 0.375rem;
+    text-transform: uppercase;
+}
+.mythic-file-inspector-section-actions {
+    display: flex;
+    gap: 0.25rem;
+}
+.mythic-file-inspector-section-body {
+    display: grid;
+    gap: 0.375rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-width: 0;
+}
+.mythic-file-inspector-detail {
+    background-color: var(--mythic-color-surface-base);
+    border: 1px solid var(--mythic-color-border-subtle);
+    border-radius: var(--mythic-radius-base);
+    display: grid;
+    gap: 0.2rem;
+    min-width: 0;
+    padding: 0.4rem 0.5rem;
+}
+.mythic-file-inspector-detail-wide,
+.mythic-file-inspector-comment,
+.mythic-file-inspector-tags,
+.mythic-file-inspector-hosting {
+    grid-column: 1 / -1;
+}
+.mythic-file-inspector-detail > span {
+    color: var(--mythic-color-text-muted);
+    font-size: 0.66rem;
+    font-weight: 750;
+    text-transform: uppercase;
+}
+.mythic-file-inspector-detail > strong {
+    font-size: 0.75rem;
+    font-weight: 700;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.mythic-file-inspector-code {
+    font-family: var(--mythic-font-family-mono);
+}
+.mythic-file-inspector-comment,
+.mythic-file-inspector-tags {
+    background-color: var(--mythic-color-surface-base);
+    border: 1px solid var(--mythic-color-border-subtle);
+    border-radius: var(--mythic-radius-base);
+    min-height: 2rem;
+    padding: 0.5rem;
+}
+.mythic-file-inspector-comment {
+    color: var(--mythic-color-text-muted);
+    font-size: 0.74rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.mythic-file-inspector-tags {
+    align-items: center;
+    display: flex;
+    gap: 0.375rem;
+    overflow: hidden;
+}
+.mythic-file-inspector-hosting {
+    min-width: 0;
+    overflow: auto;
+}
+.mythic-file-copy-switcher {
+    align-items: stretch;
+    background-color: var(--mythic-color-surface-base);
+    border-bottom: 1px solid var(--mythic-color-border-subtle);
+    display: flex;
+    gap: 0.375rem;
+    min-width: 0;
+    padding: 0.5rem 0.75rem;
+}
+.mythic-file-copy-node {
+    appearance: none;
+    background-color: var(--mythic-color-surface-muted);
+    border: 1px solid var(--mythic-color-border-subtle);
+    border-radius: var(--mythic-radius-base);
+    color: inherit;
+    cursor: pointer;
+    display: grid;
+    flex: 1 1 0;
+    gap: 0.2rem;
+    min-width: 0;
+    padding: 0.45rem 0.5rem;
+    text-align: left;
+}
+.mythic-file-copy-node:hover {
+    border-color: var(--mythic-color-info-base);
+}
+.mythic-file-copy-node:focus-visible {
+    outline: 2px solid var(--mythic-color-info-base);
+    outline-offset: 1px;
+}
+.mythic-file-copy-node-active {
+    background-color: var(--mythic-color-info-level-1);
+    border-color: var(--mythic-color-info-base);
+}
+.mythic-file-copy-node > span,
+.mythic-file-copy-relation > span {
+    color: var(--mythic-color-text-muted);
+    font-size: 0.66rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+.mythic-file-copy-node-active > span {
+    color: var(--mythic-color-info-base);
+}
+.mythic-file-copy-node > strong {
+    font-size: 0.74rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-file-copy-relation {
+    align-items: center;
+    display: flex;
+    flex: 0 0 auto;
+    gap: 0.125rem;
+}
+.mythic-file-copy-relation > svg {
+    color: var(--mythic-color-info-base);
+    font-size: 0.85rem;
 }
 .mythic-credential-search {
     display: flex;
@@ -4011,6 +4271,7 @@ tspan {
     gap: 0.5rem;
     padding: 0.5rem 0.625rem;
     width: 100%;
+    margin-top: 0.2rem;
 }
 .mythic-table-footer .MuiPagination-root, .mythic-single-task-remove-control .MuiCheckbox-root, .mythic-dashboard-table-body, .mythic-eventing-metadata-field-grid .mythic-eventing-metadata-field {
     padding: 0;
@@ -4053,6 +4314,7 @@ tspan {
     overflow: visible;
     padding: 0.5rem;
     width: 100%;
+    margin-bottom: 0.2rem;
 }
 .mythic-table-toolbar-search {
     align-items: stretch;
@@ -5877,7 +6139,7 @@ tspan {
 .mythic-dashboard-content {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.5rem;
     height: 100%;
     min-height: 0;
     overflow-y: auto;
@@ -5888,7 +6150,7 @@ tspan {
 .mythic-dashboard-custom {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.5rem;
     height: 100%;
     min-height: 0;
     overflow-y: auto;
@@ -5898,7 +6160,7 @@ tspan {
     align-items: stretch;
     display: grid;
     flex: 0 0 auto;
-    gap: 0.75rem;
+    gap: 0.5rem;
     grid-auto-flow: dense;
     grid-template-columns: var(--mythic-dashboard-row-template, repeat(auto-fit, minmax(min(100%, 19rem), 1fr)));
     min-width: 0;
@@ -8278,7 +8540,6 @@ tspan {
 .mythic-eventing-user-interaction-modal {
     display: grid;
     gap: 0.875rem;
-    grid-template-columns: minmax(11rem, 15rem) minmax(0, 1fr);
     min-width: 0;
 }
 .mythic-eventing-user-interaction-step-option {
@@ -8673,7 +8934,6 @@ tspan {
     padding: 0;
 }
 .mythic-eventing-code-block .ace_editor {
-    background-color: transparent !important;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
 }
 .mythic-eventing-code-block .ace_gutter {
@@ -9204,12 +9464,23 @@ tspan {
     overflow: visible;
     width: 100%;
 }
-.mythic-chat-layout > .gutter.gutter-horizontal {
+.gutter.gutter-horizontal {
     cursor: col-resize;
-    margin: 0;
     position: relative;
-    margin-top: 0.625rem;
-    margin-bottom: 0.625rem;
+    border-radius: var(--mythic-radius-base);
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    margin-left: 0.2rem;
+    margin-right: 0.2rem;
+}
+.gutter.gutter-vertical {
+    cursor: row-resize;
+    position: relative;
+    border-radius: var(--mythic-radius-base);
+    margin-left: 1rem;
+    margin-right: 1rem;
+    margin-top: 0.2rem;
+    margin-bottom: 0.2rem;
 }
 .mythic-chat-layout > .gutter.gutter-horizontal::after {
     background-color: var(--mythic-color-page-header-text-level-1);
@@ -9258,7 +9529,7 @@ tspan {
     flex-direction: column;
     min-height: 0;
     min-width: 0;
-    border-radius: 8px;
+    border-radius: var(--mythic-radius-base);
     box-shadow: inset 0 1px 0 var(--mythic-color-page-header-text-level-1);
     overflow: hidden;
 }
@@ -9397,7 +9668,7 @@ tspan {
 .mythic-chat-channel-row {
     align-items: center;
     border: 1px solid transparent;
-    border-radius: 7px;
+    border-radius: var(--mythic-radius-base);
     display: grid;
     gap: 0.375rem;
     grid-template-columns: minmax(0, 1fr) 28px;
@@ -9407,7 +9678,7 @@ tspan {
     align-items: center;
     background-color: var(--mythic-color-surface-translucent);
     border: 1px solid transparent;
-    border-radius: 7px;
+    border-radius: var(--mythic-radius-base);
     cursor: pointer;
     display: grid;
     gap: 0.5rem;
@@ -9624,7 +9895,7 @@ tspan {
     color: var(--mythic-chat-channel-error);
 }
 .mythic-chat-message-actions .MuiIconButton-root, .mythic-chat-header-actions .MuiIconButton-root {
-    border-radius: 6px;
+    border-radius: var(--mythic-radius-base);
     height: 28px;
     width: 28px;
 }
@@ -9635,12 +9906,12 @@ tspan {
     flex-direction: column;
     min-height: 0;
     min-width: 0;
-    border-radius: 8px;
+    border-radius: var(--mythic-radius-base);
     overflow: hidden;
 }
 .mythic-chat-conversation-icon {
     align-items: center;
-    border-radius: 7px;
+    border-radius: var(--mythic-radius-base);
     display: inline-flex;
     flex: 0 0 auto;
     height: 32px;
@@ -9681,7 +9952,7 @@ tspan {
 }
 .mythic-chat-message {
     border: 1px solid var(--mythic-chat-markdown-border);
-    border-radius: 8px;
+    border-radius: var(--mythic-radius-base);
     max-width: 100%;
     min-width: 0;
     overflow: hidden;
@@ -9949,7 +10220,7 @@ tspan {
     background: var(--mythic-chat-markdown-surface);
     border: 1px solid var(--mythic-chat-markdown-border);
     border-left: 3px solid var(--mythic-chat-markdown-border);
-    border-radius: 7px;
+    border-radius: var(--mythic-radius-base);
     color: inherit;
     margin: 0.375rem 0;
     padding: 0.25rem 0.5rem 0.25rem 0.625rem;
@@ -9962,7 +10233,7 @@ tspan {
 .mythic-chat-inline-code {
     background: var(--mythic-chat-markdown-surface);
     border: 1px solid var(--mythic-chat-markdown-border);
-    border-radius: 4px;
+    border-radius: var(--mythic-radius-base);
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 0.88em;
     padding: 0.125rem 0.25rem;
@@ -9974,7 +10245,7 @@ tspan {
 .mythic-chat-code-block pre {
     background: var(--mythic-chat-markdown-surface);
     border: 1px solid var(--mythic-chat-markdown-border);
-    border-radius: 7px;
+    border-radius: var(--mythic-radius-base);
     margin: 0;
     overflow-x: auto;
     padding: 0.625rem;
@@ -9986,7 +10257,7 @@ tspan {
 .mythic-chat-code-language {
     background: var(--mythic-chat-markdown-surface-strong);
     border: 1px solid var(--mythic-chat-markdown-border);
-    border-radius: 4px;
+    border-radius: var(--mythic-radius-base);
     font-size: 0.68rem;
     font-weight: 700;
     padding: 0.125rem 0.375rem;
@@ -10032,7 +10303,7 @@ tspan {
     align-items: center;
     background-color: var(--mythic-color-surface-hover);
     border: 1px solid var(--mythic-color-border-subtle);
-    border-radius: 7px;
+    border-radius: var(--mythic-radius-base);
     display: flex;
     gap: 0.5rem;
     min-width: 0;
@@ -10041,7 +10312,7 @@ tspan {
 .mythic-chat-system-options {
     background-color: var(--mythic-color-surface-hover);
     border: 1px solid var(--mythic-color-border-subtle);
-    border-radius: 7px;
+    border-radius: var(--mythic-radius-base);
     padding: 0.25rem 0.625rem;
 }
 .mythic-chat-search-dialog.MuiDialog-paper {
@@ -10071,7 +10342,7 @@ tspan {
 }
 .mythic-chat-empty-list {
     background: var(--mythic-color-surface-hover);
-    border-radius: 7px;
+    border-radius: var(--mythic-radius-base);
     font-size: 0.76rem;
     opacity: 0.72;
     padding: 0.625rem;
@@ -10087,7 +10358,7 @@ tspan {
 .mythic-chat-search-result {
     background: transparent;
     border: 1px solid var(--mythic-color-border-subtle);
-    border-radius: 7px;
+    border-radius: var(--mythic-radius-base);
     color: inherit;
     cursor: pointer;
     display: grid;
@@ -10116,7 +10387,7 @@ tspan {
 }
 .mythic-chat-search-highlight {
     background-color: var(--mythic-color-warning-level-1);
-    border-radius: 3px;
+    border-radius: var(--mythic-radius-base);
     box-shadow: inset 0 0 0 1px var(--mythic-color-warning-level-2);
     color: inherit;
     font-weight: 800;
@@ -10222,7 +10493,7 @@ tspan {
 }
 .mythic-reference-picker-body {
     border: 1px solid var(--mythic-color-border-base);
-    border-radius: 6px;
+    border-radius: var(--mythic-radius-base);
     height: min(560px, calc(100vh - 280px));
     min-height: 360px;
     overflow: hidden;
@@ -10347,7 +10618,7 @@ tspan {
 .mythic-link-reference-row {
     background: var(--mythic-color-surface-base);
     border: 1px solid var(--mythic-color-border-subtle);
-    border-radius: 6px;
+    border-radius: var(--mythic-radius-base);
     display: flex;
     flex-direction: column;
     gap: 0.375rem;
@@ -10431,7 +10702,7 @@ tspan {
 .mythic-tasking-reference-review-preview {
     background-color: var(--mythic-color-surface-hover);
     border: 1px solid var(--mythic-color-border-base);
-    border-radius: 6px;
+    border-radius: var(--mythic-radius-base);
     font-family: var(--mythic-font-family-mono);
     font-size: 0.78rem;
     line-height: 1.45;
@@ -10445,7 +10716,7 @@ tspan {
 .mythic-tasking-reference-review-row {
     align-items: stretch;
     border: 1px solid var(--mythic-color-border-base);
-    border-radius: 6px;
+    border-radius: var(--mythic-radius-base);
     display: flex;
     flex-direction: column;
     gap: 0.375rem;
@@ -10487,7 +10758,7 @@ tspan {
     align-items: center;
     background-color: var(--mythic-color-secondary-level-1);
     border: 1px solid var(--mythic-color-secondary-level-2);
-    border-radius: 5px;
+    border-radius: var(--mythic-radius-base);
     cursor: pointer;
     display: inline-flex;
     font-family: var(--mythic-font-family-mono);

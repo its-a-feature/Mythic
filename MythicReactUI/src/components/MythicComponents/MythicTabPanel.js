@@ -123,7 +123,7 @@ export function MythicTabLabel(props) {
                             margin: "0 3px 0 0",
                             minHeight: "32px",
                             borderRadius: `${theme.shape.borderRadius}px ${theme.shape.borderRadius}px 0 0`,
-                            borderTop: `2px solid ${selected ? tabAccent : "transparent"}`,
+                            borderTop: `3px solid ${selected ? tabAccent : "transparent"}`,
                             borderRight: `1px solid ${theme.borderColor}`,
                             borderBottom: selected ? `1px solid ${theme.palette.background.paper}` : `1px solid ${theme.borderColor}`,
                             borderLeft: `1px solid ${theme.borderColor}`,

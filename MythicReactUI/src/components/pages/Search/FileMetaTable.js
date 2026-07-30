@@ -8,26 +8,18 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import {snackActions} from '../../utilities/Snackbar';
 import {MythicSnackDownload} from '../../MythicComponents/MythicSnackDownload';
-import {useTheme} from '@mui/material/styles';
 import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
-import {getSkewedNow, toLocalTime} from '../../utilities/Time';
+import {toLocalTime} from '../../utilities/Time';
 import DeleteIcon from '@mui/icons-material/Delete';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import Box from '@mui/material/Box';
-import Collapse from '@mui/material/Collapse';
 import ArchiveIcon from '@mui/icons-material/Archive';
 import { gql, useMutation } from '@apollo/client';
 import { ResponseDisplayScreenshotModal } from '../Callbacks/ResponseDisplayScreenshotModal';
-import { MythicDialog, MythicModifyStringDialog } from '../../MythicComponents/MythicDialog';
-import EditIcon from '@mui/icons-material/Edit';
+import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
-import {TagsDisplay, ViewEditTags} from '../../MythicComponents/MythicTag';
 import {b64DecodeUnicode} from '../Callbacks/ResponseDisplay';
 import Checkbox from '@mui/material/Checkbox';
 import {HostFileDialog, HostedFileLocationsTable} from "../Payloads/HostFileDialog";
-import PublicIcon from '@mui/icons-material/Public';
 import {getStringSize} from '../Callbacks/ResponseDisplayTable';
 import {PreviewFileMediaDialog} from "../../MythicComponents/PreviewFileMedia";
 import {faPhotoVideo} from '@fortawesome/free-solid-svg-icons';
@@ -35,6 +27,13 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {ImageWithAuth} from "../../utilities/ImageWithAuth";
 import {FileDownloadLinkWithAuth} from "../../utilities/FileDownloadWithAuth";
 import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
+import {MythicChip} from "../../MythicComponents/MythicChip";
+import {
+    FileMetaSplitView,
+    getFileStatus,
+    useFileSelection,
+} from "./FileMetaInspector";
+import {useNavigate} from "react-router-dom";
 
 export const downloadBulkQuery = gql`
 mutation downloadBulkMutation($files: [String!]!){
@@ -51,14 +50,6 @@ mutation updateFileMutation($file_id: Int, $file_ids: [Int!]){
         status
         error
         file_ids
-    }
-}
-`;
-const updateFileComment = gql`
-mutation updateCommentMutation($file_id: Int!, $comment: String!){
-    update_filemeta_by_pk(pk_columns: {id: $file_id}, _set: {comment: $comment}) {
-        comment
-        id
     }
 }
 `;
@@ -103,32 +94,36 @@ export const SnackMessage = (props) => {
 
     );
 };
-const MythicCallbackGroupsDisplay = ({groups}) => {
-    if(!groups){
-        return null
-    }
-    if(groups.length === 0){
-        return null
-    }
-    if(groups.length === 1 && groups[0] === "Default"){
-        return null
-    }
+export const normalizeFileMeta = (file) => ({
+    ...file,
+    filename_text: b64DecodeUnicode(file.filename_text),
+    full_remote_path_text: b64DecodeUnicode(file.full_remote_path_text),
+    copy_of_file: file.copy_of_file ? {
+        ...file.copy_of_file,
+        filename_text: b64DecodeUnicode(file.copy_of_file.filename_text),
+        full_remote_path_text: b64DecodeUnicode(file.copy_of_file.full_remote_path_text),
+    } : null,
+});
+
+const FileStatusSummary = ({file}) => {
+    const status = getFileStatus(file);
     return (
-        <Typography variant="body2" style={{wordBreak: "break-all"}}>
-            <b>Groups: </b>{groups.join(", ")}
-        </Typography>
-    )
-}
-const C2HostedLocationsSummary = ({hostedFiles}) => {
-    if(!hostedFiles || hostedFiles.length === 0){
-        return null;
-    }
-    return (
-        <Box marginTop={1}>
-            <HostedFileLocationsTable hostedFiles={hostedFiles} />
-        </Box>
+        <div className="mythic-file-search-status">
+            {status.label !== "Complete" &&
+                <MythicChip size="small" tone={status.tone} variant="outlined" label={status.label} />
+            }
+            {file.copy_of_file &&
+                <MythicChip size="small" tone="info" variant="outlined" label="Tracked copy" />
+            }
+            <MythicChip size="small" tone="secondary" variant="outlined" label={getStringSize({cellData: {plaintext: file.size}})} />
+        </div>
     );
-}
+};
+
+const stopRowClick = (event) => {
+    event.stopPropagation();
+};
+
 export function HostedFileTable(props){
     const [hostedFiles, setHostedFiles] = React.useState([]);
     const [editingHostedFile, setEditingHostedFile] = React.useState(null);
@@ -224,40 +219,36 @@ export function HostedFileTable(props){
     );
 }
 export function FileMetaDownloadTable(props){
-    const [selected, setSelected] = React.useState({});
+    const [bulkSelected, setBulkSelected] = React.useState({});
     const [files, setFiles] = React.useState([]);
     const [checkAll, setCheckAll] = React.useState(false);
-    const [disabled, setDisabled] = React.useState(true);
+    const {selectedFileID, setSelectedFileID, selectedFile} = useFileSelection(files);
+    const bulkActionsDisabled = !Object.values(bulkSelected).some(Boolean);
     const onToggleSelection = (id, checked) => {
-        setSelected({...selected, [id]: checked});
+        setBulkSelected((currentSelected) => ({...currentSelected, [id]: checked}));
     }
     const onToggleCheckAll = () => {
         if(checkAll){
-            // it's currently checked and clicked again, untoggle it all
             setCheckAll(false);
-            setSelected({});
+            setBulkSelected({});
         } else {
             setCheckAll(true);
             const newSelected = files?.reduce( (prev, cur) => {
                 if(!cur.deleted){
                     return {...prev, [cur.id]: true};
-                } else {
-                    return {...prev}
                 }
-
+                return {...prev};
             }, {}) || {};
-            setSelected(newSelected);
+            setBulkSelected(newSelected);
         }
     }
     useEffect( () => {
         const initialSelected = props.files?.reduce( (prev, file) => {
             return {...prev, [file.id]: false}
         }, {}) || {};
-        const initialFiles = props.files?.reduce( (prev, file) => {
-            return [...prev, {...file, filename_text: b64DecodeUnicode(file.filename_text), full_remote_path_text: b64DecodeUnicode(file.full_remote_path_text)}]
-        }, []) || [];
-        setSelected(initialSelected);
-        setFiles(initialFiles);
+        setCheckAll(false);
+        setBulkSelected(initialSelected);
+        setFiles(props.files?.map(normalizeFileMeta) || []);
     }, [props.files]);
     const [downloadBulk] = useMutation(downloadBulkQuery, {
         onCompleted: (data) => {
@@ -278,7 +269,7 @@ export function FileMetaDownloadTable(props){
     const onDownloadBulk = () => {
         snackActions.info("Zipping up files...");
         let fileIds = [];
-        for(const [key, value] of Object.entries(selected)){
+        for(const [key, value] of Object.entries(bulkSelected)){
             if(value){
                 for(let j = 0; j < props.files.length; j++){
                     if(props.files[j].id === parseInt(key)){
@@ -306,7 +297,7 @@ export function FileMetaDownloadTable(props){
     })
     const onDeleteBulk = () => {
         let fileIds = [];
-        for(const [key, value] of Object.entries(selected)){
+        for(const [key, value] of Object.entries(bulkSelected)){
             if(value){
                 for(let j = 0; j < props.files.length; j++){
                     if(props.files[j].id === parseInt(key)){
@@ -321,88 +312,70 @@ export function FileMetaDownloadTable(props){
         if(!file_ids){
             return;
         }
-        const updated = files.reduce( (prev, cur) => {
-            if(file_ids.includes(cur.id)){
-                return [...prev];
-            }
-            return [...prev, cur];
-        }, []);
-        let currentSelected = {...selected};
-        file_ids.map(f => {
+        const updated = files.filter((file) => !file_ids.includes(file.id));
+        let currentSelected = {...bulkSelected};
+        file_ids.forEach(f => {
             currentSelected[f] = false;
         });
         setCheckAll(false);
-        setSelected(currentSelected);
+        setBulkSelected(currentSelected);
         setFiles(updated);
     }
     const onEditComment = ({id, comment}) => {
-        const updated = files.map( (file) => {
-            if(file.id === id){
-                return {...file, comment: comment};
-            }else{
-                return {...file}
-            }
-        });
-        setFiles(updated);
+        setFiles((currentFiles) => currentFiles.map((file) =>
+            file.id === id ? {...file, comment} : file
+        ));
     }
-    useEffect( () => {
-        for(const [key, value] of Object.entries(selected)){
-            if(value){
-                setDisabled(false);
-                return
-            }
-        }
-        setDisabled(true);
-    }, [selected]);
     return (
-        <TableContainer className="mythicElement" style={{display: "flex", flexDirection: "column", height: "100%"}} >
-            <span className="mythic-table-bulk-actions">
-                <MythicActionButton active disabled={disabled} icon={<ArchiveIcon />} label="Zip & Download Selected" onClick={onDownloadBulk} tone="info" />
-                <MythicActionButton disabled={disabled} icon={<DeleteIcon />} label="Delete Selected" onClick={onDeleteBulk} tone="error" />
-            </span>
-            <TableContainer className="mythicElement" style={{height: "100%", overflowY: "auto"}}>
-                <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
-                <TableHead>
-                    <TableRow>
-                        <TableCell style={{width: "3rem"}}>
-                            <Checkbox checked={checkAll} onChange={onToggleCheckAll}
-                                      sx={{pl: "3px"}}
-                                      inputProps={{ 'aria-label': 'controlled',  }} />
-                        </TableCell>
-                        <TableCell style={{width: "5rem"}}>Actions</TableCell>
-                        <TableCell >File</TableCell>
-                        <TableCell style={{width: "15rem"}}>Comment</TableCell>
-                        <TableCell style={{width: "7rem"}}>Size</TableCell>
-                        <TableCell style={{width: "15rem"}}>Tags</TableCell>
-                        <TableCell style={{width: "5rem"}}>More</TableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                
-                {files.map( (op) => (
-                    <FileMetaDownloadTableRow
-                        me={props.me}
-                        key={"file" + op.id}
-                        onToggleSelection={onToggleSelection}
-                        onEditComment={onEditComment}
-                        selected={selected}
-                        onDelete={onDelete}
-                        {...op}
-                    />
-                ))}
-                </TableBody>
-            </Table>
-            </TableContainer>
-        </TableContainer>
+        <FileMetaSplitView
+            file={selectedFile}
+            kind="download"
+            me={props.me}
+            onEditComment={onEditComment}>
+            <div className="mythic-file-search-table-layout">
+                <span className="mythic-table-bulk-actions">
+                    <MythicActionButton disabled={bulkActionsDisabled} icon={<ArchiveIcon />} label="Zip & Download Selected" onClick={onDownloadBulk} tone="info" />
+                    <MythicActionButton disabled={bulkActionsDisabled} icon={<DeleteIcon />} label="Delete Selected" onClick={onDeleteBulk} tone="error" />
+                </span>
+                <TableContainer className="mythic-file-search-table-wrap">
+                    <Table stickyHeader size="small" className="mythic-file-search-table">
+                        <TableHead>
+                            <TableRow>
+                                <TableCell style={{width: "3rem"}}>
+                                    <Checkbox
+                                        checked={checkAll}
+                                        onChange={onToggleCheckAll}
+                                        sx={{pl: "3px"}}
+                                        inputProps={{'aria-label': 'Select all files'}}
+                                    />
+                                </TableCell>
+                                <TableCell style={{minWidth: "4rem"}}>File</TableCell>
+                                <TableCell style={{width: "9rem"}}>Status</TableCell>
+                                <TableCell style={{width: "5rem"}}>Actions</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {files.map((file) => (
+                                <FileMetaDownloadTableRow
+                                    key={"file" + file.id}
+                                    onToggleSelection={onToggleSelection}
+                                    bulkSelected={bulkSelected}
+                                    onDelete={onDelete}
+                                    selected={selectedFileID === file.id}
+                                    onSelect={() => setSelectedFileID(file.id)}
+                                    {...file}
+                                />
+                            ))}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            </div>
+        </FileMetaSplitView>
     )
 }
 function FileMetaDownloadTableRow(props){
     const [openDelete, setOpenDelete] = React.useState(false);
-    const [openDetails, setOpenDetails] = React.useState(false);
-    const [editCommentDialogOpen, setEditCommentDialogOpen] = React.useState(false);
     const [openPreviewMediaDialog, setOpenPreviewMediaDialog] = React.useState(false);
-    const [openHostDialog, setOpenHostDialog] = React.useState(false);
-    const me = props.me;
     const [deleteFile] = useMutation(updateFileDeleted, {
         onCompleted: (data) => {
             snackActions.dismiss();
@@ -417,221 +390,108 @@ function FileMetaDownloadTableRow(props){
         deleteFile({variables: {file_id: props.id}})
     }
     const onSelectChanged = (event) => {
-        if(event){
-            event.preventDefault();
-            event.stopPropagation();
-        }
+        event.stopPropagation();
         props.onToggleSelection(props.id, event.target.checked);
     }
-    const [updateComment] = useMutation(updateFileComment, {
-        onCompleted: (data) => {
-            snackActions.success("updated comment");
-            props.onEditComment(data.update_filemeta_by_pk)
-        }
-    });
-    const onSubmitUpdatedComment = (comment) => {
-        updateComment({variables: {file_id: props.id, comment: comment}})
-    }
     const onPreviewMedia = (event) => {
-        if(event){
-            event.preventDefault();
-            event.stopPropagation();
-        }
+        event.stopPropagation();
         setOpenPreviewMediaDialog(true);
-    }
-    const expandRow = (event) => {
-        if(event.target.localName === "td" || event.target.localName === "p"){
-            setOpenDetails(!openDetails);
-        }
-    }
-    const expandRowButton = (event) => {
-        setOpenDetails(!openDetails);
-    }
-    const onOpenCloseComment = (event, open) => {
-        if(event){
-            event.stopPropagation();
-        }
-
-        setEditCommentDialogOpen(open);
     }
     return (
         <React.Fragment>
-            <TableRow hover onClick={expandRow}>
-                {openDelete &&
-                    <MythicConfirmDialog onClose={() => {setOpenDelete(false);}} onSubmit={onAcceptDelete} open={openDelete}/>
-                }
+            {openDelete &&
+                <MythicConfirmDialog onClose={() => setOpenDelete(false)} onSubmit={onAcceptDelete} open={openDelete}/>
+            }
+            {openPreviewMediaDialog &&
+                <MythicDialog
+                    fullWidth={true}
+                    maxWidth="xl"
+                    open={openPreviewMediaDialog}
+                    onClose={() => setOpenPreviewMediaDialog(false)}
+                    innerDialog={
+                        <PreviewFileMediaDialog
+                            agent_file_id={props.agent_file_id}
+                            filename={props.filename_text}
+                            onClose={() => setOpenPreviewMediaDialog(false)}
+                        />
+                    }
+                />
+            }
+            <TableRow
+                hover
+                selected={props.selected}
+                className={`mythic-file-search-row${props.selected ? " mythic-file-search-row-selected" : ""}`}
+                onClick={props.onSelect}>
                 <MythicStyledTableCell>
                     {props.deleted ? null : (
                         <MythicStyledTooltip title="Toggle to download multiple files at once">
-                            <Checkbox checked={props.selected[props.id] === undefined ? false : props.selected[props.id]}
+                            <Checkbox checked={props.bulkSelected[props.id] || false}
                                       onChange={onSelectChanged}
-                                      inputProps={{ 'aria-label': 'controlled' }} />
+                                      inputProps={{'aria-label': 'Select file'}} />
                         </MythicStyledTooltip>
                     )}
-                    
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    {props.deleted || props.size === 0  ? null : (
+                    {props.deleted ? (
+                        <span>{props.filename_text}</span>
+                    ) : (
+                        <FileDownloadLinkWithAuth color="textPrimary"
+                                                  underline="always" href={"/direct/download/" + props.agent_file_id}
+                        >
+                            <b>{ props.filename_text }</b>
+                        </FileDownloadLinkWithAuth>
+                    )}
+                    <span className="mythic-file-search-secondary">
+                        {props.host}: {props.full_remote_path_text}
+                    </span>
+                </MythicStyledTableCell>
+                <MythicStyledTableCell>
+                    <FileStatusSummary file={props} />
+                </MythicStyledTableCell>
+                <MythicStyledTableCell onClick={stopRowClick}>
+                    {props.deleted || props.size === 0 ? null : (
                         <div className="mythic-compact-actions mythic-compact-actions-nowrap">
-                            <MythicActionButton appearance="raised" icon={<DeleteIcon />} iconOnly onClick={()=>{setOpenDelete(true);}} tone="error" tooltip="Delete file" />
+                            <MythicActionButton appearance="raised" icon={<DeleteIcon />} iconOnly onClick={() => setOpenDelete(true)} tone="error" tooltip="Delete file" />
                             <MythicActionButton appearance="raised" icon={<FontAwesomeIcon icon={faPhotoVideo} />} iconOnly onClick={onPreviewMedia} tone="info" tooltip="Preview Media" />
-                            {openPreviewMediaDialog &&
-                                <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewMediaDialog}
-                                              onClose={(e)=>{setOpenPreviewMediaDialog(false);}}
-                                              innerDialog={<PreviewFileMediaDialog
-                                                  agent_file_id={props.agent_file_id}
-                                                  filename={props.filename_text}
-                                                  onClose={(e)=>{setOpenPreviewMediaDialog(false);}} />}
-                                />
-                            }
                         </div>
                     )}
                 </MythicStyledTableCell>
-                <MythicStyledTableCell>
-                    <Typography variant="body2" style={{wordBreak: "break-all"}}><b>Host: </b>{props.host}</Typography>
-                    <MythicCallbackGroupsDisplay groups={props?.task?.callback.mythictree_groups} />
-                    {props.deleted ? (
-                        <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.full_remote_path_text === "" ? props.filename_text : props.full_remote_path_text}</Typography>
-                        ) : (
-                        <FileDownloadLinkWithAuth style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + props.agent_file_id}>{props.full_remote_path_text === "" ? props.filename_text : props.full_remote_path_text}</FileDownloadLinkWithAuth>
-                        )
-                    }
-                    {props.complete ? null : (
-                            <Typography color="secondary" style={{wordBreak: "break-all"}} >{props.chunks_received} / {props.total_chunks} Chunks Received</Typography>
-                        )
-                    }
-                </MythicStyledTableCell>
-                <MythicStyledTableCell>{props.comment}<MythicActionButton appearance="raised" icon={<EditIcon />} iconOnly onClick={(e) => onOpenCloseComment(e, true)} tone="info" tooltip="Edit file comment" />
-                    {editCommentDialogOpen &&
-                        <MythicDialog fullWidth={true} maxWidth="md" open={editCommentDialogOpen}
-                                      onClose={(e)=>{onOpenCloseComment(e, false);}}
-                                      innerDialog={<MythicModifyStringDialog title="Edit File Comment" onSubmit={onSubmitUpdatedComment} value={props.comment} onClose={(e)=>{onOpenCloseComment(e, false);}} />}
-                        />
-                    }
-
-                </MythicStyledTableCell>
-                <MythicStyledTableCell>
-                    {getStringSize({cellData: {"plaintext": props.size}})}
-                </MythicStyledTableCell>
-                <MythicStyledTableCell>
-                    <ViewEditTags target_object={"filemeta_id"} target_object_id={props.id} me={me} />
-                    <TagsDisplay tags={props.tags} />
-                </MythicStyledTableCell>
-                <MythicStyledTableCell>
-                    <MythicActionButton appearance="raised" icon={openDetails ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />} iconOnly onClick={expandRowButton} tooltip={openDetails ? "Collapse details" : "Expand details"} />
-                </MythicStyledTableCell>
             </TableRow>
-                {openDetails ? (
-                    <TableRow>
-                        <MythicStyledTableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={7}>
-                            <Collapse in={openDetails}>
-                                <Box margin={1}>
-                                <TableContainer className="mythicElement" elevation={3}>
-                                    <Table  size="small" style={{tableLayout:"fixed", "width": "100%", "overflow": "scroll"}}>
-                                        <TableHead>
-                                            <TableRow>
-                                                <MythicStyledTableCell style={{width: "25rem"}}>Identifiers</MythicStyledTableCell>
-                                                <MythicStyledTableCell >Operator</MythicStyledTableCell>
-                                                <MythicStyledTableCell style={{width: "8rem"}}>Task</MythicStyledTableCell>
-                                                <MythicStyledTableCell>Time</MythicStyledTableCell>
-                                                <MythicStyledTableCell>Command</MythicStyledTableCell>
-                                                <MythicStyledTableCell>Host File</MythicStyledTableCell>
-                                            </TableRow>
-                                        </TableHead>
-                                        <TableBody>
-                                            <TableRow>
-                                                <MythicStyledTableCell >
-                                                    <Typography variant="body2" style={{wordBreak: "break-all"}}>MD5:  {props.md5}</Typography>
-                                                    <Typography variant="body2" style={{wordBreak: "break-all"}}>SHA1: {props.sha1}</Typography>
-                                                    <Typography variant="body2" style={{wordBreak: "break-all"}}>UUID: {props.agent_file_id}</Typography>
-                                                </MythicStyledTableCell>
-                                                <MythicStyledTableCell ><Typography variant="body2" style={{wordBreak: "break-all"}}>{props.operator.username}</Typography></MythicStyledTableCell>
-                                                <MythicStyledTableCell>
-                                                    {props.task === null ? null : (
-                                                        <>
-                                                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>C-{props.task.callback.display_id}</Link><br/>
-                                                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>T-{props.task.display_id}</Link>
-                                                            <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.task.comment}</Typography>
-                                                        </>
-                                                        
-                                                    )}
-                                                    
-                                                </MythicStyledTableCell>
-                                                <MythicStyledTableCell >
-                                                    <Typography variant="body2" style={{wordBreak: "break-all"}}>{toLocalTime(props.timestamp, me.user.view_utc_time)}</Typography>
-                                                </MythicStyledTableCell>
-                                                <MythicStyledTableCell>
-                                                    {props.task === null ? null : (
-                                                        <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.task.command.cmd}</Typography>
-                                                    )}
-                                                    
-                                                </MythicStyledTableCell>
-                                                <MythicStyledTableCell>
-                                                    <MythicActionButton appearance="raised" icon={<PublicIcon />} iconOnly onClick={()=>{setOpenHostDialog(true);}} tone="info" tooltip="Host Payload Through C2" />
-                                                    {openHostDialog &&
-                                                        <MythicDialog fullWidth={true} maxWidth="md" open={openHostDialog}
-                                                                      onClose={()=>{setOpenHostDialog(false);}}
-                                                                      innerDialog={<HostFileDialog file_uuid={props.agent_file_id}
-                                                                                                   file_name={props.full_remote_path_text === "" ? props.filename_text : props.full_remote_path_text}
-                                                                                                   onClose={()=>{setOpenHostDialog(false);}} />}
-                                                        />
-                                                    }
-                                                </MythicStyledTableCell>
-                                            </TableRow>
-                                        </TableBody>
-                                    </Table>
-                                </TableContainer>
-                                <C2HostedLocationsSummary hostedFiles={props.c2profile_file_hosts} />
-                                </Box>
-                            </Collapse>
-                        </MythicStyledTableCell>
-                    </TableRow>
-            ) : null }
         </React.Fragment>
     )
 }
 
 export function FileMetaUploadTable(props){
-    const [selected, setSelected] = React.useState({});
+    const [bulkSelected, setBulkSelected] = React.useState({});
     const [files, setFiles] = React.useState([]);
     const [checkAll, setCheckAll] = React.useState(false);
-    const [disabled, setDisabled] = React.useState(true);
+    const {selectedFileID, setSelectedFileID, selectedFile} = useFileSelection(files);
+    const bulkActionsDisabled = !Object.values(bulkSelected).some(Boolean);
     const onToggleSelection = (id, checked) => {
-        setSelected({...selected, [id]: checked});
+        setBulkSelected((currentSelected) => ({...currentSelected, [id]: checked}));
     }
     const onToggleCheckAll = () => {
         if(checkAll){
-            // it's currently checked and clicked again, untoggle it all
             setCheckAll(false);
-            setSelected({});
+            setBulkSelected({});
         } else {
             setCheckAll(true);
             const newSelected = files?.reduce( (prev, cur) => {
                 if(!cur.deleted){
                     return {...prev, [cur.id]: true};
-                } else {
-                    return {...prev}
                 }
-
+                return {...prev};
             }, {}) || {};
-            setSelected(newSelected);
+            setBulkSelected(newSelected);
         }
     }
     useEffect( () => {
         const initialSelected = props.files?.reduce( (prev, file) => {
             return {...prev, [file.id]: false}
-        }, {})  || [];
-        const initialFiles = props.files?.reduce( (prev, file) => {
-            if(file.copy_of_file !== undefined && file.copy_of_file !== null){
-                file.copy_of_file.filename_text = b64DecodeUnicode(file.copy_of_file.filename_text);
-                file.copy_of_file.full_remote_path_text = b64DecodeUnicode(file.copy_of_file.full_remote_path_text)
-            }
-            return [...prev,
-                {...file, filename_text: b64DecodeUnicode(file.filename_text),
-                    full_remote_path_text: b64DecodeUnicode(file.full_remote_path_text)}]
-        }, []) || [];
-        setSelected(initialSelected);
-        setFiles(initialFiles);
+        }, {})  || {};
+        setCheckAll(false);
+        setBulkSelected(initialSelected);
+        setFiles(props.files?.map(normalizeFileMeta) || []);
     }, [props.files]);
     const [downloadBulk] = useMutation(downloadBulkQuery, {
         onCompleted: (data) => {
@@ -650,7 +510,7 @@ export function FileMetaUploadTable(props){
     const onDownloadBulk = () => {
         snackActions.info("Zipping up files...");
         let fileIds = [];
-        for(const [key, value] of Object.entries(selected)){
+        for(const [key, value] of Object.entries(bulkSelected)){
             if(value){
                 for(let j = 0; j < props.files.length; j++){
                     if(props.files[j].id === parseInt(key)){
@@ -678,7 +538,7 @@ export function FileMetaUploadTable(props){
     })
     const onDeleteBulk = () => {
         let fileIds = [];
-        for(const [key, value] of Object.entries(selected)){
+        for(const [key, value] of Object.entries(bulkSelected)){
             if(value){
                 for(let j = 0; j < props.files.length; j++){
                     if(props.files[j].id === parseInt(key)){
@@ -691,91 +551,70 @@ export function FileMetaUploadTable(props){
     }
     const onDelete = ({file_ids}) => {
         if(!file_ids){return}
-        const updated = files.reduce( (prev, cur) => {
-            if(file_ids.includes(cur.id)){
-                return [...prev];
-            }
-            return [...prev, cur];
-        }, []);
-        let currentSelected = {...selected};
-        file_ids.map(f => {
+        const updated = files.filter((file) => !file_ids.includes(file.id));
+        let currentSelected = {...bulkSelected};
+        file_ids.forEach(f => {
             currentSelected[f] = false;
         });
         setCheckAll(false);
-        setSelected(currentSelected);
+        setBulkSelected(currentSelected);
         setFiles(updated);
     }
     const onEditComment = ({id, comment}) => {
-        const updated = files.map( (file) => {
-            if(file.id === id){
-                return {...file, comment: comment};
-            }else{
-                return {...file}
-            }
-        });
-        setFiles(updated);
+        setFiles((currentFiles) => currentFiles.map((file) =>
+            file.id === id ? {...file, comment} : file
+        ));
     }
-    useEffect( () => {
-        for(const [key, value] of Object.entries(selected)){
-            if(value){
-                setDisabled(false);
-                return
-            }
-        }
-        setDisabled(true);
-    }, [selected]);
     return (
-        <TableContainer className="mythicElement" style={{display: "flex", flexDirection: "column", height: "100%"}} >
-            <span className="mythic-table-bulk-actions">
-                <MythicActionButton active disabled={disabled} icon={<ArchiveIcon />} label="Zip & Download Selected" onClick={onDownloadBulk} tone="info" />
-                <MythicActionButton disabled={disabled} icon={<DeleteIcon />} label="Delete Selected" onClick={onDeleteBulk} tone="error" />
-            </span>
-            <TableContainer className="mythicElement" style={{height: "100%", overflowY: "auto"}}>
-                <Table stickyHeader size="small"
-                       style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell style={{width: "3rem"}}>
-                                <Checkbox checked={checkAll} onChange={onToggleCheckAll}
-                                          sx={{pl: "3px"}}
-                                          inputProps={{'aria-label': 'controlled'}}/>
-                            </TableCell>
-                            <TableCell style={{width: "5rem"}}>Actions</TableCell>
-                            <TableCell style={{}}>Source</TableCell>
-                            <TableCell style={{}}>Destination</TableCell>
-                            <TableCell style={{width: "15rem"}}>Comment</TableCell>
-                            <TableCell style={{width: "7rem"}}>Size</TableCell>
-                            <TableCell style={{width: "15rem"}}>Tags</TableCell>
-                            <TableCell style={{width: "5rem"}}>More</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-
-                        {files.map( (op) => (
-                            <FileMetaUploadTableRow
-                                me={props.me}
-                                key={"file" + op.id}
-                                onToggleSelection={onToggleSelection}
-                                onEditComment={onEditComment}
-                                selected={selected}
-                                onDelete={onDelete}
-                                {...op}
-                            />
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
-        </TableContainer>
+        <FileMetaSplitView
+            file={selectedFile}
+            kind="upload"
+            me={props.me}
+            onEditComment={onEditComment}>
+            <div className="mythic-file-search-table-layout">
+                <span className="mythic-table-bulk-actions">
+                    <MythicActionButton disabled={bulkActionsDisabled} icon={<ArchiveIcon />} label="Zip & Download Selected" onClick={onDownloadBulk} tone="info" />
+                    <MythicActionButton disabled={bulkActionsDisabled} icon={<DeleteIcon />} label="Delete Selected" onClick={onDeleteBulk} tone="error" />
+                </span>
+                <TableContainer className="mythic-file-search-table-wrap">
+                    <Table stickyHeader size="small" className="mythic-file-search-table">
+                        <TableHead>
+                            <TableRow>
+                                <TableCell style={{width: "3rem"}}>
+                                    <Checkbox
+                                        checked={checkAll}
+                                        onChange={onToggleCheckAll}
+                                        sx={{pl: "3px"}}
+                                        inputProps={{'aria-label': 'Select all files'}}
+                                    />
+                                </TableCell>
+                                <TableCell>File Transfer</TableCell>
+                                <TableCell style={{width: "9rem"}}>Status</TableCell>
+                                <TableCell style={{width: "5rem"}}>Actions</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {files.map((file) => (
+                                <FileMetaUploadTableRow
+                                    key={"file" + file.id}
+                                    onToggleSelection={onToggleSelection}
+                                    bulkSelected={bulkSelected}
+                                    onDelete={onDelete}
+                                    selected={selectedFileID === file.id}
+                                    onSelect={() => setSelectedFileID(file.id)}
+                                    {...file}
+                                />
+                            ))}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            </div>
+        </FileMetaSplitView>
     )
 }
 function FileMetaUploadTableRow(props){
-    const theme = useTheme();
     const [openDelete, setOpenDelete] = React.useState(false);
-    const [openDetails, setOpenDetails] = React.useState(false);
-    const [editCommentDialogOpen, setEditCommentDialogOpen] = React.useState(false);
     const [openPreviewMediaDialog, setOpenPreviewMediaDialog] = React.useState(false);
-    const [openHostDialog, setOpenHostDialog] = React.useState(false);
-    const me = props.me;
     const [deleteFile] = useMutation(updateFileDeleted, {
         onCompleted: (data) => {
             snackActions.dismiss();
@@ -790,327 +629,130 @@ function FileMetaUploadTableRow(props){
         deleteFile({variables: {file_id: props.id}})
     }
     const onSelectChanged = (event) => {
+        event.stopPropagation();
         props.onToggleSelection(props.id, event.target.checked);
     }
-    const [updateComment] = useMutation(updateFileComment, {
-        onCompleted: (data) => {
-            snackActions.success("updated comment");
-            props.onEditComment(data.update_filemeta_by_pk)
-        }
-    });
-    const onSubmitUpdatedComment = (comment) => {
-        updateComment({variables: {file_id: props.id, comment: comment}})
-    }
     const onPreviewMedia = (event) => {
-        if(event){
-            event.preventDefault();
-            event.stopPropagation();
-        }
+        event.stopPropagation();
         setOpenPreviewMediaDialog(true);
-    }
-    const expandRow = (event) => {
-        if(event.target.nodeName === 'INPUT'){
-            return
-        }
-        if(event.target.localName === "td" || event.target.localName === "p"){
-            setOpenDetails(!openDetails);
-        }
-    }
-    const onOpenCloseComment = (event, open) => {
-        if(event){
-            event.stopPropagation();
-        }
-        setEditCommentDialogOpen(open);
-    }
-    const expandRowButton = (event) => {
-        setOpenDetails(!openDetails);
     }
     return (
         <React.Fragment>
-            <TableRow hover onClick={expandRow}>
-                {openDelete && <MythicConfirmDialog onClose={() => {setOpenDelete(false);}} onSubmit={onAcceptDelete} open={openDelete}/>}
+            {openDelete &&
+                <MythicConfirmDialog onClose={() => setOpenDelete(false)} onSubmit={onAcceptDelete} open={openDelete}/>
+            }
+            {openPreviewMediaDialog &&
+                <MythicDialog
+                    fullWidth={true}
+                    maxWidth="xl"
+                    open={openPreviewMediaDialog}
+                    onClose={() => setOpenPreviewMediaDialog(false)}
+                    innerDialog={
+                        <PreviewFileMediaDialog
+                            agent_file_id={props.agent_file_id}
+                            filename={props.filename_text}
+                            editable={true}
+                            onClose={() => setOpenPreviewMediaDialog(false)}
+                        />
+                    }
+                />
+            }
+            <TableRow
+                hover
+                selected={props.selected}
+                className={`mythic-file-search-row${props.selected ? " mythic-file-search-row-selected" : ""}`}
+                onClick={props.onSelect}>
                 <MythicStyledTableCell>
                     {props.deleted ? null : (
                         <MythicStyledTooltip title="Toggle to download multiple files at once">
-                            <Checkbox checked={props.selected[props.id] === undefined ? false : props.selected[props.id]}
+                            <Checkbox checked={props.bulkSelected[props.id] || false}
                                       onChange={onSelectChanged}
-                                      inputProps={{ 'aria-label': 'controlled' }} />
+                                      inputProps={{'aria-label': 'Select file'}} />
                         </MythicStyledTooltip>
                     )}
-                    
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
+                    <FileDownloadLinkWithAuth color="textPrimary" underline="always" href={"/direct/download/" + props.agent_file_id}>
+                        <b>{props.filename_text}</b>
+                    </FileDownloadLinkWithAuth>
+                    <span className="mythic-file-search-secondary">
+                        {(props.host || "No host") + " \u2192 " + (props.full_remote_path_text || "Agent Memory")}
+                    </span>
+                </MythicStyledTableCell>
+                <MythicStyledTableCell>
+                    <FileStatusSummary file={props} />
+                </MythicStyledTableCell>
+                <MythicStyledTableCell onClick={stopRowClick}>
                     {props.deleted ? null : (
                         <div className="mythic-compact-actions mythic-compact-actions-nowrap">
-                            <MythicActionButton appearance="raised" icon={<DeleteIcon />} iconOnly onClick={()=>{setOpenDelete(true);}} tone="error" tooltip="Delete file" />
+                            <MythicActionButton appearance="raised" icon={<DeleteIcon />} iconOnly onClick={() => setOpenDelete(true)} tone="error" tooltip="Delete file" />
                             <MythicActionButton appearance="raised" icon={<FontAwesomeIcon icon={faPhotoVideo} />} iconOnly onClick={onPreviewMedia} tone="info" tooltip="Preview Media" />
-                            {openPreviewMediaDialog &&
-                                <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewMediaDialog}
-                                              onClose={(e)=>{setOpenPreviewMediaDialog(false);}}
-                                              innerDialog={<PreviewFileMediaDialog
-                                                  agent_file_id={props.agent_file_id}
-                                                  filename={props.filename_text}
-                                                  editable={true}
-                                                  onClose={(e)=>{setOpenPreviewMediaDialog(false);}} />}
-                                />
-                            }
                         </div>
                     )}
                 </MythicStyledTableCell>
-                <MythicStyledTableCell>
-                    <FileDownloadLinkWithAuth style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + props.agent_file_id}>{props.filename_text}</FileDownloadLinkWithAuth>
-                    {props.complete ? null : (
-                        <Typography color="secondary" style={{wordBreak: "break-all"}} >{props.chunks_received} / {props.total_chunks} Chunks Received</Typography>
-                    )
-                    }
-                </MythicStyledTableCell>
-                <MythicStyledTableCell  style={{wordBreak: "break-all"}}>
-                    <Typography variant="body2" style={{wordBreak: "break-all"}}>
-                        {props.host !== "" ? (
-                            <><b>Host: </b>{props.host}</>
-                        ) : null}
-                    </Typography>
-                    <MythicCallbackGroupsDisplay groups={props?.task?.callback.mythictree_groups} />
-                    {props.deleted ? (<Typography variant="body2" style={{wordBreak: "break-all"}}>{props.full_remote_path_text}</Typography>) : (
-                        props.complete ? (
-                            <FileDownloadLinkWithAuth style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" +  props.agent_file_id}>{props.full_remote_path_text}</FileDownloadLinkWithAuth>
-                        ) : (
-                            <React.Fragment>
-                                <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.full_remote_path_text}</Typography> <Typography color="secondary" style={{wordBreak: "break-all"}} >{props.chunks_received} / {props.total_chunks} Chunks Received</Typography>
-                            </React.Fragment>
-                        )
-                    )}
-                </MythicStyledTableCell>
-                <MythicStyledTableCell>
-                    {props.comment}<MythicActionButton appearance="raised" icon={<EditIcon />} iconOnly onClick={(e) => onOpenCloseComment(e, true)} tone="info" tooltip="Edit file comment" />
-                    <MythicDialog fullWidth={true} maxWidth="md" open={editCommentDialogOpen} 
-                        onClose={(e)=>{onOpenCloseComment(e, false)}}
-                        innerDialog={<MythicModifyStringDialog title="Edit File Comment" onSubmit={onSubmitUpdatedComment} value={props.comment} onClose={(e)=>{onOpenCloseComment(e, false)}} />}
-                    />
-                </MythicStyledTableCell>
-                <MythicStyledTableCell>
-                    {getStringSize({cellData: {"plaintext": props.size}})}
-                </MythicStyledTableCell>
-                <MythicStyledTableCell>
-                    <ViewEditTags target_object={"filemeta_id"} target_object_id={props.id} me={me} />
-                    <TagsDisplay tags={props.tags} />
-                </MythicStyledTableCell>
-                <MythicStyledTableCell>
-                    <MythicActionButton appearance="raised" icon={openDetails ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />} iconOnly onClick={expandRowButton} tooltip={openDetails ? "Collapse details" : "Expand details"} />
-                </MythicStyledTableCell>
             </TableRow>
-                {openDetails ? (
-                    <TableRow>
-                        <MythicStyledTableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={8}>
-                            <Collapse in={openDetails}>
-                                <Box margin={1}>
-                                <TableContainer className="mythicElement" elevation={3}>
-                                    <Table  size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
-                                        <TableHead>
-                                            <TableRow>
-                                                <TableCell style={{width: "25rem"}}>Identifiers</TableCell>
-                                                <TableCell >Operator</TableCell>
-                                                <TableCell style={{width: "8rem"}}>Task</TableCell>
-                                                <TableCell>Timestamp</TableCell>
-                                                <TableCell>Command</TableCell>
-                                                <TableCell>Host File</TableCell>
-                                            </TableRow>
-                                        </TableHead>
-                                        <TableBody>
-                                            <TableRow>
-                                                <MythicStyledTableCell>
-                                                    <Typography variant="body2" style={{wordBreak: "break-all"}}>MD5: {props.md5}</Typography>
-                                                    <Typography variant="body2" style={{wordBreak: "break-all"}}>SHA1: {props.sha1}</Typography>
-                                                    <Typography variant="body2" style={{wordBreak: "break-all"}}>UUID: {props.agent_file_id}</Typography>
-                                                </MythicStyledTableCell>
-                                                <MythicStyledTableCell><Typography variant="body2" style={{wordBreak: "break-all"}}>{props.operator.username}</Typography></MythicStyledTableCell>
-                                                <MythicStyledTableCell>
-                                                    {props.task === null ? null : (
-                                                        <>
-                                                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>C-{props.task.callback.display_id}</Link><br/>
-                                                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>T-{props.task.display_id}</Link><br/>
-                                                            <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.task.comment}</Typography>
-                                                        </>
-                                                    )}
-                                                    
-                                                </MythicStyledTableCell>
-                                                <MythicStyledTableCell>
-                                                    <Typography variant="body2" style={{wordBreak: "break-all"}}>{toLocalTime(props.timestamp, me.user.view_utc_time)}</Typography>
-      
-                                                    </MythicStyledTableCell>
-                                                <MythicStyledTableCell>
-                                                    {props.task === null ? null : (
-                                                        <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.task.command.cmd}</Typography>
-                                                    )}
-                                                </MythicStyledTableCell>
-                                                <MythicStyledTableCell>
-                                                    <MythicActionButton appearance="raised" icon={<PublicIcon />} iconOnly onClick={()=>{setOpenHostDialog(true);}} tone="info" tooltip="Host Payload Through C2" />
-                                                    {openHostDialog &&
-                                                        <MythicDialog fullWidth={true} maxWidth="md" open={openHostDialog}
-                                                                      onClose={()=>{setOpenHostDialog(false);}}
-                                                                      innerDialog={<HostFileDialog file_uuid={props.agent_file_id}
-                                                                                                   file_name={props.full_remote_path_text === "" ? props.filename_text : props.full_remote_path_text}
-                                                                                                   onClose={()=>{setOpenHostDialog(false);}} />}
-                                                        />
-                                                    }
-                                                </MythicStyledTableCell>
-                                            </TableRow>
-                                        </TableBody>
-                                    </Table>
-                                </TableContainer>
-                                    <C2HostedLocationsSummary hostedFiles={props.c2profile_file_hosts} />
-                                    {props.copy_of_file &&
-                                        <Box margin={1} style={{border: `2px dashed ${theme.palette.info.main}`}}>
-                                            <Typography variant="body2" style={{wordBreak: "break-all", fontWeight: "600", textAlign: "center"}}>
-                                                {props.filename_text + " is a copy of the following file: "}
-                                            </Typography>
-                                            <TableContainer className="mythicElement" elevation={3}>
-                                                <Table  size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
-                                                    <TableHead>
-                                                        <TableRow>
-                                                            <TableCell style={{width: "25rem"}}>Identifiers</TableCell>
-                                                            <TableCell>Destination</TableCell>
-                                                            <TableCell style={{width: "8rem"}}>Task</TableCell>
-                                                            <TableCell>Timestamp</TableCell>
-                                                            <TableCell>Command</TableCell>
-                                                        </TableRow>
-                                                    </TableHead>
-                                                    <TableBody>
-                                                        <TableRow>
-                                                            <MythicStyledTableCell>
-                                                                <Typography variant="body2" style={{wordBreak: "break-all"}}>MD5: {props.copy_of_file.md5}</Typography>
-                                                                <Typography variant="body2" style={{wordBreak: "break-all"}}>SHA1: {props.copy_of_file.sha1}</Typography>
-                                                                <Typography variant="body2" style={{wordBreak: "break-all"}}>UUID: {props.copy_of_file.agent_file_id}</Typography>
-                                                            </MythicStyledTableCell>
-                                                            <MythicStyledTableCell  style={{wordBreak: "break-all"}}>
-                                                                <Typography variant="body2" style={{wordBreak: "break-all"}}>
-                                                                    {props.copy_of_file.host !== "" ? (
-                                                                        <><b>Host: </b>{props.copy_of_file.host}</>
-                                                                    ) : null}
-                                                                </Typography>
-                                                                <MythicCallbackGroupsDisplay groups={props.copy_of_file?.task?.callback.mythictree_groups} />
-                                                                {props.copy_of_file.deleted ? (<Typography variant="body2" style={{wordBreak: "break-all"}}>{props.copy_of_file.full_remote_path_text}</Typography>) : (
-                                                                    props.copy_of_file.complete ? (
-                                                                        <FileDownloadLinkWithAuth style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" +  props.copy_of_file.agent_file_id}>{props.copy_of_file.full_remote_path_text}</FileDownloadLinkWithAuth>
-                                                                    ) : (
-                                                                        <React.Fragment>
-                                                                            <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.copy_of_file.full_remote_path_text}</Typography> <Typography color="secondary" style={{wordBreak: "break-all"}} >{props.copy_of_file.chunks_received} / {props.copy_of_file.total_chunks} Chunks Received</Typography>
-                                                                        </React.Fragment>
-                                                                    )
-                                                                )}
-                                                            </MythicStyledTableCell>
-                                                            <MythicStyledTableCell>
-                                                                {props.copy_of_file.task === null ? null : (
-                                                                    <>
-                                                                        <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + props.copy_of_file.task.callback.display_id}>C-{props.copy_of_file.task.callback.display_id}</Link><br/>
-                                                                        <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/task/" + props.copy_of_file.task.display_id}>T-{props.copy_of_file.task.display_id}</Link><br/>
-                                                                        <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.copy_of_file.task.comment}</Typography>
-                                                                    </>
-                                                                )}
-
-                                                            </MythicStyledTableCell>
-                                                            <MythicStyledTableCell>
-                                                                <Typography variant="body2" style={{wordBreak: "break-all"}}>{toLocalTime(props.copy_of_file.timestamp, me.user.view_utc_time)}</Typography>
-                                                            </MythicStyledTableCell>
-                                                            <MythicStyledTableCell>
-                                                                {props.task === null ? null : (
-                                                                    <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.copy_of_file.task.command.cmd}</Typography>
-                                                                )}
-                                                            </MythicStyledTableCell>
-                                                        </TableRow>
-                                                    </TableBody>
-                                                </Table>
-                                            </TableContainer>
-                                        </Box>
-                                    }
-                                </Box>
-                            </Collapse>
-                        </MythicStyledTableCell>
-                    </TableRow>
-            ) : null }
         </React.Fragment>
     )
 }
 
 export function FileMetaScreenshotTable(props){
     const [files, setFiles] = React.useState([]);
+    const {selectedFileID, setSelectedFileID, selectedFile} = useFileSelection(files);
     useEffect( () => {
-        const initialFiles = props.files?.reduce( (prev, file) => {
-            return [...prev, {...file, filename_text: b64DecodeUnicode(file.filename_text), full_remote_path_text: b64DecodeUnicode(file.full_remote_path_text)}]
-        }, [])  || [];
-        setFiles(initialFiles);
+        setFiles(props.files?.map(normalizeFileMeta) || []);
     }, [props.files]);
     const onEditComment = ({id, comment}) => {
-        const updated = files?.map( (file) => {
-            if(file.id === id){
-                return {...file, comment: comment};
-            }else{
-                return {...file}
-            }
-        });
-        setFiles(updated);
+        setFiles((currentFiles) => currentFiles.map((file) =>
+            file.id === id ? {...file, comment} : file
+        ));
     }
     const onDelete = ({file_ids}) => {
-        const updated = files.reduce( (prev, cur) => {
-            if(file_ids.includes(cur.id)){
-                return [...prev];
-            }
-            return [...prev, cur];
-        }, []);
+        const updated = files.filter((file) => !file_ids.includes(file.id));
         setFiles(updated);
     }
     const imageRefs = files.map( f => f.agent_file_id);
 
     return (
-        <TableContainer className="mythicElement">
-            <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
-                <TableHead>
-                    <TableRow>
-                        <TableCell style={{width: "3rem"}}>Delete</TableCell>
-                        <TableCell style={{width: "300px"}}>Thumbnail</TableCell>
-                        <TableCell >Filename</TableCell>
-                        <TableCell style={{width: "12rem"}}>Time</TableCell>
-                        <TableCell >Host</TableCell>
-                        <TableCell >Comment</TableCell>
-                        <TableCell style={{width: "5rem"}}>Size</TableCell>
-                        <TableCell>Tags</TableCell>
-                        <TableCell style={{width: "3rem"}}>More</TableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                
-                {files.map( (op, index) => (
-                    <FileMetaScreenshotTableRow
-                        key={"file" + op.id}
-                        onEditComment={onEditComment}
-                        {...op}
-                        index={index}
-                        imageRefs={imageRefs}
-                        onDelete={onDelete}
-                        me={props.me}
-                    />
-                ))}
-                </TableBody>
-            </Table>
-        </TableContainer>
+        <FileMetaSplitView
+            file={selectedFile}
+            kind="screenshot"
+            me={props.me}
+            onEditComment={onEditComment}>
+            <div className="mythic-file-search-table-layout">
+                <TableContainer className="mythic-file-search-table-wrap">
+                    <Table stickyHeader size="small" className="mythic-file-search-table">
+                        <TableHead>
+                            <TableRow>
+                                <TableCell >Thumbnail</TableCell>
+                                <TableCell style={{width: "15rem"}}>File</TableCell>
+                                <TableCell style={{width: "9rem"}}>Status</TableCell>
+                                <TableCell style={{width: "5rem"}}>Actions</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {files.map((file, index) => (
+                                <FileMetaScreenshotTableRow
+                                    key={"file" + file.id}
+                                    {...file}
+                                    index={index}
+                                    imageRefs={imageRefs}
+                                    onDelete={onDelete}
+                                    selected={selectedFileID === file.id}
+                                    onSelect={() => setSelectedFileID(file.id)}
+                                    me={props.me}
+                                />
+                            ))}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            </div>
+        </FileMetaSplitView>
     )
 }
 function FileMetaScreenshotTableRow(props){
     const [openDelete, setOpenDelete] = React.useState(false);
-    const [openDetails, setOpenDetails] = React.useState(false);
     const me = props.me;
-    const now = (getSkewedNow()).toISOString();
     const [openScreenshot, setOpenScreenshot] = React.useState(false);
-    const [editCommentDialogOpen, setEditCommentDialogOpen] = React.useState(false);
-    const [updateComment] = useMutation(updateFileComment, {
-        onCompleted: (data) => {
-            snackActions.success("updated comment");
-            props.onEditComment(data.update_filemeta_by_pk)
-        }
-    });
-    const onSubmitUpdatedComment = (comment) => {
-        updateComment({variables: {file_id: props.id, comment: comment}})
-    }
     const [deleteFile] = useMutation(updateFileDeleted, {
         onCompleted: (data) => {
             snackActions.dismiss();
@@ -1124,140 +766,95 @@ function FileMetaScreenshotTableRow(props){
     const onAcceptDelete = () => {
         deleteFile({variables: {file_id: props.id}})
     }
-    const expandRowButton = (event) => {
-        if(event.target.localName === "td" || event.target.localName === "p"){
-            setOpenDetails(!openDetails);
-        }
+    const openScreenshotDialog = (event) => {
         event.stopPropagation();
+        setOpenScreenshot(true);
     }
     return (
         <React.Fragment>
-            <TableRow hover onClick={expandRowButton}>
-                {openDelete && <MythicConfirmDialog onClose={() => {setOpenDelete(false);}} onSubmit={onAcceptDelete} open={openDelete}/>}
+            {openDelete &&
+                <MythicConfirmDialog onClose={() => setOpenDelete(false)} onSubmit={onAcceptDelete} open={openDelete}/>
+            }
+            {openScreenshot &&
+                <MythicDialog
+                    fullWidth={true}
+                    maxWidth="xl"
+                    open={openScreenshot}
+                    onClose={() => setOpenScreenshot(false)}
+                    innerDialog={
+                        <ResponseDisplayScreenshotModal
+                            images={props.imageRefs}
+                            startIndex={props.index}
+                            onClose={() => setOpenScreenshot(false)}
+                        />
+                    }
+                />
+            }
+            <TableRow
+                hover
+                selected={props.selected}
+                className={`mythic-file-search-row${props.selected ? " mythic-file-search-row-selected" : ""}`}
+                onClick={props.onSelect}>
                 <MythicStyledTableCell>
-                    {props.deleted ? null : (
-                        <MythicActionButton appearance="raised" icon={<DeleteIcon />} iconOnly onClick={()=>{setOpenDelete(true);}} tone="error" tooltip="Delete screenshot" />
-                    )}
-                </MythicStyledTableCell>
-                <MythicStyledTableCell >
-                    <ImageWithAuth src={"/screencaptures/" + props.agent_file_id}
-                                   style={{width: "270px", cursor: "pointer"}} />
-                    {openScreenshot && 
-                        <MythicDialog fullWidth={true} maxWidth="xl" open={openScreenshot} 
-                            onClose={()=>{setOpenScreenshot(false);}} 
-                            innerDialog={<ResponseDisplayScreenshotModal images={props.imageRefs} startIndex={props.index} onClose={()=>{setOpenScreenshot(false);}} />} />
-                    }       
-                    {props.chunks_received < props.total_chunks ? (<Typography color="secondary" style={{wordBreak: "break-all"}} >{props.chunks_received} / {props.total_chunks} Chunks Received</Typography>) : (null)}
-                </MythicStyledTableCell>
-                <MythicStyledTableCell><Typography variant="body2" style={{wordBreak: "break-all"}}>{props.filename_text}</Typography></MythicStyledTableCell>
-                <MythicStyledTableCell><Typography variant="body2" style={{wordBreak: "break-all"}}>{toLocalTime(props.timestamp, me.user.view_utc_time)}</Typography></MythicStyledTableCell>
-                <MythicStyledTableCell><Typography variant="body2" style={{wordBreak: "break-all"}}>{props.host}</Typography></MythicStyledTableCell>
-                <MythicStyledTableCell>
-                    {props.comment}<MythicActionButton appearance="raised" icon={<EditIcon />} iconOnly onClick={() => setEditCommentDialogOpen(true)} tone="info" tooltip="Edit screenshot comment" />
-                    <MythicDialog fullWidth={true} maxWidth="md" open={editCommentDialogOpen} 
-                        onClose={()=>{setEditCommentDialogOpen(false);}} 
-                        innerDialog={<MythicModifyStringDialog title="Edit File Comment" onSubmit={onSubmitUpdatedComment} value={props.comment} onClose={()=>{setEditCommentDialogOpen(false);}} />}
+                    <ImageWithAuth
+                        src={"/screencaptures/" + props.agent_file_id}
+                        onClick={openScreenshotDialog}
+                        style={{width: "400px", maxWidth: "100%", cursor: "pointer"}}
                     />
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    {getStringSize({cellData: {"plaintext": props.size}})}
+                    <div className="mythic-file-search-primary">
+                        <span>{props.filename_text}</span>
+                        <span className="mythic-file-search-secondary">{props.host || "No host"}</span>
+                        <span className="mythic-file-search-secondary">
+                            {props.timestamp ? toLocalTime(props.timestamp, me.user.view_utc_time) : "No timestamp"}
+                        </span>
+                    </div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <ViewEditTags target_object={"filemeta_id"} target_object_id={props.id} me={me} />
-                    <TagsDisplay tags={props.tags} />
+                    <FileStatusSummary file={props} />
                 </MythicStyledTableCell>
-                <MythicStyledTableCell>
-                    <MythicActionButton appearance="raised" icon={openDetails ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />} iconOnly onClick={() => setOpenDetails(!openDetails)} tooltip={openDetails ? "Collapse details" : "Expand details"} />
+                <MythicStyledTableCell onClick={stopRowClick}>
+                    {props.deleted ? null : (
+                        <MythicActionButton appearance="raised" icon={<DeleteIcon />} iconOnly onClick={() => setOpenDelete(true)} tone="error" tooltip="Delete screenshot" />
+                    )}
                 </MythicStyledTableCell>
             </TableRow>
-                {openDetails ? (
-                    <TableRow>
-                        <MythicStyledTableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={9}>
-                            <Collapse in={openDetails}>
-                                <Box margin={1}>
-                                <TableContainer className="mythicElement">
-                                    <Table  size="small" style={{"tableLayout": "fixed", "maxWidth": "99%", "overflow": "scroll"}}>
-                                        <TableHead>
-                                            <TableRow>
-                                                <TableCell style={{width: "25rem"}}>Identifiers</TableCell>
-                                                <TableCell >Operator</TableCell>
-                                                <TableCell style={{width: "8rem"}}>Task</TableCell>
-                                                <TableCell>Task Comment</TableCell>
-                                                <TableCell>Command</TableCell>
-                                            </TableRow>
-                                        </TableHead>
-                                        <TableBody>
-                                            <TableRow>
-                                                <MythicStyledTableCell>
-                                                    <Typography variant="body2" style={{wordBreak: "break-all"}}>MD5:  {props.md5}</Typography>
-                                                    <Typography variant="body2" style={{wordBreak: "break-all"}}>SHA1: {props.sha1}</Typography>
-                                                    <Typography variant="body2" style={{wordBreak: "break-all"}}>UUID: {props.agent_file_id}</Typography>
-                                                </MythicStyledTableCell>
-                                                <MythicStyledTableCell><Typography variant="body2" style={{wordBreak: "break-all"}}>{props.operator.username}</Typography></MythicStyledTableCell>
-                                                <MythicStyledTableCell>
-                                                    {props.task === null ? null : (
-                                                        <>
-                                                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>C-{props.task.callback.display_id}</Link><br/>
-                                                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>T-{props.task.display_id}</Link>
-                                                        </>
-                                                    )}
-                                                    
-                                                </MythicStyledTableCell>
-                                                <MythicStyledTableCell>{props.task !== null ? (<Typography variant="body2" style={{wordBreak: "break-all"}}>{props.task.comment}</Typography>) : (null)}</MythicStyledTableCell>
-                                                <MythicStyledTableCell>
-                                                    {props.task === null ? null : (
-                                                        <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.task.command.cmd}</Typography>
-                                                    )}
-                                                </MythicStyledTableCell>
-                                            </TableRow>
-                                        </TableBody>
-                                    </Table>
-                                </TableContainer>
-                                <C2HostedLocationsSummary hostedFiles={props.c2profile_file_hosts} />
-                                </Box>
-                            </Collapse>
-                        </MythicStyledTableCell>
-                    </TableRow>
-            ) : null }
         </React.Fragment>
     )
 }
 
 export function FileMetaEventingWorkflowsTable(props){
-    const [selected, setSelected] = React.useState({});
+    const [bulkSelected, setBulkSelected] = React.useState({});
     const [files, setFiles] = React.useState([]);
     const [checkAll, setCheckAll] = React.useState(false);
-    const [disabled, setDisabled] = React.useState(true);
+    const {selectedFileID, setSelectedFileID, selectedFile} = useFileSelection(files);
+    const bulkActionsDisabled = !Object.values(bulkSelected).some(Boolean);
     const onToggleSelection = (id, checked) => {
-        setSelected({...selected, [id]: checked});
+        setBulkSelected((currentSelected) => ({...currentSelected, [id]: checked}));
     }
     const onToggleCheckAll = () => {
         if(checkAll){
-            // it's currently checked and clicked again, untoggle it all
             setCheckAll(false);
-            setSelected({});
+            setBulkSelected({});
         } else {
             setCheckAll(true);
             const newSelected = files?.reduce( (prev, cur) => {
                 if(!cur.deleted){
                     return {...prev, [cur.id]: true};
-                } else {
-                    return {...prev}
                 }
-
+                return {...prev};
             }, {}) || {};
-            setSelected(newSelected);
+            setBulkSelected(newSelected);
         }
     }
     useEffect( () => {
         const initialSelected = props.files?.reduce( (prev, file) => {
             return {...prev, [file.id]: false}
         }, {}) || {};
-        const initialFiles = props.files?.reduce( (prev, file) => {
-            return [...prev, {...file, filename_text: b64DecodeUnicode(file.filename_text), full_remote_path_text: b64DecodeUnicode(file.full_remote_path_text)}]
-        }, [])  || [];
-        setSelected(initialSelected);
-        setFiles(initialFiles);
+        setCheckAll(false);
+        setBulkSelected(initialSelected);
+        setFiles(props.files?.map(normalizeFileMeta) || []);
     }, [props.files]);
     const [downloadBulk] = useMutation(downloadBulkQuery, {
         onCompleted: (data) => {
@@ -1276,7 +873,7 @@ export function FileMetaEventingWorkflowsTable(props){
     const onDownloadBulk = () => {
         snackActions.info("Zipping up files...");
         let fileIds = [];
-        for(const [key, value] of Object.entries(selected)){
+        for(const [key, value] of Object.entries(bulkSelected)){
             if(value){
                 for(let j = 0; j < props.files.length; j++){
                     if(props.files[j].id === parseInt(key)){
@@ -1304,7 +901,7 @@ export function FileMetaEventingWorkflowsTable(props){
     })
     const onDeleteBulk = () => {
         let fileIds = [];
-        for(const [key, value] of Object.entries(selected)){
+        for(const [key, value] of Object.entries(bulkSelected)){
             if(value){
                 for(let j = 0; j < props.files.length; j++){
                     if(props.files[j].id === parseInt(key)){
@@ -1317,88 +914,72 @@ export function FileMetaEventingWorkflowsTable(props){
     }
     const onDelete = ({file_ids}) => {
         if(!file_ids){return}
-        const updated = files.reduce( (prev, cur) => {
-            if(file_ids.includes(cur.id)){
-                return [...prev];
-            }
-            return [...prev, cur];
-        }, []);
-        let currentSelected = {...selected};
-        file_ids.map(f => {
+        const updated = files.filter((file) => !file_ids.includes(file.id));
+        let currentSelected = {...bulkSelected};
+        file_ids.forEach(f => {
             currentSelected[f] = false;
         });
         setCheckAll(false);
-        setSelected(currentSelected);
+        setBulkSelected(currentSelected);
         setFiles(updated);
     }
     const onEditComment = ({id, comment}) => {
-        const updated = files.map( (file) => {
-            if(file.id === id){
-                return {...file, comment: comment};
-            }else{
-                return {...file}
-            }
-        });
-        setFiles(updated);
+        setFiles((currentFiles) => currentFiles.map((file) =>
+            file.id === id ? {...file, comment} : file
+        ));
     }
-    useEffect( () => {
-        for(const [key, value] of Object.entries(selected)){
-            if(value){
-                setDisabled(false);
-                return
-            }
-        }
-        setDisabled(true);
-    }, [selected]);
     return (
-        <TableContainer className="mythicElement" style={{display: "flex", flexDirection: "column", height: "100%"}} >
-            <span className="mythic-table-bulk-actions">
-                <MythicActionButton active disabled={disabled} icon={<ArchiveIcon />} label="Zip & Download Selected" onClick={onDownloadBulk} tone="info" />
-                <MythicActionButton disabled={disabled} icon={<DeleteIcon />} label="Delete Selected" onClick={onDeleteBulk} tone="error" />
-            </span>
-            <TableContainer className="mythicElement" style={{height: "100%", overflowY: "auto"}}>
-                <Table stickyHeader size="small"
-                       style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell style={{width: "3rem"}}>
-                                <Checkbox checked={checkAll} onChange={onToggleCheckAll}
-                                          sx={{pl: "3px"}}
-                                          inputProps={{'aria-label': 'controlled'}}/>
-                            </TableCell>
-                            <TableCell style={{width: "5rem"}}>Actions</TableCell>
-                            <TableCell style={{width: "20rem"}}>Source</TableCell>
-                            <TableCell style={{width: "20rem"}}>Workflow</TableCell>
-                            <TableCell style={{width: "7rem"}}>Size</TableCell>
-                            <TableCell style={{width: "15rem"}}>Tags</TableCell>
-                            <TableCell style={{width: "5rem"}}>More</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-
-                        {files.map( (op) => (
-                            <FileMetaEventingWorkflowsTableRow
-                                me={props.me}
-                                key={"file" + op.id}
-                                onToggleSelection={onToggleSelection}
-                                onEditComment={onEditComment}
-                                selected={selected}
-                                onDelete={onDelete}
-                                {...op}
-                            />
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
-        </TableContainer>
+        <FileMetaSplitView
+            file={selectedFile}
+            kind="eventing"
+            me={props.me}
+            onEditComment={onEditComment}>
+            <div className="mythic-file-search-table-layout">
+                <span className="mythic-table-bulk-actions">
+                    <MythicActionButton active disabled={bulkActionsDisabled} icon={<ArchiveIcon />} label="Zip & Download Selected" onClick={onDownloadBulk} tone="info" />
+                    <MythicActionButton disabled={bulkActionsDisabled} icon={<DeleteIcon />} label="Delete Selected" onClick={onDeleteBulk} tone="error" />
+                </span>
+                <TableContainer className="mythic-file-search-table-wrap">
+                    <Table stickyHeader size="small" className="mythic-file-search-table">
+                        <TableHead>
+                            <TableRow>
+                                <TableCell style={{width: "3rem"}}>
+                                    <Checkbox
+                                        checked={checkAll}
+                                        onChange={onToggleCheckAll}
+                                        sx={{pl: "3px"}}
+                                        inputProps={{'aria-label': 'Select all files'}}
+                                    />
+                                </TableCell>
+                                <TableCell>File</TableCell>
+                                <TableCell style={{width: "12rem"}}>Workflow</TableCell>
+                                <TableCell style={{width: "9rem"}}>Status</TableCell>
+                                <TableCell style={{width: "5rem"}}>Actions</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {files.map((file) => (
+                                <FileMetaEventingWorkflowsTableRow
+                                    key={"file" + file.id}
+                                    onToggleSelection={onToggleSelection}
+                                    bulkSelected={bulkSelected}
+                                    onDelete={onDelete}
+                                    selected={selectedFileID === file.id}
+                                    onSelect={() => setSelectedFileID(file.id)}
+                                    {...file}
+                                />
+                            ))}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            </div>
+        </FileMetaSplitView>
     )
 }
 function FileMetaEventingWorkflowsTableRow(props){
+    const navigate = useNavigate();
     const [openDelete, setOpenDelete] = React.useState(false);
-    const [openDetails, setOpenDetails] = React.useState(false);
     const [openPreviewMediaDialog, setOpenPreviewMediaDialog] = React.useState(false);
-    const [openHostDialog, setOpenHostDialog] = React.useState(false);
-    const me = props.me;
     const [deleteFile] = useMutation(updateFileDeleted, {
         onCompleted: (data) => {
             snackActions.dismiss();
@@ -1413,123 +994,72 @@ function FileMetaEventingWorkflowsTableRow(props){
         deleteFile({variables: {file_id: props.id}})
     }
     const onSelectChanged = (event) => {
+        event.stopPropagation();
         props.onToggleSelection(props.id, event.target.checked);
     }
     const onPreviewMedia = (event) => {
-        if(event){
-            event.preventDefault();
-            event.stopPropagation();
-        }
+        event.stopPropagation();
         setOpenPreviewMediaDialog(true);
-    }
-    const expandRow = (event) => {
-        if(event.target.nodeName === 'INPUT'){
-            return
-        }
-        if(event.target.localName === "td" || event.target.localName === "p"){
-            setOpenDetails(!openDetails);
-        }
-    }
-
-    const expandRowButton = (event) => {
-        setOpenDetails(!openDetails);
     }
     return (
         <React.Fragment>
-            <TableRow hover onClick={expandRow}>
-                {openDelete && <MythicConfirmDialog onClose={() => {setOpenDelete(false);}} onSubmit={onAcceptDelete} open={openDelete}/>}
+            {openDelete &&
+                <MythicConfirmDialog onClose={() => setOpenDelete(false)} onSubmit={onAcceptDelete} open={openDelete}/>
+            }
+            {openPreviewMediaDialog &&
+                <MythicDialog
+                    fullWidth={true}
+                    maxWidth="xl"
+                    open={openPreviewMediaDialog}
+                    onClose={() => setOpenPreviewMediaDialog(false)}
+                    innerDialog={
+                        <PreviewFileMediaDialog
+                            agent_file_id={props.agent_file_id}
+                            filename={props.filename_text}
+                            onClose={() => setOpenPreviewMediaDialog(false)}
+                        />
+                    }
+                />
+            }
+            <TableRow
+                hover
+                selected={props.selected}
+                className={`mythic-file-search-row${props.selected ? " mythic-file-search-row-selected" : ""}`}
+                onClick={props.onSelect}>
                 <MythicStyledTableCell>
                     {props.deleted ? null : (
                         <MythicStyledTooltip title="Toggle to download multiple files at once">
-                            <Checkbox checked={props.selected[props.id] === undefined ? false : props.selected[props.id]}
+                            <Checkbox checked={props.bulkSelected[props.id] || false}
                                       onChange={onSelectChanged}
-                                      inputProps={{ 'aria-label': 'controlled' }} />
+                                      inputProps={{'aria-label': 'Select file'}} />
                         </MythicStyledTooltip>
                     )}
-
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
+                    <FileDownloadLinkWithAuth color="textPrimary" underline="always" href={"/direct/download/" + props.agent_file_id}>
+                        <b>{props.filename_text}</b>
+                    </FileDownloadLinkWithAuth>
+                </MythicStyledTableCell>
+                <MythicStyledTableCell>
+                    {props.eventgroup?.id ? (
+                        <Link color="textPrimary" onClick={() => navigate("/new/eventing?eventgroup=" + props.eventgroup.id)}
+                              underline="always" style={{cursor: "pointer"}}>
+                            {props.eventgroup.name}
+                        </Link>
+                    ) : "-"}
+                </MythicStyledTableCell>
+                <MythicStyledTableCell>
+                    <FileStatusSummary file={props} />
+                </MythicStyledTableCell>
+                <MythicStyledTableCell onClick={stopRowClick}>
                     {props.deleted ? null : (
                         <div className="mythic-compact-actions mythic-compact-actions-nowrap">
-                            <MythicActionButton appearance="raised" icon={<DeleteIcon />} iconOnly onClick={()=>{setOpenDelete(true);}} tone="error" tooltip="Delete file" />
+                            <MythicActionButton appearance="raised" icon={<DeleteIcon />} iconOnly onClick={() => setOpenDelete(true)} tone="error" tooltip="Delete file" />
                             <MythicActionButton appearance="raised" icon={<FontAwesomeIcon icon={faPhotoVideo} />} iconOnly onClick={onPreviewMedia} tone="info" tooltip="Preview Media" />
-                            {openPreviewMediaDialog &&
-                                <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewMediaDialog}
-                                              onClose={(e)=>{setOpenPreviewMediaDialog(false);}}
-                                              innerDialog={<PreviewFileMediaDialog
-                                                  agent_file_id={props.agent_file_id}
-                                                  filename={props.filename_text}
-                                                  onClose={(e)=>{setOpenPreviewMediaDialog(false);}} />}
-                                />
-                            }
                         </div>
                     )}
                 </MythicStyledTableCell>
-                <MythicStyledTableCell>
-                    <FileDownloadLinkWithAuth style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + props.agent_file_id}>{props.filename_text}</FileDownloadLinkWithAuth>
-                </MythicStyledTableCell>
-                <MythicStyledTableCell  style={{wordBreak: "break-all"}}>
-                    <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/new/eventing?eventgroup=" +  props.eventgroup?.id}>{props.eventgroup?.name}</Link>
-                </MythicStyledTableCell>
-                <MythicStyledTableCell>
-                    {getStringSize({cellData: {"plaintext": props.size}})}
-                </MythicStyledTableCell>
-                <MythicStyledTableCell>
-                    <ViewEditTags target_object={"filemeta_id"} target_object_id={props.id} me={me} />
-                    <TagsDisplay tags={props.tags} />
-                </MythicStyledTableCell>
-                <MythicStyledTableCell>
-                    <MythicActionButton appearance="raised" icon={openDetails ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />} iconOnly onClick={expandRowButton} tooltip={openDetails ? "Collapse details" : "Expand details"} />
-                </MythicStyledTableCell>
             </TableRow>
-            {openDetails ? (
-                <TableRow>
-                    <MythicStyledTableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={7}>
-                        <Collapse in={openDetails}>
-                            <Box margin={1}>
-                                <TableContainer className="mythicElement" elevation={3}>
-                                    <Table  size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
-                                        <TableHead>
-                                            <TableRow>
-                                                <TableCell style={{width: "25rem"}}>Identifiers</TableCell>
-                                                <TableCell >Operator</TableCell>
-                                                <TableCell>Timestamp</TableCell>
-                                                <TableCell>Host File</TableCell>
-                                            </TableRow>
-                                        </TableHead>
-                                        <TableBody>
-                                            <TableRow>
-                                                <MythicStyledTableCell>
-                                                    <Typography variant="body2" style={{wordBreak: "break-all"}}>MD5: {props.md5}</Typography>
-                                                    <Typography variant="body2" style={{wordBreak: "break-all"}}>SHA1: {props.sha1}</Typography>
-                                                    <Typography variant="body2" style={{wordBreak: "break-all"}}>UUID: {props.agent_file_id}</Typography>
-                                                </MythicStyledTableCell>
-                                                <MythicStyledTableCell><Typography variant="body2" style={{wordBreak: "break-all"}}>{props.operator.username}</Typography></MythicStyledTableCell>
-                                                <MythicStyledTableCell>
-                                                    <Typography variant="body2" style={{wordBreak: "break-all"}}>{toLocalTime(props.timestamp, me.user.view_utc_time)}</Typography>
-
-                                                </MythicStyledTableCell>
-                                                <MythicStyledTableCell>
-                                                    <MythicActionButton appearance="raised" icon={<PublicIcon />} iconOnly onClick={()=>{setOpenHostDialog(true);}} tone="info" tooltip="Host Payload Through C2" />
-                                                    {openHostDialog &&
-                                                        <MythicDialog fullWidth={true} maxWidth="md" open={openHostDialog}
-                                                                      onClose={()=>{setOpenHostDialog(false);}}
-                                                                      innerDialog={<HostFileDialog file_uuid={props.agent_file_id}
-                                                                                                   file_name={props.full_remote_path_text === "" ? props.filename_text : props.full_remote_path_text}
-                                                                                                   onClose={()=>{setOpenHostDialog(false);}} />}
-                                                        />
-                                                    }
-                                                </MythicStyledTableCell>
-                                            </TableRow>
-                                        </TableBody>
-                                    </Table>
-                                </TableContainer>
-                                <C2HostedLocationsSummary hostedFiles={props.c2profile_file_hosts} />
-                            </Box>
-                        </Collapse>
-                    </MythicStyledTableCell>
-                </TableRow>
-            ) : null }
         </React.Fragment>
     )
 }

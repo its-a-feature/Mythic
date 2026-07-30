@@ -24,8 +24,13 @@ func init() {
 }
 
 func processPtTaskOPSECPreMessages(msg amqp.Delivery) {
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		logging.LogError(err, "Failed to get auth headers")
+		return
+	}
 	payloadMsg := PTTTaskOPSECPreTaskMessageResponse{}
-	err := json.Unmarshal(msg.Body, &payloadMsg)
+	err = json.Unmarshal(msg.Body, &payloadMsg)
 	if err != nil {
 		logging.LogError(err, "Failed to process message into struct")
 		return
@@ -37,11 +42,7 @@ func processPtTaskOPSECPreMessages(msg amqp.Delivery) {
 		go SendAllOperationsMessage(payloadMsg.Error, 0, "", database.MESSAGE_LEVEL_INFO, true)
 		return
 	}
-	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
-	if err != nil {
-		logging.LogError(err, "Failed to get auth headers")
-		return
-	}
+
 	err = database.DB.Get(&task, `SELECT 
     		status, operation_id, operator_id, eventstepinstance_id, apitokens_id, id 
 			FROM task 

@@ -471,6 +471,12 @@ func processAgentMessageContent(agentMessageInput *AgentMessageRawInput, uuidInf
 			}
 		}
 	}
+
+	if uuidInfo.UUIDType == UUIDTYPECALLBACK && uuidInfo.CallbackID > 0 {
+		pendingAgentRPCResults := pendingAgentRPCResponses.drain(uuidInfo.CallbackID)
+		appendPendingAgentRPCResponses(&response, pendingAgentRPCResults)
+	}
+
 	if _, ok := decryptedMessage[CALLBACK_MESSAGE_KEY_EDGES]; ok {
 		// this means we have some sort of add/remove announcement
 		edges := []agentMessagePostResponseEdges{}

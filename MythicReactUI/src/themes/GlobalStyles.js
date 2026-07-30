@@ -2,8 +2,8 @@ import React from "react";
 import {alpha} from "@mui/material/styles";
 
 export const COLOR_LEVELS = {
-    dark: [0.18, 0.36, 0.58],
-    light: [0.10, 0.24, 0.42],
+    dark: [0.20, 0.40, 0.60],
+    light: [0.10, 0.25, 0.50],
 };
 
 // Only theme-dependent values belong here. The static stylesheet is imported once.
@@ -89,7 +89,7 @@ export const ThemeVariables = ({theme}) => {
     --mythic-color-output-control-bg: ${alpha(theme.outputTextColor || theme.palette.text.primary, theme.palette.mode === "dark" ? 0.10 : 0.07)};
     --mythic-color-output-control-border: ${alpha(theme.outputTextColor || theme.palette.text.primary, theme.palette.mode === "dark" ? 0.20 : 0.16)};
     --mythic-color-output-toolbar: ${alpha(theme.outputBackgroundColor || theme.palette.background.paper, theme.palette.mode === "dark" ? 0.86 : 0.72)};
-    --mythic-color-output-editor: ${alpha(theme.outputBackgroundColor || theme.palette.background.paper, 0.125)};
+    --mythic-color-output-editor: ${theme.outputBackgroundColor || theme.palette.background.paper};
 
     --mythic-color-graph-group: ${theme.palette.graphGroupRGBA};
     --mythic-font-family-base: ${theme.typography.fontFamily};

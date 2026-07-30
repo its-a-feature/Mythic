@@ -17,6 +17,7 @@ import {TaskDisplayContainerFlat} from "./TaskDisplayContainer";
 import { validate as uuidValidate } from 'uuid';
 import {useTaskReferenceSubmitter} from "./taskingReferences";
 import {useCallbackTaskingData} from "./useCallbackTaskingData";
+import {useTheme} from "@mui/material/styles";
 
 
 export function CallbacksTabsTaskingSplitLabel(props){
@@ -64,6 +65,7 @@ export function CallbacksTabsTaskingSplitLabel(props){
 }
 export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTab, me, setNewDataForTab}) =>{
     const active = index === value;
+    const theme = useTheme();
     const [scrollToBottom, setScrollToBottom] = React.useState(false);
     const [openParametersDialog, setOpenParametersDialog] = React.useState(false);
     const [commandInfo, setCommandInfo] = React.useState({});
@@ -318,7 +320,7 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
                     <div style={{overflowY: "auto", overflowX: "hidden", flexGrow: 1, minWidth: 0}} id={`taskingPanelSplit${tabInfo.callbackID}`}>
 
                         {!fetchedAllTasks &&
-                            <MythicStyledTooltip title="Fetch Older Tasks">
+                            <MythicStyledTooltip title="Fetch Older Tasks" tooltipStyle={{width: "100%"}}>
                                 <MythicActionButton colorMode="always" tone="success" iconOnly
                                     onClick={loadMoreTasks}
                                     variant="contained"
@@ -344,12 +346,15 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
                     </div>
 
                 </div>
-                <div className="bg-gray-light" style={{display: "inline-flex", flexDirection: "column", height: "100%", minWidth: 0, overflow: "hidden", width: "100%"}}>
+                <div className="bg-gray-light" style={{display: "inline-flex", flexDirection: "column",
+                    marginBottom: "0.2rem", borderRadius: theme.shape.borderRadius,
+                    height: "100%", minWidth: 0, overflow: "hidden", width: "100%"}}>
                     {selectedTask.id > 0 && <TaskDisplayFlat key={"taskinteractdisplaysplit" + selectedTask.id} me={me} task={selectedTask}
                                                              command_id={selectedTask.command == null ? 0 : selectedTask.command.id}
                                                              filterOptions={filterOptions}
                                                              onSelectTask={(tsk) => {
                                                              }}
+                                                             compact={true}
                                                              selectedTask={selectedTask}
                                                              taskChildrenStore={taskChildrenStore} active={active}
                     />}
@@ -380,8 +385,11 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
     );
 }
 const CallbacksTabsTaskingSplitTable = ({selectedTask, me, active=true}) => {
+    const theme = useTheme();
     return (
-            <div  style={{width: "100%", flex: "1 1 auto", minHeight: 0, minWidth: 0, overflow: "hidden", display: "flex", flexDirection: "column"}} >
+            <div style={{width: "100%", flex: "1 1 auto", minHeight: 0, minWidth: 0,
+                borderRadius: theme.shape.borderRadius, marginTop: "0.2rem",
+                overflow: "hidden", display: "flex", flexDirection: "column"}} >
                     {active && selectedTask.id > 0 &&
                         <TaskDisplayContainerFlat key={selectedTask.id} me={me} task={selectedTask} />
                     }

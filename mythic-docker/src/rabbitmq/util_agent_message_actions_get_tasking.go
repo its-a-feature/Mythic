@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 	"sort"
 	"time"
 
@@ -267,14 +268,21 @@ func getDelegateTaskMessages(callbackID int, agentUUIDLength int, updateCheckinT
 	}
 	delegateMessages := []delegateMessageResponse{}
 	// get a list of all the other callbacks with tasks waiting to be processed
-	if callbackIds := submittedTasksAwaitingFetching.getOtherCallbackIds(callbackID); len(callbackIds) > 0 {
+	callbackIds := submittedTasksAwaitingFetching.getOtherCallbackIds(callbackID)
+	agentRPCCallbackIds := pendingAgentRPCResponses.getCallbackIDs()
+	for _, targetCallbackID := range agentRPCCallbackIds {
+		if !slices.Contains(callbackIds, targetCallbackID) {
+			callbackIds = append(callbackIds, targetCallbackID)
+		}
+	}
+	if len(callbackIds) > 0 {
 		// check if there's a route between our callback and the callback with a task
 		routableCallbackIds := make([]int, 0, len(callbackIds))
 		routablePaths := make(map[int][]cbGraphAdjMatrixEntry)
 		for _, targetCallbackId := range callbackIds {
 			if routablePath := callbackGraph.GetBFSPath(callbackID, targetCallbackId); routablePath != nil && len(routablePath) > 0 {
 				// there's a route between our callback and the target callback for some sort of task
-				logging.LogDebug("task exists for callback we can route to")
+				logging.LogDebug("route exists to callback with task or agent_rpc data")
 				routableCallbackIds = append(routableCallbackIds, targetCallbackId)
 				routablePaths[targetCallbackId] = routablePath
 			}
@@ -282,52 +290,60 @@ func getDelegateTaskMessages(callbackID int, agentUUIDLength int, updateCheckinT
 		if len(routableCallbackIds) == 0 {
 			return delegateMessages
 		}
+		// there's a route to the callback, check if there's tasks
 		taskIDsByCallbackID := submittedTasksAwaitingFetching.getTasksForCallbackIds(routableCallbackIds)
 		allTaskIDs := make([]int, 0)
 		for _, targetCallbackId := range routableCallbackIds {
 			allTaskIDs = append(allTaskIDs, taskIDsByCallbackID[targetCallbackId]...)
 		}
-		if len(allTaskIDs) == 0 {
-			return delegateMessages
-		}
-		currentTasks, err := getAgentMessageTaskRows(allTaskIDs)
-		if err != nil {
-			logging.LogError(err, "Failed to fetch delegated tasking")
-			return delegateMessages
-		}
 		tasksByCallbackID := make(map[int][]agentMessageGetTaskingTask)
-		issuedTaskIDs := make([]int, 0, len(currentTasks))
-		for _, currentTask := range currentTasks {
-			if _, ok := routablePaths[currentTask.CallbackID]; !ok {
-				continue
+		if len(allTaskIDs) > 0 {
+			currentTasks, err := getAgentMessageTaskRows(allTaskIDs)
+			if err != nil {
+				logging.LogError(err, "Failed to fetch delegated tasking")
+				return delegateMessages
 			}
-			tasksByCallbackID[currentTask.CallbackID] = append(tasksByCallbackID[currentTask.CallbackID], buildAgentMessageTask(currentTask))
-			issuedTaskIDs = append(issuedTaskIDs, currentTask.ID)
-		}
-		if len(issuedTaskIDs) == 0 {
-			return delegateMessages
-		}
-		if err := markAgentMessageTasksProcessing(issuedTaskIDs, time.Now().UTC()); err != nil {
-			logging.LogError(err, "Failed to update delegated task status to processing")
-			return delegateMessages
-		}
-		submittedTasksAwaitingFetching.removeTasksAfterProcessingUpdate(issuedTaskIDs)
-		for _, taskID := range issuedTaskIDs {
-			go addMitreAttackTaskMapping(taskID)
+			issuedTaskIDs := make([]int, 0, len(currentTasks))
+			for _, currentTask := range currentTasks {
+				if _, ok := routablePaths[currentTask.CallbackID]; !ok {
+					continue
+				}
+				tasksByCallbackID[currentTask.CallbackID] = append(tasksByCallbackID[currentTask.CallbackID], buildAgentMessageTask(currentTask))
+				issuedTaskIDs = append(issuedTaskIDs, currentTask.ID)
+			}
+			if len(issuedTaskIDs) == 0 {
+				return delegateMessages
+			}
+			err = markAgentMessageTasksProcessing(issuedTaskIDs, time.Now().UTC())
+			if err != nil {
+				logging.LogError(err, "Failed to update delegated task status to processing")
+				return delegateMessages
+			}
+			submittedTasksAwaitingFetching.removeTasksAfterProcessingUpdate(issuedTaskIDs)
+			for _, taskID := range issuedTaskIDs {
+				go addMitreAttackTaskMapping(taskID)
+			}
 		}
 		for _, targetCallbackId := range routableCallbackIds {
-			tasks := tasksByCallbackID[targetCallbackId]
-			if len(tasks) == 0 {
-				continue
-			}
 			routablePath := routablePaths[targetCallbackId]
 			newTask := map[string]interface{}{
 				"action": "get_tasking",
-				"tasks":  tasks,
+			}
+			tasks := tasksByCallbackID[targetCallbackId]
+			if len(tasks) > 0 {
+				newTask["tasks"] = tasks
+			}
+			pendingAgentRPCResults := pendingAgentRPCResponses.drain(targetCallbackId)
+			if len(pendingAgentRPCResults) > 0 {
+				appendPendingAgentRPCResponses(&newTask, pendingAgentRPCResults)
+			}
+			if len(tasks) == 0 && len(pendingAgentRPCResults) == 0 {
+				continue
 			}
 			wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, updateCheckinTime)
 			if err != nil {
 				logging.LogError(err, "Failed to recursively encrypt message")
+				pendingAgentRPCResponses.restore(targetCallbackId, pendingAgentRPCResults)
 				continue
 			}
 			delegateMessages = append(delegateMessages, delegateMessageResponse{

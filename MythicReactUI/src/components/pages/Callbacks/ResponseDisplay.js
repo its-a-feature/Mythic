@@ -11,6 +11,7 @@ import {Backdrop, CircularProgress, Typography} from '@mui/material';
 import {MythicStyledTooltip} from '../../MythicComponents/MythicStyledTooltip';
 import Pagination from '@mui/material/Pagination';
 import {ResponseDisplayInteractive} from "./ResponseDisplayInteractive";
+import {ResponseDisplayFileEditor} from "./ResponseDisplayFileEditor";
 import {ResponseDisplayMedia} from "./ResponseDisplayMedia";
 import {GetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import {ResponseDisplayGraph} from "./ResponseDisplayGraph";
@@ -138,9 +139,12 @@ const getLatestResponseID = (data) => {
   return data?.latest_response?.[0]?.id || 0;
 }
 export const ResponseDisplay = (props) =>{
+  const fileEditor = props?.task?.command?.supported_ui_features.includes("task_response:file_editor") || false;
   const interactive = props?.task?.command?.supported_ui_features.includes("task_response:interactive") || false;
   return (
-      interactive ? (
+      fileEditor ? (
+          <ResponseDisplayFileEditor {...props} key={props?.task?.id} />
+      ) : interactive ? (
           <ResponseDisplayInteractive {...props} key={props?.task?.id} />
         ) : (
           <NonInteractiveResponseDisplay {...props} key={props?.task?.id} />
@@ -379,7 +383,8 @@ const NonInteractiveResponseDisplay = (props) => {
 
   return (
       <div style={{display: "flex", flexDirection: "column", height: "100%", width: "100%", position: "relative",
-          backgroundColor: theme.outputBackgroundColor + (theme.palette.mode === 'dark' ? "D0" : "D0"),
+          backgroundColor: theme.outputBackgroundColor,
+          borderRadius: theme.shape.borderRadius,
           color: theme.outputTextColor,
       }}>
         <Backdrop open={openBackdrop} onClick={()=>{setOpenBackdrop(false);}} style={{zIndex: 2, position: "absolute"}}>
@@ -388,7 +393,10 @@ const NonInteractiveResponseDisplay = (props) => {
         {props.searchOutput &&
             <SearchBar onSubmitSearch={onSubmitSearch} />
         }
-        <div style={{overflowY: "auto", overflowX: "hidden", flexGrow: 1, minWidth: 0, width: "100%", height: props.expand ? "100%": undefined, display: "flex", flexDirection: "column"}} ref={props.responseRef}>
+        <div style={{overflowY: "auto", overflowX: "hidden", flexGrow: 1, minWidth: 0,
+          borderRadius: theme.shape.borderRadius,
+          width: "100%", height: props.expand ? "100%": undefined, display: "flex", flexDirection: "column"}}
+             ref={props.responseRef}>
           <ResponseDisplayComponent rawResponses={rawResponses} viewBrowserScript={props.viewBrowserScript}
                                     output={output} command_id={props.command_id} displayType={"accordion"}
                                     task={props.task} search={search} expand={props.expand}/>
@@ -400,9 +408,12 @@ const NonInteractiveResponseDisplay = (props) => {
   )
 }
 export const ResponseDisplayConsole = (props) => {
+  const fileEditor = props?.task?.command?.supported_ui_features.includes("task_response:file_editor") || false;
   const interactive = props?.task?.command?.supported_ui_features.includes("task_response:interactive") || false;
   return (
-      interactive ? (
+      fileEditor ? (
+          <ResponseDisplayFileEditor {...props} />
+      ) : interactive ? (
           <ResponseDisplayInteractive {...props} />
       ) : (
           <NonInteractiveResponseDisplayConsole {...props} />
@@ -479,7 +490,7 @@ export const PaginationBar = ({selectAllOutput, totalCount, onSubmitPageChange, 
     return (<div id={'scrolltotaskbottom' + task.id}></div>)
   }
   return (
-    <div id={'scrolltotaskbottom' + task.id} style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center", paddingBottom: "10px",}} >
+    <div id={'scrolltotaskbottom' + task.id} style={{display: "flex", justifyContent: "center", alignItems: "center", paddingBottom: "10px",}} >
         <Pagination count={pageCount} page={currentPage} variant="contained" color="primary" showFirstButton showLastButton
                     boundaryCount={4} onChange={onChangePage} style={{margin: "10px"}} siblingCount={2}
         />
@@ -495,7 +506,7 @@ export const SearchBar = ({onSubmitSearch}) => {
     onSubmitSearch(search);
   }
   return (
-    <div style={{marginTop: "10px"}}>
+    <div style={{marginTop: "0.25rem"}}>
       <MythicTextField value={search} autoFocus onEnter={onSubmitLocalSearch} onChange={(n,v,e) => setSearch(v)} placeholder="Search All Output of This Task" name="Search..."
         InputProps={{
           endAdornment: 
@@ -614,7 +625,6 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
     }
   }, [command_id, task.id]);
   const stateSx = {
-    backgroundColor: "transparent",
     color: "inherit",
     height: expand ? "100%" : undefined,
   };

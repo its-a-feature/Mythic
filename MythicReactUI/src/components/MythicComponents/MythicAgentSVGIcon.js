@@ -17,12 +17,12 @@ export const MythicAgentSVGIcon = ({payload_type, style, is_p2p}) => {
             {is_p2p === false &&
                 <WifiIcon style={{width: "20px", height: "20px", marginLeft: "-20px", marginBottom: "5px",
                 borderRadius: "10px", border: "1px solid",
-                backgroundColor: theme.palette.primary.main}}/>
+                backgroundColor: theme.palette.background.default}}/>
             }
             {is_p2p === true &&
                 <FontAwesomeIcon icon={faLink} style={{width: "20px", height: "20px", marginLeft: "-20px", marginBottom: "5px",
                     borderRadius: "10px", border: "1px solid",
-                    backgroundColor: theme.palette.primary.main}} />
+                    backgroundColor: theme.palette.background.default}} />
             }
         </MythicStyledTooltip>
 

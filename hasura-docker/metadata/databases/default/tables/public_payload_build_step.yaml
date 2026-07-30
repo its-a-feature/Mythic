@@ -26,12 +26,12 @@ select_permissions:
         - step_success
       filter:
         _and:
-            - payload:
-                operation_id:
-                  _eq: X-Hasura-current-operation-id
-            - payload:
-                operation_id:
-                  _lte: X-Hasura-Scope-payload-read-operation
+          - payload:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - payload:
+              operation_id:
+                _lte: X-Hasura-Scope-payload-read-operation
   - role: operation_admin
     permission:
       columns:

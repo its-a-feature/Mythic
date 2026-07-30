@@ -55,6 +55,7 @@ const (
 	//		send PTTaskCompletionHandlerMessageResponse to this route
 	PT_TASK_COMPLETION_FUNCTION_RESPONSE = "pt_task_completion_function_response"
 	PT_TASK_PROCESS_RESPONSE_RESPONSE    = "pt_task_process_response_response"
+	PT_TASK_AGENT_RPC_RESPONSE           = "pt_task_agent_rpc_response"
 
 	// C2_SYNC_ROUTING_KEY c2 routes
 	//		send C2SyncMessages to this route
@@ -126,6 +127,7 @@ const (
 	PT_TASK_COMPLETION_FUNCTION = "pt_task_completion_function"
 	//
 	PT_TASK_PROCESS_RESPONSE = "pt_task_process_response"
+	PT_TASK_AGENT_RPC        = "pt_task_agent_rpc"
 	PT_COMMAND_HELP_FUNCTION = "pt_command_help_function"
 	CHAT_REQUEST             = "chat_request"
 	CHAT_CANCEL              = "chat_cancel"
