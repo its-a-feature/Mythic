@@ -28,12 +28,16 @@ import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import {ResponseDisplayPlaintext} from "../Callbacks/ResponseDisplayPlaintext";
+import {getTextSyntaxForFilename} from "../Callbacks/ResponseDisplayMedia";
 
 const fileMetaFragment = gql`
 fragment filemetaData on filemeta{
     agent_file_id
     chunk_size
     size
+    total_size
+    size_received
+    transfer_type
     chunks_received
     complete
     deleted
@@ -95,6 +99,9 @@ fragment filemetaData on filemeta{
     copy_of_file {
         agent_file_id
         size
+        total_size
+        size_received
+        transfer_type
         chunks_received
         complete
         deleted
@@ -479,39 +486,11 @@ export function SearchTabFilesLabel(props) {
     )
 }
 
-const newTextFileSyntaxMap = {
-    "json": "json",
-    "md": "markdown",
-    "markdown": "markdown",
-    "py": "python",
-    "ps1": "powershell",
-    "sh": "sh",
-    "bash": "sh",
-    "zsh": "sh",
-    "js": "javascript",
-    "go": "golang",
-    "yml": "yaml",
-    "yaml": "yaml",
-    "toml": "toml",
-    "ini": "ini",
-    "conf": "apache_conf",
-    "html": "html",
-    "xml": "html",
-};
-const getNewTextFileSyntax = (filename) => {
-    if(!filename){
-        return "html";
-    }
-    const pieces = filename.split(".");
-    const extension = pieces.length > 1 ? pieces[pieces.length - 1].toLowerCase() : filename.toLowerCase();
-    return newTextFileSyntaxMap[extension] || "html";
-}
-
 const CreateTextFileDialog = ({onClose}) => {
     const [filename, setFilename] = React.useState("new-file.txt");
     const [content, setContent] = React.useState("");
     const [uploading, setUploading] = React.useState(false);
-    const initialMode = React.useMemo(() => getNewTextFileSyntax(filename), [filename]);
+    const initialMode = React.useMemo(() => getTextSyntaxForFilename(filename), [filename]);
     const onSave = async (event) => {
         if(event){
             event.preventDefault();
@@ -1318,7 +1297,7 @@ export const SearchTabFilesPanel = (props) => {
                                        onChangeSearchLocation={onChangeSearchLocation}
                                        onChangeDeletedField={onChangeDeletedField}
                                        changeSearchParam={props.changeSearchParam}/>
-            <div style={{overflowY: "auto", flexGrow: 1}}>
+            <div style={{display: "flex", flexDirection: "column", overflowY: "auto", flexGrow: 1, minHeight: 0}}>
                 {currentResultCount > 0 ? (
                     <>
                         {searchLocation === "Uploads" && <FileMetaUploadTable me={me} files={fileMetaUploadData}/>}

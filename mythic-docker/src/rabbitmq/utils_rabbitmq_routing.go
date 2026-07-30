@@ -56,6 +56,9 @@ func GetPtTaskCompletionHandlerRoutingKey(container string) string {
 func GetPtTaskProcessResponseRoutingKey(container string) string {
 	return fmt.Sprintf("%s_%s", container, PT_TASK_PROCESS_RESPONSE)
 }
+func GetPtTaskAgentRPCRoutingKey(container string) string {
+	return fmt.Sprintf("%s_%s", container, PT_TASK_AGENT_RPC)
+}
 func GetPtCommandHelpRoutingKey(container string) string {
 	return fmt.Sprintf("%s_%s", container, PT_COMMAND_HELP_FUNCTION)
 }

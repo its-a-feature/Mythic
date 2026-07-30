@@ -9,13 +9,19 @@ alter table "public"."payload"
 alter table "public"."payloadtype"
     add column if not exists wrapper_payload_requirements jsonb not null default jsonb_build_array();
 
-create index if not exists payload_build_metadata_gin_idx
-    on "public"."payload" using gin (build_metadata jsonb_path_ops);
+create index if not exists payload_build_metadata_gin_idx on "public"."payload" using gin (build_metadata jsonb_path_ops);
 
 drop table if exists "public"."wrappedpayloadtypes";
 
-alter table "public"."payloadtype"
-    drop column if exists supported_wrapping;
+alter table "public"."payloadtype" drop column if exists supported_wrapping;
+
+alter table "public"."response" add column if not exists interactive_task_type integer;
+
+alter table "public"."filemeta" add column if not exists transfer_type text not null default 'chunk'::text;
+
+alter table "public"."filemeta" add column if not exists total_size bigint default 0;
+
+alter table "public"."filemeta" add column if not exists size_received bigint default 0;
 
 -- +migrate Down
 -- SQL section 'Down' is executed when this migration is rolled back
@@ -37,8 +43,14 @@ create index if not exists wrappedpayloadtypes_wrapped_id
 
 drop index if exists "public".payload_build_metadata_gin_idx;
 
-alter table "public"."payloadtype"
-    drop column if exists wrapper_payload_requirements;
+alter table "public"."payloadtype" drop column if exists wrapper_payload_requirements;
 
-alter table "public"."payload"
-    drop column if exists build_metadata;
+alter table "public"."payload" drop column if exists build_metadata;
+
+alter table "public"."response" drop column if exists interactive_task_type;
+
+alter table "public"."filemeta" drop column if exists transfer_type;
+
+alter table "public"."filemeta" drop column if exists total_size;
+
+alter table "public"."filemeta" drop column if exists size_received;

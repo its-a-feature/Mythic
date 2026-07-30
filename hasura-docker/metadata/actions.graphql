@@ -534,33 +534,6 @@ type Query {
   getGlobalSettings: globalSettingsOutput
 }
 
-input WrapperBuildParameterInput {
-  name: String!
-  value: jsonb
-}
-
-type Query {
-  getWrappablePayloads(
-    wrapper_payload_type_id: Int!
-    build_parameters: [WrapperBuildParameterInput!]!
-    limit: Int = 25
-    offset: Int = 0
-  ): WrappablePayloadsOutput!
-}
-
-type WrappablePayloadReference {
-  id: Int!
-}
-
-type WrappablePayloadsOutput {
-  status: String!
-  error: String
-  total_count: Int!
-  limit: Int!
-  offset: Int!
-  payloads: [WrappablePayloadReference!]!
-}
-
 type Query {
   getInviteLinks: getInviteLinksOutput
 }
@@ -579,6 +552,15 @@ type Query {
   getProfileOutput(
     id: Int!
   ): ProfileOutput
+}
+
+type Query {
+  getWrappablePayloads(
+    wrapper_payload_type_id: Int!
+    build_parameters: [WrapperBuildParameterInput!]!
+    limit: Int
+    offset: Int
+  ): WrappablePayloadsOutput!
 }
 
 type Mutation {
@@ -834,6 +816,11 @@ type Query {
   whoami: whoamiOutput
 }
 
+input WrapperBuildParameterInput {
+  name: String!
+  value: jsonb
+}
+
 input OperatorInput {
   username: String!
   password: String
@@ -919,6 +906,19 @@ input newCallbackConfig {
 input disabledCommand {
   user_id: Int!
   disabled_command_profile_id: Int!
+}
+
+type WrappablePayloadReference {
+  id: Int!
+}
+
+type WrappablePayloadsOutput {
+  status: String!
+  error: String
+  total_count: Int!
+  limit: Int!
+  offset: Int!
+  payloads: [WrappablePayloadReference!]!
 }
 
 type createAPITokenResponse {
@@ -1657,3 +1657,4 @@ type ChatSearchResult {
   created_at: String!
   rank: Float!
 }
+

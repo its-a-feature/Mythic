@@ -1455,15 +1455,27 @@ func SplitOperatorAliasExpandedTaskLine(line string, commandParameterSets ...[]d
 }
 
 func associateUploadedFilesWithTask(task *databaseStructs.Task, files []string) {
+	associationTaskID := uploadedFileAssociationTaskID(task)
 	for _, fileID := range files {
 		if _, err := database.DB.Exec(`UPDATE filemeta SET 
 			task_id=$1, host=$2
 			WHERE
-			agent_file_id=$3 AND operation_id=$4`, task.ID, task.Callback.Host, fileID, task.OperationID); err != nil {
+			agent_file_id=$3 AND operation_id=$4`, associationTaskID, task.Callback.Host, fileID, task.OperationID); err != nil {
 			logging.LogError(err, "Failed to update task association for file")
 		}
 	}
 }
+
+func uploadedFileAssociationTaskID(task *databaseStructs.Task) int64 {
+	if task.IsInteractiveTask &&
+		task.InteractiveTaskType.Valid &&
+		InteractiveTask.MessageType(task.InteractiveTaskType.Int64) == InteractiveTask.FileEditorRequest &&
+		task.ParentTaskID.Valid {
+		return task.ParentTaskID.Int64
+	}
+	return int64(task.ID)
+}
+
 func addTaskToDatabase(task *databaseStructs.Task, postCreateActions ...taskReferencePostCreateAction) error {
 	// create the task in the database
 	//logging.LogInfo("adding task to database", "task", task)

@@ -359,17 +359,6 @@ actions:
       - role: mythic_admin
       - role: developer
     comment: Create a new credential within Mythic's credential store
-  - name: updateCredential
-    definition:
-      kind: synchronous
-      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/update_credential_webhook'
-      forward_client_headers: true
-    permissions:
-      - role: operator
-      - role: operation_admin
-      - role: mythic_admin
-      - role: developer
-    comment: Update a credential within Mythic's credential store
   - name: createInviteLink
     definition:
       kind: synchronous
@@ -763,18 +752,6 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
-  - name: getWrappablePayloads
-    definition:
-      kind: ""
-      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/get_wrappable_payloads_webhook'
-      forward_client_headers: true
-    permissions:
-      - role: spectator
-      - role: operator
-      - role: operation_admin
-      - role: mythic_admin
-      - role: developer
-    comment: Return one page of successful payloads that exactly match the active wrapper requirements
   - name: getInviteLinks
     definition:
       kind: ""
@@ -814,6 +791,18 @@ actions:
       - role: mythic_admin
       - role: operation_admin
       - role: operator
+  - name: getWrappablePayloads
+    definition:
+      kind: ""
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/get_wrappable_payloads_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: spectator
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
+    comment: Return one page of successful payloads that exactly match the active wrapper requirements
   - name: importBuildParameterInstance
     definition:
       kind: synchronous
@@ -1037,6 +1026,17 @@ actions:
       - role: mythic_admin
       - role: operation_admin
       - role: operator
+  - name: updateCredential
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/update_credential_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
+    comment: Update a credential within Mythic's credential store
   - name: updateCurrentOperation
     definition:
       kind: synchronous
@@ -1156,6 +1156,7 @@ actions:
 custom_types:
   enums: []
   input_objects:
+    - name: WrapperBuildParameterInput
     - name: OperatorInput
     - name: CreatePayloadInput
     - name: updateCallbackInput
@@ -1165,8 +1166,18 @@ custom_types:
     - name: NewCallbackConfig
     - name: newCallbackConfig
     - name: disabledCommand
-    - name: WrapperBuildParameterInput
   objects:
+    - name: WrappablePayloadReference
+      relationships:
+        - field_mapping:
+            id: id
+          name: payload
+          remote_table:
+            name: payload
+            schema: public
+          source: default
+          type: object
+    - name: WrappablePayloadsOutput
     - name: createAPITokenResponse
     - name: ScopeCheckOutput
     - name: APITokenScopeDefinitionsOutput
@@ -1200,7 +1211,6 @@ custom_types:
           type: object
     - name: BypassOutput
     - name: updateCallbackOutput
-    - name: updateCredentialOutput
     - name: BulkDownloadOutput
     - name: dynamicQueryOutput
     - name: rebuildOutput
@@ -1245,6 +1255,7 @@ custom_types:
     - name: updateOperationOutput
     - name: updateOperatorOperationOutput
     - name: createCredentialOutput
+    - name: updateCredentialOutput
     - name: createOperationEventLogOutput
     - name: GetIOCOutput
     - name: C2SampleMessageOutput
@@ -1307,15 +1318,4 @@ custom_types:
     - name: custombrowserExportFunctionOutput
     - name: ChatActionOutput
     - name: ChatSearchResult
-    - name: WrappablePayloadsOutput
-    - name: WrappablePayloadReference
-      relationships:
-        - field_mapping:
-            id: id
-          name: payload
-          remote_table:
-            name: payload
-            schema: public
-          source: default
-          type: object
   scalars: []

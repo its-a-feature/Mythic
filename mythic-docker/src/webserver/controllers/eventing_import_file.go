@@ -347,8 +347,8 @@ func EventingImportAutomaticWebhook(c *gin.Context) {
 	fileData.Sha1 = mythicCrypto.HashSha1(fileDataContents)
 	// register the data with database
 	statement, err := database.DB.PrepareNamed(`INSERT INTO filemeta 
-			(filename,total_chunks,chunks_received,chunk_size,path,operation_id,complete,comment,operator_id,delete_after_fetch,md5,sha1,agent_file_id,full_remote_path,task_id,is_screenshot,is_download_from_agent,host,size,apitokens_id,eventstepinstance_id)
-			VALUES (:filename, :total_chunks, :chunks_received, :chunk_size, :path, :operation_id, :complete, :comment, :operator_id, :delete_after_fetch, :md5, :sha1, :agent_file_id, :full_remote_path, :task_id, :is_screenshot, :is_download_from_agent, :host, :size, :apitokens_id, :eventstepinstance_id)
+			(filename,total_chunks,chunks_received,chunk_size,path,operation_id,complete,comment,operator_id,delete_after_fetch,md5,sha1,agent_file_id,is_screenshot,is_download_from_agent,size,apitokens_id,eventstepinstance_id)
+			VALUES (:filename, :total_chunks, :chunks_received, :chunk_size, :path, :operation_id, :complete, :comment, :operator_id, :delete_after_fetch, :md5, :sha1, :agent_file_id, :is_screenshot, :is_download_from_agent, :size, :apitokens_id, :eventstepinstance_id)
 			RETURNING id`)
 	if err != nil {
 		logging.LogError(err, "Failed to create statement for saving file metadata")

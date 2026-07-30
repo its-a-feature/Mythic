@@ -1,8 +1,13 @@
 package rabbitmq
 
 import (
+	"database/sql"
 	"slices"
 	"testing"
+
+	"github.com/its-a-feature/Mythic/database/enums/InteractiveTask"
+	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
+	mythicStructs "github.com/its-a-feature/Mythic/utils/structs"
 )
 
 func drainEventingChannelForTest() {
@@ -116,5 +121,74 @@ func TestEnsureCreateTaskOriginalParamsPreservesProvidedValue(t *testing.T) {
 	}
 	if *createTaskInput.OriginalParams != originalParams {
 		t.Fatalf("expected provided original params to be preserved, got %q", *createTaskInput.OriginalParams)
+	}
+}
+
+func TestUploadedFileAssociationTaskID(t *testing.T) {
+	parentTaskID := mythicStructs.NullInt64{
+		NullInt64: sql.NullInt64{Int64: 41, Valid: true},
+	}
+	tests := []struct {
+		name string
+		task databaseStructs.Task
+		want int64
+	}{
+		{
+			name: "normal task uses itself",
+			task: databaseStructs.Task{ID: 42, ParentTaskID: parentTaskID},
+			want: 42,
+		},
+		{
+			name: "file editor request uses its parent",
+			task: databaseStructs.Task{
+				ID:                42,
+				IsInteractiveTask: true,
+				InteractiveTaskType: mythicStructs.NullInt64{
+					NullInt64: sql.NullInt64{
+						Int64: int64(InteractiveTask.FileEditorRequest),
+						Valid: true,
+					},
+				},
+				ParentTaskID: parentTaskID,
+			},
+			want: 41,
+		},
+		{
+			name: "terminal interactive input uses itself",
+			task: databaseStructs.Task{
+				ID:                42,
+				IsInteractiveTask: true,
+				InteractiveTaskType: mythicStructs.NullInt64{
+					NullInt64: sql.NullInt64{
+						Int64: int64(InteractiveTask.Input),
+						Valid: true,
+					},
+				},
+				ParentTaskID: parentTaskID,
+			},
+			want: 42,
+		},
+		{
+			name: "file editor request without parent uses itself",
+			task: databaseStructs.Task{
+				ID:                42,
+				IsInteractiveTask: true,
+				InteractiveTaskType: mythicStructs.NullInt64{
+					NullInt64: sql.NullInt64{
+						Int64: int64(InteractiveTask.FileEditorRequest),
+						Valid: true,
+					},
+				},
+			},
+			want: 42,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := uploadedFileAssociationTaskID(&test.task); got != test.want {
+				t.Fatalf("expected association task ID %d, got %d", test.want, got)
+			}
+		})
 	}
 }

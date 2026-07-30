@@ -21,7 +21,7 @@ import {downloadFileFromMemory} from '../../utilities/Clipboard';
 export function MitreGrid({entries, onGetCommands, onGetTasks, onGetCommandsFiltered, onGetTasksFiltered, onFilterByTags, showCountGrouping}){
     const [backdropOpen, setBackdropOpen] = React.useState(false);
     const techniqueCount = Object.values(entries || {}).reduce((total, tactic) => total + (tactic?.rows?.length || 0), 0);
-    
+    const theme = useTheme();
     return (
         <>
             <MythicPageHeader
@@ -46,7 +46,9 @@ export function MitreGrid({entries, onGetCommands, onGetTasks, onGetCommandsFilt
                 }
             />
             
-            <div style={{display: "flex", flexGrow: 1, overflow: "auto"}}>
+            <div style={{display: "flex", flexGrow: 1, overflow: "auto",
+                borderRadius: theme.shape.borderRadius,
+                background: theme.palette.background.default}}>
                 {backdropOpen && <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
                     <CircularProgress color="inherit" />
                 </Backdrop>

@@ -6,6 +6,9 @@ import (
 	"github.com/its-a-feature/Mythic/utils/structs"
 )
 
+const FileMetaTransferTypeOffset = "offset"
+const FileMetaTransferTypeChunk = "chunk"
+
 type Filemeta struct {
 	ID                  int               `db:"id" json:"id" mapstructure:"id"`
 	AgentFileID         string            `db:"agent_file_id" json:"agent_file_id" mapstructure:"agent_file_id"`
@@ -40,4 +43,7 @@ type Filemeta struct {
 	APIToken            Apitokens         `db:"apitoken" json:"apitoken"`
 	CopyOfFileID        structs.NullInt64 `db:"copy_of_file_id" json:"copy_of_file_id" mapstructure:"copy_of_file_id"`
 	ReceivedChunkIDs    MythicJSONText    `db:"received_chunk_ids" json:"received_chunk_ids" mapstructure:"received_chunk_id"`
+	TransferType        string            `db:"transfer_type" json:"transfer_type" mapstructure:"transfer_type"`
+	TotalSize           int64             `db:"total_size" json:"total_size" mapstructure:"total_size"`
+	SizeReceived        int64             `db:"size_received" json:"size_received" mapstructure:"size_received"`
 }

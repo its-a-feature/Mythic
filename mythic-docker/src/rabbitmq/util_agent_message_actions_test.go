@@ -134,6 +134,79 @@ func TestSelectAgentMessageTaskIDsForIssueMatchesDirectTaskingOrder(t *testing.T
 	}
 }
 
+func TestNormalizeOffsetRanges(t *testing.T) {
+	tests := []struct {
+		name         string
+		ranges       map[int64]int
+		expected     map[int64]int
+		sizeReceived int64
+		nextOffset   int64
+	}{
+		{
+			name:         "empty",
+			ranges:       map[int64]int{},
+			expected:     map[int64]int{},
+			sizeReceived: 0,
+			nextOffset:   0,
+		},
+		{
+			name:         "duplicate and contained ranges",
+			ranges:       map[int64]int{0: 100, 25: 25},
+			expected:     map[int64]int{0: 100},
+			sizeReceived: 100,
+			nextOffset:   100,
+		},
+		{
+			name:         "overlapping ranges",
+			ranges:       map[int64]int{0: 100, 64: 64},
+			expected:     map[int64]int{0: 128},
+			sizeReceived: 128,
+			nextOffset:   128,
+		},
+		{
+			name:         "gap",
+			ranges:       map[int64]int{0: 100, 200: 100},
+			expected:     map[int64]int{0: 100, 200: 100},
+			sizeReceived: 200,
+			nextOffset:   100,
+		},
+		{
+			name:         "bridge gap",
+			ranges:       map[int64]int{0: 100, 100: 100, 200: 100},
+			expected:     map[int64]int{0: 300},
+			sizeReceived: 300,
+			nextOffset:   300,
+		},
+		{
+			name:         "starts after zero",
+			ranges:       map[int64]int{100: 100},
+			expected:     map[int64]int{100: 100},
+			sizeReceived: 100,
+			nextOffset:   0,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			normalized, sizeReceived, nextOffset := normalizeOffsetRanges(test.ranges)
+			if sizeReceived != test.sizeReceived {
+				t.Fatalf("expected size_received %d, got %d", test.sizeReceived, sizeReceived)
+			}
+			if nextOffset != test.nextOffset {
+				t.Fatalf("expected next offset %d, got %d", test.nextOffset, nextOffset)
+			}
+			if len(normalized) != len(test.expected) {
+				t.Fatalf("expected normalized ranges %#v, got %#v", test.expected, normalized)
+			}
+			for offset, length := range test.expected {
+				if normalized[offset] != length {
+					t.Fatalf("expected normalized ranges %#v, got %#v", test.expected, normalized)
+				}
+			}
+		})
+	}
+}
+
 func BenchmarkDecodeAgentMessagePostResponseMessage(b *testing.B) {
 	benchmarks := []struct {
 		name          string
