@@ -4,6 +4,105 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.7] - 2026-07-31
+
+### Breaking Changes
+
+- Reworked authentication for protected HTTP and GraphQL requests:
+  - Protected requests no longer authenticate from the `mythic` cookie; all clients must send access tokens and API tokens with the `Authorization: Bearer <token>` header.
+  - Replaced JWT-based API tokens with opaque `mtk_` tokens that are hashed at rest and shown only when created.
+    - Be sure to save your API Tokens when you generate them because you cannot recover them in the UI or database!
+  - Existing API tokens must be regenerated after upgrading.
+- Added resource-level read/write scopes to API tokens and enforced them across Hasura actions, webhooks, and Mythic RPC calls.
+  - Write scopes include the corresponding read scope.
+  - Tokens can use explicit scopes, resource wildcards such as `task.*`, or the global `*` scope.
+  - A token can only grant scopes already available to its caller.
+  - Using a JWT (access_token) through the web UI automatically have a global `*` scope.
+- Removed the `/api/v1.4` prefix from Mythic action and webhook routes and updated the Hasura action base URL accordingly.
+- Normalized the remaining snake_case Hasura action names to camelCase, including:
+  - `callbackgraphedge_add` and `callbackgraphedge_remove` to `callbackgraphedgeAdd` and `callbackgraphedgeRemove`
+  - `config_check` to `configCheck`
+  - `download_bulk` to `downloadBulk`
+  - `dynamic_query_function` to `dynamicQueryFunction`
+  - `rebuild_payload` to `rebuildPayload`
+  - `redirect_rules` to `redirectRules`
+  - `reissue_task` and `reissue_task_handler` to `reissueTask` and `reissueTaskHandler`
+  - `typedarray_parse_function` to `typedarrayParseFunction`
+  - `meHook` was replaced by the expanded `whoami` query
+- Standardized task and callback action arguments on operation-scoped display IDs. 
+  - Integrations should migrate ambiguous fields such as `task_id`, `callback_id`, `tasks`, and `callbacks` to the corresponding `task_display_id`, `callback_display_id`, `task_display_ids`, and `callback_display_ids` fields.
+- Added authenticated RabbitMQ context propagation and scope enforcement for container RPC requests and responses. 
+  - All containers must use compatible container libraries that preserve the Mythic auth-context header!
+- Changed eventing `mythic.apitoken` inputs from a scalar value to an object with an explicit `type` and optional `scopes` list.
+- Replaced wrapper payload type allowlists with `wrapper_payload_requirements`. 
+  - Wrapper containers should declare requirement rules, and payload builders can return `build_metadata` used to select compatible payloads.
+
+### Added
+
+- Added operation chat with standard and AI-backed channels.
+  - Supports channel creation, locking, archiving, muting, unread state, history, full-text search, and message editing/deletion.
+  - Supports streamed AI responses, cancellation, retry, model and channel metadata, and per-channel bot API tokens.
+  - Added structured tool-use output, operator approval and input requests, selectable choices, delegation metadata, and sub-agent summaries/final output.
+  - Added Markdown rendering and clickable metadata references in chat.
+- Added eventing steps that can pause for operator approval or runtime input and resume after a response is submitted.
+- Added scoped API-token discovery and introspection through `apiTokenScopeDefinitions`, `scopeCheck`, and the expanded `whoami` response.
+- Added operator-owned command and generic aliases with payload type/chat container scoping, nested expansion, and import/export support.
+- Added task parameter reference expansion:
+  - `@cred` references can resolve credential fields or complete structured credential parameters.
+  - `@link` references can resolve payload links and track payload-on-host relationships.
+  - `@edge` references can resolve existing edges to unlink/relink capabilities
+  - Resolution details are stored with the task and sent to payload type containers.
+- Added richer build and C2 parameter definitions:
+  - Parameter groups, display names, display names for choices, hide conditions, and dynamic queries.
+  - Complex dynamic choices and `other_parameters` context.
+  - `JSONString` parameters with inline JSON Schema rendering.
+  - Saved, named build-parameter instances alongside saved C2 parameter instances.
+- Added conditional wrapper compatibility based on payload build metadata, and the wrapper's selected build parameters.
+- Added payload build metadata and paginated discovery of payloads compatible with a wrapper.
+- Added offset-based file transfers alongside chunk-number transfers, including resume support and byte-level progress tracking.
+- Added an interactive file-editor task response protocol with version history, conflict detection, staged previews, refresh, force-overwrite, and close actions.
+- Added tracked C2 file-hosting state with update, retry, stop, and remove operations.
+- Added a payload-type agent RPC path for asynchronous payload-wide requests to callbacks.
+- Added richer credentials with subtype, structured identity, metadata, custom display values, update support, and dedicated JWT and Kerberos renderers.
+- Added `custom_rpc_timeout` for RPC calls that are expected to run longer without retrying duplicate work.
+
+### Changed
+
+- Modernized the React UI with standardized dialogs, action buttons, state/status chips, page headers, colors, pagination, filtering, and virtualized resizable tables.
+- Reworked callback tasking and output:
+  - Added xterm-based interactive terminal output and improved keyboard/scroll handling.
+  - Improved task response pagination, streaming, Markdown/terminal display, single-task views, filters, and completion tracking.
+  - Updated callback tabs, rows, C2 path diagrams, and the callback file/process browsers.
+- Updated the payload builder, wrapper builder, C2 profile pages, eventing editor, search pages, payload tables, browser scripts, reporting, installed services, settings, and dashboard to use the new UI components and workflows.
+- Added authenticated media, screenshot, file preview, upload, and download handling now that browser cookie authentication is no longer used.
+- Improved the file browser's incremental insert/delete processing, directory deletion behavior, container file browsing, and large update performance.
+- Improved proxy traffic, delegate routing, callback graph path caching, RabbitMQ dispatch, and Mythic RPC performance.
+- Improved task/response sequencing and callback/task display-ID allocation under concurrent activity.
+- Updated API-token creation for bot accounts so an operation member can create a token for a bot in the same operation, subject to view mode and delegated scopes.
+- Updated C2, payload, and build-parameter synchronization to use stored compatibility metadata instead of legacy resync RPCs.
+- Updated the documentation UI with light/dark themes, collapsible navigation, preserved sidebar state, and in-page navigation.
+- Updated the React release build to use chunked assets, gzip compression, and the UI baked into the published image by default. 
+  - Local `build_ui` output is mounted only when local UI build context is enabled.
+- Updated the bundled Jupyter Mythic package to `0.3.0-rc8`.
+
+### Fixed
+
+- Prevented duplicate container `OnStart` calls and duplicate file-upload processing.
+- Fixed out-of-order and repeated file chunks inflating transfer progress or prematurely completing downloads.
+- Fixed task completion callback races and duplicate callback-function execution.
+- Fixed response decoding so one malformed response no longer discards the rest of a response batch.
+- Fixed operation alert counts becoming stale during concurrent event-log updates, deletes, or warning resolution.
+- Fixed file-browser update ordering, upload tracking, remote-path handling, and large insert/delete operations.
+- Fixed artifact search and multiple search-table rendering/filtering issues.
+- Fixed payload and C2 synchronization races, container-down warning resolution, SQL-query handling, and hosted-file state tracking.
+- Fixed multiple callback table, single-task view, browser-script, eventing, payload, and responsive-layout issues.
+
+### Removed
+
+- Removed the obsolete operation-specific browser-script mapping table.
+- Removed the legacy browser-script `screenshot`, `download`, and `search` result renderers; use the supported media, table, and plaintext response formats instead.
+- Removed the legacy payload type, C2 profile, and translation-container resync RPC send paths.
+
 ## [3.4.36] - 2026-06-21
 
 ### Changed
