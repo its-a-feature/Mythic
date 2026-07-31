@@ -4,7 +4,8 @@ if [ "$EUID" -ne 0 ]
   exit
 fi
 
-apt install -y apt-transport-https ca-certificates curl gnupg2 software-properties-common
+# debian 13 removed software-properties-common, add that back in to the apt install if on debian 12
+apt install -y apt-transport-https ca-certificates curl gnupg2
 install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
 chmod a+r /etc/apt/keyrings/docker.asc
