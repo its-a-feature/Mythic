@@ -12,7 +12,7 @@ COPY ["src/", "."]
 
 RUN make build_final
 
-FROM alpine
+FROM busybox
 
 COPY --from=builder /mythic_server /mythic_server
 
