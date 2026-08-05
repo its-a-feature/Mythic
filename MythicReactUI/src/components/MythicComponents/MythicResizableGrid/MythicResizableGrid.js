@@ -14,10 +14,10 @@ import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
 
 const HeaderCellContext = createContext({});
 
-const MIN_COLUMN_WIDTH = 100;
-const MIN_FLEX_COLUMN_WIDTH = 150;
-const AUTOSIZE_HORIZONTAL_PADDING = 44;
-const AUTOSIZE_HEADER_EXTRA_WIDTH = 28;
+const MIN_COLUMN_WIDTH = 50;
+const MIN_FLEX_COLUMN_WIDTH = 50;
+const AUTOSIZE_HORIZONTAL_PADDING = 40;
+const AUTOSIZE_HEADER_EXTRA_WIDTH = 30;
 const headerMenuIconStyle = {fontSize: "1rem", marginRight: "8px"};
 const normalizeHeaderContextMenuOption = (option) => {
     if(option?.name === "Filter Column"){

@@ -50,7 +50,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added task parameter reference expansion:
   - `@cred` references can resolve credential fields or complete structured credential parameters.
   - `@link` references can resolve payload links and track payload-on-host relationships.
-  - `@edge` references can resolve existing edges to unlink/relink capabilities
   - Resolution details are stored with the task and sent to payload type containers.
 - Added richer build and C2 parameter definitions:
   - Parameter groups, display names, display names for choices, hide conditions, and dynamic queries.
