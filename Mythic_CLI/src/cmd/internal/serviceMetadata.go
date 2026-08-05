@@ -282,23 +282,41 @@ func AddMythicService(service string, removeVolume bool) {
 			delete(pStruct, "volumes")
 		}
 	case "mythic_nginx":
-		pStruct["depends_on"] = map[string]map[string]string{
-			"mythic_server": {
-				"condition": "service_healthy",
-			},
-			"mythic_react": {
-				"condition": "service_started",
-			},
-			"mythic_jupyter": {
-				"condition": "service_healthy",
-			},
-			"mythic_documentation": {
-				"condition": "service_started",
-			},
-			"mythic_graphql": {
-				"condition": "service_healthy",
-			},
+		if mythicEnv.GetBool("jupyter_include") {
+			pStruct["depends_on"] = map[string]map[string]string{
+				"mythic_server": {
+					"condition": "service_healthy",
+				},
+				"mythic_react": {
+					"condition": "service_started",
+				},
+				"mythic_jupyter": {
+					"condition": "service_healthy",
+				},
+				"mythic_documentation": {
+					"condition": "service_started",
+				},
+				"mythic_graphql": {
+					"condition": "service_healthy",
+				},
+			}
+		} else {
+			pStruct["depends_on"] = map[string]map[string]string{
+				"mythic_server": {
+					"condition": "service_healthy",
+				},
+				"mythic_react": {
+					"condition": "service_started",
+				},
+				"mythic_documentation": {
+					"condition": "service_started",
+				},
+				"mythic_graphql": {
+					"condition": "service_healthy",
+				},
+			}
 		}
+
 		if mythicEnv.GetBool("nginx_use_build_context") {
 			pStruct["build"] = map[string]interface{}{
 				"context": "./nginx-docker",

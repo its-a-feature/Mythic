@@ -5253,7 +5253,11 @@ const shouldShowMessageInMainChat = (message) => {
     if(!delegationID){
         return true;
     }
-    return Boolean(getSubagentSnapshot(message));
+    if(getSubagentSnapshot(message)){
+        return true;
+    }
+    return isPendingChatHumanInteraction(message);
+    //return Boolean(getSubagentSnapshot(message));
 };
 
 const getChatEventingPrompt = (snapshot) => {

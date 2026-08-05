@@ -67,7 +67,9 @@ func GetIntendedMythicServiceNames() ([]string, error) {
 			}
 		case "mythic_jupyter":
 			if mythicEnv.GetString("JUPYTER_HOST") == "127.0.0.1" || mythicEnv.GetString("JUPYTER_HOST") == "mythic_jupyter" {
-				containerList = append(containerList, service)
+				if mythicEnv.GetBool("JUPYTER_INCLUDE") {
+					containerList = append(containerList, service)
+				}
 			}
 			/*
 				case "mythic_grafana":
@@ -437,6 +439,9 @@ If this is false, then the local filesystem is mounted inside the container inst
 	mythicEnvInfo["jupyter_use_build_context"] = `The mythic_jupyter container by default pulls configuration from a pre-compiled Docker image hosted on GitHub's Container Registry (ghcr.io). 
 Setting this to "true" means that the local Mythic/jupyter-docker/Dockerfile is used to generate the image used for the mythic_jupyter container instead of the hosted image.`
 
+	mythicEnv.SetDefault("jupyter_include", true)
+	mythicEnvInfo["jupyter_include"] = `This specifies if the Jupyter container should be included in the Mythic instance. `
+
 	// debugging help ---------------------------------------------
 	mythicEnv.SetDefault("postgres_debug", false)
 	mythicEnv.SetDefault("mythic_react_debug", false)
@@ -476,11 +481,9 @@ func parseMythicEnvironmentVariables() {
 	mythicEnv.SetConfigType("env")
 	mythicEnv.AddConfigPath(utils.GetCwdFromExe())
 	mythicEnv.AutomaticEnv()
-	if !utils.FileExists(filepath.Join(utils.GetCwdFromExe(), ".env")) {
-		_, err := os.Create(filepath.Join(utils.GetCwdFromExe(), ".env"))
-		if err != nil {
-			log.Fatalf("[-] .env doesn't exist and couldn't be created\n")
-		}
+	envPath := filepath.Join(utils.GetCwdFromExe(), ".env")
+	if err := utils.EnsureFileExists(envPath, 0666); err != nil {
+		log.Fatalf("[-] .env doesn't exist and couldn't be created: %v\n", err)
 	}
 	if err := mythicEnv.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
@@ -543,27 +546,21 @@ func writeMythicEnvironmentVariables() {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-	f, err := os.Create(filepath.Join(utils.GetCwdFromExe(), ".env"))
-	if err != nil {
-		log.Fatalf("[-] Error writing out environment!\n%v", err)
-	}
-	defer f.Close()
+	var contents strings.Builder
 	for _, key := range keys {
 		if len(mythicEnv.GetString(key)) == 0 {
-			_, err = f.WriteString(fmt.Sprintf("%s=\n", strings.ToUpper(key)))
+			_, _ = fmt.Fprintf(&contents, "%s=\n", strings.ToUpper(key))
 		} else {
 			value := mythicEnv.GetString(key)
 			value = strings.ReplaceAll(value, "\\", "\\\\")
 			value = strings.ReplaceAll(value, "'", "\\'")
 			value = strings.ReplaceAll(value, "\"", "\\\"")
-			_, err = f.WriteString(fmt.Sprintf("%s=\"%s\"\n", strings.ToUpper(key), value))
-		}
-
-		if err != nil {
-			log.Fatalf("[-] Failed to write out environment!\n%v", err)
+			_, _ = fmt.Fprintf(&contents, "%s=\"%s\"\n", strings.ToUpper(key), value)
 		}
 	}
-	return
+	if err := utils.AtomicWriteFile(filepath.Join(utils.GetCwdFromExe(), ".env"), []byte(contents.String()), 0600); err != nil {
+		log.Fatalf("[-] Failed to write out environment!\n%v", err)
+	}
 }
 func GetConfigAllStrings() map[string]string {
 	c := mythicEnv.AllSettings()

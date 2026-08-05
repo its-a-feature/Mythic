@@ -82,6 +82,11 @@ export const getMainChatMessageWhere = (channelID) => ({
             _or: [
                 {_not: {metadata: {_has_key: "delegation_id"}}},
                 {metadata: {_contains: {special_type: "subagent"}}},
+                // Keep every state in the stream so the main view observes the
+                // update that resolves a delegated human-interaction request.
+                // The client-side filter hides it after that update arrives.
+                {metadata: {_contains: {special_type: "input_requested"}}},
+                {metadata: {_contains: {special_type: "eventing_user_interaction"}}},
             ],
         },
     ],

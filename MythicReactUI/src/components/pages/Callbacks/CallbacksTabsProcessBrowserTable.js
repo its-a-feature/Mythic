@@ -700,7 +700,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         try{
             updateSetting({setting_name: `process_browser_filter_options`, value: nextFilterOptions, broadcast: false});
         }catch(error){
-            console.log("failed to save filter options", error, filterOptions, selectedColumn.current.key, newValue);
+            console.log("failed to save filter options", error, filterOptions, selectedColumn.current.key);
         }
         if(viewSingleTreeData){
             return

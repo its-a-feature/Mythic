@@ -2,6 +2,7 @@ package utils
 
 import (
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -114,6 +115,67 @@ func DirExists(path string) bool {
 		}
 	}
 	return info.IsDir()
+}
+
+// EnsureFileExists creates an empty file if it does not already exist. The
+// exclusive create prevents a concurrent caller from truncating a file that
+// another process created after checking for it.
+func EnsureFileExists(filename string, perm os.FileMode) error {
+	f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_EXCL, perm)
+	if errors.Is(err, os.ErrExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	return f.Close()
+}
+
+// AtomicWriteFile writes data to a temporary file in the destination directory
+// and atomically replaces filename only after the complete contents have been
+// written and synced. Concurrent writers may replace one another, but readers
+// will only observe a complete version from one writer.
+func AtomicWriteFile(filename string, data []byte, perm os.FileMode) (retErr error) {
+	if info, err := os.Stat(filename); err == nil {
+		perm = info.Mode().Perm()
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+
+	tempFile, err := os.CreateTemp(filepath.Dir(filename), "."+filepath.Base(filename)+".tmp-*")
+	if err != nil {
+		return err
+	}
+	tempName := tempFile.Name()
+	tempClosed := false
+	defer func() {
+		if !tempClosed {
+			if err := tempFile.Close(); retErr == nil {
+				retErr = err
+			}
+		}
+		if err := os.Remove(tempName); err != nil && !errors.Is(err, os.ErrNotExist) && retErr == nil {
+			retErr = err
+		}
+	}()
+
+	if err := tempFile.Chmod(perm); err != nil {
+		return err
+	}
+	if written, err := tempFile.Write(data); err != nil {
+		return err
+	} else if written != len(data) {
+		return io.ErrShortWrite
+	}
+	if err := tempFile.Sync(); err != nil {
+		return err
+	}
+	if err := tempFile.Close(); err != nil {
+		return err
+	}
+	tempClosed = true
+
+	return os.Rename(tempName, filename)
 }
 
 // https://blog.depa.do/post/copy-files-and-directories-in-go

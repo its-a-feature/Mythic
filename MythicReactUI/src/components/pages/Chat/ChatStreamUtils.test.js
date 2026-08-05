@@ -86,7 +86,7 @@ describe("chat message server pagination", () => {
         });
     });
 
-    test("keeps non-delegated messages and sub-agent summary cards in the main feed", () => {
+    test("streams main messages, sub-agent cards, and delegated human interactions into the main feed", () => {
         expect(getMainChatMessageWhere(12)).toEqual({
             _and: [
                 {channel_id: {_eq: 12}},
@@ -94,6 +94,8 @@ describe("chat message server pagination", () => {
                     _or: [
                         {_not: {metadata: {_has_key: "delegation_id"}}},
                         {metadata: {_contains: {special_type: "subagent"}}},
+                        {metadata: {_contains: {special_type: "input_requested"}}},
+                        {metadata: {_contains: {special_type: "eventing_user_interaction"}}},
                     ],
                 },
             ],

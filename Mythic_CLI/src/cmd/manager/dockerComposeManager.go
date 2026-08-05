@@ -54,7 +54,8 @@ func (d *DockerComposeManager) GenerateRequiredConfig() {
 	if err := groupNameConfig.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			log.Printf("[-] Error while reading in docker-compose file: %s\n", err)
-			if _, err := os.Create("docker-compose.yml"); err != nil {
+			composePath := filepath.Join(utils.GetCwdFromExe(), "docker-compose.yml")
+			if err := utils.EnsureFileExists(composePath, 0666); err != nil {
 				log.Fatalf("[-] Failed to create docker-compose.yml file: %v\n", err)
 			} else {
 				if err := groupNameConfig.ReadInConfig(); err != nil {
@@ -1427,7 +1428,7 @@ func (d *DockerComposeManager) setDockerComposeDefaultsAndWrite(curConfig map[st
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(file, content, 0644)
+	return utils.AtomicWriteFile(file, content, 0644)
 }
 func (d *DockerComposeManager) readInDockerCompose() *viper.Viper {
 	var curConfig = viper.New()
@@ -1437,9 +1438,9 @@ func (d *DockerComposeManager) readInDockerCompose() *viper.Viper {
 	if err := curConfig.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			log.Fatalf("[-] Error while reading in docker-compose file: %s\n", err)
-		} else {
-			log.Fatalf("[-] Error while parsing docker-compose file: %s\n", err)
 		}
+
+		log.Fatalf("[-] Error while parsing docker-compose file: %s\n", err)
 	}
 	return curConfig
 }

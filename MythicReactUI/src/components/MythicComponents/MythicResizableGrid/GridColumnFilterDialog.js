@@ -145,6 +145,7 @@ export function GridColumnFilterDialog({filterValue, onClose, onSubmit, selected
                         label="Include rows matching"
                         minRows={4}
                         multiline
+                        autoFocus
                         onChange={(event) => setIncludeText(event.target.value)}
                         placeholder={"admin\nprod"}
                         value={includeText}
