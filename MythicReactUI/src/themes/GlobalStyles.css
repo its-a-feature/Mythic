@@ -2090,7 +2090,6 @@ tspan {
 }
 .mythic-tasking-filter-dialog-actions.MuiDialogActions-root .MuiButton-root {
     min-height: 36px;
-    min-width: 8.25rem;
     padding-left: 1rem;
     padding-right: 1rem;
 }
@@ -5039,7 +5038,6 @@ tspan {
 .mythic-raw-select-action.MuiButton-root {
     flex: 0 0 auto;
     min-height: 28px;
-    min-width: 5rem;
     padding: 0.25rem 0.625rem;
 }
 .mythic-raw-select-empty {
@@ -8248,7 +8246,6 @@ tspan {
 }
 .mythic-eventing-workflow-overview-header-actions .MuiButton-root.mythic-compact-action {
     flex: 0 1 auto;
-    min-width: 6.5rem;
     max-width: 100%;
     white-space: normal;
 }
@@ -9427,7 +9424,6 @@ tspan {
     box-shadow: none !important;
     color: var(--mythic-color-text-base) !important;
     min-height: 30px;
-    min-width: 34px;
     padding: 0.25rem 0.5rem;
 }
 @media screen and (max-width: 700px) {

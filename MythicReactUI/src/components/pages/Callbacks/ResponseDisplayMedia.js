@@ -344,12 +344,7 @@ export const DisplayMedia = ({agent_file_id, filename, expand, task, fileMetaDat
     }
     if(fileData.display_type === "object"){
         return (
-            <object width={"100%"} height={expand ? "100%" : "400px"}
-                    data={"/direct/view/" + agent_file_id} >
-                <Typography variant={"h4"} style={{display: "flex", width: "100%", height: "100%", justifyContent: "center", flexDirection: "column", alignItems: "center"}} >
-                    {fileData.message}
-                </Typography>
-            </object>
+            <RenderMedia agent_file_id={agent_file_id} expand={expand} fileData={fileData} />
         )
     }
     if(fileData.display_type === "image"){
@@ -382,6 +377,52 @@ export const DisplayMedia = ({agent_file_id, filename, expand, task, fileMetaDat
         )
     }
     return null;
+}
+const RenderMedia = ({agent_file_id, expand, fileData}) => {
+    const [loading, setLoading] = React.useState(true);
+    const [objectURL, setObjectURL] = React.useState("");
+    React.useEffect( () => {
+        let cancelled = false;
+        const fetchAndSetFile = async () => {
+            const response = await mythicFetch('/direct/view/' + agent_file_id, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+                }
+            });
+            if (response.status !== 200) {
+                snackActions.error("Failed to fetch contents from Mythic");
+            }
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            setObjectURL(url);
+            setLoading(false);
+        }
+        if(agent_file_id){
+            fetchAndSetFile();
+        }
+        return () => {
+            cancelled = true;
+        }
+    }, [agent_file_id])
+
+    if(loading){
+        return (
+            <Typography>
+                Loading...
+            </Typography>
+        )
+    }
+    return (
+        <iframe style={{width: "100%", height: expand ? "100%" : "400px"}}>
+            <object width={"100%"} height={expand ? "100%" : "400px"}
+                    data={objectURL} >
+                <Typography variant={"h4"} style={{display: "flex", width: "100%", height: "100%", justifyContent: "center", flexDirection: "column", alignItems: "center"}} >
+                    {fileData?.message || "Failed to render file"}
+                </Typography>
+            </object>
+        </iframe>
+
+    )
 }
 const MaxRenderSize = 2000000; // 2MB
 const DisplayFileMetaData = ({fileMetaData}) => {

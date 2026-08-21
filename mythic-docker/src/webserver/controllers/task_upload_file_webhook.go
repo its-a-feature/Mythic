@@ -95,8 +95,8 @@ func TaskUploadFileWebhook(c *gin.Context) {
 	err = database.DB.Get(&existingFileMeta, `SELECT 
     	id, agent_file_id 
 		FROM filemeta 
-		WHERE sha1=$1 AND md5=$2 AND deleted=false AND operation_id=$3 AND is_download_from_agent=false AND copy_of_file_id IS NULL`,
-		fileMeta.Sha1, fileMeta.Md5, fileMeta.OperationID)
+		WHERE sha1=$1 AND md5=$2 AND deleted=false AND operation_id=$3 AND is_download_from_agent=false AND copy_of_file_id IS NULL AND "name"=$4`,
+		fileMeta.Sha1, fileMeta.Md5, fileMeta.OperationID, fileMeta.Filename)
 	if err == nil {
 		// if we already have a non-deleted file for this operation with the same md5 and sha1, just return that file
 		err = os.Remove(fileMeta.Path)

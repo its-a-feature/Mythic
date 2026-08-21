@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
@@ -134,8 +132,9 @@ func c2Sync(in C2SyncMessage) error {
 		return errors.New("Can't have c2 container with empty name - bad sync")
 	}
 	if !isValidContainerVersion(in.ContainerVersion) {
-		logging.LogError(nil, "attempting to sync bad c2 container version")
-		return errors.New(fmt.Sprintf("Version, %s, isn't supported. The max supported version is < %s. \nThis likely means your PyPi or Golang library is out of date and should be updated.", in.ContainerVersion, validContainerVersionMax))
+		logging.LogError(nil, "attempting to sync bad payload container version", "c2 profile", in.Profile.Name)
+		return errors.New(fmt.Sprintf("%s's version, %s, isn't supported. Only versions < %s and >= %s are supported. \nThis likely means your PyPi or Golang library is out of date compared to the Mythic server.",
+			in.Profile.Name, in.ContainerVersion, validContainerVersionMin, validContainerVersionMax))
 	}
 	err := database.DB.Get(&c2Profile, `SELECT * FROM c2profile WHERE "name"=$1`, in.Profile.Name)
 	if err != nil {
@@ -211,41 +210,10 @@ func c2Sync(in C2SyncMessage) error {
 		go reSyncPayloadTypes()
 	}
 	checkContainerStatusAddC2Channel <- c2Profile
-	absPath, err := filepath.Abs(filepath.Join(".", "static", fmt.Sprintf("%s_light.svg", in.Profile.Name)))
+	err = saveContainerIcons(in.Profile.Name, in.Profile.AgentIcon, in.Profile.DarkModeAgentIcon)
 	if err != nil {
-		return err
+		logging.LogError(err, "Failed to save container icons")
 	}
-	file, err := os.Create(absPath)
-	if err != nil {
-		return err
-	}
-	if in.Profile.AgentIcon != nil {
-		if _, err = file.Write(*in.Profile.AgentIcon); err != nil {
-			return err
-		}
-	}
-	file.Close()
-	darkModeAbsPath, err := filepath.Abs(filepath.Join(".", "static", fmt.Sprintf("%s_dark.svg", in.Profile.Name)))
-	if err != nil {
-		return err
-	}
-	darkModeFile, err := os.Create(darkModeAbsPath)
-	if err != nil {
-		return err
-	}
-	if in.Profile.DarkModeAgentIcon != nil {
-		if _, err = darkModeFile.Write(*in.Profile.DarkModeAgentIcon); err != nil {
-			return err
-		}
-	} else {
-		if in.Profile.AgentIcon != nil {
-			if _, err = darkModeFile.Write(*in.Profile.AgentIcon); err != nil {
-				return err
-			}
-		}
-
-	}
-	darkModeFile.Close()
 	return nil
 }
 

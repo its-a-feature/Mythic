@@ -277,6 +277,7 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         borderRadius: borderRadius,
                         textTransform: "none",
                         fontWeight: 650,
+                        minWidth: "unset",
                     },
                     contained: {
                         boxShadow: "none",
@@ -371,7 +372,6 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                             letterSpacing: 0,
                             lineHeight: 1.2,
                             minHeight: 34,
-                            minWidth: "min(100%, 7rem)",
                             padding: "0.375rem 0.875rem",
                             textTransform: "none",
                             whiteSpace: "nowrap",
@@ -417,7 +417,7 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                             borderColor: textSecondary,
                         },
                         "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                            borderColor: primary,
+                            borderColor: textSecondary,
                             borderWidth: 1,
                         },
                     },
@@ -433,7 +433,7 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                             borderBottomColor: borderColor,
                         },
                         "&:after": {
-                            borderBottomColor: primary,
+                            borderBottomColor: borderColor,
                         },
                     },
                 },

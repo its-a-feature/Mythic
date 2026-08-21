@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/MythicMeta/Mythic_CLI/cmd/config"
@@ -953,8 +954,12 @@ func Add3rdPartyService(service string, additionalConfigs map[string]interface{}
 	if config.GetMythicEnv().GetString("installed_service_mem_limit") != "" {
 		existingConfig["mem_limit"] = config.GetMythicEnv().GetString("installed_service_mem_limit")
 	}
+	// scope this to a specific allow list that we can expand over time
+	allowListConfigKeys := []string{"privileged"}
 	for key, element := range additionalConfigs {
-		existingConfig[key] = element
+		if slices.Contains(allowListConfigKeys, key) {
+			existingConfig[key] = element
+		}
 	}
 
 	environment := []string{

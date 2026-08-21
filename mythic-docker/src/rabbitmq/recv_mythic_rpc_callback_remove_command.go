@@ -94,7 +94,7 @@ func MythicRPCCallbackRemoveCommand(input MythicRPCCallbackRemoveCommandMessage,
 	}
 	if len(input.CallbackIDs) > 0 {
 		for _, c := range input.CallbackIDs {
-			err := CallbackRemoveCommand(c, commandIDs)
+			err := CallbackRemoveCommand(c, commandIDs, authContext)
 			if err != nil {
 				logging.LogError(err, "Failed to remove commands to callback")
 				response.Error = err.Error()
@@ -103,7 +103,7 @@ func MythicRPCCallbackRemoveCommand(input MythicRPCCallbackRemoveCommandMessage,
 		}
 	}
 	if CallbackID != 0 {
-		err := CallbackRemoveCommand(CallbackID, commandIDs)
+		err := CallbackRemoveCommand(CallbackID, commandIDs, authContext)
 		if err != nil {
 			logging.LogError(err, "Failed to remove commands to callback")
 			response.Error = err.Error()
@@ -113,10 +113,10 @@ func MythicRPCCallbackRemoveCommand(input MythicRPCCallbackRemoveCommandMessage,
 	response.Success = true
 	return response
 }
-func CallbackRemoveCommand(callbackID int, commands []int) error {
+func CallbackRemoveCommand(callbackID int, commands []int, authContext RabbitMQAuthContext) error {
 	for _, command := range commands {
-		_, err := database.DB.Exec(`DELETE FROM loadedcommands WHERE command_id=$1 AND callback_id=$2`,
-			command, callbackID)
+		_, err := database.DB.Exec(`DELETE FROM loadedcommands WHERE command_id=$1 AND callback_id=$2 AND operation_id=$3`,
+			command, callbackID, authContext.OperationID)
 		if err != nil {
 			// we got some other sort of error
 			logging.LogError(err, "Failed to delete loaded command")

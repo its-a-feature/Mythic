@@ -354,7 +354,7 @@ func GitClone(url string, branch string) (string, error) {
 		return "", err
 	}
 	//log.Printf("[*] Cloning branch \"%s\" from %s\n", branch, url)
-	err = runGitClone([]string{"-c", "http.sslVerify=false", "clone", "--depth", "1", "--recurse-submodules", "--single-branch", "--branch", branch, url, filepath.Join(workingPath, "tmp")}, false)
+	err = runGitClone([]string{"-c", "clone", "--depth", "1", "--recurse-submodules", "--single-branch", "--branch", branch, url, filepath.Join(workingPath, "tmp")}, false)
 	if err != nil {
 		return "", err
 	}
@@ -384,10 +384,10 @@ func InstallService(url string, branch string, overWrite bool, keepVolume bool) 
 	installURL := url
 	if branch == "" {
 		log.Printf("[*] Cloning %s\n", url)
-		err = runGitClone([]string{"-c", "http.sslVerify=false", "clone", "--depth", "1", "--recurse-submodules", "--single-branch", url, filepath.Join(workingPath, "tmp")}, true)
+		err = runGitClone([]string{"-c", "clone", "--depth", "1", "--recurse-submodules", "--single-branch", url, filepath.Join(workingPath, "tmp")}, true)
 	} else {
 		log.Printf("[*] Cloning branch \"%s\" from %s\n", branch, url)
-		err = runGitClone([]string{"-c", "http.sslVerify=false", "clone", "--depth", "1", "--recurse-submodules", "--single-branch", "--branch", branch, url, filepath.Join(workingPath, "tmp")}, true)
+		err = runGitClone([]string{"-c", "clone", "--depth", "1", "--recurse-submodules", "--single-branch", "--branch", branch, url, filepath.Join(workingPath, "tmp")}, true)
 	}
 	if err != nil {
 		log.Printf("[-] Failed to clone down repository: %v\n", err)
@@ -568,10 +568,10 @@ func InstallMythicSync(url string, branch string) error {
 	}
 	if branch == "" {
 		log.Printf("[*] Cloning %s\n", url)
-		err = runGitClone([]string{"-c", "http.sslVerify=false", "clone", "--depth", "1", "--recurse-submodules", "--single-branch", url, filepath.Join(workingPath, "tmp")}, true)
+		err = runGitClone([]string{"-c", "clone", "--depth", "1", "--recurse-submodules", "--single-branch", url, filepath.Join(workingPath, "tmp")}, true)
 	} else {
 		log.Printf("[*] Cloning branch \"%s\" from %s\n", branch, url)
-		err = runGitClone([]string{"-c", "http.sslVerify=false", "clone", "--depth", "1", "--recurse-submodules", "--single-branch", "--branch", branch, url, filepath.Join(workingPath, "tmp")}, true)
+		err = runGitClone([]string{"-c", "clone", "--depth", "1", "--recurse-submodules", "--single-branch", "--branch", branch, url, filepath.Join(workingPath, "tmp")}, true)
 	}
 	if err != nil {
 		log.Printf("[-] Failed to clone down repository: %v\n", err)

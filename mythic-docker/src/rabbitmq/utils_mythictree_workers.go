@@ -1,6 +1,7 @@
 package rabbitmq
 
 import (
+	"fmt"
 	"sync"
 
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -128,6 +129,11 @@ func getMythicTreeWorkerID(taskID int, workerCount int) int {
 // dispatches to the existing handlers so their request-specific semantics stay
 // unchanged.
 func listenForMythicTreeWorker(workerID int, input <-chan mythicTreeIngestMessage) {
+	defer func() {
+		if r := recover(); r != nil {
+			logging.LogError(fmt.Errorf("MythicTree worker %d panicked and recovered: %v", workerID, r), "worker_id", workerID)
+		}
+	}()
 	for msg := range input {
 		switch msg.Kind {
 		case mythicTreeIngestFileBrowser:

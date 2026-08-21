@@ -538,7 +538,7 @@ var hasuraTableScopePolicies = map[string]hasuraTableScopePolicy{
 	},
 	"buildparameterinstance": {
 		ReadScopes:  []string{mythicjwt.SCOPE_PAYLOAD_READ},
-		WriteScopes: []string{mythicjwt.SCOPE_PAYLOAD_READ},
+		WriteScopes: []string{mythicjwt.SCOPE_PAYLOAD_WRITE},
 	},
 	"c2profile": {
 		Relationships: map[string]string{

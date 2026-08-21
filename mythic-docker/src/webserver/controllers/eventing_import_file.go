@@ -83,6 +83,7 @@ func EventingImportWebhook(c *gin.Context) {
 	err = c.SaveUploadedFile(file, fileData.Path)
 	if err != nil {
 		logging.LogError(err, "Failed to save file to disk")
+		os.Remove(fileData.Path)
 		c.JSON(http.StatusOK, EventingImportWebhookResponse{
 			Status: "error",
 			Error:  err.Error(),
@@ -92,6 +93,7 @@ func EventingImportWebhook(c *gin.Context) {
 	fileDataContents, err := os.ReadFile(fileData.Path)
 	if err != nil {
 		logging.LogError(err, "Failed to read new file off of disk")
+		os.Remove(fileData.Path)
 		c.JSON(http.StatusOK, EventingImportWebhookResponse{
 			Status: "error",
 			Error:  err.Error(),
@@ -107,6 +109,7 @@ func EventingImportWebhook(c *gin.Context) {
 			RETURNING id`)
 	if err != nil {
 		logging.LogError(err, "Failed to create statement for saving file metadata")
+		os.Remove(fileData.Path)
 		c.JSON(http.StatusOK, EventingImportWebhookResponse{
 			Status: "error",
 			Error:  err.Error(),
@@ -116,6 +119,7 @@ func EventingImportWebhook(c *gin.Context) {
 	err = statement.Get(&fileData.ID, fileData)
 	if err != nil {
 		logging.LogError(err, "Failed to save file metadata to database")
+		os.Remove(fileData.Path)
 		c.JSON(http.StatusOK, EventingImportWebhookResponse{
 			Status: "error",
 			Error:  err.Error(),
@@ -181,8 +185,9 @@ func EventingImportWebhook(c *gin.Context) {
 					Action:       rabbitmq.CronActionNewEventGroup,
 					EventGroupID: eventData.ID,
 					CronSchedule: cronData,
-					OperationID:  operatorOperation.CurrentOperation.ID,
-					OperatorID:   eventData.OperatorID,
+					OperationID:  authContext.OperationID,
+					OperatorID:   authContext.OperatorID,
+					APITokensID:  authContext.APITokensID,
 				}
 			default:
 				logging.LogError(nil, "bad type from cron data, should be a string", "eventgroup", eventData.Name)

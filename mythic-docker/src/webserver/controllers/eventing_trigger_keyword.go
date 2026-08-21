@@ -5,7 +5,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/authentication"
-	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/eventing"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/rabbitmq"
@@ -38,19 +37,11 @@ func EventingTriggerKeywordWebhook(c *gin.Context) {
 		})
 		return
 	}
-	ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct)
-	if !ok {
-		logging.LogError(nil, "Failed to get user information")
-		c.JSON(http.StatusOK, EventingTriggerKeywordMessageResponse{
-			Status: "error",
-			Error:  "Failed to get user information",
-		})
-		return
-	}
-	operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
+	authContext := authentication.RabbitMQAuthContextFromGin(c)
 	rabbitmq.EventingChannel <- rabbitmq.EventNotification{
-		OperationID:    operatorOperation.CurrentOperation.ID,
-		OperatorID:     operatorOperation.CurrentOperator.ID,
+		OperationID:    authContext.OperationID,
+		OperatorID:     authContext.OperatorID,
+		APITokensID:    authContext.APITokensID,
 		Trigger:        eventing.TriggerKeyword,
 		Keyword:        input.Input.Keyword,
 		KeywordEnvData: input.Input.KeywordEnvData,

@@ -203,11 +203,19 @@ func TokenValid(c *gin.Context) error {
 		return err
 	}
 	operator, err := database.GetUserFromID(claims.UserID)
-	if err == nil {
-		c.Set(ContextKeyUsername, operator.Username)
-	} else {
+	if err != nil {
 		logging.LogError(err, "failed to get user from id")
+		return err
 	}
+	if !operator.Active {
+		logging.LogError(errors.New("user is not active"), "user is not active")
+		return errors.New("user is not active")
+	}
+	if operator.Deleted {
+		logging.LogError(errors.New("user is deleted"), "user is deleted")
+		return errors.New("user is deleted")
+	}
+	c.Set(ContextKeyUsername, operator.Username)
 	return err
 }
 

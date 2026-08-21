@@ -35,6 +35,8 @@ func GetUserCurrentOperation(userID int) (*databaseStructs.Operatoroperation, er
 	operator.admin "operator.admin",
 	operator.account_type "operator.account_type",
 	operator.account_type "operator.account_type",
+	operator.active "operator.active",
+	operator.deleted "operator.deleted",
 	operator.current_operation_id "operator.current_operation_id",
 	operator.view_utc_time "operator.view_utc_time",
 	operation.id "operation.id",

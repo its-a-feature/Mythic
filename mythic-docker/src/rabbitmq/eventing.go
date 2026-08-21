@@ -25,7 +25,7 @@ type EventNotification struct {
 	Trigger     string `json:"trigger"`
 	OperationID int    `json:"operation_id"`
 	OperatorID  int    `json:"operator_id"`
-
+	APITokensID int    `json:"apitoken_id"`
 	// optional
 	Keyword        string                 `json:"keyword"`
 	KeywordEnvData map[string]interface{} `json:"keyword_env_data"`
@@ -65,6 +65,7 @@ type CronNotification struct {
 	CronSchedule string `json:"cron_schedule"`
 	OperatorID   int    `json:"operator_id"`
 	OperationID  int    `json:"operation_id"`
+	APITokensID  int    `json:"apitoken_id"`
 }
 
 const (
@@ -201,7 +202,7 @@ func listenForEvents() {
 		case eventing.TriggerManual:
 			// somebody manually triggered an event group to run
 			eventgroupinstanceID, err := eventing.CreateEventGroupInstance(event.EventGroupID,
-				eventing.TriggerManual, event.OperatorID, event.KeywordEnvData)
+				eventing.TriggerManual, event.OperatorID, event.OperationID, event.KeywordEnvData)
 			if err != nil {
 				logging.LogError(err, "Failed to create new event group instance")
 				errMsg := err.Error()
@@ -218,9 +219,9 @@ func listenForEvents() {
 				continue
 			}
 			// still need to do something to start processing steps
-			go startProcessingNewEventGroupInstanceSteps(eventgroupinstanceID)
+			go startProcessingNewEventGroupInstanceSteps(eventgroupinstanceID, event.OperationID)
 		case eventing.TriggerRetry:
-			err := restartFailedJobs(event.EventGroupInstanceID)
+			err := restartFailedJobs(event.EventGroupInstanceID, event.OperationID)
 			if err != nil {
 				logging.LogError(err, "Failed to restart instance")
 				eventGroup := databaseStructs.EventGroupInstance{}
@@ -229,7 +230,8 @@ func listenForEvents() {
     				eventgroup.name "eventgroup.name"
     				FROM eventgroupinstance
     				JOIN eventgroup ON eventgroupinstance.eventgroup_id = eventgroup.id
-    				WHERE eventgroupinstance.id=$1`, event.EventGroupInstanceID)
+    				WHERE eventgroupinstance.id=$1 AND eventgroupinstance.operation_id=$2`,
+					event.EventGroupInstanceID, event.OperationID)
 				source := "Retry Event Group Trigger"
 				if err == nil {
 					source = fmt.Sprintf("Retry Event Group Trigger: %s", eventGroup.EventGroup.Name)
@@ -241,21 +243,21 @@ func listenForEvents() {
 				continue
 			}
 		case eventing.TriggerRetryFromStep:
-			err := restartFromStepJobs(event.EventStepInstanceID, event.RetryAllEventGroups)
+			err := restartFromStepJobs(event.EventStepInstanceID, event.RetryAllEventGroups, event.OperationID)
 			if err != nil {
 				logging.LogError(err, "failed to restart from step")
 				continue
 			}
 		case eventing.TriggerRunAgain:
 			// somebody manually triggered an event group to run
-			go startProcessingRunAgainGroupInstanceSteps(event.EventGroupInstanceID, event.OperatorID)
+			go startProcessingRunAgainGroupInstanceSteps(event.EventGroupInstanceID, event.OperatorID, event.OperationID)
 		// trigger a workflow by keyword and extra data
 		case eventing.TriggerKeyword:
 			go findEventGroupsToStart(event)
 		case eventing.TriggerCron:
 			// cron triggered
 			eventgroupinstanceID, err := eventing.CreateEventGroupInstance(event.EventGroupID,
-				eventing.TriggerCron, event.OperatorID, map[string]interface{}{})
+				eventing.TriggerCron, event.OperatorID, event.OperationID, map[string]interface{}{})
 			if err != nil {
 				logging.LogError(err, "Failed to create new event group instance")
 				errMsg := err.Error()
@@ -271,15 +273,15 @@ func listenForEvents() {
 					event.OperationID, source, database.MESSAGE_LEVEL_INFO, true)
 				continue
 			}
-			_, err = database.DB.Exec(`UPDATE eventgroup SET next_scheduled_run=$1 WHERE id=$2`,
-				event.NextTriggerDate, event.EventGroupID)
+			_, err = database.DB.Exec(`UPDATE eventgroup SET next_scheduled_run=$1 WHERE id=$2 AND operation_id=$3`,
+				event.NextTriggerDate, event.EventGroupID, event.OperationID)
 			// still need to do something to start processing steps
-			go startProcessingNewEventGroupInstanceSteps(eventgroupinstanceID)
+			go startProcessingNewEventGroupInstanceSteps(eventgroupinstanceID, event.OperationID)
 		case eventing.TriggerMythicStart:
 			go findEventGroupsToStart(event)
 		// cancel stops a specific eventgroupinstance's remaining steps
 		case eventing.TriggerCancel:
-			err := eventing.CancelEventGroupInstance(event.EventGroupInstanceID, event.OperatorID)
+			err := eventing.CancelEventGroupInstance(event.EventGroupInstanceID, event.OperatorID, event.OperationID)
 			if err != nil {
 				logging.LogError(err, "Failed to cancel group instance")
 				eventGroup := databaseStructs.EventGroupInstance{}
@@ -287,7 +289,8 @@ func listenForEvents() {
     				eventgroup.name "eventgroup.name"
     				FROM eventgroupinstance
     				JOIN eventgroup ON eventgroupinstance.eventgroup_id = eventgroup.id
-    				WHERE eventgroupinstance.id=$1`, event.EventGroupInstanceID)
+    				WHERE eventgroupinstance.id=$1 AND eventgroupinstance.operation_id=$2`,
+					event.EventGroupInstanceID, event.OperationID)
 				source := "Cancel Event Group Trigger"
 				if err == nil {
 					source = fmt.Sprintf("Cancel Event Group Trigger: %s", eventGroup.EventGroup.Name)
@@ -420,7 +423,7 @@ func findEventGroupsToStart(eventNotification EventNotification) {
 		if eventing.TriggerKeyword == eventNotification.Trigger {
 			if slices.Contains(possibleEventGroups[i].Keywords.StructStringValue(), eventNotification.Keyword) {
 				eventgroupinstanceID, err := eventing.CreateEventGroupInstance(possibleEventGroups[i].ID,
-					eventNotification.Trigger, eventNotification.OperatorID, triggerMetadata)
+					eventNotification.Trigger, eventNotification.OperatorID, eventNotification.OperationID, triggerMetadata)
 				if err != nil {
 					logging.LogError(err, "Failed to create new event group instance")
 					source := fmt.Sprintf("Keyword Event Group Trigger: %s", eventNotification.Trigger)
@@ -430,7 +433,7 @@ func findEventGroupsToStart(eventNotification EventNotification) {
 					continue
 				}
 				// still need to do something to start processing steps
-				go startProcessingNewEventGroupInstanceSteps(eventgroupinstanceID)
+				go startProcessingNewEventGroupInstanceSteps(eventgroupinstanceID, eventNotification.OperationID)
 			}
 		} else if possibleEventGroups[i].Trigger == eventNotification.Trigger {
 			switch eventNotification.Trigger {
@@ -450,7 +453,8 @@ func findEventGroupsToStart(eventNotification EventNotification) {
     					payload.os
 						FROM payload
 						JOIN payloadtype ON payload.payload_type_id = payloadtype.id
-						WHERE payload.id=$1`, eventNotification.PayloadID)
+						WHERE payload.id=$1 AND payload.operation_id=$2`,
+						eventNotification.PayloadID, eventNotification.OperationID)
 					if err != nil {
 						logging.LogError(err, "Failed to query callback payload")
 					}
@@ -488,7 +492,8 @@ func findEventGroupsToStart(eventNotification EventNotification) {
 					JOIN callback ON task.callback_id = callback.id
 					JOIN payload ON callback.registered_payload_id = payload.id
 					JOIN payloadtype ON payload.payload_type_id = payloadtype.id
-					WHERE task.id=$1`, eventNotification.TaskID)
+					WHERE task.id=$1 AND task.operation_id=$2`,
+						eventNotification.TaskID, eventNotification.OperationID)
 					if err != nil {
 						logging.LogError(err, "Failed to query payload type from task for task-based trigger")
 						continue
@@ -522,7 +527,8 @@ func findEventGroupsToStart(eventNotification EventNotification) {
     					payload.os
 						FROM payload
 						JOIN payloadtype ON payload.payload_type_id = payloadtype.id
-						WHERE payload.id=$1`, eventNotification.PayloadID)
+						WHERE payload.id=$1 AND payload.operation_id=$2`,
+						eventNotification.PayloadID, eventNotification.OperationID)
 					if err != nil {
 						logging.LogError(err, "Failed to query callback payload")
 					}
@@ -548,7 +554,8 @@ func findEventGroupsToStart(eventNotification EventNotification) {
     					tagtype.name "tagtype.name"
     					FROM tag
 						JOIN tagtype ON tag.tagtype_id = tagtype.id
-						WHERE tag.id=$1`, eventNotification.TagID)
+						WHERE tag.id=$1 AND tag.operation_id=$2`,
+						eventNotification.TagID, eventNotification.OperationID)
 					if err != nil {
 						logging.LogError(err, "failed to query tagtype data")
 					}
@@ -560,7 +567,7 @@ func findEventGroupsToStart(eventNotification EventNotification) {
 			default:
 			}
 			eventgroupinstanceID, err := eventing.CreateEventGroupInstance(possibleEventGroups[i].ID,
-				eventNotification.Trigger, eventNotification.OperatorID, triggerMetadata)
+				eventNotification.Trigger, eventNotification.OperatorID, eventNotification.OperationID, triggerMetadata)
 			if err != nil {
 				logging.LogError(err, "Failed to create new event group instance")
 				source := fmt.Sprintf("Event Group Trigger: %s", eventNotification.Trigger)
@@ -570,7 +577,7 @@ func findEventGroupsToStart(eventNotification EventNotification) {
 				continue
 			}
 			// still need to do something to start processing steps
-			go startProcessingNewEventGroupInstanceSteps(eventgroupinstanceID)
+			go startProcessingNewEventGroupInstanceSteps(eventgroupinstanceID, eventNotification.OperationID)
 		}
 	}
 }
@@ -784,12 +791,12 @@ func processEventFinishAndNextStepStart(eventNotification EventNotification) {
 }
 
 // startProcessingNewEventGroupInstanceSteps starts Order==0 steps for new event group
-func startProcessingNewEventGroupInstanceSteps(eventgroupinstanceID int) {
+func startProcessingNewEventGroupInstanceSteps(eventgroupinstanceID int, operationID int) {
 	eventStepInstances := []databaseStructs.EventStepInstance{}
 	err := database.DB.Select(&eventStepInstances, `SELECT 
     	id, "order", eventgroupinstance_id, continue_on_error 
-		FROM eventstepinstance WHERE eventgroupinstance_id=$1`,
-		eventgroupinstanceID)
+		FROM eventstepinstance WHERE eventgroupinstance_id=$1 AND operation_id=$2`,
+		eventgroupinstanceID, operationID)
 	if err != nil {
 		logging.LogError(err, "Failed to get eventstep instances")
 		return
@@ -806,7 +813,7 @@ func startProcessingNewEventGroupInstanceSteps(eventgroupinstanceID int) {
 		}
 	}
 }
-func startProcessingRunAgainGroupInstanceSteps(oldEventGroupInstanceID int, newOperatorID int) {
+func startProcessingRunAgainGroupInstanceSteps(oldEventGroupInstanceID int, newOperatorID int, operationID int) {
 	// copy the old event group's metadata to the new event group
 	oldEventGroupInstance := databaseStructs.EventGroupInstance{}
 	err := database.DB.Get(&oldEventGroupInstance, `SELECT 
@@ -815,13 +822,13 @@ func startProcessingRunAgainGroupInstanceSteps(oldEventGroupInstanceID int, newO
     	eventgroup.name "eventgroup.name"
 		FROM eventgroupinstance 
 		JOIN eventgroup ON eventgroupinstance.eventgroup_id = eventgroup.id
-		WHERE eventgroupinstance.id=$1`, oldEventGroupInstanceID)
+		WHERE eventgroupinstance.id=$1 AND eventgroupinstance.operation_id=$2`, oldEventGroupInstanceID, operationID)
 	if err != nil {
 		logging.LogError(err, "failed to get old eventgroup information")
 		return
 	}
 	eventgroupinstanceID, err := eventing.CreateEventGroupInstance(oldEventGroupInstance.EventGroupID,
-		oldEventGroupInstance.Trigger, newOperatorID, oldEventGroupInstance.TriggerMetadata.StructValue())
+		oldEventGroupInstance.Trigger, newOperatorID, operationID, oldEventGroupInstance.TriggerMetadata.StructValue())
 	if err != nil {
 		logging.LogError(err, "Failed to create new event group instance")
 		source := fmt.Sprintf("RunAgain Event Group Trigger: %s", oldEventGroupInstance.EventGroup.Name)
@@ -840,7 +847,7 @@ func startProcessingRunAgainGroupInstanceSteps(oldEventGroupInstanceID int, newO
 		return
 	}
 	// still need to do something to start processing steps
-	go startProcessingNewEventGroupInstanceSteps(eventgroupinstanceID)
+	go startProcessingNewEventGroupInstanceSteps(eventgroupinstanceID, operationID)
 }
 func eventStepStatusBlocksOrder(status string) bool {
 	return status == eventing.EventGroupInstanceStatusQueued ||
@@ -980,9 +987,11 @@ func startEventStepInstance(eventStepInstanceID int) error {
 	groupEnv := eventStepInstance.EventGroupInstance.Environment.StructValue()
 	actionDataString := eventStepInstance.EventStep.ActionData.String()
 	for key, val := range eventStepInstance.EventStep.Inputs.StructValue() {
-		if requestedScopes, ok, err := eventStepInputAPITokenScopes(val); err != nil {
-			return fmt.Errorf("failed to resolve input %q: %w", key, err)
-		} else if ok {
+		requestedScopes, ok, tokenErr := eventStepTryGetInputAPITokenScopes(val)
+		if tokenErr != nil {
+			return fmt.Errorf("failed to resolve input %q: %w", key, tokenErr)
+		}
+		if ok {
 			plainAPITokenValue, err := createEventStepAPIToken(eventStepInstance, requestedScopes)
 			if err != nil {
 				return fmt.Errorf("failed to create API token for input %q: %w", key, err)
@@ -1059,17 +1068,6 @@ func startEventStepInstance(eventStepInstanceID int) error {
 			inputs[key] = fileMeta.AgentFileID
 			actionDataString = replaceVariableInActionDataString(actionDataString, key, fileMeta.AgentFileID)
 		}
-		if eventStepInputPieces[0] == "mythic" {
-			if len(eventStepInputPieces) == 2 && eventStepInputPieces[1] == "apitoken" {
-				// Legacy fallback for callers that hit the old string split path.
-				plainAPITokenValue, err := createEventStepAPIToken(eventStepInstance, []string{mythicjwt.SCOPE_ALL})
-				if err != nil {
-					return fmt.Errorf("failed to create API token for input %q: %w", key, err)
-				}
-				inputs[key] = plainAPITokenValue
-				actionDataString = replaceVariableInActionDataString(actionDataString, key, plainAPITokenValue)
-			}
-		}
 		for i := 0; i < len(allEventSteps); i++ {
 			if allEventSteps[i].EventStep.Name == eventStepInputPieces[0] {
 				targetStepOutputs := allEventSteps[i].Outputs.StructValue()
@@ -1133,8 +1131,13 @@ func replaceVariableInActionDataString(actionDataString string, key string, val 
 	case string:
 		return strings.ReplaceAll(actionDataString, key, fmt.Sprintf("%v", v))
 	default:
-		return strings.ReplaceAll(actionDataString, fmt.Sprintf("\"%s\"", key),
-			fmt.Sprintf("%v", v))
+		jsonData, err := json.Marshal(val)
+		if err != nil {
+			logging.LogError(err, "Failed to marshal value to JSON")
+			return actionDataString
+		}
+		return strings.ReplaceAll(actionDataString, key, string(jsonData))
+		//return strings.ReplaceAll(actionDataString, fmt.Sprintf("\"%s\"", key), fmt.Sprintf("%v", v))
 	}
 }
 
@@ -1263,49 +1266,45 @@ func resolveUserInteractionStepOutputReference(sourceReference string, allEventS
 	return nil, false
 }
 
-func eventStepInputAPITokenScopes(value interface{}) ([]string, bool, error) {
-	switch typedValue := value.(type) {
-	case string:
-		if strings.TrimSpace(typedValue) != eventingAPITokenInputType {
-			return nil, false, nil
-		}
-		return []string{mythicjwt.SCOPE_ALL}, true, nil
-	case map[string]interface{}:
-		return eventStepInputAPITokenScopesFromMap(typedValue)
-	case map[interface{}]interface{}:
-		stringMap := make(map[string]interface{}, len(typedValue))
-		for key, mapValue := range typedValue {
-			keyString, ok := key.(string)
-			if !ok {
-				continue
-			}
-			stringMap[keyString] = mapValue
-		}
-		return eventStepInputAPITokenScopesFromMap(stringMap)
-	default:
+func eventStepTryGetInputAPITokenScopes(value interface{}) ([]string, bool, error) {
+	apiTokenMap, ok := value.(map[string]interface{})
+	if !ok {
+		// not a token error, value isn't a map
 		return nil, false, nil
 	}
-}
-
-func eventStepInputAPITokenScopesFromMap(input map[string]interface{}) ([]string, bool, error) {
-	rawType, hasType := input["type"]
+	logging.LogInfo("event step input value", "value", value)
+	rawType, hasType := apiTokenMap["type"]
 	if !hasType {
+		// not a token error, value is a map, but doesn't have a "type"
 		return nil, false, nil
 	}
 	typeString, ok := rawType.(string)
 	if !ok || strings.TrimSpace(typeString) != eventingAPITokenInputType {
+		// type value isn't a string or isn't mythic.apitoken
 		return nil, false, nil
 	}
-	rawScopes, hasScopes := input["scopes"]
+	rawScopes, hasScopes := apiTokenMap["scopes"]
 	if !hasScopes {
+		// we're looking at apitoken request, but the value doesn't have scopes
 		return nil, true, errors.New("mythic.apitoken input requires scopes")
 	}
-	scopes, err := eventStepInputAPITokenScopeStrings(rawScopes)
-	if err != nil {
-		return nil, true, err
+	typedScopes, ok := rawScopes.([]interface{})
+	if !ok {
+		// we're looking at apitoken request, but the value isn't an array
+		return nil, true, errors.New("mythic.apitoken input scopes must be an array")
+	}
+	scopes := make([]string, 0, len(typedScopes))
+	for _, rawScope := range typedScopes {
+		scope, ok := rawScope.(string)
+		if !ok {
+			// we're looking at an apitoken request, but the scope isn't a string
+			return nil, true, errors.New(fmt.Sprintf("%v isn't a string", rawScope))
+		}
+		scopes = append(scopes, scope)
 	}
 	normalizedScopes, err := mythicjwt.NormalizeAPITokenScopes(scopes)
 	if err != nil {
+		// we're looking at an apitoken request, but we couldn't find the scopes it wanted
 		return nil, true, err
 	}
 	if len(normalizedScopes) == 0 {
@@ -1314,26 +1313,7 @@ func eventStepInputAPITokenScopesFromMap(input map[string]interface{}) ([]string
 	return normalizedScopes, true, nil
 }
 
-func eventStepInputAPITokenScopeStrings(rawScopes interface{}) ([]string, error) {
-	switch typedScopes := rawScopes.(type) {
-	case []string:
-		return append([]string{}, typedScopes...), nil
-	case []interface{}:
-		scopes := make([]string, 0, len(typedScopes))
-		for i, rawScope := range typedScopes {
-			scope, ok := rawScope.(string)
-			if !ok {
-				return nil, fmt.Errorf("mythic.apitoken scopes[%d] must be a string", i)
-			}
-			scopes = append(scopes, scope)
-		}
-		return scopes, nil
-	default:
-		return nil, fmt.Errorf("mythic.apitoken scopes must be a list of strings, got %T", rawScopes)
-	}
-}
-
-func newEventStepAPIToken(eventStepInstance databaseStructs.EventStepInstance, scopes []string) databaseStructs.Apitokens {
+func createEventStepAPIToken(eventStepInstance databaseStructs.EventStepInstance, scopes []string) (string, error) {
 	apiToken := databaseStructs.Apitokens{
 		TokenValue: "",
 		OperatorID: eventStepInstance.OperatorID,
@@ -1345,18 +1325,6 @@ func newEventStepAPIToken(eventStepInstance databaseStructs.EventStepInstance, s
 	}
 	apiToken.EventStepInstanceID.Valid = true
 	apiToken.EventStepInstanceID.Int64 = int64(eventStepInstance.ID)
-	return apiToken
-}
-
-func createEventStepAPIToken(eventStepInstance databaseStructs.EventStepInstance, scopes []string) (string, error) {
-	normalizedScopes, err := mythicjwt.NormalizeAPITokenScopes(scopes)
-	if err != nil {
-		return "", err
-	}
-	if len(normalizedScopes) == 0 {
-		return "", errors.New("mythic.apitoken input requires at least one scope")
-	}
-	apiToken := newEventStepAPIToken(eventStepInstance, normalizedScopes)
 	statement, err := database.DB.PrepareNamed(`INSERT INTO apitokens
 		(token_value, operator_id, token_type, active, "name", scopes, created_by, eventstepinstance_id)
 		VALUES
@@ -1740,14 +1708,15 @@ func startEventStepInstanceActionInterceptResponse(eventStepInstance databaseStr
 		ContainerName:       containerName,
 	}, rabbitMQAuthContextForEventStepInstance(eventStepInstance))
 }
-func restartFailedJobs(eventgroupInstanceID int) error {
+func restartFailedJobs(eventgroupInstanceID int, operationID int) error {
 	_, err := database.DB.Exec(`UPDATE eventstepinstance 
 		SET status=$1, end_timestamp=$2, user_interaction_response=$3,
 		    user_interaction_resolved_by=$4, user_interaction_resolved_at=$5
-		WHERE eventgroupinstance_id=$6 AND status IN ($7, $8)`,
+		WHERE eventgroupinstance_id=$6 AND status IN ($7, $8) AND operation_id=$9`,
 		eventing.EventGroupInstanceStatusQueued, nil, GetMythicJSONTextFromStruct(map[string]interface{}{}),
 		nil, nil, eventgroupInstanceID,
-		eventing.EventGroupInstanceStatusError, eventing.EventGroupInstanceStatusCancelled)
+		eventing.EventGroupInstanceStatusError, eventing.EventGroupInstanceStatusCancelled,
+		operationID)
 	if err != nil {
 		logging.LogError(err, "Failed to update event steps")
 		return err
@@ -1791,7 +1760,7 @@ func restartFailedJobs(eventgroupInstanceID int) error {
 	}
 	return nil
 }
-func restartFromStepJobs(eventStepInstanceID int, retryAllEventGroups bool) error {
+func restartFromStepJobs(eventStepInstanceID int, retryAllEventGroups bool, operationID int) error {
 	triggerStep := databaseStructs.EventStepInstance{}
 	err := database.DB.Get(&triggerStep, `SELECT
     	eventstepinstance.id, eventstepinstance.order, eventstepinstance.eventgroupinstance_id,
@@ -1800,7 +1769,8 @@ func restartFromStepJobs(eventStepInstanceID int, retryAllEventGroups bool) erro
     	FROM eventstepinstance
     	JOIN eventgroupinstance ON eventstepinstance.eventgroupinstance_id = eventgroupinstance.id
     	JOIN eventstep ON eventstepinstance.eventstep_id = eventstep.id
-    	WHERE eventstepinstance.id=$1`, eventStepInstanceID)
+    	WHERE eventstepinstance.id=$1 AND eventstepinstance.operation_id=$2`,
+		eventStepInstanceID, operationID)
 	if err != nil {
 		logging.LogError(err, "Failed to fetch event groups")
 		return err

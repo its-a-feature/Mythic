@@ -1069,7 +1069,7 @@ func insertAgentMessagePostResponseUserOutput(task databaseStructs.Task, userOut
 
 	return responseOutput.ID
 }
-func handleAgentMessagePostResponseInteractiveOutput(agentResponses *[]agentMessagePostResponseInteractive) {
+func handleAgentMessagePostResponseInteractiveOutput(agentResponses *[]agentMessagePostResponseInteractive, operationID int) {
 	//logging.LogInfo("Got interactive responses", "responses", agentResponses)
 	for _, agentResponse := range *agentResponses {
 		task := databaseStructs.Task{}
@@ -1079,7 +1079,7 @@ func handleAgentMessagePostResponseInteractiveOutput(agentResponses *[]agentMess
 		err := database.DB.Get(&task, `SELECT
 			id, operation_id, eventstepinstance_id, apitokens_id
 			FROM task
-			WHERE agent_task_id=$1`, agentResponse.TaskUUID)
+			WHERE agent_task_id=$1 AND operation_id=$2`, agentResponse.TaskUUID, operationID)
 		if err != nil {
 			logging.LogError(err, "Failed to find task")
 			continue
@@ -1490,7 +1490,7 @@ func enqueueAgentRPCFrameworkError(task databaseStructs.Task, err error) {
 		Status:      "error",
 		Output:      err.Error(),
 	}
-	if validationErr := validatePTTaskAgentRPCMessageResponse(response); validationErr != nil {
+	if validationErr := validatePTTaskAgentRPCMessageResponse(response, RabbitMQAuthContext{OperationID: task.OperationID}); validationErr != nil {
 		logging.LogError(validationErr, "Failed to queue agent RPC framework error", "original_error", err)
 		return
 	}
@@ -2000,6 +2000,12 @@ func handleAgentMessagePostResponseDownload(task *databaseStructs.Task, agentRes
 
 		} else if agentResponse.Download.FileName != nil && *agentResponse.Download.FileName != "" {
 			fileMeta.Filename = []byte(*agentResponse.Download.FileName)
+			if pathPieces, err := utils.SplitFilePathGetHost(*agentResponse.Download.FileName, "", []string{}); err != nil {
+				logging.LogError(err, "Failed to split filename into pieces")
+				fileMeta.Filename = []byte(filepath.Base(*agentResponse.Download.FileName))
+			} else {
+				fileMeta.Filename = []byte(pathPieces.PathPieces[len(pathPieces.PathPieces)-1])
+			}
 		}
 		if agentResponse.Download.IsScreenshot != nil && *agentResponse.Download.IsScreenshot {
 			fileMeta.IsScreenshot = *agentResponse.Download.IsScreenshot
@@ -2181,7 +2187,7 @@ func handleAgentMessagePostResponseUpload(task databaseStructs.Task, agentRespon
 	// update in the background so the agent can get the necessary data asap
 	go updateFileMetaFromUpload(fileMeta, task, agentResponse, uploadResponse)
 	chunkSize := float64(512000)
-	if agentResponse.Upload.ChunkSize != nil {
+	if agentResponse.Upload.ChunkSize != nil && *agentResponse.Upload.ChunkSize > 0 {
 		chunkSize = float64(*agentResponse.Upload.ChunkSize)
 	}
 	if !fileMeta.Complete {
@@ -2200,8 +2206,10 @@ func handleAgentMessagePostResponseUpload(task databaseStructs.Task, agentRespon
 		go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - file was not found on disk: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 		return uploadResponse, errors.New("trying to upload a file to an agent that was not found on disk")
 	}
+	if chunkSize > float64(fileStat.Size()) {
+		chunkSize = float64(fileStat.Size())
+	}
 	totalChunks := int(math.Ceil(float64(fileStat.Size()) / chunkSize))
-	chunkData := make([]byte, int64(chunkSize))
 	// for legacy reasons, chunks start at 1
 	chunkNum := agentResponse.Upload.ChunkNum - 1
 	if chunkNum < 0 {
@@ -2224,6 +2232,7 @@ func handleAgentMessagePostResponseUpload(task databaseStructs.Task, agentRespon
 		go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - Failed to seek file on disk: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 		return uploadResponse, errors.New("failed to seek file to get chunk for agent upload")
 	}
+	chunkData := make([]byte, int64(chunkSize))
 	bytesRead, err := file.Read(chunkData)
 	if err != nil {
 		file.Close()
@@ -2642,7 +2651,7 @@ func HandleAgentMessagePostResponseProcesses(task databaseStructs.Task, processM
 	}
 	// Get the host (default to callback.Host if per-process host not specified)
 	host := task.Callback.Host
-	if *processMeta.Host != "" {
+	if processMeta.Host != nil && *processMeta.Host != "" {
 		host = strings.ToUpper(*processMeta.Host)
 	}
 	if updateDeleted {
@@ -2915,9 +2924,9 @@ func handleAgentMessagePostResponseEdges(uuidInfo *cachedUUIDInfo, edges *[]agen
 	if edges != nil {
 		for _, edge := range *edges {
 			if edge.Action == "add" {
-				callbackGraph.AddByAgentIds(edge.Source, edge.Destination, edge.C2Profile)
+				callbackGraph.AddByAgentIds(edge.Source, edge.Destination, edge.C2Profile, uuidInfo.OperationID)
 			} else if edge.Action == "remove" {
-				callbackGraph.RemoveByAgentIds(edge.Source, edge.Destination, edge.C2Profile)
+				callbackGraph.RemoveByAgentIds(edge.Source, edge.Destination, edge.C2Profile, uuidInfo.OperationID)
 				if edge.Source == edge.Destination && edge.Source == uuidInfo.UUID {
 					//logging.LogInfo("updating our own edge id")
 					MarkCallbackInfoInactive(uuidInfo.CallbackID)

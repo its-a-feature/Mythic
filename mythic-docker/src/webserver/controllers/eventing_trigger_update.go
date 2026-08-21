@@ -77,7 +77,6 @@ func EventingTriggerUpdateWebhook(c *gin.Context) {
 	needToEnable := false
 	needToDisable := false
 	originalTrigger := eventGroup.Trigger
-	originalRunAs := eventGroup.RunAs
 	originalActive := eventGroup.Active
 	originalDeleted := eventGroup.Deleted
 	originalCronSchedule := getEventGroupCronSchedule(eventGroup)
@@ -176,15 +175,13 @@ func EventingTriggerUpdateWebhook(c *gin.Context) {
 		}
 		eventing.RefreshEventGroupConsumingContainers(eventGroup.ID)
 	}
-	if originalRunAs != eventGroup.RunAs {
-		err = eventing.RefreshEventGroupApprovalEntries(&eventGroup, operatorOperation, true)
-		if err != nil {
-			c.JSON(http.StatusOK, EventingTriggerCancelMessageResponse{
-				Status: "error",
-				Error:  err.Error(),
-			})
-			return
-		}
+	err = eventing.RefreshEventGroupApprovalEntries(&eventGroup, operatorOperation, true)
+	if err != nil {
+		c.JSON(http.StatusOK, EventingTriggerCancelMessageResponse{
+			Status: "error",
+			Error:  err.Error(),
+		})
+		return
 	}
 	newCronSchedule := getEventGroupCronSchedule(eventGroup)
 	wasRunnableCron := originalTrigger == eventing.TriggerCron && originalActive && !originalDeleted

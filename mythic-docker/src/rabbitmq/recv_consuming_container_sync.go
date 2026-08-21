@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
+	"slices"
 
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -91,8 +93,9 @@ func consumingServicesSync(in ConsumingContainerSyncMessage) error {
 		logging.LogError(nil, "Can't have consuming container with empty name - bad sync")
 		return errors.New("can't have consuming container with empty name - bad sync")
 	} else if !isValidContainerVersion(in.ContainerVersion) {
-		logging.LogError(nil, "attempting to sync bad consuming container version")
-		return errors.New(fmt.Sprintf("Version, %s, isn't supported. The max supported version is < %s. \nThis likely means your PyPi or Golang library is out of date and should be updated.", in.ContainerVersion, validContainerVersionMax))
+		logging.LogError(nil, "attempting to sync bad payload container version", "consuming container", in.ConsumingContainer.Name)
+		return errors.New(fmt.Sprintf("%s's version, %s, isn't supported. Only versions < %s and >= %s are supported. \nThis likely means your PyPi or Golang library is out of date compared to the Mythic server.",
+			in.ConsumingContainer.Name, in.ContainerVersion, validContainerVersionMin, validContainerVersionMax))
 	}
 	if err := database.DB.Get(&consumingContainer, `SELECT * FROM consuming_container WHERE "name"=$1`, in.ConsumingContainer.Name); err != nil {
 		// this means we don't have the c2 profile, so we need to create it and all the associated components
@@ -143,7 +146,7 @@ func consumingServicesSync(in ConsumingContainerSyncMessage) error {
 	go ResolveAllOperationsMessageBySource(getDownContainerSource(consumingContainer.Name), 0)
 	checkContainerStatusAddConsumingContainerChannel <- consumingContainer
 	if consumingContainer.Type == CONSUMING_SERVICES_TYPE_CHAT {
-		if err := saveChatContainerIcons(consumingContainer.Name, in.ConsumingContainer.AgentIcon, in.ConsumingContainer.DarkModeAgentIcon); err != nil {
+		if err := saveContainerIcons(consumingContainer.Name, in.ConsumingContainer.AgentIcon, in.ConsumingContainer.DarkModeAgentIcon); err != nil {
 			logging.LogError(err, "Failed to save chat container icons")
 		}
 	}
@@ -153,8 +156,15 @@ func consumingServicesSync(in ConsumingContainerSyncMessage) error {
 	return nil
 }
 
-func saveChatContainerIcons(name string, agentIcon *[]byte, darkModeAgentIcon *[]byte) error {
-	absPath, err := filepath.Abs(filepath.Join(".", "static", fmt.Sprintf("%s_light.svg", name)))
+func saveContainerIcons(name string, agentIcon *[]byte, darkModeAgentIcon *[]byte) error {
+	if name == "" {
+		return errors.New("name is empty")
+	}
+	fileName := path.Base(name)
+	if slices.Contains([]string{"", ".", "/"}, fileName) {
+		return errors.New("name contains invalid characters")
+	}
+	absPath, err := filepath.Abs(filepath.Join(".", "static", fmt.Sprintf("%s_light.svg", fileName)))
 	if err != nil {
 		return err
 	}
@@ -172,7 +182,7 @@ func saveChatContainerIcons(name string, agentIcon *[]byte, darkModeAgentIcon *[
 		return err
 	}
 
-	darkModeAbsPath, err := filepath.Abs(filepath.Join(".", "static", fmt.Sprintf("%s_dark.svg", name)))
+	darkModeAbsPath, err := filepath.Abs(filepath.Join(".", "static", fmt.Sprintf("%s_dark.svg", fileName)))
 	if err != nil {
 		return err
 	}

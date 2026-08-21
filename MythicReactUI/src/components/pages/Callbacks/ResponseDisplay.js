@@ -18,6 +18,7 @@ import {ResponseDisplayGraph} from "./ResponseDisplayGraph";
 import {operatorSettingDefaults} from "../../../cache";
 import {ResponseDisplayTabs} from "./ResponseDisplayTabs";
 import {MythicEmptyState, MythicLoadingState, MythicSearchEmptyState} from "../../MythicComponents/MythicStateDisplay";
+import {BrowserScriptRunner} from "./BrowserScriptRunner";
 
 const subResponsesStream = gql`
 subscription subResponsesStream($task_id: Int!){
@@ -526,8 +527,9 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
   const [localViewBrowserScript, setViewBrowserScript] = React.useState(true);
   const [browserScriptData, setBrowserScriptData] = React.useState(undefined);
   const [loadingBrowserScript, setLoadingBrowserScript] = React.useState(true);
-  const script = React.useRef(undefined);
-  const filterOutput = (scriptData) => {
+  const browserScript = React.useRef(undefined);
+  const browserScriptRunner = React.useRef(undefined);
+  const filterOutput = React.useCallback((scriptData) => {
     if(search === ""){
       return scriptData;
     }
@@ -563,50 +565,62 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
     }
 
     return copied;
-  }
+  }, [search]);
+  useEffect(() => {
+    browserScriptRunner.current = new BrowserScriptRunner();
+    return () => browserScriptRunner.current?.dispose();
+  }, []);
   useEffect( () => {
     if(loadingBrowserScript){
       return;
     }
-    if(script.current === undefined){
+    if(browserScript.current === undefined){
       setViewBrowserScript(false);
       setBrowserScriptData({});
       return;
     }
     if(viewBrowserScript){
-      try{
-        const rawResponseData = rawResponses.map(c => c.response);
-        let res = script.current(task, rawResponseData);
-        if(Object.keys(res).length === 0){
-          setBrowserScriptData({});
-          return;
-        }
-        setViewBrowserScript(viewBrowserScript);
-        setBrowserScriptData(filterOutput(res));
-      }catch(error){
-        if(rawResponses.length > 0){
-          setViewBrowserScript(false);
-          setBrowserScriptData({});
-          console.log(error);
-        }
-      }
+      const requestID = browserScriptRunner.current?.run({
+        script: browserScript.current,
+        task,
+        responses: rawResponses.map(c => c.response),
+        onResult: (result) => {
+          try{
+            if(Object.keys(result).length === 0){
+              setBrowserScriptData({});
+              return;
+            }
+            setViewBrowserScript(viewBrowserScript);
+            setBrowserScriptData(filterOutput(result));
+          }catch(error){
+            if(rawResponses.length > 0){
+              setViewBrowserScript(false);
+              setBrowserScriptData({});
+              console.log(error);
+            }
+          }
+        },
+        onError: (error) => {
+          if(rawResponses.length > 0){
+            setViewBrowserScript(false);
+            setBrowserScriptData({});
+            console.log(error);
+          }
+        },
+      });
+      return () => browserScriptRunner.current?.cancel(requestID);
     } else {
       return;
     }
-  }, [rawResponses, task, loadingBrowserScript, viewBrowserScript]);
+  }, [rawResponses, task, loadingBrowserScript, viewBrowserScript, filterOutput]);
   const [fetchScripts] = useLazyQuery(taskScript, {
     fetchPolicy: "no-cache",
     onCompleted: (data) => {
       if(data.browserscript.length > 0){
-        try{
-          script.current = Function(`"use strict";return(${data.browserscript[0]["script"]})`)();
-          setBrowserScriptData(undefined);
-        }catch(error){
-          script.current = undefined;
-          setBrowserScriptData({});
-          console.log(error);
-        }
+        browserScript.current = data.browserscript[0]["script"];
+        setBrowserScriptData(undefined);
       }else{
+        browserScript.current = undefined;
         setViewBrowserScript(false);
         setBrowserScriptData({});
       }

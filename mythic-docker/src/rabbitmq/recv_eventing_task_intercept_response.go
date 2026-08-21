@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/eventing"
@@ -30,7 +31,7 @@ func init() {
 		Queue:      EVENTING_TASK_INTERCEPT_RESPONSE,
 		RoutingKey: EVENTING_TASK_INTERCEPT_RESPONSE,
 		Handler:    processEventingTaskInterceptResponse,
-		Scopes:     []string{},
+		Scopes:     []string{mythicjwt.SCOPE_TASK_WRITE},
 	})
 }
 
@@ -44,9 +45,16 @@ func processEventingTaskInterceptResponse(msg amqp.Delivery) {
 			0, "", database.MESSAGE_LEVEL_INFO, true)
 		return
 	}
-	task := databaseStructs.Task{ID: input.TaskID}
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		logging.LogError(err, "Failed to get eventing task intercept response auth headers")
+		return
+	}
+	task := databaseStructs.Task{ID: input.TaskID, OperationID: authContext.OperationID}
 	EventingChannel <- EventNotification{
 		Trigger:             eventing.TriggerTaskInterceptResponse,
+		OperatorID:          authContext.OperatorID,
+		OperationID:         authContext.OperationID,
 		EventStepInstanceID: input.EventStepInstanceID,
 		TaskID:              task.ID,
 		Outputs:             input.Outputs,
@@ -57,7 +65,8 @@ func processEventingTaskInterceptResponse(msg amqp.Delivery) {
 	if !input.Success {
 		task.Status = PT_TASK_FUNCTION_STATUS_INTERCEPTED_ERROR
 		task.Completed = true
-		_, err = database.DB.NamedExec(`UPDATE task SET status=:status, completed=:completed WHERE id=:id`, task)
+		_, err = database.DB.NamedExec(`UPDATE task SET status=:status, completed=:completed 
+            WHERE id=:id AND operation_id=:operation_id`, task)
 		if err != nil {
 			logging.LogError(err, "failed to update task status after interception")
 			return
@@ -74,7 +83,7 @@ func processEventingTaskInterceptResponse(msg amqp.Delivery) {
 		_, err = database.DB.NamedExec(`UPDATE task SET
 			status=:status, opsec_post_blocked=:opsec_post_blocked, opsec_post_bypass_role=:opsec_post_bypass_role,
 			opsec_post_bypassed=:opsec_post_bypassed, opsec_post_message=:opsec_post_message, completed=:completed
-			WHERE id=:id`, task)
+			WHERE id=:id AND operation_id=:operation_id`, task)
 		if err != nil {
 			logging.LogError(err, "Failed to update task status")
 			return
@@ -89,7 +98,7 @@ func processEventingTaskInterceptResponse(msg amqp.Delivery) {
 		_, err = database.DB.NamedExec(`UPDATE task SET
 			status=:status, opsec_post_blocked=:opsec_post_blocked, opsec_post_bypass_role=:opsec_post_bypass_role,
 			opsec_post_bypassed=:opsec_post_bypassed, opsec_post_message=:opsec_post_message, completed=:completed
-			WHERE id=:id`, task)
+			WHERE id=:id AND operation_id=:operation_id`, task)
 		if err != nil {
 			logging.LogError(err, "Failed to update task status")
 			return
@@ -100,7 +109,8 @@ func processEventingTaskInterceptResponse(msg amqp.Delivery) {
 		task.StatusTimestampSubmitted.Valid = true
 		task.StatusTimestampSubmitted.Time = time.Now().UTC()
 		_, err = database.DB.NamedExec(`UPDATE task SET 
-                status_timestamp_submitted=:status_timestamp_submitted WHERE id=:id`, task)
+                status_timestamp_submitted=:status_timestamp_submitted 
+            WHERE id=:id AND operation_id=:operation_id`, task)
 		if err != nil {
 			logging.LogError(err, "Failed to update submitted timestamp")
 		}

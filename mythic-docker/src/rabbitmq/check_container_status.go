@@ -30,6 +30,7 @@ var checkContainerStatusAddCustomBrowserChannel = make(chan databaseStructs.Cust
 var customBrowsersToCheck = map[string]databaseStructs.CustomBrowser{}
 var containerOnStartLock sync.Mutex
 var containerOnStartInFlight = map[string]bool{}
+var addContainerCheckLock sync.Mutex
 
 func claimContainerOnStart(containerName string) bool {
 	containerOnStartLock.Lock()
@@ -50,31 +51,41 @@ func clearContainerOnStart(containerName string) {
 func checkContainerStatusAddPT() {
 	for {
 		pt := <-checkContainerStatusAddPtChannel
+		addContainerCheckLock.Lock()
 		payloadTypesToCheck[pt.Name] = pt
+		addContainerCheckLock.Unlock()
 	}
 }
 func checkContainerStatusAddC2() {
 	for {
 		pt := <-checkContainerStatusAddC2Channel
+		addContainerCheckLock.Lock()
 		c2profilesToCheck[pt.Name] = pt
+		addContainerCheckLock.Unlock()
 	}
 }
 func checkContainerStatusAddTR() {
 	for {
 		pt := <-checkContainerStatusAddTrChannel
+		addContainerCheckLock.Lock()
 		translationContainersToCheck[pt.Name] = pt
+		addContainerCheckLock.Unlock()
 	}
 }
 func checkContainerStatusAddConsumingContainer() {
 	for {
 		cc := <-checkContainerStatusAddConsumingContainerChannel
+		addContainerCheckLock.Lock()
 		consumingContainersToCheck[cc.Name] = cc
+		addContainerCheckLock.Unlock()
 	}
 }
 func checkContainerStatusAddCustomBrowser() {
 	for {
 		cc := <-checkContainerStatusAddCustomBrowserChannel
+		addContainerCheckLock.Lock()
 		customBrowsersToCheck[cc.Name] = cc
+		addContainerCheckLock.Unlock()
 	}
 }
 func initializeContainers() {
@@ -306,7 +317,7 @@ func checkContainerStatus() {
 				//logging.LogInfo("found queue", "queue", queueName)
 			}
 		}
-
+		addContainerCheckLock.Lock()
 		// loop through payload types
 		for container := range payloadTypesToCheck {
 			//logging.LogDebug("checking container", "container", container)
@@ -433,7 +444,7 @@ func checkContainerStatus() {
 				}
 			}
 		}
-
+		// loop through custom browsers
 		for container := range customBrowsersToCheck {
 			// check that a container is online
 			//logging.LogDebug("checking container", "container", container)
@@ -464,6 +475,7 @@ func checkContainerStatus() {
 				}
 			}
 		}
+		addContainerCheckLock.Unlock()
 	}
 }
 

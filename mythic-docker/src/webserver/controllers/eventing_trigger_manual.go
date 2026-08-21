@@ -41,20 +41,12 @@ func EventingTriggerManualWebhook(c *gin.Context) {
 		})
 		return
 	}
-	ginOperatorOperation, ok := c.Get(authentication.ContextKeyOperatorOperationStruct)
-	if !ok {
-		logging.LogError(nil, "Failed to get user information")
-		c.JSON(http.StatusOK, EventingManualTriggerMessageResponse{
-			Status: "error",
-			Error:  "Failed to get user information",
-		})
-		return
-	}
-	operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
+	authContext := authentication.RabbitMQAuthContextFromGin(c)
 	rabbitmq.EventingChannel <- rabbitmq.EventNotification{
 		EventGroupID:   input.Input.EventGroupID,
-		OperationID:    operatorOperation.CurrentOperation.ID,
-		OperatorID:     operatorOperation.CurrentOperator.ID,
+		OperationID:    authContext.OperationID,
+		OperatorID:     authContext.OperatorID,
+		APITokensID:    authContext.APITokensID,
 		Trigger:        eventing.TriggerManual,
 		KeywordEnvData: input.Input.KeywordEnvData,
 	}

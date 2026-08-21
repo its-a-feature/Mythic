@@ -59,11 +59,11 @@ func handleAgentMessageCheckin(incoming *map[string]interface{}, UUIDInfo *cache
 	mythicRPCCallbackCreateMessage.C2ProfileName = UUIDInfo.C2ProfileName
 	newCryptoKeys := UUIDInfo.getAllKeys()
 	if len(newCryptoKeys) > 0 {
-		if agentMessage.EncKey == nil {
+		if agentMessage.EncKey == nil || len(*agentMessage.EncKey) == 0 {
 			mythicRPCCallbackCreateMessage.EncryptionKey = newCryptoKeys[0].EncKey
 			mythicRPCCallbackCreateMessage.CryptoType = newCryptoKeys[0].Value
 		}
-		if agentMessage.DecKey == nil {
+		if agentMessage.DecKey == nil || len(*agentMessage.DecKey) == 0 {
 			mythicRPCCallbackCreateMessage.DecryptionKey = newCryptoKeys[0].DecKey
 			mythicRPCCallbackCreateMessage.CryptoType = newCryptoKeys[0].Value
 		}

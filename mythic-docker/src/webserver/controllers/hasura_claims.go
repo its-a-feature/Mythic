@@ -50,6 +50,14 @@ func UpdateHasuraClaims(c *gin.Context, invalidateAllOthers bool) error {
 		logging.LogError(err, "Failed to fetch operator based on JWT UserID")
 		return err
 	}
+	if user.Deleted {
+		logging.LogError(errors.New("user is deleted"), "user is deleted")
+		return errors.New("user is deleted")
+	}
+	if !user.Active {
+		logging.LogError(errors.New("user is not active"), "user is not active")
+		return errors.New("user is not active")
+	}
 	c.Set(authentication.ContextKeyUsername, user.Username)
 	hasuraClaims["x-hasura-current-operation-id"] = "0"
 	hasuraClaims["x-hasura-current_operation"] = "null"

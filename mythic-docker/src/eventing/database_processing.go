@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
+	"time"
+
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
-	"slices"
-	"time"
 )
 
 var (
@@ -346,9 +347,10 @@ func getTriggerData(triggerMetadata map[string]interface{}, operationID int) map
 	}
 	return triggerData
 }
-func CreateEventGroupInstance(eventGroupId int, trigger string, triggeringOperatorId int, triggerMetadata map[string]interface{}) (int, error) {
+func CreateEventGroupInstance(eventGroupId int, trigger string, triggeringOperatorId int, triggeringOperationID int, triggerMetadata map[string]interface{}) (int, error) {
 	eventGroup := databaseStructs.EventGroup{ID: eventGroupId}
-	err := database.DB.Get(&eventGroup, `SELECT * FROM eventgroup WHERE id = $1`, eventGroupId)
+	err := database.DB.Get(&eventGroup, `SELECT * FROM eventgroup WHERE id = $1 AND operation_id=$2`,
+		eventGroupId, triggeringOperationID)
 	if err != nil {
 		logging.LogError(err, "Failed to get event group information")
 		return 0, err
@@ -589,9 +591,10 @@ func CreateEventGroupInstance(eventGroupId int, trigger string, triggeringOperat
 	}
 	return eventGroupInstance.ID, nil
 }
-func CancelEventGroupInstance(eventGroupInstanceId int, triggeringOperatorId int) error {
+func CancelEventGroupInstance(eventGroupInstanceId int, triggeringOperatorId int, triggeringOperationID int) error {
 	eventGroupInstance := databaseStructs.EventGroupInstance{ID: eventGroupInstanceId}
-	err := database.DB.Get(&eventGroupInstance, `SELECT * FROM eventgroupinstance WHERE id = $1`, eventGroupInstanceId)
+	err := database.DB.Get(&eventGroupInstance, `SELECT * FROM eventgroupinstance WHERE id = $1 AND operation_id=$2`,
+		eventGroupInstanceId, triggeringOperationID)
 	if err != nil {
 		logging.LogError(err, "Failed to get event group information")
 		return err

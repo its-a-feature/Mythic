@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
-	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 )
 
 func TestEventStepInputAPITokenScopes(t *testing.T) {
@@ -18,16 +17,14 @@ func TestEventStepInputAPITokenScopes(t *testing.T) {
 		wantErr    string
 	}{
 		{
-			name:       "legacy shorthand grants full access",
-			input:      "mythic.apitoken",
-			wantToken:  true,
-			wantScopes: []string{mythicjwt.SCOPE_ALL},
+			name:      "legacy shorthand grants full access",
+			input:     "mythic.apitoken",
+			wantToken: false,
 		},
 		{
-			name:       "legacy shorthand trims whitespace",
-			input:      "  mythic.apitoken  ",
-			wantToken:  true,
-			wantScopes: []string{mythicjwt.SCOPE_ALL},
+			name:      "legacy shorthand trims whitespace",
+			input:     "  mythic.apitoken  ",
+			wantToken: false,
 		},
 		{
 			name:       "scoped object normalizes scopes",
@@ -49,15 +46,9 @@ func TestEventStepInputAPITokenScopes(t *testing.T) {
 		},
 		{
 			name:       "string slice scopes are accepted",
-			input:      map[string]interface{}{"type": "mythic.apitoken", "scopes": []string{"file.read"}},
+			input:      map[string]interface{}{"type": "mythic.apitoken", "scopes": []interface{}{"file.read"}},
 			wantToken:  true,
 			wantScopes: []string{mythicjwt.SCOPE_FILE_READ},
-		},
-		{
-			name:       "yaml style map is accepted",
-			input:      map[interface{}]interface{}{"type": "mythic.apitoken", "scopes": []interface{}{"task.write"}},
-			wantToken:  true,
-			wantScopes: []string{mythicjwt.SCOPE_TASK_WRITE},
 		},
 		{
 			name:      "other string is not a token request",
@@ -97,19 +88,19 @@ func TestEventStepInputAPITokenScopes(t *testing.T) {
 			name:      "scope list must contain strings",
 			input:     map[string]interface{}{"type": "mythic.apitoken", "scopes": []interface{}{"task.read", 12}},
 			wantToken: true,
-			wantErr:   "scopes[1] must be a string",
+			wantErr:   "12 isn't a string",
 		},
 		{
 			name:      "scopes must be a list",
 			input:     map[string]interface{}{"type": "mythic.apitoken", "scopes": "task.read"},
 			wantToken: true,
-			wantErr:   "must be a list of strings",
+			wantErr:   "must be an array",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotScopes, gotToken, err := eventStepInputAPITokenScopes(tt.input)
+			gotScopes, gotToken, err := eventStepTryGetInputAPITokenScopes(tt.input)
 			if gotToken != tt.wantToken {
 				t.Fatalf("eventStepInputAPITokenScopes() token=%v, want %v", gotToken, tt.wantToken)
 			}
@@ -129,34 +120,5 @@ func TestEventStepInputAPITokenScopes(t *testing.T) {
 				t.Fatalf("eventStepInputAPITokenScopes() scopes=%v, want %v", gotScopes, tt.wantScopes)
 			}
 		})
-	}
-}
-
-func TestNewEventStepAPITokenStoresScopes(t *testing.T) {
-	stepInstance := databaseStructs.EventStepInstance{
-		ID:         42,
-		OperatorID: 7,
-		EventStep: databaseStructs.EventStep{
-			Name: "inspect responses",
-		},
-	}
-	scopes := []string{mythicjwt.SCOPE_RESPONSE_READ, mythicjwt.SCOPE_TASK_READ}
-
-	apiToken := newEventStepAPIToken(stepInstance, scopes)
-
-	if apiToken.TokenType != mythicjwt.AUTH_METHOD_EVENT {
-		t.Fatalf("TokenType=%q, want %q", apiToken.TokenType, mythicjwt.AUTH_METHOD_EVENT)
-	}
-	if !apiToken.Active {
-		t.Fatal("event step API token should be active")
-	}
-	if apiToken.OperatorID != stepInstance.OperatorID || apiToken.CreatedBy != stepInstance.OperatorID {
-		t.Fatalf("operator attribution mismatch: operator_id=%d created_by=%d", apiToken.OperatorID, apiToken.CreatedBy)
-	}
-	if !apiToken.EventStepInstanceID.Valid || apiToken.EventStepInstanceID.Int64 != int64(stepInstance.ID) {
-		t.Fatalf("EventStepInstanceID=%#v, want valid %d", apiToken.EventStepInstanceID, stepInstance.ID)
-	}
-	if !reflect.DeepEqual([]string(apiToken.Scopes), scopes) {
-		t.Fatalf("Scopes=%v, want %v", []string(apiToken.Scopes), scopes)
 	}
 }

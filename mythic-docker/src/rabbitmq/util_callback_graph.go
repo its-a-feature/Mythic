@@ -5,14 +5,15 @@ import (
 	"errors"
 	"fmt"
 
+	"slices"
+	"sync"
+	"time"
+
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/grpc"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/jmoiron/sqlx"
-	"slices"
-	"sync"
-	"time"
 )
 
 // abstract out the graph implementation from the rest of Mythic
@@ -40,6 +41,7 @@ type cbGraphBFSEntry struct {
 }
 
 var c2profileNameToIdMap map[string]databaseStructs.C2profile
+var c2profileNameToIdMapLock sync.RWMutex
 
 type idAndOpId struct {
 	CallbackID  int
@@ -328,7 +330,7 @@ func updateNewGraphEdgeCheckin(sourceId int, destinationId int, initializing boo
 	updateTimes(time.UnixMicro(0), []int{destinationId})
 }
 
-func (g *cbGraph) AddByAgentIds(source string, destination string, c2profileName string) {
+func (g *cbGraph) AddByAgentIds(source string, destination string, c2profileName string, operationID int) {
 	sourceCallback := databaseStructs.Callback{}
 	destinationCallback := databaseStructs.Callback{}
 	if val, ok := uuidToIdAndOpId[source]; ok {
@@ -349,6 +351,14 @@ func (g *cbGraph) AddByAgentIds(source string, destination string, c2profileName
     	id, operation_id, agent_callback_id 
 		FROM callback WHERE agent_callback_id=$1`, destination); err != nil {
 		logging.LogError(err, "Failed to find destination callback for implicit P2P link", "destination", destination)
+		return
+	}
+	if sourceCallback.OperationID != destinationCallback.OperationID {
+		logging.LogError(nil, "Tried to add a P2P link between two different operations", "source", source, "destination", destination, "c2", c2profileName, "sourceOpID", sourceCallback.OperationID, "destOpID", destinationCallback.OperationID)
+		return
+	}
+	if sourceCallback.OperationID != operationID {
+		logging.LogError(nil, "Tried to add a P2P link between two different operations", "source", source, "destination", destination, "c2", c2profileName, "sourceOpID", sourceCallback.OperationID, "destOpID", destinationCallback.OperationID)
 		return
 	}
 	edge := databaseStructs.Callbackgraphedge{}
@@ -380,7 +390,7 @@ func (g *cbGraph) AddByAgentIds(source string, destination string, c2profileName
 	}
 
 }
-func (g *cbGraph) RemoveByAgentIds(source string, destination string, c2profileName string) {
+func (g *cbGraph) RemoveByAgentIds(source string, destination string, c2profileName string, operationID int) {
 	sourceCallback := databaseStructs.Callback{}
 	destinationCallback := databaseStructs.Callback{}
 	if val, ok := uuidToIdAndOpId[source]; ok {
@@ -401,6 +411,14 @@ func (g *cbGraph) RemoveByAgentIds(source string, destination string, c2profileN
     	id, operation_id, agent_callback_id 
 		FROM callback WHERE agent_callback_id=$1`, destination); err != nil {
 		logging.LogError(err, "Failed to find destination callback for implicit P2P link", "destination", destination, "source", source, "c2", c2profileName)
+		return
+	}
+	if sourceCallback.OperationID != destinationCallback.OperationID {
+		logging.LogError(nil, "Tried to remove a P2P link between two different operations", "source", source, "destination", destination, "c2", c2profileName, "sourceOpID", sourceCallback.OperationID, "destOpID", destinationCallback.OperationID)
+		return
+	}
+	if sourceCallback.OperationID != operationID {
+		logging.LogError(nil, "Tried to remove a P2P link between two different operations", "source", source, "destination", destination, "c2", c2profileName, "sourceOpID", sourceCallback.OperationID, "destOpID", destinationCallback.OperationID)
 		return
 	}
 	if err := RemoveEdgeByIds(sourceCallback.ID, destinationCallback.ID, c2profileName); err != nil {
@@ -582,6 +600,8 @@ func AddEdgeById(sourceId int, destinationId int, c2profileName string, authCont
 	return nil
 }
 func getC2ProfileIdForName(c2profileName string) int {
+	c2profileNameToIdMapLock.Lock()
+	defer c2profileNameToIdMapLock.Unlock()
 	c2, ok := c2profileNameToIdMap[c2profileName]
 	if ok {
 		return c2.ID
@@ -600,6 +620,8 @@ func getC2ProfileIdForName(c2profileName string) int {
 	return c2profile.ID
 }
 func getC2ProfileForName(c2profileName string) databaseStructs.C2profile {
+	c2profileNameToIdMapLock.Lock()
+	defer c2profileNameToIdMapLock.Unlock()
 	c2, ok := c2profileNameToIdMap[c2profileName]
 	if ok {
 		return c2

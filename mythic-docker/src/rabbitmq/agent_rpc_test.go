@@ -2,14 +2,11 @@ package rabbitmq
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"sync"
 	"testing"
 
 	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
-	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
-	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 func isolatePendingAgentRPCResponses(t *testing.T) {
@@ -202,44 +199,5 @@ func TestPendingAgentRPCResponsesConcurrentEnqueue(t *testing.T) {
 	responses := pendingAgentRPCResponses.drain(7)
 	if len(responses) != responseCount {
 		t.Fatalf("expected %d concurrent responses, got %d", responseCount, len(responses))
-	}
-}
-
-func TestEnqueueAgentRPCFrameworkError(t *testing.T) {
-	isolatePendingAgentRPCResponses(t)
-	enqueueAgentRPCFrameworkError(databaseStructs.Task{
-		AgentTaskID: "agent-task-uuid",
-		Callback: databaseStructs.Callback{
-			ID: 42,
-		},
-	}, errors.New("publish failed"))
-
-	responses := pendingAgentRPCResponses.drain(42)
-	if len(responses) != 1 {
-		t.Fatalf("expected one framework error response, got %#v", responses)
-	}
-	if responses[0].Status != "error" || responses[0].Output != "publish failed" {
-		t.Fatalf("unexpected framework error response: %#v", responses[0])
-	}
-}
-
-func TestProcessPtTaskAgentRPCResponseRejectsMalformedMessages(t *testing.T) {
-	isolatePendingAgentRPCResponses(t)
-
-	processPtTaskAgentRPCResponseMessages(amqp.Delivery{
-		Body: []byte(`{"callback_id":1,"agent_task_id":"task","status":"success","output":{"ok":true}}`),
-	})
-	if responses := pendingAgentRPCResponses.drain(1); len(responses) != 1 {
-		t.Fatalf("expected valid response to be queued, got %#v", responses)
-	}
-
-	processPtTaskAgentRPCResponseMessages(amqp.Delivery{
-		Body: []byte(`{"callback_id":1,"agent_task_id":"","status":"success","output":null}`),
-	})
-	processPtTaskAgentRPCResponseMessages(amqp.Delivery{
-		Body: []byte(`not-json`),
-	})
-	if responses := pendingAgentRPCResponses.drain(1); len(responses) != 0 {
-		t.Fatalf("malformed responses must not be queued, got %#v", responses)
 	}
 }

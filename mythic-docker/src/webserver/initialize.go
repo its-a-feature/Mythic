@@ -169,7 +169,7 @@ func setRoutes(r *gin.Engine) {
 		protected.Use(authentication.JwtAuthMiddleware())
 		{
 			// EVERYBODY that can authenticate can do the following
-			r.GET("/healthDetailed", webcontroller.HealthCheckDetailed)
+			protected.GET("/healthDetailed", webcontroller.HealthCheckDetailed)
 			// hasura's graphql endpoint to get updated claims for access control
 			//protected.GET("/graphql/webhook", webcontroller.GetHasuraClaims)
 			protected.POST("/graphql/webhook", webcontroller.GetHasuraClaims)

@@ -116,6 +116,7 @@ type ProxyStop struct {
 }
 type ProxyFromAgentMessageForMythic struct {
 	CallbackID          int
+	OperationID         int
 	PortType            CallbackPortType
 	Messages            []proxyFromAgentMessage
 	InteractiveMessages []agentMessagePostResponseInteractive
@@ -757,9 +758,9 @@ func (c *callbackPortsInUse) routeProxyFromAgentMessage(agentMessage ProxyFromAg
 			for j := 0; j < len(agentMessage.InteractiveMessages); j++ {
 				port.interactiveMessagesFromAgent <- agentMessage.InteractiveMessages[j]
 			}
-			handleAgentMessagePostResponseInteractiveOutput(&agentMessage.InteractiveMessages)
+			handleAgentMessagePostResponseInteractiveOutput(&agentMessage.InteractiveMessages, agentMessage.OperationID)
 		} else {
-			go handleAgentMessagePostResponseInteractiveOutput(&agentMessage.InteractiveMessages)
+			go handleAgentMessagePostResponseInteractiveOutput(&agentMessage.InteractiveMessages, agentMessage.OperationID)
 		}
 	}
 }
@@ -899,16 +900,18 @@ func (c *callbackPortsInUse) sendProxyFromAgentMessage(message ProxyFromAgentMes
 	c.routeProxyFromAgentMessage(message)
 }
 
-func (c *callbackPortsInUse) SendDataToCallbackIdPortType(callbackId int, portType CallbackPortType, messages []proxyFromAgentMessage) {
+func (c *callbackPortsInUse) SendDataToCallbackIdPortType(callbackId int, operationID int, portType CallbackPortType, messages []proxyFromAgentMessage) {
 	c.sendProxyFromAgentMessage(ProxyFromAgentMessageForMythic{
-		CallbackID: callbackId,
-		PortType:   portType,
-		Messages:   messages,
+		CallbackID:  callbackId,
+		OperationID: operationID,
+		PortType:    portType,
+		Messages:    messages,
 	})
 }
-func (c *callbackPortsInUse) SendInteractiveDataToCallbackIdPortType(callbackId int, portType CallbackPortType, messages []agentMessagePostResponseInteractive) {
+func (c *callbackPortsInUse) SendInteractiveDataToCallbackIdPortType(callbackId int, operationID int, portType CallbackPortType, messages []agentMessagePostResponseInteractive) {
 	c.sendProxyFromAgentMessage(ProxyFromAgentMessageForMythic{
 		CallbackID:          callbackId,
+		OperationID:         operationID,
 		PortType:            portType,
 		InteractiveMessages: messages,
 	})
@@ -1021,7 +1024,8 @@ func (c *callbackPortsInUse) Add(callbackId int, portType CallbackPortType, loca
 	acceptedConnections := make([]*acceptedConnection, 0)
 	newPort.acceptedConnections = &acceptedConnections
 	callbackPort := databaseStructs.Callbackport{}
-	err := database.DB.Get(&callbackPort.Callback.DisplayID, `SELECT display_id FROM callback WHERE id=$1`, newPort.CallbackID)
+	err := database.DB.Get(&callbackPort.Callback.DisplayID, `SELECT display_id FROM callback WHERE id=$1 AND operation_id=$2`,
+		newPort.CallbackID, newPort.OperationID)
 	if err != nil {
 		logging.LogError(err, "Failed to get callback information for new proxy port")
 	} else {

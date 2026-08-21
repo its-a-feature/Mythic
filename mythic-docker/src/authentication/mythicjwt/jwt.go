@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
+	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/utils"
@@ -88,6 +89,14 @@ func RefreshJWT(access_token string, refresh_token string) (string, string, int,
 	}
 	customClaims := token.Claims.(*CustomClaims)
 	user.ID = customClaims.UserID
+	operator, err := database.GetUserFromID(user.ID)
+	if err != nil {
+		logging.LogError(err, "Failed to get user from id")
+		return "", "", 0, err
+	}
+	if !operator.Active || operator.Deleted {
+		return "", "", 0, errors.New("user is not active or deleted")
+	}
 	newAccessToken, newRefreshToken, userID, err := GenerateJWT(user, customClaims.AuthMethod, customClaims.EventStepInstanceID, customClaims.APITokensID)
 	if err != nil {
 		logging.LogError(err, "Failed to generate new access_token and refresh_token")

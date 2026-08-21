@@ -516,7 +516,7 @@ func processAgentMessageContent(agentMessageInput *AgentMessageRawInput, uuidInf
 						newResponse.MythicUuid = delegateResponse.NewCallbackUUID
 						newResponse.NewUuid = delegateResponse.NewCallbackUUID
 						// we got an implicit new callback relationship, mark it
-						go callbackGraph.AddByAgentIds(instanceResponse.OuterUuid, delegateResponse.NewCallbackUUID, delegate.C2ProfileName)
+						go callbackGraph.AddByAgentIds(instanceResponse.OuterUuid, delegateResponse.NewCallbackUUID, delegate.C2ProfileName, uuidInfo.OperationID)
 					} else {
 						if delegateResponse.OuterUuid != "" && delegateResponse.OuterUuid != delegate.SuppliedUuid {
 							newResponse.MythicUuid = delegateResponse.OuterUuid
@@ -524,7 +524,7 @@ func processAgentMessageContent(agentMessageInput *AgentMessageRawInput, uuidInf
 						} else {
 							newResponse.SuppliedUuid = delegate.SuppliedUuid
 						}
-						go callbackGraph.AddByAgentIds(instanceResponse.OuterUuid, delegateResponse.OuterUuid, delegate.C2ProfileName)
+						go callbackGraph.AddByAgentIds(instanceResponse.OuterUuid, delegateResponse.OuterUuid, delegate.C2ProfileName, uuidInfo.OperationID)
 					}
 					//go callbackGraph.AddByAgentIds(outerUUID, delegateResponse.OuterUuid, delegate.C2ProfileName)
 					delegateResponses = append(delegateResponses, newResponse)
@@ -547,7 +547,7 @@ func processAgentMessageContent(agentMessageInput *AgentMessageRawInput, uuidInf
 			logging.LogError(err, "Failed to convert agent socks message to proxyFromAgentMessage struct")
 		} else {
 			//logging.LogDebug("got socks data from agent mapped into struct", "data", socksMessages)
-			proxyPorts.SendDataToCallbackIdPortType(uuidInfo.CallbackID, CALLBACK_PORT_TYPE_SOCKS, socksMessages)
+			proxyPorts.SendDataToCallbackIdPortType(uuidInfo.CallbackID, uuidInfo.OperationID, CALLBACK_PORT_TYPE_SOCKS, socksMessages)
 		}
 	}
 	if _, ok := decryptedMessage[CALLBACK_PORT_TYPE_RPORTFWD]; ok {
@@ -556,7 +556,7 @@ func processAgentMessageContent(agentMessageInput *AgentMessageRawInput, uuidInf
 			logging.LogError(err, "Failed to convert agent socks message to proxyFromAgentMessage struct")
 		} else {
 			//logging.LogDebug("got rpfwd data from agent mapped into struct", "data", socksMessages)
-			proxyPorts.SendDataToCallbackIdPortType(uuidInfo.CallbackID, CALLBACK_PORT_TYPE_RPORTFWD, rpfwdMessages)
+			proxyPorts.SendDataToCallbackIdPortType(uuidInfo.CallbackID, uuidInfo.OperationID, CALLBACK_PORT_TYPE_RPORTFWD, rpfwdMessages)
 		}
 	}
 	if _, ok := decryptedMessage[CALLBACK_PORT_TYPE_INTERACTIVE]; ok {
@@ -564,7 +564,7 @@ func processAgentMessageContent(agentMessageInput *AgentMessageRawInput, uuidInf
 		if err = mapstructure.Decode(decryptedMessage[CALLBACK_PORT_TYPE_INTERACTIVE], &interactiveMessages); err != nil {
 			logging.LogError(err, "Failed to convert agent interactive message to agentMessagePostResponseInteractive")
 		} else {
-			proxyPorts.SendInteractiveDataToCallbackIdPortType(uuidInfo.CallbackID, CALLBACK_PORT_TYPE_INTERACTIVE, interactiveMessages)
+			proxyPorts.SendInteractiveDataToCallbackIdPortType(uuidInfo.CallbackID, uuidInfo.OperationID, CALLBACK_PORT_TYPE_INTERACTIVE, interactiveMessages)
 		}
 	}
 	// regardless of the message type, get proxy data if it exists (for both socks and rpfwd)

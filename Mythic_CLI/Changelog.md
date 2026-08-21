@@ -4,7 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [0.3.27] - 2026=-8-05
+## [0.3.28] - 2026-08-20
+
+### Changed
+
+- Removed `http.sslVerify=false` from `git clone` commands
+- Added an allow list for docker compose keys from installed services' config.json
+  - this will likely need to be expanded over time, but starting with just `privileged`
+  
+## [0.3.27] - 2026-8-05
 
 ### Changed
 

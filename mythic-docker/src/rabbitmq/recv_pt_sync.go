@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 
@@ -298,8 +296,9 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 		return errors.New("Can't have payload container with empty name - bad sync")
 	}
 	if !isValidContainerVersion(in.ContainerVersion) {
-		logging.LogError(nil, "attempting to sync bad payload container version")
-		return errors.New(fmt.Sprintf("Version, %s, isn't supported. The max supported version is < %s. \nThis likely means your PyPi or Golang library is out of date and should be updated.", in.ContainerVersion, validContainerVersionMax))
+		logging.LogError(nil, "attempting to sync bad payload container version", "payload_type", in.PayloadType.Name)
+		return errors.New(fmt.Sprintf("%s's version, %s, isn't supported. Only versions < %s and >= %s are supported. \nThis likely means your PyPi or Golang library is out of date compared to the Mythic server.",
+			in.PayloadType.Name, in.ContainerVersion, validContainerVersionMin, validContainerVersionMax))
 	}
 	err := validateWrapperPayloadRequirements(in.PayloadType)
 	if err != nil {
@@ -458,41 +457,11 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 	if err != nil {
 		return err
 	}
-	absPath, err := filepath.Abs(filepath.Join(".", "static", fmt.Sprintf("%s_light.svg", payloadtype.Name)))
+	err = saveContainerIcons(in.PayloadType.Name, in.PayloadType.AgentIcon, in.PayloadType.DarkModeAgentIcon)
 	if err != nil {
-		return err
+		logging.LogError(err, "Failed to save container icons")
 	}
-	file, err := os.Create(absPath)
-	if err != nil {
-		return err
-	}
-	if in.PayloadType.AgentIcon != nil {
-		if _, err = file.Write(*in.PayloadType.AgentIcon); err != nil {
-			return err
-		}
-	}
-	file.Close()
-	darkModeAbsPath, err := filepath.Abs(filepath.Join(".", "static", fmt.Sprintf("%s_dark.svg", payloadtype.Name)))
-	if err != nil {
-		return err
-	}
-	darkModeFile, err := os.Create(darkModeAbsPath)
-	if err != nil {
-		return err
-	}
-	if in.PayloadType.DarkModeAgentIcon != nil {
-		if _, err = darkModeFile.Write(*in.PayloadType.DarkModeAgentIcon); err != nil {
-			return err
-		}
-	} else {
-		if in.PayloadType.AgentIcon != nil {
-			if _, err = darkModeFile.Write(*in.PayloadType.AgentIcon); err != nil {
-				return err
-			}
-		}
-
-	}
-	darkModeFile.Close()
+	return nil
 	if in.PayloadType.TranslationContainerName != "" {
 		translationContainer := databaseStructs.Translationcontainer{
 			Name: in.PayloadType.TranslationContainerName,

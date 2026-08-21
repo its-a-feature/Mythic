@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+	"github.com/its-a-feature/Mythic/database"
 	"github.com/its-a-feature/Mythic/database/enums/PushC2Connections"
 	"github.com/its-a-feature/Mythic/grpc"
 	"github.com/its-a-feature/Mythic/grpc/services"
@@ -31,7 +32,7 @@ func init() {
 	})
 }
 
-func validatePTTaskAgentRPCMessageResponse(response PTTaskAgentRPCMessageResponse) error {
+func validatePTTaskAgentRPCMessageResponse(response PTTaskAgentRPCMessageResponse, authContext RabbitMQAuthContext) error {
 	if response.CallbackID <= 0 {
 		return errors.New("agent RPC response missing a valid callback_id")
 	}
@@ -40,6 +41,14 @@ func validatePTTaskAgentRPCMessageResponse(response PTTaskAgentRPCMessageRespons
 	}
 	if response.Status == "" {
 		return errors.New("agent RPC response missing status")
+	}
+	callbackID := 0
+	err := database.DB.Get(callbackID, `SELECT 
+    	id 
+    	FROM task
+    	WHERE callback_id=$1 AND agent_task_id=$2 AND operation_id=$3`, response.CallbackID, response.AgentTaskID, authContext.OperationID)
+	if err != nil {
+		return errors.New("agent RPC response missing valid task and callback for operation context")
 	}
 	return nil
 }
@@ -50,7 +59,12 @@ func processPtTaskAgentRPCResponseMessages(msg amqp.Delivery) {
 		logging.LogError(err, "Failed to process PTTaskAgentRPCMessageResponse into struct")
 		return
 	}
-	if err := validatePTTaskAgentRPCMessageResponse(response); err != nil {
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		logging.LogError(err, "Failed to get auth headers")
+		return
+	}
+	if err := validatePTTaskAgentRPCMessageResponse(response, authContext); err != nil {
 		logging.LogError(err, "Refusing malformed agent RPC response")
 		return
 	}

@@ -4,7 +4,7 @@ import Button from '@mui/material/Button';
 import DialogContent from '@mui/material/DialogContent';
 import MythicTextField from './MythicTextField';
 import {useQuery, gql, useMutation} from '@apollo/client';
-import {Box, Select, MenuItem, Link} from '@mui/material';
+import {Box, Select, MenuItem, Link, Typography} from '@mui/material';
 import AceEditor from 'react-ace';
 import 'ace-builds/src-noconflict/mode-json';
 import 'ace-builds/src-noconflict/theme-monokai';
@@ -233,9 +233,16 @@ const StringTagDataEntry = ({name, value}) => {
           </MythicStyledTooltip>
       )
     }
-    return (
+    if(capturePieces[2].startsWith("http:") || capturePieces[2].startsWith("https:")){
+      return (
           <Link href={capturePieces[2]} color="textPrimary" target={"_blank"} >{capturePieces[1]}</Link>
-    )
+      )
+    } else {
+      return <Typography>
+        {capturePieces[1]} - ( {capturePieces[2]} )
+      </Typography>
+    }
+
   } else if(value.startsWith("http:") || value.startsWith("https:")){
     return (
         <>
@@ -382,7 +389,8 @@ return (
               <MythicFormField label="External URL">
                 <TagReadonlyValue>
                   {selectedTag?.url ? (
-                      <Link href={selectedTag.url} color="textPrimary" target="_blank" referrerPolicy='no'>
+                      <Link href={selectedTag.url.startsWith("http:") || selectedTag.url.startsWith("https:") ? selectedTag.url : "#"}
+                            color="textPrimary" target="_blank" referrerPolicy='no'>
                         {selectedTag.url}
                       </Link>
                   ) : (

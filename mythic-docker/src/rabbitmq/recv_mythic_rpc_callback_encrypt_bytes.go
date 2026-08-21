@@ -34,11 +34,11 @@ func init() {
 }
 
 // Endpoint: MYTHIC_RPC_CALLBACK_ENCRYPT_BYTES
-func MythicRPCCallbackEncryptBytes(input MythicRPCCallbackEncryptBytesMessage) MythicRPCCallbackEncryptBytesMessageResponse {
+func MythicRPCCallbackEncryptBytes(input MythicRPCCallbackEncryptBytesMessage, authContext RabbitMQAuthContext) MythicRPCCallbackEncryptBytesMessageResponse {
 	response := MythicRPCCallbackEncryptBytesMessageResponse{
 		Success: false,
 	}
-	cipherText, err := CallbackEncryptMessage(input)
+	cipherText, err := CallbackEncryptMessage(input, authContext)
 	if err != nil {
 		response.Error = err.Error()
 		return response
@@ -47,10 +47,13 @@ func MythicRPCCallbackEncryptBytes(input MythicRPCCallbackEncryptBytesMessage) M
 	response.Message = cipherText
 	return response
 }
-func CallbackEncryptMessage(input MythicRPCCallbackEncryptBytesMessage) ([]byte, error) {
+func CallbackEncryptMessage(input MythicRPCCallbackEncryptBytesMessage, authContext RabbitMQAuthContext) ([]byte, error) {
 	cachedInfo, err := LookupEncryptionData(input.C2Profile, input.AgentCallbackID, false)
 	if err != nil {
 		return nil, err
+	}
+	if cachedInfo.OperationID != authContext.OperationID {
+		return nil, errors.New("Operation ID mismatch")
 	}
 	if cachedInfo.MythicEncrypts {
 		// Mythic does encryption, so handle it
@@ -113,5 +116,10 @@ func processMythicRPCCallbackEncryptBytes(msg amqp.Delivery) interface{} {
 		responseMsg.Error = err.Error()
 		return responseMsg
 	}
-	return MythicRPCCallbackEncryptBytes(incomingMessage)
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCCallbackEncryptBytes(incomingMessage, authContext)
 }
