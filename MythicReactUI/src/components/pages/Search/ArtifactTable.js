@@ -78,7 +78,7 @@ export function ArtifactTable(props){
         updateResolved({variables: {taskartifact_id: id, resolved}})
     }
     return (
-        <TableContainer className="mythicElement"  style={{height: "100%", overflowY: "auto"}}>
+        <TableContainer  style={{height: "100%", overflowY: "auto"}}>
             <Table stickyHeader size="small" style={{tableLayout: "fixed"}}>
                 <TableHead>
                     <TableRow>

@@ -427,7 +427,7 @@ const RenderMedia = ({agent_file_id, expand, fileData}) => {
 const MaxRenderSize = 2000000; // 2MB
 const DisplayFileMetaData = ({fileMetaData}) => {
     return (
-        <TableContainer className="mythicElement mythic-response-media-metadata">
+        <TableContainer className="mythic-response-media-metadata">
         <Table style={{marginLeft: "0px", width: "100%", tableLayout: "fixed"}}>
             <TableHead>
                 <TableRow>
@@ -967,7 +967,7 @@ const DisplayDatabaseResult = ({result}) => {
     const [columns, setColumns] = React.useState(result.columns);
     const [rows, setRows] = React.useState(result.values?.slice(0, MAX_ROWS));
     return (
-        <TableContainer className="mythicElement" style={{height: "100%", position: "relative"}}>
+        <TableContainer style={{height: "100%", position: "relative"}}>
         <Table stickyHeader style={{width: "100%", height: "100%", position: "absolute"}}>
             <TableHead >
                 <TableRow>

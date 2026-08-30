@@ -242,7 +242,7 @@ export function PayloadSelect(props) {
 
     return (
         <div style={{display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0}}>
-            <TableContainer className="mythicElement mythic-fixed-row-table-wrap" style={{flex: '1 1 auto', minHeight: 0, overflowY: 'auto'}}>
+            <TableContainer className="mythic-fixed-row-table-wrap" style={{flex: '1 1 auto', minHeight: 0, overflowY: 'auto'}}>
                 <Table stickyHeader size="small" style={{tableLayout: 'fixed', height: 'auto', maxWidth: '100%'}}>
                     <TableHead>
                         <TableRow>

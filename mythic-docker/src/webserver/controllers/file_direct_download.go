@@ -66,8 +66,16 @@ func FileDirectDownloadWebhook(c *gin.Context) {
 			c.AbortWithStatus(http.StatusNotFound)
 			return
 		}
+		if payload.Filemeta.Path == "" {
+			c.AbortWithStatus(http.StatusNotFound)
+			return
+		}
 		go tagFileAs(payload.Filemeta.ID, user.Username, payload.Filemeta.OperationID, tagTypeDownload, nil, c, false, authentication.RabbitMQAuthContextFromGin(c))
 		c.FileAttachment(payload.Filemeta.Path, string(payload.Filemeta.Filename))
+		return
+	}
+	if filemeta.Path == "" {
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 	go tagFileAs(filemeta.ID, user.Username, filemeta.OperationID, tagTypeDownload, nil, c, false, authentication.RabbitMQAuthContextFromGin(c))

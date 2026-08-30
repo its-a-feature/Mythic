@@ -39,13 +39,20 @@ func processEventingCustomFunctionResponse(msg amqp.Delivery) {
 			0, "", database.MESSAGE_LEVEL_INFO, true)
 		return
 	}
-	eventingCustomFunctionResponse(c2SyncMsg)
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		logging.LogError(err, "Failed to get eventing custom function response auth headers")
+		return
+	}
+	eventingCustomFunctionResponse(c2SyncMsg, authContext)
 }
 
-func eventingCustomFunctionResponse(in NewCustomEventingMessageResponse) {
+func eventingCustomFunctionResponse(in NewCustomEventingMessageResponse, authContext RabbitMQAuthContext) {
 	EventingChannel <- EventNotification{
 		Trigger:             eventing.TriggerCustomFunctionResponse,
 		EventStepInstanceID: in.EventStepInstanceID,
+		OperatorID:          authContext.OperatorID,
+		OperationID:         authContext.OperationID,
 		ActionSuccess:       in.Success,
 		ActionStderr:        in.StdErr,
 		ActionStdout:        in.StdOut,

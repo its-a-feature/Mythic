@@ -2687,7 +2687,7 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
     }, [graphData, view_config, setNodes, setEdgeFlow, updateNodeInternals, fitView]);
     const onlyRenderVisibleGraphElements = nodes.length > 20;
     return (
-        <div className="mythic-graph-canvas mythic-c2-flow-canvas" style={{height: "100%", width: "100%", position: "relative"}} ref={viewportRef}>
+        <div className="mythic-graph-canvas mythic-c2-flow-canvas" style={{height: "100%", width: "100%"}} ref={viewportRef}>
                 <ReactFlow
                     fitView
                     onlyRenderVisibleElements={onlyRenderVisibleGraphElements}
@@ -2705,7 +2705,7 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
                     onNodeClick={onNodeSelected}
                 >
                     <Panel position={"top-left"} >{panel}</Panel>
-                    <Controls showInteractive={false} className="mythic-graph-controls">
+                    <Controls showInteractive={false}>
                         <ControlButton onClick={onDownloadImageClickPng} title={"Download PNG"}>
                             <CameraAltIcon />
                         </ControlButton>
@@ -3401,7 +3401,7 @@ export const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme,
 
     }
     return (
-        <div className="mythic-graph-canvas mythic-browser-script-graph-canvas" style={{height: "100%", width: "100%", overflow: "hidden"}} ref={viewportRef}>
+        <div className="mythic-graph-canvas" style={{height: "100%", width: "100%"}} ref={viewportRef}>
             <ReactFlow
                 fitView
                 onlyRenderVisibleElements={false}
@@ -3421,7 +3421,7 @@ export const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme,
                 onEdgeClick={onEdgeSelected}
             >
                 <Panel position={"top-left"} >{panel}</Panel>
-                <Controls showInteractive={false} className="mythic-graph-controls mythic-browser-script-graph-controls" >
+                <Controls showInteractive={false}>
                     <ControlButton onClick={toggleViewConfig} title={"Toggle View"}>
                         <SwapCallsIcon />
                     </ControlButton>

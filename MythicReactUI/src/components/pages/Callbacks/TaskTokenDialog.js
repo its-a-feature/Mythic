@@ -90,7 +90,7 @@ export function TaskTokenDialog(props) {
   return (
     <React.Fragment>
         <MythicDraggableDialogTitle >Token Information</MythicDraggableDialogTitle>
-            <TableContainer className="mythicElement">
+            <TableContainer>
               <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
                     <TableHead>
                         <TableRow>

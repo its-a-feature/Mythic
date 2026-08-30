@@ -122,7 +122,7 @@ export function EventTriggerKeywordDialog({onClose, selectedEventGroup}) {
                         ))
                     }
                 </Select>
-                <TableContainer className="mythicElement">
+                <TableContainer>
                 <Table>
                     <TableHead>
                         <TableRow>

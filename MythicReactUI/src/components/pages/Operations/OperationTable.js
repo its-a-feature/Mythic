@@ -191,7 +191,7 @@ export function OperationTable(props){
                     }
                 />
             }
-            <TableContainer className="mythicElement">
+            <TableContainer>
                 <Table  size="small" style={{"tableLayout": "fixed", "overflow": "scroll"}}>
                     <TableHead>
                         <TableRow>

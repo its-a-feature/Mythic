@@ -36,7 +36,7 @@ export function TaskCredentialsTable(props){
             subtitle="Credentials captured by the selected task set."
             actions={<MythicPageHeaderChip label={credentialCountLabel} />}
         />
-        <TableContainer className="mythicElement mythic-single-task-table-wrap">
+        <TableContainer className="mythic-single-task-table-wrap">
           <Table className="mythic-single-task-table" size="small">
                 <TableHead>
                     <TableRow>

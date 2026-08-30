@@ -81,7 +81,6 @@ export const defaultShortcuts = [
     "CreatePayload", "Eventing", "Chat",
 ].sort();
 export const operatorSettingDefaults =  {
-    fontSize: 13,
     navBarOpen: false,
     fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     showMedia: true,

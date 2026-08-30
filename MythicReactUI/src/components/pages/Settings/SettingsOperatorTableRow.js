@@ -399,7 +399,7 @@ export function SettingsOperatorTableRow(props){
                 <MythicStyledTableCell>
                   { ((props.id === me.user.id) || (props.userIsAdmin && props.account_type === "bot")) &&
                     <MythicActionButton iconOnly aria-label="expand row" size="small" onClick={() => setOpen(!open)}>
-                      {open ? <KeyboardArrowUpIcon className="mythicElement"/> : <KeyboardArrowDownIcon className="mythicElement"/>}
+                      {open ? <KeyboardArrowUpIcon/> : <KeyboardArrowDownIcon/>}
                     </MythicActionButton>
                   }
                     
@@ -529,7 +529,7 @@ const APITokens = ({apiTokens, error, loading, onDeleteAPIToken, onToggleActive,
 
     return (
         <>
-            <TableContainer className="mythicElement mythic-dialog-table-wrap mythic-fixed-row-table-wrap" style={{height: "calc(30vh)", minHeight: "12rem", overflowY: "auto"}}>
+            <TableContainer className="mythic-dialog-table-wrap mythic-fixed-row-table-wrap" style={{height: "calc(30vh)", minHeight: "12rem", overflowY: "auto"}}>
                 <Table stickyHeader size="small" style={{height: "auto"}}>
                     <TableHead>
                         <TableRow>

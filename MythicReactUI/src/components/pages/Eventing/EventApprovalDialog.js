@@ -67,7 +67,7 @@ export function EventGroupTableRunAsDialog({eventgroupapprovals, me, onClose, se
                     <b>Run as: </b>{selectedEventGroup.run_as} <br/>
                     {getRunAsHelp(selectedEventGroup.run_as)}
                 </DialogContentText>
-                <TableContainer className="mythicElement">
+                <TableContainer>
                 <Table>
                     <TableHead>
                         <TableRow>

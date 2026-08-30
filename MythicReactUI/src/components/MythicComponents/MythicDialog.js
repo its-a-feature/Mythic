@@ -370,7 +370,7 @@ const JSONTableValue = ({label, value, me, depth=0, leftColumn="Name", rightColu
         {entries.length === 0 ? (
           <div className="mythic-json-empty-state">No fields to display.</div>
         ) : (
-          <TableContainer className="mythicElement mythic-json-table-wrap">
+          <TableContainer className="mythic-json-table-wrap">
             <Table size="small" stickyHeader={depth === 0} style={{tableLayout: "fixed"}}>
               <TableHead>
                 <TableRow>
@@ -412,7 +412,7 @@ const JSONTableValue = ({label, value, me, depth=0, leftColumn="Name", rightColu
       {value.length === 0 ? (
         <div className="mythic-json-empty-state">No items to display.</div>
       ) : isObjectArray ? (
-        <TableContainer className="mythicElement mythic-json-table-wrap">
+        <TableContainer className="mythic-json-table-wrap">
           <Table size="small" stickyHeader={depth === 0} style={{tableLayout: "fixed", minWidth: `${Math.max(38, objectHeaders.length * 12)}rem`}}>
             <TableHead>
               <TableRow>
@@ -437,7 +437,7 @@ const JSONTableValue = ({label, value, me, depth=0, leftColumn="Name", rightColu
           </Table>
         </TableContainer>
       ) : (
-        <TableContainer className="mythicElement mythic-json-table-wrap">
+        <TableContainer className="mythic-json-table-wrap">
           <Table size="small" stickyHeader={depth === 0} style={{tableLayout: "fixed"}}>
             <TableHead>
               <TableRow>
@@ -509,7 +509,7 @@ export function MythicViewObjectPropertiesAsTableDialog(props) {
         <DialogTitle id="form-dialog-title">{props.title}</DialogTitle>
         <DialogContent dividers={true}>
         <Paper elevation={5} style={{position: "relative"}} variant={"elevation"}>
-          <TableContainer component={Paper} className="mythicElement">
+          <TableContainer component={Paper}>
             <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
                   <TableHead>
                       <TableRow>

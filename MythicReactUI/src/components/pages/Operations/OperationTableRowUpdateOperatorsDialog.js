@@ -213,7 +213,7 @@ export function OperationTableRowUpdateOperatorsDialog(props) {
         <DialogContent dividers={true}>
           <MythicDialogBody>
             <MythicDialogSection title="Operator Access">
-              <TableContainer className="mythicElement mythic-dialog-table-wrap" style={{marginTop: "0px"}}>
+              <TableContainer className="mythic-dialog-table-wrap" style={{marginTop: "0px"}}>
                   <Table stickyHeader={true} size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
                       <TableHead>
                           <TableRow>

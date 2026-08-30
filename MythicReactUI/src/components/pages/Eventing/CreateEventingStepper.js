@@ -1546,7 +1546,7 @@ const EventingTaskCreateExistingTaskDialog = ({loading, onClose, onSelect, tasks
                         value={filterText}
                     />
                 </div>
-                <TableContainer className="mythicElement mythic-dialog-table-wrap mythic-fixed-row-table-wrap mythic-eventing-task-helper-table">
+                <TableContainer className="mythic-dialog-table-wrap mythic-fixed-row-table-wrap mythic-eventing-task-helper-table">
                     <Table stickyHeader size="small" style={{height: "auto"}}>
                         <TableHead>
                             <TableRow>
@@ -1645,7 +1645,7 @@ const EventingTaskCreateCallbackDialog = ({callbacks, loading, onClose, onSelect
                         value={filterText}
                     />
                 </div>
-                <TableContainer className="mythicElement mythic-dialog-table-wrap mythic-fixed-row-table-wrap mythic-eventing-task-helper-table">
+                <TableContainer className="mythic-dialog-table-wrap mythic-fixed-row-table-wrap mythic-eventing-task-helper-table">
                     <Table stickyHeader size="small" style={{height: "auto"}}>
                         <TableHead>
                             <TableRow>

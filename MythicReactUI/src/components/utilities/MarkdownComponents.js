@@ -31,7 +31,7 @@ export const markdownComponents = {
     blockquote: ({children}) => <Box component="blockquote" className="mythic-chat-blockquote">{children}</Box>,
     hr: () => <hr className="mythic-chat-rule" />,
     table: ({children}) => (
-        <TableContainer className="mythicElement mythic-chat-table-wrap">
+        <TableContainer className="mythic-chat-table-wrap">
             <Table className="mythic-chat-table" size="small">{children}</Table>
         </TableContainer>
     ),

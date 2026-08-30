@@ -159,7 +159,7 @@ const CallbackGroupTable = ({callbacks, emptyMessage, tableId}) => {
     return (
         <>
             <TableContainer
-                className="mythicElement mythic-dialog-table-wrap mythic-fixed-row-table-wrap mythic-tree-groups-table-wrap"
+                className="mythic-dialog-table-wrap mythic-fixed-row-table-wrap mythic-tree-groups-table-wrap"
                 data-testid={`${safeTableId}-scroll-region`}
                 id={`${safeTableId}-scroll-region`}
                 role="region"

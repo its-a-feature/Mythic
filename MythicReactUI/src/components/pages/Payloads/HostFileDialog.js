@@ -100,7 +100,7 @@ export function HostedFileLocationsTable({
     onStop,
     onRemove,
     emptyText = "No hosted locations",
-    className = "mythicElement",
+    className = "",
     sx = {},
 }) {
     const theme = useTheme();

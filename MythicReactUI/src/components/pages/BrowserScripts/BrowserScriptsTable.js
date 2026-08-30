@@ -103,7 +103,7 @@ export function BrowserScriptsTable(props){
                     </MythicToolbarSelect>
                 </MythicTableToolbarGroup>
             </MythicTableToolbar>
-            <TableContainer className="mythicElement" style={{flexGrow: 1, minHeight: 0, overflow: "auto"}}>
+            <TableContainer style={{flexGrow: 1, minHeight: 0, overflow: "auto"}}>
             <Table className="mythic-browser-scripts-table" stickyHeader={true} size="small">
                 <TableHead>
                     <TableRow>

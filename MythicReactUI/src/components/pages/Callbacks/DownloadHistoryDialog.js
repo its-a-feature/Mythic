@@ -34,7 +34,7 @@ export function DownloadHistoryDialog(props){
     <React.Fragment>
       <DialogTitle id="form-dialog-title">{props.title}</DialogTitle>
         
-          <TableContainer className="mythicElement">
+          <TableContainer>
             <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
                   <TableHead>
                       <TableRow>

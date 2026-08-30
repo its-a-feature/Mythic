@@ -281,7 +281,7 @@ export function CredentialSearchRow({credential, selected, onSelect}){
         <TableRow
             hover
             selected={selected}
-            className={`mythic-credential-search-row ${selected ? "mythic-credential-search-row-selected" : ""}`}
+            className={selected ? "selectedCallback" : ""}
             onClick={onSelect}>
             <TableCell>
                 <div className="mythic-credential-search-id-cell">

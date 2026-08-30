@@ -124,7 +124,7 @@ export function ModifyCallbackMythicTreeGroupsDialog(props){
                 <b>Note:</b> Having <b>no</b> group entries will hide all information from this callback from your FileBrowser and ProcessBrowser views.
             </div>
           <DialogContent dividers={true}>
-            <TableContainer className="mythicElement">
+            <TableContainer>
             <Table size="small" aria-label="details" style={{ "overflowWrap": "break-word"}}>
                 <TableHead>
                 </TableHead>

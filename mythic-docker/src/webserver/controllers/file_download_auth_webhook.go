@@ -47,6 +47,10 @@ func DownloadFileAuthWebhook(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": "Failed to find file"})
 		return
 	}
+	if filemeta.Path == "" {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
 	if !strings.Contains(c.Request.URL.Path, "screencaptures") {
 		go tagFileAs(filemeta.ID, user.Username, filemeta.OperationID, tagTypeDownload, nil, c, false, authentication.RabbitMQAuthContextFromGin(c))
 	}

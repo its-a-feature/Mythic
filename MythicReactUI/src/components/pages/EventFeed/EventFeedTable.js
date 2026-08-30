@@ -97,7 +97,7 @@ export function EventFeedTable(props){
                 </MythicTableToolbarGroup>
             </MythicTableToolbar>
 
-            <TableContainer component="div" className="mythicElement mythic-create-section-fill mythic-create-section-scroll">
+            <TableContainer component="div" className="mythic-create-section-fill mythic-create-section-scroll">
                     <EventList 
                         onUpdateResolution={props.onUpdateResolution}
                         onUpdateLevel={props.onUpdateLevel}

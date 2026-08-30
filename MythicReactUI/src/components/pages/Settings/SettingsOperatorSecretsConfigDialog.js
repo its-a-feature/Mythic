@@ -113,7 +113,7 @@ export function SettingsOperatorSecretsConfigDialog(props) {
                     title="Operator Secrets"
                     description="Secrets are sent with tasking for per-operator authentication during task processing."
                 >
-                    <TableContainer className="mythicElement mythic-dialog-table-wrap">
+                    <TableContainer className="mythic-dialog-table-wrap">
                       <Table stickyHeader={true} size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
                           <TableHead>
                             <TableRow>

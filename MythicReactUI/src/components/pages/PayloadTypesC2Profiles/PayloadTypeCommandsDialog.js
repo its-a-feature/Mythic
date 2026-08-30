@@ -127,7 +127,7 @@ export function PayloadTypeCommandDialog({service, payload_name, onClose}) {
                     <MythicStatusChip label={`${deletedCommandCount} Deleted`} status="deleted" />
                 }
             </div>
-            <TableContainer className="mythicElement" style={{height: "100%"}}>
+            <TableContainer style={{height: "100%"}}>
             <Table size="small" stickyHeader={true} aria-label="details"
                    style={{"tableLayout": "fixed", "overflowWrap": "break-word", overflowY:"auto", width: "100%", height: "100%"}}>
                 <TableHead>

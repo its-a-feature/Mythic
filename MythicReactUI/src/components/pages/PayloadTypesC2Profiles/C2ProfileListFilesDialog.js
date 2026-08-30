@@ -303,7 +303,7 @@ export function C2ProfileListFilesDialog(props) {
                 <MythicErrorState title="Unable to load folder" description={listResponse.error} minHeight={180} />
               </Box>
             ) : (
-              <TableContainer className="mythicElement" sx={fileBrowserTableSx}>
+              <TableContainer sx={fileBrowserTableSx}>
                 <Table stickyHeader size="small" style={{maxWidth: "100%"}}>
                   <TableHead>
                     <TableRow>

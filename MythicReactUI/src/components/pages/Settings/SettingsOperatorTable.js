@@ -159,7 +159,7 @@ export function SettingsOperatorTable(props){
                 />
             }
         </MythicPageHeader>
-        <TableContainer className="mythicElement" style={{display: "flex", flexGrow: 1, overflowY: "auto", alignItems: "flex-start"}}>
+        <TableContainer style={{display: "flex", flexGrow: 1, overflowY: "auto", alignItems: "flex-start"}}>
             <Table stickyHeader size="small" style={{"tableLayout": "fixed",}}>
                 <TableHead >
                     <TableRow>

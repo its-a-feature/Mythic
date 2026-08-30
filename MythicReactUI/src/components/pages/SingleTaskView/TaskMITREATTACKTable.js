@@ -38,7 +38,7 @@ export function TaskMITREATTACKTable(props){
             subtitle="Unique techniques mapped from the selected tasks."
             actions={<MythicPageHeaderChip label={attackCountLabel} />}
         />
-        <TableContainer className="mythicElement mythic-single-task-table-wrap">
+        <TableContainer className="mythic-single-task-table-wrap">
           <Table className="mythic-single-task-table mythic-single-task-mitre-table" size="small">
                 <TableHead>
                     <TableRow>

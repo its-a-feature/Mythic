@@ -57,8 +57,16 @@ func FileDirectViewWebhook(c *gin.Context) {
 			c.AbortWithStatus(http.StatusNotFound)
 			return
 		}
+		if payload.Filemeta.Path == "" {
+			c.AbortWithStatus(http.StatusNotFound)
+			return
+		}
 		go tagFileAs(payload.Filemeta.ID, user.Username, payload.Filemeta.OperationID, tagTypePreview, nil, c, false, authentication.RabbitMQAuthContextFromGin(c))
 		c.File(payload.Filemeta.Path)
+		return
+	}
+	if filemeta.Path == "" {
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 	go tagFileAs(filemeta.ID, user.Username, filemeta.OperationID, tagTypePreview, nil, c, false, authentication.RabbitMQAuthContextFromGin(c))

@@ -352,7 +352,7 @@ export function DetailedCallbackTable(props){
             <ExpandedCallbackSideDetailsTable {...data.callback_by_pk} />
                 
             <MythicSectionHeader title="Payload Information" />
-            <TableContainer className="mythicElement">
+            <TableContainer>
             <Table size="small" aria-label="details" style={{ "overflowWrap": "break-word"}}>
                 <TableHead>
                   <TableRow hover>
@@ -460,7 +460,7 @@ export function DetailedCallbackTable(props){
               </Table>
               </TableContainer>
               <MythicSectionHeader title="Build Parameters" />
-            <TableContainer className="mythicElement">
+            <TableContainer>
             <Table size="small" aria-label="details" style={{ "overflowWrap": "break-word"}}>
                 <TableHead>
                   <TableRow>
@@ -498,7 +498,7 @@ export function DetailedCallbackTable(props){
               </Table>
               </TableContainer>
               <MythicSectionHeader title="Build Steps" />
-              <TableContainer className="mythicElement">
+              <TableContainer>
               <Table size="small" aria-label="details" style={{ "overflowWrap": "break-word"}}>
                 <TableHead>
                   <TableRow>
@@ -528,7 +528,7 @@ export function DetailedCallbackTable(props){
                 { c2Profiles.map( (c2) => (
                     <React.Fragment key={"c2frag" + data.callback_by_pk.payload.id + c2.c2_profile}>
                           <MythicSectionHeader title={c2.c2_profile} />
-                        <TableContainer className="mythicElement">
+                        <TableContainer>
                         <Table size="small" aria-label="details" style={{"overflowWrap": "break-word"}}>
                             <TableHead>
                               <TableRow>
@@ -564,7 +564,7 @@ export function DetailedCallbackTable(props){
                     <Button variant="outlined" size="small" onClick={()=>{setOpenAddRemoveCommandsDialog(true)}}>Add/Remove Commands</Button>
                 }
             />
-            <TableContainer className="mythicElement">
+            <TableContainer>
             <Table size="small" aria-label="details" style={{"overflowWrap": "break-word"}}>
             <TableHead>
               <TableRow>

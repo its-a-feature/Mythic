@@ -71,6 +71,14 @@ mutation getDynamicC2ProfileParamsMutation($c2_profile_name: String!, $parameter
     }
 }
 `;
+
+const arrayParameterTableContainerSx = {
+    borderColor: "var(--mythic-color-border-subtle)",
+    "& .MuiTableCell-root": {
+        padding: "0.375rem 0.5rem",
+    },
+};
+
 function isTrue(value){
     if(typeof value === 'boolean'){
         return value;
@@ -876,7 +884,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 );
             case "Array":
                 return (
-                    <TableContainer className="mythicElement mythic-create-array-table">
+                    <TableContainer sx={arrayParameterTableContainerSx}>
                         <Table size="small" style={{tableLayout: "fixed", maxWidth: "100%", "overflow": "auto"}}>
                             <TableBody>
                                 {arrayValue.map( (a, i) => (
@@ -906,7 +914,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 );
             case "TypedArray":
                 return (
-                    <TableContainer className="mythicElement mythic-create-array-table">
+                    <TableContainer sx={arrayParameterTableContainerSx}>
                         <Table size="small" style={{tableLayout: "fixed", maxWidth: "100%", "overflow": "auto"}}>
                             <TableBody>
                                 {typedArrayValue.map( (a, i) => (

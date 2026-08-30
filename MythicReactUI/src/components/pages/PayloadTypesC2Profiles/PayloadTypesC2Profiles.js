@@ -478,7 +478,7 @@ A few examples are github.com/MythicAgents/bloodhound and github.com/MythicAgent
     return (
         <MythicTabPanel {...props} >
             <div style={{display: "flex", flexGrow: 1, overflowY: "auto"}}>
-                <TableContainer className="mythicElement">
+                <TableContainer>
                     <Table stickyHeader size="small" style={{"maxWidth": "100%", "overflow": "scroll"}}>
                         <TableHead>
                             <TableRow>
@@ -549,7 +549,7 @@ You can extend this auth capability to support your own LDAP, SSO, or otherwise 
     return (
         <MythicTabPanel {...props} >
             <div style={{display: "flex", flexGrow: 1, overflowY: "auto"}}>
-                <TableContainer className="mythicElement">
+                <TableContainer>
                     <Table stickyHeader size="small" style={{"maxWidth": "100%", "overflow": "scroll"}}>
                         <TableHead>
                             <TableRow>
@@ -600,7 +600,7 @@ const ContainersTabCustomBrowsersPanel = (props) => {
     return (
         <MythicTabPanel {...props} >
             <div style={{display: "flex", flexGrow: 1, overflowY: "auto"}}>
-                <TableContainer className="mythicElement">
+                <TableContainer>
                     <Table stickyHeader size="small" style={{"maxWidth": "100%", "overflow": "scroll"}}>
                         <TableHead>
                             <TableRow>

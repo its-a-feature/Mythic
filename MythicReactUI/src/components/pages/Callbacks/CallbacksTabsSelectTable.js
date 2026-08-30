@@ -180,7 +180,7 @@ export const CallbacksTabsSelectTable = ({
         <>
             <TableContainer
                 aria-label={`${tableLabel} scroll area`}
-                className="mythicElement mythic-dialog-table-wrap mythic-fixed-row-table-wrap mythic-callback-select-table-wrap"
+                className="mythic-dialog-table-wrap mythic-fixed-row-table-wrap mythic-callback-select-table-wrap"
                 data-testid={`${tableId}-scroll-region`}
                 id={`${tableId}-scroll-region`}
                 role="region"

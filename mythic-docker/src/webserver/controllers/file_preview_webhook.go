@@ -89,6 +89,10 @@ func PreviewFileWebhook(c *gin.Context) {
 		})
 		return
 	}
+	if filemeta.Path == "" {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
 	go tagFileAs(filemeta.ID, user.Username, filemeta.OperationID, tagTypePreview, nil, c, false, authentication.RabbitMQAuthContextFromGin(c))
 	file, err := os.Open(filemeta.Path)
 	if err != nil {

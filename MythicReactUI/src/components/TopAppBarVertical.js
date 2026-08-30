@@ -321,7 +321,7 @@ const Dashboard = () => {
       <StyledListItem className={classes.listSubHeader} component={Link} to='/new' key={"home"} >
         <StyledListItemIcon >
             <MythicStyledTooltip title={"Operation Dashboard"} tooltipStyle={{display: "inline-flex"}}>
-                <SpaceDashboardTwoToneIcon fontSize={"medium"} className="mythicElement mythic-navigation-icon" />
+                <SpaceDashboardTwoToneIcon fontSize={"medium"} />
             </MythicStyledTooltip>
         </StyledListItemIcon>
         <ListItemText primary={"Operation Dashboard"} />
@@ -333,7 +333,7 @@ const ActiveCallbacks = () => {
       <StyledListItem className={classes.listSubHeader} component={Link} to='/new/callbacks' key={"callbacks"} >
         <StyledListItemIcon>
             <MythicStyledTooltip title={"Active Callbacks"} tooltipStyle={{display: "inline-flex"}}>
-                <PhoneCallbackIcon fontSize={"medium"} className="mythicElement mythic-navigation-icon"/>
+                <PhoneCallbackIcon fontSize={"medium"}/>
             </MythicStyledTooltip>
 
         </StyledListItemIcon>
@@ -346,7 +346,7 @@ const Payloads = () => {
       <StyledListItem className={classes.listSubHeader} component={Link} to='/new/payloads' key={"payloads"} >
         <StyledListItemIcon>
             <MythicStyledTooltip title={"Payloads"} tooltipStyle={{display: "inline-flex"}}>
-                <FontAwesomeIcon className="mythic-navigation-icon" icon={faBiohazard} size="lg"/>
+                <FontAwesomeIcon icon={faBiohazard} size="lg"/>
             </MythicStyledTooltip>
         </StyledListItemIcon>
         <ListItemText primary={"Payloads"} />
@@ -358,8 +358,8 @@ const SearchCallbacks = () => {
       <StyledListItem className={classes.listSubHeader} component={Link} to='/new/search?tab=callbacks&searchField=Host&search=' >
         <StyledListItemIcon>
             <MythicStyledTooltip title={"Search Callbacks"} tooltipStyle={{display: "inline-flex"}}>
-                <PhoneCallbackIcon fontSize={"medium"} className="mythicElement mythic-navigation-icon"/>
-                <ManageSearchIcon className="mythic-navigation-icon" style={{marginLeft: "-8px", marginTop: "7px", borderRadius: "5px"}} fontSize={"small"} />
+                <PhoneCallbackIcon fontSize={"medium"}/>
+                <ManageSearchIcon style={{marginLeft: "-8px", marginTop: "7px", borderRadius: "5px"}} fontSize={"small"} />
             </MythicStyledTooltip>
         </StyledListItemIcon>
         <ListItemText primary={"Search Callbacks"} />
@@ -371,7 +371,7 @@ const SearchTasks = () => {
       <StyledListItem className={classes.listSubHeader} component={Link} to='/new/search?tab=tasks&searchField=Command+and+Parameters&search=&taskStatus=' >
         <StyledListItemIcon>
             <MythicStyledTooltip title={"Search Tasks"} tooltipStyle={{display: "inline-flex"}}>
-                <AssignmentIcon fontSize={"medium"} className="mythicElement mythic-navigation-icon"/>
+                <AssignmentIcon fontSize={"medium"}/>
             </MythicStyledTooltip>
         </StyledListItemIcon>
         <ListItemText primary={"Search Tasks"} />
@@ -383,8 +383,8 @@ const SearchPayloads = () => {
       <StyledListItem className={classes.listSubHeader} component={Link} to='/new/search?tab=payloads&searchField=Filename&search=&taskStatus=&c2=All+C2&payloadtype=All+Payload+Types'>
         <StyledListItemIcon>
             <MythicStyledTooltip title={"Search Payloads"} tooltipStyle={{display: "inline-flex"}}>
-                <FontAwesomeIcon className="mythic-navigation-icon" size={"lg"} icon={faBiohazard} />
-                <ManageSearchIcon className="mythic-navigation-icon" style={{marginLeft: "-8px", marginTop: "7px", borderRadius: "5px"}} fontSize={"small"} />
+                <FontAwesomeIcon size={"lg"} icon={faBiohazard} />
+                <ManageSearchIcon style={{marginLeft: "-8px", marginTop: "7px", borderRadius: "5px"}} fontSize={"small"} />
             </MythicStyledTooltip>
         </StyledListItemIcon>
         <ListItemText primary={"Search Payloads"} />
@@ -396,7 +396,7 @@ const SearchFiles = () => {
       <StyledListItem className={classes.listSubHeader} component={Link} to='/new/search?searchField=Filename&tab=files&location=Downloads&host=&search=' >
         <StyledListItemIcon>
             <MythicStyledTooltip title={"Search Files"} tooltipStyle={{display: "inline-flex"}}>
-                <AttachmentIcon fontSize={"medium"} className="mythicElement mythic-navigation-icon"/>
+                <AttachmentIcon fontSize={"medium"}/>
             </MythicStyledTooltip>
         </StyledListItemIcon>
         <ListItemText primary={"Search Files"} />
@@ -408,7 +408,7 @@ const SearchScreenshots = () => {
         <StyledListItem className={classes.listSubHeader} component={Link} to='/new/search?searchField=Filename&tab=files&location=Screenshots' >
             <StyledListItemIcon>
                 <MythicStyledTooltip title={"Search Screenshots"} tooltipStyle={{display: "inline-flex"}}>
-                    <CameraAltTwoToneIcon fontSize={"medium"} className="mythicElement mythic-navigation-icon"/>
+                    <CameraAltTwoToneIcon fontSize={"medium"}/>
                 </MythicStyledTooltip>
             </StyledListItemIcon>
             <ListItemText primary={"Search Screenshots"} />
@@ -420,7 +420,7 @@ const SearchCredentials = () => {
       <StyledListItem className={classes.listSubHeader} component={Link} to='/new/search?t?searchField=Account&tab=credentials&search='>
         <StyledListItemIcon>
             <MythicStyledTooltip title={"Search Credentials"} tooltipStyle={{display: "inline-flex"}}>
-                <VpnKeyIcon fontSize={"medium"} className="mythicElement mythic-navigation-icon" />
+                <VpnKeyIcon fontSize={"medium"} />
             </MythicStyledTooltip>
         </StyledListItemIcon>
         <ListItemText primary={"Search Credentials"} />
@@ -432,7 +432,7 @@ const SearchKeylogs = () => {
       <StyledListItem className={classes.listSubHeader} component={Link} to='/new/search?tab=keylogs&searchField=Host&search='>
         <StyledListItemIcon>
             <MythicStyledTooltip title={"Search Keylogs"} tooltipStyle={{display: "inline-flex"}}>
-                <KeyboardIcon fontSize={"medium"} className="mythicElement mythic-navigation-icon"/>
+                <KeyboardIcon fontSize={"medium"}/>
             </MythicStyledTooltip>
         </StyledListItemIcon>
         <ListItemText primary={"Search Keylogs"} />
@@ -444,7 +444,7 @@ const SearchArtifacts = () => {
       <StyledListItem className={classes.listSubHeader} component={Link} to='/new/search?tab=artifacts&searchField=Host&search=' >
         <StyledListItemIcon>
             <MythicStyledTooltip title={"Search Artifacts"} tooltipStyle={{display: "inline-flex"}}>
-                <FingerprintIcon fontSize={"medium"} className="mythicElement mythic-navigation-icon"/>
+                <FingerprintIcon fontSize={"medium"}/>
             </MythicStyledTooltip>
         </StyledListItemIcon>
         <ListItemText primary={"Search Artifacts"} />
@@ -456,7 +456,7 @@ const SearchTokens = () => {
       <StyledListItem className={classes.listSubHeader} component={Link} to='/new/search?tab=tokens&searchField=Host&search=' >
         <StyledListItemIcon>
             <MythicStyledTooltip title={"Search Tokens"} tooltipStyle={{display: "inline-flex"}}>
-                <ConfirmationNumberIcon fontSize={"medium"} className="mythicElement mythic-navigation-icon"/>
+                <ConfirmationNumberIcon fontSize={"medium"}/>
             </MythicStyledTooltip>
         </StyledListItemIcon>
         <ListItemText primary={"Search Tokens"} />
@@ -468,7 +468,7 @@ const SearchProxies = () => {
       <StyledListItem className={classes.listSubHeader} component={Link} to='/new/search?tab=proxies'>
         <StyledListItemIcon>
             <MythicStyledTooltip title={"Search Proxies"} tooltipStyle={{display: "inline-flex"}}>
-                <FontAwesomeIcon className="mythic-navigation-icon" size={"lg"} icon={faSocks} />
+                <FontAwesomeIcon size={"lg"} icon={faSocks} />
             </MythicStyledTooltip>
         </StyledListItemIcon>
         <ListItemText primary={"Search Proxies"} />
@@ -480,7 +480,7 @@ const SearchProcesses = () => {
       <StyledListItem className={classes.listSubHeader} component={Link} to='/new/search?tab=processes&searchField=Name&search=&host=' >
         <StyledListItemIcon>
             <MythicStyledTooltip title={"Search Processes"} tooltipStyle={{display: "inline-flex"}}>
-                <AccountTreeIcon fontSize={"medium"} className="mythicElement mythic-navigation-icon"/>
+                <AccountTreeIcon fontSize={"medium"}/>
             </MythicStyledTooltip>
         </StyledListItemIcon>
         <ListItemText primary={"Search Processes"} />
@@ -492,8 +492,8 @@ const SearchTags = () => {
       <StyledListItem className={classes.listSubHeader} component={Link} to='/new/search?tab=tags&searchField=TagType&search=&host='>
         <StyledListItemIcon>
             <MythicStyledTooltip title={"Search Tags"} tooltipStyle={{display: "inline-flex"}}>
-                <LocalOfferTwoToneIcon fontSize={"medium"} className="mythicElement mythic-navigation-icon"/>
-                <ManageSearchIcon className="mythic-navigation-icon" style={{marginLeft: "-8px", marginTop: "7px", borderRadius: "5px"}} fontSize={"small"} />
+                <LocalOfferTwoToneIcon fontSize={"medium"}/>
+                <ManageSearchIcon style={{marginLeft: "-8px", marginTop: "7px", borderRadius: "5px"}} fontSize={"small"} />
             </MythicStyledTooltip>
         </StyledListItemIcon>
         <ListItemText primary={"Search Tags"} />
@@ -505,7 +505,7 @@ const Mitre = () => {
       <StyledListItem className={classes.listSubHeader} component={Link} to='/new/mitre' >
         <StyledListItemIcon>
             <MythicStyledTooltip title={"MITRE ATT&CK"} tooltipStyle={{display: "inline-flex"}}>
-                <TableChartTwoToneIcon fontSize={"medium"} className="mythicElement mythic-navigation-icon"/>
+                <TableChartTwoToneIcon fontSize={"medium"}/>
             </MythicStyledTooltip>
         </StyledListItemIcon>
         <ListItemText primary={"MITRE ATT&CK"} />
@@ -517,7 +517,7 @@ const Reporting = () => {
       <StyledListItem className={classes.listSubHeader} component={Link} to='/new/reporting' >
         <StyledListItemIcon>
             <MythicStyledTooltip title={"Reporting"} tooltipStyle={{display: "inline-flex"}}>
-                <SportsScoreIcon className="mythic-navigation-icon" size={"medium"} />
+                <SportsScoreIcon size={"medium"} />
             </MythicStyledTooltip>
         </StyledListItemIcon>
         <ListItemText primary={"Reporting"} />
@@ -529,7 +529,7 @@ const Tags = () => {
       <StyledListItem className={classes.listSubHeader} component={Link} to='/new/tagtypes' >
         <StyledListItemIcon>
             <MythicStyledTooltip title={"Tags"} tooltipStyle={{display: "inline-flex"}}>
-                <LocalOfferTwoToneIcon fontSize={"medium"} className="mythicElement mythic-navigation-icon"/>
+                <LocalOfferTwoToneIcon fontSize={"medium"}/>
             </MythicStyledTooltip>
         </StyledListItemIcon>
         <ListItemText primary={"Tags"} />
@@ -541,7 +541,7 @@ const Eventing = () => {
       <StyledListItem className={classes.listSubHeader} component={Link} to='/new/eventing' >
         <StyledListItemIcon>
             <MythicStyledTooltip title={"Eventing"} tooltipStyle={{display: "inline-flex"}}>
-                <PlayCircleFilledTwoToneIcon fontSize={"medium"} className="mythicElement mythic-navigation-icon"/>
+                <PlayCircleFilledTwoToneIcon fontSize={"medium"}/>
             </MythicStyledTooltip>
         </StyledListItemIcon>
         <ListItemText primary={"Eventing"} />
@@ -613,7 +613,7 @@ const Chat = ({me}) => {
                         invisible={!error && unreadCount === 0}
                         max={99}
                     >
-                        <ForumTwoToneIcon fontSize={"medium"} className="mythicElement mythic-navigation-icon"/>
+                        <ForumTwoToneIcon fontSize={"medium"}/>
                     </Badge>
                 </MythicStyledTooltip>
             </StyledListItemIcon>
@@ -638,7 +638,7 @@ const GraphQL = () => {
       <StyledListItem className={classes.listSubHeader} target="_blank"  component={Link} to='/console' key={"console"} >
         <StyledListItemIcon>
             <MythicStyledTooltip title={"GraphQL Console"} tooltipStyle={{display: "inline-flex"}}>
-                <img src={GraphQLLogo} height={"25px"} width={"25px"} className="mythicElement"/>
+                <img src={GraphQLLogo} height={"25px"} width={"25px"}/>
             </MythicStyledTooltip>
         </StyledListItemIcon>
         <ListItemText primary={"GraphQL Console"} />
@@ -650,7 +650,7 @@ const CreatePayload = () => {
       <StyledListItem className={classes.listSubHeader} component={Link} to='/new/createpayload' key={"createpayload"}  state={{from: 'TopAppBar'}}>
         <StyledListItemIcon>
             <MythicStyledTooltip title={"Create Payload"} tooltipStyle={{display: "inline-flex"}}>
-                <FontAwesomeIcon className="mythic-navigation-icon" size={"lg"} icon={faBiohazard} />
+                <FontAwesomeIcon size={"lg"} icon={faBiohazard} />
                 <AddCircleIcon color={"success"} style={{marginLeft: "-8px", marginTop: "7px", backgroundColor: "white", borderRadius: "10px"}} fontSize={"small"} />
             </MythicStyledTooltip>
         </StyledListItemIcon>
@@ -663,7 +663,7 @@ const CreateWrapper = () => {
       <StyledListItem className={classes.listSubHeader} component={Link} to='/new/createwrapper' key={"createwrapper"} >
         <StyledListItemIcon>
             <MythicStyledTooltip title={"Create Wrapper"} tooltipStyle={{display: "inline-flex"}}>
-                <PostAddIcon fontSize={"medium"} className="mythicElement mythic-navigation-icon"/>
+                <PostAddIcon fontSize={"medium"}/>
                 <AddCircleIcon color={"success"} style={{marginLeft: "-8px", marginTop: "7px", backgroundColor: "white", borderRadius: "10px"}} fontSize={"small"} />
             </MythicStyledTooltip>
         </StyledListItemIcon>
@@ -676,7 +676,7 @@ const PayloadTypesAndC2 = () => {
       <StyledListItem className={classes.listSubHeader} component={Link} to='/new/payloadtypes' key={"payloadtypes"}>
         <StyledListItemIcon>
             <MythicStyledTooltip title={"Installed Services"} tooltipStyle={{display: "inline-flex"}}>
-                <HeadsetTwoToneIcon fontSize={"medium"} className="mythicElement mythic-navigation-icon"/>
+                <HeadsetTwoToneIcon fontSize={"medium"}/>
             </MythicStyledTooltip>
         </StyledListItemIcon>
         <ListItemText primary={"Installed Services"} />
@@ -688,7 +688,7 @@ const Operations = () => {
       <StyledListItem className={classes.listSubHeader} component={Link} to='/new/operations' key={"modifyoperations"}>
         <StyledListItemIcon>
             <MythicStyledTooltip title={"Modify Operations"} tooltipStyle={{display: "inline-flex"}}>
-                <EditIcon fontSize={"medium"} className="mythicElement mythic-navigation-icon"/>
+                <EditIcon fontSize={"medium"}/>
             </MythicStyledTooltip>
         </StyledListItemIcon>
         <ListItemText primary={"Modify Operations"} />
@@ -700,7 +700,7 @@ const BrowserScripts = () => {
       <StyledListItem className={classes.listSubHeader} component={Link} to='/new/browserscripts' key={"browserscripts"} >
         <StyledListItemIcon>
             <MythicStyledTooltip title={"Browser Scripts"} tooltipStyle={{display: "inline-flex"}}>
-                <CodeOffIcon fontSize={"medium"} className="mythicElement mythic-navigation-icon"/>
+                <CodeOffIcon fontSize={"medium"}/>
             </MythicStyledTooltip>
         </StyledListItemIcon>
         <ListItemText primary={"BrowserScripts"} />
@@ -980,7 +980,7 @@ export function TopAppBarVertical(props) {
             </StyledListItemIcon>
             <ListItemText style={{margin: 0}} primary={
                 <>
-                    <Typography className="mythic-navigation-muted-text" style={{ fontSize: 12, display: "inline-block",
+                    <Typography style={{ color: "var(--mythic-color-nav-muted)", fontSize: 12, display: "inline-block",
                         marginLeft: "1rem",
                         lineHeight: 1.35}}>
                         <b>Mythic:</b> v{serverVersion}<br/>
@@ -995,22 +995,22 @@ export function TopAppBarVertical(props) {
                         style={{float:"right", display: menuOpen ? "" : "none"}}
                     >
                         {props.themeMode === 'light' &&
-                            <DarkModeTwoToneIcon fontSize={"medium"} className="mythicElement mythic-navigation-icon" />
+                            <DarkModeTwoToneIcon fontSize={"medium"} style={{color: "var(--mythic-color-nav-icon)"}} />
                         }
                         {props.themeMode === 'dark' &&
-                            <LightModeTwoToneIcon fontSize={"medium"} className="mythicElement mythic-navigation-warning-icon" />
+                            <LightModeTwoToneIcon fontSize={"medium"} style={{color: "var(--mythic-color-warning-base)"}} />
                         }
                     </MythicActionButton>
                 </>
             } />
           </ListItem>
-          <StyledListItem className={`${classes.listSubHeader} mythic-navigation-drawer-toggle`} onClick={toggleDrawerOpen} style={{height: "32px"}} >
-            <StyledListItemIcon ><MenuIcon fontSize={"medium"} className="mythicElement mythic-navigation-icon" /></StyledListItemIcon>
+          <StyledListItem className={classes.listSubHeader} onClick={toggleDrawerOpen} style={{cursor: "pointer", height: "32px"}} >
+            <StyledListItemIcon ><MenuIcon fontSize={"medium"} /></StyledListItemIcon>
             <ListItemText primary={
               <>
                 <MythicStyledTooltip title={"Edit Shortcuts"} tooltipStyle={{float: menuOpen ? 'right' : '', margin: 0, padding: 0}}>
-                    <Button onClick={openEditShortcuts} className="mythic-navigation-action-text">
-                        <EditIcon className="mythic-navigation-icon" fontSize={"medium"}/> Customize
+                    <Button onClick={openEditShortcuts} style={{color: "var(--mythic-color-nav-text)"}}>
+                        <EditIcon fontSize={"medium"} style={{color: "var(--mythic-color-nav-icon)"}}/> Customize
                     </Button>
 
                 </MythicStyledTooltip>
@@ -1043,7 +1043,7 @@ export function TopAppBarVertical(props) {
                 <Divider style={{borderColor: "var(--mythic-color-nav-muted)", margin: "4px 8px"}} />
                 <StyledListItem className={classes.listSubHeader} onClick={handleToggleExtra}>
                     <StyledListItemIcon>
-                        <MoreHorizIcon className="mythic-navigation-icon" fontSize={"medium"} />
+                        <MoreHorizIcon fontSize={"medium"} />
                     </StyledListItemIcon>
                     <ListItemText>Extra Shortcuts</ListItemText>
                     {openExtra ? <ExpandLess /> : <ExpandMore />}
@@ -1222,7 +1222,7 @@ function TopBarRightShortcutsVertical({me, menuOpen, serverName}){
           <StyledListItem className={classes.listSubHeader} onClick={() => setOpenFeedbackForm(true)} >
             <StyledListItemIcon>
                 <MythicStyledTooltip title={"Submit feedback via Webhook"} tooltipStyle={{display: "inline-flex"}}>
-                    <ThumbDownTwoTone fontSize={"medium"} className="mythicElement mythic-navigation-icon" />
+                    <ThumbDownTwoTone fontSize={"medium"} />
                 </MythicStyledTooltip>
             </StyledListItemIcon>
             <ListItemText primary={"Send Feedback"} />
@@ -1238,11 +1238,11 @@ function TopBarRightShortcutsVertical({me, menuOpen, serverName}){
           <StyledListItem className={classes.listSubHeader} onClick={handleDocumentationMenu} >
             <StyledListItemIcon>
                 <MythicStyledTooltip title={"Documentation Links"} tooltipStyle={{display: "inline-flex"}}>
-                  <HelpTwoToneIcon fontSize={"medium"} className="mythicElement mythic-navigation-icon"/>
+                  <HelpTwoToneIcon fontSize={"medium"}/>
                 </MythicStyledTooltip>
             </StyledListItemIcon>
             <ListItemText primary={"Help"} />
-            <KeyboardArrowDownIcon className="mythic-navigation-icon" style={{display: menuOpen ? "" : "none", flex: "0 0 auto", marginLeft: "auto"}} />
+            <KeyboardArrowDownIcon style={{color: "var(--mythic-color-nav-icon)", display: menuOpen ? "" : "none", flex: "0 0 auto", marginLeft: "auto"}} />
           </StyledListItem>
 
           <StyledListItem className={classes.listSubHeader} component={Link} to='/new/EventFeed' >
@@ -1257,11 +1257,11 @@ function TopBarRightShortcutsVertical({me, menuOpen, serverName}){
           <StyledListItem className={classes.listSubHeader} onClick={handleSettingsMenu} >
             <StyledListItemIcon>
                 <MythicStyledTooltip title={"User Settings"} tooltipStyle={{display: "inline-flex"}}>
-                    <ManageAccountsTwoToneIcon fontSize={"medium"} className="mythicElement mythic-navigation-icon" />
+                    <ManageAccountsTwoToneIcon fontSize={"medium"} />
                 </MythicStyledTooltip>
             </StyledListItemIcon>
             <ListItemText primary={"Settings"} />
-            <KeyboardArrowDownIcon className="mythic-navigation-icon" style={{display: menuOpen ? "" : "none", flex: "0 0 auto", marginLeft: "auto"}} />
+            <KeyboardArrowDownIcon style={{color: "var(--mythic-color-nav-icon)", display: menuOpen ? "" : "none", flex: "0 0 auto", marginLeft: "auto"}} />
           </StyledListItem>
         </>
     )

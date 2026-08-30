@@ -81,12 +81,12 @@ export function PayloadsTable({payload, onDeletePayload, onUpdateCallbackAlert, 
                         <MythicLoadingState compact title="Loading payloads" description="Fetching payload records for this page." sx={{color: "inherit"}} />
                     </Backdrop>
                 }
-            <TableContainer className="mythicElement" style={{flexGrow: 1, overflowY: "auto", height: "100%"}}>
+            <TableContainer style={{flexGrow: 1, overflowY: "auto", height: "100%"}}>
                 <Table stickyHeader size="small" style={{maxWidth: "100%", tableLayout: "fixed"}}>
                     <TableHead >
                         <TableRow>
-                        <TableCell style={{width: "6rem"}}></TableCell>
-                        <TableCell style={{width: "3rem"}}></TableCell>
+                        <TableCell style={{width: "7rem"}}></TableCell>
+                        <TableCell style={{width: "4rem"}}></TableCell>
                         <TableCell>File</TableCell>
                         <TableCell style={{width: "18rem"}}>Progress</TableCell>
                         <TableCell>Description</TableCell>

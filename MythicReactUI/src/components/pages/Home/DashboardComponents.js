@@ -356,11 +356,11 @@ export const TableDataCard = ({
             width={width}
         >
             {empty ? (
-                <TableContainer className="mythic-dashboard-table-container mythic-dashboard-empty-container mythicElement">
+                <TableContainer className="mythic-dashboard-table-container mythic-dashboard-empty-container">
                     <DashboardNoDataState title={emptyTitle} description={emptyDescription} action={emptyAction} />
                 </TableContainer>
             ) : (
-                <TableContainer className="mythic-dashboard-table-container mythicElement">
+                <TableContainer className="mythic-dashboard-table-container">
                     <Table className={tableClasses} stickyHeader size="small">
                         {tableHead}
                         {tableBody}

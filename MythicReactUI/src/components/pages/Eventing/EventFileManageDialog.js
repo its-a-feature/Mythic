@@ -60,7 +60,7 @@ export function EventFileManageDialog({onClose, selectedEventGroup}) {
                 <DialogContentText>
                     These files can be accessed via `workflow.filename` in a step's inputs.
                 </DialogContentText>
-                <TableContainer className="mythicElement">
+                <TableContainer>
                 <Table>
                     <TableBody>
                         {selectedEventGroup.filemeta.length === 0 ? (

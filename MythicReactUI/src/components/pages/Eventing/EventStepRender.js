@@ -1310,7 +1310,7 @@ function EventStepRender({selectedEventGroup, useSuppliedData}) {
         })();
     }, [graphData]);
     return (
-        <div className="mythic-eventing-flow-canvas mythic-graph-canvas" ref={viewportRef} style={{position: "relative"}}>
+        <div className="mythic-eventing-flow-canvas mythic-graph-canvas" ref={viewportRef}>
             <ReactFlow
                 fitView
                 onlyRenderVisibleElements={false}
@@ -1329,7 +1329,7 @@ function EventStepRender({selectedEventGroup, useSuppliedData}) {
                 {selectedEventGroup.id > 0 &&
                     <div className="mythic-eventing-flow-badge">Event group {selectedEventGroup.id}</div>
                 }
-                <Controls showInteractive={false} className="mythic-graph-controls-muted-hover">
+                <Controls showInteractive={false}>
                 </Controls>
             </ReactFlow>
             {openContextMenu && typeof document !== "undefined" && createPortal(
@@ -1630,7 +1630,7 @@ function EventStepInstanceRender({selectedEventGroupInstance}) {
         })();
     }, [graphData]);
     return (
-        <div className="mythic-eventing-flow-canvas mythic-graph-canvas" ref={viewportRef} style={{position: "relative"}}>
+        <div className="mythic-eventing-flow-canvas mythic-graph-canvas" ref={viewportRef}>
             <ReactFlow
                 fitView
                 onlyRenderVisibleElements={false}
@@ -1647,7 +1647,7 @@ function EventStepInstanceRender({selectedEventGroupInstance}) {
                 onNodeContextMenu={onNodeContextMenu}
             >
                 <div className="mythic-eventing-flow-badge">Instance {selectedEventGroupInstance}</div>
-                <Controls showInteractive={false} className="mythic-graph-controls-muted-hover">
+                <Controls showInteractive={false}>
                 </Controls>
             </ReactFlow>
             {openContextMenu && typeof document !== "undefined" && createPortal(
@@ -2077,7 +2077,7 @@ function EventDetailsCallbacksTable({callbacks, includeContext = false}){
                 />
             ) : (
                 <>
-                    <TableContainer className="mythicElement mythic-eventing-detail-table-wrap mythic-fixed-row-table-wrap">
+                    <TableContainer className="mythic-eventing-detail-table-wrap mythic-fixed-row-table-wrap">
                         <Table style={{height: "auto"}}>
                             <TableHead>
                                 <TableRow>
@@ -2129,7 +2129,7 @@ function EventDetailsAPITokensTable({tokens}){
                 />
             ) : (
                 <>
-                    <TableContainer className="mythicElement mythic-eventing-detail-table-wrap mythic-fixed-row-table-wrap">
+                    <TableContainer className="mythic-eventing-detail-table-wrap mythic-fixed-row-table-wrap">
                         <Table style={{height: "auto"}}>
                             <TableHead>
                                 <TableRow>
@@ -2235,7 +2235,7 @@ function EventDetailsPayloadsTable({payloads, deletePayload}){
                     />
                 ) : (
                     <>
-                    <TableContainer className="mythicElement mythic-eventing-detail-table-wrap mythic-fixed-row-table-wrap">
+                    <TableContainer className="mythic-eventing-detail-table-wrap mythic-fixed-row-table-wrap">
                         <Table style={{height: "auto"}}>
                             <TableHead>
                                 <TableRow>
@@ -2297,7 +2297,7 @@ function EventDetailsTaskTable({tasks}){
                 />
             ) : (
                 <>
-                    <TableContainer className="mythicElement mythic-eventing-detail-table-wrap mythic-fixed-row-table-wrap">
+                    <TableContainer className="mythic-eventing-detail-table-wrap mythic-fixed-row-table-wrap">
                         <Table style={{height: "auto"}}>
                             <TableHead>
                                 <TableRow>
@@ -2393,7 +2393,7 @@ function EventDetailsFilesTable({files}){
                 />
             ) : (
                 <>
-                    <TableContainer className="mythicElement mythic-eventing-detail-table-wrap mythic-fixed-row-table-wrap">
+                    <TableContainer className="mythic-eventing-detail-table-wrap mythic-fixed-row-table-wrap">
                         <Table style={{height: "auto"}}>
                             <TableHead>
                                 <TableRow>

@@ -40,13 +40,20 @@ func processEventingConditionalCheckResponse(msg amqp.Delivery) {
 			0, "", database.MESSAGE_LEVEL_INFO, true)
 		return
 	}
-	eventingConditionalCheckProcess(c2SyncMsg)
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		logging.LogError(err, "Failed to get auth context from headers")
+		return
+	}
+	eventingConditionalCheckProcess(c2SyncMsg, authContext)
 }
 
-func eventingConditionalCheckProcess(in ConditionalCheckEventingMessageResponse) {
+func eventingConditionalCheckProcess(in ConditionalCheckEventingMessageResponse, authContext RabbitMQAuthContext) {
 	EventingChannel <- EventNotification{
 		Trigger:             eventing.TriggerConditionalCheckResponse,
 		EventStepInstanceID: in.EventStepInstanceID,
+		OperatorID:          authContext.OperatorID,
+		OperationID:         authContext.OperationID,
 		ActionSuccess:       in.Success,
 		ActionStderr:        in.StdErr,
 		ActionStdout:        in.StdOut,

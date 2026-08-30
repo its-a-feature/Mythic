@@ -24,7 +24,7 @@ export function EventGroupConsumingContainersDialog({onClose, selectedEventGroup
             </DialogTitle>
 
             <DialogContent dividers={true} style={{maxHeight: "calc(70vh)"}}>
-                <TableContainer className="mythicElement">
+                <TableContainer>
                 <Table>
                     <TableHead>
                         <TableRow>

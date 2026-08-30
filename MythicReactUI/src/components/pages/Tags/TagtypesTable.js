@@ -116,7 +116,7 @@ export function TagtypesTable({tagtypes, onDeleteTagtype, onNewTag, onUpdateTagt
                 />
             }
             <div style={{display: "flex", flexGrow: 1, overflow: "auto"}}>
-                <TableContainer className="mythicElement">
+                <TableContainer>
                     <Table stickyHeader={true} size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
                         <TableHead>
                             <TableRow>

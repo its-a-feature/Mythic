@@ -34,7 +34,7 @@ export function TaskFilesTable(props){
             subtitle="Files, payloads, downloads, uploads, and screenshots associated with these tasks."
             actions={<MythicPageHeaderChip label={fileCountLabel} />}
         />
-        <TableContainer className="mythicElement mythic-single-task-table-wrap">
+        <TableContainer className="mythic-single-task-table-wrap">
           <Table className="mythic-single-task-table mythic-single-task-files-table" size="small">
                 <TableHead>
                     <TableRow>

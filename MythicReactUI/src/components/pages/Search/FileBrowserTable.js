@@ -42,7 +42,7 @@ export function FileBrowserTable(props){
         setFiles(updates);
     }
     return (
-        <TableContainer className="mythicElement" >
+        <TableContainer >
             <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>

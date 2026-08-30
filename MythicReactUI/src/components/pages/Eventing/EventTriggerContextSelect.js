@@ -225,7 +225,7 @@ export function EventTriggerContextSelectDialog({onClose, triggerContext}) {
                 {selectedEventGroup.id !== 0 &&
                     <EventGroupTable me={me} selectedEventGroup={selectedEventGroup} showInstances={false} showGraph={false} height={"unset"}/>
                 }
-                <TableContainer className="mythicElement">
+                <TableContainer>
                 <Table>
                     <TableHead>
                         <TableRow>

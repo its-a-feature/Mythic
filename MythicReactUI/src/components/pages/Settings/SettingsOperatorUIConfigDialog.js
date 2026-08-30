@@ -1205,7 +1205,7 @@ export function SettingsOperatorUIConfigDialog(props) {
                 </Box>
             </Box>
         </DialogTitle>
-        <TableContainer className="mythicElement" style={{paddingLeft: "10px", paddingRight: "10px"}}>
+        <TableContainer style={{paddingLeft: "10px", paddingRight: "10px"}}>
           <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
               <TableBody>
                   

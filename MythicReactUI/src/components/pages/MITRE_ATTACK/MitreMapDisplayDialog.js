@@ -90,7 +90,7 @@ function DetailedCommandMappingTables({commands}){
                 {c[0]}
               </Typography>
             </Paper>
-            <TableContainer className="mythicElement">
+            <TableContainer>
             <Table size="small" aria-label="details" style={{ "overflowWrap": "break-word"}}>
               <TableHead>
                 <TableRow>
@@ -129,7 +129,7 @@ function DetailedTaskMappingTables({tasks}){
                 {c[0]}
               </Typography>
             </Paper>
-            <TableContainer className="mythicElement">
+            <TableContainer>
             <Table size="small" aria-label="details" style={{ "overflowWrap": "break-word"}}>
             <TableHead>
                 <TableRow>

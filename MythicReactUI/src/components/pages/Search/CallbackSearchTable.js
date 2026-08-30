@@ -43,7 +43,7 @@ export function CallbackSearchTable(props){
     }
 
     return (
-        <TableContainer className="mythicElement" style={{height: "100%", overflowY: "auto"}}>
+        <TableContainer style={{height: "100%", overflowY: "auto"}}>
             <Table stickyHeader size="small" style={{"maxWidth": "100%", "overflow": "auto", tableLayout: "fixed"}}>
                 <TableHead>
                     <TableRow>

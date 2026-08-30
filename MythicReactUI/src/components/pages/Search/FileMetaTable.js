@@ -420,7 +420,7 @@ function FileMetaDownloadTableRow(props){
             <TableRow
                 hover
                 selected={props.selected}
-                className={`mythic-file-search-row${props.selected ? " mythic-file-search-row-selected" : ""}`}
+                className={props.selected ? " selectedCallback" : ""}
                 onClick={props.onSelect}>
                 <MythicStyledTableCell>
                     {props.deleted ? null : (
@@ -660,7 +660,7 @@ function FileMetaUploadTableRow(props){
             <TableRow
                 hover
                 selected={props.selected}
-                className={`mythic-file-search-row${props.selected ? " mythic-file-search-row-selected" : ""}`}
+                className={props.selected ? " selectedCallback" : ""}
                 onClick={props.onSelect}>
                 <MythicStyledTableCell>
                     {props.deleted ? null : (
@@ -793,7 +793,7 @@ function FileMetaScreenshotTableRow(props){
             <TableRow
                 hover
                 selected={props.selected}
-                className={`mythic-file-search-row${props.selected ? " mythic-file-search-row-selected" : ""}`}
+                className={props.selected ? " selectedCallback" : ""}
                 onClick={props.onSelect}>
                 <MythicStyledTableCell>
                     <ImageWithAuth
@@ -1024,7 +1024,7 @@ function FileMetaEventingWorkflowsTableRow(props){
             <TableRow
                 hover
                 selected={props.selected}
-                className={`mythic-file-search-row${props.selected ? " mythic-file-search-row-selected" : ""}`}
+                className={props.selected ? " selectedCallback" : ""}
                 onClick={props.onSelect}>
                 <MythicStyledTableCell>
                     {props.deleted ? null : (

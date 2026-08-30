@@ -30,7 +30,7 @@ export function TaskArtifactsTable(props){
             subtitle="Artifacts created while these tasks executed."
             actions={<MythicPageHeaderChip label={artifactCountLabel} />}
         />
-        <TableContainer className="mythicElement mythic-single-task-table-wrap">
+        <TableContainer className="mythic-single-task-table-wrap">
           <Table className="mythic-single-task-table" size="small">
                 <TableHead>
                     <TableRow>

@@ -50,7 +50,7 @@ export function ExpandedCallbackSideDetailsTable(props){
         updateSleep({variables: {callback_display_id: callback_display_id, sleep_info}})
     }, [])
     return (
-        <TableContainer className="mythicElement">
+        <TableContainer>
         <Table size="small" style={{tableLayout: "fixed"}}>
             <TableHead>
                 <TableRow>

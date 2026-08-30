@@ -211,7 +211,6 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
             borderSoft: tableBorderSoft,
         },
         typography: {
-            fontSize: safePreferences?.fontSize || operatorSettingDefaults.fontSize,
             fontFamily: safePreferences?.fontFamily || operatorSettingDefaults.fontFamily,
             h5: {
                 fontWeight: 650,
@@ -321,7 +320,6 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                 styleOverrides: {
                     root: {
                         padding: "0.625rem 0.875rem",
-                        fontSize: "1rem",
                         fontWeight: 650,
                         borderBottom: `1px solid ${borderColor}`,
                     },
@@ -338,7 +336,6 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                 styleOverrides: {
                     root: {
                         color: textSecondary,
-                        fontSize: "0.88rem",
                         lineHeight: 1.45,
                         margin: "0 0 0.625rem",
                     },
@@ -366,7 +363,6 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                             borderRadius: borderRadius,
                             boxShadow: "none",
                             color: textPrimary,
-                            fontSize: "0.78rem",
                             fontWeight: 750,
                             justifyContent: "center",
                             letterSpacing: 0,
@@ -441,10 +437,16 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
             MuiInputBase: {
                 styleOverrides: {
                     root: {
-                        fontSize: "0.92rem",
                     },
                     input: {
                         borderColor,
+                    },
+                },
+            },
+            MuiInputAdornment: {
+                styleOverrides: {
+                    root: {
+                        color: textSecondary,
                     },
                 },
             },
@@ -473,7 +475,6 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                     },
                     label: {
                         color: textPrimary,
-                        fontSize: "0.86rem",
                     },
                 },
             },
@@ -481,7 +482,6 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                 styleOverrides: {
                     root: {
                         color: textSecondary,
-                        fontSize: "0.74rem",
                         lineHeight: 1.35,
                         marginLeft: 0,
                     },
@@ -515,7 +515,6 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         maxWidth: "unset",
                         padding: "0.375rem 0.625rem",
                         textTransform: "none",
-                        fontSize: "0.82rem",
                         fontWeight: 650,
                         letterSpacing: 0,
                         whiteSpace: "unset",
@@ -559,7 +558,6 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         borderRadius: borderRadius,
                         boxShadow: isDark ? "0 8px 18px rgba(0,0,0,0.22)" : "0 8px 18px rgba(15,23,42,0.10)",
                         color: isDark ? "#000" : "#fff",
-                        fontSize: 13,
                     },
                     arrow: {
                         color: backgroundContrast,
@@ -635,6 +633,9 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         borderRadius: borderRadius,
                         minHeight: 0,
                         overflow: "auto",
+                        "& .MuiTableContainer-root": {
+                            borderColor: tableBorderSoft,
+                        },
                     },
                 },
             },
@@ -663,7 +664,6 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         borderBottom: `1px solid ${tableBorderSoft}`,
                         color: textPrimary,
                         fontVariantNumeric: "tabular-nums",
-                        fontSize: "0.86rem",
                         lineHeight: 1.35,
                         padding: "0.375rem 0.625rem",
                         verticalAlign: "middle",
@@ -679,7 +679,6 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         borderBottom: `1px solid ${borderColor}`,
                         borderTop: 0,
                         color: textPrimary,
-                        fontSize: "0.76rem",
                         fontWeight: 700,
                         letterSpacing: 0,
                         textTransform: "uppercase",
@@ -725,11 +724,9 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                     },
                     selectLabel: {
                         color: textSecondary,
-                        fontSize: "0.78rem",
                     },
                     displayedRows: {
                         color: textSecondary,
-                        fontSize: "0.78rem",
                     },
                     toolbar: {
                         minHeight: 34,
@@ -769,7 +766,6 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         height: 28,
                         borderRadius: borderRadius,
                         color: textSecondary,
-                        fontSize: "0.78rem",
                         fontWeight: 650,
                         "&.Mui-selected": {
                             backgroundColor: alpha(primary, colorLevel1),
@@ -788,7 +784,6 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         borderColor: tableBorderSoft,
                     },
                     icon: {
-                        fontSize: "1rem",
                     },
                 },
             },
@@ -798,7 +793,6 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         borderColor: tableBorderSoft,
                         borderRadius: borderRadius,
                         color: textSecondary,
-                        fontSize: "0.78rem",
                         fontWeight: 650,
                         gap: "0.375rem",
                         minHeight: 32,
@@ -978,7 +972,6 @@ export function App(props) {
                     topAppBarBottomColor: themeMode === 'dark' ? preferences?.palette?.navBarBottomColor?.dark || operatorSettingDefaults.palette.navBarBottomColor.dark :
                         preferences?.palette?.navBarBottomColor?.light || operatorSettingDefaults.palette.navBarBottomColor.light,
                     typography: {
-                        fontSize: 12, //preferences?.fontSize,
                         fontFamily: preferences?.fontFamily
                     },
                     taskPromptTextColor: themeMode === 'dark' ? preferences?.palette?.taskPromptTextColor?.dark || operatorSettingDefaults.palette.taskPromptTextColor.dark :
@@ -1098,7 +1091,6 @@ export function App(props) {
                     topAppBarBottomColor: themeMode === 'dark' ? operatorSettingDefaults.palette.navBarBottomColor.dark :
                         operatorSettingDefaults.palette.navBarBottomColor.light,
                     typography: {
-                        fontSize: 12,//operatorSettingDefaults?.fontSize,
                         fontFamily: operatorSettingDefaults?.fontFamily
                     },
                     taskPromptTextColor: themeMode === 'dark' ? operatorSettingDefaults.palette.taskPromptTextColor.dark :
@@ -1231,7 +1223,6 @@ export function App(props) {
                                     fontWeight: "600",
                                     color: "white",
                                     borderBottom: `1px solid ${theme.borderColor}`,
-                                    fontSize: theme.typography.pxToRem(12),
                                     lineHeight: "24px",
                                 }}>
                                     {me?.user?.current_operation_banner_text}
@@ -1253,7 +1244,6 @@ export function App(props) {
                                     <Typography component="span" style={{
                                         textAlign: "center",
                                         fontWeight: "600",
-                                        fontSize: theme.typography.pxToRem(12),
                                         lineHeight: "24px",
                                     }}>
                                         {navigator.onLine === false

@@ -59,7 +59,7 @@ export function CustomBrowserTable({rows, columns=[], me}){
     const metadataColumnWidth = columns.length > 0 ? "12rem" : undefined;
     const tableMinWidth = `${48 + (columns.length * 12)}rem`;
     return (
-        <TableContainer className="mythicElement" style={{height: "100%", overflow: "auto"}} >
+        <TableContainer style={{height: "100%", overflow: "auto"}} >
             <Table stickyHeader size="small" style={{tableLayout: "fixed", minWidth: tableMinWidth}}>
                 <TableHead>
                     <TableRow>

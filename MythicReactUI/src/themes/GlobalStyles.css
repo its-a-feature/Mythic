@@ -1,3 +1,103 @@
+/*
+ * Fallback contract for theme variables.
+ *
+ * These are the default dark-mode values from operatorSettingDefaults.  Once
+ * App renders, <ThemeVariables /> replaces them with the active theme's
+ * values.  Keeping the declarations here lets static CSS tooling resolve the
+ * variables without making this stylesheet the source of theme configuration.
+ */
+:root {
+    --mythic-color-primary-base: #7dd3fc;
+    --mythic-color-primary-level-1: rgba(125, 211, 252, 0.2);
+    --mythic-color-primary-level-2: rgba(125, 211, 252, 0.4);
+    --mythic-color-primary-level-3: rgba(125, 211, 252, 0.6);
+    --mythic-color-secondary-base: #94a3b8;
+    --mythic-color-secondary-level-1: rgba(148, 163, 184, 0.2);
+    --mythic-color-secondary-level-2: rgba(148, 163, 184, 0.4);
+    --mythic-color-secondary-level-3: rgba(148, 163, 184, 0.6);
+    --mythic-color-info-base: #22d3ee;
+    --mythic-color-info-level-1: rgba(34, 211, 238, 0.2);
+    --mythic-color-info-level-2: rgba(34, 211, 238, 0.4);
+    --mythic-color-info-level-3: rgba(34, 211, 238, 0.6);
+    --mythic-color-success-base: #34d399;
+    --mythic-color-success-level-1: rgba(52, 211, 153, 0.2);
+    --mythic-color-success-level-2: rgba(52, 211, 153, 0.4);
+    --mythic-color-success-level-3: rgba(52, 211, 153, 0.6);
+    --mythic-color-warning-base: #fbbf24;
+    --mythic-color-warning-level-1: rgba(251, 191, 36, 0.2);
+    --mythic-color-warning-level-2: rgba(251, 191, 36, 0.4);
+    --mythic-color-warning-level-3: rgba(251, 191, 36, 0.6);
+    --mythic-color-error-base: #fb7185;
+    --mythic-color-error-level-1: rgba(251, 113, 133, 0.2);
+    --mythic-color-error-level-2: rgba(251, 113, 133, 0.4);
+    --mythic-color-error-level-3: rgba(251, 113, 133, 0.6);
+    --mythic-color-on-primary: rgba(0, 0, 0, 0.87);
+    --mythic-color-on-info: rgba(0, 0, 0, 0.87);
+
+    --mythic-color-background-base: #0b0f14;
+    --mythic-color-surface-base: #111820;
+    --mythic-color-surface-muted: #0f1720;
+    --mythic-color-surface-raised: #16212b;
+    --mythic-color-surface-hover: #1e2a36;
+    --mythic-color-surface-selected: #123a5a;
+    --mythic-color-surface-translucent: rgba(17, 24, 32, 0.86);
+    --mythic-color-overlay: rgba(11, 15, 20, 0.72);
+    --mythic-color-neutral-level-1: rgba(15, 23, 32, 0.55);
+    --mythic-color-neutral-level-2: rgba(22, 33, 43, 0.7);
+    --mythic-color-neutral-level-3: rgba(30, 42, 54, 0.82);
+    --mythic-color-text-base: #e6edf3;
+    --mythic-color-text-muted: #a7b2c2;
+    --mythic-color-text-disabled: #6f7c8d;
+    --mythic-color-border-base: #263241;
+    --mythic-color-border-subtle: rgba(38, 50, 65, 0.67);
+    --mythic-color-action-disabled: rgba(255, 255, 255, 0.3);
+    --mythic-color-action-disabled-bg: rgba(255, 255, 255, 0.12);
+
+    --mythic-color-table-header: #17212c;
+    --mythic-color-table-stripe: rgba(30, 42, 54, 0.4);
+
+    --mythic-color-page-header-base: #111a23;
+    --mythic-color-page-header-text-base: #e7edf5;
+    --mythic-color-page-header-text-level-1: rgba(231, 237, 245, 0.18);
+    --mythic-color-page-header-text-level-2: rgba(231, 237, 245, 0.42);
+    --mythic-color-page-header-text-level-3: rgba(231, 237, 245, 0.78);
+    --mythic-color-section-accent-base: #7dd3fc;
+    --mythic-color-section-accent-level-1: rgba(125, 211, 252, 0.34);
+    --mythic-color-section-accent-level-2: rgba(125, 211, 252, 0.55);
+    --mythic-gradient-section: linear-gradient(90deg, #153049 0%, #111f2e 48%, #111820 100%);
+    --mythic-gradient-accent: linear-gradient(135deg, #132338 0%, #111820 62%);
+    --mythic-gradient-accent-horizontal: linear-gradient(90deg, #132338 0%, #111820 100%);
+
+    --mythic-color-nav-background: linear-gradient(180deg, #1a283d, #0c131c);
+    --mythic-color-nav-base: #1a283d;
+    --mythic-color-nav-hover: rgba(220, 232, 248, 0.2);
+    --mythic-color-nav-icon: #dce8f8;
+    --mythic-color-nav-text: #dce8f8;
+    --mythic-color-nav-muted: rgba(220, 232, 248, 0.7);
+
+    --mythic-color-output-background: #070b10;
+    --mythic-color-output-text-base: #e6edf3;
+    --mythic-color-output-text-level-1: rgba(230, 237, 243, 0.58);
+    --mythic-color-output-text-level-2: rgba(230, 237, 243, 0.72);
+    --mythic-color-output-text-level-3: rgba(230, 237, 243, 0.82);
+    --mythic-color-output-control-bg: rgba(230, 237, 243, 0.1);
+    --mythic-color-output-control-border: rgba(230, 237, 243, 0.2);
+    --mythic-color-output-toolbar: rgba(7, 11, 16, 0.86);
+    --mythic-color-output-editor: #070b10;
+
+    --mythic-color-selected-callback: #123a5a;
+    --mythic-color-selected-callback-hierarchy: #172d49;
+
+    --mythic-color-graph-group: #24384a80;
+    --mythic-font-family-base: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mythic-font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --mythic-radius-base: 6px;
+    --mythic-shadow-level-1: inset 0 1px 0 rgba(255,255,255,0.04);
+    --mythic-shadow-level-2: 0 8px 18px rgba(0,0,0,0.22);
+    --mythic-shadow-level-3: 0 18px 48px rgba(0,0,0,0.40);
+    --mythic-shadow-focus: drop-shadow(0 0 6px rgba(255,255,255,0.18));
+}
+
 body {
     margin: 0;
     background-color: var(--mythic-color-background-base);
@@ -8,6 +108,7 @@ body {
     color-scheme: light dark;
     overscroll-behavior-y: none;
 }
+/* these inject their sub variables to be available to other class names like mythic-action-tone*/
 .mythic-tone-primary {
     --mythic-tone-base: var(--mythic-color-primary-base);
     --mythic-tone-level-1: var(--mythic-color-primary-level-1);
@@ -56,6 +157,7 @@ html, #root {
     scrollbar-color: var(--mythic-color-border-base) transparent;
     scrollbar-width: thin;
 }
+/* applies color to all select (click & drag, shift+arrow) options*/
 ::selection {
     background-color: var(--mythic-color-primary-level-2);
 }
@@ -72,47 +174,27 @@ html, #root {
 *::-webkit-scrollbar-track {
     background: transparent;
 }
-@media screen and (max-width: 1100px) {
-    .hideOnSmallWidth {
-        display: none;
-    }
-}
-/* placeholder/helper text for input boxes */
-.MuiTableContainer-root.mythicElement {
-    border: 1px solid var(--mythic-color-border-base);
-    border-radius: var(--mythic-radius-base);
-    background-color: var(--mythic-color-surface-base);
-    min-height: 0;
-}
-.MuiTableContainer-root.mythicElement .MuiTableContainer-root.mythicElement, .mythic-create-array-table.MuiTableContainer-root {
-    border-color: var(--mythic-color-border-subtle);
-}
-.alternateRow, .MythicResizableGridRowHighlight, .MythicResizableGrid-cell.MythicResizableGridRowHighlight {
+/* highlight row color */
+.MythicResizableGridRowHighlight, .MythicResizableGrid-cell.MythicResizableGridRowHighlight {
     background-color:  var(--mythic-color-table-stripe);
 }
-.menuEntry, .mythic-credential-search-row, .mythic-link-reference-row-selectable {
-  cursor: pointer;
+.MythicResizableGrid-cell.MythicResizableGrid-hoveredRow {
+    background-color: var(--mythic-color-primary-level-1) !important;
+}
+.MythicResizableGrid-cell.MythicResizableGrid-contextRow {
+    background-color: var(--mythic-color-info-level-1) !important;
+}
+.selectedCallback {
+    background-color: var(--mythic-color-selected-callback) !important;
+}
+.selectedCallbackHierarchy {
+    background-color: var(--mythic-color-selected-callback-hierarchy) !important;
 }
 
-tspan {
-  font-size: 15px;
-  stroke: none;
+.menuEntry, .mythic-link-reference-row-selectable {
+  cursor: pointer;
 }
-.mythic-navigation-icon {
-    color: var(--mythic-color-nav-icon) !important;
-}
-.mythic-navigation-warning-icon {
-    color: var(--mythic-color-warning-base) !important;
-}
-.mythic-navigation-muted-text {
-    color: var(--mythic-color-nav-muted);
-}
-.mythic-navigation-action-text {
-    color: var(--mythic-color-nav-text) !important;
-}
-.mythic-navigation-drawer-toggle {
-    cursor: pointer;
-}
+/* ace editor fields */
 .ace-monokai .ace_invalid {
     color: #F8F8F0;
     background-color: #52524d;
@@ -126,18 +208,17 @@ tspan {
 .ace_scrollbar {
     z-index: 0 !important
 }
+/* resizer fields */
 .gutter {
   background-color: var(--mythic-color-border-base);
   background-repeat: no-repeat;
   background-position: 50%;
 }
-
 .gutter.gutter-horizontal {
   background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==');
   cursor: col-resize;
   width: 5px !important;
 }
-
 .gutter.gutter-vertical {
   background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAFAQMAAABo7865AAAABlBMVEVHcEzMzMzyAv2sAAAAAXRSTlMAQObYZgAAABBJREFUeF5jOAMEEAIEEFwAn3kMwcB6I2AAAAAASUVORK5CYII=');
   cursor: row-resize;
@@ -154,11 +235,29 @@ tspan {
   user-select: none;
   touch-action: none;
 }
-
 .resizer.isResizing {
   background: var(--mythic-color-section-accent-base);
   opacity: 1;
 }
+/* context menu */
+.context-menu {
+    background-color: var(--mythic-color-surface-base);
+    border: 1px solid var(--mythic-color-border-base);
+    border-radius: var(--mythic-radius-base);
+    box-shadow: var(--mythic-shadow-level-3);
+    position: absolute;
+    z-index: 10;
+}
+.context-menu-button {
+    border: none;
+    display: block;
+    padding: 0.5em;
+    text-align: left;
+    width: 100%;
+    background-color: var(--mythic-color-surface-base);
+    color: unset;
+}
+/*react-flow graph css entries*/
 .groupNode {
     border: 1px solid var(--mythic-color-border-base);
     padding: 0.375rem;
@@ -174,27 +273,9 @@ tspan {
 .circleImageNode {
      height: 50px;
      display: block;
-     border-radius: 0%;
 }
 .react-flow__edge-path, .react-flow__edge-text, .react-flow__edge-textbg, .react-flow__edge, .react-flow__edges {
    z-index: -1 !important;
-}
-.context-menu {
-    background-color: var(--mythic-color-surface-base);
-    border: 1px solid var(--mythic-color-border-base);
-    border-radius: calc(var(--mythic-radius-base) + 2px);
-    box-shadow: var(--mythic-shadow-level-3);
-    position: absolute;
-    z-index: 10;
-}
-.context-menu-button {
-    border: none;
-    display: block;
-    padding: 0.5em;
-    text-align: left;
-    width: 100%;
-    background-color: var(--mythic-color-surface-base);
-    color: unset;
 }
 .mythic-graph-context-menu.context-menu {
     display: flex;
@@ -226,17 +307,29 @@ tspan {
     box-shadow: 0 6px 18px var(--mythic-color-neutral-level-2) !important;
     overflow: hidden;
 }
+.mythic-graph-canvas {
+    background-color: var(--mythic-color-surface-base);
+    border: 1px solid var(--mythic-color-border-subtle);
+    border-radius: var(--mythic-radius-base);
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+    position: relative;
+}
 .mythic-graph-canvas .react-flow__controls-button {
     background-color: var(--mythic-color-surface-base);
     border-bottom-color: var(--mythic-color-border-subtle);
     color: var(--mythic-color-text-muted);
 }
-.mythic-graph-canvas .react-flow__controls-button:hover, .mythic-c2-path-canvas .react-flow__controls-button:hover {
+.mythic-graph-canvas .react-flow__controls-button:hover {
     background-color: var(--mythic-color-primary-level-1);
     color: var(--mythic-color-primary-base);
 }
 .mythic-graph-canvas .react-flow__controls-button svg {
     color: inherit;
+}
+.mythic-graph-canvas .react-flow__pane {
+    cursor: grab;
 }
 .mythic-graph-canvas .react-flow__minimap {
     background-color: var(--mythic-color-surface-base);
@@ -287,8 +380,6 @@ tspan {
     flex-direction: column;
     gap: 0.5rem;
     margin: 0.625rem;
-    max-width: min(44rem, calc(100vw - 3rem));
-    min-width: min(28rem, calc(100vw - 3rem));
 }
 .mythic-callback-graph-options-toggle.MuiButton-root {
     background-color: var(--mythic-color-surface-base) !important;
@@ -359,75 +450,400 @@ tspan {
     font-weight: 780;
     padding: 0.5rem 0.5rem;
 }
-@media (max-width: 760px) {
-    .mythic-callback-graph-options {
-        min-width: min(20rem, calc(100vw - 2rem));
-    }
-    .mythic-callback-graph-options-fields {
-        grid-template-columns: minmax(0, 1fr);
-    }
+.mythic-c2-path-title.MuiDialogTitle-root {
+    background-color: var(--mythic-color-surface-muted);
+    border-bottom: 1px solid var(--mythic-color-border-subtle);
+    padding: 0.875rem 1rem;
+}
+.mythic-c2-path-title-row {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: space-between;
+    min-width: 0;
+}
+.mythic-c2-path-title-copy {
+    min-width: min(100%, 18rem);
+}
+.mythic-c2-path-title-text.MuiTypography-root, .mythic-eventing-editor-title {
+    color: var(--mythic-color-text-base);
+    font-size: 1rem;
+    font-weight: 850;
+    line-height: 1.2;
+}
+.mythic-c2-path-title-subtitle.MuiTypography-root, .mythic-dialog-section-description {
+    color: var(--mythic-color-text-muted);
+    font-size: 0.78rem;
+    line-height: 1.35;
+    margin-top: 0.125rem;
+}
+.mythic-c2-path-summary, .mythic-c2-action-command-row, .mythic-compact-actions, .mythic-eventing-action-data-title-row, .mythic-link-reference-actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+}
+.mythic-c2-path-content.MuiDialogContent-root {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    height: min(72vh, 820px);
+    min-height: 28rem;
+    padding: 0.875rem;
+}
+.mythic-c2-path-route-panel {
+    align-items: center;
+    background: var(--mythic-gradient-accent-horizontal);
+    border: 1px solid var(--mythic-color-border-subtle);
+    border-radius: var(--mythic-radius-base);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: space-between;
+    min-width: 0;
+    padding: 0.625rem 0.75rem;
+}
+.mythic-c2-path-route-panel-success {
+    background: linear-gradient(90deg, var(--mythic-color-success-level-1) 0%, transparent 70%);
+    border-color: var(--mythic-color-success-level-2);
+}
+.mythic-c2-path-route-panel-warning {
+    background: linear-gradient(90deg, var(--mythic-color-warning-level-1) 0%, transparent 70%);
+    border-color: var(--mythic-color-warning-level-2);
+}
+.mythic-c2-path-route-panel-error {
+    background: linear-gradient(90deg, var(--mythic-color-error-level-1) 0%, transparent 70%);
+    border-color: var(--mythic-color-error-level-2);
+}
+.mythic-c2-path-route-state {
+    align-items: center;
+    display: flex;
+    gap: 0.625rem;
+    min-width: min(100%, 18rem);
+}
+.mythic-c2-path-route-icon {
+    align-items: center;
+    background-color: var(--mythic-color-surface-base);
+    border: 1px solid var(--mythic-color-border-subtle);
+    border-radius: var(--mythic-radius-base);
+    color: var(--mythic-color-text-muted);
+    display: inline-flex;
+    flex: 0 0 auto;
+    height: 2rem;
+    justify-content: center;
+    width: 2rem;
+}
+.mythic-c2-path-route-panel-success .mythic-c2-path-route-icon {
+    color: var(--mythic-color-success-base);
+}
+.mythic-c2-path-route-panel-warning .mythic-c2-path-route-icon, .mythic-chat-system-destination .MuiSvgIcon-root {
+    color: var(--mythic-color-warning-base);
+}
+.mythic-c2-path-route-label.MuiTypography-root {
+    color: var(--mythic-color-text-base);
+    font-size: 0.84rem;
+    font-weight: 850;
+    line-height: 1.2;
+}
+.mythic-c2-path-legend {
+    align-items: center;
+    display: flex;
+    flex: 1 1 24rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    min-width: min(100%, 18rem);
+}
+.mythic-c2-path-legend-item {
+    align-items: center;
+    background-color: var(--mythic-color-neutral-level-1);
+    border: 1px solid var(--mythic-color-border-subtle);
+    border-radius: var(--mythic-radius-base);
+    color: var(--mythic-color-text-muted);
+    display: inline-flex;
+    font-size: 0.7rem;
+    font-weight: 750;
+    gap: 0.25rem;
+    line-height: 1;
+    padding: 0.375rem 0.5rem;
+    white-space: nowrap;
+}
+.mythic-c2-path-edge-swatch {
+    border-radius: 999px;
+    display: inline-block;
+    height: 0.18rem;
+    width: 1.25rem;
+}
+.mythic-c2-path-edge-swatch-active {
+    background-image: linear-gradient(90deg, var(--mythic-color-success-level-1) 0%, transparent 100%);
+}
+.mythic-c2-path-edge-swatch-ended {
+    background-color: var(--mythic-color-error-base);
+}
+.mythic-c2-path-toolbar {
+    align-items: center;
+    background-color: var(--mythic-color-surface-muted);
+    border: 1px solid var(--mythic-color-border-subtle);
+    border-radius: var(--mythic-radius-base);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: space-between;
+    min-width: 0;
+    padding: 0.75rem;
+}
+.mythic-c2-path-toolbar-copy {
+    min-width: min(100%, 14rem);
+}
+.mythic-c2-path-toolbar-title.MuiTypography-root {
+    color: var(--mythic-color-text-base);
+    font-size: 0.84rem;
+    font-weight: 800;
+    line-height: 1.2;
+}
+.mythic-c2-path-controls {
+    align-items: center;
+    display: flex;
+    flex: 1 1 24rem;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+    justify-content: flex-end;
+    min-width: min(100%, 18rem);
+}
+.mythic-c2-path-control.MuiFormControl-root {
+    min-width: 11rem;
+}
+.mythic-c2-path-control-wide.MuiFormControl-root {
+    min-width: min(100%, 20rem);
+}
+.mythic-c2-path-canvas {
+    flex: 1 1 auto;
+}
+.mythic-c2-agent-node {
+    align-items: center;
+    border-radius: var(--mythic-radius-base);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    height: 100%;
+    justify-content: center;
+    min-width: 0;
+    overflow: visible;
+    position: relative;
+    transition: background-color 120ms ease, box-shadow 120ms ease, outline-color 120ms ease;
+    width: 100%;
+}
+.mythic-c2-agent-node-focused {
+    background: linear-gradient(180deg, var(--mythic-color-primary-level-1) 0%, transparent 100%);
+    box-shadow: 0 0 0 2px var(--mythic-color-primary-level-2);
+    outline: 1px solid var(--mythic-color-primary-level-3);
+    outline-offset: 2px;
+}
+.mythic-c2-agent-node-mythic {
+    opacity: 0.96;
+}
+.mythic-c2-agent-node-label.MuiTypography-root {
+    color: var(--mythic-color-text-base);
+    font-size: 0.72rem;
+    font-weight: 760;
+    line-height: 1.15;
+    margin: 0;
+    max-width: 100%;
+    overflow: hidden;
+    padding: 0 0.25rem 0.125rem;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-c2-agent-node-egress-routes {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    justify-content: center;
+    max-height: 3rem;
+    max-width: 8rem;
+    margin-bottom: 0.125rem;
+    overflow: hidden;
+    pointer-events: none;
+    position: relative;
+    z-index: 2;
+}
+.mythic-c2-agent-node-egress-route {
+    align-items: center;
+    background-color: var(--mythic-color-surface-base);
+    border: 1px solid var(--mythic-color-border-subtle);
+    border-radius: 999px;
+    color: var(--mythic-color-text-muted);
+    display: inline-flex;
+    font-size: 0.62rem;
+    font-weight: 760;
+    gap: 0.375rem;
+    line-height: 1;
+    max-width: 6.4rem;
+    min-height: 1.75rem;
+    overflow: hidden;
+    padding: 0 0.375rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mythic-c2-agent-node-egress-route-active, .mythic-c2-group-node-member-active {
+    border-color: var(--mythic-color-success-level-2);
+    color: var(--mythic-color-text-muted);
+}
+.mythic-c2-agent-node-egress-route-ended {
+    border-color: var(--mythic-color-error-level-2);
+    color: var(--mythic-color-text-muted);
+}
+.mythic-c2-agent-node-egress-route-more {
+    border-style: dashed;
+    max-width: none;
+}
+.mythic-c2-agent-node-egress-route-icon {
+    display: block;
+    flex: 0 0 auto;
+    height: 1.25rem;
+    width: 1.5rem;
+}
+.mythic-c2-group-node {
+    background: var(--mythic-gradient-section);
+    border: 1px solid var(--mythic-color-border-subtle);
+    border-radius: calc(var(--mythic-radius-base) + 2px);
+    box-shadow: var(--mythic-shadow-level-2);
+    color: var(--mythic-color-text-base);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    height: 100%;
+    justify-content: flex-start;
+    min-width: 0;
+    overflow: hidden;
+    padding: 0.75rem;
+    position: relative;
+    width: 100%;
+}
+.mythic-c2-group-node::before {
+    background-color: var(--mythic-color-section-accent-base);
+    content: "";
+    height: 3px;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+}
+.mythic-c2-group-node-handle {
+    height: 12px !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    width: 12px !important;
+}
+.mythic-c2-flow-canvas .react-flow__edges {
+    z-index: 28 !important;
+}
+.mythic-c2-flow-canvas .react-flow__nodes {
+    z-index: 18 !important;
+}
+.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge {
+    opacity: 0.95;
+    transition: opacity 120ms ease, filter 120ms ease, stroke 120ms ease;
+}
+.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge .react-flow__edge-interaction {
+    stroke-width: 5px !important;
+}
+.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge-aggregate .react-flow__edge-interaction {
+    stroke-width: 8px !important;
+}
+.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge:hover,
+.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge:focus-within,
+.mythic-c2-edge-label:hover,
+.mythic-c2-edge-label:focus-within {
+    filter: var(--mythic-shadow-focus);
+    opacity: 1;
+}
+.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge:hover .react-flow__edge-path,
+.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge:focus-within .react-flow__edge-path {
+    stroke-width: 3.1px !important;
+}
+.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge-active:hover .react-flow__edge-path,
+.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge-active:focus-within .react-flow__edge-path,
+.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge-success:hover .react-flow__edge-path,
+.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge-success:focus-within .react-flow__edge-path {
+    stroke: var(--mythic-color-success-base) !important;
+}
+.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge-ended:hover .react-flow__edge-path,
+.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge-ended:focus-within .react-flow__edge-path {
+    stroke: var(--mythic-color-error-base) !important;
+}
+.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge-warning:hover .react-flow__edge-path,
+.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge-warning:focus-within .react-flow__edge-path {
+    stroke: var(--mythic-color-warning-base) !important;
+}
+.mythic-c2-flow-canvas .react-flow__edgelabel-renderer {
+    z-index: 34 !important;
+}
+.mythic-c2-edge-label {
+    opacity: 1;
+    transition: opacity 120ms ease, transform 120ms ease, filter 120ms ease;
+}
+.mythic-c2-edge-profile-chip.MuiChip-root {
+    align-items: center;
+    background-color: var(--mythic-color-surface-base);
+    border: 1px solid var(--mythic-color-neutral-level-3);
+    box-shadow: var(--mythic-shadow-level-2);
+    color: var(--mythic-color-text-muted);
+    display: inline-flex;
+    font-size: 0.68rem;
+    font-weight: 760;
+    gap: 0.375rem;
+    line-height: 1;
+    max-width: 10.5rem;
+    min-height: 2rem;
+    overflow: hidden;
+    padding: 0;
+    white-space: nowrap;
+}
+.mythic-c2-edge-profile-icon {
+    align-items: flex-end;
+    display: inline-flex !important;
+    flex: 0 0 auto;
+    height: 1.45rem !important;
+    justify-content: center;
+    line-height: 0;
+    min-width: 1.55rem;
+    overflow: visible;
+}
+.mythic-c2-edge-profile-icon img {
+    display: block;
+    height: 1.5rem !important;
+    margin: 0 !important;
+    width: auto;
 }
 
 .selectedTask {
     border: 2px solid var(--mythic-color-primary-base) !important;
 }
+/* file and process browser */
 .mythic-file-browser-tableTop {
-    background-color: var(--mythic-color-surface-base);
-    border-bottom: 1px solid var(--mythic-color-border-subtle);
-    padding: 0.5rem 0.5rem 0.375rem;
-}
-.mythic-file-browser-pathInput.MuiInputBase-root, .mythic-tasking-reverse-search-input .MuiOutlinedInput-root, .mythic-table-toolbar-search .mythic-toolbar-select, .mythic-table-toolbar-search .MythicTextField-root .MuiInputBase-root {
-    background-color: var(--mythic-color-surface-base);
-}
-.mythic-file-browser-pathInput.MuiInputBase-root.MuiOutlinedInput-adornedStart, .mythic-c2-edge-profile-chip-with-icon {
-    padding-left: 0.25rem;
-}
-.mythic-file-browser-pathInput.MuiInputBase-root.MuiOutlinedInput-adornedEnd {
-    padding-right: 0.25rem;
-}
-.mythic-file-browser-pathInput .MuiInputBase-input {
-    min-width: 8rem;
-    padding-bottom: 0.625rem;
-    padding-top: 0.625rem;
+    padding: 0.75rem 0.5rem 0.5rem;
 }
 .mythic-file-browser-toolbarGroup {
     align-items: center;
-    background-color: var(--mythic-color-neutral-level-1);
-    border: 1px solid var(--mythic-color-border-subtle);
-    border-radius: var(--mythic-radius-base);
     display: inline-flex;
-    flex: 0 0 auto;
-    gap: 0.125rem;
-    min-height: 32px;
-    min-width: 0;
-    padding: 0.125rem;
-}
-.mythic-file-browser-toolbarGroupStart {
-    margin-right: 0.5rem;
-}
-.mythic-file-browser-toolbarGroupEnd {
-    margin-left: 0.5rem;
 }
 .mythic-file-browser-tokenSelect {
     max-width: 12rem;
     min-width: 8.5rem;
     overflow: hidden;
 }
-.mythic-file-browser-tokenSelect .MuiInputBase-root,
-.mythic-file-browser-tokenSelect .MuiSelect-select {
-    font-size: 0.78rem;
-    min-height: 0;
-}
+
 .mythic-process-browser-tableTop {
     padding: 0.5rem 0.625rem;
 }
 .mythic-process-browser-toolbar {
     align-items: center;
     display: flex;
-    flex-wrap: wrap;
     gap: 0.5rem;
-    min-width: 0;
-    width: 100%;
 }
 .mythic-process-browser-control {
     align-items: center;
@@ -441,55 +857,24 @@ tspan {
     padding: 0.125rem 0.125rem 0.125rem 0.5rem;
 }
 .mythic-process-browser-controlGroup {
-    flex: 1 1 18rem;
     max-width: 30rem;
 }
 .mythic-process-browser-controlHost {
-    flex: 1 1 16rem;
     max-width: 28rem;
-    padding-right: 0.375rem;
 }
 .mythic-process-browser-searchInput {
     flex: 2 1 24rem;
     min-width: 16rem !important;
 }
-.mythic-process-browser-searchInput .MuiInputBase-root {
-    background-color: var(--mythic-color-surface-base);
-    font-size: 0.78rem;
-    min-height: 32px;
-}
-.mythic-process-browser-searchInput .MuiInputBase-input {
-    padding-bottom: 0.375rem;
-    padding-top: 0.375rem;
-}
-.mythic-process-browser-searchInput .MuiInputAdornment-root, .mythic-credential-search-inspector-title svg, .mythic-reorder-row-disabled .mythic-reorder-row-title, .mythic-dashboard-chart-canvas .MuiChartsLegend-root, .mythic-service-status-detail-label {
-    color: var(--mythic-color-text-muted);
-}
 .mythic-process-browser-controlLabel {
     color: var(--mythic-color-text-muted);
-    flex: 0 0 auto;
-    font-size: 0.72rem;
     font-weight: 750;
 }
 .mythic-process-browser-selectControl {
-    flex: 1 1 auto;
     min-width: 8rem !important;
 }
-.mythic-process-browser-select.MuiInputBase-root {
-    background-color: var(--mythic-color-surface-base);
-    font-size: 0.78rem;
-    min-height: 28px;
-}
-.mythic-process-browser-select .MuiSelect-select {
-    min-height: 0 !important;
-    overflow: hidden;
-    padding-bottom: 0.375rem;
-    padding-top: 0.375rem;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.mythic-process-browser-actions {
-    margin-left: auto;
+.mythic-credential-search-inspector-title svg, .mythic-reorder-row-disabled .mythic-reorder-row-title, .mythic-dashboard-chart-canvas .MuiChartsLegend-root, .mythic-service-status-detail-label {
+    color: var(--mythic-color-text-muted);
 }
 .mythic-process-browser-table-shell {
     display: flex;
@@ -515,7 +900,6 @@ tspan {
     flex: 0 0 auto;
     flex-wrap: nowrap;
     gap: 0.375rem;
-    min-height: 34px;
     overflow-x: auto;
     overflow-y: hidden;
     padding: 0.375rem 0.625rem;
@@ -530,9 +914,8 @@ tspan {
 .mythic-process-inspector {
     background-color: var(--mythic-color-surface-muted);
     border-top: 1px solid var(--mythic-color-border-subtle);
+    border-radius: var(--mythic-radius-base);
     box-shadow: var(--mythic-shadow-level-2);
-    flex: 0 0 auto;
-    min-width: 0;
     padding: 0.5rem 0.625rem 0.625rem;
 }
 .mythic-process-inspector-header, .mythic-chat-search-result-header {
@@ -547,7 +930,6 @@ tspan {
     color: var(--mythic-color-text-base);
     display: flex;
     flex: 1 1 auto;
-    font-size: 0.86rem;
     font-weight: 800;
     gap: 0.375rem;
     min-width: 0;
@@ -557,15 +939,9 @@ tspan {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.mythic-process-inspector-title svg {
-    color: var(--mythic-color-text-muted);
-    flex: 0 0 auto;
-}
 .mythic-process-inspector-actions, .mythic-credential-search-section-actions, .mythic-chat-inline-event-actions {
     align-items: center;
     display: flex;
-    flex: 0 0 auto;
-    gap: 0.25rem;
 }
 .mythic-process-inspector-body {
     display: grid;
@@ -695,17 +1071,6 @@ tspan {
 .mythic-file-search-table {
     table-layout: fixed;
     width: 100%;
-}
-.mythic-file-search-row .MuiTableCell-root {
-    border-bottom-color: var(--mythic-color-border-subtle);
-    padding-bottom: 0.35rem;
-    padding-top: 0.35rem;
-    vertical-align: middle;
-}
-.mythic-file-search-row-selected .MuiTableCell-root,
-.mythic-file-search-row.Mui-selected .MuiTableCell-root,
-.mythic-file-search-row.Mui-selected:hover .MuiTableCell-root {
-    background-color: var(--mythic-color-neutral-level-1);
 }
 .mythic-file-search-primary {
     display: grid;
@@ -968,9 +1333,6 @@ tspan {
     padding-top: 0.25rem;
     vertical-align: middle;
 }
-.mythic-credential-search-row-selected .MuiTableCell-root,
-.mythic-credential-search-row.Mui-selected .MuiTableCell-root,
-.mythic-credential-search-row.Mui-selected:hover .MuiTableCell-root,
 .mythic-tasking-command-input .MuiOutlinedInput-root:hover,
 .mythic-tasking-parameter-preview-empty-state,
 .mythic-reorder-row-disabled,
@@ -2356,11 +2718,6 @@ tspan {
 .mythic-eventing-detail-accordion:before {
     display: none;
 }
-.mythic-task-parameter-control .mythicElement {
-    background-color: transparent;
-    border: 0;
-    box-shadow: none;
-}
 .mythic-task-parameter-select-row {
     align-items: center;
     display: grid;
@@ -2612,6 +2969,7 @@ tspan {
 .mythic-c2-path-summary .mythic-chip-base svg, .mythic-c2-path-legend-item svg, .mythic-chat-heading-3, .mythic-chat-heading-4, .mythic-chat-heading-5, .mythic-chat-heading-6 {
     font-size: 0.9rem;
 }
+/* Mythic Resizable Grid configuration */
 .MythicResizableGrid-root {
     background-color: var(--mythic-color-surface-base);
     border: 1px solid var(--mythic-color-border-base);
@@ -2660,12 +3018,7 @@ tspan {
     transition: background-color 120ms ease, color 120ms ease;
     user-select: none
 }
-    .MythicResizableGrid-headerCell:hover {
-        background-color: var(--mythic-color-surface-hover);
-    }
-    .MythicResizableGrid-headerCell:first-child-of-type {
-        border-left: 0;
-    }
+
 .MythicResizableGrid-headerCellNoSort, .mythic-c2-collapsed-edge-card, .mythic-api-token-scope-card-inherited {
     cursor: default;
 }
@@ -2802,35 +3155,7 @@ tspan {
     position: relative;
     transition: background-color 120ms ease, background-image 120ms ease, border-color 120ms ease, box-shadow 120ms ease, color 120ms ease;
 }
-.MythicResizableGrid-cell.MythicResizableGrid-hoveredRow {
-    background-image: linear-gradient(0deg,
-        var(--mythic-color-primary-level-1),
-        var(--mythic-color-primary-level-1)) !important;
-    border-bottom-color: var(--mythic-color-primary-level-2);
-}
-.MythicResizableGrid-cell.MythicResizableGrid-contextRow {
-    background-image: linear-gradient(0deg,
-        var(--mythic-color-info-level-1),
-        var(--mythic-color-info-level-1)) !important;
-    border-bottom-color: var(--mythic-color-info-level-3);
-    box-shadow: inset 0 1px 0 var(--mythic-color-info-level-3);
-}
-.MythicResizableGrid-cell.selectedCallback {
-    background-image: linear-gradient(0deg,
-        var(--mythic-color-primary-level-1),
-        var(--mythic-color-primary-level-1)) !important;
-    border-bottom-color: var(--mythic-color-primary-level-3);
-    box-shadow: inset 0 1px 0 var(--mythic-color-primary-level-3),
-        inset 0 -1px 0 var(--mythic-color-primary-level-3);
-}
-.MythicResizableGrid-cell.selectedCallbackHierarchy {
-    background-image: linear-gradient(0deg,
-        var(--mythic-color-secondary-level-1),
-        var(--mythic-color-secondary-level-1)) !important;
-    border-bottom-color: var(--mythic-color-secondary-level-3);
-    box-shadow: inset 0 1px 0 var(--mythic-color-secondary-level-3),
-        inset 0 -1px 0 var(--mythic-color-secondary-level-3);
-}
+
 .MythicResizableGrid-cell.MythicResizableGrid-rowInteractive {
     cursor: pointer !important;
 }
@@ -2852,16 +3177,6 @@ tspan {
 }
 .MythicResizableGrid-cell.MythicResizableGrid-rowFirstCell.MythicResizableGrid-contextRow::before, .MythicResizableGrid-cell.MythicResizableGrid-rowFirstCell.mythic-process-filter-match-row::before {
     background-color: var(--mythic-color-info-base);
-    opacity: 1;
-    width: 4px;
-}
-.MythicResizableGrid-cell.MythicResizableGrid-rowFirstCell.selectedCallback::before {
-    background-color: var(--mythic-color-primary-base);
-    opacity: 1;
-    width: 4px;
-}
-.MythicResizableGrid-cell.MythicResizableGrid-rowFirstCell.selectedCallbackHierarchy::before {
-    background-color: var(--mythic-color-secondary-base);
     opacity: 1;
     width: 4px;
 }
@@ -3090,389 +3405,7 @@ tspan {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.mythic-c2-path-title.MuiDialogTitle-root {
-    background-color: var(--mythic-color-surface-muted);
-    border-bottom: 1px solid var(--mythic-color-border-subtle);
-    padding: 0.875rem 1rem;
-}
-.mythic-c2-path-title-row {
-    align-items: center;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    justify-content: space-between;
-    min-width: 0;
-}
-.mythic-c2-path-title-copy {
-    min-width: min(100%, 18rem);
-}
-.mythic-c2-path-title-text.MuiTypography-root, .mythic-eventing-editor-title {
-    color: var(--mythic-color-text-base);
-    font-size: 1rem;
-    font-weight: 850;
-    line-height: 1.2;
-}
-.mythic-c2-path-title-subtitle.MuiTypography-root, .mythic-dialog-section-description {
-    color: var(--mythic-color-text-muted);
-    font-size: 0.78rem;
-    line-height: 1.35;
-    margin-top: 0.125rem;
-}
-.mythic-c2-path-summary, .mythic-c2-action-command-row, .mythic-compact-actions, .mythic-eventing-action-data-title-row, .mythic-link-reference-actions {
-    align-items: center;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.375rem;
-}
-.mythic-c2-path-content.MuiDialogContent-root {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    height: min(72vh, 820px);
-    min-height: 28rem;
-    padding: 0.875rem;
-}
-.mythic-c2-path-route-panel {
-    align-items: center;
-    background: var(--mythic-gradient-accent-horizontal);
-    border: 1px solid var(--mythic-color-border-subtle);
-    border-radius: var(--mythic-radius-base);
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    justify-content: space-between;
-    min-width: 0;
-    padding: 0.625rem 0.75rem;
-}
-.mythic-c2-path-route-panel-success {
-    background: linear-gradient(90deg, var(--mythic-color-success-level-1) 0%, transparent 70%);
-    border-color: var(--mythic-color-success-level-2);
-}
-.mythic-c2-path-route-panel-warning {
-    background: linear-gradient(90deg, var(--mythic-color-warning-level-1) 0%, transparent 70%);
-    border-color: var(--mythic-color-warning-level-2);
-}
-.mythic-c2-path-route-panel-error {
-    background: linear-gradient(90deg, var(--mythic-color-error-level-1) 0%, transparent 70%);
-    border-color: var(--mythic-color-error-level-2);
-}
-.mythic-c2-path-route-state {
-    align-items: center;
-    display: flex;
-    gap: 0.625rem;
-    min-width: min(100%, 18rem);
-}
-.mythic-c2-path-route-icon {
-    align-items: center;
-    background-color: var(--mythic-color-surface-base);
-    border: 1px solid var(--mythic-color-border-subtle);
-    border-radius: var(--mythic-radius-base);
-    color: var(--mythic-color-text-muted);
-    display: inline-flex;
-    flex: 0 0 auto;
-    height: 2rem;
-    justify-content: center;
-    width: 2rem;
-}
-.mythic-c2-path-route-panel-success .mythic-c2-path-route-icon {
-    color: var(--mythic-color-success-base);
-}
-.mythic-c2-path-route-panel-warning .mythic-c2-path-route-icon, .mythic-chat-system-destination .MuiSvgIcon-root {
-    color: var(--mythic-color-warning-base);
-}
-.mythic-c2-path-route-label.MuiTypography-root {
-    color: var(--mythic-color-text-base);
-    font-size: 0.84rem;
-    font-weight: 850;
-    line-height: 1.2;
-}
-.mythic-c2-path-legend {
-    align-items: center;
-    display: flex;
-    flex: 1 1 24rem;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    justify-content: flex-end;
-    min-width: min(100%, 18rem);
-}
-.mythic-c2-path-legend-item {
-    align-items: center;
-    background-color: var(--mythic-color-neutral-level-1);
-    border: 1px solid var(--mythic-color-border-subtle);
-    border-radius: var(--mythic-radius-base);
-    color: var(--mythic-color-text-muted);
-    display: inline-flex;
-    font-size: 0.7rem;
-    font-weight: 750;
-    gap: 0.25rem;
-    line-height: 1;
-    padding: 0.375rem 0.5rem;
-    white-space: nowrap;
-}
-.mythic-c2-path-edge-swatch {
-    border-radius: 999px;
-    display: inline-block;
-    height: 0.18rem;
-    width: 1.25rem;
-}
-.mythic-c2-path-edge-swatch-active {
-    background-image: linear-gradient(90deg, var(--mythic-color-success-level-1) 0%, transparent 100%);
-}
-.mythic-c2-path-edge-swatch-ended {
-    background-color: var(--mythic-color-error-base);
-}
-.mythic-c2-path-toolbar {
-    align-items: center;
-    background-color: var(--mythic-color-surface-muted);
-    border: 1px solid var(--mythic-color-border-subtle);
-    border-radius: var(--mythic-radius-base);
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    justify-content: space-between;
-    min-width: 0;
-    padding: 0.75rem;
-}
-.mythic-c2-path-toolbar-copy {
-    min-width: min(100%, 14rem);
-}
-.mythic-c2-path-toolbar-title.MuiTypography-root {
-    color: var(--mythic-color-text-base);
-    font-size: 0.84rem;
-    font-weight: 800;
-    line-height: 1.2;
-}
-.mythic-c2-path-controls {
-    align-items: center;
-    display: flex;
-    flex: 1 1 24rem;
-    flex-wrap: wrap;
-    gap: 0.625rem;
-    justify-content: flex-end;
-    min-width: min(100%, 18rem);
-}
-.mythic-c2-path-control.MuiFormControl-root {
-    min-width: 11rem;
-}
-.mythic-c2-path-control-wide.MuiFormControl-root {
-    min-width: min(100%, 20rem);
-}
-.mythic-c2-path-canvas {
-    background-color: var(--mythic-color-surface-base);
-    border: 1px solid var(--mythic-color-border-subtle);
-    border-radius: var(--mythic-radius-base);
-    flex: 1 1 auto;
-    min-height: 0;
-    min-width: 0;
-    overflow: hidden;
-}
-.mythic-c2-path-canvas .react-flow__controls {
-    box-shadow: none;
-}
-.mythic-c2-path-canvas .react-flow__controls-button {
-    background-color: var(--mythic-color-surface-base);
-    border-color: var(--mythic-color-border-subtle);
-    color: var(--mythic-color-text-muted);
-}
-.mythic-c2-agent-node {
-    align-items: center;
-    border-radius: var(--mythic-radius-base);
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    height: 100%;
-    justify-content: center;
-    min-width: 0;
-    overflow: visible;
-    position: relative;
-    transition: background-color 120ms ease, box-shadow 120ms ease, outline-color 120ms ease;
-    width: 100%;
-}
-.mythic-c2-agent-node-focused {
-    background: linear-gradient(180deg, var(--mythic-color-primary-level-1) 0%, transparent 100%);
-    box-shadow: 0 0 0 2px var(--mythic-color-primary-level-2);
-    outline: 1px solid var(--mythic-color-primary-level-3);
-    outline-offset: 2px;
-}
-.mythic-c2-agent-node-mythic {
-    opacity: 0.96;
-}
-.mythic-c2-agent-node-label.MuiTypography-root {
-    color: var(--mythic-color-text-base);
-    font-size: 0.72rem;
-    font-weight: 760;
-    line-height: 1.15;
-    margin: 0;
-    max-width: 100%;
-    overflow: hidden;
-    padding: 0 0.25rem 0.125rem;
-    text-align: center;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.mythic-c2-agent-node-egress-routes {
-    align-items: center;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.25rem;
-    justify-content: center;
-    max-height: 3rem;
-    max-width: 8rem;
-    margin-bottom: 0.125rem;
-    overflow: hidden;
-    pointer-events: none;
-    position: relative;
-    z-index: 2;
-}
-.mythic-c2-agent-node-egress-route {
-    align-items: center;
-    background-color: var(--mythic-color-surface-base);
-    border: 1px solid var(--mythic-color-border-subtle);
-    border-radius: 999px;
-    color: var(--mythic-color-text-muted);
-    display: inline-flex;
-    font-size: 0.62rem;
-    font-weight: 760;
-    gap: 0.375rem;
-    line-height: 1;
-    max-width: 6.4rem;
-    min-height: 1.75rem;
-    overflow: hidden;
-    padding: 0 0.375rem;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.mythic-c2-agent-node-egress-route-active, .mythic-c2-group-node-member-active {
-    border-color: var(--mythic-color-success-level-2);
-    color: var(--mythic-color-text-muted);
-}
-.mythic-c2-agent-node-egress-route-ended {
-    border-color: var(--mythic-color-error-level-2);
-    color: var(--mythic-color-text-muted);
-}
-.mythic-c2-agent-node-egress-route-more {
-    border-style: dashed;
-    max-width: none;
-}
-.mythic-c2-agent-node-egress-route-icon {
-    display: block;
-    flex: 0 0 auto;
-    height: 1.25rem;
-    width: 1.5rem;
-}
-.mythic-c2-group-node {
-    background: var(--mythic-gradient-section);
-    border: 1px solid var(--mythic-color-border-subtle);
-    border-radius: calc(var(--mythic-radius-base) + 2px);
-    box-shadow: var(--mythic-shadow-level-2);
-    color: var(--mythic-color-text-base);
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    height: 100%;
-    justify-content: flex-start;
-    min-width: 0;
-    overflow: hidden;
-    padding: 0.75rem;
-    position: relative;
-    width: 100%;
-}
-.mythic-c2-group-node::before {
-    background-color: var(--mythic-color-section-accent-base);
-    content: "";
-    height: 3px;
-    left: 0;
-    position: absolute;
-    right: 0;
-    top: 0;
-}
-.mythic-c2-group-node-handle {
-    height: 12px !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-    width: 12px !important;
-}
-.mythic-c2-flow-canvas .react-flow__edges {
-    z-index: 28 !important;
-}
-.mythic-c2-flow-canvas .react-flow__nodes {
-    z-index: 18 !important;
-}
-.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge {
-    opacity: 0.95;
-    transition: opacity 120ms ease, filter 120ms ease, stroke 120ms ease;
-}
-.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge .react-flow__edge-interaction {
-    stroke-width: 5px !important;
-}
-.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge-aggregate .react-flow__edge-interaction {
-    stroke-width: 8px !important;
-}
-.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge:hover,
-.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge:focus-within,
-.mythic-c2-edge-label:hover,
-.mythic-c2-edge-label:focus-within {
-    filter: var(--mythic-shadow-focus);
-    opacity: 1;
-}
-.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge:hover .react-flow__edge-path,
-.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge:focus-within .react-flow__edge-path {
-    stroke-width: 3.1px !important;
-}
-.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge-active:hover .react-flow__edge-path,
-.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge-active:focus-within .react-flow__edge-path,
-.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge-success:hover .react-flow__edge-path,
-.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge-success:focus-within .react-flow__edge-path {
-    stroke: var(--mythic-color-success-base) !important;
-}
-.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge-ended:hover .react-flow__edge-path,
-.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge-ended:focus-within .react-flow__edge-path {
-    stroke: var(--mythic-color-error-base) !important;
-}
-.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge-warning:hover .react-flow__edge-path,
-.mythic-c2-flow-canvas .react-flow__edge.mythic-c2-edge-warning:focus-within .react-flow__edge-path {
-    stroke: var(--mythic-color-warning-base) !important;
-}
-.mythic-c2-flow-canvas .react-flow__edgelabel-renderer {
-    z-index: 34 !important;
-}
-.mythic-c2-edge-label {
-    opacity: 0.95;
-    transition: opacity 120ms ease, transform 120ms ease, filter 120ms ease;
-}
-.mythic-c2-edge-profile-chip.MuiChip-root {
-    align-items: center;
-    background-color: var(--mythic-color-surface-base);
-    border: 1px solid var(--mythic-color-neutral-level-3);
-    box-shadow: var(--mythic-shadow-level-2);
-    color: var(--mythic-color-text-muted);
-    display: inline-flex;
-    font-size: 0.68rem;
-    font-weight: 760;
-    gap: 0.375rem;
-    line-height: 1;
-    max-width: 10.5rem;
-    min-height: 2rem;
-    overflow: hidden;
-    padding: 0;
-    white-space: nowrap;
-}
-.mythic-c2-edge-profile-icon {
-    align-items: flex-end;
-    display: inline-flex !important;
-    flex: 0 0 auto;
-    height: 1.45rem !important;
-    justify-content: center;
-    line-height: 0;
-    min-width: 1.55rem;
-    overflow: visible;
-}
-.mythic-c2-edge-profile-icon img {
-    display: block;
-    height: 1.5rem !important;
-    margin: 0 !important;
-    width: auto;
-}
+
 .mythic-c2-edge-profile-icon svg,
 .mythic-c2-edge-profile-icon .svg-inline--fa,
 .mythic-form-switch-control,
@@ -4237,7 +4170,7 @@ tspan {
     /*color: white; */
 }
 /* gets the title of the table */
-.MuiPaper-root > .MuiTableContainer-root.mythicElement {
+.MuiPaper-root > .MuiTableContainer-root {
     display: flex;
     flex-grow: 1;
 }
@@ -4247,14 +4180,6 @@ tspan {
 .MuiTableContainer-root.mythic-fixed-row-table-wrap > .MuiTable-root {
     height: auto !important;
 }
-/* gets the footer of the table */
-.selectedCallback {
-    background-color: var(--mythic-color-surface-selected);
-}
-.selectedCallbackHierarchy {
-    background-color: var(--mythic-color-table-selected-hierarchy);
-}
-
 .roundedBottomCorners {
     border-bottom-left-radius: 4px;
     border-bottom-right-radius: 4px;
@@ -6117,9 +6042,6 @@ tspan {
     flex: 0 0 auto;
     font-size: 0.7rem;
     font-weight: 800;
-}
-.mythic-create-array-table .MuiTableCell-root {
-    padding: 0.375rem 0.5rem !important;
 }
 .mythic-create-dictionary-row {
     align-items: center;
@@ -8408,14 +8330,8 @@ tspan {
     font-size: 0.78rem;
 }
 .mythic-eventing-flow-canvas {
-    background-color: var(--mythic-color-surface-muted);
     height: 100%;
-    min-height: 0;
-    position: relative;
     width: 100%;
-}
-.mythic-eventing-flow-canvas .react-flow__pane {
-    cursor: grab;
 }
 .mythic-eventing-flow-badge {
     align-items: center;
@@ -8434,10 +8350,6 @@ tspan {
     position: absolute;
     top: 0.75rem;
     z-index: 5;
-}
-.mythic-graph-controls-muted-hover .react-flow__controls-button:hover {
-    background-color: var(--mythic-color-surface-hover);
-    color: var(--mythic-color-text-base);
 }
 .mythic-eventing-flow-canvas .react-flow__node-eventNode {
     background: transparent !important;
@@ -9692,13 +9604,11 @@ tspan {
 .mythic-chat-channel-selected {
     background-color: var(--mythic-color-primary-level-1);
     border-color: var(--mythic-color-primary-level-2);
-    box-shadow: inset 3px 0 0 var(--mythic-chat-channel-accent);
 }
 .mythic-chat-channel-icon {
     align-items: center;
     display: inline-flex;
     gap: 0.375rem;
-    color: var(--mythic-chat-channel-accent);
     justify-content: center;
 }
 .mythic-chat-author, .mythic-chat-search-channel {
@@ -9715,11 +9625,11 @@ tspan {
     width: 30px;
 }
 .mythic-chat-channel-button-archived .mythic-chat-channel-icon, .mythic-chat-channel-state-locked {
-    color: var(--mythic-chat-channel-warning);
+    color: var(--mythic-color-warning-base);
 }
 .mythic-chat-channel-button-archived .mythic-chat-channel-name,
 .mythic-chat-channel-button-archived .mythic-chat-channel-meta {
-    color: var(--mythic-chat-channel-muted);
+    color: var(--mythic-color-warning-base);
 }
 .mythic-chat-channel-name {
     font-weight: 650;
@@ -9866,8 +9776,7 @@ tspan {
     padding: 0.125rem 0.375rem;
     white-space: nowrap;
     align-self: center;
-    color: var(--mythic-chat-channel-error);
-    box-shadow: inset 0 0 0 1px var(--mythic-chat-channel-error);
+    color: var(--mythic-color-error-base);
 }
 .mythic-chat-channel-state {
     align-items: center;
@@ -9881,14 +9790,13 @@ tspan {
     white-space: nowrap;
 }
 .mythic-chat-channel-state-archived {
-    color: var(--mythic-chat-channel-warning);
-    box-shadow: inset 0 0 0 1px var(--mythic-chat-channel-warning);
+    color: var(--mythic-color-warning-base);
 }
 .mythic-chat-channel-state-muted {
-    color: var(--mythic-chat-channel-info);
+    color: var(--mythic-color-neutral-level-1);
 }
 .mythic-chat-channel-state-offline {
-    color: var(--mythic-chat-channel-error);
+    color: var(--mythic-color-error-base);
 }
 .mythic-chat-message-actions .MuiIconButton-root, .mythic-chat-header-actions .MuiIconButton-root {
     border-radius: var(--mythic-radius-base);
@@ -11001,11 +10909,6 @@ tspan {
 }
 .mythic-icon-tone {
     color: var(--mythic-tone-base) !important;
-}
-.mythic-chip-base.mythic-chat-display-chip-custom {
-    color: var(--mythic-chat-chip-custom-color);
-    border-color: var(--mythic-chat-chip-custom-border);
-    background-color: var(--mythic-chat-chip-custom-bg);
 }
 .mythic-chip-base.mythic-tasking-context-chip.MuiChip-root {
     height: auto;

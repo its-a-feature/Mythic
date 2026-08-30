@@ -149,7 +149,7 @@ export function InviteLinksDialog(props) {
                     title="Outstanding Links"
                     description="Invite links are temporary and are deleted if Mythic restarts."
                 >
-                    <TableContainer className="mythicElement">
+                    <TableContainer>
                         <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
                             <TableHead>
                                 <TableRow>

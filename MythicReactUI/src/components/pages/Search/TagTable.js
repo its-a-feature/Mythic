@@ -58,7 +58,7 @@ export function TagTable(props){
         setTags(newTags);
     }
     return (
-        <TableContainer className="mythicElement" style={{height: "100%", overflowY: "auto"}} >
+        <TableContainer style={{height: "100%", overflowY: "auto"}} >
             <Table stickyHeader size="small" style={{tableLayout: "fixed"}}>
                 <TableHead>
                     <TableRow>

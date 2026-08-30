@@ -39,6 +39,9 @@ export const ThemeVariables = ({theme}) => {
     --mythic-color-on-primary: ${theme.palette.primary.contrastText};
     --mythic-color-on-info: ${theme.palette.info.contrastText};
 
+    --mythic-color-selected-callback: ${theme.selectedCallbackColor};
+    --mythic-color-selected-callback-hierarchy: ${theme.selectedCallbackHierarchyColor};
+    
     --mythic-color-background-base: ${theme.palette.background.default};
     --mythic-color-surface-base: ${theme.palette.background.paper};
     --mythic-color-surface-muted: ${theme.surfaces?.muted || theme.palette.background.paper};
@@ -49,7 +52,7 @@ export const ThemeVariables = ({theme}) => {
     --mythic-color-overlay: ${alpha(theme.palette.background.default, theme.palette.mode === "dark" ? 0.72 : 0.58)};
     --mythic-color-neutral-level-1: ${alpha(theme.surfaces?.muted || theme.palette.background.paper, theme.palette.mode === "dark" ? 0.55 : 0.42)};
     --mythic-color-neutral-level-2: ${alpha(theme.surfaces?.raised || theme.palette.background.paper, theme.palette.mode === "dark" ? 0.70 : 0.58)};
-    --mythic-color-neutral-level-3: ${alpha(theme.surfaces?.hover || theme.palette.action.hover, theme.palette.mode === "dark" ? 0.82 : 0.70)};
+    --mythic-color-neutral-level-3: ${alpha(theme.surfaces?.hover || theme.palette.background.paper, theme.palette.mode === "dark" ? 0.82 : 0.70)};
     --mythic-color-text-base: ${theme.palette.text.primary};
     --mythic-color-text-muted: ${theme.palette.text.secondary};
     --mythic-color-text-disabled: ${theme.palette.text.disabled};
@@ -60,7 +63,6 @@ export const ThemeVariables = ({theme}) => {
 
     --mythic-color-table-header: ${theme.table?.header || theme.tableHeader};
     --mythic-color-table-stripe: ${theme.table?.rowStripe || theme.palette.action.hover};
-    --mythic-color-table-selected-hierarchy: ${theme.table?.selectedHierarchy || theme.selectedCallbackHierarchyColor};
 
     --mythic-color-page-header-base: ${theme.pageHeader?.main || theme.palette.background.paper};
     --mythic-color-page-header-text-base: ${theme.pageHeaderText?.main || theme.palette.text.primary};

@@ -577,7 +577,7 @@ function DetailedPayloadInnerTable(props){
     return (
       <React.Fragment>
             <MythicSectionHeader title="Payload Information" sx={{mt: 0}} />
-            <TableContainer className="mythicElement">
+            <TableContainer>
             <Table size="small" aria-label="details" style={{ "overflowWrap": "break-word"}}>
                 <TableHead>
                   <TableRow hover>
@@ -699,7 +699,7 @@ function DetailedPayloadInnerTable(props){
               </Table>
               </TableContainer>
               <MythicSectionHeader title="Build Parameters" />
-              <TableContainer className="mythicElement">
+              <TableContainer>
               <Table size="small" aria-label="details" style={{ "overflowWrap": "break-word"}}>
                 <TableHead>
                   <TableRow>
@@ -736,7 +736,7 @@ function DetailedPayloadInnerTable(props){
               </Table>
               </TableContainer>
               <MythicSectionHeader title="Build Steps" />
-              <TableContainer className="mythicElement">
+              <TableContainer>
               <Table size="small" aria-label="details" style={{ "overflowWrap": "break-word"}}>
                 <TableHead>
                   <TableRow>
@@ -764,7 +764,7 @@ function DetailedPayloadInnerTable(props){
                 { c2Profiles.map( (c2) => (
                     <React.Fragment key={"c2frag" + props.payload_id + c2.c2_profile}>
                           <MythicSectionHeader title={c2.c2_profile} />
-                        <TableContainer className="mythicElement">
+                        <TableContainer>
                         <Table size="small" aria-label="details" style={{"overflowWrap": "break-word"}}>
                             <TableHead>
                               <TableRow>
@@ -811,7 +811,7 @@ function DetailedPayloadInnerTable(props){
                         }
                     />
                     {commands.length > 0 &&
-                      <TableContainer className="mythicElement">
+                      <TableContainer>
                       <Table size="small" aria-label="details" style={{"overflowWrap": "break-word"}}>
                       <TableHead>
                         <TableRow>
