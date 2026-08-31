@@ -94,7 +94,7 @@ func DownloadBulkFilesWebhook(c *gin.Context) {
 			return
 		}
 		// construct a new filename that's HOST_filename_uuid.extension to help with unique-ness
-		stringFileName := string(filemeta.Filename)
+		stringFileName := filepath.Base(string(filemeta.Filename))
 		justFileName := strings.TrimSuffix(stringFileName, filepath.Ext(stringFileName))
 		justFileExtension := "." + filepath.Ext(stringFileName)
 		if justFileExtension == "." {

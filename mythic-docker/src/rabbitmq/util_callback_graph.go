@@ -421,7 +421,7 @@ func (g *cbGraph) RemoveByAgentIds(source string, destination string, c2profileN
 		logging.LogError(nil, "Tried to remove a P2P link between two different operations", "source", source, "destination", destination, "c2", c2profileName, "sourceOpID", sourceCallback.OperationID, "destOpID", destinationCallback.OperationID)
 		return
 	}
-	if err := RemoveEdgeByIds(sourceCallback.ID, destinationCallback.ID, c2profileName); err != nil {
+	if err := RemoveEdgeByIds(sourceCallback.ID, destinationCallback.ID, c2profileName, operationID); err != nil {
 		logging.LogError(err, "Failed to remove edge")
 	}
 
@@ -529,13 +529,13 @@ func (g *cbGraph) Print() {
 	}
 }
 
-func RemoveEdgeByIds(sourceId int, destinationId int, c2profileName string) error {
+func RemoveEdgeByIds(sourceId int, destinationId int, c2profileName string, operationID int) error {
 	//logging.LogInfo("removing edges", "sourceID", sourceId, "destinationID", destinationId, "c2ProfileName", c2profileName)
 	currentEdges := []databaseStructs.Callbackgraphedge{}
 	err := database.DB.Select(&currentEdges, `SELECT
 		id FROM callbackgraphedge WHERE 
-		end_timestamp IS NULL AND source_id=$1 AND destination_id=$2 AND c2_profile_id=$3`,
-		sourceId, destinationId, getC2ProfileIdForName(c2profileName))
+		end_timestamp IS NULL AND source_id=$1 AND destination_id=$2 AND c2_profile_id=$3 AND operation_id=$4`,
+		sourceId, destinationId, getC2ProfileIdForName(c2profileName), operationID)
 	if err != nil {
 		logging.LogError(err, "Failed to get current edges for callback to update")
 		return err
@@ -551,8 +551,8 @@ func RemoveEdgeByIds(sourceId int, destinationId int, c2profileName string) erro
 		callbackGraph.Remove(destinationId, sourceId, c2profileName)
 	}
 	if len(currentEdges) > 0 && !callbackGraph.isReachableFromAny(grpc.PushC2Server.GetConnectedClients(), destinationId) {
-		_, err = database.DB.Exec(`UPDATE callback SET last_checkin=$1 WHERE id=$2 AND last_checkin=$3`,
-			time.Now().UTC(), destinationId, time.UnixMicro(0))
+		_, err = database.DB.Exec(`UPDATE callback SET last_checkin=$1 WHERE id=$2 AND last_checkin=$3 AND operation_id=$4`,
+			time.Now().UTC(), destinationId, time.UnixMicro(0), operationID)
 		if err != nil {
 			logging.LogError(err, "Failed to update streaming callback time after removing its last reachable edge",
 				"callback_id", destinationId)
@@ -669,5 +669,5 @@ func RemoveEdgeById(edgeId int, operatorOperation *databaseStructs.Operatoropera
 		logging.LogError(err, "Failed to find edge information")
 		return err
 	}
-	return RemoveEdgeByIds(callbackEdge.SourceID, callbackEdge.DestinationID, callbackEdge.C2Profile.Name)
+	return RemoveEdgeByIds(callbackEdge.SourceID, callbackEdge.DestinationID, callbackEdge.C2Profile.Name, operatorOperation.CurrentOperation.ID)
 }

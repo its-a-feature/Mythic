@@ -54,6 +54,7 @@
     --mythic-color-action-disabled-bg: rgba(255, 255, 255, 0.12);
 
     --mythic-color-table-header: #17212c;
+    --mythic-color-table-hover: #1e2a36;
     --mythic-color-table-stripe: rgba(30, 42, 54, 0.4);
 
     --mythic-color-page-header-base: #111a23;
@@ -159,7 +160,7 @@ html, #root {
 }
 /* applies color to all select (click & drag, shift+arrow) options*/
 ::selection {
-    background-color: var(--mythic-color-primary-level-2);
+    background-color: var(--mythic-color-selected-callback);
 }
 *::-webkit-scrollbar {
     height: 10px;
@@ -179,7 +180,7 @@ html, #root {
     background-color:  var(--mythic-color-table-stripe);
 }
 .MythicResizableGrid-cell.MythicResizableGrid-hoveredRow {
-    background-color: var(--mythic-color-primary-level-1) !important;
+    background-color: var(--mythic-color-table-hover);
 }
 .MythicResizableGrid-cell.MythicResizableGrid-contextRow {
     background-color: var(--mythic-color-info-level-1) !important;
@@ -873,7 +874,7 @@ html, #root {
 .mythic-process-browser-selectControl {
     min-width: 8rem !important;
 }
-.mythic-credential-search-inspector-title svg, .mythic-reorder-row-disabled .mythic-reorder-row-title, .mythic-dashboard-chart-canvas .MuiChartsLegend-root, .mythic-service-status-detail-label {
+.mythic-credential-search-inspector-title svg, .mythic-reorder-row-disabled .mythic-reorder-row-title, .mythic-service-status-detail-label {
     color: var(--mythic-color-text-muted);
 }
 .mythic-process-browser-table-shell {
@@ -1325,19 +1326,16 @@ html, #root {
     width: 100%;
 }
 .mythic-credential-search-row .MuiTableCell-root {
-    border-bottom-color: var(--mythic-color-border-subtle);
     height: 3.45rem;
     max-height: 3.45rem;
     overflow: hidden;
     padding-bottom: 0.25rem;
     padding-top: 0.25rem;
-    vertical-align: middle;
 }
 .mythic-tasking-command-input .MuiOutlinedInput-root:hover,
 .mythic-tasking-parameter-preview-empty-state,
 .mythic-reorder-row-disabled,
 .mythic-json-key-cell,
-.mythic-dashboard-summary-table .MuiTableRow-hover:hover .MuiTableCell-root,
 .mythic-eventing-wizard-table .MuiTableRow-root {
     background-color: var(--mythic-color-neutral-level-1);
 }
@@ -4169,11 +4167,6 @@ html, #root {
     border-radius: var(--mythic-radius-base);
     /*color: white; */
 }
-/* gets the title of the table */
-.MuiPaper-root > .MuiTableContainer-root {
-    display: flex;
-    flex-grow: 1;
-}
 .MuiTableContainer-root.mythic-fixed-row-table-wrap {
     display: block !important;
 }
@@ -4852,7 +4845,6 @@ html, #root {
     overflow: auto;
 }
 .mythic-json-table-wrap .MuiTableCell-root {
-    border-bottom-color: var(--mythic-color-border-subtle);
     vertical-align: top;
 }
 .mythic-json-table-wrap .MuiTableHead-root .MuiTableCell-root {
@@ -6098,7 +6090,6 @@ html, #root {
 .mythic-dashboard-card {
     background-color: var(--mythic-color-surface-raised);
     border: 1px solid var(--mythic-color-border-subtle);
-    border-radius: var(--mythic-radius-base);
     box-shadow: var(--mythic-shadow-level-1) !important;
     display: flex;
     flex: 1 1 18rem;
@@ -6245,14 +6236,6 @@ html, #root {
     justify-content: stretch;
     padding: 0.75rem;
 }
-.mythic-dashboard-chart-canvas .MuiChartsAxis-line,
-.mythic-dashboard-chart-canvas .MuiChartsAxis-tick {
-    stroke: var(--mythic-color-border-base);
-}
-.mythic-dashboard-chart-canvas .MuiChartsAxis-tickLabel,
-.mythic-dashboard-chart-canvas .MuiChartsAxis-label {
-    fill: var(--mythic-color-text-muted) !important;
-}
 .mythic-dashboard-chart-slider-row {
     align-items: center;
     background-color: var(--mythic-color-neutral-level-1);
@@ -6287,9 +6270,6 @@ html, #root {
 }
 .mythic-dashboard-summary-table, .mythic-dashboard-credentials-table, .mythic-dashboard-tasking-table {
     table-layout: fixed;
-}
-.mythic-dashboard-card-table .MuiTableCell-root, .mythic-eventing-detail-table-wrap .MuiTableCell-root {
-    vertical-align: middle;
 }
 .mythic-dashboard-summary-table .MuiTableCell-root {
     font-size: 0.75rem;
@@ -6521,22 +6501,7 @@ html, #root {
     font-weight: 650;
     line-height: 1.35;
 }
-.mythic-dashboard-callback-kpi {
-    background-color: var(--mythic-color-neutral-level-1);
-    background-image: var(--mythic-gradient-accent);
-    border: 1px solid var(--mythic-color-border-subtle);
-    border-radius: var(--mythic-radius-base);
-    display: flex;
-    flex: 1 1 auto;
-    gap: 0.75rem;
-    min-height: 0;
-    min-width: 0;
-    overflow: hidden;
-    padding: 0.75rem;
-    cursor: pointer;
-    flex-direction: column;
-    justify-content: space-between;
-}
+.mythic-dashboard-callback-kpi,
 .mythic-dashboard-service-kpi {
     background-color: var(--mythic-color-neutral-level-1);
     background-image: var(--mythic-gradient-accent);
@@ -6549,9 +6514,15 @@ html, #root {
     min-width: 0;
     overflow: hidden;
     padding: 0.75rem;
+    justify-content: space-between;
+}
+.mythic-dashboard-callback-kpi {
+    cursor: pointer;
+    flex-direction: column;
+}
+.mythic-dashboard-service-kpi {
     align-items: center;
     flex-direction: row;
-    justify-content: space-between;
 }
 .mythic-dashboard-callback-kpi:hover,
 .mythic-dashboard-callback-kpi:focus-visible {
@@ -6680,13 +6651,6 @@ html, #root {
     align-self: center;
     margin: 0;
     width: min(100%, 32rem);
-}
-.mythic-dashboard-slider .MuiSlider-rail {
-    opacity: 0.28;
-}
-.mythic-dashboard-slider .MuiSlider-thumb {
-    height: 12px;
-    width: 12px;
 }
 .mythic-dashboard-edit-rail {
     align-items: center;

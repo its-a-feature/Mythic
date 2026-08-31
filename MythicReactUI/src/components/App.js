@@ -251,6 +251,10 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         border: `1px solid ${borderColor}`,
                         borderRadius: borderRadius,
                         boxShadow: "none",
+                        "& > .MuiTableContainer-root": {
+                            display: "flex",
+                            flexGrow: 1,
+                        },
                         "& > .MuiBox-root:first-of-type": {
                             margin: 0,
                             minHeight: "2rem",
@@ -625,6 +629,36 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                     },
                 },
             },
+            MuiSlider: {
+                styleOverrides: {
+                    rail: {
+                        opacity: 0.28,
+                    },
+                    thumb: {
+                        height: 12,
+                        width: 12,
+                    },
+                },
+            },
+            MuiChartsAxis: {
+                styleOverrides: {
+                    root: {
+                        "& .MuiChartsAxis-line, & .MuiChartsAxis-tick": {
+                            stroke: borderColor,
+                        },
+                        "& .MuiChartsAxis-tickLabel, & .MuiChartsAxis-label": {
+                            fill: textSecondary,
+                        },
+                    },
+                },
+            },
+            MuiChartsLegend: {
+                styleOverrides: {
+                    root: {
+                        color: textSecondary,
+                    },
+                },
+            },
             MuiTableContainer: {
                 styleOverrides: {
                     root: {
@@ -702,6 +736,9 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         ".MuiTableBody-root &:nth-of-type(even):not(.Mui-selected):not(.selectedCallback):not(.selectedCallbackHierarchy)": {
                             backgroundColor: tableRowStripeColor,
                         },
+                        ".MuiTableBody-root &.MuiTableRow-hover:not(.Mui-selected):not(.selectedCallback):not(.selectedCallbackHierarchy):hover": {
+                            backgroundColor: tableRowHoverColor,
+                        },
                         "&:last-child .MuiTableCell-root": {
                             borderBottom: 0,
                         },
@@ -711,9 +748,7 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                                 backgroundColor: tableSelectedColor,
                             },
                         },
-                        "&.MuiTableRow-hover:hover": {
-                            backgroundColor: tableRowHoverColor,
-                        },
+
                     },
                 },
             },

@@ -62,8 +62,9 @@ export const ThemeVariables = ({theme}) => {
     --mythic-color-action-disabled-bg: ${theme.palette.action.disabledBackground};
 
     --mythic-color-table-header: ${theme.table?.header || theme.tableHeader};
-    --mythic-color-table-stripe: ${theme.table?.rowStripe || theme.palette.action.hover};
-
+    --mythic-color-table-stripe: ${theme.table?.rowStripe };
+    --mythic-color-table-hover: ${theme.table?.rowHover};
+    
     --mythic-color-page-header-base: ${theme.pageHeader?.main || theme.palette.background.paper};
     --mythic-color-page-header-text-base: ${theme.pageHeaderText?.main || theme.palette.text.primary};
     --mythic-color-page-header-text-level-1: ${alpha(theme.pageHeaderText?.main || theme.palette.text.primary, 0.18)};

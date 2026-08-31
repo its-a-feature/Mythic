@@ -147,28 +147,28 @@ update_permissions:
               - operation_id:
                   _eq: x-hasura-current-operation-id
               - operation_id:
-                  _lte: X-Hasura-Scope-payload-read-operation
+                  _lte: X-Hasura-Scope-payload-write-operation
           - _and:
               - payload:
                   operation_id:
                     _eq: x-hasura-current-operation-id
               - payload:
                   operation_id:
-                    _lte: X-Hasura-Scope-payload-read-operation
+                    _lte: X-Hasura-Scope-payload-write-operation
       check:
         _or:
           - _and:
               - operation_id:
                   _eq: x-hasura-current-operation-id
               - operation_id:
-                  _lte: X-Hasura-Scope-payload-read-operation
+                  _lte: X-Hasura-Scope-payload-write-operation
           - _and:
               - payload:
                   operation_id:
                     _eq: x-hasura-current-operation-id
               - payload:
                   operation_id:
-                    _lte: X-Hasura-Scope-payload-read-operation
+                    _lte: X-Hasura-Scope-payload-write-operation
     comment: ""
   - role: operation_admin
     permission:
@@ -181,28 +181,28 @@ update_permissions:
               - operation_id:
                   _eq: x-hasura-current-operation-id
               - operation_id:
-                  _lte: X-Hasura-Scope-payload-read-operation
+                  _lte: X-Hasura-Scope-payload-write-operation
           - _and:
               - payload:
                   operation_id:
                     _eq: x-hasura-current-operation-id
               - payload:
                   operation_id:
-                    _lte: X-Hasura-Scope-payload-read-operation
+                    _lte: X-Hasura-Scope-payload-write-operation
       check:
         _or:
           - _and:
               - operation_id:
                   _eq: x-hasura-current-operation-id
               - operation_id:
-                  _lte: X-Hasura-Scope-payload-read-operation
+                  _lte: X-Hasura-Scope-payload-write-operation
           - _and:
               - payload:
                   operation_id:
                     _eq: x-hasura-current-operation-id
               - payload:
                   operation_id:
-                    _lte: X-Hasura-Scope-payload-read-operation
+                    _lte: X-Hasura-Scope-payload-write-operation
     comment: ""
   - role: operator
     permission:
@@ -215,28 +215,28 @@ update_permissions:
               - operation_id:
                   _eq: x-hasura-current-operation-id
               - operation_id:
-                  _lte: X-Hasura-Scope-payload-read-operation
+                  _lte: X-Hasura-Scope-payload-write-operation
           - _and:
               - payload:
                   operation_id:
                     _eq: x-hasura-current-operation-id
               - payload:
                   operation_id:
-                    _lte: X-Hasura-Scope-payload-read-operation
+                    _lte: X-Hasura-Scope-payload-write-operation
       check:
         _or:
           - _and:
               - operation_id:
                   _eq: x-hasura-current-operation-id
               - operation_id:
-                  _lte: X-Hasura-Scope-payload-read-operation
+                  _lte: X-Hasura-Scope-payload-write-operation
           - _and:
               - payload:
                   operation_id:
                     _eq: x-hasura-current-operation-id
               - payload:
                   operation_id:
-                    _lte: X-Hasura-Scope-payload-read-operation
+                    _lte: X-Hasura-Scope-payload-write-operation
     comment: ""
 delete_permissions:
   - role: mythic_admin
@@ -247,14 +247,14 @@ delete_permissions:
               - operation_id:
                   _eq: x-hasura-current-operation-id
               - operation_id:
-                  _lte: X-Hasura-Scope-payload-read-operation
+                  _lte: X-Hasura-Scope-payload-write-operation
           - _and:
               - payload:
                   operation_id:
                     _eq: x-hasura-current-operation-id
               - payload:
                   operation_id:
-                    _lte: X-Hasura-Scope-payload-read-operation
+                    _lte: X-Hasura-Scope-payload-write-operation
     comment: ""
   - role: operation_admin
     permission:
@@ -264,14 +264,14 @@ delete_permissions:
               - operation_id:
                   _eq: x-hasura-current-operation-id
               - operation_id:
-                  _lte: X-Hasura-Scope-payload-read-operation
+                  _lte: X-Hasura-Scope-payload-write-operation
           - _and:
               - payload:
                   operation_id:
                     _eq: x-hasura-current-operation-id
               - payload:
                   operation_id:
-                    _lte: X-Hasura-Scope-payload-read-operation
+                    _lte: X-Hasura-Scope-payload-write-operation
     comment: ""
   - role: operator
     permission:
@@ -281,12 +281,12 @@ delete_permissions:
               - operation_id:
                   _eq: x-hasura-current-operation-id
               - operation_id:
-                  _lte: X-Hasura-Scope-payload-read-operation
+                  _lte: X-Hasura-Scope-payload-write-operation
           - _and:
               - payload:
                   operation_id:
                     _eq: x-hasura-current-operation-id
               - payload:
                   operation_id:
-                    _lte: X-Hasura-Scope-payload-read-operation
+                    _lte: X-Hasura-Scope-payload-write-operation
     comment: ""

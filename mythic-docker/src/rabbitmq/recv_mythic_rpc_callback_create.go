@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -307,7 +308,7 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage, authContext R
 	if err := database.DB.Get(&payloadCryptoParam, `SELECT
 			enc_key, dec_key, value
 			FROM buildparameterinstance
-			WHERE dec_key IS NOT NULL AND payload_id=$1`, payload.ID); err == sql.ErrNoRows {
+			WHERE dec_key IS NOT NULL AND payload_id=$1`, payload.ID); errors.Is(err, sql.ErrNoRows) {
 		logging.LogDebug("payload has no associated build parameter instance with a crypto type")
 	} else if err != nil {
 		logging.LogError(err, "Failed to fetch buildparameterinstance crypto values for payload")

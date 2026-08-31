@@ -301,7 +301,7 @@ func updateCallbackActiveStatus(callback databaseStructs.Callback, active bool, 
 	}
 	for _, c2profile := range associatedC2Profiles {
 		if callback.Active && !active {
-			if err := rabbitmq.RemoveEdgeByIds(callback.ID, callback.ID, c2profile.C2Profile.Name); err != nil {
+			if err := rabbitmq.RemoveEdgeByIds(callback.ID, callback.ID, c2profile.C2Profile.Name, authContext.OperationID); err != nil {
 				logging.LogError(err, "Failed to update callback edge status")
 				return err
 			}
@@ -316,9 +316,8 @@ func updateCallbackActiveStatus(callback databaseStructs.Callback, active bool, 
 		if _, err := database.DB.Exec(`UPDATE callback SET active=false, dead=true WHERE id=$1`, callback.ID); err != nil {
 			logging.LogError(err, "Failed to update callback active status to false")
 			return err
-		} else {
-			rabbitmq.MarkCallbackInfoInactive(callback.ID)
 		}
+		rabbitmq.MarkCallbackInfoInactive(callback.ID)
 	} else if !callback.Active && active {
 		if _, err := database.DB.Exec(`UPDATE callback SET active=true, dead=false WHERE id=$1`, callback.ID); err != nil {
 			logging.LogError(err, "Failed to update callback active status to true")

@@ -29,11 +29,11 @@ func init() {
 }
 
 // Endpoint: MYTHIC_RPC_CALLBACK_EDGE_REMOVE
-func MythicRPCCallbackEdgeRemove(input MythicRPCCallbackEdgeRemoveMessage) MythicRPCCallbackEdgeRemoveMessageResponse {
+func MythicRPCCallbackEdgeRemove(input MythicRPCCallbackEdgeRemoveMessage, authContext RabbitMQAuthContext) MythicRPCCallbackEdgeRemoveMessageResponse {
 	response := MythicRPCCallbackEdgeRemoveMessageResponse{
 		Success: false,
 	}
-	err := RemoveEdgeByIds(input.SourceCallbackID, input.DestinationCallbackID, input.C2ProfileName)
+	err := RemoveEdgeByIds(input.SourceCallbackID, input.DestinationCallbackID, input.C2ProfileName, authContext.OperationID)
 	if err != nil {
 		response.Error = err.Error()
 		return response
@@ -53,5 +53,11 @@ func processMythicRPCCallbackEdgeRemove(msg amqp.Delivery) interface{} {
 		responseMsg.Error = err.Error()
 		return responseMsg
 	}
-	return MythicRPCCallbackEdgeRemove(incomingMessage)
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		logging.LogError(err, "Failed to get auth headers")
+		responseMsg.Error = err.Error()
+		return responseMsg
+	}
+	return MythicRPCCallbackEdgeRemove(incomingMessage, authContext)
 }

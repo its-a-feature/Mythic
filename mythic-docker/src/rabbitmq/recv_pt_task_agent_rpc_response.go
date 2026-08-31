@@ -43,7 +43,7 @@ func validatePTTaskAgentRPCMessageResponse(response PTTaskAgentRPCMessageRespons
 		return errors.New("agent RPC response missing status")
 	}
 	callbackID := 0
-	err := database.DB.Get(callbackID, `SELECT 
+	err := database.DB.Get(&callbackID, `SELECT 
     	id 
     	FROM task
     	WHERE callback_id=$1 AND agent_task_id=$2 AND operation_id=$3`, response.CallbackID, response.AgentTaskID, authContext.OperationID)
