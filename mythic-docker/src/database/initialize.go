@@ -36,6 +36,11 @@ func Initialize() {
 			logging.LogInfo("Disconnecting from database and reconnecting to load new schema")
 			DB.Close()
 			DB = getNewDbConnection()
+			if utils.MythicConfig.PostgresDebug {
+				if _, err := DB.Exec("CREATE EXTENSION IF NOT EXISTS pg_stat_statements SCHEMA public;"); err != nil {
+					logging.LogWarning("Failed to create pg_stat_statements extension (requires superuser)", "error", err.Error())
+				}
+			}
 			// we need to initialize the admin user and operation
 			salt := uuid.NewString()
 			newUser := databaseStructs.Operator{
