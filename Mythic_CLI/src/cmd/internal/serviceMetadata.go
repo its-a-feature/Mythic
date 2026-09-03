@@ -1018,5 +1018,5 @@ func applyImageMirror(imageURL, mirror string) string {
 }
 
 func isPostgresInternal() bool {
-	return mythicEnv.GetString("POSTGRES_HOST") == "127.0.0.1" || mythicEnv.GetString("POSTGRES_HOST") == "mythic_postgres"
+	return config.GetMythicEnv().GetString("POSTGRES_HOST") == "127.0.0.1" || config.GetMythicEnv().GetString("POSTGRES_HOST") == "mythic_postgres"
 }
