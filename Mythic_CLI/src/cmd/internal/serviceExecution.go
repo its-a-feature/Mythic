@@ -87,8 +87,14 @@ func ServiceStart(containers []string, keepVolume bool) error {
 		log.Printf("[-] Failed to remove images\n%v\n", err)
 		return err
 	}
-	updateNginxBlockLists()
-	generateCerts()
+	// nginx-specific housekeeping only applies when mythic_nginx runs locally
+	if isNginxInternal() {
+		updateNginxBlockLists()
+		if err := generateCerts(); err != nil {
+			log.Printf("[-] Failed to generate certs: %v\n", err)
+			return err
+		}
+	}
 	TestMythicRabbitmqConnection()
 	TestMythicConnection()
 	Status(false)
