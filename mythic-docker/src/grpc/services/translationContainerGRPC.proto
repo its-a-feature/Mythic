@@ -24,6 +24,7 @@ message CryptoKeysFormat {
   bytes  EncKey   = 1;
   bytes  DecKey   = 2;
   string Value    = 3;
+  string Location = 4;
 }
 message TrCustomMessageToMythicC2FormatMessageResponse  {
 bool Success  =1;

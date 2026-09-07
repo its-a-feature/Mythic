@@ -43,6 +43,7 @@ func (r *rabbitMQConnection) SendTrRPCCustomMessageToMythicC2(toMythicC2Format T
 		newCrypto := services.CryptoKeysFormat{}
 		adjustedKeys[i] = &newCrypto
 		adjustedKeys[i].Value = toMythicC2Format.CryptoKeys[i].Value
+		adjustedKeys[i].Location = toMythicC2Format.CryptoKeys[i].Location
 		if toMythicC2Format.CryptoKeys[i].EncKey != nil {
 			adjustedKeys[i].EncKey = *toMythicC2Format.CryptoKeys[i].EncKey
 		}
