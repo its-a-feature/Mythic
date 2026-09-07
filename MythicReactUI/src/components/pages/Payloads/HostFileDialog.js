@@ -380,7 +380,7 @@ export function HostFileDialog(props) {
         <DialogContent dividers={true}>
           <MythicDialogBody>
             <MythicDialogSection title="File">
-                <Box className="mythic-dialog-preview" sx={{backgroundColor: "background.paper"}}>
+                <Box className="mythic-dialog-preview items-center flex min-w-0 rounded border-subtle" sx={{backgroundColor: "background.paper"}}>
                     <Typography sx={{wordBreak: "break-all"}}>
                         {props.file_name}
                     </Typography>

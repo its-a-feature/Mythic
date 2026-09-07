@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import Button from '@mui/material/Button';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -30,14 +30,13 @@ export function TableFilterDialog({filterOptions, onSubmit, onClose, selectedCol
             <MythicTextField autoFocus onChange={onChange} value={description} onEnter={onCommitSubmit}/>
         </DialogContent>
         <DialogActions>
-          <Button variant="contained" onClick={onClose} color="primary">
+          <MythicActionButton colorMode="always" variant="contained" onClick={onClose} tone="primary">
             Close
-          </Button>
-          <Button variant="contained" onClick={onCommitSubmit} color="success">
+          </MythicActionButton>
+          <MythicActionButton colorMode="always" variant="contained" onClick={onCommitSubmit} tone="success">
             Filter
-          </Button>
+          </MythicActionButton>
         </DialogActions>
   </React.Fragment>
   );
 }
-

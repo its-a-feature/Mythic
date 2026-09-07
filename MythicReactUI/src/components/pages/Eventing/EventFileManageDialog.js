@@ -1,6 +1,5 @@
 import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
-import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
@@ -41,10 +40,11 @@ export function EventFileManageDialog({onClose, selectedEventGroup}) {
     return (
         <React.Fragment>
             <DialogTitle id="form-dialog-title">
-                <div className="mythic-dialog-title-row">
+                <div className="mythic-dialog-title-row items-center flex flex-wrap gap-5 justify-between min-w-0">
                     <span>Add or Remove Files associated with this workflow</span>
-                    <Button
-                        className="mythic-compact-action mythic-action-tone-hover mythic-tone-success"
+                    <MythicActionButton
+                        compact
+                        tone="success"
                         component="label"
                         size="small"
                         startIcon={<CloudUploadIcon fontSize="small" />}
@@ -52,7 +52,7 @@ export function EventFileManageDialog({onClose, selectedEventGroup}) {
                     >
                         New Files
                         <input onChange={onFileChange} type="file" multiple hidden/>
-                    </Button>
+                    </MythicActionButton>
                 </div>
             </DialogTitle>
 
@@ -80,9 +80,9 @@ export function EventFileManageDialog({onClose, selectedEventGroup}) {
                 </TableContainer>
             </DialogContent>
             <DialogActions>
-                <Button className="mythic-compact-action" onClick={onClose} variant="contained">
+                <MythicActionButton compact onClick={onClose} variant="contained">
                     Close
-                </Button>
+                </MythicActionButton>
             </DialogActions>
         </React.Fragment>
     );

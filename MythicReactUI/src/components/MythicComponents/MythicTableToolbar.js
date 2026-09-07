@@ -9,7 +9,7 @@ import {MythicActionButton} from './MythicActionButton';
 
 export const MythicTableToolbar = ({children, className = "", style = {}, variant}) => {
     return (
-        <Box className={`mythic-table-toolbar ${variant ? `mythic-table-toolbar-${variant}` : ""} ${className}`.trim()} style={style}>
+        <Box className={`mythic-table-toolbar flex flex-none flex-wrap gap-4 w-full rounded bg-surface-muted border-subtle${variant ? ` mythic-table-toolbar-${variant}` : ""} ${className}`.trim()} style={style}>
             {children}
         </Box>
     );
@@ -17,9 +17,9 @@ export const MythicTableToolbar = ({children, className = "", style = {}, varian
 
 export const MythicTableToolbarGroup = ({children, grow = false, label, className = "", style = {}}) => {
     return (
-        <Box className={`mythic-table-toolbar-group ${grow ? "mythic-table-toolbar-group-grow" : ""} ${className}`.trim()} style={style}>
+        <Box className={`mythic-table-toolbar-group items-center flex flex-wrap gap-3 ${grow ? "mythic-table-toolbar-group-grow" : ""} ${className} max-w-full`.trim()} style={style}>
             {label &&
-                <span className="mythic-table-toolbar-group-label">{label}</span>
+                <span className="mythic-table-toolbar-group-label text-2xs font-800 leading-100 text-muted">{label}</span>
             }
             {children}
         </Box>
@@ -29,7 +29,7 @@ export const MythicTableToolbarGroup = ({children, grow = false, label, classNam
 export const MythicToolbarSelect = ({children, className = "", style = {}, ...props}) => {
     return (
         <Select
-            className={`mythic-toolbar-select ${className}`.trim()}
+            className={`mythic-toolbar-select ${className} w-full`.trim()}
             size="small"
             style={style}
             {...props}
@@ -102,7 +102,7 @@ export const MythicToolbarToggle = ({
 }) => {
     return (
         <ToggleButton
-            className={`mythic-toolbar-toggle ${className}`.trim()}
+            className={`mythic-toolbar-toggle border-subtle text-muted gap-3 rounded whitespace-nowrap ${className}`.trim()}
             value={value}
             selected={checked}
             onClick={onClick}

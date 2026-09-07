@@ -1,5 +1,5 @@
 import React, {useEffect} from 'react';
-import Button from '@mui/material/Button';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -163,14 +163,13 @@ export function CreateNewCallbackDialog(props) {
             </TableContainer>
         </DialogContent>
         <DialogActions>
-          <Button onClick={props.onClose} variant="contained" color="primary">
+          <MythicActionButton colorMode="always" onClick={props.onClose} tone="primary" variant="contained">
             Close
-          </Button>
-          <Button onClick={submit} variant="contained" color="success">
+          </MythicActionButton>
+          <MythicActionButton colorMode="always" onClick={submit} tone="success" variant="contained">
             Submit
-          </Button>
+          </MythicActionButton>
         </DialogActions>
   </React.Fragment>
   );
 }
-

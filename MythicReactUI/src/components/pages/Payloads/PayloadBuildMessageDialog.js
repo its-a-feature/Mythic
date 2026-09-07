@@ -1,5 +1,5 @@
 import React, {useState, useEffect} from 'react';
-import Button from '@mui/material/Button';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import DialogActions from '@mui/material/DialogActions';
 import DialogTitle from '@mui/material/DialogTitle';
 import {useQuery, gql} from '@apollo/client';
@@ -56,9 +56,9 @@ export function PayloadBuildMessageDialog(props) {
               />
           </div>
           <DialogActions>
-              <Button variant="contained" onClick={props.onClose} color="primary">
+        <MythicActionButton colorMode="always" variant="contained" onClick={props.onClose} tone="primary">
                   Close
-              </Button>
+        </MythicActionButton>
           </DialogActions>
       </React.Fragment>
   );

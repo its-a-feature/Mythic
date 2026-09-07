@@ -15,7 +15,7 @@ import Typography from '@mui/material/Typography';
 import {useQuery, gql} from '@apollo/client';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import { snackActions } from '../../utilities/Snackbar';
-import {classes, StyledButton} from '../../MythicComponents/MythicTransferList';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import {MythicChip} from '../../MythicComponents/MythicChip';
 import {
   MythicDialogBody,
@@ -86,9 +86,9 @@ function PayloadTypeBlockListPreMemo({left: allCommands = [], right = [], leftTi
       setChecked((current) => current.filter((existingID) => visibleCommandIDs.has(existingID)));
     }, [left, sortedRight]);
     const customList = (title, items) => (
-      <div className="mythic-transfer-list">
-          <div className="mythic-transfer-list-header">{title}</div>
-          <div className="mythic-transfer-list-body">
+      <div className="mythic-transfer-list flex flex-column min-w-0 overflow-hidden w-full rounded bg-surface border-subtle">
+          <div className="mythic-transfer-list-header bg-table-header text-xs font-700 leading-125 border-b text-primary">{title}</div>
+          <div className="mythic-transfer-list-body flex-fill overflow-auto">
             <List dense component="div" role="list" style={{padding:0}}>
               {items.map((valueObj) => {
                 const value = itemKey === undefined ? valueObj : valueObj[itemKey];
@@ -117,50 +117,54 @@ function PayloadTypeBlockListPreMemo({left: allCommands = [], right = [], leftTi
     
   return (
     <MythicDialogSection title={name} className="mythic-transfer-section">
-    <div className="mythic-block-list-transfer-grid">
+    <div className="mythic-block-list-transfer-grid items-stretch gap-4 grid">
       <div>{customList(leftTitle, left)}</div>
       <div>
-        <div className="mythic-transfer-controls">
-          <StyledButton
+        <div className="mythic-transfer-controls py-0 px-4 items-center flex flex-column gap-6 justify-center">
+          <MythicActionButton
+            colorMode="always"
+            tone="primary"
             variant="contained"
             size="small"
-            className={classes.button}
             onClick={handleAllRight}
             disabled={left.length === 0}
             aria-label="move all right"
           >
             ≫
-          </StyledButton>
-          <StyledButton
+          </MythicActionButton>
+          <MythicActionButton
+            colorMode="always"
+            tone="primary"
             variant="contained"
             size="small"
-            className={classes.button}
             onClick={handleCheckedRight}
             disabled={leftChecked.length === 0}
             aria-label="move selected right"
           >
             &gt;
-          </StyledButton>
-          <StyledButton
+          </MythicActionButton>
+          <MythicActionButton
+            colorMode="always"
+            tone="primary"
             variant="contained"
             size="small"
-            className={classes.button}
             onClick={handleCheckedLeft}
             disabled={rightChecked.length === 0}
             aria-label="move selected left"
           >
             &lt;
-          </StyledButton>
-          <StyledButton
+          </MythicActionButton>
+          <MythicActionButton
+            colorMode="always"
+            tone="primary"
             variant="contained"
             size="small"
-            className={classes.button}
             onClick={handleAllLeft}
             disabled={right.length === 0}
             aria-label="move all left"
           >
             ≪
-          </StyledButton>
+          </MythicActionButton>
         </div>
       </div>
       <div>{customList(rightTitle, sortedRight)}</div>
@@ -273,7 +277,7 @@ export function EditBlockListDialog({dialogTitle, onSubmit, blockListName: propB
     <>
       <DialogTitle id="form-dialog-title">{dialogTitle}</DialogTitle>
       <DialogContent dividers={true} className="mythic-block-list-dialog-content">
-        <MythicDialogBody className="mythic-block-list-dialog-body">
+        <MythicDialogBody className="mythic-block-list-dialog-body gap-6">
           <MythicDialogSection title="Block List">
             <MythicFormField label="Block List Name" required>
               <MythicTextField
@@ -300,18 +304,18 @@ export function EditBlockListDialog({dialogTitle, onSubmit, blockListName: propB
             actions={<MythicChip size="small" label={`${selectedCommandCount} blocked`} />}
           >
             {loading && payloadtypes.length === 0 ? (
-              <Box className="mythic-block-list-loading">
+              <Box className="mythic-block-list-loading items-center flex gap-5 justify-center text-primary">
                 <CircularProgress size={20} />
                 <Typography variant="body2">Loading commands</Typography>
               </Box>
             ) : payloadtypes.length === 0 ? (
-              <Box className="mythic-block-list-loading">
+              <Box className="mythic-block-list-loading items-center flex gap-5 justify-center text-primary">
                 <Typography variant="body2">No payload type commands available</Typography>
               </Box>
             ) : (
               <>
                 <Tabs
-                  className="mythic-block-list-payload-tabs"
+                  className="mythic-block-list-payload-tabs rounded bg-surface border-subtle"
                   value={activePayloadType?.name || false}
                   onChange={(event, value) => setActivePayloadTypeName(value)}
                   variant="scrollable"
@@ -324,9 +328,9 @@ export function EditBlockListDialog({dialogTitle, onSubmit, blockListName: propB
                       key={payloadtype.name}
                       value={payloadtype.name}
                       label={
-                        <Box component="span" className="mythic-block-list-payload-tab-label">
+                        <Box component="span" className="mythic-block-list-payload-tab-label items-center flex gap-4 min-w-0">
                           <span>{payloadtype.name}</span>
-                          <span className="mythic-block-list-payload-tab-count">{getSelectedCommandCount(selectedCommands, payloadtype.name)}</span>
+                          <span className="mythic-block-list-payload-tab-count text-2xs font-700 leading-100 items-center inline-flex justify-center rounded-full bg-neutral-2 border-subtle text-primary">{getSelectedCommandCount(selectedCommands, payloadtype.name)}</span>
                         </Box>
                       }
                     />

@@ -7,7 +7,8 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import DialogActions from '@mui/material/DialogActions';
 import DialogTitle from '@mui/material/DialogTitle';
-import {Button, Link, Typography} from '@mui/material';
+import {Link, Typography} from '@mui/material';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import {PreviewFileMediaDialog} from "../../MythicComponents/PreviewFileMedia";
@@ -103,9 +104,9 @@ export function DownloadHistoryDialog(props){
             </TableContainer>
           
         <DialogActions>
-          <Button onClick={props.onClose} variant="contained" color="primary">
+          <MythicActionButton colorMode="always" onClick={props.onClose} tone="primary" variant="contained">
             Close
-          </Button>
+          </MythicActionButton>
         </DialogActions>
     </React.Fragment>
   );

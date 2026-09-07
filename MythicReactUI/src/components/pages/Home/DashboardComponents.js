@@ -40,17 +40,17 @@ const DashboardCard = ({
 }) => {
     return (
         <Paper
-            className={`mythic-dashboard-card mythic-dashboard-card-${size} ${className}`.trim()}
+            className={`mythic-dashboard-card flex flex-column mythic-dashboard-card-${size} relative bg-surface-raised border-subtle ${className} min-w-0 overflow-hidden w-full`.trim()}
             elevation={0}
             style={{width}}
         >
             {(title || actions || editing) &&
-                <div className="mythic-dashboard-card-header">
-                    <div className="mythic-dashboard-card-title">
+                <div className="mythic-dashboard-card-header items-center flex flex-none gap-5 justify-between min-w-0 overflow-hidden relative bg-surface-muted">
+                    <div className="mythic-dashboard-card-title text-sm font-800 leading-120 min-w-0 text-primary">
                         {title}
                     </div>
                     {(editing || actions) &&
-                        <div className="mythic-dashboard-card-actions">
+                        <div className="mythic-dashboard-card-actions items-center flex flex-none flex-wrap gap-3 justify-end">
                             {actions}
                             {editing &&
                                 <MythicStyledTooltip title={"Remove element"}>
@@ -67,7 +67,7 @@ const DashboardCard = ({
                     }
                 </div>
             }
-            <div className={`mythic-dashboard-card-body ${bodyClassName}`.trim()}>
+            <div className={`mythic-dashboard-card-body flex flex-fill flex-column ${bodyClassName} min-h-0 min-w-0 overflow-hidden`.trim()}>
                 {children}
             </div>
         </Paper>
@@ -76,18 +76,18 @@ const DashboardCard = ({
 
 export const DashboardEmptyCard = ({action, children, editing, removeElement, title, width = "100%"}) => (
     <DashboardCard
-        bodyClassName="mythic-dashboard-card-body-empty"
+            bodyClassName="mythic-dashboard-card-body-empty p-6"
         editing={editing}
         removeElement={removeElement}
         title={title}
         width={width}
     >
-        <div className="mythic-dashboard-empty-state">
+        <div className="mythic-dashboard-empty-state border-dashed text-sm leading-140 items-center flex flex-fill flex-column gap-6 justify-center min-h-0 rounded bg-surface-muted text-muted text-center">
             <div className="mythic-dashboard-empty-copy">
                 {children}
             </div>
             {action &&
-                <div className="mythic-dashboard-empty-action">
+                <div className="mythic-dashboard-empty-action items-center flex justify-center">
                     {action}
                 </div>
             }
@@ -143,14 +143,14 @@ export const PieChartCard = ({
                     </MythicStyledTooltip>
                 </>
             }
-            bodyClassName="mythic-dashboard-chart-body"
+            bodyClassName="mythic-dashboard-chart-body gap-3"
             editing={editing}
             removeElement={removeElement}
             title={title}
             width={width}
         >
             {hasChartData ? (
-                <div className="mythic-dashboard-chart-canvas mythic-dashboard-chart-canvas-pie">
+                <div className="mythic-dashboard-chart-canvas flex flex-fill mythic-dashboard-chart-canvas-pie p-2 items-center justify-center min-h-0 min-w-0 overflow-hidden w-full rounded bg-neutral-1 border-subtle">
                     <PieChart
                         skipAnimation={true}
                         series={[
@@ -199,7 +199,7 @@ export const PieChartCard = ({
                     </PieChart>
                 </div>
             ) : (
-                <div className="mythic-dashboard-chart-canvas mythic-dashboard-chart-canvas-empty">
+                <div className="mythic-dashboard-chart-canvas flex flex-fill mythic-dashboard-chart-canvas-empty items-stretch min-h-0 min-w-0 overflow-hidden w-full rounded bg-neutral-1 border-subtle">
                     <DashboardNoDataState />
                 </div>
             )}
@@ -234,21 +234,21 @@ export const GaugeCard = ({data, width = "100%", title = "", editing, removeElem
             title={title}
             width={width}
         >
-            <div className="mythic-dashboard-service-kpi">
-                <div className="mythic-dashboard-kpi-main">
-                    <div className="mythic-dashboard-kpi-status-row">
+            <div className="mythic-dashboard-service-kpi bg-neutral-1 border-subtle flex flex-fill gap-6 justify-between items-center flex-row min-h-0 min-w-0 overflow-hidden rounded">
+                <div className="mythic-dashboard-kpi-main flex flex-fill flex-column justify-center min-h-0 min-w-0">
+                    <div className="mythic-dashboard-kpi-status-row items-center flex gap-4 justify-between min-w-0">
                         <MythicChip label={statusLabel} tone={statusLevel === "danger" ? "error" : statusLevel} />
-                        <span className="mythic-dashboard-kpi-percent">{percentOnline}%</span>
+                        <span className="mythic-dashboard-kpi-percent text-xs font-850 leading-100 flex-none text-muted">{percentOnline}%</span>
                     </div>
-                    <div className="mythic-dashboard-kpi-value-row">
-                        <span className="mythic-dashboard-kpi-value">{online}</span>
-                        <span className="mythic-dashboard-kpi-total">/ {total}</span>
+                    <div className="mythic-dashboard-kpi-value-row flex gap-3 min-w-0">
+                        <span className="mythic-dashboard-kpi-value text-hero text-primary">{online}</span>
+                        <span className="mythic-dashboard-kpi-total text-xl leading-100 text-muted">/ {total}</span>
                     </div>
-                    <div className="mythic-dashboard-kpi-label">
+                    <div className="mythic-dashboard-kpi-label text-xs font-750 leading-125 text-muted">
                         Services online
                     </div>
                 </div>
-                <div className="mythic-dashboard-kpi-gauge">
+                <div className="mythic-dashboard-kpi-gauge items-center flex justify-center">
                     <Gauge
                         height={112}
                         width={112}
@@ -298,27 +298,27 @@ export const CallbackDataCard = ({mainTitle, primaryValue, totalValue, primaryLa
         >
             <MythicStyledTooltip title={"Go to Active Callbacks"}>
                 <div
-                    className="mythic-dashboard-callback-kpi"
+                    className="mythic-dashboard-callback-kpi bg-neutral-1 border-subtle flex flex-fill gap-6 justify-between flex-column min-h-0 min-w-0 overflow-hidden rounded cursor-pointer"
                     onClick={onClick}
                     onKeyDown={handleKeyDown}
                     role={onClick ? "button" : undefined}
                     tabIndex={onClick ? 0 : undefined}
                 >
-                    <div className="mythic-dashboard-kpi-main">
-                        <div className="mythic-dashboard-kpi-status-row">
+                    <div className="mythic-dashboard-kpi-main flex flex-fill flex-column justify-center min-h-0 min-w-0">
+                        <div className="mythic-dashboard-kpi-status-row items-center flex gap-4 justify-between min-w-0">
                             <MythicChip label={statusLabel} tone={statusLevel === "danger" ? "error" : statusLevel} />
                         </div>
-                        <div className="mythic-dashboard-kpi-value-row">
-                            <span className="mythic-dashboard-kpi-value">{primaryValue}</span>
-                            <span className="mythic-dashboard-kpi-total">/ {totalValue}</span>
+                        <div className="mythic-dashboard-kpi-value-row flex gap-3 min-w-0">
+                            <span className="mythic-dashboard-kpi-value text-hero text-primary">{primaryValue}</span>
+                            <span className="mythic-dashboard-kpi-total text-xl leading-100 text-muted">/ {totalValue}</span>
                         </div>
-                        <div className="mythic-dashboard-kpi-label">
+                        <div className="mythic-dashboard-kpi-label text-xs font-750 leading-125 text-muted">
                             {primaryLabel}
                         </div>
                     </div>
-                    <div className="mythic-dashboard-kpi-secondary-panel">
-                        <span className="mythic-dashboard-kpi-secondary-value">{secondaryValue}</span>
-                        <span className="mythic-dashboard-kpi-secondary-label">{secondaryLabel}</span>
+                    <div className="mythic-dashboard-kpi-secondary-panel py-4 px-5 items-center flex gap-4 min-w-0 rounded bg-neutral-1 border-subtle">
+                        <span className="mythic-dashboard-kpi-secondary-value text-3xl leading-100 flex-none text-primary">{secondaryValue}</span>
+                        <span className="mythic-dashboard-kpi-secondary-label text-xs font-700 leading-125 min-w-0 wrap-anywhere text-muted">{secondaryLabel}</span>
                     </div>
                 </div>
             </MythicStyledTooltip>
@@ -341,8 +341,8 @@ export const TableDataCard = ({
     tableClassName = "",
 }) => {
     const tableClasses = [
-        "mythic-dashboard-table",
-        summary ? "mythic-dashboard-summary-table" : "",
+        "mythic-dashboard-table max-w-full overflow-auto w-full",
+        summary ? "mythic-dashboard-summary-table table-fixed" : "",
         tableClassName,
     ].filter(Boolean).join(" ");
     return (
@@ -356,11 +356,11 @@ export const TableDataCard = ({
             width={width}
         >
             {empty ? (
-                <TableContainer className="mythic-dashboard-table-container mythic-dashboard-empty-container">
+                <TableContainer className="mythic-dashboard-table-container flex-fill mythic-dashboard-empty-container flex overflow-hidden h-full min-h-0 min-w-0 overflow-auto w-full bg-neutral-1">
                     <DashboardNoDataState title={emptyTitle} description={emptyDescription} action={emptyAction} />
                 </TableContainer>
             ) : (
-                <TableContainer className="mythic-dashboard-table-container">
+                <TableContainer className="mythic-dashboard-table-container flex-fill h-full min-h-0 min-w-0 overflow-auto w-full bg-neutral-1">
                     <Table className={tableClasses} stickyHeader size="small">
                         {tableHead}
                         {tableBody}
@@ -400,8 +400,8 @@ export const LineTimeChartCard = ({data, additionalStyles}) => {
         }
     };
     return (
-        <DashboardCard bodyClassName="mythic-dashboard-chart-body" title="Tasks Issued per Day" size="wide">
-            <div className="mythic-dashboard-chart-canvas mythic-dashboard-chart-canvas-line">
+        <DashboardCard bodyClassName="mythic-dashboard-chart-body gap-3" title="Tasks Issued per Day" size="wide">
+            <div className="mythic-dashboard-chart-canvas flex flex-fill mythic-dashboard-chart-canvas-line items-stretch justify-center min-h-0 min-w-0 overflow-hidden w-full rounded bg-neutral-1 border-subtle">
                 <LineChart
                     xAxis={[
                         {
@@ -441,7 +441,7 @@ export const LineTimeChartCard = ({data, additionalStyles}) => {
                     {...additionalStyles}
                 ></LineChart>
             </div>
-            <div className="mythic-dashboard-chart-slider-row">
+            <div className="mythic-dashboard-chart-slider-row items-center flex flex-none justify-center rounded bg-neutral-1 border-subtle">
                 <Slider
                     value={value}
                     onChange={handleChange}
@@ -518,7 +518,7 @@ export const LineTimeMultiChartCard = ({data, additionalStyles, colors, view_utc
                     </MythicStyledTooltip>
                 </>
             }
-            bodyClassName="mythic-dashboard-chart-body"
+            bodyClassName="mythic-dashboard-chart-body gap-3"
             editing={editing}
             removeElement={removeElement}
             size="wide"
@@ -526,7 +526,7 @@ export const LineTimeMultiChartCard = ({data, additionalStyles, colors, view_utc
         >
             {hasChartData ? (
                 <>
-                    <div className="mythic-dashboard-chart-canvas mythic-dashboard-chart-canvas-line">
+                    <div className="mythic-dashboard-chart-canvas flex flex-fill mythic-dashboard-chart-canvas-line items-stretch justify-center min-h-0 min-w-0 overflow-hidden w-full rounded bg-neutral-1 border-subtle">
                         <LineChart
                             colors={colors || getDashboardColors(theme)}
                             hideLegend={!showLegend}
@@ -565,7 +565,7 @@ export const LineTimeMultiChartCard = ({data, additionalStyles, colors, view_utc
                             {...additionalStyles}
                         ></LineChart>
                     </div>
-                    <div className="mythic-dashboard-chart-slider-row">
+                    <div className="mythic-dashboard-chart-slider-row items-center flex flex-none justify-center rounded bg-neutral-1 border-subtle">
                         <Slider
                             value={value}
                             onChange={handleChange}
@@ -579,7 +579,7 @@ export const LineTimeMultiChartCard = ({data, additionalStyles, colors, view_utc
                     </div>
                 </>
             ) : (
-                <div className="mythic-dashboard-chart-canvas mythic-dashboard-chart-canvas-empty">
+                <div className="mythic-dashboard-chart-canvas flex flex-fill mythic-dashboard-chart-canvas-empty items-stretch min-h-0 min-w-0 overflow-hidden w-full rounded bg-neutral-1 border-subtle">
                     <DashboardNoDataState
                         title="No activity yet"
                         description="Task and callback activity will appear here once the operation has timeline data."

@@ -1,11 +1,10 @@
 import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React, {useState} from 'react';
-import {gql, useApolloClient, useLazyQuery, useMutation, useQuery, useSubscription} from '@apollo/client';
+import { useApolloClient, useLazyQuery, useMutation, useQuery, useSubscription} from '@apollo/client';
 import ReactMarkdown from 'react-markdown';
 import Split from 'react-split';
 import {alpha, useTheme} from '@mui/material/styles';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
 import Collapse from '@mui/material/Collapse';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
@@ -81,6 +80,22 @@ import {
     getProgressivelyVisibleRows,
     mergeRowsByID,
 } from "./ChatStreamUtils";
+import {
+    CANCEL_REQUEST,
+    CHAT_API_TOKENS_QUERY,
+    CHAT_CHANNELS_QUERY,
+    CHAT_CHANNELS_STREAM_SUBSCRIPTION,
+    CHAT_CONTAINERS_QUERY,
+    CHAT_CONTAINERS_STREAM_SUBSCRIPTION,
+    CHAT_CURRENT_OPERATOR_QUERY, CHAT_MESSAGES_QUERY, CHAT_MESSAGES_STREAM_SUBSCRIPTION,
+    CHAT_OPERATOR_ALIASES_QUERY,
+    CHAT_READ_STATE_QUERY,
+    CHAT_READ_STATE_STREAM_SUBSCRIPTION, CHAT_REQUESTS_QUERY, CHAT_REQUESTS_STREAM_SUBSCRIPTION, CHAT_SEARCH,
+    CHAT_TOOL_OUTPUT_QUERY,
+    CREATE_API_TOKEN, CREATE_CHANNEL, CREATE_MESSAGE, DELETE_MESSAGE, EDIT_MESSAGE, INPUT_RESPONSE,
+    MARK_READ, REFRESH_SPECIAL_MESSAGE, RETRY_REQUEST, UPDATE_CHANNEL
+} from "./ChatQueries";
+import {getTagReadableTextColor} from "../../MythicComponents/MythicTagChip";
 
 const CHAT_MESSAGE_PAGE_SIZE = 50;
 const CHAT_REQUEST_LIMIT = 50;
@@ -107,390 +122,6 @@ const LazySettingsAPITokenDialog = React.lazy(() => (
 const LazyResponseDisplayPlaintext = React.lazy(() => (
     import("../Callbacks/ResponseDisplayPlaintext").then((module) => ({default: module.ResponseDisplayPlaintext}))
 ));
-
-const CHAT_CHANNEL_FIELDS = gql`
-fragment ChatChannelFields on chat_channel {
-    id
-    name
-    slug
-    description
-    channel_type
-    archived
-    locked
-    locked_by
-    last_message_id
-    chat_container_id
-    chat_model
-    ai_metadata
-    apitokens_id
-    updated_at
-    apitoken {
-      id
-      name
-      scopes
-      token_type
-      active
-      deleted
-      operator_id
-      created_by
-    }
-    chat_container {
-      id
-      name
-      container_running
-      deleted
-    }
-    locked_operator {
-      username
-    }
-}
-`;
-
-const CHAT_CONTAINER_FIELDS = gql`
-fragment ChatContainerFields on consuming_container {
-    id
-    name
-    description
-    container_running
-    deleted
-    subscriptions
-    updated_at
-}
-`;
-
-const CHAT_MESSAGE_FIELDS = gql`
-fragment ChatMessageFields on chat_message {
-    id
-    channel_id
-    chat_request_id
-    chat_response_key
-    operator_id
-    author_type
-    sender_display_name
-    message
-    metadata
-    edited
-    deleted
-    status
-    created_at
-    updated_at
-    operator {
-      username
-    }
-    chat_container {
-      name
-    }
-}
-`;
-
-const CHAT_REQUEST_FIELDS = gql`
-fragment ChatRequestFields on chat_request {
-    id
-    channel_id
-    request_message_id
-    status
-    error
-    created_by
-    updated_at
-}
-`;
-
-const CHAT_CHANNELS_QUERY = gql`
-${CHAT_CHANNEL_FIELDS}
-query ChatChannels {
-  chat_channel(order_by: [{archived: asc}, {channel_type: asc}, {name: asc}]) {
-    ...ChatChannelFields
-  }
-}
-`;
-
-const CHAT_CHANNELS_STREAM_SUBSCRIPTION = gql`
-${CHAT_CHANNEL_FIELDS}
-subscription ChatChannelsStream($now: timestamp!) {
-  chat_channel_stream(batch_size: 50, cursor: {initial_value: {updated_at: $now}, ordering: ASC}) {
-    ...ChatChannelFields
-  }
-}
-`;
-
-const CHAT_READ_STATE_QUERY = gql`
-query ChatReadState {
-  chat_read_state {
-    channel_id
-    last_read_message_id
-    muted
-    updated_at
-  }
-}
-`;
-
-const CHAT_READ_STATE_STREAM_SUBSCRIPTION = gql`
-subscription ChatReadStateStream($now: timestamp!) {
-  chat_read_state_stream(batch_size: 50, cursor: {initial_value: {updated_at: $now}, ordering: ASC}) {
-    channel_id
-    last_read_message_id
-    muted
-    updated_at
-  }
-}
-`;
-
-const CHAT_CONTAINERS_QUERY = gql`
-${CHAT_CONTAINER_FIELDS}
-query ChatContainers {
-  consuming_container(where: {type: {_eq: "chat"}}, order_by: {name: asc}) {
-    ...ChatContainerFields
-  }
-}
-`;
-
-const CHAT_CONTAINERS_STREAM_SUBSCRIPTION = gql`
-${CHAT_CONTAINER_FIELDS}
-subscription ChatContainersStream($now: timestamptz!) {
-  consuming_container_stream(batch_size: 50, cursor: {initial_value: {updated_at: $now}, ordering: ASC}, where: {type: {_eq: "chat"}}) {
-    ...ChatContainerFields
-  }
-}
-`;
-
-const CHAT_OPERATOR_ALIASES_QUERY = gql`
-query ChatOperatorAliases {
-  operator_alias(where: {active: {_eq: true}, alias_type: {_in: ["command", "generic"]}, payloadtype_id: {_is_null: true}}, order_by: {name: asc}) {
-    id
-    name
-    alias
-    alias_type
-    payloadtype_id
-    consuming_container_id
-  }
-}
-`;
-
-const CHAT_CURRENT_OPERATOR_QUERY = gql`
-query ChatCurrentOperator($operator_id: Int!, $operation_id: Int!) {
-  operator_by_pk(id: $operator_id) {
-    id
-    admin
-    username
-  }
-  operatoroperation(where: {operator_id: {_eq: $operator_id}, operation_id: {_eq: $operation_id}}, limit: 1) {
-    id
-    view_mode
-  }
-  operation_bot: operator(where: {account_type: {_eq: "bot"}, current_operation_id: {_eq: $operation_id}, active: {_eq: true}, deleted: {_eq: false}}, limit: 1, order_by: {id: asc}) {
-    id
-    username
-    account_type
-    current_operation_id
-    active
-    deleted
-  }
-}
-`;
-
-const CHAT_MESSAGES_QUERY = gql`
-${CHAT_MESSAGE_FIELDS}
-query ChatMessages($where: chat_message_bool_exp!, $limit: Int!) {
-  chat_message(where: $where, order_by: {id: desc}, limit: $limit) {
-    ...ChatMessageFields
-  }
-}
-`;
-
-const CHAT_MESSAGES_STREAM_SUBSCRIPTION = gql`
-${CHAT_MESSAGE_FIELDS}
-subscription ChatMessagesStream($where: chat_message_bool_exp!, $now: timestamp!) {
-  chat_message_stream(batch_size: 50, cursor: {initial_value: {updated_at: $now}, ordering: ASC}, where: $where) {
-    ...ChatMessageFields
-  }
-}
-`;
-
-const CHAT_REQUESTS_QUERY = gql`
-${CHAT_REQUEST_FIELDS}
-query ChatRequests($channel_id: Int!, $limit: Int!) {
-  chat_request(where: {channel_id: {_eq: $channel_id}}, order_by: {id: desc}, limit: $limit) {
-    ...ChatRequestFields
-  }
-}
-`;
-
-const CHAT_REQUESTS_STREAM_SUBSCRIPTION = gql`
-${CHAT_REQUEST_FIELDS}
-subscription ChatRequestsStream($channel_id: Int!, $now: timestamp!) {
-  chat_request_stream(batch_size: 25, cursor: {initial_value: {updated_at: $now}, ordering: ASC}, where: {channel_id: {_eq: $channel_id}}) {
-    ...ChatRequestFields
-  }
-}
-`;
-
-const CREATE_CHANNEL = gql`
-mutation CreateChatChannel($name: String!, $description: String, $channel_type: String, $chat_container_id: Int, $chat_model: String, $locked: Boolean, $ai_metadata: jsonb, $apitokens_id: Int) {
-  chatCreateChannel(name: $name, description: $description, channel_type: $channel_type, chat_container_id: $chat_container_id, chat_model: $chat_model, locked: $locked, ai_metadata: $ai_metadata, apitokens_id: $apitokens_id) {
-    status
-    error
-    id
-    channel_id
-  }
-}
-`;
-
-const UPDATE_CHANNEL = gql`
-mutation UpdateChatChannel($channel_id: Int!, $name: String, $description: String, $archived: Boolean, $locked: Boolean, $chat_model: String, $ai_metadata: jsonb, $apitokens_id: Int, $muted: Boolean) {
-  chatUpdateChannel(channel_id: $channel_id, name: $name, description: $description, archived: $archived, locked: $locked, chat_model: $chat_model, ai_metadata: $ai_metadata, apitokens_id: $apitokens_id, muted: $muted) {
-    status
-    error
-    channel_id
-  }
-}
-`;
-
-const CHAT_API_TOKENS_QUERY = gql`
-query ChatAPITokens($operator_ids: [Int!]!) {
-  apitokens(where: {operator_id: {_in: $operator_ids}, token_type: {_eq: "api"}, deleted: {_eq: false}, active: {_eq: true}}, order_by: [{operator_id: asc}, {id: desc}]) {
-    id
-    name
-    scopes
-    token_type
-    active
-    deleted
-    operator_id
-    created_by
-    creation_time
-  }
-}
-`;
-
-const CREATE_API_TOKEN = gql`
-mutation CreateChatAPIToken($operator_id: Int, $name: String, $scopes: [String!]) {
-  createAPIToken(operator_id: $operator_id, name: $name, scopes: $scopes) {
-    id
-    token_value
-    scopes
-    token_type
-    status
-    error
-    operator_id
-    name
-    created_by
-    creation_time
-  }
-}
-`;
-
-const CREATE_MESSAGE = gql`
-mutation CreateChatMessage($channel_id: Int!, $message: String!, $system_message: Boolean = false, $all_operations: Boolean = false, $delegation_id: String, $delegation_name: String) {
-  chatCreateMessage(channel_id: $channel_id, message: $message, system_message: $system_message, all_operations: $all_operations, delegation_id: $delegation_id, delegation_name: $delegation_name) {
-    status
-    error
-    message_id
-    request_id
-  }
-}
-`;
-
-const CHAT_TOOL_OUTPUT_QUERY = gql`
-query ChatToolOutput($message_id: Int!) {
-  chat_message_by_pk(id: $message_id) {
-    id
-    tool_output
-  }
-}
-`;
-
-const EDIT_MESSAGE = gql`
-mutation EditChatMessage($message_id: Int!, $message: String!) {
-  chatEditMessage(message_id: $message_id, message: $message) {
-    status
-    error
-    message_id
-  }
-}
-`;
-
-const DELETE_MESSAGE = gql`
-mutation DeleteChatMessage($message_id: Int!) {
-  chatDeleteMessage(message_id: $message_id) {
-    status
-    error
-    message_id
-  }
-}
-`;
-
-const CANCEL_REQUEST = gql`
-mutation CancelChatRequest($request_id: Int!) {
-  chatCancelRequest(request_id: $request_id) {
-    status
-    error
-    request_id
-  }
-}
-`;
-
-const RETRY_REQUEST = gql`
-mutation RetryChatRequest($request_id: Int!) {
-  chatRetryRequest(request_id: $request_id) {
-    status
-    error
-    request_id
-    message_id
-  }
-}
-`;
-
-const MARK_READ = gql`
-mutation MarkChatRead($channel_id: Int!, $last_read_message_id: Int) {
-  chatMarkRead(channel_id: $channel_id, last_read_message_id: $last_read_message_id) {
-    status
-    error
-  }
-}
-`;
-
-const REFRESH_SPECIAL_MESSAGE = gql`
-mutation RefreshSpecialMessage($message_id: Int!) {
-  chatRefreshSpecialMessage(message_id: $message_id) {
-    status
-    error
-    message_id
-  }
-}
-`;
-
-const INPUT_RESPONSE = gql`
-mutation ChatInputResponse($message_id: Int!, $action: String!, $response: String, $choice_id: String) {
-  chatInputResponse(message_id: $message_id, action: $action, response: $response, choice_id: $choice_id) {
-    status
-    error
-    message_id
-    request_id
-  }
-}
-`;
-
-const CHAT_SEARCH = gql`
-query ChatSearch($query: String!, $channel_id: Int, $limit: Int, $offset: Int) {
-  chatSearch(query: $query, channel_id: $channel_id, limit: $limit, offset: $offset) {
-    status
-    error
-    results {
-      id
-      channel_id
-      channel_name
-      channel_slug
-      channel_type
-      author_type
-      sender_display_name
-      message
-      edited
-      status
-      created_at
-      rank
-    }
-  }
-}
-`;
 
 const isGeneralChatChannel = (channel) => channel?.channel_type === "standard" && channel?.slug === "general";
 
@@ -631,7 +262,7 @@ const buildSearchSnippetParts = (message, query) => {
 const renderSearchSnippet = (message, query) => (
     buildSearchSnippetParts(message, query).map((part, index) => (
         part.highlight ? (
-            <mark className="mythic-chat-search-highlight" key={`highlight-${index}`}>{part.text}</mark>
+            <mark className="mythic-chat-search-highlight font-800 rounded mythic-tone-warning bg-tone-1" key={`highlight-${index}`}>{part.text}</mark>
         ) : (
             <React.Fragment key={`text-${index}`}>{part.text}</React.Fragment>
         )
@@ -1077,7 +708,7 @@ const ChatJSONConfigurationField = ({option, values, setValues}) => {
     };
     if(!hasVisualEditor){
         return (
-            <Box key={option.name} sx={{display: "flex", flexDirection: "column", gap: 0.75, minWidth: 0}}>
+            <Box key={option.name} className="flex flex-column gap-3 min-w-0">
                 <TextField
                     fullWidth
                     multiline
@@ -1091,10 +722,10 @@ const ChatJSONConfigurationField = ({option, values, setValues}) => {
                     onChange={(e) => setSourceValue(e.target.value)}
                     inputProps={{spellCheck: "false"}}
                 />
-                <Box sx={{display: "flex", flexWrap: "wrap", alignItems: "center", gap: 0.75}}>
-                    <Button size="small" variant="outlined" onClick={formatValue} disabled={parsed.empty || Boolean(parsed.error)}>
+                <Box className="items-center flex flex-wrap gap-3">
+                    <MythicActionButton size="small" variant="outlined" onClick={formatValue} disabled={parsed.empty || Boolean(parsed.error)}>
                         Format JSON
-                    </Button>
+                    </MythicActionButton>
                 </Box>
             </Box>
         );
@@ -1103,18 +734,11 @@ const ChatJSONConfigurationField = ({option, values, setValues}) => {
     return (
         <Box
             key={option.name}
-            className="mythic-dialog-section"
-            sx={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 0.75,
-                minWidth: 0,
-                p: 1,
-            }}
+            className="mythic-dialog-section flex flex-column gap-3 bg-surface-muted border-subtle min-w-0 p-4 rounded"
         >
-            <Box sx={{alignItems: "flex-start", display: "flex", flexWrap: "wrap", gap: 0.75, justifyContent: "space-between", minWidth: 0}}>
-                <Box sx={{display: "flex", flexDirection: "column", gap: 0.25, minWidth: 0}}>
-                    <Typography component="div" className="mythic-dialog-section-title">
+            <Box className="items-start flex flex-wrap gap-3 justify-between min-w-0">
+                <Box className="flex flex-column gap-1 min-w-0">
+                    <Typography component="div" className="mythic-dialog-section-title text-sm font-700 leading-125 text-primary">
                         {option.displayName}
                     </Typography>
                     {option.description &&
@@ -1140,14 +764,7 @@ const ChatJSONConfigurationField = ({option, values, setValues}) => {
                 </Tabs>
             </Box>
             {editorTab === "visual" && visualValue !== null &&
-                <Box
-                    sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 0.75,
-                        minWidth: 0,
-                    }}
-                >
+                <Box className="flex flex-column gap-3 min-w-0">
                     <SchemaFormRenderer
                         schema={rendererSchema}
                         value={visualValue}
@@ -1156,7 +773,7 @@ const ChatJSONConfigurationField = ({option, values, setValues}) => {
                 </Box>
             }
             {editorTab === "source" &&
-                <Box sx={{display: "flex", flexDirection: "column", gap: 0.75, minWidth: 0}}>
+                <Box className="flex flex-column gap-3 min-w-0">
                     {visualParseError !== "" &&
                         <Typography component="div" color="error" className="mythic-form-field-description">
                             Visual tab unavailable: {visualParseError}
@@ -1175,10 +792,10 @@ const ChatJSONConfigurationField = ({option, values, setValues}) => {
                         onChange={(e) => setSourceValue(e.target.value)}
                         inputProps={{spellCheck: "false"}}
                     />
-                    <Box sx={{display: "flex", flexWrap: "wrap", alignItems: "center", gap: 0.75}}>
-                        <Button size="small" variant="outlined" onClick={formatValue} disabled={parsed.empty || Boolean(parsed.error)}>
+                    <Box className="items-center flex flex-wrap gap-3">
+                        <MythicActionButton size="small" variant="outlined" onClick={formatValue} disabled={parsed.empty || Boolean(parsed.error)}>
                             Format JSON
-                        </Button>
+                        </MythicActionButton>
                     </Box>
                 </Box>
             }
@@ -1317,7 +934,7 @@ const getChannelListChips = (channel, chatContainers) => {
 };
 
 const metadataDisplayKeyPattern = /^[A-Za-z0-9_.-]+$/;
-const metadataDisplayColorPattern = /^(secondary|neutral|info|success|warning|error|danger|#[0-9a-fA-F]{6})$/;
+const metadataDisplayColorPattern = /^(secondary|neutral|info|success|warning|error|#[0-9a-fA-F]{6})$/;
 const metadataScaleColorPattern = /^scale\((.+)\)$/i;
 
 const normalizeChipColor = (color) => {
@@ -1591,17 +1208,6 @@ const resolveMetadataChipColor = (item, colorOverride) => {
     return color || "secondary";
 };
 
-const chipColorStyle = (color) => {
-    if(typeof color === "string" && color.startsWith("#")){
-        return {
-            "--mythic-chat-chip-custom-color": color,
-            "--mythic-chat-chip-custom-border": alpha(color, 0.42),
-            "--mythic-chat-chip-custom-bg": alpha(color, 0.14),
-        };
-    }
-    return undefined;
-};
-
 const normalizeMetadataClickCommand = (click) => {
     const command = `${click || ""}`.trim();
     if(command === ""){
@@ -1643,11 +1249,10 @@ const buildChannelMetadataChips = (channel, displayStringOverride) => {
                 key: item.key,
                 label: item.label,
                 value: formatMetadataValue(item),
-                color: color.startsWith("#") ? "custom" : color,
+                color: color,
                 click: normalizeMetadataClickCommand(item.click),
                 clickConfirmationText: item.clickConfirmationText,
                 tooltip: item.tooltip,
-                colorStyle: chipColorStyle(color),
             };
         })
         .filter((item) => item.value !== "");
@@ -1675,7 +1280,7 @@ const getAvailableChannelMetadataItems = (channel) => (
 );
 
 const metadataDisplayExample = "expanded; max=6; chips: 5hr=five_hour_tokens, Cost=total_cost:currency; colors: total_cost=warning";
-const metadataNamedColorOptions = ["secondary", "info", "success", "warning", "error", "danger"];
+const metadataNamedColorOptions = ["secondary", "info", "success", "warning", "error"];
 const metadataDefaultScaleStops = [
     {at: 0, color: "success"},
     {at: 75, color: "warning"},
@@ -1866,7 +1471,7 @@ const ChatMetadataColorEditor = ({value, fallback, onChange}) => {
         });
     };
     return (
-        <Box className="mythic-chat-metadata-color-editor">
+        <Box className="mythic-chat-metadata-color-editor flex flex-column gap-3 min-w-0 w-full">
             <Select
                 size="small"
                 value={state.mode}
@@ -1898,17 +1503,17 @@ const ChatMetadataColorEditor = ({value, fallback, onChange}) => {
                 />
             }
             {state.mode === "scale" &&
-                <Box className="mythic-chat-metadata-color-scale">
-                    <Box className="mythic-chat-metadata-color-scale-header">
+                <Box className="mythic-chat-metadata-color-scale flex flex-column gap-3">
+                    <Box className="mythic-chat-metadata-color-scale-header items-center flex gap-4 justify-between min-w-0">
                         <Typography variant="caption" color="text.secondary">
                             Apply the last color whose cutoff is at or below the value.
                         </Typography>
-                        <Button size="small" startIcon={<AddIcon fontSize="small" />} onClick={addScaleStop}>
+                        <MythicActionButton appearance="plain" size="small" startIcon={<AddIcon fontSize="small" />} onClick={addScaleStop}>
                             Add cutoff
-                        </Button>
+                        </MythicActionButton>
                     </Box>
                     {state.scaleStops.map((stop, index) => (
-                        <Box className="mythic-chat-metadata-color-scale-row" key={`scale-stop-${index}`}>
+                        <Box className="mythic-chat-metadata-color-scale-row items-center gap-3 grid" key={`scale-stop-${index}`}>
                             <TextField
                                 size="small"
                                 label="At least"
@@ -1945,7 +1550,7 @@ const ChatConfigurationFields = ({options, values, setValues}) => {
         return null;
     }
     return (
-        <Box sx={{display: "flex", flexDirection: "column", gap: 1.25}}>
+        <Box className="flex flex-column gap-5">
             <Typography variant="subtitle2">AI Configuration</Typography>
             {options.map((option) => {
                 if(option.type === "choice"){
@@ -1959,10 +1564,10 @@ const ChatConfigurationFields = ({options, values, setValues}) => {
                             >
                                 {option.choices.map((choice) => (
                                     <MenuItem value={configValueForField(choice.value)} key={`${option.name}-${choice.value}`}>
-                                        <Box sx={{display: "flex", flexDirection: "column", py: 0.25}}>
+                                        <Box className="flex flex-column py-1">
                                             <Typography variant="body2">{choice.label}</Typography>
                                             {choice.description &&
-                                                <Typography variant="caption" color="text.secondary" sx={{whiteSpace: "normal"}}>
+                                                <Typography variant="caption" color="text.secondary" className="whitespace-normal">
                                                     {choice.description}
                                                 </Typography>
                                             }
@@ -2107,19 +1712,19 @@ const ChatAPITokenSelector = ({value, setValue, currentToken, currentUser, opera
     };
     const tokenSelectorDisabled = !selectedOwner;
     return (
-        <Box sx={{display: "flex", flexDirection: "column", gap: 1}}>
-            <Box sx={{border: `1px solid ${alpha("#ffffff", 0.12)}`, borderRadius: 1, p: 1.25}}>
+        <Box className="flex flex-column gap-4">
+            <Box className="p-5" sx={{border: `1px solid ${alpha("#ffffff", 0.12)}`, borderRadius: 1}}>
                 <Typography variant="subtitle2">AI Chat API Token</Typography>
                 <Typography variant="caption" color="text.secondary" sx={{display: "block", mt: 0.5}}>
                     AI chat can use a token for your operator account or the operation bot{operationBot?.username ? ` (${operationBot.username})` : ""}. The token must include apitoken.write to generate scoped Mythic API tokens and chat-ai.write to stream responses back to this channel.
                 </Typography>
-                <Box sx={{display: "flex", gap: 0.75, flexWrap: "wrap", mt: 1}}>
+                <Box className="flex flex-wrap gap-3" sx={{mt: 1}}>
                     {AI_CHAT_REQUIRED_TOKEN_SCOPES.map((scope) => (
                         <MythicChip key={scope} size="small" label={scope} color={selectedToken && tokenHasScope(selectedToken, scope) ? "success" : "warning"} />
                     ))}
                 </Box>
             </Box>
-            <Box sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(160px, 0.55fr) minmax(220px, 1fr) auto"}, gap: 1, alignItems: "stretch"}}>
+            <Box className="items-stretch gap-4 grid" sx={{gridTemplateColumns: {xs: "1fr", md: "minmax(160px, 0.55fr) minmax(220px, 1fr) auto"}}}>
                 <FormControl size="small" fullWidth required>
                     <InputLabel>Owner</InputLabel>
                     <Select
@@ -2154,9 +1759,9 @@ const ChatAPITokenSelector = ({value, setValue, currentToken, currentUser, opera
                         }
                         {tokens.map((token) => (
                             <MenuItem value={`${token.id}`} key={`chat-token-${token.id}`}>
-                                <Box sx={{display: "flex", flexDirection: "column", py: 0.25}}>
+                                <Box className="flex flex-column py-1">
                                     <Typography variant="body2">{formatTokenLabel(token)}</Typography>
-                                    <Typography variant="caption" color={tokenMeetsAIChatRequirements(token) ? "text.secondary" : "warning.main"} sx={{whiteSpace: "normal"}}>
+                                    <Typography variant="caption" color={tokenMeetsAIChatRequirements(token) ? "text.secondary" : "warning.main"} className="whitespace-normal">
                                         {(token.scopes || []).join(", ") || "No scopes"}
                                     </Typography>
                                 </Box>
@@ -2164,18 +1769,19 @@ const ChatAPITokenSelector = ({value, setValue, currentToken, currentUser, opera
                         ))}
                     </Select>
                 </FormControl>
-                <Button
+                <MythicActionButton
                     variant="outlined"
                     size="small"
                     disabled={tokenSelectorDisabled}
                     onClick={() => setOpenCreateToken(true)}
-                    sx={{height: 40, whiteSpace: "nowrap", px: 2}}
+                    className="px-8 whitespace-nowrap"
+                    sx={{height: 40}}
                 >
                     Create
-                </Button>
+                </MythicActionButton>
             </Box>
             {selectedToken &&
-                <Box sx={{display: "flex", flexWrap: "wrap", gap: 0.5}}>
+                <Box className="flex flex-wrap gap-2">
                     {selectedOwner &&
                         <MythicChip size="small" variant="outlined" label={tokenOwnerLabel(selectedOwner)} />
                     }
@@ -2189,7 +1795,7 @@ const ChatAPITokenSelector = ({value, setValue, currentToken, currentUser, opera
                     maxWidth="md"
                     onClose={() => setOpenCreateToken(false)}
                     innerDialog={
-                        <React.Suspense fallback={<Typography sx={{p: 3}} color="text.secondary">Loading token editor...</Typography>}>
+                        <React.Suspense fallback={<Typography className="p-12" color="text.secondary">Loading token editor...</Typography>}>
                             <LazySettingsAPITokenDialog
                                 title={`New AI Chat API Token${selectedOwner ? ` for ${selectedOwner.username}` : ""}`}
                                 name={`${selectedOwner?.accountType === "bot" ? "Operation bot" : "Operator"} AI chat token`}
@@ -2211,31 +1817,29 @@ const ChatAPITokenSelector = ({value, setValue, currentToken, currentUser, opera
 };
 
 const ChatEmptyState = ({icon, title, detail}) => (
-    <Box className="mythic-chat-empty-state">
+    <Box className="mythic-chat-empty-state items-center flex flex-fill flex-column gap-3 justify-center text-center">
         {icon}
         <Typography variant="subtitle2">{title}</Typography>
         {detail && <Typography variant="caption" color="text.secondary">{detail}</Typography>}
     </Box>
 );
 
-const ChatDisplayChip = ({chip, className = ""}) => {
-    const chipColor = chip.color || "secondary";
-    const chipTone = chipColor === "danger" ? "error" : ["primary", "secondary", "info", "success", "warning", "error"].includes(chipColor) ? chipColor : "secondary";
+const ChatDisplayChip = ({chip}) => {
+    const chipTone = ["primary", "secondary", "info", "success", "warning", "error"].includes(chip.color) ? chip.color : "secondary";
     const clickable = Boolean(chip.click);
-    const chipClassName = `mythic-chat-display-chip${chipColor === "custom" ? " mythic-chat-display-chip-custom" : ""}${clickable ? " mythic-chat-display-chip-clickable" : ""}${className ? ` ${className}` : ""}`;
-    const children = (
-        <>
-            <span className="mythic-chat-display-chip-label">{chip.label}:</span>
-            <span className="mythic-chat-display-chip-value">{chip.value}</span>
-        </>
-    );
+    const theme = useTheme();
     const content = (
         <MythicChip
-            className={chipClassName}
-            label={children}
+            compact={true}
+            color={chip.color}
+            label={chip.label ? `${chip.label}: ${chip.value}` : chip.value}
             onClick={clickable ? () => chip.onClick?.(chip) : undefined}
-            style={chip.colorStyle}
             tone={chipTone}
+            sx={{
+                backgroundColor: chip.color || "transparent",
+                border: "1px solid",
+                color: getTagReadableTextColor(theme, chip.color),
+            }}
         />
     );
     if(chip.tooltip){
@@ -2244,13 +1848,23 @@ const ChatDisplayChip = ({chip, className = ""}) => {
     return content;
 };
 
-const ChatDisplayChipRow = ({chips, className = "", onChipClick}) => {
+const ChatDisplayChipRow = ({chips, onChipClick, maxVisible}) => {
     if(!chips || chips.length === 0){
         return null;
     }
+    const visibleChips = maxVisible ? chips.slice(0, maxVisible) : chips;
+
     return (
-        <span className={`mythic-chat-display-chip-row${className ? ` ${className}` : ""}`}>
-            {chips.map((chip) => <ChatDisplayChip key={chip.key} chip={{...chip, onClick: onChipClick}} />)}
+        <span className={`mythic-chat-display-chip-row items-center inline-flex flex-nowrap gap-2 overflow-auto`}>
+            {visibleChips.map((chip) => <ChatDisplayChip key={chip.key} chip={{...chip, onClick: onChipClick}} />)}
+            {maxVisible && chips.length > maxVisible &&
+                <MythicStyledTooltip title={"More chips hidden"}>
+                    <MythicChip compact={true}
+                        label={`+${chips.length - maxVisible} more`}
+                    />
+                </MythicStyledTooltip>
+
+            }
         </span>
     );
 };
@@ -2264,26 +1878,19 @@ const ChatChannelMetadataBar = ({channel, displayStringOverride, onChipClick}) =
     if(!channel || channel.channel_type !== "ai" || metadataState.chips.length === 0){
         return null;
     }
-    const visibleChips = metadataState.chips.slice(0, metadataState.maxVisible);
-    const overflowCount = Math.max(0, metadataState.chips.length - visibleChips.length);
     return (
-        <Box className={`mythic-chat-metadata-bar${hidden ? " mythic-chat-metadata-bar-hidden" : ""}`}>
+        <Box className={`mythic-chat-metadata-bar items-center flex gap-3 bg-surface-muted border-b ${hidden ? " mythic-chat-metadata-bar-hidden" : ""}`}>
             <MythicActionButton iconOnly
-                appearance="plain" compact shape="square"
+                appearance="raised" compact shape="square"
                 size="small"
                 onClick={() => setHidden((prev) => !prev)}
             >
-                {hidden ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
+                {hidden ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
             </MythicActionButton>
             {hidden ? (
                 <Typography variant="caption" color="text.secondary">Metadata hidden</Typography>
             ) : (
-                <Box className="mythic-chat-metadata-content">
-                    <ChatDisplayChipRow chips={visibleChips} onChipClick={onChipClick} />
-                    {overflowCount > 0 &&
-                        <MythicChip label={`+${overflowCount} more`} />
-                    }
-                </Box>
+                <ChatDisplayChipRow chips={metadataState.chips} onChipClick={onChipClick} maxVisible={metadataState.maxVisible} />
             )}
         </Box>
     );
@@ -2295,7 +1902,7 @@ const ChatMetadataDisplayPreview = ({channel, displayString}) => {
     const availableKeyText = availableKeys.length > 0 ? `Available keys: ${availableKeys.join(", ")}` : "";
     if(metadataState.chips.length === 0){
         return (
-            <Box className="mythic-chat-metadata-preview">
+            <Box className="mythic-chat-metadata-preview items-center flex flex-wrap gap-2 rounded bg-surface-muted border-subtle">
                 <Typography variant="caption" color="text.secondary">No channel metadata chips available yet.</Typography>
                 {availableKeyText &&
                     <Typography variant="caption" color="text.secondary" sx={{display: "block", mt: 0.5}}>
@@ -2306,12 +1913,9 @@ const ChatMetadataDisplayPreview = ({channel, displayString}) => {
         );
     }
     return (
-        <Box className="mythic-chat-metadata-preview">
-            <Box sx={{display: "flex", flexWrap: "wrap", gap: 0.5, alignItems: "center"}}>
-                <ChatDisplayChipRow chips={metadataState.chips.slice(0, metadataState.maxVisible)} />
-                {metadataState.chips.length > metadataState.maxVisible &&
-                    <MythicChip label={`+${metadataState.chips.length - metadataState.maxVisible}`} />
-                }
+        <Box className="mythic-chat-metadata-preview items-center flex flex-wrap gap-2 rounded bg-surface-muted border-subtle">
+            <Box className="items-center flex flex-wrap gap-2 overflow-auto">
+                <ChatDisplayChipRow chips={metadataState.chips} maxVisible={metadataState.maxVisible} />
             </Box>
             {availableKeyText &&
                 <Typography variant="caption" color="text.secondary" sx={{display: "block", mt: 0.75}}>
@@ -2326,7 +1930,7 @@ const ChatMetadataWizardDraggableList = ({rows, onDragEnd, updateRow}) => (
     <DragDropContext onDragEnd={onDragEnd}>
         <Droppable droppableId="chat-metadata-display-wizard-list">
             {(provided) => (
-                <div className="mythic-reorder-list mythic-chat-metadata-wizard-list" ref={provided.innerRef} {...provided.droppableProps}>
+                <div className="mythic-reorder-list flex flex-fill flex-column gap-4 mythic-chat-metadata-wizard-list min-h-0 overflow-auto" ref={provided.innerRef} {...provided.droppableProps}>
                     {rows.map((row, index) => (
                         <ChatMetadataWizardDraggableRow
                             key={row.key}
@@ -2348,15 +1952,15 @@ const ChatMetadataWizardDraggableRow = ({row, index, updateRow}) => (
             const rowContent = (
                 <div
                     ref={provided.innerRef}
-                    className={`mythic-reorder-row mythic-chat-metadata-wizard-row${snapshot.isDragging ? " mythic-reorder-row-dragging" : ""}${row.visible ? "" : " mythic-reorder-row-disabled"}`}
+                    className={`mythic-reorder-row items-center flex flex-none gap-4 mythic-chat-metadata-wizard-row items-center rounded bg-surface-raised border-subtle text-primary shadow-none${snapshot.isDragging ? " mythic-reorder-row-dragging mythic-tone-primary bg-tone-1 border-tone-3 shadow-3" : ""}${row.visible ? "" : " mythic-reorder-row-disabled"} min-w-0 w-full`}
                     {...provided.draggableProps}
                 >
-                    <span className="mythic-reorder-drag-handle" {...provided.dragHandleProps}>
+                    <span className="mythic-reorder-drag-handle items-center inline-flex justify-center rounded bg-neutral-2 border-subtle text-muted" {...provided.dragHandleProps}>
                         <DragHandleIcon fontSize="small" />
                     </span>
-                    <div className="mythic-chat-metadata-wizard-row-grid">
-                        <Box className="mythic-chat-metadata-wizard-row-key">
-                            <Typography variant="body2" sx={{fontFamily: "monospace"}} noWrap>{row.key}</Typography>
+                    <div className="mythic-chat-metadata-wizard-row-grid items-logical-start gap-4 min-w-0 w-full grid">
+                        <Box className="mythic-chat-metadata-wizard-row-key flex flex-column min-w-0">
+                            <Typography variant="body2" className="font-mono" noWrap>{row.key}</Typography>
                             <Typography variant="caption" color="text.secondary" noWrap>
                                 {row.value !== "" ? `Current: ${row.value}` : "No current value"}
                             </Typography>
@@ -2387,16 +1991,14 @@ const ChatMetadataWizardDraggableRow = ({row, index, updateRow}) => (
                             fallback={row.color || "secondary"}
                             onChange={(colorOverride) => updateRow(row.key, {colorOverride})}
                         />
-                        <Typography className="mythic-chat-metadata-wizard-row-detail" variant="caption" color="text.secondary">
+                        <Typography className="mythic-chat-metadata-wizard-row-detail leading-125 min-w-0" variant="caption" color="text.secondary">
                             {row.tooltip || "No description reported."}
                         </Typography>
-                    </div>
-                    <div className="mythic-reorder-row-actions">
                         <MythicActionButton iconOnly
-                            aria-label={row.visible ? `Hide ${row.key}` : `Show ${row.key}`}
-                            appearance="raised" colorMode="hover" tone={row.visible ? "error" : "info"}
-                            size="small"
-                            onClick={() => updateRow(row.key, {visible: !row.visible})}
+                                            aria-label={row.visible ? `Hide ${row.key}` : `Show ${row.key}`}
+                                            appearance="raised" colorMode="hover" tone={row.visible ? "error" : "info"}
+                                            size="small"
+                                            onClick={() => updateRow(row.key, {visible: !row.visible})}
                         >
                             {row.visible ? (
                                 <VisibilityIcon fontSize="small" />
@@ -2404,6 +2006,9 @@ const ChatMetadataWizardDraggableRow = ({row, index, updateRow}) => (
                                 <VisibilityOffIcon fontSize="small" />
                             )}
                         </MythicActionButton>
+                    </div>
+                    <div className="mythic-reorder-row-actions items-center flex flex-none gap-3">
+
                     </div>
                 </div>
             );
@@ -2449,11 +2054,11 @@ const ChatMetadataDisplayWizard = ({open, channel, displayString, onClose, onApp
     return (
         <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth>
             <DialogTitle>Metadata Display Wizard</DialogTitle>
-            <DialogContent className="mythic-chat-dialog-content" sx={{display: "flex", flexDirection: "column", gap: 1.5, pt: "20px !important", px: 3}}>
-                <Box className="mythic-chat-metadata-wizard-top-grid">
-                    <Box className="mythic-chat-metadata-wizard-top-card">
-                        <Typography className="mythic-chat-metadata-wizard-top-title" variant="subtitle2">Initial visibility</Typography>
-                        <Box className="mythic-chat-metadata-wizard-top-body">
+            <DialogContent className="mythic-chat-dialog-content flex flex-column gap-6 px-12" sx={{pt: "20px !important"}}>
+                <Box className="mythic-chat-metadata-wizard-top-grid items-stretch gap-6 grid">
+                    <Box className="mythic-chat-metadata-wizard-top-card flex flex-column gap-4 min-w-0 rounded border-subtle">
+                        <Typography className="mythic-chat-metadata-wizard-top-title leading-135" variant="subtitle2">Initial visibility</Typography>
+                        <Box className="mythic-chat-metadata-wizard-top-body items-center flex flex-fill min-w-0">
                             <FormControlLabel
                                 className="mythic-chat-metadata-wizard-visibility-control"
                                 control={<Switch checked={!hiddenInitially} onChange={(e) => setHiddenInitially(!e.target.checked)} />}
@@ -2464,9 +2069,9 @@ const ChatMetadataDisplayWizard = ({open, channel, displayString, onClose, onApp
                             Users can still hide or show the bar locally from the chat header.
                         </Typography>
                     </Box>
-                    <Box className="mythic-chat-metadata-wizard-top-card">
-                        <Typography className="mythic-chat-metadata-wizard-top-title" variant="subtitle2">Visible limit</Typography>
-                        <Box className="mythic-chat-metadata-wizard-top-body">
+                    <Box className="mythic-chat-metadata-wizard-top-card flex flex-column gap-4 min-w-0 rounded border-subtle">
+                        <Typography className="mythic-chat-metadata-wizard-top-title leading-135" variant="subtitle2">Visible limit</Typography>
+                        <Box className="mythic-chat-metadata-wizard-top-body items-center flex flex-fill min-w-0">
                             <TextField
                                 label="Max visible"
                                 type="number"
@@ -2479,26 +2084,26 @@ const ChatMetadataDisplayWizard = ({open, channel, displayString, onClose, onApp
                             />
                         </Box>
                     </Box>
-                    <Box className="mythic-chat-metadata-wizard-top-card">
-                        <Typography className="mythic-chat-metadata-wizard-top-title" variant="subtitle2">Preview</Typography>
-                        <Box className="mythic-chat-metadata-wizard-top-body mythic-chat-metadata-wizard-preview-body">
+                    <Box className="mythic-chat-metadata-wizard-top-card flex flex-column gap-4 min-w-0 rounded border-subtle">
+                        <Typography className="mythic-chat-metadata-wizard-top-title leading-135" variant="subtitle2">Preview</Typography>
+                        <Box className="mythic-chat-metadata-wizard-top-body items-center flex flex-fill mythic-chat-metadata-wizard-preview-body items-stretch min-w-0">
                             <ChatMetadataDisplayPreview channel={channel} displayString={generatedDisplay} />
                         </Box>
                     </Box>
                 </Box>
-                <Box sx={{display: "flex", flexDirection: "column", gap: 0.75, minHeight: 0}}>
+                <Box className="flex flex-column gap-3 min-h-0">
                     <Typography variant="subtitle2">Metadata chips</Typography>
                     <Typography variant="caption" color="text.secondary">
                         Drag rows to set display order. Hidden rows do not count toward the max visible preview.
                     </Typography>
                     {rows.length === 0 ? (
-                        <Box sx={{border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1.25}}>
+                        <Box className="p-5" sx={{border: "1px solid", borderColor: "divider", borderRadius: 1}}>
                             <Typography variant="body2" color="text.secondary">
                                 No metadata items have been reported for this channel yet. You can still edit the display string manually.
                             </Typography>
                         </Box>
                     ) : (
-                        <Box sx={{maxHeight: 420, overflow: "auto"}}>
+                        <Box className="overflow-auto" sx={{maxHeight: 420}}>
                             <ChatMetadataWizardDraggableList rows={rows} onDragEnd={onDragEnd} updateRow={updateRow} />
                         </Box>
                     )}
@@ -2516,8 +2121,8 @@ const ChatMetadataDisplayWizard = ({open, channel, displayString, onClose, onApp
                 />
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose}>Cancel</Button>
-                <Button onClick={apply} variant="contained" disabled={generatedWarnings.length > 0}>Apply</Button>
+                <MythicActionButton onClick={onClose}>Cancel</MythicActionButton>
+                <MythicActionButton colorMode="always" onClick={apply} tone="primary" variant="contained" disabled={generatedWarnings.length > 0}>Apply</MythicActionButton>
             </DialogActions>
         </Dialog>
     );
@@ -2526,7 +2131,7 @@ const ChatMetadataDisplayWizard = ({open, channel, displayString, onClose, onApp
 const ChatMetadataDisplayField = ({channel, value, setValue, warnings}) => {
     const [wizardOpen, setWizardOpen] = React.useState(false);
     return (
-        <Box sx={{display: "flex", flexDirection: "column", gap: 0.75}}>
+        <Box className="flex flex-column gap-3">
             <TextField
                 fullWidth
                 label="Metadata display"
@@ -2567,38 +2172,35 @@ const ChatMetadataDisplayField = ({channel, value, setValue, warnings}) => {
 const ChannelButtonComponent = ({channel, selected, unread, muted, chatContainers, onSelect, onToggleMute}) => {
     const theme = useTheme();
     const isAI = channel.channel_type === "ai";
-    const accentColor = isAI ? theme.palette.info.main : theme.palette.primary.main;
+    const accentColor = theme.palette.primary.main;
     const secondary = channel.description || (isAI ? channel.chat_container?.name || channel.chat_model || "" : "");
     const channelListChips = getChannelListChips(channel, chatContainers);
+    const channelRowClassName = "mythic-chat-channel-row border-transparent items-center rounded grid";
+    const channelRowStyle = selected ? {
+        borderColor: alpha(accentColor, 0.28),
+        backgroundColor: alpha(accentColor, theme.palette.mode === "dark" ? 0.18 : 0.1),
+    } : undefined;
+    const channelButtonClassName = [
+        "mythic-chat-channel-button gap-3 border-transparent items-center rounded cursor-pointer grid text-left w-full text-primary",
+        "bg-transparent",
+    ].join(" ");
     const states = [
-        channel.archived ? {label: "Archived", className: "mythic-chat-channel-state-archived"} : null,
-        channel.locked ? {label: "Locked", className: "mythic-chat-channel-state-locked"} : null,
-        isAI && channel.chat_container && !channel.chat_container.container_running ? {label: "Offline", className: "mythic-chat-channel-state-offline"} : null,
+        channel.archived ? {label: "Archived", tone: "warning"} : null,
+        channel.locked ? {label: "Locked", tone: "warning"} : null,
+        isAI && channel.chat_container && !channel.chat_container.container_running ? {label: "Offline", tone: "error"} : null,
     ].filter(Boolean);
     return (
         <Box
-            className={`mythic-chat-channel-row${selected ? " mythic-chat-channel-selected" : ""}`}
-            style={{
-                "--mythic-chat-channel-accent": accentColor,
-                "--mythic-chat-channel-warning": theme.palette.warning.main,
-                "--mythic-chat-channel-error": theme.palette.error.main,
-                "--mythic-chat-channel-muted": theme.palette.text.secondary,
-                "--mythic-chat-channel-info": theme.palette.info.main,
-                borderColor: selected ? alpha(accentColor, 0.28) : "transparent",
-                backgroundColor: selected ? alpha(accentColor, theme.palette.mode === "dark" ? 0.18 : 0.1) : "transparent",
-            }}
+            className={channelRowClassName}
+            style={channelRowStyle}
         >
             <button
                 type="button"
                 onClick={() => onSelect(channel.id)}
-                className={`mythic-chat-channel-button${channel.archived ? " mythic-chat-channel-button-archived" : ""}`}
-                style={{
-                    borderColor: "transparent",
-                    backgroundColor: selected ? "transparent" : channel.archived ? alpha(theme.palette.text.secondary, 0.06) : "transparent",
-                    color: theme.palette.text.primary,
-                }}
+                className={channelButtonClassName}
+                aria-current={selected ? "page" : undefined}
             >
-                <span className="mythic-chat-channel-icon">
+                <span className="mythic-chat-channel-icon items-center inline-flex justify-center">
                     {channel.archived ? (
                         <ArchiveIcon fontSize="small" />
                     ) : isAI ? (
@@ -2612,32 +2214,33 @@ const ChannelButtonComponent = ({channel, selected, unread, muted, chatContainer
                         <ForumTwoToneIcon fontSize="small" />
                     )}
                 </span>
-                <span className="mythic-chat-channel-main">
-                    <span className="mythic-chat-channel-name">{channelDisplayName(channel)}</span>
-                    {secondary && <span className="mythic-chat-channel-meta">{secondary} </span>}
+                <span className="mythic-chat-channel-main flex flex-column gap-2 min-w-0">
+                    <span className="mythic-chat-channel-name font-650 truncate whitespace-nowrap">{channelDisplayName(channel)}</span>
+                    {secondary && <span className="mythic-chat-channel-meta text-xs truncate whitespace-nowrap">{secondary} </span>}
                     {channelListChips.length > 0 &&
-                        <ChatDisplayChipRow chips={channelListChips} className="mythic-chat-channel-config-chips" />
+                        <ChatDisplayChipRow chips={channelListChips} />
                     }
                     {states.length > 0 &&
-                        <span className="mythic-chat-channel-states">
+                        <Box className="mythic-chat-channel-states flex flex-wrap gap-2">
                             {states.map((state) => (
-                                <span key={state.label} className={`mythic-chat-channel-state ${state.className}`}>{state.label}</span>
+                                <MythicChip compact={true} key={state.label} label={state.label} tone={state.tone} />
                             ))}
-                        </span>
+                        </Box>
                     }
                 </span>
-                {unread && <span className="mythic-chat-unread-badge">Unread</span>}
+                {unread && <MythicChip compact={true} label="Unread" tone="error" />}
             </button>
-            <MythicStyledTooltip title={muted ? "Unsilence notifications" : "Silence notifications"}>
-                <MythicActionButton iconOnly
-                    appearance="plain" colorMode={muted ? "always" : "hover"} shape="square" tone="warning"
-                    size="small"
-                    onClick={() => onToggleMute(channel)}
-                    aria-label={muted ? `Unsilence ${channelDisplayName(channel)}` : `Silence ${channelDisplayName(channel)}`}
-                >
-                    {muted ? <NotificationsOffIcon fontSize="small" /> : <NotificationsActiveIcon fontSize="small" />}
-                </MythicActionButton>
-            </MythicStyledTooltip>
+            <MythicActionButton
+                iconOnly
+                appearance="raised"
+                colorMode={muted ? "always" : "hover"}
+                shape="square" tone="warning"
+                size="small" tooltip={muted ? "Unsilence notifications" : "Silence notifications"}
+                onClick={() => onToggleMute(channel)}
+                icon={muted ? <NotificationsOffIcon fontSize="small" /> : <NotificationsActiveIcon fontSize="small" />}
+                aria-label={muted ? `Unsilence ${channelDisplayName(channel)}` : `Silence ${channelDisplayName(channel)}`}
+            >
+            </MythicActionButton>
         </Box>
     );
 };
@@ -2746,7 +2349,7 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers, currentUser,
     return (
         <Dialog open={open} onClose={onClose} maxWidth={channelType === "ai" ? "lg" : "sm"} fullWidth>
             <DialogTitle>{initialChannel?.channel_type === "ai" ? "Clone AI Chat" : (channelType === "ai" ? "New AI Chat" : "New Channel")}</DialogTitle>
-            <DialogContent className="mythic-chat-dialog-content" sx={{display: "flex", flexDirection: "column", gap: 1.75, pt: "20px !important", px: 3}}>
+            <DialogContent className="mythic-chat-dialog-content flex flex-column px-12" sx={{gap: 1.75, pt: "20px !important"}}>
                 <FormControl size="small" fullWidth>
                     <InputLabel>Type</InputLabel>
                     <Select label="Type" value={channelType} onChange={changeChannelType}>
@@ -2784,10 +2387,10 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers, currentUser,
                                         >
                                             {selectedContainerModels.map((containerModel) => (
                                                 <MenuItem value={containerModel.name} key={`${containerID}-${containerModel.name}`}>
-                                                    <Box sx={{display: "flex", flexDirection: "column", py: 0.5, minWidth: 0}}>
+                                                    <Box className="flex flex-column min-w-0 py-2">
                                                         <Typography variant="body2">{containerModel.name}</Typography>
                                                         {containerModel.description &&
-                                                            <Typography variant="caption" color="text.secondary" sx={{whiteSpace: "normal"}}>
+                                                            <Typography variant="caption" color="text.secondary" className="whitespace-normal">
                                                                 {containerModel.description}
                                                             </Typography>
                                                         }
@@ -2797,7 +2400,7 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers, currentUser,
                                         </Select>
                                     </FormControl>
                                 ) : (
-                                    <Box sx={{border: `1px solid ${alpha(theme.palette.warning.main, 0.32)}`, borderRadius: 1, p: 1.25, backgroundColor: alpha(theme.palette.warning.main, theme.palette.mode === "dark" ? 0.12 : 0.08)}}>
+                                    <Box className="p-5" sx={{border: `1px solid ${alpha(theme.palette.warning.main, 0.32)}`, borderRadius: 1, backgroundColor: alpha(theme.palette.warning.main, theme.palette.mode === "dark" ? 0.12 : 0.08)}}>
                                         <Typography variant="body2">No models reported</Typography>
                                         <Typography variant="caption" color="text.secondary">
                                             This chat container needs to report at least one model before it can be used for a new AI chat.
@@ -2821,7 +2424,7 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers, currentUser,
                             currentUser={currentUser}
                             operationBot={operationBot}
                         />
-                        <Box sx={{border: `1px solid ${alpha(theme.palette.info.main, 0.22)}`, borderRadius: 1, p: 1.25, backgroundColor: alpha(theme.palette.info.main, theme.palette.mode === "dark" ? 0.12 : 0.07)}}>
+                        <Box className="p-5" sx={{border: `1px solid ${alpha(theme.palette.info.main, 0.22)}`, borderRadius: 1, backgroundColor: alpha(theme.palette.info.main, theme.palette.mode === "dark" ? 0.12 : 0.07)}}>
                             <FormControlLabel
                                 control={<Switch checked={locked} onChange={(e) => setLocked(e.target.checked)} />}
                                 label="Lock this AI chat"
@@ -2834,10 +2437,10 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers, currentUser,
                 }
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose}>Cancel</Button>
-                <Button onClick={submit} variant="contained" disabled={createDisabled}>
+                <MythicActionButton onClick={onClose}>Cancel</MythicActionButton>
+                <MythicActionButton colorMode="always" onClick={submit} tone="primary" variant="contained" disabled={createDisabled}>
                     Create
-                </Button>
+                </MythicActionButton>
             </DialogActions>
         </Dialog>
     );
@@ -2850,8 +2453,8 @@ const ChatSearchDialog = ({open, onClose, onSearch, searchText, setSearchText, s
     return (
         <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{className: "mythic-chat-search-dialog"}}>
             <DialogTitle>Search Chat</DialogTitle>
-            <DialogContent className="mythic-chat-dialog-content mythic-chat-search-content" sx={{display: "flex", flexDirection: "column", gap: 1.75, pt: "20px !important", px: 3}}>
-                <Box className="mythic-chat-search-form">
+            <DialogContent className="mythic-chat-dialog-content mythic-chat-search-content flex flex-column flex-fill min-h-0 px-12" sx={{gap: 1.75, pt: "20px !important"}}>
+                <Box className="mythic-chat-search-form items-center gap-4 grid">
                     <TextField
                         autoFocus
                         fullWidth
@@ -2865,34 +2468,34 @@ const ChatSearchDialog = ({open, onClose, onSearch, searchText, setSearchText, s
                             }
                         }}
                     />
-                    <Button variant="contained" startIcon={<SearchIcon />} disabled={trimmedSearchText === "" || loading} onClick={onSearch}>
+                    <MythicActionButton variant="contained" startIcon={<SearchIcon />} disabled={trimmedSearchText === "" || loading} onClick={onSearch}>
                         {loading ? "Searching" : "Search"}
-                    </Button>
+                    </MythicActionButton>
                 </Box>
-                <Box className="mythic-chat-search-results">
-                    {loading && <Box className="mythic-chat-search-empty">Searching...</Box>}
-                    {!loading && hasSearched && searchResults.length === 0 && <Box className="mythic-chat-search-empty">No matches</Box>}
+                <Box className="mythic-chat-search-results flex flex-fill flex-column gap-3 min-h-0">
+                    {loading && <Box className="mythic-chat-search-empty items-center flex flex-fill justify-center text-center">Searching...</Box>}
+                    {!loading && hasSearched && searchResults.length === 0 && <Box className="mythic-chat-search-empty items-center flex flex-fill justify-center text-center">No matches</Box>}
                     {!loading && searchResults.map((result) => (
                         <button
                             type="button"
-                            className="mythic-chat-search-result"
+                            className="mythic-chat-search-result gap-3 rounded cursor-pointer grid border-subtle text-left"
                             key={result.id}
                             onClick={() => onSelectResult(result)}
                         >
-                            <span className="mythic-chat-search-result-header">
-                                <span className="mythic-chat-search-channel">
+                            <span className="mythic-chat-search-result-header items-center flex gap-6 justify-between min-w-0">
+                                <span className="mythic-chat-search-channel font-750 items-center inline-flex gap-3 min-w-0">
                                     {result.channel_type === "ai" ? <SmartToyTwoToneIcon fontSize="small" /> : <ForumTwoToneIcon fontSize="small" />}
                                     <span>{result.channel_type === "ai" ? result.channel_name : `#${result.channel_name}`}</span>
                                 </span>
-                                <span className="mythic-chat-search-meta">{result.sender_display_name} · {formatTimestamp(result.created_at, viewUTCTime)}</span>
+                                <span className="mythic-chat-search-meta text-xs flex-none whitespace-nowrap">{result.sender_display_name} · {formatTimestamp(result.created_at, viewUTCTime)}</span>
                             </span>
-                            <span className="mythic-chat-search-message">{renderSearchSnippet(result.message, highlightQuery)}</span>
+                            <span className="mythic-chat-search-message overflow-hidden wrap-anywhere">{renderSearchSnippet(result.message, highlightQuery)}</span>
                         </button>
                     ))}
                 </Box>
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose}>Close</Button>
+                <MythicActionButton onClick={onClose}>Close</MythicActionButton>
             </DialogActions>
         </Dialog>
     );
@@ -2964,7 +2567,7 @@ const ChatEditChannelDialog = ({open, channel, onClose, onSave, chatContainers =
     return (
         <Dialog open={open} onClose={onClose} maxWidth={isAIChannel ? "lg" : "sm"} fullWidth>
             <DialogTitle>{isAIChannel ? "Edit AI Chat" : "Edit Channel"}</DialogTitle>
-            <DialogContent className="mythic-chat-dialog-content" sx={{display: "flex", flexDirection: "column", gap: 1.75, pt: "20px !important", px: 3}}>
+            <DialogContent className="mythic-chat-dialog-content flex flex-column px-12" sx={{gap: 1.75, pt: "20px !important"}}>
                 <TextField
                     autoFocus={!isGeneralChannel}
                     fullWidth
@@ -3001,10 +2604,10 @@ const ChatEditChannelDialog = ({open, channel, onClose, onSave, chatContainers =
                                 }
                                 {containerModels.map((containerModel) => (
                                     <MenuItem value={containerModel.name} key={`${channel?.id}-${containerModel.name}`}>
-                                        <Box sx={{display: "flex", flexDirection: "column", py: 0.5, minWidth: 0}}>
+                                        <Box className="flex flex-column min-w-0 py-2">
                                             <Typography variant="body2">{containerModel.name}</Typography>
                                             {containerModel.description &&
-                                                <Typography variant="caption" color="text.secondary" sx={{whiteSpace: "normal"}}>
+                                                <Typography variant="caption" color="text.secondary" className="whitespace-normal">
                                                     {containerModel.description}
                                                 </Typography>
                                             }
@@ -3031,10 +2634,10 @@ const ChatEditChannelDialog = ({open, channel, onClose, onSave, chatContainers =
                 }
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose}>Cancel</Button>
-                <Button onClick={submit} variant="contained" disabled={saveDisabled}>
+                <MythicActionButton onClick={onClose}>Cancel</MythicActionButton>
+                <MythicActionButton colorMode="always" onClick={submit} tone="primary" variant="contained" disabled={saveDisabled}>
                     Save
-                </Button>
+                </MythicActionButton>
             </DialogActions>
         </Dialog>
     );
@@ -3066,8 +2669,8 @@ const ChatSystemMessageDialog = ({open, selectedChannel, isMythicAdmin, onClose,
     return (
         <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
             <DialogTitle>System Message</DialogTitle>
-            <DialogContent className="mythic-chat-dialog-content" sx={{display: "flex", flexDirection: "column", gap: 1.75, pt: "20px !important", px: 3}}>
-                <Box className="mythic-chat-system-destination">
+            <DialogContent className="mythic-chat-dialog-content flex flex-column px-12" sx={{gap: 1.75, pt: "20px !important"}}>
+                <Box className="mythic-chat-system-destination py-4 px-5 items-center flex gap-4 min-w-0 rounded bg-surface-hover border-subtle">
                     <CampaignTwoToneIcon fontSize="small" />
                     <Typography variant="body2" noWrap>{destination}</Typography>
                 </Box>
@@ -3082,7 +2685,7 @@ const ChatSystemMessageDialog = ({open, selectedChannel, isMythicAdmin, onClose,
                     onChange={(e) => setMessage(e.target.value)}
                 />
                 {isMythicAdmin &&
-                    <Box className="mythic-chat-system-options">
+                    <Box className="mythic-chat-system-options py-2 px-5 rounded bg-surface-hover border-subtle">
                         <FormControlLabel
                             control={<Switch checked={allOperations} onChange={(e) => setAllOperations(e.target.checked)} />}
                             label="Send to all operations"
@@ -3091,10 +2694,10 @@ const ChatSystemMessageDialog = ({open, selectedChannel, isMythicAdmin, onClose,
                 }
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose}>Cancel</Button>
-                <Button onClick={submit} variant="contained" disabled={sendDisabled}>
+                <MythicActionButton onClick={onClose}>Cancel</MythicActionButton>
+                <MythicActionButton colorMode="always" onClick={submit} tone="primary" variant="contained" disabled={sendDisabled}>
                     Send
-                </Button>
+                </MythicActionButton>
             </DialogActions>
         </Dialog>
     );
@@ -3231,23 +2834,18 @@ const ChatComposer = React.memo(({
     };
 
     return (
-        <Box className="mythic-chat-composer" sx={{backgroundColor: theme.palette.background.paper}}>
-            <Box sx={{display: "flex", flexDirection: "column", gap: 0.75, flex: "1 1 auto", minWidth: 0}}>
+        <Box className="mythic-chat-composer flex items-center justify-between gap-4" sx={{backgroundColor: theme.palette.background.paper}}>
+            <Box className="flex flex-column flex-fill gap-3 min-w-0">
                 {activeAIRequest &&
                     <Box
+                        className="items-center flex gap-4 justify-between px-4 py-2"
                         sx={{
-                            alignItems: "center",
                             backgroundColor: alpha(theme.palette.warning.main, 0.08),
                             border: `1px solid ${alpha(theme.palette.warning.main, 0.24)}`,
                             borderRadius: `${theme.shape.borderRadius}px`,
-                            display: "flex",
-                            gap: 1,
-                            justifyContent: "space-between",
-                            px: 1,
-                            py: 0.5,
                         }}
                     >
-                        <Box sx={{display: "flex", flexDirection: "column", minWidth: 0}}>
+                        <Box className="flex flex-column min-w-0">
                             <Typography variant="caption" sx={{fontWeight: 700}}>AI response in progress</Typography>
                             <Typography variant="caption" color="text.secondary" noWrap>{activeAIRequest.status || "streaming"}</Typography>
                         </Box>
@@ -3259,16 +2857,16 @@ const ChatComposer = React.memo(({
                     </Box>
                 }
                 {showSlashOptions &&
-                    <Box sx={{
-                        border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-                        borderRadius: `${theme.shape.borderRadius}px`,
-                        display: "flex",
-                        flexDirection: "column",
-                        maxHeight: 210,
-                        overflow: "auto",
-                    }}>
+                    <Box
+                        className="flex flex-column overflow-auto"
+                        sx={{
+                            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+                            borderRadius: `${theme.shape.borderRadius}px`,
+                            maxHeight: 210,
+                        }}
+                    >
                         {matchingSlashOptions.length === 0 ? (
-                            <Box sx={{px: 1.25, py: 1, color: "text.secondary", fontSize: "0.82rem"}}>No matching slash commands</Box>
+                            <Box className="px-5 py-4 text-muted" sx={{fontSize: "0.82rem"}}>No matching slash commands</Box>
                         ) : matchingSlashOptions.map((option) => (
                             <button
                                 type="button"
@@ -3288,8 +2886,8 @@ const ChatComposer = React.memo(({
                                     width: "100%",
                                 }}
                             >
-                                <Box sx={{display: "flex", flexDirection: "column", minWidth: 0}}>
-                                    <Typography variant="body2" sx={{fontFamily: "monospace"}}>/{option.name}</Typography>
+                                <Box className="flex flex-column min-w-0">
+                                    <Typography variant="body2" className="font-mono">/{option.name}</Typography>
                                     {option.source === "alias" &&
                                         <Typography variant="caption" color="text.secondary" noWrap>/{option.name} -&gt; {option.actualCommand}</Typography>
                                     }
@@ -3297,7 +2895,7 @@ const ChatComposer = React.memo(({
                                         <Typography variant="caption" color="text.secondary" noWrap>{option.description}</Typography>
                                     }
                                 </Box>
-                                <MythicChip size="small" label={option.source === "alias" ? "alias" : "model"} />
+                                <MythicChip compact={true} label={option.source === "alias" ? "alias" : "model"} />
                             </button>
                         ))}
                     </Box>
@@ -3489,38 +3087,26 @@ const ChatDelegationPane = ({
         return null;
     }
     return (
-        <Box
-            sx={{
-                borderLeft: "1px solid",
-                borderColor: "divider",
-                display: "flex",
-                flex: "1 1 auto",
-                height: "100%",
-                flexDirection: "column",
-                minHeight: 0,
-                minWidth: 0,
-                width: "100%",
-            }}
-        >
-            <Box className="mythic-chat-conversation-header" sx={{minHeight: 48}}>
-                <Box sx={{alignItems: "center", display: "flex", gap: 1, minWidth: 0}}>
+        <Box className="flex flex-column flex-fill h-full min-h-0 min-w-0 w-full" sx={{borderLeft: "1px solid", borderColor: "divider"}}>
+            <Box className="mythic-chat-conversation-header bg-header text-header flex items-center justify-between gap-4 flex-none min-w-0" sx={{minHeight: 48}}>
+                <Box className="items-center flex gap-4 min-w-0">
                     <ChatSubagentAvatar visual={visual} size={30} />
-                    <Box sx={{display: "flex", flexDirection: "column", minWidth: 0}}>
-                        <Box sx={{alignItems: "center", display: "flex", gap: 0.75, minWidth: 0}}>
+                    <Box className="flex flex-column min-w-0">
+                        <Box className="items-center flex gap-3 min-w-0">
                             <MythicStyledTooltip title={delegation.title || delegation.name || "Sub-agent"}>
-                                <Typography className="mythic-chat-conversation-title" variant="subtitle2" noWrap>
+                                <Typography className="mythic-chat-conversation-title font-800 leading-120" variant="subtitle2" noWrap>
                                     {delegation.title || delegation.name || "Sub-agent"}
                                 </Typography>
                             </MythicStyledTooltip>
                             <MythicChip
-                                size="small"
+                                compact={true}
                                 tone={getChatStateTone(stateClass)}
                                 label={getSubagentStatusText(snapshot)}
                                 variant="outlined"
                             />
                             {hasProgress &&
                                 <MythicChip
-                                    size="small"
+                                    compact={true}
                                     tone={getChatStateTone(stateClass)}
                                     label={`${toolCount}/${toolTotal} tools`}
                                     variant="outlined"
@@ -3539,24 +3125,24 @@ const ChatDelegationPane = ({
                 </MythicStyledTooltip>
             </Box>
             {prompt &&
-                <Box className="mythic-chat-delegation-prompt">
-                    <Typography className="mythic-chat-delegation-prompt-label" variant="caption">
+                <Box className="mythic-chat-delegation-prompt py-4 px-5 flex flex-column gap-2 min-w-0 bg-surface-muted border-b-subtle">
+                    <Typography className="mythic-chat-delegation-prompt-label text-2xs font-850 leading-110 text-muted" variant="caption">
                         Prompt
                     </Typography>
-                    <Typography className="mythic-chat-delegation-prompt-text" variant="body2">
+                    <Typography className="mythic-chat-delegation-prompt-text text-xs leading-135 overflow-auto wrap-anywhere text-primary whitespace-pre-wrap" variant="body2">
                         {prompt}
                     </Typography>
                 </Box>
             }
-            <Box className="mythic-chat-messages" sx={{padding: "8px"}} ref={messagesContainerRef} onScroll={updateNearBottom}>
+            <Box className="mythic-chat-messages p-4 flex flex-fill flex-column gap-4 min-h-0" ref={messagesContainerRef} onScroll={updateNearBottom}>
                 {(hiddenMessageCount > 0 || hasOlderMessages) &&
-                    <Box className="mythic-chat-show-older">
-                        <Button size="small" variant="text" onClick={showOlderMessages} disabled={loadingOlderMessages}>
+                    <Box className="mythic-chat-show-older items-center flex flex-none justify-center">
+                        <MythicActionButton appearance="plain" size="small" variant="text" onClick={showOlderMessages} disabled={loadingOlderMessages}>
                             {hiddenMessageCount > 0 ?
                                 `Show ${Math.min(CHAT_RENDER_BATCH_SIZE, hiddenMessageCount)} older messages (${hiddenMessageCount} hidden)` :
                                 loadingOlderMessages ? "Fetching previous messages..." : "Fetch previous messages"
                             }
-                        </Button>
+                        </MythicActionButton>
                     </Box>
                 }
                 {messages.length === 0 ? (
@@ -4679,24 +4265,39 @@ export function Chat({me}) {
                 icon={<ForumTwoToneIcon />}
                 meta={metaChips}
                 actions={
-                    <Box sx={{display: "flex", gap: 1}}>
-                        <Button size="small" className="mythic-action-tone-hover mythic-tone-info" startIcon={<SearchIcon />} onClick={() => setSearchOpen(true)}>Search</Button>
-                        <Button size="small" className="mythic-action-tone-hover mythic-tone-success" variant="contained" startIcon={<AddIcon />} onClick={openNewChannelDialog}>New channel</Button>
+                    <Box className="flex gap-4">
+                        <MythicActionButton
+                            size="small"
+                            colorMode={"hover"}
+                            tone={"info"}
+                            icon={<SearchIcon />}
+                            onClick={() => setSearchOpen(true)}>
+                            Search
+                        </MythicActionButton>
+                        <MythicActionButton
+                            size="small"
+                            colorMode={"hover"}
+                            tone={"success"}
+                            variant="contained"
+                            icon={<AddIcon />}
+                            onClick={openNewChannelDialog}>
+                            New channel
+                        </MythicActionButton>
                     </Box>
                 }
             />
             <Split
-                className={`mythic-chat-layout`}
+                className={`mythic-chat-layout flex flex-fill min-h-0 w-full`}
                 direction="horizontal"
                 sizes={chatSplitSizes}
                 minSize={[0, 0]}
                 onDragEnd={updateChatSplitSizes}
             >
-                <Box className="mythic-chat-sidebar">
-                    <Box className="mythic-chat-sidebar-toolbar">
-                        <Box className="mythic-chat-sidebar-heading">
+                <Box className="mythic-chat-sidebar flex flex-column min-h-0 min-w-0 overflow-hidden rounded bg-surface-raised border-subtle">
+                    <Box className="mythic-chat-sidebar-toolbar bg-header text-header flex items-center justify-between gap-4">
+                        <Box className="mythic-chat-sidebar-heading items-center flex gap-4 min-w-0">
                             <Typography variant="subtitle2">Channels</Typography>
-                            <MythicChip className="mythic-chat-sidebar-count" size="small" label={`${channels.length} total`} />
+                            <MythicChip compact={true} label={`${channels.length} total`} />
                         </Box>
                         <FormControlLabel
                             sx={{m: 0}}
@@ -4705,17 +4306,17 @@ export function Chat({me}) {
                         />
                     </Box>
                     <Split
-                        className="mythic-chat-channel-split"
+                        className="mythic-chat-channel-split flex flex-fill flex-column min-h-0 overflow-hidden"
                         direction="vertical"
                         sizes={channelSplitSizes}
-                        minSize={[90, 90]}
+                        minSize={[0, 0]}
                         gutterSize={5}
                         onDragEnd={updateChannelSplitSizes}
                     >
-                        <Box className="mythic-chat-channel-section">
-                            <Typography variant="caption" color="text.secondary">Standard</Typography>
+                        <Box className="mythic-chat-channel-section flex flex-column gap-3 min-h-0 rounded bg-surface-muted border-subtle">
+                            <Typography variant="caption" color="text.secondary">Standard Channels</Typography>
                             {standardChannels.length === 0 ? (
-                                <Box className="mythic-chat-empty-list">No standard channels</Box>
+                                <Box className="mythic-chat-empty-list text-xs rounded">No standard channels</Box>
                             ) : (
                                 standardChannels.map((channel) => (
                                     <ChannelButton
@@ -4731,10 +4332,10 @@ export function Chat({me}) {
                                 ))
                             )}
                         </Box>
-                        <Box className="mythic-chat-channel-section">
-                            <Typography variant="caption" color="text.secondary">AI</Typography>
+                        <Box className="mythic-chat-channel-section flex flex-column gap-3 min-h-0 rounded bg-surface-muted border-subtle">
+                            <Typography variant="caption" color="text.secondary">AI Chat Container Channels</Typography>
                             {aiChannels.length === 0 ? (
-                                <Box className="mythic-chat-empty-list">No AI chats</Box>
+                                <Box className="mythic-chat-empty-list text-xs rounded">No AI chats</Box>
                             ) : (
                                 aiChannels.map((channel) => (
                                     <ChannelButton
@@ -4752,20 +4353,14 @@ export function Chat({me}) {
                         </Box>
                     </Split>
                 </Box>
-                <Box className="mythic-chat-main">
-                    <Box className="mythic-chat-conversation-header">
-                        <Box sx={{display: "flex", flex: "1 1 auto", alignItems: "center", gap: 1, minWidth: 0}}>
+                <Box className="mythic-chat-main flex flex-column min-h-0 min-w-0 overflow-hidden rounded bg-surface border-subtle">
+                    <Box className="mythic-chat-conversation-header bg-header text-header flex items-center justify-between gap-4 flex-none min-w-0">
+                        <Box className="items-center flex flex-fill gap-4 min-w-0">
                             <Box
-                                className="mythic-chat-conversation-icon"
-                                sx={{
-                                    color: selectedChannel?.channel_type === "ai" ? "" : theme.palette.primary.main,
-                                    borderColor: selectedChannel?.channel_type === "ai" ? "" : alpha(theme.palette.primary.main, 0.2),
-                                    backgroundColor: selectedChannel?.channel_type === "ai" ? "" : alpha(theme.palette.primary.main, 0.1),
-                                }}
-                            >
+                                className="mythic-chat-conversation-icon items-center inline-flex flex-none justify-center rounded" >
                                 {selectedChannel?.channel_type === "ai" ? (
                                     <MythicChatContainerIcon
-                                        className="mythic-chat-conversation-icon"
+                                        className="mythic-chat-conversation-icon items-center inline-flex flex-none justify-center rounded"
                                         altText={selectedChannel?.chat_container?.name || channelDisplayName(selectedChannel)}
                                         containerName={selectedChannel?.chat_container?.name}
                                         iconProps={{fontSize: "small"}}
@@ -4774,75 +4369,93 @@ export function Chat({me}) {
                                     <ForumTwoToneIcon fontSize="small" />
                                 )}
                             </Box>
-                            <Box sx={{minWidth: 0}}>
-                                <Typography className="mythic-chat-conversation-title" variant="subtitle1" noWrap>{selectedChannel ? channelDisplayName(selectedChannel) : "Chat"}</Typography>
+                            <Box className="min-w-0 overflow-auto">
+                                <Typography className="mythic-chat-conversation-title font-800 leading-120" variant="subtitle1" noWrap>
+                                    {selectedChannel ? channelDisplayName(selectedChannel) : "Chat"}
+                                </Typography>
                                 <Typography className="mythic-chat-conversation-subtitle" variant="caption" color="text.secondary" noWrap>
                                     {selectedChannel?.description || selectedChannel?.chat_container?.name || ""}
                                 </Typography>
                                 {selectedConfigChips.length > 0 &&
-                                    <ChatDisplayChipRow chips={selectedConfigChips} className="mythic-chat-header-config-chips" />
+                                    <ChatDisplayChipRow chips={selectedConfigChips}  />
                                 }
                             </Box>
                         </Box>
-                        <Box className="mythic-chat-header-actions">
+                        <Box className="mythic-chat-header-actions items-center flex flex-none gap-3">
                             {selectedChannel &&
-                                <MythicStyledTooltip title={selectedChannelMuted ? "Unsilence notifications" : "Silence notifications"}>
-                                    <MythicActionButton iconOnly size="small" onClick={() => toggleMute(selectedChannel)}>
-                                        {selectedChannelMuted ? <NotificationsOffIcon fontSize="small" /> : <NotificationsActiveIcon fontSize="small" />}
-                                    </MythicActionButton>
-                                </MythicStyledTooltip>
+                                <MythicActionButton
+                                    iconOnly
+                                    appearance={"raised"}
+                                    icon={selectedChannelMuted ? <NotificationsOffIcon  /> : <NotificationsActiveIcon  />}
+                                    tooltip={selectedChannelMuted ? "Unsilence notifications" : "Silence notifications"}
+                                    onClick={() => toggleMute(selectedChannel)}>
+                                </MythicActionButton>
                             }
                             {selectedChannel &&
-                                <MythicStyledTooltip title="Edit channel">
-                                    <MythicActionButton iconOnly size="small" onClick={() => setEditChannelOpen(true)}>
-                                        <EditIcon fontSize="small" />
-                                    </MythicActionButton>
-                                </MythicStyledTooltip>
+                                <MythicActionButton
+                                    iconOnly
+                                    appearance={"raised"}
+                                    variant={"outlined"}
+                                    colorMode={"hover"}
+                                    tooltip="Edit channel"
+                                    icon={<EditIcon  />}
+                                    onClick={() => setEditChannelOpen(true)}>
+
+                                </MythicActionButton>
                             }
                             {selectedChannel?.channel_type === "ai" &&
-                                <MythicStyledTooltip title="Clone AI chat">
-                                    <MythicActionButton iconOnly size="small" onClick={openCloneChannelDialog}>
-                                        <ContentCopyIcon fontSize="small" />
-                                    </MythicActionButton>
-                                </MythicStyledTooltip>
+                                <MythicActionButton
+                                    iconOnly
+                                    size="small"
+                                    icon={ <ContentCopyIcon  />}
+                                    colorMode={"hover"}
+                                    appearance={"raised"}
+                                    tooltip={"Clone AI Chat"}
+                                    onClick={openCloneChannelDialog}>
+
+                                </MythicActionButton>
                             }
                             {selectedChannel?.channel_type === "ai" &&
-                                <MythicStyledTooltip title={selectedChannel.locked ? "Unlock AI chat" : "Lock AI chat"}>
-                                    <MythicActionButton iconOnly size="small" onClick={toggleLock}>
-                                        {selectedChannel.locked ? <LockIcon fontSize="small" /> : <LockOpenIcon fontSize="small" />}
-                                    </MythicActionButton>
-                                </MythicStyledTooltip>
+                                <MythicActionButton
+                                    iconOnly
+                                    appearance={"raised"}
+                                    colorMode={"hover"}
+                                    tooltip={selectedChannel.locked ? "Unlock AI chat" : "Lock AI chat"}
+                                    icon={selectedChannel.locked ? <LockIcon  /> : <LockOpenIcon  />}
+                                    onClick={toggleLock}>
+                                </MythicActionButton>
                             }
                             {selectedChannel &&
-                                <MythicStyledTooltip title={selectedChannelIsGeneral ? "General channel cannot be archived" : selectedChannel.archived ? "Unarchive channel" : "Archive channel"}>
-                                    <span>
-                                        <MythicActionButton iconOnly size="small" onClick={toggleArchive} disabled={selectedChannelIsGeneral}>
-                                            {selectedChannel.archived ? <UnarchiveIcon fontSize="small" /> : <ArchiveIcon fontSize="small" />}
-                                        </MythicActionButton>
-                                    </span>
-                                </MythicStyledTooltip>
+                                <MythicActionButton
+                                    iconOnly
+                                    appearance={"raised"}
+                                    tooltip={selectedChannelIsGeneral ? "General channel cannot be archived" : selectedChannel.archived ? "Unarchive channel" : "Archive channel"}
+                                    onClick={toggleArchive}
+                                    icon={selectedChannel.archived ? <UnarchiveIcon /> : <ArchiveIcon />}
+                                    disabled={selectedChannelIsGeneral}>
+                                </MythicActionButton>
                             }
                         </Box>
                     </Box>
                     <Split
-                        className="mythic-chat-layout mythic-chat-delegation-split"
+                        className="mythic-chat-layout flex flex-fill mythic-chat-delegation-split min-h-0 w-full"
                         direction="horizontal"
                         sizes={selectedDelegation ? delegationSplitSizes : [100, 0]}
-                        minSize={selectedDelegation ? [0, 320] : [0, 0]}
+                        minSize={[0, 0]}
                         gutterSize={selectedDelegation ? 5 : 0}
                         onDragEnd={selectedDelegation ? updateDelegationSplitSizes : undefined}
                     >
-                        <Box sx={{display: "flex", flex: "1 1 auto", flexDirection: "column", minHeight: 0, minWidth: 0, overflow: "hidden"}}>
+                        <Box className="flex flex-column flex-fill min-h-0 min-w-0 overflow-hidden">
                             <ChatChannelMetadataBar channel={selectedChannel} onChipClick={handleMetadataChipClick} />
-                            <Box className="mythic-chat-messages" ref={messagesContainerRef} onScroll={updateMessagesNearBottom}>
+                            <Box className="mythic-chat-messages flex flex-fill flex-column gap-4 min-h-0" ref={messagesContainerRef} onScroll={updateMessagesNearBottom}>
                                 {selectedChannel && (hiddenMainMessageCount > 0 || hasOlderMainMessages) &&
-                                    <Box className="mythic-chat-show-older">
-                                        <Button size="small" variant="text" onClick={showOlderMainMessages} disabled={loadingOlderMainMessages}>
+                                    <Box className="mythic-chat-show-older items-center flex flex-none justify-center">
+                                        <MythicActionButton appearance="plain" size="small" variant="text" onClick={showOlderMainMessages} disabled={loadingOlderMainMessages}>
                                             {hiddenMainMessageCount > 0 ?
                                                 `Show ${Math.min(CHAT_RENDER_BATCH_SIZE, hiddenMainMessageCount)} older messages (${hiddenMainMessageCount} hidden)` :
                                                 loadingOlderMainMessages ? "Fetching previous messages..." : "Fetch previous messages"
                                             }
-                                        </Button>
+                                        </MythicActionButton>
                                     </Box>
                                 }
                                 {!selectedChannel ? (
@@ -4905,7 +4518,7 @@ export function Chat({me}) {
                                 onCancelRequest={(requestID) => cancelRequest({variables: {request_id: requestID}})}
                             />
                         </Box>
-                        <Box sx={{display: selectedDelegation ? "flex" : "none", height: "100%", minHeight: 0, minWidth: 0, overflow: "hidden"}}>
+                        <Box className="h-full min-h-0 min-w-0 overflow-hidden" sx={{display: selectedDelegation ? "flex" : "none"}}>
                             {selectedDelegation &&
                             <ChatDelegationPane
                                 delegation={selectedDelegation}
@@ -5015,7 +4628,7 @@ export function Chat({me}) {
             {inputResponseTarget &&
                 <Dialog open={Boolean(inputResponseTarget)} onClose={() => {setInputResponseTarget(null); setInputResponseText("");}} maxWidth="sm" fullWidth>
                     <DialogTitle>Respond To Input Request</DialogTitle>
-                    <DialogContent className="mythic-chat-dialog-content" sx={{display: "flex", flexDirection: "column", gap: 1.75, pt: "20px !important", px: 3}}>
+                    <DialogContent className="mythic-chat-dialog-content flex flex-column px-12" sx={{gap: 1.75, pt: "20px !important"}}>
                         <TextField
                             autoFocus
                             fullWidth
@@ -5028,14 +4641,14 @@ export function Chat({me}) {
                         />
                     </DialogContent>
                     <DialogActions>
-                        <Button onClick={() => {setInputResponseTarget(null); setInputResponseText("");}}>Cancel</Button>
-                        <Button
+                        <MythicActionButton onClick={() => {setInputResponseTarget(null); setInputResponseText("");}}>Cancel</MythicActionButton>
+                        <MythicActionButton compact tone="success"
                             variant="contained"
                             disabled={inputResponseText.trim() === "" || submittingInputResponseID === inputResponseTarget?.id}
                             onClick={() => submitInputResponseAction(inputResponseTarget, "respond", inputResponseText.trim())}
                         >
                             Send
-                        </Button>
+                        </MythicActionButton>
                     </DialogActions>
                 </Dialog>
             }
@@ -5052,25 +4665,18 @@ export function Chat({me}) {
                         },
                     }}
                 >
-                <DialogTitle sx={{px: 1.5, py: 1}}>Tool Output</DialogTitle>
+                <DialogTitle className="px-6 py-4">Tool Output</DialogTitle>
                     <DialogContent
-                        className="mythic-chat-dialog-content"
-                        sx={{
-                            display: "flex",
-                            flex: "1 1 auto",
-                            flexDirection: "column",
-                            minHeight: 0,
-                            overflow: "hidden",
-                            p: "0 !important",
-                        }}
+                        className="mythic-chat-dialog-content flex flex-column flex-fill min-h-0 overflow-hidden"
+                        sx={{p: "0 !important"}}
                     >
                         {toolOutputState.loading ? (
-                            <Typography variant="body2" color="text.secondary" sx={{p: 2}}>Loading output...</Typography>
+                            <Typography variant="body2" color="text.secondary" className="p-8">Loading output...</Typography>
                         ) : toolOutputState.error ? (
-                            <Typography variant="body2" color="error" sx={{p: 2}}>{toolOutputState.error.message}</Typography>
+                            <Typography variant="body2" color="error" className="p-8">{toolOutputState.error.message}</Typography>
                         ) : (
-                            <Box sx={{display: "flex", flex: "1 1 auto", minHeight: 0, minWidth: 0}}>
-                                <React.Suspense fallback={<Typography sx={{p: 2}} color="text.secondary">Loading output viewer...</Typography>}>
+                            <Box className="flex flex-fill min-h-0 min-w-0">
+                                <React.Suspense fallback={<Typography className="p-8" color="text.secondary">Loading output viewer...</Typography>}>
                                     <LazyResponseDisplayPlaintext
                                         plaintext={toolOutputState.plaintext}
                                         initial_render_mode="plaintext"
@@ -5085,8 +4691,8 @@ export function Chat({me}) {
                             </Box>
                         )}
                     </DialogContent>
-                <DialogActions sx={{px: 1.5, py: 1}}>
-                        <Button onClick={closeToolOutput}>Close</Button>
+                <DialogActions className="px-6 py-4">
+                        <MythicActionButton onClick={closeToolOutput}>Close</MythicActionButton>
                     </DialogActions>
                 </Dialog>
             }
@@ -5100,7 +4706,7 @@ export function Chat({me}) {
                         setReviewMessage(null);
                     }}
                     innerDialog={
-                        <React.Suspense fallback={<Typography sx={{p: 3}} color="text.secondary">Loading event review...</Typography>}>
+                        <React.Suspense fallback={<Typography className="p-12" color="text.secondary">Loading event review...</Typography>}>
                             <LazyEventStepUserInteractionDialog
                                 onClose={() => {
                                     refreshChatSpecialMessage(reviewMessage).catch(() => {});
@@ -5122,7 +4728,7 @@ const MarkdownMessage = React.memo(({message}) => {
         return null;
     }
     return (
-        <Box className="mythic-chat-markdown">
+        <Box className="mythic-chat-markdown wrap-anywhere">
             <ReactMarkdown remarkPlugins={markdownPlugins} components={markdownComponents} skipHtml>
                 {message}
             </ReactMarkdown>
@@ -5144,11 +4750,11 @@ const ChatAssistantMessage = React.memo(({message, timestamp, viewUTCTime}) => {
     const formattedTimestamp = formatTimestamp(timestamp, viewUTCTime);
     return (
         <Box
-            className="mythic-chat-assistant-message"
+            className="mythic-chat-assistant-message max-w-full min-w-0 text-primary"
             sx={getChatMarkdownSurfaceSx(theme)}
         >
             {formattedTimestamp &&
-                <Typography variant="caption" color="text.secondary" className="mythic-chat-assistant-timestamp">
+                <Typography variant="caption" color="text.secondary" className="mythic-chat-assistant-timestamp text-xs font-650">
                     {formattedTimestamp}
                 </Typography>
             }
@@ -5341,20 +4947,20 @@ const ChatEventingUserInteractionEvent = ({message, me, onRefresh, onReview, ref
         }
     }, [waiting]);
     return (
-        <Box className={`mythic-chat-inline-event mythic-tone-${getChatStateTone(stateClass)}`}>
-            <Box className="mythic-chat-inline-event-summary">
-                <Box className="mythic-chat-inline-event-main">
+        <Box className={`mythic-chat-inline-event flex flex-column mythic-tone-${getChatStateTone(stateClass)} relative text-primary max-w-full min-w-0`}>
+            <Box className="mythic-chat-inline-event-summary items-center flex gap-4 justify-between min-w-0">
+                <Box className="mythic-chat-inline-event-main items-center flex flex-fill gap-3 min-w-0">
                     <MythicChip
-                        size="small"
+                        compact={true}
                         tone={getChatStateTone(stateClass)}
                         label={statusText}
                         variant="outlined"
                     />
-                    <Typography className="mythic-chat-inline-event-title" variant="body2" noWrap>
+                    <Typography className="mythic-chat-inline-event-title text-xs font-600 leading-120 min-w-0 text-muted" variant="body2" noWrap>
                         Eventing interaction: {stepName}
                     </Typography>
                 </Box>
-                <Box className="mythic-chat-inline-event-actions">
+                <Box className="mythic-chat-inline-event-actions items-center flex">
                     <MythicStyledTooltip title="Refresh">
                         <span>
                             <MythicActionButton iconOnly
@@ -5369,41 +4975,41 @@ const ChatEventingUserInteractionEvent = ({message, me, onRefresh, onReview, ref
                         </span>
                     </MythicStyledTooltip>
                     {waiting &&
-                        <Button
+                        <MythicActionButton compact tone="success"
                             size="small"
                             variant="contained"
-                            className="mythic-compact-action mythic-action-tone-hover mythic-tone-success"
                             onClick={() => onReview(message)}
                         >
                             Review
-                        </Button>
+                        </MythicActionButton>
                     }
-                    <Button
+                    <MythicActionButton
+                        appearance="plain"
                         size="small"
                         variant="text"
-                        className="mythic-chat-inline-details-toggle"
+                        className="mythic-chat-inline-details-toggle rounded"
                         startIcon={showDetails ? <KeyboardArrowDownIcon fontSize="small" /> : <KeyboardArrowRightIcon fontSize="small" />}
                         onClick={() => setShowDetails((open) => !open)}
                     >
                         Details
-                    </Button>
+                    </MythicActionButton>
                 </Box>
             </Box>
             <Collapse in={showDetails} timeout="auto" unmountOnExit>
-                <Box className="mythic-chat-inline-event-details">
-                    <Typography variant="caption" className="mythic-chat-inline-event-description">
+                <Box className="mythic-chat-inline-event-details flex flex-column gap-4 min-w-0">
+                    <Typography variant="caption" className="mythic-chat-inline-event-description text-xs font-600 leading-135 text-muted whitespace-pre-wrap">
                         {getChatEventingPrompt(snapshot)}
                     </Typography>
-                    <Box className="mythic-chat-special-card-details">
+                    <Box className="mythic-chat-special-card-details min-w-0 grid grid-cols-2">
                         {detailItems.map((item) => (
-                            <span className="mythic-chat-special-card-detail" key={`${message.id}-${item.label}`}>
-                                <span className="mythic-chat-special-card-detail-label">{item.label}</span>
-                                <span className="mythic-chat-special-card-detail-value">{item.value}</span>
+                            <span className="mythic-chat-special-card-detail flex flex-column gap-1 min-w-0" key={`${message.id}-${item.label}`}>
+                                <span className="mythic-chat-special-card-detail-label text-2xs font-850 leading-110 text-muted">{item.label}</span>
+                                <span className="mythic-chat-special-card-detail-value text-xs font-700 leading-120 truncate text-primary whitespace-nowrap">{item.value}</span>
                             </span>
                         ))}
                     </Box>
                     {refreshedAt &&
-                        <Typography className="mythic-chat-special-card-refresh-time" variant="caption">
+                        <Typography className="mythic-chat-special-card-refresh-time text-2xs font-650 leading-120 flex-fill min-w-0 truncate text-muted whitespace-nowrap" variant="caption">
                             Refreshed {formatTimestamp(refreshedAt, me?.user?.view_utc_time)}
                         </Typography>
                     }
@@ -5479,96 +5085,97 @@ const ChatInputRequestedEvent = ({message, me, onSubmit, submitting}) => {
     const dataText = jsonTextForConfigValue(snapshot.data || {});
     const responseText = response ? jsonTextForConfigValue(response) : "";
     return (
-        <Box className={`mythic-chat-inline-event mythic-tone-${getChatStateTone(stateClass)}`}>
-            <Box className="mythic-chat-inline-event-summary">
-                <Box className="mythic-chat-inline-event-main">
+        <Box className={`mythic-chat-inline-event flex flex-column mythic-tone-${getChatStateTone(stateClass)} relative text-primary max-w-full min-w-0`}>
+            <Box className="mythic-chat-inline-event-summary items-center flex gap-4 justify-between min-w-0">
+                <Box className="mythic-chat-inline-event-main items-center flex flex-fill gap-3 min-w-0">
                     <MythicChip
-                        size="small"
+                        compact={true}
                         tone={getChatStateTone(stateClass)}
                         label={statusText}
                         variant="outlined"
                     />
-                    <Typography className="mythic-chat-inline-event-title" variant="body2" noWrap>
+                    <Typography className="mythic-chat-inline-event-title text-xs font-600 leading-120 min-w-0 text-muted" variant="body2" noWrap>
                         {title}
                     </Typography>
                 </Box>
-                <Box className="mythic-chat-inline-event-actions">
+                <Box className="mythic-chat-inline-event-actions items-center flex">
                     {pending && inputType === "approval" &&
                         <>
-                            <Button
+                            <MythicActionButton compact tone="success"
                                 size="small"
                                 variant="contained"
-                                className="mythic-compact-action mythic-action-tone-hover mythic-tone-success"
                                 disabled={submitting}
                                 onClick={() => onSubmit(message, "accept")}
                             >
                                 Accept
-                            </Button>
-                            <Button
+                            </MythicActionButton>
+                            <MythicActionButton
+                                appearance="plain"
                                 size="small"
                                 variant="text"
                                 disabled={submitting}
                                 onClick={() => onSubmit(message, "reject")}
                             >
                                 Reject
-                            </Button>
-                            <Button
+                            </MythicActionButton>
+                            <MythicActionButton
+                                appearance="plain"
                                 size="small"
                                 variant="text"
                                 disabled={submitting}
                                 onClick={() => onSubmit(message, "respond")}
                             >
                                 Respond
-                            </Button>
+                            </MythicActionButton>
                         </>
                     }
                     {pending && inputType === "text" &&
-                        <Button
+                        <MythicActionButton compact tone="success"
                             size="small"
                             variant="contained"
-                            className="mythic-compact-action mythic-action-tone-hover mythic-tone-success"
                             disabled={submitting}
                             onClick={() => onSubmit(message, "respond")}
                         >
                             Respond
-                        </Button>
+                        </MythicActionButton>
                     }
-                    <Button
+                    <MythicActionButton
+                        appearance="plain"
                         size="small"
                         variant="text"
-                        className="mythic-chat-inline-details-toggle"
+                        className="mythic-chat-inline-details-toggle rounded"
                         startIcon={showDetails ? <KeyboardArrowDownIcon fontSize="small" /> : <KeyboardArrowRightIcon fontSize="small" />}
                         onClick={() => setShowDetails((open) => !open)}
                     >
                         Details
-                    </Button>
+                    </MythicActionButton>
                 </Box>
             </Box>
             <Collapse in={showDetails} timeout="auto" unmountOnExit>
-                <Box className="mythic-chat-inline-event-details">
+                <Box className="mythic-chat-inline-event-details flex flex-column gap-4 min-w-0">
                     {prompt &&
-                        <Typography variant="caption" className="mythic-chat-inline-event-description">
+                        <Typography variant="caption" className="mythic-chat-inline-event-description text-xs font-600 leading-135 text-muted whitespace-pre-wrap">
                             {prompt}
                         </Typography>
                     }
                     {snapshot.description &&
-                        <Typography variant="caption" className="mythic-chat-inline-event-description">
+                        <Typography variant="caption" className="mythic-chat-inline-event-description text-xs font-600 leading-135 text-muted whitespace-pre-wrap">
                             {snapshot.description}
                         </Typography>
                     }
                     {pending && inputType === "single_choice" &&
-                        <Box className="mythic-chat-input-choice-list">
+                        <Box className="mythic-chat-input-choice-list flex flex-column gap-4 w-full">
                             {choices.map((choice, index) => {
                                 const choiceID = choice?.id || `${index}`;
                                 return (
-                                    <Button
+                                    <MythicActionButton
                                         key={`${message.id}-choice-${choiceID}`}
-                                        className="mythic-chat-input-choice"
+                                        className="mythic-chat-input-choice rounded"
                                         disabled={submitting}
                                         onClick={() => onSubmit(message, "select", {choice_id: choiceID})}
                                         variant="outlined"
                                     >
-                                        <Box className="mythic-chat-input-choice-content">
+                                        <Box className="mythic-chat-input-choice-content flex flex-column gap-1 min-w-0 w-full">
                                             <Typography variant="body2" className="mythic-chat-input-choice-label">
                                                 {choice?.label || choiceID}
                                             </Typography>
@@ -5578,26 +5185,26 @@ const ChatInputRequestedEvent = ({message, me, onSubmit, submitting}) => {
                                                 </Typography>
                                             }
                                         </Box>
-                                    </Button>
+                                    </MythicActionButton>
                                 );
                             })}
                         </Box>
                     }
-                    <Box className="mythic-chat-special-card-details">
+                    <Box className="mythic-chat-special-card-details min-w-0 grid grid-cols-2">
                         {detailItems.map((item) => (
-                            <span className="mythic-chat-special-card-detail" key={`${message.id}-${item.label}`}>
-                                <span className="mythic-chat-special-card-detail-label">{item.label}</span>
-                                <span className="mythic-chat-special-card-detail-value">{item.value}</span>
+                            <span className="mythic-chat-special-card-detail flex flex-column gap-1 min-w-0" key={`${message.id}-${item.label}`}>
+                                <span className="mythic-chat-special-card-detail-label text-2xs font-850 leading-110 text-muted">{item.label}</span>
+                                <span className="mythic-chat-special-card-detail-value text-xs font-700 leading-120 truncate text-primary whitespace-nowrap">{item.value}</span>
                             </span>
                         ))}
                     </Box>
                     {dataText !== "{}" &&
-                        <Typography component="pre" variant="caption" className="mythic-chat-input-data">
+                        <Typography component="pre" variant="caption" className="mythic-chat-input-data text-xs leading-135 overflow-auto rounded text-primary whitespace-pre-wrap">
                             {dataText}
                         </Typography>
                     }
                     {responseText &&
-                        <Typography component="pre" variant="caption" className="mythic-chat-input-data">
+                        <Typography component="pre" variant="caption" className="mythic-chat-input-data text-xs leading-135 overflow-auto rounded text-primary whitespace-pre-wrap">
                             {responseText}
                         </Typography>
                     }
@@ -5745,21 +5352,15 @@ const ChatSubagentAvatar = ({visual, size = 26}) => {
     }, [theme.palette.info.main, visual.color]);
     return (
         <Box
+            className="font-850 items-center inline-flex flex-none justify-center leading-100 px-2"
             sx={{
-                alignItems: "center",
                 backgroundColor: visualSoftColor,
                 border: `1px solid ${visualBorderColor}`,
                 borderRadius: 1,
                 color: visual.color,
-                display: "inline-flex",
-                flex: "0 0 auto",
                 fontSize: size > 28 ? "0.78rem" : "0.68rem",
-                fontWeight: 850,
                 height: size,
-                justifyContent: "center",
-                lineHeight: 1,
                 minWidth: size,
-                px: 0.5,
             }}
         >
             {visual.fontAwesomeIcon ? (
@@ -5793,70 +5394,71 @@ const ChatSubagentEvent = ({message, me, onOpenDelegation}) => {
         message.updated_at ? {label: terminal ? "End" : "Updated", value: formatTimestamp(message.updated_at, me?.user?.view_utc_time)} : null,
     ].filter(Boolean);
     return (
-        <Box className={`mythic-chat-inline-event mythic-tone-${getChatStateTone(stateClass)}`}>
-            <Box className="mythic-chat-inline-event-summary">
-                <Box className="mythic-chat-inline-event-main">
+        <Box className={`mythic-chat-inline-event flex flex-column mythic-tone-${getChatStateTone(stateClass)} relative text-primary max-w-full min-w-0`}>
+            <Box className="mythic-chat-inline-event-summary items-center flex gap-4 justify-between min-w-0">
+                <Box className="mythic-chat-inline-event-main items-center flex flex-fill gap-3 min-w-0">
                     <ChatSubagentAvatar visual={visual} />
                     <MythicChip
-                        size="small"
+                        compact={true}
                         tone={getChatStateTone(stateClass)}
                         label={getSubagentStatusText(snapshot)}
                         variant="outlined"
                     />
                     {hasProgress &&
                         <MythicChip
-                            size="small"
+                            compact={true}
                             tone={getChatStateTone(stateClass)}
                             label={`${toolCount}/${toolTotal} tools`}
                             variant="outlined"
                         />
                     }
-                    <Typography className="mythic-chat-inline-event-title" variant="body2" noWrap>
+                    <Typography className="mythic-chat-inline-event-title text-xs font-600 leading-120 min-w-0 text-muted" variant="body2" noWrap>
                         {title}
                     </Typography>
                 </Box>
-                <Box className="mythic-chat-inline-event-actions">
+                <Box className="mythic-chat-inline-event-actions items-center flex">
                     {summaryOutput &&
-                        <Button
+                        <MythicActionButton
+                            appearance="plain"
                             size="small"
                             variant="text"
-                            className="mythic-chat-inline-details-toggle"
+                            className="mythic-chat-inline-details-toggle rounded"
                             startIcon={showDetails ? <KeyboardArrowDownIcon fontSize="small" /> : <KeyboardArrowRightIcon fontSize="small" />}
                             onClick={() => setShowDetails((open) => !open)}
                         >
                             Summary
-                        </Button>
+                        </MythicActionButton>
                     }
                     {onOpenDelegation &&
-                        <Button
+                        <MythicActionButton
                             size="small"
                             variant="outlined"
-                            className="mythic-chat-inline-details-toggle"
+                            className="mythic-chat-inline-details-toggle rounded"
                             onClick={() => onOpenDelegation(message)}
                         >
                             Open
-                        </Button>
+                        </MythicActionButton>
                     }
                 </Box>
             </Box>
             <Collapse in={showDetails} timeout="auto" unmountOnExit>
-                <Box className="mythic-chat-inline-event-details">
+                <Box className="mythic-chat-inline-event-details flex flex-column gap-4 min-w-0">
                     {prompt &&
-                        <Typography variant="caption" className="mythic-chat-inline-event-description">
+                        <Typography variant="caption" className="mythic-chat-inline-event-description text-xs font-600 leading-135 text-muted whitespace-pre-wrap">
                             {prompt}
                         </Typography>
                     }
-                    <Box className="mythic-chat-special-card-details">
+                    <Box className="mythic-chat-special-card-details min-w-0 grid grid-cols-2">
                         {detailItems.map((item) => (
-                            <span className="mythic-chat-special-card-detail" key={`${message.id}-${item.label}`}>
-                                <span className="mythic-chat-special-card-detail-label">{item.label}</span>
-                                <span className="mythic-chat-special-card-detail-value">{item.value}</span>
+                            <span className="mythic-chat-special-card-detail flex flex-column gap-1 min-w-0" key={`${message.id}-${item.label}`}>
+                                <span className="mythic-chat-special-card-detail-label text-2xs font-850 leading-110 text-muted">{item.label}</span>
+                                <span className="mythic-chat-special-card-detail-value text-xs font-700 leading-120 truncate text-primary whitespace-nowrap">{item.value}</span>
                             </span>
                         ))}
                     </Box>
                     {summaryOutput &&
                         <Box
-                            className="mythic-chat-assistant-message mythic-chat-subagent-summary-output"
+                            className="mythic-chat-assistant-message mythic-chat-subagent-summary-output max-w-full min-w-0 text-primary"
                             sx={getChatMarkdownSurfaceSx(theme)}
                         >
                             <MarkdownMessage message={summaryOutput} />
@@ -5890,56 +5492,57 @@ const ChatToolUseEvent = ({message, me, onViewToolOutput}) => {
         return null;
     }
     return (
-        <Box className={`mythic-chat-inline-event mythic-tone-${getChatStateTone(stateClass)}`}>
-            <Box className="mythic-chat-inline-event-summary">
-                <Box className="mythic-chat-inline-event-main">
+        <Box className={`mythic-chat-inline-event flex flex-column mythic-tone-${getChatStateTone(stateClass)} relative text-primary max-w-full min-w-0`}>
+            <Box className="mythic-chat-inline-event-summary items-center flex gap-4 justify-between min-w-0">
+                <Box className="mythic-chat-inline-event-main items-center flex flex-fill gap-3 min-w-0">
                     <MythicChip
-                        size="small"
+                        compact={true}
                         tone={getChatStateTone(stateClass)}
                         label={getToolUseStatusText(snapshot)}
                         variant="outlined"
                     />
-                    <Typography className="mythic-chat-inline-event-title" variant="body2" noWrap>
+                    <Typography className="mythic-chat-inline-event-title text-xs font-600 leading-120 min-w-0 text-muted" variant="body2" noWrap>
                         {sourceLabel} tool: {toolName}
                     </Typography>
                 </Box>
-                <Button
+                <MythicActionButton
+                    appearance="plain"
                     size="small"
                     variant="text"
-                    className="mythic-chat-inline-details-toggle"
+                    className="mythic-chat-inline-details-toggle rounded"
                     startIcon={showDetails ? <KeyboardArrowDownIcon fontSize="small" /> : <KeyboardArrowRightIcon fontSize="small" />}
                     onClick={() => setShowDetails((open) => !open)}
                 >
                     Details
-                </Button>
+                </MythicActionButton>
                 {snapshot.output_available && onViewToolOutput &&
-                    <Button
+                    <MythicActionButton
                         size="small"
                         variant="outlined"
-                        className="mythic-chat-inline-details-toggle"
+                        className="mythic-chat-inline-details-toggle rounded"
                         onClick={() => onViewToolOutput(message)}
                     >
                         View output
-                    </Button>
+                    </MythicActionButton>
                 }
             </Box>
             <Collapse in={showDetails} timeout="auto" unmountOnExit>
-                <Box className="mythic-chat-inline-event-details">
+                <Box className="mythic-chat-inline-event-details flex flex-column gap-4 min-w-0">
                     {message.message &&
-                        <Typography variant="caption" className="mythic-chat-inline-event-description">
+                        <Typography variant="caption" className="mythic-chat-inline-event-description text-xs font-600 leading-135 text-muted whitespace-pre-wrap">
                             {message.message}
                         </Typography>
                     }
-                    <Box className="mythic-chat-special-card-details">
+                    <Box className="mythic-chat-special-card-details min-w-0 grid grid-cols-2">
                         {detailItems.map((item) => (
-                            <span className="mythic-chat-special-card-detail" key={`${message.id}-${item.label}`}>
-                                <span className="mythic-chat-special-card-detail-label">{item.label}</span>
-                                <span className="mythic-chat-special-card-detail-value">{item.value}</span>
+                            <span className="mythic-chat-special-card-detail flex flex-column gap-1 min-w-0" key={`${message.id}-${item.label}`}>
+                                <span className="mythic-chat-special-card-detail-label text-2xs font-850 leading-110 text-muted">{item.label}</span>
+                                <span className="mythic-chat-special-card-detail-value text-xs font-700 leading-120 truncate text-primary whitespace-nowrap">{item.value}</span>
                             </span>
                         ))}
                     </Box>
                     {snapshot.result_preview &&
-                        <Typography component="pre" variant="caption" className="mythic-chat-tooluse-result">
+                        <Typography component="pre" variant="caption" className="mythic-chat-tooluse-result text-xs leading-135 overflow-auto rounded text-muted whitespace-pre-wrap">
                             {snapshot.result_preview}
                         </Typography>
                     }
@@ -5953,15 +5556,9 @@ const ChatSpecialEventFrame = ({message, me, children}) => {
     const theme = useTheme();
     const formattedTimestamp = formatTimestamp(message.created_at, me?.user?.view_utc_time);
     return (
-        <Box
-            sx={{
-                ...getChatMarkdownSurfaceSx(theme),
-                minWidth: 0,
-                width: "100%",
-            }}
-        >
+        <Box className="min-w-0 w-full" sx={getChatMarkdownSurfaceSx(theme)}>
             {formattedTimestamp &&
-                <Typography variant="caption" color="text.secondary" className="mythic-chat-assistant-timestamp">
+                <Typography variant="caption" color="text.secondary" className="mythic-chat-assistant-timestamp text-xs font-650">
                     {formattedTimestamp}
                 </Typography>
             }
@@ -6067,9 +5664,9 @@ const MessageBubbleComponent = ({message, request, me, onEdit, onDelete, onRetry
         );
     }
     return (
-        <Box className={`mythic-chat-message-row ${isMine ? "mythic-chat-message-row-mine" : ""}`}>
+        <Box className={`mythic-chat-message-row flex justify-start ${isMine ? "mythic-chat-message-row-mine justify-end" : ""}`}>
             <Box
-                className={`mythic-chat-message ${isAI ? "mythic-chat-message-ai" : ""} ${isSystem ? "mythic-chat-message-system" : ""}`.trim()}
+                className={`mythic-chat-message rounded${isAI ? " mythic-chat-message-ai" : ""} ${isSystem ? "mythic-chat-message-system" : ""} max-w-full min-w-0 overflow-hidden`.trim()}
                 sx={{
                     "--mythic-chat-markdown-border": softBorderColor,
                     "--mythic-chat-markdown-surface": markdownSurface,
@@ -6079,14 +5676,14 @@ const MessageBubbleComponent = ({message, request, me, onEdit, onDelete, onRetry
                     boxShadow: theme.palette.mode === "dark" ? `inset 0 1px 0 ${alpha(theme.palette.common.white, 0.05)}` : `0 1px 2px ${alpha(theme.palette.common.black, 0.06)}`,
                 }}
             >
-                <Box className="mythic-chat-message-header">
-                    <Box className="mythic-chat-author">
+                <Box className="mythic-chat-message-header items-center flex gap-4 justify-between">
+                    <Box className="mythic-chat-author font-750 items-center inline-flex gap-3 min-w-0">
                         {isAI && <SmartToyTwoToneIcon fontSize="small" color="info" />}
                         <span>{message.sender_display_name || message.operator?.username || "unknown"}</span>
-                        {message.edited && !message.deleted && <MythicChip size="small" variant="outlined" label="edited" />}
-                        {streaming && <MythicChip size="small" color="warning" variant="outlined" label={message.status} />}
+                        {message.edited && !message.deleted && <MythicChip compact={true} variant="outlined" label="edited" />}
+                        {streaming && <MythicChip compact={true} color="warning" variant="outlined" label={message.status} />}
                     </Box>
-                    <Box className="mythic-chat-message-actions">
+                    <Box className="mythic-chat-message-actions items-center flex gap-1 whitespace-nowrap">
                         <Typography variant="caption" color="text.secondary">{formatTimestamp(message.created_at, me?.user?.view_utc_time)}</Typography>
                         {request && ["error", "cancelled"].includes(request.status) && (message.status === "error" || message.status === "cancelled") &&
                             <MythicStyledTooltip title="Retry request">
@@ -6146,7 +5743,7 @@ const MessageBubbleComponent = ({message, request, me, onEdit, onDelete, onRetry
                     </Box>
                 </Box>
                 {editing ? (
-                    <Box className="mythic-chat-edit-box">
+                    <Box className="mythic-chat-edit-box flex flex-column gap-3">
                         <TextField
                             fullWidth
                             multiline
@@ -6155,9 +5752,9 @@ const MessageBubbleComponent = ({message, request, me, onEdit, onDelete, onRetry
                             onChange={(e) => setEditText(e.target.value)}
                             size="small"
                         />
-                        <Box className="mythic-chat-edit-actions">
-                            <Button size="small" onClick={cancelEdit}>Cancel</Button>
-                            <Button size="small" variant="contained" onClick={saveEdit}>Save</Button>
+                        <Box className="mythic-chat-edit-actions flex gap-3 justify-end">
+                            <MythicActionButton appearance="plain" size="small" onClick={cancelEdit}>Cancel</MythicActionButton>
+                            <MythicActionButton size="small" variant="contained" onClick={saveEdit}>Save</MythicActionButton>
                         </Box>
                     </Box>
                 ) : (

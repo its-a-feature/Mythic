@@ -122,11 +122,11 @@ export function SearchPayloadsTable({payloads, setPayloads, showDeleted, me}){
     return (
             <div style={{display: "flex", flexGrow: 1, overflowY: "auto"}}>
                 <TableContainer style={{height: "100%", overflowY: "auto"}}>
-                    <Table stickyHeader size="small" style={{ "maxWidth": "100%", "overflow": "scroll", tableLayout: "fixed"}}>
+                    <Table stickyHeader size="small" style={{ maxWidth: "100%", overflow: "scroll", tableLayout: "fixed"}}>
                         <TableHead>
                             <TableRow>
-                                <TableCell style={{width: "6rem"}}></TableCell>
-                                <TableCell style={{width: "3rem"}}></TableCell>
+                                <TableCell style={{width: "7rem"}}></TableCell>
+                                <TableCell style={{width: "4rem"}}></TableCell>
                                 <TableCell>File</TableCell>
                                 <TableCell>Progress</TableCell>
                                 <TableCell>Description</TableCell>

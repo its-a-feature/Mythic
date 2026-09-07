@@ -1,5 +1,5 @@
 import React, {  } from 'react';
-import Button from '@mui/material/Button';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -241,12 +241,12 @@ export function OperationTableRowUpdateOperatorsDialog(props) {
           </MythicDialogBody>
         </DialogContent>
         <DialogActions>
-          <Button onClick={props.onClose} variant="contained" color="primary">
+            <MythicActionButton colorMode="always" onClick={props.onClose} tone="primary" variant="contained">
             Cancel
-          </Button>
-          <Button onClick={onAccept} variant="contained" color="warning">
+            </MythicActionButton>
+            <MythicActionButton colorMode="always" onClick={onAccept} tone="warning" variant="contained">
             Update
-          </Button>
+            </MythicActionButton>
         </DialogActions>
   </React.Fragment>
   );

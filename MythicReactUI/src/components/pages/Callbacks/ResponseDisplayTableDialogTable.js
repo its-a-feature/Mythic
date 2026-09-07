@@ -1,5 +1,5 @@
 import React from 'react';
-import Button from '@mui/material/Button';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -15,9 +15,9 @@ export function ResponseDisplayTableDialogTable({table, callback_id, title, onCl
             <ResponseDisplayTable table={table} callback_id={callback_id} task={task} />
         </DialogContent>
         <DialogActions>
-          <Button variant="contained" onClick={onClose} color="primary">
+          <MythicActionButton colorMode="always" variant="contained" onClick={onClose} tone="primary">
             Close
-          </Button>
+          </MythicActionButton>
         </DialogActions>
   </React.Fragment>
   );

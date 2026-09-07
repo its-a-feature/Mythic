@@ -23,15 +23,15 @@ export function TaskArtifactsTable(props){
    }
    const artifactCountLabel = artifacts.length === 1 ? "1 artifact" : `${artifacts.length} artifacts`;
   return (
-    <div className="mythic-single-task-metadata-section">
+    <div className="mythic-single-task-metadata-section flex flex-column gap-3 min-w-0 w-full">
         <MythicSectionHeader
             dense
             title="Artifact Tasks"
             subtitle="Artifacts created while these tasks executed."
             actions={<MythicPageHeaderChip label={artifactCountLabel} />}
         />
-        <TableContainer className="mythic-single-task-table-wrap">
-          <Table className="mythic-single-task-table" size="small">
+        <TableContainer className="mythic-single-task-table-wrap overflow-auto bg-surface-raised">
+          <Table className="mythic-single-task-table table-fixed" size="small">
                 <TableHead>
                     <TableRow>
                         <MythicStyledTableCell style={{width: "6rem"}}>Task ID</MythicStyledTableCell>
@@ -45,8 +45,8 @@ export function TaskArtifactsTable(props){
                     <TableRow key={"artifact" + artifact.id} hover>
                       <MythicStyledTableCell>{artifact.display_id}</MythicStyledTableCell>
                       <MythicStyledTableCell>{artifact.base_artifact}</MythicStyledTableCell>
-                      <MythicStyledTableCell className="mythic-single-task-cell-break">{artifact.host}</MythicStyledTableCell>
-                      <MythicStyledTableCell className="mythic-single-task-cell-break">{artifact.artifact_text}</MythicStyledTableCell>
+                      <MythicStyledTableCell className="mythic-single-task-cell-break wrap-anywhere whitespace-pre-wrap">{artifact.host}</MythicStyledTableCell>
+                      <MythicStyledTableCell className="mythic-single-task-cell-break wrap-anywhere whitespace-pre-wrap">{artifact.artifact_text}</MythicStyledTableCell>
                     </TableRow>
                   ))}
                 </TableBody>

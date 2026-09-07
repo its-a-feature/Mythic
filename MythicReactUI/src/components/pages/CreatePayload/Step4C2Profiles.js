@@ -10,7 +10,6 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import {getDefaultValueForType, getDefaultChoices} from './Step2SelectPayloadType';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
-import Button from '@mui/material/Button';
 import {MythicConfirmDialog} from "../../MythicComponents/MythicConfirmDialog";
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import {CreatePayloadBuildParametersTable} from "./CreatePayloadBuildParametersTable";
@@ -392,39 +391,39 @@ export function Step4C2Profiles(props){
         setDisabledC2Add(false);
     }, [includedC2Profiles, selectedC2]);
     return (
-        <div className="mythic-create-flow-shell">
-            <div className="mythic-create-flow-content">
-                <div className="mythic-create-selection-grid">
-                    <section className="mythic-create-section">
-                        <div className="mythic-create-agent-summary">
-                            <div className="mythic-create-agent-icon">
+        <div className="mythic-create-flow-shell flex flex-column gap-6 h-full min-h-0">
+            <div className="mythic-create-flow-content flex flex-fill flex-column gap-6 min-h-0 overflow-hidden">
+                <div className="mythic-create-selection-grid flex-none gap-6 min-w-0 grid">
+                    <section className="mythic-create-section p-6 flex flex-column gap-5 min-h-0 min-w-0 overflow-hidden rounded bg-surface-muted border-subtle">
+                        <div className="mythic-create-agent-summary items-start flex gap-6 min-w-0">
+                            <div className="mythic-create-agent-icon items-center flex justify-center rounded bg-neutral-1 border-subtle">
                                 <MythicAgentSVGIcon payload_type={props.buildOptions.payload_type} style={{width: "100%", height: "100%", objectFit: "contain"}} />
                             </div>
-                            <div className="mythic-create-meta-list">
+                            <div className="mythic-create-meta-list flex flex-column gap-4 min-w-0">
                                 <div>
-                                    <span className="mythic-create-meta-label">Operating system</span>
-                                    <div className="mythic-create-meta-value">{props.buildOptions.os}</div>
+                                    <span className="mythic-create-meta-label text-xs font-750 leading-120 text-muted">Operating system</span>
+                                    <div className="mythic-create-meta-value text-sm leading-135 wrap-anywhere text-primary">{props.buildOptions.os}</div>
                                 </div>
                                 <div>
-                                    <span className="mythic-create-meta-label">Description</span>
-                                    <div className="mythic-create-meta-value">{props.buildOptions.description}</div>
+                                    <span className="mythic-create-meta-label text-xs font-750 leading-120 text-muted">Description</span>
+                                    <div className="mythic-create-meta-value text-sm leading-135 wrap-anywhere text-primary">{props.buildOptions.description}</div>
                                 </div>
                             </div>
                         </div>
                     </section>
-                    <section className="mythic-create-section">
-                        <div className="mythic-create-section-header">
+                    <section className="mythic-create-section p-6 flex flex-column gap-5 min-h-0 min-w-0 overflow-hidden rounded bg-surface-muted border-subtle">
+                        <div className="mythic-create-section-header items-start flex gap-6 justify-between min-w-0">
                             <div>
-                                <Typography component="div" className="mythic-create-section-title">
+                                <Typography component="div" className="mythic-create-section-title text-sm font-800 leading-125 text-primary">
                                     Select C2 profiles
                                 </Typography>
-                                <Typography component="div" className="mythic-create-section-description">
+                                <Typography component="div" className="mythic-create-section-description text-xs leading-135 text-muted">
                                     Add one or more egress or peer profiles to configure for this payload.
                                 </Typography>
                             </div>
                         </div>
                         <Select
-                            className="mythic-create-select"
+                            className="mythic-create-select w-full"
                             value={selectedC2}
                             onChange={onChangeSelectedC2}
                         >
@@ -438,32 +437,33 @@ export function Step4C2Profiles(props){
                                 ))
                             }
                         </Select>
-                        <Button
-                                className="mythic-compact-action mythic-action-tone-hover mythic-tone-success"
+                        <MythicActionButton
+                                compact
+                                tone="success"
                                 size="small"
                                 variant="contained"
                                 onClick={addC2}
                                 disabled={disabledC2Add}
                                 startIcon={<AddCircleIcon fontSize="small" />} >
                                 Include Profile
-                        </Button>
+                        </MythicActionButton>
                     </section>
                 </div>
 
-                <section className="mythic-create-section mythic-create-section-fill">
-                    <div className="mythic-create-section-header">
+                <section className="mythic-create-section p-6 flex flex-column gap-5 mythic-create-section-fill flex-fill min-h-0 min-w-0 overflow-hidden rounded bg-surface-muted border-subtle">
+                    <div className="mythic-create-section-header items-start flex gap-6 justify-between min-w-0">
                         <div>
-                            <Typography component="div" className="mythic-create-section-title">
+                            <Typography component="div" className="mythic-create-section-title text-sm font-800 leading-125 text-primary">
                                 Include and configure C2 profiles
                             </Typography>
-                            <Typography component="div" className="mythic-create-section-description">
+                            <Typography component="div" className="mythic-create-section-description text-xs leading-135 text-muted">
                                 Review the active C2 profiles and adjust their build-time parameters.
                             </Typography>
                         </div>
                     </div>
-                    <div className="mythic-create-builder-split">
-                        <section className="mythic-create-section mythic-create-section-scroll">
-                            <Typography component="div" className="mythic-create-section-title" style={{textAlign: "center"}}>
+                    <div className="mythic-create-builder-split flex-fill gap-6 min-h-0 overflow-hidden grid">
+                        <section className="mythic-create-section p-6 flex flex-column gap-5 mythic-create-section-scroll min-h-0 min-w-0 overflow-hidden overflow-auto rounded bg-surface-muted border-subtle">
+                            <Typography component="div" className="mythic-create-section-title text-sm font-800 leading-125 text-primary" style={{textAlign: "center"}}>
                                 Configuration Summary
                             </Typography>
                             {includedC2Profiles.map( (c, index) => (
@@ -471,7 +471,7 @@ export function Step4C2Profiles(props){
                                                       os={props.buildOptions.os} c2_name={c.name} />
                             ))}
                         </section>
-                        <section className="mythic-create-section mythic-create-section-scroll">
+                        <section className="mythic-create-section p-6 flex flex-column gap-5 mythic-create-section-scroll min-h-0 min-w-0 overflow-hidden overflow-auto rounded bg-surface-muted border-subtle">
                             <C2ProfileTabs includedC2Profiles={includedC2Profiles} os={props.buildOptions.os}
                                            onCloseTab={removeC2} onChange={updateC2Parameter}
                                            onChangeCreatedInstanceName={onChangeCreatedInstanceName}
@@ -487,7 +487,7 @@ export function Step4C2Profiles(props){
                                      acceptText="Accept"
                                      onSubmit={acceptConfirm} />
             }
-            <div className="mythic-create-flow-footer">
+            <div className="mythic-create-flow-footer flex-none">
                 <CreatePayloadNavigationButtons
                     first={props.first}
                     last={props.last}
@@ -649,7 +649,7 @@ const C2ProfileTabs = ({includedC2Profiles, onChange, os, onCloseTab, onChangeCr
                 }} >
                     {c.c2profileparametersinstances.length > 0 &&
                         <Select
-                            className="mythic-create-select"
+                            className="mythic-create-select w-full"
                             style={{marginBottom: "0.65rem"}}
                             value={c.selected_instance}
                             onChange={evt => onChangeCreatedInstanceName(evt, index, c)}

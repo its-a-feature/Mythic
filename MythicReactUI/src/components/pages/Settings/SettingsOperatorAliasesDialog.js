@@ -2,7 +2,6 @@ import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import {gql, useLazyQuery, useMutation, useQuery} from '@apollo/client';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -432,7 +431,7 @@ export function SettingsOperatorAliasesDialog(props) {
                 )}
             </DialogContent>
             <DialogActions>
-                <Button onClick={props.onClose}>Close</Button>
+                <MythicActionButton onClick={props.onClose}>Close</MythicActionButton>
             </DialogActions>
         </>
     );

@@ -92,23 +92,18 @@ const classes = {
 const openedMixin = () => ({
     width: drawerWidth,
     overflowX: 'hidden',
-    borderRadius: "0 !important",
-    border: "0px !important",
+    //borderRadius: "0 !important",
+    //border: "0px !important",
     background: "var(--mythic-color-nav-background) !important",
     backgroundColor: "var(--mythic-color-nav-base) !important",
 });
 const closedMixin = () => ({
     overflowX: 'hidden',
-    width: "60px",
-    borderRadius: "0 !important",
-    border: "0px !important",
+    width: "55px",
+    //borderRadius: "0 !important",
+    //border: "0px !important",
     background: "var(--mythic-color-nav-background) !important",
     backgroundColor: "var(--mythic-color-nav-base) !important",
-    '@media (min-width: 600px)': {
-      width: "60px",
-      borderRadius: "0 !important",
-      border: "0px !important",
-  },
 });
 const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' })(
     () => ({
@@ -120,9 +115,9 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
       backgroundColor: "var(--mythic-color-nav-base) !important",
       color: "var(--mythic-color-nav-text)",
       '& .MuiDrawer-paper': {
-        border: "0 !important",
-        borderRight: "0 !important",
-        borderRadius: "0 !important",
+        //border: "0 !important",
+        //borderRight: "0 !important",
+        //borderRadius: "0 !important",
         boxShadow: "none !important",
       },
       '& .MuiList-root': {
@@ -148,14 +143,14 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
                 ...openedMixin(),
                 background: "var(--mythic-color-nav-background) !important",
                 backgroundColor: "var(--mythic-color-nav-base) !important",
-                border: "0 !important",
-                borderRight: "0 !important",
-                borderRadius: "0 !important",
+                //border: "0 !important",
+                //borderRight: "0 !important",
+                //borderRadius: "0 !important",
                 boxShadow: "none !important",
                 '& .MuiList-root': {
                     backgroundColor: "transparent !important",
-                    border: "0 !important",
-                    borderRadius: "0 !important",
+                    //border: "0 !important",
+                    //borderRadius: "0 !important",
                 },
             },
           },
@@ -168,14 +163,14 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
                 ...closedMixin(),
                 background: "var(--mythic-color-nav-background) !important",
                 backgroundColor: "var(--mythic-color-nav-base) !important",
-                border: "0 !important",
-                borderRight: "0 !important",
-                borderRadius: "0 !important",
+                //border: "0 !important",
+                //borderRight: "0 !important",
+                //borderRadius: "0 !important",
                 boxShadow: "none !important",
                 '& .MuiList-root': {
                     backgroundColor: "transparent !important",
-                    border: "0 !important",
-                    borderRadius: "0 !important",
+                    //border: "0 !important",
+                    //borderRadius: "0 !important",
                 },
                 '& .MuiListItemText-root': {
                     display: "none",
@@ -763,16 +758,16 @@ const TopAppBarVerticalAdjustShortcutsDialog = ({onClose, onSave, sideShortcuts}
                         title="Side Shortcuts"
                         actions={
                             <>
-                                <Button
+                                <MythicActionButton
                                     size="small"
                                     onClick={() => addShortcut(currentShortcuts.length)}
                                     startIcon={<AddCircleIcon fontSize="small" />}
                                 >
                                     Shortcut
-                                </Button>
-                                <Button size="small" onClick={reset} color="warning">
+                                </MythicActionButton>
+                                <MythicActionButton colorMode="always" size="small" tone="warning" onClick={reset}>
                                     Reset
-                                </Button>
+                                </MythicActionButton>
                             </>
                         }
                         sx={{display: "flex", flexDirection: "column", flex: "1 1 auto", minHeight: 0}}
@@ -780,22 +775,22 @@ const TopAppBarVerticalAdjustShortcutsDialog = ({onClose, onSave, sideShortcuts}
                         <DragDropContext onDragEnd={onDragEnd}>
                             <Droppable droppableId="vertical-shortcuts-column-list">
                                 {(provided) => (
-                                    <div className="mythic-reorder-list" ref={provided.innerRef} {...provided.droppableProps}>
+                                    <div className="mythic-reorder-list flex flex-fill flex-column gap-4 min-h-0 overflow-auto" ref={provided.innerRef} {...provided.droppableProps}>
                                         {currentShortcuts.map((c, i) => (
                                             <Draggable key={c + i} draggableId={`shortcut-${c}-${i}`} index={i}>
                                                 {(provided2, snapshot) => {
                                                     const row = (
                                                         <div
                                                             ref={provided2.innerRef}
-                                                            className={`mythic-reorder-row${snapshot.isDragging ? " mythic-reorder-row-dragging" : ""}`}
+                                                            className={`mythic-reorder-row items-center flex flex-none gap-4 rounded bg-surface-raised border-subtle text-primary shadow-none${snapshot.isDragging ? " mythic-reorder-row-dragging mythic-tone-primary bg-tone-1 border-tone-3 shadow-3" : ""} min-w-0 w-full`}
                                                             {...provided2.draggableProps}
                                                         >
-                                                            <span className="mythic-reorder-drag-handle" {...provided2.dragHandleProps}>
+                                                            <span className="mythic-reorder-drag-handle items-center inline-flex justify-center rounded bg-neutral-2 border-subtle text-muted" {...provided2.dragHandleProps}>
                                                                 <DragHandleIcon fontSize="small" />
                                                             </span>
-                                                            <div className="mythic-reorder-row-main">
+                                                            <div className="mythic-reorder-row-main items-center flex flex-fill gap-4 min-w-0">
                                                                 <Select
-                                                                    className="mythic-reorder-select"
+                                                                    className="mythic-reorder-select flex-fill min-w-0"
                                                                     fullWidth
                                                                     size="small"
                                                                     value={c}
@@ -806,7 +801,7 @@ const TopAppBarVerticalAdjustShortcutsDialog = ({onClose, onSave, sideShortcuts}
                                                                     ))}
                                                                 </Select>
                                                             </div>
-                                                            <div className="mythic-reorder-row-actions">
+                                                            <div className="mythic-reorder-row-actions items-center flex flex-none gap-3">
                                                                 <MythicActionButton iconOnly
                                                                     aria-label={`Remove ${c}`}
                                                                     appearance="raised" colorMode="hover" tone="error"

@@ -45,7 +45,7 @@ const getC2Status = (c2) => {
 
 export function PayloadsTableRowC2Status(props){
     return (
-        <div className="mythic-status-stack">
+        <div className="mythic-status-stack items-center flex flex-wrap gap-3 min-w-0">
             {
                 props.payloadc2profiles.map( (c2, i) => {
                     const c2Status = getC2Status(c2);

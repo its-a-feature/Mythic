@@ -1,6 +1,6 @@
 import React, {useEffect} from 'react';
 import { styled } from '@mui/material/styles';
-import Button from '@mui/material/Button';
+import {MythicActionButton} from './MythicActionButton';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -14,7 +14,6 @@ import Divider from '@mui/material/Divider';
 const PREFIX = 'MythicTransferList';
 
 export const classes = {
-    button: `${PREFIX}-button`,
     divider: `${PREFIX}-divider`
 };
 
@@ -28,17 +27,6 @@ export const StyledDivider = styled(Divider)((
         border: `2px solid ${theme.palette.primary.main}`
     }
 }));
-export const StyledButton = styled(Button)((
-    {
-        theme
-    }
-) => ({
-    [`&.${classes.button}`]: {
-        margin: theme.spacing(0.5, 0),
-    },
-}));
-
-
 const CustomListElement = ({value, onClick, itemKey}) => {
     const displayValue = itemKey ? value[itemKey] : value.value;
     const labelId = `transfer-list-item-${displayValue}-label`;
@@ -59,9 +47,9 @@ const CustomListElement = ({value, onClick, itemKey}) => {
 const CustomList = ({title, items, left, onClick, itemKey}) => {
 
     return (
-        <div className="mythic-transfer-list">
-            <div className="mythic-transfer-list-header">{title}</div>
-            <div className="mythic-transfer-list-body">
+        <div className="mythic-transfer-list flex flex-column min-w-0 overflow-hidden w-full rounded bg-surface border-subtle">
+            <div className="mythic-transfer-list-header bg-table-header text-xs font-700 leading-125 border-b text-primary">{title}</div>
+            <div className="mythic-transfer-list-body flex-fill overflow-auto">
                 <List dense component="div" role="list" style={{padding:0, width: "100%"}}>
                     {items.map((value, index) => (
                         <div key={index}>
@@ -145,45 +133,49 @@ const CustomTransferList = ({leftTitle, rightTitle, initialData, parentLeftData,
             <div  style={{paddingLeft: 0, flexGrow: 1,  marginLeft: 0, marginRight: "10px", position: "relative",  overflowY: "auto", display: "flex", flexDirection: "column" }}>
                 <CustomList title={leftTitle} left={true} items={data} onClick={handleToggle} itemKey={itemKey} />
             </div>
-            <div className="mythic-transfer-controls">
-                <StyledButton
+            <div className="mythic-transfer-controls py-0 px-4 items-center flex flex-column gap-6 justify-center">
+                <MythicActionButton
+                    colorMode="always"
+                    tone="primary"
                     variant="contained"
                     size="small"
-                    className={classes.button}
                     onClick={handleAllRight}
                     aria-label="move all right"
                 >
                     &gt;&gt;
-                </StyledButton>
-                <StyledButton
+                </MythicActionButton>
+                <MythicActionButton
+                    colorMode="always"
+                    tone="primary"
                     variant="contained"
                     size="small"
                     disabled={data.filter( x => x.checked && x.left).length === 0}
-                    className={classes.button}
                     onClick={handleCheckedRight}
                     aria-label="move selected right"
                 >
                     &gt;
-                </StyledButton>
-                <StyledButton
+                </MythicActionButton>
+                <MythicActionButton
+                    colorMode="always"
+                    tone="primary"
                     variant="contained"
                     size="small"
                     disabled={data.filter( x => x.checked && x.right).length === 0}
-                    className={classes.button}
                     onClick={handleCheckedLeft}
                     aria-label="move selected left"
                 >
                     &lt;
-                </StyledButton>
-                <StyledButton
+                </MythicActionButton>
+                <MythicActionButton
+                    colorMode="always"
+                    tone="primary"
                     variant="contained"
                     size="small"
-                    className={classes.button}
                     onClick={handleAllLeft}
                     aria-label="move all left"
                 >
                     &lt;&lt;
-                </StyledButton>
+                </MythicActionButton>
 
             </div>
             <div style={{marginLeft: "10px", position: "relative", flexGrow: 1, display: "flex", overflowY: "auto", flexDirection: "column" }}>
@@ -240,12 +232,12 @@ export function MythicTransferListDialog(props) {
             />
         </DialogContent>
         <DialogActions>
-          <Button onClick={props.onClose} variant="contained" color="primary">
+            <MythicActionButton colorMode="always" onClick={props.onClose} tone="primary" variant="contained">
             Close
-          </Button>
-          <Button onClick={setFinalTags} variant="contained" color="success">
+            </MythicActionButton>
+            <MythicActionButton colorMode="always" onClick={setFinalTags} tone="success" variant="contained">
             Submit
-          </Button>
+            </MythicActionButton>
         </DialogActions>
   </>
   );

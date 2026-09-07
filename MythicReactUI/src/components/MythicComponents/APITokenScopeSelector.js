@@ -1,5 +1,6 @@
 import React from 'react';
-import {Box, Button, Checkbox, InputAdornment, TextField, Typography} from '@mui/material';
+import {Box, Checkbox, InputAdornment, TextField, Typography} from '@mui/material';
+import {MythicActionButton} from './MythicActionButton';
 import SearchIcon from '@mui/icons-material/Search';
 import {gql, useQuery} from "@apollo/client";
 import {MythicChip} from './MythicChip';
@@ -146,19 +147,19 @@ export function APITokenScopeSelector({
     return (
         <Box className={className} sx={sx}>
             <Box sx={{alignItems: "center", display: "flex", flexWrap: "wrap", gap: 0.75, mb: 1}}>
-                <MythicChip className="mythic-api-token-scope-count" size="small" label={`${visibleScopeCount} visible`} />
-                <MythicChip className="mythic-api-token-scope-count" size="small" label={selectedScopesLabel} />
-                <Button disabled={scopesUnavailable || visibleScopeCount === 0 || scopeIsSelected("*")} size="small" onClick={selectVisibleScopes}>
+                <MythicChip label={`${visibleScopeCount} visible`} />
+                <MythicChip label={selectedScopesLabel} />
+                <MythicActionButton disabled={scopesUnavailable || visibleScopeCount === 0 || scopeIsSelected("*")} size="small" onClick={selectVisibleScopes}>
                     Select Visible
-                </Button>
-                <Button disabled={normalizedSelectedScopes.length === 0} size="small" onClick={clearScopes}>
+                </MythicActionButton>
+                <MythicActionButton disabled={normalizedSelectedScopes.length === 0} size="small" onClick={clearScopes}>
                     Clear
-                </Button>
+                </MythicActionButton>
             </Box>
             {requiredScopes.length > 0 &&
-                <Box className="mythic-api-token-scope-card mythic-api-token-scope-card-selected" sx={{mb: 1.25}}>
-                    <Box className="mythic-api-token-scope-card-copy">
-                        <Typography className="mythic-api-token-scope-card-title">Needed for this use</Typography>
+                <Box className="mythic-api-token-scope-card items-start flex gap-3 mythic-api-token-scope-card-selected min-w-0 rounded cursor-pointer bg-surface border-subtle text-primary mythic-tone-primary bg-tone-1 border-tone-3" sx={{mb: 1.25}}>
+                    <Box className="mythic-api-token-scope-card-copy min-w-0 w-full">
+                        <Typography className="mythic-api-token-scope-card-title text-sm font-800 leading-125 min-w-0 wrap-anywhere text-primary">Needed for this use</Typography>
                         {requiredScopes.map((scope) => (
                             <Typography key={`required-${scope}`} variant="caption" color="text.secondary" sx={{display: "block"}}>
                                 {scope}: {requiredScopeDescriptions[scope] || "Required for this workflow."}
@@ -177,9 +178,9 @@ export function APITokenScopeSelector({
                 disabled={scopesUnavailable}
                 InputProps={{startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>}}
             />
-            <Box className="mythic-api-token-scope-library" sx={librarySx}>
+            <Box className="mythic-api-token-scope-library flex flex-column gap-5 overflow-auto rounded bg-neutral-1 border-subtle" sx={librarySx}>
                 {scopesUnavailable &&
-                    <Box className={`mythic-api-token-scope-state${scopeLoadFailed ? " mythic-api-token-scope-state-error" : ""}`}>
+                    <Box className={`mythic-api-token-scope-state items-center flex justify-center rounded bg-surface-raised border-subtle text-muted text-center${scopeLoadFailed ? " mythic-api-token-scope-state-error mythic-tone-error bg-tone-1 border-tone-3 text-tone" : ""}`}>
                         <Typography variant="body2">
                             {scopeLoading ? "Loading scopes..." : (scopeQueryError?.message || scopeData?.apiTokenScopeDefinitions?.error || "Failed to load scopes")}
                         </Typography>
@@ -188,7 +189,7 @@ export function APITokenScopeSelector({
                 {!scopesUnavailable &&
                     <>
                         <Box
-                            className={`mythic-api-token-scope-card mythic-api-token-scope-card-full${scopeIsSelected("*") ? " mythic-api-token-scope-card-selected" : ""}${fullAccessDisabled ? " mythic-api-token-scope-card-disabled" : ""}`}
+                            className={`mythic-api-token-scope-card items-start flex gap-3 mythic-api-token-scope-card-full rounded cursor-pointer bg-surface border-subtle text-primary mythic-tone-warning bg-tone-1 border-tone-2${scopeIsSelected("*") ? " mythic-api-token-scope-card-selected mythic-tone-primary bg-tone-1 border-tone-3" : ""}${fullAccessDisabled ? " mythic-api-token-scope-card-disabled" : ""} min-w-0`}
                             component="label"
                         >
                             <Checkbox
@@ -196,15 +197,15 @@ export function APITokenScopeSelector({
                                 checked={scopeIsSelected("*")}
                                 onChange={() => toggleScope("*")}
                             />
-                            <Box className="mythic-api-token-scope-card-copy">
-                                <Typography className="mythic-api-token-scope-card-title">Full access (*)</Typography>
-                                <Typography className="mythic-api-token-scope-card-description">
+                            <Box className="mythic-api-token-scope-card-copy min-w-0 w-full">
+                                <Typography className="mythic-api-token-scope-card-title text-sm font-800 leading-125 min-w-0 wrap-anywhere text-primary">Full access (*)</Typography>
+                                <Typography className="mythic-api-token-scope-card-description text-xs leading-135 wrap-anywhere text-muted">
                                     Grants every current and future API scope available to this operator.
                                 </Typography>
                             </Box>
                         </Box>
                         {visibleResources.length === 0 &&
-                            <Box className="mythic-api-token-scope-state">
+                            <Box className="mythic-api-token-scope-state items-center flex justify-center rounded bg-surface-raised border-subtle text-muted text-center">
                                 <Typography variant="body2">No scopes match your search.</Typography>
                             </Box>
                         }
@@ -214,10 +215,10 @@ export function APITokenScopeSelector({
                             const resourceScopes = [...groupedScopes[resource]].sort((a, b) => (a.access || "").localeCompare(b.access || ""));
                             const resourceWildcardSelected = scopeIsSelected("*") || scopeIsSelected(resourceWildcard);
                             return (
-                                <Box className="mythic-api-token-resource-card" key={resource}>
-                                    <Box className="mythic-api-token-resource-header">
+                                <Box className="mythic-api-token-resource-card p-6 flex flex-column gap-5 min-w-0 rounded bg-surface-raised border-subtle" key={resource}>
+                                    <Box className="mythic-api-token-resource-header items-start flex flex-wrap gap-6 justify-between min-w-0">
                                         <Box sx={{minWidth: 0}}>
-                                            <Typography className="mythic-api-token-resource-title">
+                                            <Typography className="mythic-api-token-resource-title text-sm font-800 leading-120 text-primary">
                                                 {resource.split("_").join(" ")}
                                             </Typography>
                                             <Typography className="mythic-api-token-resource-subtitle">
@@ -225,7 +226,7 @@ export function APITokenScopeSelector({
                                             </Typography>
                                         </Box>
                                         <Box
-                                            className={`mythic-api-token-resource-wildcard${resourceWildcardSelected ? " mythic-api-token-resource-wildcard-selected" : ""}${!canGrantResourceWildcard ? " mythic-api-token-resource-wildcard-disabled" : ""}`}
+                                            className={`mythic-api-token-resource-wildcard text-xs font-750 items-center inline-flex flex-none gap-2 rounded cursor-pointer bg-neutral-1 border-subtle text-muted${resourceWildcardSelected ? " mythic-api-token-resource-wildcard-selected" : ""}${!canGrantResourceWildcard ? " mythic-api-token-resource-wildcard-disabled" : ""}`}
                                             component="label"
                                         >
                                             <Checkbox
@@ -237,13 +238,13 @@ export function APITokenScopeSelector({
                                             <span>{resourceWildcard}</span>
                                         </Box>
                                     </Box>
-                                    <Box className="mythic-api-token-scope-grid">
+                                    <Box className="mythic-api-token-scope-grid gap-4 min-w-0 grid">
                                         {resourceScopes.map(scope => {
                                             const includedByWildcard = scopeIsSelected("*") || scopeIsSelected(resourceWildcard);
                                             const scopeSelected = scopeIsSelected(scope.name) || includedByWildcard;
                                             return (
                                                 <Box
-                                                    className={`mythic-api-token-scope-card${scopeSelected ? " mythic-api-token-scope-card-selected" : ""}${includedByWildcard ? " mythic-api-token-scope-card-inherited" : ""}`}
+                                                    className={`mythic-api-token-scope-card items-start flex gap-3 rounded cursor-pointer bg-surface border-subtle text-primary${scopeSelected ? " mythic-api-token-scope-card-selected mythic-tone-primary bg-tone-1 border-tone-3" : ""}${includedByWildcard ? " mythic-api-token-scope-card-inherited" : ""} min-w-0`}
                                                     component="label"
                                                     key={scope.name}
                                                 >
@@ -253,9 +254,9 @@ export function APITokenScopeSelector({
                                                         checked={scopeSelected}
                                                         onChange={() => toggleScope(scope.name)}
                                                     />
-                                                    <Box className="mythic-api-token-scope-card-copy">
-                                                        <Box className="mythic-api-token-scope-card-title-row">
-                                                            <Typography className="mythic-api-token-scope-card-title">{scope.display_name || scope.name}</Typography>
+                                                    <Box className="mythic-api-token-scope-card-copy min-w-0 w-full">
+                                                        <Box className="mythic-api-token-scope-card-title-row items-start flex gap-4 justify-between min-w-0">
+                                                            <Typography className="mythic-api-token-scope-card-title text-sm font-800 leading-125 min-w-0 wrap-anywhere text-primary">{scope.display_name || scope.name}</Typography>
                                                             <MythicChip
                                                                 compact
                                                                 label={scope.access || "scope"}
@@ -263,14 +264,14 @@ export function APITokenScopeSelector({
                                                                 tone={scope.access === "read" ? "info" : ["write", "create", "update"].includes(scope.access) ? "success" : ["delete", "admin"].includes(scope.access) ? "error" : "neutral"}
                                                             />
                                                         </Box>
-                                                        <Typography className="mythic-api-token-scope-name">
+                                                        <Typography className="mythic-api-token-scope-name text-xs leading-135 wrap-anywhere text-muted font-mono">
                                                             {scope.name}
                                                         </Typography>
-                                                        <Typography className="mythic-api-token-scope-card-description">
+                                                        <Typography className="mythic-api-token-scope-card-description text-xs leading-135 wrap-anywhere text-muted">
                                                             {scope.description}
                                                         </Typography>
                                                         {scope.includes?.length > 0 &&
-                                                            <Typography className="mythic-api-token-scope-includes">
+                                                            <Typography className="mythic-api-token-scope-includes text-xs leading-135 font-700 wrap-anywhere mythic-tone-info text-tone">
                                                                 Includes {scope.includes.join(", ")}
                                                             </Typography>
                                                         }

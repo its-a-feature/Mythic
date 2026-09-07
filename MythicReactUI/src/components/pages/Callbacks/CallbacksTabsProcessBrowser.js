@@ -548,10 +548,10 @@ const ProcessBrowserTableTop = ({
         setQuickFilter("");
     }
     return (
-        <div className="mythic-file-browser-tableTop mythic-process-browser-tableTop">
-            <div className="mythic-process-browser-toolbar">
-                <div className="mythic-process-browser-control mythic-process-browser-controlGroup">
-                    <span className="mythic-process-browser-controlLabel">Group</span>
+        <div className="mythic-file-browser-tableTop mythic-process-browser-tableTop py-4 px-5">
+            <div className="mythic-process-browser-toolbar items-center flex gap-4">
+                <div className="mythic-process-browser-control items-center inline-flex gap-3 mythic-process-browser-controlGroup min-w-0 rounded bg-neutral-1 border-subtle">
+                    <span className="mythic-process-browser-controlLabel font-750 text-muted">Group</span>
                     <FormControl size="small" className="mythic-process-browser-selectControl">
                         <Select
                             value={group}
@@ -573,8 +573,8 @@ const ProcessBrowserTableTop = ({
                         </MythicActionButton>
                     </MythicStyledTooltip>
                 </div>
-                <div className="mythic-process-browser-control mythic-process-browser-controlHost">
-                    <span className="mythic-process-browser-controlLabel">Host</span>
+                <div className="mythic-process-browser-control items-center inline-flex gap-3 mythic-process-browser-controlHost min-w-0 rounded bg-neutral-1 border-subtle">
+                    <span className="mythic-process-browser-controlLabel font-750 text-muted">Host</span>
                     <FormControl size="small" className="mythic-process-browser-selectControl">
                         <Select
                             value={host}
@@ -612,7 +612,7 @@ const ProcessBrowserTableTop = ({
                         ) : null
                     }}
                 />
-                <div className="mythic-file-browser-toolbarGroup mythic-process-browser-actions">
+                <div className="mythic-file-browser-toolbarGroup items-center inline-flex mythic-process-browser-actions">
                     <MythicStyledTooltip title="Task current callback to list processes">
                         <MythicActionButton iconOnly
                             appearance="plain" colorMode="hover" shape="square" tone="info"

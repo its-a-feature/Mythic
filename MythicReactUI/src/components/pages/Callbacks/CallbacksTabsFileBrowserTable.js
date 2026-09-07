@@ -47,6 +47,7 @@ import {
     gridValuePassesFilter,
     isGridColumnFilterActive
 } from "../../MythicComponents/MythicResizableGrid/GridColumnFilterDialog";
+import {operatorSettingDefaults} from "../../../cache";
 
 const getFileDownloadHistory = gql`
     query getFileDownloadHistory($full_path_text: String!, $host: String!, $group: [String!]) {
@@ -107,6 +108,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
         "visible": defaultVisibleColumns,
         "hidden": ["Tags", "Comment"]
     });
+    const [virtualizedTablePadding, setVirtualizedTablePadding] = React.useState(operatorSettingDefaults.virtualizedTablePadding);
     const [openReorderDialog, setOpenReorderDialog] = React.useState(false);
     const [columnOrder, setColumnOrder] = React.useState(columnDefaults);
     const [selectedRows, setSelectedRows] = React.useState([]);
@@ -400,6 +402,14 @@ export const CallbacksTabsFileBrowserTable = (props) => {
         }catch(error){
             console.log("Failed to load file_browser_table_filter_options", error);
         }
+        try {
+            const storageItem = GetMythicSetting({setting_name: "virtualizedTablePadding", default_value: operatorSettingDefaults.virtualizedTablePadding});
+            if(storageItem !== null){
+                setVirtualizedTablePadding(parseInt(storageItem));
+            }
+        }catch(error){
+            console.log("Failed to load virtualizedTablePadding", error);
+        }
         setLoading(false);
     }, []);
     const onSubmitColumnReorder = (newOrder) => {
@@ -674,7 +684,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                     sortIndicatorIndex={sortColumn}
                     sortDirection={sortData.sortDirection}
                     items={gridData}
-                    rowHeight={GetComputedFontSize() + 7}
+                    rowHeight={GetComputedFontSize() + virtualizedTablePadding}
                     onClickHeader={onClickHeader}
                     onDoubleClickRow={onRowDoubleClick}
                     contextMenuOptions={contextMenuOptions}

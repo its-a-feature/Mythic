@@ -81,38 +81,38 @@ export function CustomBrowserRow({service, showDeleted}) {
                 />
             </MythicTableCell>
             <MythicTableCell>
-                <div className="mythic-installed-service-browser-metadata">
+                <div className="mythic-installed-service-browser-metadata flex flex-column gap-4 min-w-0">
                     {service.author &&
-                        <div className="mythic-installed-service-browser-author" title={service.author}>
+                        <div className="mythic-installed-service-browser-author text-sm leading-130 min-w-0 truncate text-primary whitespace-nowrap" title={service.author}>
                             {service.author}
                         </div>
                     }
-                    <div className="mythic-installed-service-browser-metrics">
+                    <div className="mythic-installed-service-browser-metrics items-center flex flex-wrap min-w-0">
                         {service.semver &&
-                            <span className="mythic-installed-service-browser-metric">
+                            <span className="mythic-installed-service-browser-metric items-center inline-flex gap-2 min-w-0">
                                 <span>Version</span>
                                 <InstalledServiceListValue value={[service.semver]} limit={1} />
                             </span>
                         }
-                        <span className="mythic-installed-service-browser-metric">
+                        <span className="mythic-installed-service-browser-metric items-center inline-flex gap-2 min-w-0">
                             <span>Export</span>
                             <strong>{service.export_function === "" ? "False" : "True"}</strong>
                         </span>
-                        <span className="mythic-installed-service-browser-metric">
+                        <span className="mythic-installed-service-browser-metric items-center inline-flex gap-2 min-w-0">
                             <span>Row actions</span>
                             <strong>{(service.row_actions || []).length}</strong>
                         </span>
-                        <span className="mythic-installed-service-browser-metric">
+                        <span className="mythic-installed-service-browser-metric items-center inline-flex gap-2 min-w-0">
                             <span>Columns</span>
                             <strong>{(service.columns || []).length}</strong>
                         </span>
-                        <span className="mythic-installed-service-browser-metric">
+                        <span className="mythic-installed-service-browser-metric items-center inline-flex gap-2 min-w-0">
                             <span>Inputs</span>
                             <strong>{(service.extra_table_inputs || []).length}</strong>
                         </span>
                     </div>
                     {service.description &&
-                        <div className="mythic-installed-service-description" title={service.description}>
+                        <div className="mythic-installed-service-description min-w-0 text-muted" title={service.description}>
                             <span>Description</span>
                             <p>{service.description}</p>
                         </div>
@@ -120,7 +120,7 @@ export function CustomBrowserRow({service, showDeleted}) {
                 </div>
             </MythicTableCell>
             <MythicTableCell>
-                <div className="mythic-compact-actions">
+                <div className="items-center flex flex-wrap gap-3">
                     <MythicStyledTooltip title={service.container_running ? "View Files" : "Unable to view files because container is offline"}>
                         <MythicActionButton iconOnly
                             appearance="raised" colorMode="hover" tone="info"

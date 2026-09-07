@@ -1,6 +1,6 @@
 import React, {useEffect} from 'react';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import Checkbox from '@mui/material/Checkbox';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -69,12 +69,12 @@ const FilterSummaryChip = ({icon, label, muted=false}) => (
 const MultiSelectField = ({label, value, options, onChange, emptyLabel}) => {
   const renderValue = (selected) => {
     if(selected.length === 0){
-      return <span className="mythic-tasking-filter-select-empty">{emptyLabel}</span>
+      return <span className="mythic-tasking-filter-select-empty text-muted text-xs font-650">{emptyLabel}</span>
     }
     return (
-      <Box className="mythic-tasking-filter-select-chips">
+      <Box className="mythic-tasking-filter-select-chips items-center flex gap-2 flex-wrap min-w-0">
         {selected.map((selectedValue) => (
-          <SquareChip key={selectedValue} label={selectedValue} size="small" className="mythic-tasking-filter-selected-chip" />
+          <SquareChip key={selectedValue} label={selectedValue} />
         ))}
       </Box>
     );
@@ -205,25 +205,25 @@ export function CallbacksTabsTaskingFilterDialog(props) {
   ].filter(Boolean);
 
   return (
-    <Box className="mythic-tasking-filter-dialog">
-      <DialogTitle id="mythic-draggable-title" className="mythic-accent-dialog-title">
-        <Box className="mythic-accent-dialog-title-row">
-          <Box className="mythic-accent-dialog-title-icon">
+    <Box className="mythic-tasking-filter-dialog bg-surface-raised text-primary">
+      <DialogTitle id="mythic-draggable-title" className="mythic-accent-dialog-title relative">
+        <Box className="mythic-accent-dialog-title-row items-center flex gap-6 min-w-0">
+          <Box className="mythic-accent-dialog-title-icon items-center inline-flex flex-none justify-center rounded">
             <FilterAltIcon fontSize="small" />
           </Box>
           <Box sx={{minWidth: 0}}>
-            <Typography component="div" className="mythic-tasking-filter-title-main">
+            <Typography component="div" className="mythic-tasking-filter-title-main text-header text-base font-850 leading-115">
               Task visibility filters
             </Typography>
-            <Typography component="div" className="mythic-accent-dialog-title-subtitle">
+            <Typography component="div" className="mythic-accent-dialog-title-subtitle text-header-muted text-xs font-600 leading-125">
               Control which tasks are shown for this callback.
             </Typography>
           </Box>
         </Box>
       </DialogTitle>
-      <DialogContent dividers={true} className="mythic-tasking-filter-dialog-content">
+      <DialogContent dividers={true} className="mythic-tasking-filter-dialog-content overflow-auto">
         <MythicDialogBody compact={true}>
-          <Box className="mythic-tasking-filter-summary">
+          <Box className="mythic-tasking-filter-summary items-center flex flex-wrap gap-3">
             {activeFilters.length > 0 ? (
               activeFilters.map((filterLabel) => (
                 <FilterSummaryChip key={filterLabel} icon={<FilterAltIcon />} label={filterLabel} />
@@ -249,7 +249,7 @@ export function CallbacksTabsTaskingFilterDialog(props) {
                   emptyLabel="Any operator"
                 />
               </MythicFormField>
-              <Box className="mythic-column-stack">
+              <Box className="mythic-column-stack flex flex-column gap-4 min-w-0">
                 <MythicFormSwitchRow
                   label="Only tasks with comments"
                   description="Require at least one comment."
@@ -283,7 +283,7 @@ export function CallbacksTabsTaskingFilterDialog(props) {
             title="Command scope"
             description="Choose commands to include, or choose commands to hide."
           >
-            <Box className="mythic-tasking-filter-command-grid">
+            <Box className="mythic-tasking-filter-command-grid items-logical-start gap-5 min-w-0 w-full grid">
               <MythicFormField
                 label="Only show commands"
                 description="When set, only matching command names remain visible."
@@ -296,18 +296,20 @@ export function CallbacksTabsTaskingFilterDialog(props) {
                   emptyLabel="No include filter"
                 />
                 {onlyCommands.length > 0 &&
-                  <Button
-                    className="mythic-tasking-filter-clear-button mythic-action-tone-hover mythic-tone-warning"
+                  <MythicActionButton
+                    className="mythic-tasking-filter-clear-button"
+                    compact
+                    tone="warning"
                     onClick={clearAllOnlyCommands}
                     size="small"
                     startIcon={<ClearIcon fontSize="small" />}
                     variant="outlined"
                   >
                     Clear include
-                  </Button>
+                  </MythicActionButton>
                 }
               </MythicFormField>
-              <Box className="mythic-tasking-filter-choice-divider">or</Box>
+              <Box className="mythic-tasking-filter-choice-divider text-xs font-750 text-muted text-center">or</Box>
               <MythicFormField
                 label="Hide commands"
                 description="When set, selected command names are removed from view."
@@ -320,15 +322,17 @@ export function CallbacksTabsTaskingFilterDialog(props) {
                   emptyLabel="No exclude filter"
                 />
                 {everythingBut.length > 0 &&
-                  <Button
-                    className="mythic-tasking-filter-clear-button mythic-action-tone-hover mythic-tone-warning"
+                  <MythicActionButton
+                    className="mythic-tasking-filter-clear-button"
+                    compact
+                    tone="warning"
                     onClick={clearAllEverythingBut}
                     size="small"
                     startIcon={<ClearIcon fontSize="small" />}
                     variant="outlined"
                   >
                     Clear exclude
-                  </Button>
+                  </MythicActionButton>
                 }
               </MythicFormField>
             </Box>

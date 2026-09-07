@@ -11,7 +11,6 @@ import Select from '@mui/material/Select';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import {Button} from '@mui/material';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { snackActions } from '../../utilities/Snackbar';
@@ -173,12 +172,12 @@ export function ModifyCallbackMythicTreeGroupsDialog(props){
             </TableContainer>
           </DialogContent>
           <DialogActions>
-            <Button onClick={props.onClose} variant="contained" color="primary">
+            <MythicActionButton colorMode="always" onClick={props.onClose} tone="primary" variant="contained">
               Close
-            </Button>
-          <Button onClick={submit} variant="contained" color={"success"}>
+            </MythicActionButton>
+          <MythicActionButton colorMode="always" onClick={submit} tone="success" variant="contained">
               Update
-          </Button>
+          </MythicActionButton>
         </DialogActions>
             {openViewAllCallbacksDialog &&
                 <MythicDialog

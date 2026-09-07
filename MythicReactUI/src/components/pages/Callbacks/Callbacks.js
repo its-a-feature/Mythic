@@ -219,9 +219,9 @@ export function Callbacks({me}) {
                    style={{ height: "100%" }}>
                 <div style={{display: "flex", flexDirection: "row-reverse", height: "100%", minWidth: 0, overflow: "hidden"}}>
                     <Paper elevation={0} style={{
-                        width: "34px",
-                        flex: "0 0 34px",
+                        width: "2.25rem",
                         display: "flex",
+                        gap: "0.25rem",
                         flexDirection: "column",
                         alignItems: "center",
                         overflow: "hidden",
@@ -234,30 +234,43 @@ export function Callbacks({me}) {
                         paddingTop: "3px",
                     }}>
                         {topDisplay !== 'table' &&
-                            <MythicStyledTooltip title={"Table View"}>
-                                <MythicActionButton iconOnly onClick={() =>setTopDisplay("table")}>
-                                    <TocIcon />
-                                </MythicActionButton>
-                            </MythicStyledTooltip>
+                            <MythicActionButton
+                                iconOnly
+                                appearance={"raised"}
+                                shape={"square"}
+                                variant={"outlined"}
+                                icon={<TocIcon />}
+                                tooltip={"Table View"}
+                                onClick={() =>setTopDisplay("table")}>
+                            </MythicActionButton>
                         }
                         {topDisplay !== 'graph' &&
-                            <MythicStyledTooltip title={"Graph View"} >
-                                <MythicActionButton iconOnly onClick={() =>setTopDisplay("graph")}>
-                                    <AssessmentIcon />
-                                </MythicActionButton>
-                            </MythicStyledTooltip>
+                            <MythicActionButton
+                                iconOnly
+                                appearance={"raised"}
+                                shape={"square"}
+                                variant={"outlined"}
+                                icon={<AssessmentIcon />}
+                                tooltip={"Graph View"}
+                                onClick={() =>setTopDisplay("graph")}>
+                            </MythicActionButton>
                         }
+                        <MythicActionButton
+                            appearance={"raised"}
+                            iconOnly
+                            shape={"square"}
+                            colorMode={"hover"}
+                            tone={"neutral"}
+                            icon={<PhoneForwardedIcon />}
+                            tooltip={"Import previously exported Callbacks"}
+                            onClick={() =>setOpenCallbackImport(true)}>
+                        </MythicActionButton>
                         {openCallbackImport &&
                             <MythicDialog fullWidth={true} maxWidth="sm" open={openCallbackImport}
                                           onClose={()=>{setOpenCallbackImport(false);}}
                                           innerDialog={<ImportCallbackConfigDialog onClose={()=>{setOpenCallbackImport(false);}} />}
                             />
                         }
-                        <MythicStyledTooltip title={"Import previously exported Callbacks"} >
-                            <MythicActionButton iconOnly onClick={() =>setOpenCallbackImport(true)}>
-                                <PhoneForwardedIcon />
-                            </MythicActionButton>
-                        </MythicStyledTooltip>
                     </Paper>
                     <CallbacksTop
                         callbackTableGridRef={callbackTableGridRef}

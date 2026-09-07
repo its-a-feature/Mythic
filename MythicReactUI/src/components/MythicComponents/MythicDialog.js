@@ -22,6 +22,7 @@ import {MythicStyledTooltip} from "./MythicStyledTooltip";
 import Draggable from 'react-draggable';
 import {MythicDraggableDialogTitle} from "./MythicDraggableDialogTitle";
 import {MythicDialogButton, MythicDialogFooter} from "./MythicDialogLayout";
+import {MythicChip} from "./MythicChip";
 
 let mythicDialogIdCounter = 0;
 let mythicDialogStack = [];
@@ -323,18 +324,18 @@ const JSONTypeBadge = ({value}) => {
   const label = type === "array" ? `${count} item${count === 1 ? "" : "s"}` :
       type === "object" ? `${count} field${count === 1 ? "" : "s"}` :
       type;
-  return <span className={`mythic-json-type-badge mythic-json-type-${type}`}>{label}</span>
+  return <MythicChip compact label={label} tone={["array", "object"].includes(type) ? "info" : "neutral"} />;
 }
 
 const JSONPrimitiveValue = ({name, value, me}) => {
   const type = getJSONValueType(value);
   if(type === "null" || type === "empty" || value === ""){
-    return <span className="mythic-json-value-empty">None</span>
+    return <span className="mythic-json-value-empty text-xs text-disabled">None</span>
   }
   if(type === "boolean"){
-    return <span className={`mythic-json-value-boolean ${value ? "mythic-json-value-true" : "mythic-json-value-false"}`}>{value ? "True" : "False"}</span>
+    return <MythicChip compact label={value ? "True" : "False"} tone={value ? "success" : "warning"} />;
   }
-  return <span className="mythic-json-value-primitive">{convertValueToContextValue(name, value, me)}</span>
+  return <span className="mythic-json-value-primitive text-primary text-xs leading-135 wrap-anywhere">{convertValueToContextValue(name, value, me)}</span>
 }
 
 const JSONTableCellValue = ({name, value, me, depth}) => {
@@ -360,17 +361,17 @@ const JSONTableValue = ({label, value, me, depth=0, leftColumn="Name", rightColu
   if(type === "object"){
     const entries = Object.entries(value);
     return (
-      <div className={`mythic-json-panel ${depth === 0 ? "mythic-json-panel-root" : ""}`}>
+      <div className={`mythic-json-panel p-4 flex flex-column gap-4 rounded bg-neutral-1 border-subtle${depth === 0 ? " mythic-json-panel-root bg-surface-muted" : ""} min-w-0`}>
         {showPanelHeader &&
-          <div className="mythic-json-panel-header">
-            <span className="mythic-json-panel-title">{label}</span>
+          <div className="mythic-json-panel-header items-center flex flex-wrap gap-4 justify-between min-w-0">
+            <span className="mythic-json-panel-title text-xs font-800 leading-125 min-w-0 wrap-anywhere text-primary">{label}</span>
             <JSONTypeBadge value={value} />
           </div>
         }
         {entries.length === 0 ? (
-          <div className="mythic-json-empty-state">No fields to display.</div>
+          <div className="mythic-json-empty-state text-xs text-muted">No fields to display.</div>
         ) : (
-          <TableContainer className="mythic-json-table-wrap">
+          <TableContainer className="mythic-json-table-wrap overflow-auto rounded border-subtle">
             <Table size="small" stickyHeader={depth === 0} style={{tableLayout: "fixed"}}>
               <TableHead>
                 <TableRow>
@@ -382,12 +383,12 @@ const JSONTableValue = ({label, value, me, depth=0, leftColumn="Name", rightColu
                 {entries.map(([key, entryValue]) => (
                   <TableRow key={`${depth}-${key}`} hover>
                     <TableCell className="mythic-json-key-cell">
-                      <div className="mythic-json-key-stack">
-                        <span className="mythic-json-key">{key}</span>
+                      <div className="mythic-json-key-stack flex flex-column gap-2 min-w-0">
+                        <span className="mythic-json-key text-xs font-800 leading-125 wrap-anywhere text-primary">{key}</span>
                         <JSONTypeBadge value={entryValue} />
                       </div>
                     </TableCell>
-                    <TableCell className="mythic-json-value-cell">
+                    <TableCell className="mythic-json-value-cell text-primary text-xs leading-135 wrap-anywhere">
                       <JSONTableCellValue name={key} value={entryValue} me={me} depth={depth} />
                     </TableCell>
                   </TableRow>
@@ -402,17 +403,17 @@ const JSONTableValue = ({label, value, me, depth=0, leftColumn="Name", rightColu
   const objectHeaders = getArrayObjectHeaders(value);
   const isObjectArray = value.length > 0 && objectHeaders.length > 0 && value.every((row) => isPlainObject(row));
   return (
-    <div className={`mythic-json-panel ${depth === 0 ? "mythic-json-panel-root" : ""}`}>
+    <div className={`mythic-json-panel p-4 flex flex-column gap-4 rounded bg-neutral-1 border-subtle${depth === 0 ? " mythic-json-panel-root bg-surface-muted" : ""} min-w-0`}>
       {showPanelHeader &&
-        <div className="mythic-json-panel-header">
-          <span className="mythic-json-panel-title">{label}</span>
+        <div className="mythic-json-panel-header items-center flex flex-wrap gap-4 justify-between min-w-0">
+          <span className="mythic-json-panel-title text-xs font-800 leading-125 min-w-0 wrap-anywhere text-primary">{label}</span>
           <JSONTypeBadge value={value} />
         </div>
       }
       {value.length === 0 ? (
-        <div className="mythic-json-empty-state">No items to display.</div>
+        <div className="mythic-json-empty-state text-xs text-muted">No items to display.</div>
       ) : isObjectArray ? (
-        <TableContainer className="mythic-json-table-wrap">
+        <TableContainer className="mythic-json-table-wrap overflow-auto rounded border-subtle">
           <Table size="small" stickyHeader={depth === 0} style={{tableLayout: "fixed", minWidth: `${Math.max(38, objectHeaders.length * 12)}rem`}}>
             <TableHead>
               <TableRow>
@@ -425,9 +426,9 @@ const JSONTableValue = ({label, value, me, depth=0, leftColumn="Name", rightColu
             <TableBody>
               {value.map((row, rowIndex) => (
                 <TableRow key={`array-row-${rowIndex}`} hover>
-                  <TableCell className="mythic-json-index-cell">{rowIndex + 1}</TableCell>
+                  <TableCell className="mythic-json-index-cell text-xs font-800 text-muted text-right">{rowIndex + 1}</TableCell>
                   {objectHeaders.map((header) => (
-                    <TableCell key={`array-row-${rowIndex}-${header}`} className="mythic-json-value-cell">
+                    <TableCell key={`array-row-${rowIndex}-${header}`} className="mythic-json-value-cell text-primary text-xs leading-135 wrap-anywhere">
                       <JSONTableCellValue name={header} value={row[header]} me={me} depth={depth} />
                     </TableCell>
                   ))}
@@ -437,7 +438,7 @@ const JSONTableValue = ({label, value, me, depth=0, leftColumn="Name", rightColu
           </Table>
         </TableContainer>
       ) : (
-        <TableContainer className="mythic-json-table-wrap">
+        <TableContainer className="mythic-json-table-wrap overflow-auto rounded border-subtle">
           <Table size="small" stickyHeader={depth === 0} style={{tableLayout: "fixed"}}>
             <TableHead>
               <TableRow>
@@ -448,8 +449,8 @@ const JSONTableValue = ({label, value, me, depth=0, leftColumn="Name", rightColu
             <TableBody>
               {value.map((entryValue, rowIndex) => (
                 <TableRow key={`array-value-row-${rowIndex}`} hover>
-                  <TableCell className="mythic-json-index-cell">{rowIndex + 1}</TableCell>
-                  <TableCell className="mythic-json-value-cell">
+                  <TableCell className="mythic-json-index-cell text-xs font-800 text-muted text-right">{rowIndex + 1}</TableCell>
+                  <TableCell className="mythic-json-value-cell text-primary text-xs leading-135 wrap-anywhere">
                     <JSONTableCellValue name={`${label || "value"} ${rowIndex + 1}`} value={entryValue} me={me} depth={depth} />
                   </TableCell>
                 </TableRow>
@@ -468,12 +469,12 @@ export function MythicViewJSONAsTableDialog(props) {
   return (
     <React.Fragment>
         <MythicDraggableDialogTitle style={{wordBreak: "break-all", maxWidth: "100%"}}>
-          <div className="mythic-json-title-row">
+          <div className="mythic-json-title-row items-center flex flex-wrap gap-4 justify-between min-w-0 w-full">
             <span>{rootLabel}</span>
             <JSONTypeBadge value={parsedValue} />
           </div>
         </MythicDraggableDialogTitle>
-        <DialogContent dividers={true} className="mythic-dialog-body mythic-json-dialog-body">
+        <DialogContent dividers={true} className="mythic-dialog-body flex flex-column gap-6 mythic-json-dialog-body min-w-0 w-full overflow-auto">
           <JSONTableValue
             value={parsedValue}
             me={props.me}

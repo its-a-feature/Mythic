@@ -240,7 +240,7 @@ export const MythicSectionHeader = ({
     return (
         <MythicPageHeader
             actions={actions}
-            className="mythic-section-header"
+            className="mythic-section-header overflow-hidden relative"
             dense={dense}
             subtitle={subtitle}
             title={title}

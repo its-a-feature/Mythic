@@ -3,7 +3,6 @@ import React from 'react';
 import DialogActions from '@mui/material/DialogActions';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
-import {Button} from '@mui/material';
 import TableRow from '@mui/material/TableRow';
 import TableHead from '@mui/material/TableHead';
 import Table from '@mui/material/Table';
@@ -169,12 +168,12 @@ export function SettingsOperatorSecretsConfigDialog(props) {
             </MythicDialogBody>
         </DialogContent>
         <DialogActions>
-          <Button onClick={props.onClose} variant="contained" color="primary">
+          <MythicActionButton colorMode="always" onClick={props.onClose} tone="primary" variant="contained">
             Cancel
-          </Button>
-          <Button onClick={onAccept} variant="contained" color="success">
+          </MythicActionButton>
+          <MythicActionButton colorMode="always" onClick={onAccept} tone="success" variant="contained">
             Update
-          </Button>
+          </MythicActionButton>
         </DialogActions>
   </React.Fragment>
   );

@@ -23,6 +23,7 @@ import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/Myt
 import {MythicToolbarButton, MythicToolbarToggle} from "../../MythicComponents/MythicTableToolbar";
 import {MythicChip, SquareChip} from "../../MythicComponents/MythicChip";
 import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 
 const get_eventgroups = gql`
 query GetEventGroups {
@@ -343,30 +344,39 @@ export function Eventing({me}){
                 }
                 actions={
                     <>
-                        <MythicToolbarButton tone="info" variant="outlined" component="label" startIcon={<CloudUploadIcon fontSize="small" />}>
+                        <MythicActionButton
+                            tone="info"
+                            variant="outlined"
+                            icon={<CloudUploadIcon fontSize="small" />}>
                             Upload
                             <input onChange={onFileChange} type="file" multiple hidden/>
-                        </MythicToolbarButton>
-                        <MythicToolbarButton tone="success" variant="outlined" onClick={()=>setOpenTestModal(true)} startIcon={<AddCircleIcon fontSize="small" />}>
+                        </MythicActionButton>
+                        <MythicActionButton
+                            tone="success"
+                            variant="outlined"
+                            onClick={()=>setOpenTestModal(true)}
+                            icon={<AddCircleIcon fontSize="small" />}>
                             Text
-                        </MythicToolbarButton>
-                        <MythicToolbarButton tone="success" variant="outlined" onClick={()=>setOpenCreateEventingStepper(true)} startIcon={<CategoryIcon fontSize="small" />}>
+                        </MythicActionButton>
+                        <MythicActionButton
+                            tone="success"
+                            variant="outlined"
+                            onClick={()=>setOpenCreateEventingStepper(true)}
+                            icon={<CategoryIcon fontSize="small" />}>
                             Wizard
-                        </MythicToolbarButton>
-                        <MythicToolbarToggle
-                            className={showDeleted ? "mythic-action-tone-hover mythic-tone-warning" : "mythic-action-tone-hover mythic-tone-info"}
-                            checked={showDeleted}
+                        </MythicActionButton>
+                        <MythicActionButton
+                            tone={showDeleted ? "warning" : "info"}
                             onClick={() => setShowDeleted(!showDeleted)}
                             label="Deleted"
-                            activeIcon={<VisibilityIcon fontSize="small" />}
-                            inactiveIcon={<VisibilityOffIcon fontSize="small" />}
+                            icon={showDeleted ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" /> }
                         />
                     </>
                 }
             />
-            <div className="mythic-eventing-workspace">
-                <Split direction="horizontal" className="mythic-eventing-split" sizes={[30, 70]} minSize={[360, 520]} >
-                    <div className="mythic-eventing-sidebar">
+            <div className="mythic-eventing-workspace flex flex-fill gap-4 min-h-0 min-w-0 overflow-hidden">
+                <Split direction="horizontal" className="mythic-eventing-split flex h-full min-h-0 min-w-0 overflow-hidden w-full" sizes={[30, 70]} minSize={[0,0]} >
+                    <div className="mythic-eventing-sidebar flex flex-column min-h-0 min-w-0 overflow-hidden rounded bg-surface-raised border-subtle">
                         <div style={{width: "100%", height: '100%', display: "flex", flexDirection: "column"}}>
                             {openTestModal &&
                                 <MythicDialog fullWidth={true} maxWidth="xl" open={openTestModal}
@@ -386,13 +396,13 @@ export function Eventing({me}){
                                               innerDialog={<CreateEventingStepper onClose={onCloseStepper} />}
                                 />
                             }
-                            <div className="mythic-eventing-sidebar-toolbar">
-                                <div className="mythic-eventing-sidebar-title-row">
+                            <div className="mythic-eventing-sidebar-toolbar flex flex-column gap-4 border-b-subtle">
+                                <div className="mythic-eventing-sidebar-title-row items-start flex gap-5 justify-between min-w-0">
                                     <div>
-                                        <div className="mythic-eventing-sidebar-title">Registered event groups</div>
-                                        <div className="mythic-eventing-sidebar-subtitle">Browse workflows by run state</div>
+                                        <div className="mythic-eventing-sidebar-title text-primary text-sm font-800 leading-120">Registered event groups</div>
+                                        <div className="mythic-eventing-sidebar-subtitle text-xs font-600 leading-120 text-muted">Browse workflows by run state</div>
                                     </div>
-                                    <span className="mythic-eventing-sidebar-count">{filteredEventGroups.length}/{visibleEventGroups.length}</span>
+                                    <span className="mythic-eventing-sidebar-count text-xs font-800 leading-100 items-center inline-flex flex-none rounded mythic-tone-primary bg-tone-1 border border-tone-1 text-tone">{filteredEventGroups.length}/{visibleEventGroups.length}</span>
                                 </div>
                                 <TextField
                                     className="mythic-eventing-sidebar-search"
@@ -409,7 +419,7 @@ export function Eventing({me}){
                                         )
                                     }}
                                 />
-                                <div className="mythic-eventing-filter-row">
+                                <div className="mythic-eventing-filter-row flex flex-nowrap gap-3">
                                     {sidebarFilterOptions.map((filterOption) => {
                                         const filterCount = filterOption.key === "all" ? visibleEventGroups.length : sidebarFilterCounts[filterOption.key];
                                         return (
@@ -417,7 +427,7 @@ export function Eventing({me}){
                                                 key={filterOption.key}
                                                 type="button"
                                                 onClick={() => setSidebarFilter(filterOption.key)}
-                                                className={`mythic-eventing-filter-button ${sidebarFilter === filterOption.key ? "mythic-action-tone mythic-tone-primary" : ""}`.trim()}
+                                                className={`mythic-eventing-filter-button bg-transparent text-xs font-750 items-center inline-flex flex-none gap-3 rounded cursor-pointer border-subtle text-muted whitespace-nowrap${sidebarFilter === filterOption.key ? " mythic-action-tone mythic-tone-primary" : ""}`.trim()}
                                             >
                                                 <span>{filterOption.label}</span>
                                                 <span className="mythic-eventing-filter-count">{filterCount || 0}</span>
@@ -427,34 +437,36 @@ export function Eventing({me}){
                                 </div>
                             </div>
                             <ListItem onClick={() => setSelectedEventGroup({id: 0})}
-                                      className={`mythic-eventing-list-item mythic-eventing-list-item-all ${selectedEventGroup.id === 0 ? "mythic-eventing-list-item-selected" : ""}`.trim()}>
-                                <div className="mythic-eventing-status-dot mythic-tone-info" />
-                                <div className="mythic-eventing-list-item-content">
-                                    <div className="mythic-eventing-list-item-main">
-                                        <span className="mythic-eventing-list-item-name">All workflow runs</span>
-                                        <MythicChip compact label={visibleEventGroups.length} tone="info" />
+                                      className={`mythic-eventing-list-item border-transparent items-start flex gap-4 mythic-eventing-list-item-all rounded cursor-pointer${selectedEventGroup.id === 0 ? " mythic-eventing-list-item-selected mythic-tone-primary border-tone-2" : ""} min-w-0`.trim()}>
+                                <div className="mythic-eventing-status-dot bg-tone mythic-tone-info rounded-full" />
+                                <div className="mythic-eventing-list-item-content flex-fill min-w-0">
+                                    <div className="mythic-eventing-list-item-main items-center flex gap-4 justify-between min-w-0">
+                                        <span className="mythic-eventing-list-item-name text-sm font-800 leading-125 flex-fill min-w-0 truncate text-primary whitespace-nowrap">All workflow runs</span>
+                                        <MythicChip compact label={visibleEventGroups.length} tone="primary" />
                                     </div>
-                                    <div className="mythic-eventing-list-item-meta">Review instances across all event groups</div>
+                                    <div className="mythic-eventing-list-item-meta text-xs font-650 leading-120 flex flex-wrap min-w-0 text-muted">Review instances across all event groups</div>
                                 </div>
                             </ListItem>
-                            <div className="mythic-eventing-list-scroll">
-                                <List className="mythic-eventing-list">
+                            <div className="mythic-eventing-list-scroll h-full min-h-0">
+                                <List className="mythic-eventing-list border-none">
                                     {filteredEventGroups.length === 0 ? (
-                                        <div className="mythic-eventing-list-empty">No workflows match this view</div>
+                                        <div className="mythic-eventing-list-empty text-xs font-650 text-muted text-center">No workflows match this view</div>
                                     ) : filteredEventGroups.map( (eventGroup) => {
                                         const status = getEventGroupStatus(eventGroup);
                                         return (
                                             <ListItem key={eventGroup.id + eventGroup.name} onClick={() => setSelectedEventGroup(eventGroup)}
-                                                      className={`mythic-eventing-list-item ${selectedEventGroup.id === eventGroup.id ? "mythic-eventing-list-item-selected" : ""} mythic-eventing-list-item-${status.key}`.trim()}>
-                                                <div className={`mythic-eventing-status-dot mythic-tone-${getEventGroupTone(status.key)}${status.key === "needs_approval" || status.key === "disabled" ? ` mythic-eventing-status-${status.key}` : ""}`} />
-                                                <div className="mythic-eventing-list-item-content">
-                                                    <div className="mythic-eventing-list-item-main">
-                                                        <span className={`mythic-eventing-list-item-name ${eventGroup.deleted ? "mythic-eventing-list-item-name-deleted" : ""}`.trim()}>{eventGroup.name}</span>
+                                                      className={`mythic-eventing-list-item border-transparent items-start flex gap-4 rounded cursor-pointer ${selectedEventGroup.id === eventGroup.id ? "mythic-eventing-list-item-selected mythic-tone-primary border-tone-2" : ""} mythic-eventing-list-item-${status.key} min-w-0`.trim()}>
+                                                <div className={`mythic-eventing-status-dot bg-tone rounded-full ${getEventGroupTone(status.key)}${status.key === "needs_approval" || status.key === "disabled" ? ` mythic-eventing-status-${status.key}${status.key === "disabled" ? " relative" : ""}` : ""}`} />
+                                                <div className="mythic-eventing-list-item-content flex-fill min-w-0">
+                                                    <div className="mythic-eventing-list-item-main items-center flex gap-4 justify-between min-w-0">
+                                                        <span className={`mythic-eventing-list-item-name text-sm font-800 leading-125 flex-fill text-primary${eventGroup.deleted ? " mythic-eventing-list-item-name-deleted text-muted" : ""} min-w-0 truncate whitespace-nowrap`.trim()}>
+                                                            {eventGroup.name}
+                                                        </span>
                                                         <MythicStatusChip compact status={status.key} />
                                                     </div>
-                                                    <div className="mythic-eventing-list-item-meta">
+                                                    <div className="mythic-eventing-list-item-meta text-xs font-650 leading-120 flex flex-wrap min-w-0 text-muted">
                                                         <span>{eventGroup.trigger || "No trigger"}</span>
-                                                        <SquareChip compact label={eventGroup.run_as || "unknown"} />
+                                                        <SquareChip compact label={eventGroup.run_as} />
                                                     </div>
                                                 </div>
                                             </ListItem>
@@ -465,7 +477,7 @@ export function Eventing({me}){
                             <Divider />
                         </div>
                     </div>
-                    <div className="mythic-eventing-content">
+                    <div className="mythic-eventing-content flex min-h-0 min-w-0 overflow-hidden rounded bg-surface-raised border-subtle">
                         <div style={{width: "100%", height: "100%"}}>
                             <EventGroupTable selectedEventGroup={selectedEventGroup} me={me} showInstances={true} showGraph={true} />
                         </div>

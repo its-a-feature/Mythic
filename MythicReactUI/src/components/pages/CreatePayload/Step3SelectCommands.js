@@ -10,7 +10,7 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Checkbox from '@mui/material/Checkbox';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
-import {classes, StyledButton, StyledDivider} from '../../MythicComponents/MythicTransferList';
+import {classes, StyledDivider} from '../../MythicComponents/MythicTransferList';
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import MythicTextField from "../../MythicComponents/MythicTextField";
 import SearchIcon from '@mui/icons-material/Search';
@@ -144,34 +144,34 @@ export function Step3SelectCommands(props){
     const hasHoveredCommand = hoveredCommand?.cmd !== undefined;
     const commandReason = hoveredCommand?.reason || "This command can be included or removed as needed";
     return (
-        <div className="mythic-create-flow-shell">
-            <div className="mythic-create-flow-content">
-                <div className="mythic-create-builder-split" style={{gridTemplateColumns: "minmax(0, 0.6fr) minmax(18rem, 0.4fr)"}}>
-                    <section className="mythic-create-section mythic-create-section-fill mythic-create-section-plain">
-                        <div className="mythic-create-subsection" style={{flex: "0 0 auto"}}>
-                            <div className="mythic-create-agent-summary">
-                                <div className="mythic-create-agent-icon">
+        <div className="mythic-create-flow-shell flex flex-column gap-6 h-full min-h-0">
+            <div className="mythic-create-flow-content flex flex-fill flex-column gap-6 min-h-0 overflow-hidden">
+                <div className="mythic-create-builder-split flex-fill gap-6 min-h-0 overflow-hidden grid" style={{gridTemplateColumns: "minmax(0, 0.6fr) minmax(18rem, 0.4fr)"}}>
+                    <section className="mythic-create-section p-6 flex flex-column gap-5 mythic-create-section-fill flex-fill mythic-create-section-plain bg-transparent border-none min-h-0 min-w-0 overflow-hidden rounded bg-surface-muted border-subtle">
+                        <div className="mythic-create-subsection p-5 flex flex-column gap-4 min-h-0 min-w-0 rounded bg-surface border-subtle" style={{flex: "0 0 auto"}}>
+                            <div className="mythic-create-agent-summary items-start flex gap-6 min-w-0">
+                                <div className="mythic-create-agent-icon items-center flex justify-center rounded bg-neutral-1 border-subtle">
                                     <MythicAgentSVGIcon payload_type={props.buildOptions.payload_type} style={{width: "100%", height: "100%", objectFit: "contain"}} />
                                 </div>
-                                <div className="mythic-create-meta-list">
+                                <div className="mythic-create-meta-list flex flex-column gap-4 min-w-0">
                                     <div>
-                                        <span className="mythic-create-meta-label">Selected payload type</span>
-                                        <div className="mythic-create-meta-value">{props.buildOptions.payload_type}</div>
+                                        <span className="mythic-create-meta-label text-xs font-750 leading-120 text-muted">Selected payload type</span>
+                                        <div className="mythic-create-meta-value text-sm leading-135 wrap-anywhere text-primary">{props.buildOptions.payload_type}</div>
                                     </div>
                                     <div>
-                                        <span className="mythic-create-meta-label">Description</span>
-                                        <div className="mythic-create-meta-value">{props.buildOptions.description}</div>
+                                        <span className="mythic-create-meta-label text-xs font-750 leading-120 text-muted">Description</span>
+                                        <div className="mythic-create-meta-value text-sm leading-135 wrap-anywhere text-primary">{props.buildOptions.description}</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div className="mythic-create-subsection mythic-create-subsection-fill">
-                            <div className="mythic-create-section-header">
+                        <div className="mythic-create-subsection p-5 flex flex-column gap-4 mythic-create-subsection-fill flex-fill min-h-0 min-w-0 overflow-hidden rounded bg-surface border-subtle">
+                            <div className="mythic-create-section-header items-start flex gap-6 justify-between min-w-0">
                                 <div>
-                                    <Typography component="div" className="mythic-create-section-title">
+                                    <Typography component="div" className="mythic-create-section-title text-sm font-800 leading-125 text-primary">
                                         Select commands
                                     </Typography>
-                                    <Typography component="div" className="mythic-create-section-description">
+                                    <Typography component="div" className="mythic-create-section-description text-xs leading-135 text-muted">
                                         Move commands into the payload and review hover details before continuing.
                                     </Typography>
                                 </div>
@@ -187,64 +187,64 @@ export function Step3SelectCommands(props){
 
                     </section>
 
-                    <section className="mythic-create-section mythic-create-section-fill mythic-create-section-plain">
-                        <div className="mythic-create-subsection">
-                            <Typography component="div" className="mythic-create-section-title">
+                    <section className="mythic-create-section p-6 flex flex-column gap-5 mythic-create-section-fill flex-fill mythic-create-section-plain bg-transparent border-none min-h-0 min-w-0 overflow-hidden rounded bg-surface-muted border-subtle">
+                        <div className="mythic-create-subsection p-5 flex flex-column gap-4 min-h-0 min-w-0 rounded bg-surface border-subtle">
+                            <Typography component="div" className="mythic-create-section-title text-sm font-800 leading-125 text-primary">
                                 Hovered command details
                             </Typography>
                             {hasHoveredCommand ? (
-                                <div className="mythic-create-meta-list">
+                                <div className="mythic-create-meta-list flex flex-column gap-4 min-w-0">
                                     <div>
-                                        <span className="mythic-create-meta-label">Command</span>
-                                        <div className="mythic-create-meta-value">{hoveredCommand.cmd}</div>
+                                        <span className="mythic-create-meta-label text-xs font-750 leading-120 text-muted">Command</span>
+                                        <div className="mythic-create-meta-value text-sm leading-135 wrap-anywhere text-primary">{hoveredCommand.cmd}</div>
                                     </div>
                                     <div>
-                                        <span className="mythic-create-meta-label">Description</span>
-                                        <div className="mythic-create-meta-value">{hoveredCommand.description}</div>
+                                        <span className="mythic-create-meta-label text-xs font-750 leading-120 text-muted">Description</span>
+                                        <div className="mythic-create-meta-value text-sm leading-135 wrap-anywhere text-primary">{hoveredCommand.description}</div>
                                     </div>
                                 </div>
                             ) : (
-                                <Typography component="div" className="mythic-create-section-description">
+                                <Typography component="div" className="mythic-create-section-description text-xs leading-135 text-muted">
                                     Hover over a command to preview its description and behavior.
                                 </Typography>
                             )}
                         </div>
-                        <div className="mythic-create-subsection mythic-create-subsection-fill">
-                            <Typography component="div" className="mythic-create-section-title">
+                        <div className="mythic-create-subsection p-5 flex flex-column gap-4 mythic-create-subsection-fill flex-fill min-h-0 min-w-0 overflow-hidden rounded bg-surface border-subtle">
+                            <Typography component="div" className="mythic-create-section-title text-sm font-800 leading-125 text-primary">
                                 Command behavior
                             </Typography>
-                            <div className="mythic-create-subsection-scroll">
+                            <div className="mythic-create-subsection-scroll flex-fill overflow-auto">
                                 {hasHoveredCommand ? (
-                                    <div className="mythic-create-meta-list">
+                                    <div className="mythic-create-meta-list flex flex-column gap-4 min-w-0">
                                         <div>
-                                            <span className="mythic-create-meta-label">{hoveredCommand.disabled ? "Cannot be moved" : "Information"}</span>
-                                            <div className="mythic-create-meta-value">{commandReason}</div>
+                                            <span className="mythic-create-meta-label text-xs font-750 leading-120 text-muted">{hoveredCommand.disabled ? "Cannot be moved" : "Information"}</span>
+                                            <div className="mythic-create-meta-value text-sm leading-135 wrap-anywhere text-primary">{commandReason}</div>
                                         </div>
                                         <div>
-                                            <span className="mythic-create-meta-label">Command line help</span>
-                                            <div className="mythic-create-meta-value">{hoveredCommand.help_cmd}</div>
+                                            <span className="mythic-create-meta-label text-xs font-750 leading-120 text-muted">Command line help</span>
+                                            <div className="mythic-create-meta-value text-sm leading-135 wrap-anywhere text-primary">{hoveredCommand.help_cmd}</div>
                                         </div>
                                         <div>
-                                            <span className="mythic-create-meta-label">Needs admin permissions</span>
-                                            <div className="mythic-create-meta-value">{hoveredCommand.needs_admin ? "True" : "False"}</div>
+                                            <span className="mythic-create-meta-label text-xs font-750 leading-120 text-muted">Needs admin permissions</span>
+                                            <div className="mythic-create-meta-value text-sm leading-135 wrap-anywhere text-primary">{hoveredCommand.needs_admin ? "True" : "False"}</div>
                                         </div>
                                         <div>
-                                            <span className="mythic-create-meta-label">Supported UI features</span>
-                                            <div className="mythic-create-meta-value">{hoveredCommand?.supported_ui_features?.join(", ") || "None"}</div>
+                                            <span className="mythic-create-meta-label text-xs font-750 leading-120 text-muted">Supported UI features</span>
+                                            <div className="mythic-create-meta-value text-sm leading-135 wrap-anywhere text-primary">{hoveredCommand?.supported_ui_features?.join(", ") || "None"}</div>
                                         </div>
                                         {hoveredCommand?.attributes?.dependencies && hoveredCommand?.attributes?.dependencies.length > 0 &&
                                             <div>
-                                                <span className="mythic-create-meta-label">Dependencies</span>
-                                                <div className="mythic-create-meta-value">{hoveredCommand?.attributes?.dependencies.join(", ")}</div>
+                                                <span className="mythic-create-meta-label text-xs font-750 leading-120 text-muted">Dependencies</span>
+                                                <div className="mythic-create-meta-value text-sm leading-135 wrap-anywhere text-primary">{hoveredCommand?.attributes?.dependencies.join(", ")}</div>
                                             </div>}
                                         {hoveredCommand?.attributes?.alias !== undefined &&
                                             <div>
-                                                <span className="mythic-create-meta-label">Alias</span>
-                                                <div className="mythic-create-meta-value">{hoveredCommand?.attributes?.alias ? "True":"False"}</div>
+                                                <span className="mythic-create-meta-label text-xs font-750 leading-120 text-muted">Alias</span>
+                                                <div className="mythic-create-meta-value text-sm leading-135 wrap-anywhere text-primary">{hoveredCommand?.attributes?.alias ? "True":"False"}</div>
                                             </div>}
                                     </div>
                                 ) : (
-                                    <Typography component="div" className="mythic-create-section-description">
+                                    <Typography component="div" className="mythic-create-section-description text-xs leading-135 text-muted">
                                         Command metadata appears here after hovering over an available or selected command.
                                     </Typography>
                                 )}
@@ -260,7 +260,7 @@ export function Step3SelectCommands(props){
                                      acceptText="Accept"
                                      onSubmit={acceptConfirm} />
             }
-            <div className="mythic-create-flow-footer">
+            <div className="mythic-create-flow-footer flex-none">
                 <CreatePayloadNavigationButtons
                     first={props.first}
                     last={props.last}
@@ -403,46 +403,46 @@ function CommandTransferSelect(props) {
         <div style={{flexGrow: 1, width: "100%", display: "flex", minHeight: 0, alignItems: "stretch"}} className={classes.root}>
             {customList("Commands Available", commands.filter(c => c.left), leftFilter, updateLeftFilter)}
             <div style={{display: "flex", flexDirection: "column", flexShrink: 0, justifyContent: "center"}}>
-                    <StyledButton
+                    <MythicActionButton compact
                         variant="contained"
                         size="small"
-                        className={`${classes.button} mythic-compact-action`}
+                        style={{margin: '4px 0'}}
                         onClick={handleAllRight}
                         disabled={commands.filter(c => c.left && !c.disabled).length === 0}
                         aria-label="move all right"
                     >
                         &gt;&gt;
-                    </StyledButton>
-                    <StyledButton
+                    </MythicActionButton>
+                    <MythicActionButton compact
                         variant="contained"
                         size="small"
-                        className={`${classes.button} mythic-compact-action`}
+                        style={{margin: '4px 0'}}
                         onClick={handleCheckedRight}
                         disabled={commands.filter(c => c.left && c.selected).length === 0}
                         aria-label="move selected right"
                     >
                         &gt;
-                    </StyledButton>
-                    <StyledButton
+                    </MythicActionButton>
+                    <MythicActionButton compact
                         variant="contained"
                         size="small"
-                        className={`${classes.button} mythic-compact-action`}
+                        style={{margin: '4px 0'}}
                         onClick={handleCheckedLeft}
                         disabled={commands.filter( c => c.right && c.selected).length === 0}
                         aria-label="move selected left"
                     >
                         &lt;
-                    </StyledButton>
-                    <StyledButton
+                    </MythicActionButton>
+                    <MythicActionButton compact
                         variant="contained"
                         size="small"
-                        className={`${classes.button} mythic-compact-action`}
+                        style={{margin: '4px 0'}}
                         onClick={handleAllLeft}
                         disabled={commands.filter(c => c.right && !c.disabled).length === 0}
                         aria-label="move all left"
                     >
                         &lt;&lt;
-                    </StyledButton>
+                    </MythicActionButton>
             </div>
             {customList("Commands in Payload", commands.filter(c => c.right), rightFilter, updateRightFilter)}
         </div>

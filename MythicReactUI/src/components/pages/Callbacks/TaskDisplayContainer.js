@@ -667,7 +667,7 @@ const TaskActionsToolbarGeneric = ({toggleViewBrowserScript, toggleSelectAllOutp
                 onClose={closeActionsMenu}
                 anchorOrigin={{vertical: "bottom", horizontal: "right"}}
                 transformOrigin={{vertical: "top", horizontal: "right"}}
-                MenuListProps={{className: "mythic-response-action-menu"}}>
+                MenuListProps={{className: "mythic-response-action-menu p-2"}}>
             <MenuItem className={responseMenuItemClass("info")} onClick={()=>{setOpenTaskTagDialog(true);closeActionsMenu();}}>
               <ListItemIcon><LocalOfferOutlinedIcon fontSize="small" /></ListItemIcon>
               <ListItemText>Edit Tags</ListItemText>

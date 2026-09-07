@@ -93,13 +93,13 @@ export function TaskMetadataTable(props){
         });
     }, [props.taskIDs, getMetadata]);
   return (
-    <div className="mythic-single-task-metadata">
+    <div className="mythic-single-task-metadata flex flex-column gap-5 min-w-0 w-full">
         <TaskArtifactsTable tasks={tasks}/>
         <TaskMITREATTACKTable tasks={tasks}/>
         <TaskFilesTable tasks={tasks}/>
         <TaskCredentialsTable tasks={tasks}/>
         {tasks.length > 0 && !hasMetadata &&
-            <div className="mythic-single-task-empty-card">
+            <div className="mythic-single-task-empty-card min-w-0 w-full rounded bg-surface-raised border-subtle">
                 <MythicEmptyState
                     compact
                     title="No task metadata"

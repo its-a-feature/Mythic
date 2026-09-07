@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import Button from '@mui/material/Button';
+import {MythicActionButton} from './MythicActionButton';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -35,11 +35,10 @@ export function MythicTextEditDialog(props) {
               }}/>
         </DialogContent>
         <DialogActions>
-          <Button variant="contained" onClick={props.onClose} color="primary">
+        <MythicActionButton colorMode="always" variant="contained" onClick={props.onClose} tone="primary">
             Close
-          </Button>
+        </MythicActionButton>
         </DialogActions>
   </React.Fragment>
   );
 }
-

@@ -2,7 +2,6 @@ import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import {gql, useQuery, useReactiveVar} from '@apollo/client';
 import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableContainer from '@mui/material/TableContainer';
@@ -149,33 +148,33 @@ export function Step3SelectPayload(props){
     };
 
     return (
-        <div className="mythic-create-flow-shell">
-            <div className="mythic-create-flow-content">
-                <div className="mythic-create-selection-grid">
-                    <section className="mythic-create-section">
-                        <div className="mythic-create-agent-summary">
-                            <div className="mythic-create-agent-icon">
+        <div className="mythic-create-flow-shell flex flex-column gap-6 h-full min-h-0">
+            <div className="mythic-create-flow-content flex flex-fill flex-column gap-6 min-h-0 overflow-hidden">
+                <div className="mythic-create-selection-grid flex-none gap-6 min-w-0 grid">
+                    <section className="mythic-create-section p-6 flex flex-column gap-5 min-h-0 min-w-0 overflow-hidden rounded bg-surface-muted border-subtle">
+                        <div className="mythic-create-agent-summary items-start flex gap-6 min-w-0">
+                            <div className="mythic-create-agent-icon items-center flex justify-center rounded bg-neutral-1 border-subtle">
                                 <MythicAgentSVGIcon payload_type={props.buildOptions.payload_type} style={{width: '100%', height: '100%', objectFit: 'contain'}} />
                             </div>
-                            <div className="mythic-create-meta-list">
+                            <div className="mythic-create-meta-list flex flex-column gap-4 min-w-0">
                                 <div>
-                                    <span className="mythic-create-meta-label">Operating system</span>
-                                    <div className="mythic-create-meta-value">{props.buildOptions.os}</div>
+                                    <span className="mythic-create-meta-label text-xs font-750 leading-120 text-muted">Operating system</span>
+                                    <div className="mythic-create-meta-value text-sm leading-135 wrap-anywhere text-primary">{props.buildOptions.os}</div>
                                 </div>
                                 <div>
-                                    <span className="mythic-create-meta-label">Description</span>
-                                    <div className="mythic-create-meta-value">{props.buildOptions.description}</div>
+                                    <span className="mythic-create-meta-label text-xs font-750 leading-120 text-muted">Description</span>
+                                    <div className="mythic-create-meta-value text-sm leading-135 wrap-anywhere text-primary">{props.buildOptions.description}</div>
                                 </div>
                             </div>
                         </div>
                     </section>
-                    <section className="mythic-create-section">
-                        <div className="mythic-create-section-header">
+                    <section className="mythic-create-section p-6 flex flex-column gap-5 min-h-0 min-w-0 overflow-hidden rounded bg-surface-muted border-subtle">
+                        <div className="mythic-create-section-header items-start flex gap-6 justify-between min-w-0">
                             <div>
-                                <Typography component="div" className="mythic-create-section-title">
+                                <Typography component="div" className="mythic-create-section-title text-sm font-800 leading-125 text-primary">
                                     Select payload to include
                                 </Typography>
-                                <Typography component="div" className="mythic-create-section-description">
+                                <Typography component="div" className="mythic-create-section-description text-xs leading-135 text-muted">
                                     Pick the existing payload that this wrapper should embed.
                                 </Typography>
                             </div>
@@ -183,13 +182,13 @@ export function Step3SelectPayload(props){
                     </section>
                 </div>
 
-                <section className="mythic-create-section mythic-create-section-fill">
-                    <div className="mythic-create-section-header">
+                <section className="mythic-create-section p-6 flex flex-column gap-5 mythic-create-section-fill flex-fill min-h-0 min-w-0 overflow-hidden rounded bg-surface-muted border-subtle">
+                    <div className="mythic-create-section-header items-start flex gap-6 justify-between min-w-0">
                         <div>
-                            <Typography component="div" className="mythic-create-section-title">
+                            <Typography component="div" className="mythic-create-section-title text-sm font-800 leading-125 text-primary">
                                 Compatible payloads
                             </Typography>
-                            <Typography component="div" className="mythic-create-section-description">
+                            <Typography component="div" className="mythic-create-section-description text-xs leading-135 text-muted">
                                 Results match every requirement in an active wrapper rule.
                             </Typography>
                         </div>
@@ -215,7 +214,7 @@ export function Step3SelectPayload(props){
                 </section>
             </div>
 
-            <div className="mythic-create-flow-footer">
+            <div className="mythic-create-flow-footer flex-none">
                 <CreatePayloadNavigationButtons disableNext first={props.first} last={props.last}
                                                 canceled={props.canceled} finished={finished}/>
                 <br/><br/>
@@ -295,7 +294,7 @@ export function PayloadsTableRow(props){
         <React.Fragment>
             <TableRow key={`payload${props.payload.uuid}`} hover onClick={onSelected} style={{cursor: 'pointer'}}>
                 <MythicStyledTableCell>
-                    <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-info" size="small" onClick={(event) => {event.stopPropagation(); onSelected();}} variant="contained">Select</Button>
+                    <MythicActionButton compact tone="info" size="small" onClick={(event) => {event.stopPropagation(); onSelected();}} variant="contained">Select</MythicActionButton>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>{toLocalTime(props.payload.creation_time, me.user.view_utc_time)}</MythicStyledTableCell>
                 <MythicStyledTableCell>{b64DecodeUnicode(props.payload.filemetum.filename_text)}</MythicStyledTableCell>
@@ -303,7 +302,7 @@ export function PayloadsTableRow(props){
                 {props.showMetadata && <MythicStyledTableCell>{metadata.architecture || '—'}</MythicStyledTableCell>}
                 {props.showMetadata && <MythicStyledTableCell>{metadata.format || '—'}</MythicStyledTableCell>}
                 <MythicStyledTableCell>
-                    <div className="mythic-payload-progress-cell">
+                    <div className="mythic-payload-progress-cell items-center flex flex-wrap gap-3 min-w-0">
                         <PayloadsTableRowBuildStatus {...props.payload} />
                         <PayloadsTableRowBuildProgress {...props.payload} />
                     </div>

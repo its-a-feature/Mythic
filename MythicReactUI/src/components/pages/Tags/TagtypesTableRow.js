@@ -25,19 +25,31 @@ export function TagtypesTableRow(props){
         <React.Fragment>
             <TableRow key={"payload" + props.id} hover>
                 <MythicStyledTableCell>
+                    <MythicActionButton
+                        iconOnly
+                        tooltip={"Delete the tag type and all associated tags"}
+                        appearance="raised"
+                        colorMode="hover"
+                        tone="error"
+                        size="small"
+                        icon={<DeleteIcon fontSize="small" />}
+                        onClick={()=>{setOpenDeleteDialog(true);}}>
 
-                  <MythicStyledTooltip title={"Delete the tag type and all associated tags"}>
-                    <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><DeleteIcon fontSize="small" /></MythicActionButton>
-                  </MythicStyledTooltip>
-                  
+                    </MythicActionButton>
                   {openDelete && 
                     <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} open={openDelete}/>
                   }
                   
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" size="small" onClick={()=>{setOpenUpdateDialog(true);}}>
-                        <EditIcon fontSize="small" />
+                    <MythicActionButton
+                        iconOnly
+                        appearance="raised"
+                        colorMode="hover"
+                        tone="info"
+                        size="small"
+                        icon={<EditIcon fontSize="small" />}
+                        onClick={()=>{setOpenUpdateDialog(true);}}>
                     </MythicActionButton>
                   {openUpdate && 
                     <MythicDialog fullWidth={true} maxWidth="md" open={openUpdate}

@@ -1,7 +1,6 @@
 import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
 import FormControl from '@mui/material/FormControl';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import MenuItem from '@mui/material/MenuItem';
@@ -100,12 +99,12 @@ const CollapsibleSection = ({label, summary, description, children}) => {
     const [collapsed, setCollapsed] = React.useState(false);
     const toggleCollapsed = () => setCollapsed((current) => !current);
     return (
-        <Box component="section" className="mythic-dialog-section" sx={{p: 1, my: 1}}>
+        <Box component="section" className="mythic-dialog-section bg-surface-muted border-subtle min-w-0 rounded" sx={{p: 1, my: 1}}>
             <Box
                 role="button"
                 tabIndex={0}
                 aria-expanded={!collapsed}
-                className="mythic-dialog-section-header"
+                className="mythic-dialog-section-header items-start flex gap-6 justify-between min-w-0"
                 onClick={toggleCollapsed}
                 onKeyDown={(event) => {
                     if(event.key === "Enter" || event.key === " "){
@@ -125,7 +124,7 @@ const CollapsibleSection = ({label, summary, description, children}) => {
                         <ChevronRightIcon fontSize="small" color="secondary" /> :
                         <ExpandMoreIcon fontSize="small" color="secondary" />
                     }
-                    <Typography component="div" className="mythic-dialog-section-title">
+                    <Typography component="div" className="mythic-dialog-section-title text-sm font-700 leading-125 text-primary">
                         {label}
                     </Typography>
                     {summary &&
@@ -194,7 +193,7 @@ const ObjectField = ({schema, value, onChange, depth = 0}) => {
         return (
             <Box sx={{display: "flex", flexDirection: "column", gap: 0.75, minWidth: 0}}>
                 {schema.label &&
-                    <Typography component="div" className="mythic-dialog-section-title">
+                    <Typography component="div" className="mythic-dialog-section-title text-sm font-700 leading-125 text-primary">
                         {schema.label}
                     </Typography>
                 }
@@ -250,15 +249,16 @@ const ArrayOfPrimitiveField = ({schema, value, onChange, depth = 0}) => {
                     </MythicActionButton>
                 </Box>
             ))}
-            <Button
-                className="mythic-compact-action mythic-action-tone-hover mythic-tone-success"
+            <MythicActionButton
+                compact
+                tone="success"
                 size="small"
                 variant="contained"
                 startIcon={<AddCircleIcon fontSize="small" />}
                 onClick={() => onChange([...arr, emptyValueForSchema(itemSchema)])}
             >
                 Add
-            </Button>
+            </MythicActionButton>
         </Box>
     );
     if(schema.label){
@@ -280,7 +280,7 @@ const ArrayOfObjectField = ({schema, value, onChange, depth = 0}) => {
                 const safeItem = isObjectValue(item) ? item : {};
                 return (
                     <Box
-                        className="mythic-dialog-section"
+                        className="mythic-dialog-section bg-surface-muted border-subtle min-w-0 rounded"
                         key={index}
                         sx={{
                             alignItems: "flex-start",
@@ -329,15 +329,16 @@ const ArrayOfObjectField = ({schema, value, onChange, depth = 0}) => {
                     </Box>
                 );
             })}
-            <Button
-                className="mythic-compact-action mythic-action-tone-hover mythic-tone-success"
+            <MythicActionButton
+                compact
+                tone="success"
                 size="small"
                 variant="contained"
                 startIcon={<AddCircleIcon fontSize="small" />}
                 onClick={() => onChange([...arr, emptyValueForSchema(itemSchema)])}
             >
                 Add
-            </Button>
+            </MythicActionButton>
         </Box>
     );
     if(schema.label){
@@ -421,15 +422,16 @@ const StringMapField = ({schema, value, onChange}) => {
                     </TableBody>
                 </Table>
             }
-            <Button
-                className="mythic-compact-action mythic-action-tone-hover mythic-tone-success"
+            <MythicActionButton
+                compact
+                tone="success"
                 size="small"
                 variant="contained"
                 startIcon={<AddCircleIcon fontSize="small" />}
                 onClick={addEntry}
             >
                 Add entry
-            </Button>
+            </MythicActionButton>
         </Box>
     );
     if(schema.label){
@@ -492,7 +494,7 @@ const NumberField = ({schema, value, onChange}) => (
 );
 
 const BooleanField = ({schema, value, onChange}) => (
-    <Box className="mythic-form-field">
+    <Box className="mythic-form-field flex flex-column gap-3 min-w-0">
         <FormControlLabel
             label={schema.label || ""}
             control={

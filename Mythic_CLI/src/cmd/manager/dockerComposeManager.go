@@ -1414,7 +1414,7 @@ func (d *DockerComposeManager) runDockerCompose(args []string) error {
 			return err
 		}
 		if processState.ExitCode() != 0 {
-			return err
+			return fmt.Errorf("docker-compose %v exited with code %d", args, processState.ExitCode())
 		}
 	}
 	return nil

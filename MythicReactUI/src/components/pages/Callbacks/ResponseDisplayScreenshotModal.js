@@ -1,5 +1,5 @@
 import React from 'react';
-import Button from '@mui/material/Button';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import { MobileStepper } from '@mui/material';
@@ -36,27 +36,27 @@ export function ResponseDisplayScreenshotModal({onClose, images, startIndex}) {
                 position="static"
                 activeStep={activeStep}
                 nextButton={
-                    <Button
+                    <MythicActionButton
                         size="small"
                         onClick={handleNext}
                         disabled={activeStep === maxSteps - 1}
                     >
                         Next
                         {<KeyboardArrowRight />}
-                    </Button>
+                    </MythicActionButton>
                 }
                 backButton={
-                    <Button size="small" onClick={handleBack} disabled={activeStep === 0}>
+                    <MythicActionButton size="small" onClick={handleBack} disabled={activeStep === 0}>
                         {<KeyboardArrowLeft />}
                         Back
-                    </Button>
+                    </MythicActionButton>
                 }
             />
 
             <DialogActions >
-                <Button variant="contained" onClick={onClose} color="primary">
+                <MythicActionButton colorMode="always" variant="contained" onClick={onClose} tone="primary">
                     Close
-                </Button>
+                </MythicActionButton>
             </DialogActions>
         </>
     );

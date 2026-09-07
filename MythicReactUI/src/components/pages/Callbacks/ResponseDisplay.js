@@ -693,7 +693,7 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
 export function ResponseDisplayBrowserScriptComponent({output, browserScriptData, task, expand, displayType, allowPlaintextFallback=true}) {
   const hasBrowserScriptData = browserScriptData && Object.keys(browserScriptData).length > 0;
   return (
-      <div className={`mythic-browser-script-response${expand ? " mythic-browser-script-response-expanded" : ""}`}>
+      <div className={`mythic-browser-script-response flex flex-column gap-4${expand ? " mythic-browser-script-response-expanded flex-fill" : ""} max-w-full min-w-0 w-full min-h-0`}>
         {hasBrowserScriptData ? (
             <>
               {browserScriptData?.plaintext !== undefined &&

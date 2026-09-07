@@ -20,6 +20,7 @@ import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
 import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/MythicPageHeader";
 import {MythicToolbarToggle} from "../../MythicComponents/MythicTableToolbar";
 import {useTheme} from "@mui/material/styles";
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 
 const SUB_Payload_Types = gql`
  subscription getPayloadTypesSubscription {
@@ -255,12 +256,10 @@ export function PayloadTypesC2Profiles({me}){
                     </>
                 }
                 actions={
-                    <MythicToolbarToggle
-                        checked={showDeleted}
+                    <MythicActionButton
                         onClick={() => setShowDeleted(!showDeleted)}
                         label="Deleted"
-                        activeIcon={<VisibilityIcon fontSize="small" />}
-                        inactiveIcon={<VisibilityOffIcon fontSize="small" />}
+                        icon={showDeleted ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
                     />
                 }
             />

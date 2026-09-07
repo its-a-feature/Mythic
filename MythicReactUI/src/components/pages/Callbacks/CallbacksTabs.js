@@ -78,7 +78,7 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, onDragEnd, clic
         <CallbackBrowserTreeProvider openTabs={openTabs}>
         <div style={{width: "100%", maxWidth: "100%", display: 'flex', flexDirection: 'column',
             flexGrow: 1, height: "100%", }}>
-            <AppBar color='default' position={"static"} className="no-box-shadow mythic-table-toolbar"
+            <AppBar color='default' position={"static"} className="no-box-shadow mythic-table-toolbar flex flex-none flex-wrap gap-4 w-full rounded bg-surface-muted border-subtle"
             style={{marginBottom: "0.2rem"}}>
                 <DragDropContext onDragEnd={onDragEnd}>
                     <Droppable droppableId="callback-tabs-list" direction={"horizontal"}>

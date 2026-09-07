@@ -89,10 +89,13 @@ func DeleteFilesHelper(fileIDsToProcess []int, operatorOperation *databaseStruct
 			logging.LogError(err, "Failed to get file data from database", "file_id", fileID)
 			return err, deletedFileIDs, deletedPayloadIDs
 		}
-		err = os.Remove(filemeta.Path)
-		if err != nil {
-			logging.LogError(err, "Failed to remove file data from disk", "file_id", fileID)
-			return err, deletedFileIDs, deletedPayloadIDs
+		_, err = os.Stat(filemeta.Path)
+		if err == nil {
+			err = os.Remove(filemeta.Path)
+			if err != nil {
+				logging.LogError(err, "Failed to remove file data from disk", "file_id", fileID)
+				return err, deletedFileIDs, deletedPayloadIDs
+			}
 		}
 		deletedFileIDs = append(deletedFileIDs, filemeta.ID)
 		hostedFileMetaIDs := []int{filemeta.ID}

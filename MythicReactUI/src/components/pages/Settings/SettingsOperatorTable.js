@@ -23,6 +23,7 @@ import {useLazyQuery} from '@apollo/client';
 import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/MythicPageHeader";
 import {MythicToolbarButton, MythicToolbarToggle} from "../../MythicComponents/MythicTableToolbar";
 import {MythicTableEmptyState} from "../../MythicComponents/MythicStateDisplay";
+import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 
 
 export function SettingsOperatorTable(props){
@@ -95,36 +96,41 @@ export function SettingsOperatorTable(props){
             }
             actions={
                 <>
-                    <MythicToolbarButton
+                    <MythicActionButton
                         disabled={!inviteLinksEnabled || !userIsAdmin}
                         onClick={()=>{setOpenInviteLinksDialog(true);}}
-                        startIcon={<ForwardToInboxTwoToneIcon />}
+                        icon={<ForwardToInboxTwoToneIcon />}
                         colorMode={"hover"} tone={"primary"}
                         variant="outlined"
                     >
                         Invites
-                    </MythicToolbarButton>
-                    <MythicToolbarButton onClick={()=>{setOpenNewDialog(true);}} startIcon={<PersonAddIcon />} variant="contained"
-                                         colorMode={"hover"} tone={"success"}
+                    </MythicActionButton>
+                    <MythicActionButton
+                        onClick={()=>{setOpenNewDialog(true);}}
+                        icon={<PersonAddIcon />}
+                        variant="contained"
+                        colorMode={"hover"} tone={"success"}
                     >
                         User
-                    </MythicToolbarButton>
-                    <MythicToolbarButton onClick={()=>{setOpenNewBotDialog(true);}} startIcon={<SmartToyTwoToneIcon />} variant="outlined"
-                                         colorMode={"hover"} tone={"success"}
+                    </MythicActionButton>
+                    <MythicActionButton
+                        onClick={()=>{setOpenNewBotDialog(true);}}
+                        icon={<SmartToyTwoToneIcon />}
+                        variant="outlined" colorMode={"hover"} tone={"success"}
                     >
                         Bot
-                    </MythicToolbarButton>
-                    <MythicToolbarButton onClick={() => setOpenGlobalSettingsDialog(!openGlobalSettingsDialog)} startIcon={<TuneIcon />} variant="outlined"
-                                         colorMode={"hover"} tone={"warning"}
+                    </MythicActionButton>
+                    <MythicActionButton
+                        onClick={() => setOpenGlobalSettingsDialog(!openGlobalSettingsDialog)}
+                        icon={<TuneIcon />}
+                        variant="outlined" colorMode={"hover"} tone={"warning"}
                     >
                         Global
-                    </MythicToolbarButton>
-                    <MythicToolbarToggle
-                        checked={showDeleted}
+                    </MythicActionButton>
+                    <MythicActionButton
                         onClick={() => setShowDeleted(!showDeleted)}
                         label="Deleted"
-                        activeIcon={<VisibilityIcon fontSize="small" />}
-                        inactiveIcon={<VisibilityOffIcon fontSize="small" />}
+                        icon={showDeleted ? <VisibilityOffIcon /> : <VisibilityIcon />}
                     />
                 </>
             }
@@ -160,7 +166,7 @@ export function SettingsOperatorTable(props){
             }
         </MythicPageHeader>
         <TableContainer style={{display: "flex", flexGrow: 1, overflowY: "auto", alignItems: "flex-start"}}>
-            <Table stickyHeader size="small" style={{"tableLayout": "fixed",}}>
+            <Table stickyHeader size="small" style={{tableLayout: "fixed",}}>
                 <TableHead >
                     <TableRow>
                         <TableCell style={{width: "3rem"}}></TableCell>

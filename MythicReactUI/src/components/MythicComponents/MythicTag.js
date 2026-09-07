@@ -168,18 +168,15 @@ const TagChipDisplay = ({tag, expand}) => {
   }
   return (
     <React.Fragment>
-      <MythicChip customColor onMouseOver={onMouseOver} onMouseOut={onMouseOut} label={label} size="small" onClick={(e) => onSelectTag(e)}
+      <MythicChip color={color} onMouseOver={onMouseOver} onMouseOut={onMouseOut} label={label} size="small" onClick={(e) => onSelectTag(e)}
             sx={{
-              backgroundColor: color || "transparent",
-              color: textColor,
+              backgroundColor: color + " !important",
+              color: textColor + " !important",
               float: "right",
               height: "15px",
               "& .MuiChip-label": {
                 color: "inherit",
                 overflow: "visible"
-              },
-              "&:hover": {
-                backgroundColor: color || "transparent",
               },
             }}
       />
@@ -256,15 +253,15 @@ const StringTagDataEntry = ({name, value}) => {
 const RenderedTagDataPreview = ({data}) => {
   const trimmedData = typeof data === "string" ? data.trim() : data;
   if(trimmedData === ""){
-    return <Box className="mythic-tag-data-preview-empty">No JSON data to render.</Box>;
+    return <Box className="mythic-tag-data-preview-empty text-sm items-center flex justify-center text-muted text-center">No JSON data to render.</Box>;
   }
   try {
     const parsedData = typeof data === "string" ? JSON.parse(data) : data;
     if(parsedData === null || typeof parsedData !== "object"){
       return (
-          <Box className="mythic-tag-data-preview-row">
-            <Box className="mythic-tag-data-preview-key">value</Box>
-            <Box className="mythic-tag-data-preview-value">{String(parsedData)}</Box>
+          <Box className="mythic-tag-data-preview-row gap-4 min-w-0 rounded grid bg-neutral-1 border-subtle">
+            <Box className="mythic-tag-data-preview-key text-xs font-800 min-w-0 truncate text-muted whitespace-nowrap">value</Box>
+            <Box className="mythic-tag-data-preview-value text-sm leading-135 min-w-0 wrap-anywhere text-primary">{String(parsedData)}</Box>
           </Box>
       );
     }
@@ -272,14 +269,14 @@ const RenderedTagDataPreview = ({data}) => {
         parsedData.map((value, index) => [`[${index}]`, value]) :
         Object.entries(parsedData);
     if(entries.length === 0){
-      return <Box className="mythic-tag-data-preview-empty">JSON object is empty.</Box>;
+      return <Box className="mythic-tag-data-preview-empty text-sm items-center flex justify-center text-muted text-center">JSON object is empty.</Box>;
     }
     return (
-        <Box className="mythic-tag-data-preview-list">
+        <Box className="mythic-tag-data-preview-list flex flex-column gap-3 min-w-0">
           {entries.map(([key, value]) => (
-              <Box className="mythic-tag-data-preview-row" key={key}>
-                <Box className="mythic-tag-data-preview-key">{key}</Box>
-                <Box className="mythic-tag-data-preview-value">
+              <Box className="mythic-tag-data-preview-row gap-4 min-w-0 rounded grid bg-neutral-1 border-subtle" key={key}>
+                <Box className="mythic-tag-data-preview-key text-xs font-800 min-w-0 truncate text-muted whitespace-nowrap">{key}</Box>
+                <Box className="mythic-tag-data-preview-value text-sm leading-135 min-w-0 wrap-anywhere text-primary">
                   {typeof value === "string" ? (
                       <StringTagDataEntry name={key} value={value} />
                   ) : typeof value === "boolean" ? (
@@ -295,11 +292,11 @@ const RenderedTagDataPreview = ({data}) => {
         </Box>
     );
   } catch (error) {
-    return <Box className="mythic-tag-data-preview-empty">Enter valid JSON to render a preview.</Box>;
+    return <Box className="mythic-tag-data-preview-empty text-sm items-center flex justify-center text-muted text-center">Enter valid JSON to render a preview.</Box>;
   }
 }
 const TagReadonlyValue = ({children}) => (
-    <Box className="mythic-tag-readonly-value">
+    <Box className="mythic-tag-readonly-value text-sm leading-135 items-center flex min-w-0 wrap-anywhere w-full rounded bg-surface border-subtle text-primary">
       {children || "None"}
     </Box>
 )
@@ -402,11 +399,11 @@ return (
           </MythicDialogSection>
           <MythicDialogSection title="Tag Data">
             {selectedTag?.is_json ? (
-                <Box className="mythic-tag-data-preview-frame mythic-tag-data-preview-frame-full">
+                <Box className="mythic-tag-data-preview-frame mythic-tag-data-preview-frame-full min-w-0 overflow-auto rounded bg-surface border-subtle text-primary">
                   <RenderedTagDataPreview data={selectedTag?.data || {}} />
                 </Box>
             ) : (
-                <Box className="mythic-tag-editor-frame">
+                <Box className="mythic-tag-editor-frame min-w-0 overflow-hidden w-full rounded bg-surface border-subtle">
                   <AceEditor
                       mode="json"
                       theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}
@@ -632,8 +629,8 @@ return (
                 </MythicFormGrid>
               </MythicDialogSection>
               <MythicDialogSection title="JSON Data">
-                <Box className="mythic-tag-data-split">
-                  <Box className="mythic-tag-editor-frame">
+                <Box className="mythic-tag-data-split gap-6 min-w-0 w-full grid">
+                  <Box className="mythic-tag-editor-frame min-w-0 overflow-hidden w-full rounded bg-surface border-subtle">
                     <AceEditor
                         mode="json"
                         theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}
@@ -653,7 +650,7 @@ return (
                           wrap: true
                         }}/>
                   </Box>
-                  <Box className="mythic-tag-data-preview-frame">
+                  <Box className="mythic-tag-data-preview-frame min-w-0 overflow-auto rounded bg-surface border-subtle text-primary">
                     <RenderedTagDataPreview data={newData} />
                   </Box>
                 </Box>
@@ -752,7 +749,7 @@ export function NewTagDialog(props) {
                 title="Tag Type"
                 description="Select the taxonomy entry this tag should use."
                 actions={
-                  <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-info" size="small" variant="outlined" onClick={() => setOpenNewTagTypeDialog(true)}>
+                  <Button className="mythic-compact-action bg-surface-raised border text-primary text-xs font-750 mythic-action-tone-hover mythic-tone-info rounded" size="small" variant="outlined" onClick={() => setOpenNewTagTypeDialog(true)}>
                     Manage Tag Types
                   </Button>
                 }
@@ -793,8 +790,8 @@ export function NewTagDialog(props) {
               </MythicFormGrid>
             </MythicDialogSection>
             <MythicDialogSection title="JSON Data">
-              <Box className="mythic-tag-data-split">
-                <Box className="mythic-tag-editor-frame">
+              <Box className="mythic-tag-data-split gap-6 min-w-0 w-full grid">
+                <Box className="mythic-tag-editor-frame min-w-0 overflow-hidden w-full rounded bg-surface border-subtle">
                   <AceEditor
                       mode="json"
                       theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}
@@ -814,7 +811,7 @@ export function NewTagDialog(props) {
                         wrap: true
                       }}/>
                 </Box>
-                <Box className="mythic-tag-data-preview-frame">
+                <Box className="mythic-tag-data-preview-frame min-w-0 overflow-auto rounded bg-surface border-subtle text-primary">
                   <RenderedTagDataPreview data={newData} />
                 </Box>
               </Box>

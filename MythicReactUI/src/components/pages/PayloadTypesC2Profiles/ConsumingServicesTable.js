@@ -6,7 +6,6 @@ import {gql, useMutation} from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
 import SyncAltIcon from '@mui/icons-material/SyncAlt';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
-import {MythicChatContainerIcon} from "../../MythicComponents/MythicChatContainerIcon";
 import MythicTableCell from "../../MythicComponents/MythicTableCell";
 import DeleteIcon from '@mui/icons-material/Delete';
 import RestoreFromTrashOutlinedIcon from '@mui/icons-material/RestoreFromTrashOutlined';
@@ -163,27 +162,25 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
         }
     }, [service]);
     const renderDeleteButton = (w) => (
-        <MythicStyledTooltip title={w.deleted ? "Restore service" : "Remove service"}>
-            <MythicActionButton iconOnly
-                appearance="raised" colorMode={w.deleted ? "always" : "hover"} tone={w.deleted ? "success" : "error"}
-                onClick={() => adjustingDelete(w)}
-                size="small"
-            >
-                {w.deleted ? <RestoreFromTrashOutlinedIcon fontSize="small" /> : <DeleteIcon fontSize="small" />}
-            </MythicActionButton>
-        </MythicStyledTooltip>
+        <MythicActionButton iconOnly
+                            tooltip={w.deleted ? "Restore service" : "Remove service"}
+            appearance="raised" colorMode={w.deleted ? "always" : "hover"} tone={w.deleted ? "success" : "error"}
+            onClick={() => adjustingDelete(w)}
+            size="small"
+        >
+            {w.deleted ? <RestoreFromTrashOutlinedIcon fontSize="small" /> : <DeleteIcon fontSize="small" />}
+        </MythicActionButton>
     );
     const renderFileButton = (w) => (
-        <MythicStyledTooltip title={w.container_running ? "View Files" : "Unable to view files since container is offline"}>
-            <MythicActionButton iconOnly
-                appearance="raised" colorMode="hover" tone="info"
-                disabled={!w.container_running}
-                onClick={()=>{onOpenListFilesDialog(w.name);}}
-                size="small"
-            >
-                <AttachFileIcon fontSize="small" />
-            </MythicActionButton>
-        </MythicStyledTooltip>
+        <MythicActionButton iconOnly
+                            tooltip={w.container_running ? "View Files" : "Unable to view files since container is offline"}
+            appearance="raised" colorMode="hover" tone="info"
+            disabled={!w.container_running}
+            onClick={()=>{onOpenListFilesDialog(w.name);}}
+            size="small"
+        >
+            <AttachFileIcon fontSize="small" />
+        </MythicActionButton>
     );
     const renderSubscriptionTestButtons = (w, events, icon, onClick, prefix) => (
         events.map(s => (
@@ -205,16 +202,15 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
     const renderIdentityProviderMetadata = (w) => {
         const subscriptions = Array.isArray(w.subscriptions) ? w.subscriptions : [];
         if(subscriptions.length === 0){
-            return <span className="mythic-installed-service-empty-value">Not set</span>;
+            return <span className="mythic-installed-service-empty-value text-muted text-xs font-650">Not set</span>;
         }
         return (
-            <span className="mythic-installed-service-action-chip-list">
+            <span className="mythic-installed-service-action-chip-list items-center flex gap-2 flex-wrap min-w-0">
                 {subscriptions.map((subscription) => {
                     const providerName = subscription?.name || subscription;
                     return (
                         <MythicStyledTooltip title={w.container_running ? "Fetch container metadata" : "Container is offline"} key={`${w.name}-${providerName}`}>
                             <SquareChip
-                                className="mythic-installed-service-action-chip mythic-action-tone-hover"
                                 disabled={!w.container_running}
                                 label={
                                     <>
@@ -238,7 +234,7 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
                 {renderDeleteButton(w)}
             </MythicTableCell>
             <MythicTableCell>
-                <div className="mythic-installed-service-identity-cell">
+                <div className="mythic-installed-service-identity-cell items-start flex gap-5 min-w-0">
                     <MythicAgentSVGIcon payload_type={w.name} style={{width: "80px", padding: "5px", objectFit: "unset"}} />
                     <InstalledServiceIdentity
                         name={w.name}
@@ -255,7 +251,7 @@ export const ConsumingServicesTableRow = ({service, showDeleted}) => {
                 />
             </MythicTableCell>
             <MythicTableCell>
-                <div className="mythic-compact-actions mythic-service-actions mythic-compact-actions-nowrap">
+                <div className="items-center flex flex-wrap gap-3 mythic-service-actions gap-4 flex-nowrap">
                     {renderFileButton(w)}
                     {actions}
                     {hasDetails &&

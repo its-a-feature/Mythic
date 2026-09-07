@@ -87,7 +87,7 @@ export function ArtifactTable(props){
                         <TableCell style={{width: "9rem"}}>Command</TableCell>
                         <TableCell style={{width: "11rem"}}>Task</TableCell>
                         <TableCell style={{width: "12rem"}}>Host</TableCell>
-                        <TableCell >Artifact</TableCell>
+                        <TableCell style={{minWidth: "10rem"}}>Artifact</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -123,7 +123,7 @@ function ArtifactTableRow(props){
         <React.Fragment>
             <TableRow hover>
                 <MythicStyledTableCell>
-                    <div className="mythic-search-result-action-row">
+                    <div className="mythic-search-result-action-row items-center flex flex-nowrap gap-3 min-w-0">
                         {props.needs_cleanup && !props.resolved &&
                             <MythicActionButton appearance="raised" icon={<CleanHandsTwoToneIcon />} iconOnly onClick={MarkResolved} tone="success" tooltip="Mark artifact as cleaned up" />
                         }
@@ -141,31 +141,31 @@ function ArtifactTableRow(props){
                     </div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <div className="mythic-search-result-value" style={singleLineCellStyle} title={props.base_artifact}>
+                    <div className="mythic-search-result-value text-xs leading-135 wrap-anywhere text-primary" style={singleLineCellStyle} title={props.base_artifact}>
                         {props.base_artifact}
                     </div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell >
-                    <div className="mythic-search-result-value" style={singleLineCellStyle} title={props?.task?.command?.cmd}>
+                    <div className="mythic-search-result-value text-xs leading-135 wrap-anywhere text-primary" style={singleLineCellStyle} title={props?.task?.command?.cmd}>
                         {props?.task?.command?.cmd}
                     </div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell style={{wordBreak: "break-all"}}>
                     {props.task &&
-                    <div className="mythic-search-result-stack">
-                        <div className="mythic-search-result-link-row">
+                    <div className="mythic-search-result-stack flex flex-column gap-2 min-w-0">
+                        <div className="mythic-search-result-link-row items-center inline-flex flex-wrap gap-2 min-w-0">
                             <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
                                   href={"/new/callbacks/" + props.task.callback.display_id}>
                                 C-{props.task.callback.display_id}
                             </Link>
-                            <span className="mythic-search-result-secondary">/</span>
+                            <span className="mythic-search-result-secondary text-xs leading-135 min-w-0 wrap-anywhere text-muted">/</span>
                             <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
                                   href={"/new/task/" + props.task.display_id}>
                                 T-{props.task.display_id}
                             </Link>
                         </div>
                         {props.task?.callback?.mythictree_groups.length > 0 ? (
-                            <div className="mythic-search-result-secondary">
+                            <div className="mythic-search-result-secondary text-xs leading-135 min-w-0 wrap-anywhere text-muted">
                                 Groups: {props?.task?.callback.mythictree_groups.join(", ")}
                             </div>
                         ) : null}
@@ -174,12 +174,12 @@ function ArtifactTableRow(props){
 
                 </MythicStyledTableCell>
                 <MythicStyledTableCell >
-                    <div className="mythic-search-result-value" style={singleLineCellStyle} title={props.host}>
+                    <div className="mythic-search-result-value text-xs leading-135 wrap-anywhere text-primary" style={singleLineCellStyle} title={props.host}>
                         {props.host}
                     </div>
                 </MythicStyledTableCell>
-                <MythicStyledTableCell>
-                    <div className="mythic-search-result-code">{props.artifact_text}</div>
+                <MythicStyledTableCell >
+                    <div style={{minWidth: "10rem"}} className="mythic-search-result-code text-xs leading-140 max-w-full min-w-0 wrap-anywhere rounded bg-neutral-1 border-subtle text-primary font-mono whitespace-pre-wrap">{props.artifact_text}</div>
                 </MythicStyledTableCell>
               
             </TableRow>

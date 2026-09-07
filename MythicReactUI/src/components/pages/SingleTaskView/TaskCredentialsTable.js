@@ -29,15 +29,15 @@ export function TaskCredentialsTable(props){
    }
    const credentialCountLabel = credentials.length === 1 ? "1 credential" : `${credentials.length} credentials`;
   return (
-    <div className="mythic-single-task-metadata-section">
+    <div className="mythic-single-task-metadata-section flex flex-column gap-3 min-w-0 w-full">
         <MythicSectionHeader
             dense
             title="Credentials"
             subtitle="Credentials captured by the selected task set."
             actions={<MythicPageHeaderChip label={credentialCountLabel} />}
         />
-        <TableContainer className="mythic-single-task-table-wrap">
-          <Table className="mythic-single-task-table" size="small">
+        <TableContainer className="mythic-single-task-table-wrap overflow-auto bg-surface-raised">
+          <Table className="mythic-single-task-table table-fixed" size="small">
                 <TableHead>
                     <TableRow>
                         <MythicStyledTableCell style={{width: "4.5rem"}}>Task</MythicStyledTableCell>
@@ -76,28 +76,28 @@ const CredentialTableRow = ({cred}) => {
       <MythicStyledTableCell>
         <MythicStatusChip label={cred.type} status="neutral" showIcon={false} />
       </MythicStyledTableCell>
-      <MythicStyledTableCell className="mythic-single-task-cell-break">{cred.realm}</MythicStyledTableCell>
-      <MythicStyledTableCell className="mythic-single-task-cell-break">{cred.account}</MythicStyledTableCell>
+      <MythicStyledTableCell className="mythic-single-task-cell-break wrap-anywhere whitespace-pre-wrap">{cred.realm}</MythicStyledTableCell>
+      <MythicStyledTableCell className="mythic-single-task-cell-break wrap-anywhere whitespace-pre-wrap">{cred.account}</MythicStyledTableCell>
       <MythicStyledTableCell>
         {cred.credential_text.length > 64 ? 
           (
-              <div className="mythic-single-task-credential-cell">
+              <div className="mythic-single-task-credential-cell items-start flex gap-4 min-w-0">
                   <MythicStyledTooltip title={"Copy to clipboard"}>
                       <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" onClick={() => onCopyToClipboard(cred.credential_text)} size="small">
                           <ContentCopyIcon fontSize="small" />
                       </MythicActionButton>
                   </MythicStyledTooltip>
-                  <Typography className="mythic-single-task-credential-text" variant="body2">{displayCred}</Typography>
+                  <Typography className="mythic-single-task-credential-text min-w-0 wrap-anywhere" variant="body2">{displayCred}</Typography>
               </div>
           )
           :
           (
               <React.Fragment>
-                  <Typography className="mythic-single-task-credential-text" variant="body2">{displayCred}</Typography>
+                  <Typography className="mythic-single-task-credential-text min-w-0 wrap-anywhere" variant="body2">{displayCred}</Typography>
               </React.Fragment>   
           )}
         </MythicStyledTableCell>
-      <MythicStyledTableCell className="mythic-single-task-cell-break">{cred.comment}</MythicStyledTableCell>
+      <MythicStyledTableCell className="mythic-single-task-cell-break wrap-anywhere whitespace-pre-wrap">{cred.comment}</MythicStyledTableCell>
     </TableRow>
   )
 }

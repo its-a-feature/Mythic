@@ -3,21 +3,21 @@ import React from 'react';
 const getServiceStatusTone = (isOnline, fallbackTone = "success") => isOnline ? fallbackTone : "error";
 
 const InstalledServiceStatusSummary = ({label, tone, details = []}) => (
-    <div className={`mythic-service-status-summary mythic-tone-${tone}`}>
-        <div className="mythic-service-status-primary">
-            <span className="mythic-service-status-dot" />
-            <span className="mythic-service-status-primary-label">{label}</span>
+    <div className={`mythic-service-status-summary items-start flex flex-column gap-3 mythic-tone-${tone} min-w-0`}>
+        <div className="mythic-service-status-primary text-sm font-800 leading-125 items-center flex gap-3 min-w-0 text-primary">
+            <span className="mythic-service-status-dot flex-none rounded-full" />
+            <span className="mythic-service-status-primary-label truncate whitespace-nowrap">{label}</span>
         </div>
         {details.length > 0 &&
-            <div className="mythic-service-status-details">
+            <div className="mythic-service-status-details text-xs font-650 leading-130 items-center flex flex-wrap min-w-0 text-muted">
                 {details.map((detail) => (
                     <span
-                        className={`mythic-service-status-detail mythic-tone-${detail.tone || "secondary"}`}
+                        className={`mythic-service-status-detail items-center inline-flex gap-2 mythic-tone-${detail.tone || "secondary"} min-w-0`}
                         key={`${detail.label}-${detail.value}`}
                     >
-                        <span className="mythic-service-status-mini-dot" />
+                        <span className="mythic-service-status-mini-dot flex-none rounded-full" />
                         <span className="mythic-service-status-detail-label">{detail.label}</span>
-                        <span className="mythic-service-status-detail-value">{detail.value}</span>
+                        <span className="mythic-service-status-detail-value font-750 text-primary">{detail.value}</span>
                     </span>
                 ))}
             </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import Button from '@mui/material/Button';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
@@ -26,12 +26,12 @@ export function SettingsOperatorDeleteDialog(props) {
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={props.onClose} variant="contained" color="primary">
+          <MythicActionButton colorMode="always" onClick={props.onClose} tone="primary" variant="contained">
             Cancel
-          </Button>
-          <Button onClick={onAccept} variant="contained" color={props.deleted ? "success": "error"}>
+          </MythicActionButton>
+          <MythicActionButton colorMode="always" onClick={onAccept} tone={props.deleted ? "success": "error"} variant="contained">
               {props.deleted ? "Restore": "Delete" }
-          </Button>
+          </MythicActionButton>
         </DialogActions>
   </React.Fragment>
   );

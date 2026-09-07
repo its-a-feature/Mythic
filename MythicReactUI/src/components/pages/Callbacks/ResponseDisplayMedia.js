@@ -1,7 +1,6 @@
 import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import {Typography, Link} from '@mui/material';
-import {Button} from '@mui/material';
 import {GetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import AceEditor from 'react-ace';
 import {useTheme} from '@mui/material/styles';
@@ -137,9 +136,9 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
         setValue(newValue);
     }
     return (
-        <div className="mythic-response-media" style={{height: expand ? "100%" : undefined, minHeight: expand ? 0 : "24rem"}}>
+        <div className="mythic-response-media flex flex-column min-w-0 w-full" style={{height: expand ? "100%" : undefined, minHeight: expand ? 0 : "24rem"}}>
             <DisplayFileMetaData fileMetaData={fileMetaData} />
-            <AppBar color={'default'} position='static' className={"no-box-shadow mythic-response-media-tabs"}>
+            <AppBar color={'default'} position='static' className={"no-box-shadow mythic-response-media-tabs flex-none"}>
                 <Tabs
                     value={value}
                     onChange={handleChange}
@@ -159,14 +158,14 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
                     <Tab className={value === 2 ? "selectedCallback": ""} label={"Hex"}></Tab>
                     <Tab className={value === 3 ? "selectedCallback": ""} label={"Database"}></Tab>
                     <MythicStyledTooltip title={"Download the file"} tooltipStyle={{display: "inline-flex"}}>
-                        <FileDownloadButtonWithAuth style={{}}  size={"small"} href={"/direct/download/" +  media.agent_file_id}
-                                download color={"success"}>
+                        <FileDownloadButtonWithAuth colorMode="always" style={{}} size={"small"} href={"/direct/download/" +  media.agent_file_id}
+                                download tone="success">
                             <DownloadIcon />
                         </FileDownloadButtonWithAuth>
                     </MythicStyledTooltip>
                 </Tabs>
             </AppBar>
-            <div hidden={value !== 0} className="mythic-response-media-panel" style={panelStyle} role='tabpanel' >
+            <div hidden={value !== 0} className="mythic-response-media-panel min-w-0" style={panelStyle} role='tabpanel' >
                 {value === 0 &&
                     <DisplayMedia agent_file_id={media?.agent_file_id || ""}
                                   task={task} filename={media?.filename || undefined}
@@ -175,7 +174,7 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
                                   expand={expand} />
                 }
             </div>
-            <div hidden={value !== 1} className="mythic-response-media-panel" style={panelStyle} role='tabpanel' >
+            <div hidden={value !== 1} className="mythic-response-media-panel min-w-0" style={panelStyle} role='tabpanel' >
                 {value === 1 &&
                     <DisplayText agent_file_id={media?.agent_file_id || ""}
                                  task={task} filename={media?.filename || undefined}
@@ -184,7 +183,7 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
                                  expand={expand} preview />
                 }
             </div>
-            <div hidden={value !== 2} className="mythic-response-media-panel" style={panelStyle} role='tabpanel' >
+            <div hidden={value !== 2} className="mythic-response-media-panel min-w-0" style={panelStyle} role='tabpanel' >
                 {value === 2 &&
                     <DisplayHex agent_file_id={media?.agent_file_id || ""}
                                 task={task} filename={media?.filename || undefined}
@@ -193,7 +192,7 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
                 }
 
             </div>
-            <div hidden={value !== 3} className="mythic-response-media-panel" style={panelStyle} role='tabpanel' >
+            <div hidden={value !== 3} className="mythic-response-media-panel min-w-0" style={panelStyle} role='tabpanel' >
                 {value === 3 &&
                     <DisplayDatabase agent_file_id={media?.agent_file_id || ""}
                                 task={task} filename={media?.filename || undefined}
@@ -323,9 +322,9 @@ export const DisplayMedia = ({agent_file_id, filename, expand, task, fileMetaDat
                     <Typography variant={"h4"} >
                         {"Media Hidden by Default Due to User Settings"}
                     </Typography>
-                    <Button variant={"contained"} color={"error"} onClick={() => {setShowMedia(!showMedia)}}>
+                    <MythicActionButton colorMode="always" variant={"contained"} tone="error" onClick={() => {setShowMedia(!showMedia)}}>
                         {"Show Media"}
-                    </Button>
+                    </MythicActionButton>
                 </div>
             </>
         )
@@ -413,13 +412,8 @@ const RenderMedia = ({agent_file_id, expand, fileData}) => {
         )
     }
     return (
-        <iframe style={{width: "100%", height: expand ? "100%" : "400px"}}>
-            <object width={"100%"} height={expand ? "100%" : "400px"}
-                    data={objectURL} >
-                <Typography variant={"h4"} style={{display: "flex", width: "100%", height: "100%", justifyContent: "center", flexDirection: "column", alignItems: "center"}} >
-                    {fileData?.message || "Failed to render file"}
-                </Typography>
-            </object>
+        <iframe sandbox={"allow-scripts "} style={{width: "100%", height: expand ? "100%" : "400px"}} src={objectURL} >
+
         </iframe>
 
     )
@@ -427,7 +421,7 @@ const RenderMedia = ({agent_file_id, expand, fileData}) => {
 const MaxRenderSize = 2000000; // 2MB
 const DisplayFileMetaData = ({fileMetaData}) => {
     return (
-        <TableContainer className="mythic-response-media-metadata">
+        <TableContainer className="mythic-response-media-metadata flex-none">
         <Table style={{marginLeft: "0px", width: "100%", tableLayout: "fixed"}}>
             <TableHead>
                 <TableRow>
@@ -629,7 +623,7 @@ const DisplayText = ({agent_file_id, expand, filename, editable=false, fileMetaD
             <span>
                 <button
                     aria-label="Save file"
-                    className="mythic-response-render-action-button mythic-action-tone mythic-tone-success"
+                    className="mythic-response-render-action-button bg-transparent border-none text-output-muted items-center inline-flex justify-center mythic-action-tone mythic-tone-success cursor-pointer"
                     disabled={!canSave || saving}
                     onClick={onSave}
                     type="button">
@@ -912,7 +906,7 @@ const DisplayDatabase = ({agent_file_id, expand, fileMetaData}) => {
                         useWorker: false,
                         showInvisibles: false,
                     }}/>
-                <Button color={"success"} variant={"contained"} onClick={onSubmitQuery} >Query</Button>
+                <MythicActionButton colorMode="always" tone="success" variant={"contained"} onClick={onSubmitQuery} >Query</MythicActionButton>
             </div>
             <TabContext style={{width: "100%", height: "100%", borderBottom: "1px solid grey", overflow: "auto"}} value={selectedTab}>
                 <TabList onChange={onChangeTab} indicatorColor='secondary'
@@ -948,8 +942,8 @@ const DisplayDatabase = ({agent_file_id, expand, fileMetaData}) => {
                         }
                         <div key={"output" + index} style={{display: selectedTab === index ? "flex" : "none", alignItems: "center", width: "100%"}}>
                             {"Save Output As: "}
-                            <Button variant={"outlined"} style={{marginLeft: "10px"}} onClick={() => onSaveOutputCSV(result)} >CSV</Button>
-                            <Button variant={"outlined"} style={{marginLeft: "10px"}} onClick={() => onSaveOutputPrettyPrint(result)} >Pretty Print</Button>
+                            <MythicActionButton variant={"outlined"} style={{marginLeft: "10px"}} onClick={() => onSaveOutputCSV(result)} >CSV</MythicActionButton>
+                            <MythicActionButton variant={"outlined"} style={{marginLeft: "10px"}} onClick={() => onSaveOutputPrettyPrint(result)} >Pretty Print</MythicActionButton>
                         </div>
                         <TabPanel value={index} key={"tabpanel" + index}
                                   style={{padding: 0, height: "100%", width: "100%", overflow: "auto", position: "relative",

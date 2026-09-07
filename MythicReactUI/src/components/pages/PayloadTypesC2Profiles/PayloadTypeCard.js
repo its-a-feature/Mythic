@@ -98,7 +98,7 @@ export function PayloadTypeRow({service, showDeleted}){
                     />
                 </MythicTableCell>
                 <MythicTableCell>
-                    <div className="mythic-compact-actions">
+                    <div className="items-center flex flex-wrap gap-3">
                     <MythicStyledTooltip title={"Documentation"}>
                         <MythicActionButton iconOnly
                             appearance="raised" colorMode="hover" tone="info"

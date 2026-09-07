@@ -108,7 +108,7 @@ export const normalizeFileMeta = (file) => ({
 const FileStatusSummary = ({file}) => {
     const status = getFileStatus(file);
     return (
-        <div className="mythic-file-search-status">
+        <div className="mythic-file-search-status items-start flex flex-column gap-2">
             {status.label !== "Complete" &&
                 <MythicChip size="small" tone={status.tone} variant="outlined" label={status.label} />
             }
@@ -332,13 +332,13 @@ export function FileMetaDownloadTable(props){
             kind="download"
             me={props.me}
             onEditComment={onEditComment}>
-            <div className="mythic-file-search-table-layout">
-                <span className="mythic-table-bulk-actions">
+            <div className="mythic-file-search-table-layout flex flex-column h-full min-h-0">
+                <span className="mythic-table-bulk-actions p-4 items-center flex flex-wrap gap-4 w-full border-b-subtle">
                     <MythicActionButton disabled={bulkActionsDisabled} icon={<ArchiveIcon />} label="Zip & Download Selected" onClick={onDownloadBulk} tone="info" />
                     <MythicActionButton disabled={bulkActionsDisabled} icon={<DeleteIcon />} label="Delete Selected" onClick={onDeleteBulk} tone="error" />
                 </span>
-                <TableContainer className="mythic-file-search-table-wrap">
-                    <Table stickyHeader size="small" className="mythic-file-search-table">
+                <TableContainer className="mythic-file-search-table-wrap flex-fill min-h-0 overflow-auto">
+                    <Table stickyHeader size="small" className="mythic-file-search-table table-fixed w-full">
                         <TableHead>
                             <TableRow>
                                 <TableCell style={{width: "3rem"}}>
@@ -441,7 +441,7 @@ function FileMetaDownloadTableRow(props){
                             <b>{ props.filename_text }</b>
                         </FileDownloadLinkWithAuth>
                     )}
-                    <span className="mythic-file-search-secondary">
+                    <span className="mythic-file-search-secondary text-xs min-w-0 truncate w-full text-muted whitespace-nowrap">
                         {props.host}: {props.full_remote_path_text}
                     </span>
                 </MythicStyledTableCell>
@@ -450,7 +450,7 @@ function FileMetaDownloadTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell onClick={stopRowClick}>
                     {props.deleted || props.size === 0 ? null : (
-                        <div className="mythic-compact-actions mythic-compact-actions-nowrap">
+                        <div className="items-center flex flex-wrap gap-3 flex-nowrap">
                             <MythicActionButton appearance="raised" icon={<DeleteIcon />} iconOnly onClick={() => setOpenDelete(true)} tone="error" tooltip="Delete file" />
                             <MythicActionButton appearance="raised" icon={<FontAwesomeIcon icon={faPhotoVideo} />} iconOnly onClick={onPreviewMedia} tone="info" tooltip="Preview Media" />
                         </div>
@@ -571,13 +571,13 @@ export function FileMetaUploadTable(props){
             kind="upload"
             me={props.me}
             onEditComment={onEditComment}>
-            <div className="mythic-file-search-table-layout">
-                <span className="mythic-table-bulk-actions">
+            <div className="mythic-file-search-table-layout flex flex-column h-full min-h-0">
+                <span className="mythic-table-bulk-actions p-4 items-center flex flex-wrap gap-4 w-full border-b-subtle">
                     <MythicActionButton disabled={bulkActionsDisabled} icon={<ArchiveIcon />} label="Zip & Download Selected" onClick={onDownloadBulk} tone="info" />
                     <MythicActionButton disabled={bulkActionsDisabled} icon={<DeleteIcon />} label="Delete Selected" onClick={onDeleteBulk} tone="error" />
                 </span>
-                <TableContainer className="mythic-file-search-table-wrap">
-                    <Table stickyHeader size="small" className="mythic-file-search-table">
+                <TableContainer className="mythic-file-search-table-wrap flex-fill min-h-0 overflow-auto">
+                    <Table stickyHeader size="small" className="mythic-file-search-table table-fixed w-full">
                         <TableHead>
                             <TableRow>
                                 <TableCell style={{width: "3rem"}}>
@@ -675,7 +675,7 @@ function FileMetaUploadTableRow(props){
                     <FileDownloadLinkWithAuth color="textPrimary" underline="always" href={"/direct/download/" + props.agent_file_id}>
                         <b>{props.filename_text}</b>
                     </FileDownloadLinkWithAuth>
-                    <span className="mythic-file-search-secondary">
+                    <span className="mythic-file-search-secondary text-xs min-w-0 truncate w-full text-muted whitespace-nowrap">
                         {(props.host || "No host") + " \u2192 " + (props.full_remote_path_text || "Agent Memory")}
                     </span>
                 </MythicStyledTableCell>
@@ -684,7 +684,7 @@ function FileMetaUploadTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell onClick={stopRowClick}>
                     {props.deleted ? null : (
-                        <div className="mythic-compact-actions mythic-compact-actions-nowrap">
+                        <div className="items-center flex flex-wrap gap-3 flex-nowrap">
                             <MythicActionButton appearance="raised" icon={<DeleteIcon />} iconOnly onClick={() => setOpenDelete(true)} tone="error" tooltip="Delete file" />
                             <MythicActionButton appearance="raised" icon={<FontAwesomeIcon icon={faPhotoVideo} />} iconOnly onClick={onPreviewMedia} tone="info" tooltip="Preview Media" />
                         </div>
@@ -718,9 +718,9 @@ export function FileMetaScreenshotTable(props){
             kind="screenshot"
             me={props.me}
             onEditComment={onEditComment}>
-            <div className="mythic-file-search-table-layout">
-                <TableContainer className="mythic-file-search-table-wrap">
-                    <Table stickyHeader size="small" className="mythic-file-search-table">
+            <div className="mythic-file-search-table-layout flex flex-column h-full min-h-0">
+                <TableContainer className="mythic-file-search-table-wrap flex-fill min-h-0 overflow-auto">
+                    <Table stickyHeader size="small" className="mythic-file-search-table table-fixed w-full">
                         <TableHead>
                             <TableRow>
                                 <TableCell >Thumbnail</TableCell>
@@ -803,10 +803,10 @@ function FileMetaScreenshotTableRow(props){
                     />
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <div className="mythic-file-search-primary">
+                    <div className="mythic-file-search-primary min-w-0 grid">
                         <span>{props.filename_text}</span>
-                        <span className="mythic-file-search-secondary">{props.host || "No host"}</span>
-                        <span className="mythic-file-search-secondary">
+                        <span className="mythic-file-search-secondary text-xs min-w-0 truncate w-full text-muted whitespace-nowrap">{props.host || "No host"}</span>
+                        <span className="mythic-file-search-secondary text-xs min-w-0 truncate w-full text-muted whitespace-nowrap">
                             {props.timestamp ? toLocalTime(props.timestamp, me.user.view_utc_time) : "No timestamp"}
                         </span>
                     </div>
@@ -934,13 +934,13 @@ export function FileMetaEventingWorkflowsTable(props){
             kind="eventing"
             me={props.me}
             onEditComment={onEditComment}>
-            <div className="mythic-file-search-table-layout">
-                <span className="mythic-table-bulk-actions">
+            <div className="mythic-file-search-table-layout flex flex-column h-full min-h-0">
+                <span className="mythic-table-bulk-actions p-4 items-center flex flex-wrap gap-4 w-full border-b-subtle">
                     <MythicActionButton active disabled={bulkActionsDisabled} icon={<ArchiveIcon />} label="Zip & Download Selected" onClick={onDownloadBulk} tone="info" />
                     <MythicActionButton disabled={bulkActionsDisabled} icon={<DeleteIcon />} label="Delete Selected" onClick={onDeleteBulk} tone="error" />
                 </span>
-                <TableContainer className="mythic-file-search-table-wrap">
-                    <Table stickyHeader size="small" className="mythic-file-search-table">
+                <TableContainer className="mythic-file-search-table-wrap flex-fill min-h-0 overflow-auto">
+                    <Table stickyHeader size="small" className="mythic-file-search-table table-fixed w-full">
                         <TableHead>
                             <TableRow>
                                 <TableCell style={{width: "3rem"}}>
@@ -1053,7 +1053,7 @@ function FileMetaEventingWorkflowsTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell onClick={stopRowClick}>
                     {props.deleted ? null : (
-                        <div className="mythic-compact-actions mythic-compact-actions-nowrap">
+                        <div className="items-center flex flex-wrap gap-3 flex-nowrap">
                             <MythicActionButton appearance="raised" icon={<DeleteIcon />} iconOnly onClick={() => setOpenDelete(true)} tone="error" tooltip="Delete file" />
                             <MythicActionButton appearance="raised" icon={<FontAwesomeIcon icon={faPhotoVideo} />} iconOnly onClick={onPreviewMedia} tone="info" tooltip="Preview Media" />
                         </div>

@@ -7,7 +7,7 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Checkbox from '@mui/material/Checkbox';
 import {gql, useQuery} from '@apollo/client';
-import {classes, StyledButton} from '../../MythicComponents/MythicTransferList';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import {
     MythicDialogButton,
     MythicDialogBody,
@@ -69,9 +69,9 @@ const CustomList = ({title, items, handleToggle}) => {
             ))
     }, [items, handleToggle]);
     return (
-        <div className="mythic-transfer-list">
-            <div className="mythic-transfer-list-header">{title}</div>
-            <div className="mythic-transfer-list-body">
+        <div className="mythic-transfer-list flex flex-column min-w-0 overflow-hidden w-full rounded bg-surface border-subtle">
+            <div className="mythic-transfer-list-header bg-table-header text-xs font-700 leading-125 border-b text-primary">{title}</div>
+            <div className="mythic-transfer-list-body flex-fill overflow-auto">
                 <List dense component="div" role="list" style={{padding: 0, width: "100%"}}>
                     {renderedList}
                 </List>
@@ -196,45 +196,49 @@ export function AddRemoveCallbackCommandsDialog(props) {
                 <div  style={{paddingLeft: 0, flexGrow: 1,  marginLeft: 0, marginRight: "10px", position: "relative",  overflowY: "auto", display: "flex", flexDirection: "column" }}>
                   <CustomList title={leftTitle} items={left} handleToggle={handleToggle}/>
                 </div>
-                <div className="mythic-transfer-controls">
-                  <StyledButton
+                <div className="mythic-transfer-controls py-0 px-4 items-center flex flex-column gap-6 justify-center">
+                  <MythicActionButton
+                    colorMode="always"
+                    tone="primary"
                     variant="contained"
                     size="small"
-                    className={classes.button}
                     onClick={handleAllRight}
                     disabled={left.length === 0}
                     aria-label="move all right"
                   >
                     &gt;&gt;
-                  </StyledButton>
-                  <StyledButton
+                  </MythicActionButton>
+                  <MythicActionButton
+                    colorMode="always"
+                    tone="primary"
                     variant="contained"
                     size="small"
-                    className={classes.button}
                     onClick={handleCheckedRight}
                     aria-label="move selected right"
                   >
                     &gt;
-                  </StyledButton>
-                  <StyledButton
+                  </MythicActionButton>
+                  <MythicActionButton
+                    colorMode="always"
+                    tone="primary"
                     variant="contained"
                     size="small"
-                    className={classes.button}
                     onClick={handleCheckedLeft}
                     aria-label="move selected left"
                   >
                     &lt;
-                  </StyledButton>
-                  <StyledButton
+                  </MythicActionButton>
+                  <MythicActionButton
+                    colorMode="always"
+                    tone="primary"
                     variant="contained"
                     size="small"
-                    className={classes.button}
                     onClick={handleAllLeft}
                     disabled={right.length === 0}
                     aria-label="move all left"
                   >
                     &lt;&lt;
-                  </StyledButton>
+                  </MythicActionButton>
 
               </div>
                 <div style={{marginLeft: "10px", position: "relative", flexGrow: 1, display: "flex", flexDirection: "column" }}>

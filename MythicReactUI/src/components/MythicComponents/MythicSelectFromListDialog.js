@@ -1,5 +1,5 @@
 import React, {useRef, useEffect} from 'react';
-import Button from '@mui/material/Button';
+import {MythicActionButton} from './MythicActionButton';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -61,12 +61,12 @@ export function MythicSelectFromListDialog(props) {
             </React.Fragment>
         </DialogContent>
         <DialogActions>
-          <Button onClick={props.onClose} variant="contained" color="primary">
+          <MythicActionButton colorMode="always" onClick={props.onClose} tone="primary" variant="contained">
             Close
-          </Button>
-          <Button onClick={handleSubmit} variant="contained" color="success">
+          </MythicActionButton>
+          <MythicActionButton colorMode="always" onClick={handleSubmit} tone="success" variant="contained">
             {props.action}
-          </Button>
+          </MythicActionButton>
         </DialogActions>
   </React.Fragment>
   );
@@ -95,35 +95,35 @@ return (
       <DialogTitle >{props.title}</DialogTitle>
       <DialogContent dividers={true} className="mythic-raw-select-dialog-content">
           {options.length === 0 ? (
-              <Box className="mythic-raw-select-empty">
+              <Box className="mythic-raw-select-empty items-center flex justify-center text-muted text-center">
                   <Typography variant="body2">No options available</Typography>
               </Box>
           ) : (
-              <Stack className="mythic-raw-select-list">
+              <Stack className="mythic-raw-select-list gap-4">
                   {options.map( (choice, i) => (
                       <Box
                           key={String(choice) + i}
-                          className="mythic-raw-select-row"
+                          className="mythic-raw-select-row items-center flex gap-6 justify-between min-w-0 w-full rounded cursor-pointer bg-surface-muted border-subtle text-primary"
                           role="button"
                           tabIndex={0}
                           onClick={() => handleSubmit(choice)}
                           onKeyDown={(event) => handleKeyDown(event, choice)}
                       >
-                          <Typography className="mythic-raw-select-value" title={String(choice)}>
+                          <Typography className="mythic-raw-select-value min-w-0 truncate whitespace-nowrap" title={String(choice)}>
                               {String(choice)}
                           </Typography>
-                          <Button className="mythic-raw-select-action mythic-action-tone mythic-tone-info" variant="outlined" size="small" tabIndex={-1}>
+                          <MythicActionButton className="mythic-raw-select-action" colorMode="always" tone="info" variant="outlined" size="small" tabIndex={-1}>
                               {actionText}
-                          </Button>
+                          </MythicActionButton>
                       </Box>
                   ))}
               </Stack>
           )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={props.onClose} variant="contained" color="primary">
+        <MythicActionButton colorMode="always" onClick={props.onClose} tone="primary" variant="contained">
           Close
-        </Button>
+        </MythicActionButton>
       </DialogActions>
 </React.Fragment>
 );

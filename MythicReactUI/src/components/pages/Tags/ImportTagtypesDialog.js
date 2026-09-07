@@ -1,5 +1,5 @@
 import React from 'react';
-import Button from '@mui/material/Button';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -43,20 +43,19 @@ export function ImportTagtypesDialog(props) {
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Import Payload Config to Generate New Payload</DialogTitle>
         <DialogContent dividers={true}>
-          <Button variant="contained" component="label"> 
+          <MythicActionButton variant="contained" component="label">
               { fileValue.name === "" ? "Select File" : fileValue.name } 
               <input onChange={onFileChange} type="file" hidden /> 
-          </Button>
+          </MythicActionButton>
         </DialogContent>
         <DialogActions>
-          <Button variant="contained" onClick={props.onClose} color="primary">
+        <MythicActionButton colorMode="always" variant="contained" onClick={props.onClose} tone="primary">
             Close
-          </Button>
-          <Button variant="contained" onClick={onCommitSubmit} color="success">
+        </MythicActionButton>
+        <MythicActionButton colorMode="always" variant="contained" onClick={onCommitSubmit} tone="success">
             Submit
-          </Button>
+        </MythicActionButton>
         </DialogActions>
   </React.Fragment>
   );
 }
-

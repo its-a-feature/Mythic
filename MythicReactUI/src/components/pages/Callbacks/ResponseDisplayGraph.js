@@ -14,7 +14,7 @@ import DiamondIcon from '@mui/icons-material/Diamond';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {faSkullCrossbones} from '@fortawesome/free-solid-svg-icons';
 import {Typography} from '@mui/material';
-import { Button } from '@mui/material';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 
 const getIcons = (img, nodeStyle) => {
     if(img === undefined){return null}
@@ -78,16 +78,16 @@ export const ResponseDisplayGraph = ({graph, task, expand}) =>{
     if(!showGraph){
         return (
             <>
-                <div className="mythic-graph-empty-state">
+                <div className="mythic-graph-empty-state items-center flex flex-column gap-3 justify-center h-full w-full rounded border-subtle text-muted text-center">
                     <Typography component="div" className="mythic-graph-empty-title">
                         Large graph hidden
                     </Typography>
                     <Typography component="div" className="mythic-graph-empty-description">
                         {`This response contains ${graph.nodes.length} nodes and ${graph.edges.length} edges.`}
                     </Typography>
-                    <Button className="mythic-graph-empty-action mythic-action-tone-hover mythic-tone-info" variant={"contained"} onClick={() => {setShowGraph(!showGraph)}}>
+                    <MythicActionButton className="mythic-graph-empty-action" tone="info" variant={"contained"} onClick={() => {setShowGraph(!showGraph)}}>
                         Show Graph
-                    </Button>
+                    </MythicActionButton>
                 </div>
             </>
         )
@@ -95,7 +95,7 @@ export const ResponseDisplayGraph = ({graph, task, expand}) =>{
     if(graph.nodes.length === 0){
         return (
             <>
-                <div className="mythic-graph-empty-state">
+                <div className="mythic-graph-empty-state items-center flex flex-column gap-3 justify-center h-full w-full rounded border-subtle text-muted text-center">
                     <Typography component="div" className="mythic-graph-empty-title">
                         Empty graph
                     </Typography>

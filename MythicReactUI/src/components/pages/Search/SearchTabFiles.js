@@ -26,6 +26,7 @@ import {MythicDraggableDialogTitle} from "../../MythicComponents/MythicDraggable
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import TextField from '@mui/material/TextField';
 import {ResponseDisplayPlaintext} from "../Callbacks/ResponseDisplayPlaintext";
 import {getTextSyntaxForFilename} from "../Callbacks/ResponseDisplayMedia";
@@ -548,12 +549,12 @@ const CreateTextFileDialog = ({onClose}) => {
                 </div>
             </DialogContent>
             <DialogActions>
-                <Button variant="outlined" onClick={onClose} disabled={uploading}>
+                <MythicActionButton variant="outlined" onClick={onClose} disabled={uploading}>
                     Close
-                </Button>
-                <Button variant="contained" color="primary" onClick={onSave} disabled={uploading}>
+                </MythicActionButton>
+                <MythicActionButton colorMode="always" tone="primary" variant="contained" onClick={onSave} disabled={uploading}>
                     {uploading ? "Saving" : "Save"}
-                </Button>
+                </MythicActionButton>
             </DialogActions>
         </React.Fragment>
     )

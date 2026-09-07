@@ -1,5 +1,5 @@
 import React from 'react';
-import Button from '@mui/material/Button';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import DialogActions from '@mui/material/DialogActions';
 import DialogTitle from '@mui/material/DialogTitle';
 import {useQuery, gql } from '@apollo/client';
@@ -85,12 +85,12 @@ export function CallbacksTabsHideMultipleDialog({onClose}) {
                                       tableLabel="Hide multiple callbacks"
             />
         <DialogActions>
-          <Button onClick={onClose} variant="contained" color="primary">
+          <MythicActionButton colorMode="always" onClick={onClose} tone="primary" variant="contained">
             Close
-          </Button>
-          <Button onClick={submitTasking} variant="contained" color="warning">
+          </MythicActionButton>
+          <MythicActionButton colorMode="always" onClick={submitTasking} tone="warning" variant="contained">
             Hide
-          </Button>
+          </MythicActionButton>
         </DialogActions>
   </React.Fragment>
   );
@@ -133,12 +133,12 @@ export function CallbacksTabsSelectMultipleDialog({onClose, onSubmit}) {
                                       tableLabel="Select multiple callbacks"
             />
             <DialogActions>
-                <Button onClick={onClose} variant="contained" color="primary">
+                <MythicActionButton colorMode="always" onClick={onClose} tone="primary" variant="contained">
                     Close
-                </Button>
-                <Button onClick={submitTasking} variant="contained" color="warning">
+                </MythicActionButton>
+                <MythicActionButton colorMode="always" onClick={submitTasking} tone="warning" variant="contained">
                     Use Selection
-                </Button>
+                </MythicActionButton>
             </DialogActions>
         </React.Fragment>
     );

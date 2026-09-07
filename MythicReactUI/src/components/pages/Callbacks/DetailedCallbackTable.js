@@ -24,7 +24,7 @@ import { snackActions } from '../../utilities/Snackbar';
 import Box from '@mui/material/Box';
 import Dialog from '@mui/material/Dialog';
 import {DetailedPayloadTable, ParseForDisplay} from "../Payloads/DetailedPayloadTable";
-import {Button, Link} from '@mui/material';
+import {Link} from '@mui/material';
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import PlayCircleFilledTwoToneIcon from '@mui/icons-material/PlayCircleFilledTwoTone';
@@ -561,7 +561,7 @@ export function DetailedCallbackTable(props){
             <MythicSectionHeader
                 title="Loaded Commands"
                 actions={
-                    <Button variant="outlined" size="small" onClick={()=>{setOpenAddRemoveCommandsDialog(true)}}>Add/Remove Commands</Button>
+                    <MythicActionButton variant="outlined" size="small" onClick={()=>{setOpenAddRemoveCommandsDialog(true)}}>Add/Remove Commands</MythicActionButton>
                 }
             />
             <TableContainer>
@@ -586,7 +586,7 @@ export function DetailedCallbackTable(props){
                         <TableCell>{cmd.mythic}</TableCell>
                         <TableCell>{cmd.payload}</TableCell>
                         <TableCell>
-                          <div className="mythic-compact-actions mythic-compact-actions-nowrap">
+                          <div className="items-center flex flex-wrap gap-3 flex-nowrap">
                             <MythicStyledTooltip title="Open command documentation">
                               <MythicActionButton iconOnly
                                   appearance="raised" colorMode="hover" tone="info"
@@ -679,9 +679,9 @@ export function DetailedCallbackTable(props){
             }
           </DialogContent>
           <DialogActions>
-            <Button onClick={props.onClose} variant="contained" color="primary">
+                    <MythicActionButton colorMode="always" onClick={props.onClose} tone="primary" variant="contained">
               Close
-            </Button>
+                    </MythicActionButton>
         </DialogActions>
         </React.Fragment>
         )

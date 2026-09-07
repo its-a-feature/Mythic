@@ -1,6 +1,6 @@
 import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
-import {Button, DialogContent, DialogTitle, TextField} from '@mui/material';
+import {DialogContent, DialogTitle, TextField} from '@mui/material';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableContainer from '@mui/material/TableContainer';
@@ -367,7 +367,7 @@ export function SettingsOperatorTableRow(props){
                   }
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <Box className="mythic-state-toggle-cell">
+                    <Box className="mythic-state-toggle-cell items-center flex gap-3 min-w-0">
                         <Switch
                             color="success"
                             checked={props.active}
@@ -425,15 +425,15 @@ export function SettingsOperatorTableRow(props){
                                       <MythicActionButton iconOnly appearance="raised" size="small" onClick={() => setShowDeleted(!showDeleted)}><VisibilityOffIcon fontSize="small" /></MythicActionButton>
                                   </MythicStyledTooltip>
                               )}
-                              <Button
-                                  className="mythic-dialog-title-action"
+                              <MythicActionButton
+                                  className="mythic-dialog-title-action bg-neutral-2 border-subtle text-primary text-xs font-750 rounded"
                                   size="small"
                                   onClick={() => {setOpenNewAPIToken(true)}}
                                   variant="outlined"
                                   startIcon={<AddCircleOutlineOutlinedIcon fontSize="small" />}
                               >
                                   API Token
-                              </Button>
+                              </MythicActionButton>
                               </>
                             }
                           />
@@ -487,7 +487,7 @@ const APITokenValueDialog = ({tokenValue, onClose}) => {
             <DialogTitle id="form-dialog-title">Copy API Token</DialogTitle>
             <DialogContent dividers={true}>
                 <MythicDialogBody>
-                    <MythicFormNote className="mythic-api-token-copy-warning">
+                    <MythicFormNote className="mythic-api-token-copy-warning mythic-tone-warning bg-tone-1 border-tone-2 text-primary">
                         This token value is only shown once. Copy it now before closing this dialog.
                     </MythicFormNote>
                     <MythicDialogSection

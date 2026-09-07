@@ -559,8 +559,8 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
     }
     return (
         <MythicTabPanel index={index} value={value}>
-            <Split direction="horizontal" className="mythic-eventing-split" sizes={[30, 70]} >
-                <div className="mythic-eventing-sidebar">
+            <Split direction="horizontal" className="mythic-eventing-split flex h-full min-h-0 min-w-0 overflow-hidden w-full" sizes={[30, 70]} >
+                <div className="mythic-eventing-sidebar flex flex-column min-h-0 min-w-0 overflow-hidden rounded bg-surface-raised border-subtle">
                     <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={true}>
                         <CircularProgress color="inherit" />
                     </Backdrop>
@@ -579,8 +579,8 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
                     />
 
                 </div>
-                <div className="mythic-eventing-content">
-                    <div className="mythic-process-browser-table-shell">
+                <div className="mythic-eventing-content flex min-h-0 min-w-0 overflow-hidden rounded bg-surface-raised border-subtle">
+                    <div className="mythic-process-browser-table-shell flex flex-column h-full min-h-0 min-w-0 overflow-hidden w-full relative">
                         <div>
                             <FileBrowserTableTop
                                 active={active}
@@ -598,7 +598,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
                                 baseUIFeature={baseUIFeature}
                             />
                         </div>
-                        <div className="mythic-process-browser-grid-shell">
+                        <div className="mythic-process-browser-grid-shell flex-fill min-h-0 min-w-0 overflow-hidden">
                             <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={true}>
                                 <CircularProgress color="inherit" />
                             </Backdrop>
@@ -819,7 +819,7 @@ const FileBrowserTableTop = ({
                     InputProps={{
                         className: "mythic-file-browser-pathInput",
                         endAdornment: (
-                            <div className="mythic-file-browser-toolbarGroup mythic-file-browser-toolbarGroupEnd">
+                            <div className="mythic-file-browser-toolbarGroup items-center inline-flex mythic-file-browser-toolbarGroupEnd">
                                 <MythicStyledTooltip title={`Task current callback (${tabInfo["displayID"]}) to list contents`}>
                                     <MythicActionButton iconOnly
                                         appearance="plain" colorMode="hover" shape="square" tone="info"
@@ -870,9 +870,9 @@ const FileBrowserTableTop = ({
                             </div>
                         ),
                         startAdornment: (
-                            <div className="mythic-file-browser-toolbarGroup mythic-file-browser-toolbarGroupStart">
+                            <div className="mythic-file-browser-toolbarGroup items-center inline-flex mythic-file-browser-toolbarGroupStart">
                                 {tokenOptions.length > 0 &&
-                                    <div className="mythic-file-browser-tokenSelect">
+                                    <div className="mythic-file-browser-tokenSelect overflow-hidden">
                                         <CallbacksTabsTaskingInputTokenSelect width={"100%"}
                                             options={tokenOptions} changeSelectedToken={changeSelectedToken}/>
                                     </div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import {gql, useLazyQuery, useMutation, useSubscription} from '@apollo/client';
-import {Alert, Button, CircularProgress} from '@mui/material';
+import {Alert, CircularProgress} from '@mui/material';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import SaveIcon from '@mui/icons-material/Save';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import WarningOutlinedIcon from '@mui/icons-material/WarningOutlined';
@@ -455,7 +456,7 @@ export const ResponseDisplayFileEditor = (props) => {
   const toolbarActions = [
     <MythicStyledTooltip title={saveDisabledReason || 'Save changes on the agent'} key="save">
       <span>
-        <button aria-label="Save file" className="mythic-response-render-action-button mythic-action-tone mythic-tone-success"
+        <button aria-label="Save file" className="mythic-response-render-action-button bg-transparent border-none text-output-muted items-center inline-flex justify-center mythic-action-tone mythic-tone-success cursor-pointer"
                 disabled={Boolean(saveDisabledReason)} onClick={() => stageAndSave()} type="button">
           <SaveIcon fontSize="small" />
         </button>
@@ -463,7 +464,7 @@ export const ResponseDisplayFileEditor = (props) => {
     </MythicStyledTooltip>,
     <MythicStyledTooltip title="Reload the current file from the agent" key="refresh">
       <span>
-        <button aria-label="Refresh file" className="mythic-response-render-action-button"
+        <button aria-label="Refresh file" className="mythic-response-render-action-button bg-transparent border-none text-output-muted items-center inline-flex justify-center cursor-pointer"
                 disabled={taskReadOnly || saving} onClick={refresh} type="button">
           <RefreshIcon fontSize="small" />
         </button>
@@ -471,7 +472,7 @@ export const ResponseDisplayFileEditor = (props) => {
     </MythicStyledTooltip>,
     <MythicStyledTooltip title={dirty ? 'Save or discard changes before viewing history' : 'Previous file version'} key="history-previous">
       <span>
-        <button aria-label="Previous file version" className="mythic-response-render-action-button"
+        <button aria-label="Previous file version" className="mythic-response-render-action-button bg-transparent border-none text-output-muted items-center inline-flex justify-center cursor-pointer"
                 disabled={historyNavigationDisabled || historyIndex <= 0}
                 onClick={() => selectHistory(historyIndex - 1)} type="button">
           <NavigateBeforeIcon fontSize="small" />
@@ -480,7 +481,7 @@ export const ResponseDisplayFileEditor = (props) => {
     </MythicStyledTooltip>,
     <MythicStyledTooltip title={dirty ? 'Save or discard changes before viewing history' : 'Next file version'} key="history-next">
       <span>
-        <button aria-label="Next file version" className="mythic-response-render-action-button"
+        <button aria-label="Next file version" className="mythic-response-render-action-button bg-transparent border-none text-output-muted items-center inline-flex justify-center cursor-pointer"
                 disabled={historyNavigationDisabled || historyIndex < 0 || historyIndex >= history.length - 1}
                 onClick={() => selectHistory(historyIndex + 1)} type="button">
           <NavigateNextIcon fontSize="small" />
@@ -489,7 +490,7 @@ export const ResponseDisplayFileEditor = (props) => {
     </MythicStyledTooltip>,
     <MythicStyledTooltip title={doneDisabledReason || 'Finish the file editor task'} key="done">
       <span>
-        <button aria-label="Finish file editor" className="mythic-response-render-action-button mythic-action-tone mythic-tone-info"
+        <button aria-label="Finish file editor" className="mythic-response-render-action-button bg-transparent border-none text-output-muted items-center inline-flex justify-center mythic-action-tone mythic-tone-info cursor-pointer"
                 disabled={Boolean(doneDisabledReason)} onClick={finishEditor} type="button">
           <DoneAllIcon fontSize="small" />
         </button>
@@ -524,14 +525,14 @@ export const ResponseDisplayFileEditor = (props) => {
       {agentError?.code === 'conflict' &&
         <Alert severity="warning" icon={<WarningOutlinedIcon />} action={
           <>
-            <Button color="inherit" disabled={taskReadOnly || saving} size="small" onClick={refresh}>Refresh</Button>
+            <MythicActionButton disabled={taskReadOnly || saving} size="small" onClick={refresh}>Refresh</MythicActionButton>
             {canForceOverwrite &&
-              <Button color="inherit" disabled={taskReadOnly || saving} size="small"
-                      startIcon={<VisibilityOutlinedIcon />} onClick={openStagedPreview}>Review staged edit</Button>
+              <MythicActionButton disabled={taskReadOnly || saving} size="small"
+                      startIcon={<VisibilityOutlinedIcon />} onClick={openStagedPreview}>Review staged edit</MythicActionButton>
             }
             {canForceOverwrite &&
-              <Button color="inherit" disabled={taskReadOnly || saving} size="small"
-                      onClick={() => stageAndSave({forceOverwrite: true})}>Save anyway</Button>
+              <MythicActionButton disabled={taskReadOnly || saving} size="small"
+                      onClick={() => stageAndSave({forceOverwrite: true})}>Save anyway</MythicActionButton>
             }
           </>
         }>
@@ -548,9 +549,9 @@ export const ResponseDisplayFileEditor = (props) => {
           <CircularProgress size={28} />
           <span>Waiting for the agent's file snapshot…</span>
           {showSnapshotRecovery &&
-            <Button disabled={taskReadOnly || saving} onClick={refresh} startIcon={<RefreshIcon />} variant="outlined">
+            <MythicActionButton disabled={taskReadOnly || saving} onClick={refresh} startIcon={<RefreshIcon />} variant="outlined">
               Request fresh snapshot
-            </Button>
+            </MythicActionButton>
           }
         </div> :
         <ResponseDisplayPlaintext

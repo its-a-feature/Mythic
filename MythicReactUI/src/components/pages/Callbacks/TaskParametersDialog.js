@@ -1056,30 +1056,28 @@ export function TaskParametersDialog(props) {
   const commandName = commandInfo.cmd || props.command?.cmd || "Command";
   return (
     <React.Fragment>
-        <DialogTitle id="mythic-draggable-title" className="mythic-accent-dialog-title">
-            <Box className="mythic-accent-dialog-title-row">
-                <Box className="mythic-accent-dialog-title-icon">
+        <DialogTitle id="mythic-draggable-title" className="mythic-accent-dialog-title relative">
+            <Box className="mythic-accent-dialog-title-row items-center flex gap-6 min-w-0">
+                <Box className="mythic-accent-dialog-title-icon items-center inline-flex flex-none justify-center rounded">
                     <TerminalIcon fontSize="small" />
                 </Box>
-                <Box className="mythic-task-parameters-title-copy">
-                    <Typography component="div" className="mythic-task-parameters-title-main">
+                <Box className="mythic-task-parameters-title-copy flex-fill">
+                    <Typography component="div" className="mythic-task-parameters-title-main text-header text-base font-850 leading-115 wrap-anywhere">
                         {commandName}
                     </Typography>
-                    <Typography component="div" className="mythic-accent-dialog-title-subtitle">
+                    <Typography component="div" className="mythic-accent-dialog-title-subtitle text-header-muted text-xs font-600 leading-125">
                         Command parameters
                     </Typography>
                 </Box>
-                <Box className="mythic-task-parameters-title-meta">
+                <Box className="mythic-task-parameters-title-meta items-center flex flex-wrap gap-3 justify-end min-w-0">
                     {commandInfo?.payloadtype?.name &&
-                        <SquareChip size="small" className="mythic-task-parameters-title-chip" icon={<SegmentIcon />} label={commandInfo.payloadtype.name} />
+                        <SquareChip icon={<SegmentIcon />} label={commandInfo.payloadtype.name} />
                     }
-                    <SquareChip size="small" className="mythic-task-parameters-title-chip" icon={<FactCheckIcon />} label={`${parameters.length} parameter${parameters.length === 1 ? "" : "s"}`} />
+                    <SquareChip icon={<FactCheckIcon />} label={`${parameters.length} parameter${parameters.length === 1 ? "" : "s"}`} />
                     {requiredCount > 0 &&
-                        <SquareChip size="small" className="mythic-task-parameters-title-chip" label={`${requiredCount} required`} tone="warning" />
+                        <SquareChip label={`${requiredCount} required`} tone="warning" />
                     }
                     <SquareChip
-                        size="small"
-                        className="mythic-task-parameters-title-chip"
                         icon={<AdminPanelSettingsIcon />}
                         label={commandInfo.needs_admin ? "Admin required" : "No admin"}
                         tone={commandInfo.needs_admin ? "warning" : "secondary"}
@@ -1087,29 +1085,29 @@ export function TaskParametersDialog(props) {
                 </Box>
             </Box>
         </DialogTitle>
-        <DialogContent dividers={true} className="mythic-task-parameters-content">
+        <DialogContent dividers={true} className="mythic-task-parameters-content overflow-auto relative">
             <Backdrop open={backdropOpen} className="mythic-task-parameters-backdrop">
                 <CircularProgress color="inherit" />
             </Backdrop>
-            <Box className="mythic-task-parameters-overview">
-                <Typography component="div" className="mythic-task-parameters-section-label">
+            <Box className="mythic-task-parameters-overview bg-surface-muted border-subtle min-w-0 rounded">
+                <Typography component="div" className="mythic-task-parameters-section-label text-primary text-xs font-800 leading-125">
                     Description
                 </Typography>
-                <Typography component="pre" className="mythic-task-parameters-description">
+                <Typography component="pre" className="mythic-task-parameters-description text-sm leading-145 wrap-anywhere text-muted whitespace-pre-wrap">
                     {commandInfo.description || "No description provided."}
                 </Typography>
             </Box>
             {parameterGroups.length > 1 &&
-                <Box className="mythic-task-parameters-group-card">
+                <Box className="mythic-task-parameters-group-card items-center gap-6 min-w-0 rounded grid bg-surface-muted border-subtle">
                     <Box className="mythic-task-parameters-group-copy">
-                        <Typography component="div" className="mythic-task-parameters-section-label">
+                        <Typography component="div" className="mythic-task-parameters-section-label text-primary text-xs font-800 leading-125">
                             Parameter group
                         </Typography>
                         <Typography component="div" className="mythic-task-parameters-section-description">
                             {parameterGroups.length} available groups
                         </Typography>
                     </Box>
-                    <FormControl className="mythic-task-parameters-group-select">
+                    <FormControl className="mythic-task-parameters-group-select w-full">
                         <TextField
                             select
                             size="small"
@@ -1126,7 +1124,7 @@ export function TaskParametersDialog(props) {
                     </FormControl>
                 </Box>
             }
-            <Box className="mythic-task-parameters-list">
+            <Box className="mythic-task-parameters-list flex flex-column gap-6 min-w-0">
                 {parameters.map( (op) => (
                     <TaskParametersDialogRow onSubmit={onSubmit} key={"taskparameterrow" + op.id}
                         onChange={onChange} commandInfo={commandInfo} {...op}

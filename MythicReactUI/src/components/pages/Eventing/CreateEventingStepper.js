@@ -1,6 +1,5 @@
 import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
-import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -282,24 +281,25 @@ function CreateEventingStepperNavigationButtons(props){
     const disabledButtons = (me?.user?.current_operation_id || 0) <= 0;
     return (
 
-        <DialogActions className="mythic-eventing-wizard-actions">
-            <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-warning" onClick={props.cancel} variant="outlined">Cancel</Button>
-            <Button
-                className="mythic-compact-action"
+        <DialogActions className="mythic-eventing-wizard-actions gap-4 border-t-subtle">
+            <MythicActionButton compact tone="warning" onClick={props.cancel} variant="outlined">Cancel</MythicActionButton>
+            <MythicActionButton
+                compact
                 variant={"outlined"}
                 disabled={props.first}
                 onClick={props.back}
             >
                 Back
-            </Button>
-                <Button
-                    className={`mythic-compact-action ${props.last ? "mythic-action-tone-hover mythic-tone-success" : "mythic-action-tone-hover mythic-tone-info"}`}
+            </MythicActionButton>
+                <MythicActionButton
+                    compact
+                    tone={props.last ? "success" : "info"}
                     variant="outlined"
                     onClick={props.finished}
                     disabled={disabledButtons}
                 >
                     {props.last ? (props.submitLabel || "Create") : 'Next'}
-                </Button>
+                </MythicActionButton>
         </DialogActions>
     );
 }
@@ -841,7 +841,7 @@ const ChooseOneOrCustom = ({choices, prevData, updateData, choicesLabel, textFie
         }
     }, []);
     return (
-        <div className="mythic-eventing-choice-row">
+        <div className="mythic-eventing-choice-row items-start gap-4 grid">
             <FormControl sx={{display: "inline-block", width: "100%",}}>
                 <TextField
                     label={choicesLabel}
@@ -858,8 +858,8 @@ const ChooseOneOrCustom = ({choices, prevData, updateData, choicesLabel, textFie
                     ))}
                 </TextField>
             </FormControl>
-            <span className="mythic-eventing-choice-separator">or</span>
-            <div className="mythic-eventing-choice-custom">
+            <span className="mythic-eventing-choice-separator text-2xs font-850 items-center inline-flex justify-center rounded bg-neutral-2 border-subtle text-muted">or</span>
+            <div className="mythic-eventing-choice-custom min-w-0">
                 <MythicTextField placeholder={textFieldPlaceholder} name={textFieldName}
                                  onChange={onChangeLocalValue}
                                  value={value}
@@ -893,9 +893,9 @@ const GetArrayValues = ({prevData, updateData, textFieldPlaceholder, textFieldNa
         }
     }, [])
     return (
-        <div className="mythic-eventing-array-list">
+        <div className="mythic-eventing-array-list items-start flex flex-column gap-3">
             {arrayValues.map( (a, i) => (
-                <div className="mythic-eventing-array-row" key={"arrayentry" + i}>
+                <div className="mythic-eventing-array-row items-center flex gap-3 min-w-0 w-full" key={"arrayentry" + i}>
                     <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={() => removeElement(i)}>
                         <DeleteIcon fontSize="small" />
                     </MythicActionButton>
@@ -940,13 +940,13 @@ const GetMultipleFileSelect = ({prevData, updateData}) => {
         setFiles((currentFiles) => currentFiles.filter((_, i) => i !== index));
     }
     return (
-        <div className="mythic-eventing-file-select">
-            <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" variant="outlined" component="label" style={{display: "inline-block"}}>
+        <div className="mythic-eventing-file-select flex flex-column gap-4">
+            <MythicActionButton compact tone="success" variant="outlined" component="label" style={{display: "inline-block"}}>
                 Select files
                 <input onChange={onFileMultChange} type="file" hidden multiple />
-            </Button>
+            </MythicActionButton>
             { files.length > 0 &&
-                <div className="mythic-eventing-file-chip-list">
+                <div className="mythic-eventing-file-chip-list flex flex-wrap gap-3">
                     {files?.map((f, i) => (
                         <MythicChip
                             deleteIcon={<DeleteIcon fontSize="small" />}
@@ -1058,32 +1058,32 @@ const CreateEventingStep1 = ({finished, back, first, last, cancel, prevData}) =>
         }
     }, [prevData]);
     return (
-        <div className="mythic-eventing-wizard-step">
-            <div className="mythic-eventing-wizard-step-scroll">
-                <div className="mythic-eventing-metadata-layout">
-                    <div className="mythic-eventing-metadata-card mythic-eventing-metadata-card-wide">
-                        <div className="mythic-eventing-metadata-card-header">
-                            <div className="mythic-eventing-metadata-card-title">Workflow identity</div>
-                            <div className="mythic-eventing-metadata-card-subtitle">Name and describe what this workflow is meant to do.</div>
+        <div className="mythic-eventing-wizard-step flex flex-fill flex-column min-h-0">
+            <div className="mythic-eventing-wizard-step-scroll py-6 px-8 flex-fill min-h-0 overflow-auto">
+                <div className="mythic-eventing-metadata-layout gap-6 min-w-0 grid grid-cols-2">
+                    <div className="mythic-eventing-metadata-card bg-neutral-1 border-subtle mythic-eventing-metadata-card-wide grid-col-full min-w-0 overflow-hidden rounded">
+                        <div className="mythic-eventing-metadata-card-header bg-header border-b-subtle">
+                            <div className="mythic-eventing-metadata-card-title text-sm font-850 leading-120 text-primary">Workflow identity</div>
+                            <div className="mythic-eventing-metadata-card-subtitle text-muted text-xs font-600 leading-135">Name and describe what this workflow is meant to do.</div>
                         </div>
-                        <div className="mythic-eventing-metadata-field-grid">
-                            <div className="mythic-eventing-metadata-field">
-                                <div className="mythic-eventing-metadata-label">Workflow name</div>
+                        <div className="mythic-eventing-metadata-field-grid p-6 gap-5 grid grid-cols-2">
+                            <div className="mythic-eventing-metadata-field p-6 min-w-0">
+                                <div className="mythic-eventing-metadata-label text-muted text-xs font-850 leading-120">Workflow name</div>
                                 <MythicTextField placeholder={"My custom workflow..."} onChange={(name, value, error) => setName(value)} value={name} marginBottom={"0px"} />
                             </div>
-                            <div className="mythic-eventing-metadata-field">
-                                <div className="mythic-eventing-metadata-label">Description</div>
+                            <div className="mythic-eventing-metadata-field p-6 min-w-0">
+                                <div className="mythic-eventing-metadata-label text-muted text-xs font-850 leading-120">Description</div>
                                 <MythicTextField placeholder={"My custom workflow description..."} onChange={(name, value, error) => setDescription(value)} value={description} marginBottom={"0px"} />
                             </div>
                         </div>
                     </div>
-                    <div className="mythic-eventing-metadata-card mythic-eventing-metadata-card-wide">
-                        <div className="mythic-eventing-metadata-card-header">
-                            <div className="mythic-eventing-metadata-card-title">Trigger behavior</div>
-                            <div className="mythic-eventing-metadata-card-subtitle">{triggerOptionsData[trigger]?.description}</div>
+                    <div className="mythic-eventing-metadata-card bg-neutral-1 border-subtle mythic-eventing-metadata-card-wide grid-col-full min-w-0 overflow-hidden rounded">
+                        <div className="mythic-eventing-metadata-card-header bg-header border-b-subtle">
+                            <div className="mythic-eventing-metadata-card-title text-sm font-850 leading-120 text-primary">Trigger behavior</div>
+                            <div className="mythic-eventing-metadata-card-subtitle text-muted text-xs font-600 leading-135">{triggerOptionsData[trigger]?.description}</div>
                         </div>
-                        <div className="mythic-eventing-metadata-field">
-                            <div className="mythic-eventing-metadata-label">Trigger</div>
+                        <div className="mythic-eventing-metadata-field p-6 min-w-0">
+                            <div className="mythic-eventing-metadata-label text-muted text-xs font-850 leading-120">Trigger</div>
                             <FormControl sx={{ display: "inline-block", width: "100%" }} size="small">
                                 <TextField
                                     label={"When should this workflow start"}
@@ -1101,49 +1101,49 @@ const CreateEventingStep1 = ({finished, back, first, last, cancel, prevData}) =>
                                 </TextField>
                             </FormControl>
                         </div>
-                        <div className="mythic-eventing-metadata-field">
-                            <div className="mythic-eventing-metadata-label">Trigger data</div>
+                        <div className="mythic-eventing-metadata-field p-6 min-w-0">
+                            <div className="mythic-eventing-metadata-label text-muted text-xs font-850 leading-120">Trigger data</div>
                             {triggerOptionsData[trigger]?.trigger_data?.length > 0 ?
-                                (<div className="mythic-eventing-trigger-parameter-list mythic-column-stack">
+                                (<div className="mythic-eventing-trigger-parameter-list mythic-column-stack flex flex-column gap-4 min-w-0">
                                     {triggerData?.map( t => (
                                         <CreatePayloadParameter key={t.name} onChange={onChangeTriggerData} displayMode="card" {...t} getOtherParameters={() => {}} />
                                     ))}
                                 </div>) :
-                                (<div className="mythic-eventing-metadata-empty">None</div>)
+                                (<div className="mythic-eventing-metadata-empty bg-disabled text-xs font-800 items-center inline-flex rounded text-muted">None</div>)
                             }
                         </div>
                     </div>
-                    <div className="mythic-eventing-metadata-card">
-                        <div className="mythic-eventing-metadata-card-header">
-                            <div className="mythic-eventing-metadata-card-title">Run context</div>
-                            <div className="mythic-eventing-metadata-card-subtitle">{getRunAsDescription({runAs})}</div>
+                    <div className="mythic-eventing-metadata-card bg-neutral-1 border-subtle min-w-0 overflow-hidden rounded">
+                        <div className="mythic-eventing-metadata-card-header bg-header border-b-subtle">
+                            <div className="mythic-eventing-metadata-card-title text-sm font-850 leading-120 text-primary">Run context</div>
+                            <div className="mythic-eventing-metadata-card-subtitle text-muted text-xs font-600 leading-135">{getRunAsDescription({runAs})}</div>
                         </div>
-                        <div className="mythic-eventing-metadata-field">
-                            <div className="mythic-eventing-metadata-label">Run as</div>
+                        <div className="mythic-eventing-metadata-field p-6 min-w-0">
+                            <div className="mythic-eventing-metadata-label text-muted text-xs font-850 leading-120">Run as</div>
                             <ChooseOneOrCustom choices={runAsOptions} choicesLabel={""} updateData={setRunAs}
                                 textFieldName={"Custom operator"} textFieldPlaceholder={"Specific operator..."}
                                 prevData={prevData?.run_as}/>
                         </div>
                     </div>
-                    <div className="mythic-eventing-metadata-card">
-                        <div className="mythic-eventing-metadata-card-header">
-                            <div className="mythic-eventing-metadata-card-title">Optional inputs</div>
-                            <div className="mythic-eventing-metadata-card-subtitle">Keywords and files can be referenced by workflow steps later.</div>
+                    <div className="mythic-eventing-metadata-card bg-neutral-1 border-subtle min-w-0 overflow-hidden rounded">
+                        <div className="mythic-eventing-metadata-card-header bg-header border-b-subtle">
+                            <div className="mythic-eventing-metadata-card-title text-sm font-850 leading-120 text-primary">Optional inputs</div>
+                            <div className="mythic-eventing-metadata-card-subtitle text-muted text-xs font-600 leading-135">Keywords and files can be referenced by workflow steps later.</div>
                         </div>
-                        <div className="mythic-eventing-metadata-field">
-                            <div className="mythic-eventing-metadata-label">Keywords</div>
+                        <div className="mythic-eventing-metadata-field p-6 min-w-0">
+                            <div className="mythic-eventing-metadata-label text-muted text-xs font-850 leading-120">Keywords</div>
                             <GetArrayValues updateData={setKeywords} prevData={prevData?.keywords}
                             textFieldName={"keyword"} textFieldPlaceholder={"Keyword"}/>
                         </div>
-                        <div className="mythic-eventing-metadata-field">
-                            <div className="mythic-eventing-metadata-label">Files</div>
+                        <div className="mythic-eventing-metadata-field p-6 min-w-0">
+                            <div className="mythic-eventing-metadata-label text-muted text-xs font-850 leading-120">Files</div>
                             <GetMultipleFileSelect prevData={prevData?.files} updateData={setFiles} />
                         </div>
                     </div>
-                    <div className="mythic-eventing-metadata-card mythic-eventing-metadata-card-wide">
-                        <div className="mythic-eventing-metadata-card-header">
-                            <div className="mythic-eventing-metadata-card-title">Environment</div>
-                            <div className="mythic-eventing-metadata-card-subtitle">Provide JSON key-value pairs that every step can read.</div>
+                    <div className="mythic-eventing-metadata-card bg-neutral-1 border-subtle mythic-eventing-metadata-card-wide grid-col-full min-w-0 overflow-hidden rounded">
+                        <div className="mythic-eventing-metadata-card-header bg-header border-b-subtle">
+                            <div className="mythic-eventing-metadata-card-title text-sm font-850 leading-120 text-primary">Environment</div>
+                            <div className="mythic-eventing-metadata-card-subtitle text-muted text-xs font-600 leading-135">Provide JSON key-value pairs that every step can read.</div>
                         </div>
                         <div className="mythic-eventing-metadata-editor">
                             <ResponseDisplayPlaintext plaintext={environmentRef.current} onChangeContent={onChangeEnvironment} initial_mode={"json"} autoFormat={false} />
@@ -1179,30 +1179,30 @@ const EventingAPITokenScopeSelector = ({scopes, onChange}) => (
     />
 )
 const EventingStepConfigSection = ({title, description, children, className = ""}) => (
-    <div className={`mythic-eventing-step-config-section ${className}`.trim()}>
-        <div className="mythic-eventing-step-config-section-header">
-            <div className="mythic-eventing-step-config-section-title">{title}</div>
+    <div className={`mythic-eventing-step-config-section rounded bg-surface-raised border-subtle ${className} min-w-0 overflow-hidden`.trim()}>
+        <div className="mythic-eventing-step-config-section-header border-b-subtle">
+            <div className="mythic-eventing-step-config-section-title text-primary text-sm font-850 leading-120">{title}</div>
             {description &&
-                <div className="mythic-eventing-step-config-section-subtitle">{description}</div>
+                <div className="mythic-eventing-step-config-section-subtitle text-xs font-600 leading-135 text-muted">{description}</div>
             }
         </div>
-        <div className="mythic-eventing-step-config-section-body">
+        <div className="mythic-eventing-step-config-section-body p-6">
             {children}
         </div>
     </div>
 )
 const EventingStepFieldBlock = ({label, description, required = false, children, className = ""}) => (
-    <div className={`mythic-eventing-step-field ${className}`.trim()}>
-        <div className="mythic-eventing-step-field-heading">
-            <span className="mythic-eventing-step-field-label">{label}</span>
+    <div className={`mythic-eventing-step-field ${className} min-w-0`.trim()}>
+        <div className="mythic-eventing-step-field-heading items-center flex flex-wrap gap-3">
+            <span className="mythic-eventing-step-field-label text-xs font-850 leading-120 text-muted">{label}</span>
             {required &&
-                <span className="mythic-eventing-step-field-required">Required</span>
+                <span className="mythic-eventing-step-field-required text-2xs font-850 leading-100 items-center inline-flex rounded mythic-tone-warning bg-tone-1 border border-tone-2 text-tone">Required</span>
             }
         </div>
         {description &&
-            <div className="mythic-eventing-step-field-description">{description}</div>
+            <div className="mythic-eventing-step-field-description text-xs font-600 leading-135 text-muted">{description}</div>
         }
-        <div className="mythic-eventing-step-field-control">
+        <div className="mythic-eventing-step-field-control min-w-0">
             {children}
         </div>
     </div>
@@ -1210,19 +1210,19 @@ const EventingStepFieldBlock = ({label, description, required = false, children,
 const eventingActionDataHelp = "At execution time, any values here that are the names of an input will be swapped out before the action runs.";
 const EventingActionDataShell = ({children}) => (
     <>
-        <Typography component="div" className="mythic-eventing-step-help-text">
+        <Typography component="div" className="mythic-eventing-step-help-text text-xs font-600 leading-140 rounded mythic-tone-info bg-tone-1 border border-tone-1 text-muted">
             {eventingActionDataHelp}
         </Typography>
-        <div className="mythic-column-stack">
+        <div className="mythic-column-stack flex flex-column gap-4 min-w-0">
             {children}
         </div>
     </>
 )
 const EventingActionDataField = ({label, description, required = false, children, className = ""}) => (
-    <div className={`mythic-eventing-action-data-card ${className}`.trim()}>
-        <div className="mythic-eventing-action-data-copy">
-            <div className="mythic-eventing-action-data-title-row">
-                <Typography component="div" className="mythic-eventing-action-data-title">
+    <div className={`mythic-eventing-action-data-card gap-6 rounded grid bg-surface border-subtle ${className} min-w-0`.trim()}>
+        <div className="mythic-eventing-action-data-copy min-w-0">
+            <div className="mythic-eventing-action-data-title-row items-center flex flex-wrap gap-3">
+                <Typography component="div" className="mythic-eventing-action-data-title text-xs font-850 leading-125 text-primary">
                     {label}
                 </Typography>
                 {required &&
@@ -1230,18 +1230,18 @@ const EventingActionDataField = ({label, description, required = false, children
                 }
             </div>
             {description &&
-                <Typography component="div" className="mythic-eventing-action-data-description">
+                <Typography component="div" className="mythic-eventing-action-data-description text-xs font-600 leading-135 text-muted">
                     {description}
                 </Typography>
             }
         </div>
-        <div className="mythic-eventing-action-data-control">
+        <div className="mythic-eventing-action-data-control min-w-0">
             {children}
         </div>
     </div>
 )
 const EventingStepEmptyInline = ({children}) => (
-    <div className="mythic-eventing-step-empty-inline">{children}</div>
+    <div className="mythic-eventing-step-empty-inline bg-disabled border-dashed-subtle text-xs font-700 items-center flex rounded text-muted">{children}</div>
 )
 const EventingStepInputs = ({updateStep, index, localInputOptions, step1Data, prevData, syncKey = ""}) => {
     const theme = useTheme();
@@ -1317,14 +1317,14 @@ const EventingStepInputs = ({updateStep, index, localInputOptions, step1Data, pr
         }
     }, [syncKey]);
     return (
-        <div className="mythic-eventing-step-dynamic-section">
-            <div className="mythic-eventing-step-list">
+        <div className="mythic-eventing-step-dynamic-section items-start flex flex-column gap-4">
+            <div className="mythic-eventing-step-list flex flex-column gap-4 min-w-0 w-full">
                 {localInputs.length === 0 &&
                     <EventingStepEmptyInline>No inputs configured.</EventingStepEmptyInline>
                 }
                 {localInputs.map( (d, i) => (
-                    <div className="mythic-eventing-step-list-item mythic-eventing-step-list-item-editable" key={"localinputs" + i}>
-                        <div className="mythic-eventing-step-input-grid">
+                    <div className="mythic-eventing-step-list-item p-4 items-start flex gap-4 mythic-eventing-step-list-item-editable min-w-0 w-full rounded bg-neutral-1 border-subtle" key={"localinputs" + i}>
+                        <div className="mythic-eventing-step-input-grid items-center gap-4 min-w-0 grid">
                             <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={() => removeLocalInput(i)}>
                                 <DeleteIcon fontSize="small" />
                             </MythicActionButton>
@@ -1352,7 +1352,7 @@ const EventingStepInputs = ({updateStep, index, localInputOptions, step1Data, pr
                             </FormControl>
                             {localInputs[i].type === "env" && triggerOptionsData[step1Data.trigger].env.length > 0 ?
                                 (
-                                    <div className="mythic-eventing-choice-row mythic-eventing-step-choice-row">
+                                    <div className="mythic-eventing-choice-row items-start gap-4 mythic-eventing-step-choice-row grid">
                                         <FormControl sx={{display: "inline-block", width: "100%"}}>
                                             <TextField
                                                 label={"Environment option"}
@@ -1372,8 +1372,8 @@ const EventingStepInputs = ({updateStep, index, localInputOptions, step1Data, pr
                                                 ))}
                                             </TextField>
                                         </FormControl>
-                                        <span className="mythic-eventing-choice-separator">or</span>
-                                        <div className="mythic-eventing-choice-custom">
+                                        <span className="mythic-eventing-choice-separator text-2xs font-850 items-center inline-flex justify-center rounded bg-neutral-2 border-subtle text-muted">or</span>
+                                        <div className="mythic-eventing-choice-custom min-w-0">
                                             <MythicTextField placeholder={""} name={"Custom value"}
                                                              onChange={(name, value, error) => onChangeLocalInputValue(i, value)}
                                                              value={localInputs[i].value}
@@ -1399,14 +1399,14 @@ const EventingStepInputs = ({updateStep, index, localInputOptions, step1Data, pr
                                     onChange={(scopes) => onChangeLocalInputScopes(i, scopes)}
                                 />
                             }
-                            <div className="mythic-eventing-step-helper-text">{getInputTypeDescription(localInputs[i].type)}</div>
+                            <div className="mythic-eventing-step-helper-text text-2xs font-600 leading-135 text-muted">{getInputTypeDescription(localInputs[i].type)}</div>
                         </div>
                     </div>
                 ))}
             </div>
-            <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" onClick={addLocalInput} variant="outlined" startIcon={<AddCircleIcon fontSize="small" />}>
+            <MythicActionButton compact tone="success" onClick={addLocalInput} variant="outlined" startIcon={<AddCircleIcon fontSize="small" />}>
                 Add input
-            </Button>
+            </MythicActionButton>
         </div>
     )
 }
@@ -1451,14 +1451,14 @@ const EventingStepOutputs = ({updateStep, index, selectedAction, prevData}) => {
         }
     }, [prevData]);
     return (
-        <div className="mythic-eventing-step-dynamic-section">
-            <div className="mythic-eventing-step-list">
+        <div className="mythic-eventing-step-dynamic-section items-start flex flex-column gap-4">
+            <div className="mythic-eventing-step-list flex flex-column gap-4 min-w-0 w-full">
                 {localOutputs.length === 0 &&
                     <EventingStepEmptyInline>No outputs configured.</EventingStepEmptyInline>
                 }
                 {localOutputs.map( (d, i) => (
-                    <div className="mythic-eventing-step-list-item mythic-eventing-step-list-item-editable" key={"localoutputs" + i}>
-                        <div className="mythic-eventing-step-output-grid">
+                    <div className="mythic-eventing-step-list-item p-4 items-start flex gap-4 mythic-eventing-step-list-item-editable min-w-0 w-full rounded bg-neutral-1 border-subtle" key={"localoutputs" + i}>
+                        <div className="mythic-eventing-step-output-grid items-center gap-4 min-w-0 grid">
                             <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={() => removeLocalOutput(i)}>
                                 <DeleteIcon fontSize="small" />
                             </MythicActionButton>
@@ -1467,7 +1467,7 @@ const EventingStepOutputs = ({updateStep, index, selectedAction, prevData}) => {
                                              value={localOutputs[i].name}
                                              marginBottom={"0px"}/>
                             {outputOptionsData[selectedAction].output_fields.length > 0 ? (
-                                <div className="mythic-eventing-choice-row mythic-eventing-step-choice-row">
+                                <div className="mythic-eventing-choice-row items-start gap-4 mythic-eventing-step-choice-row grid">
                                     <FormControl sx={{display: "inline-block", width: "100%"}}>
                                         <TextField
                                             label={"Output option"}
@@ -1487,8 +1487,8 @@ const EventingStepOutputs = ({updateStep, index, selectedAction, prevData}) => {
                                             ))}
                                         </TextField>
                                     </FormControl>
-                                    <span className="mythic-eventing-choice-separator">or</span>
-                                    <div className="mythic-eventing-choice-custom">
+                                    <span className="mythic-eventing-choice-separator text-2xs font-850 items-center inline-flex justify-center rounded bg-neutral-2 border-subtle text-muted">or</span>
+                                    <div className="mythic-eventing-choice-custom min-w-0">
                                         <MythicTextField placeholder={""} name={"Custom value"}
                                                          onChange={(name, value, error) => onChangeLocalOutputValue(i, value)}
                                                          value={localOutputs[i].value}
@@ -1505,9 +1505,9 @@ const EventingStepOutputs = ({updateStep, index, selectedAction, prevData}) => {
                     </div>
                 ))}
             </div>
-            <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" onClick={addLocalOutput} variant="outlined" startIcon={<AddCircleIcon fontSize="small" />}>
+            <MythicActionButton compact tone="success" onClick={addLocalOutput} variant="outlined" startIcon={<AddCircleIcon fontSize="small" />}>
                 Add output
-            </Button>
+            </MythicActionButton>
         </div>
     )
 }
@@ -1534,7 +1534,7 @@ const EventingTaskCreateExistingTaskDialog = ({loading, onClose, onSelect, tasks
         <>
             <DialogTitle>Select an executed task</DialogTitle>
             <DialogContent dividers={true}>
-                <Typography className="mythic-eventing-task-helper-summary" component="div">
+                <Typography className="mythic-eventing-task-helper-summary text-xs font-650 leading-140 rounded mythic-tone-info bg-tone-1 border border-tone-1 text-muted" component="div">
                     Pick a previous task to copy its parsed parameters and parameter group into this step.
                 </Typography>
                 <div className="mythic-eventing-task-helper-filter">
@@ -1589,7 +1589,7 @@ const EventingTaskCreateExistingTaskDialog = ({loading, onClose, onSelect, tasks
                                     <MythicStyledTableCell>{getEventingTaskPayloadType(task)}</MythicStyledTableCell>
                                     <MythicStyledTableCell>{task.parameter_group_name || "Default"}</MythicStyledTableCell>
                                     <MythicStyledTableCell>
-                                        <Typography className="mythic-eventing-task-helper-preview" component="div">
+                                        <Typography className="mythic-eventing-task-helper-preview text-xs leading-135 overflow-hidden text-muted" component="div">
                                             {task.display_params || task.original_params || task.mythic_parsed_params || "No parameters"}
                                         </Typography>
                                     </MythicStyledTableCell>
@@ -1603,7 +1603,7 @@ const EventingTaskCreateExistingTaskDialog = ({loading, onClose, onSelect, tasks
                 }
             </DialogContent>
             <DialogActions>
-                <Button className="mythic-compact-action" onClick={onClose} variant="outlined">Close</Button>
+                <MythicActionButton compact onClick={onClose} variant="outlined">Close</MythicActionButton>
             </DialogActions>
         </>
     )
@@ -1633,7 +1633,7 @@ const EventingTaskCreateCallbackDialog = ({callbacks, loading, onClose, onSelect
         <>
             <DialogTitle>Select a callback for tasking</DialogTitle>
             <DialogContent dividers={true}>
-                <Typography className="mythic-eventing-task-helper-summary" component="div">
+                <Typography className="mythic-eventing-task-helper-summary text-xs font-650 leading-140 rounded mythic-tone-info bg-tone-1 border border-tone-1 text-muted" component="div">
                     Choose an active callback that has this command loaded, then fill out the tasking modal without submitting a task.
                 </Typography>
                 <div className="mythic-eventing-task-helper-filter">
@@ -1700,7 +1700,7 @@ const EventingTaskCreateCallbackDialog = ({callbacks, loading, onClose, onSelect
                 }
             </DialogContent>
             <DialogActions>
-                <Button className="mythic-compact-action" onClick={onClose} variant="outlined">Close</Button>
+                <MythicActionButton compact onClick={onClose} variant="outlined">Close</MythicActionButton>
             </DialogActions>
         </>
     )
@@ -1985,13 +1985,14 @@ const EventingStepActionDataTaskCreate = ({updateStep, index, prevData, step1Dat
                 required
                 description={"This is the name of the command you want to execute. If this command is part of a command augmentation container (like forge), then you need to also specify that container's name in the payload_type field below."}
             >
-                <div className="mythic-eventing-task-create-command-row">
+                <div className="mythic-eventing-task-create-command-row items-start flex flex-column gap-4 min-w-0">
                     <MythicTextField onChange={onChangeValue} value={actionData.command_name} name={"command_name"} />
-                    <div className="mythic-eventing-task-create-command-actions">
+                    <div className="mythic-eventing-task-create-command-actions items-center flex flex-wrap gap-3 justify-start">
                         <MythicStyledTooltip title="Use the parsed parameters from a previous execution of this command">
                             <span>
-                                <Button
-                                    className="mythic-compact-action mythic-action-tone-hover mythic-tone-info"
+                                <MythicActionButton
+                                    compact
+                                    tone="info"
                                     disabled={actionData.command_name.trim() === ""}
                                     onClick={fetchExistingTasks}
                                     size="small"
@@ -1999,13 +2000,14 @@ const EventingStepActionDataTaskCreate = ({updateStep, index, prevData, step1Dat
                                     variant="outlined"
                                 >
                                     Use task
-                                </Button>
+                                </MythicActionButton>
                             </span>
                         </MythicStyledTooltip>
                         <MythicStyledTooltip title="Open the normal tasking modal on a selected callback and capture the final parameters">
                             <span>
-                                <Button
-                                    className="mythic-compact-action mythic-action-tone-hover mythic-tone-info"
+                                <MythicActionButton
+                                    compact
+                                    tone="info"
                                     disabled={actionData.command_name.trim() === ""}
                                     onClick={fetchTaskingCallbacks}
                                     size="small"
@@ -2013,7 +2015,7 @@ const EventingStepActionDataTaskCreate = ({updateStep, index, prevData, step1Dat
                                     variant="outlined"
                                 >
                                     Build params
-                                </Button>
+                                </MythicActionButton>
                             </span>
                         </MythicStyledTooltip>
                     </div>
@@ -2264,9 +2266,9 @@ const EventingStepActionDataConditionalCheck = ({allSteps, updateStep, index, pr
                 label="Step Names"
                 description="These are the step names that can be conditionally skipped."
             >
-                <div className="mythic-eventing-action-array-list">
+                <div className="mythic-eventing-action-array-list flex flex-column gap-4 min-w-0">
                     {actionData.steps.map( (s, i) => (
-                        <div className="mythic-eventing-action-array-row" key={"step" + s + i}>
+                        <div className="mythic-eventing-action-array-row items-center gap-4 min-w-0 grid" key={"step" + s + i}>
                             <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={() => removeStep(i)}>
                                 <DeleteIcon fontSize="small" />
                             </MythicActionButton>
@@ -2702,7 +2704,7 @@ const EventingUserInteractionSourcePicker = ({localInputOptions, onChange, defau
         }
     }
     return (
-        <div className="mythic-eventing-user-input-source-cell">
+        <div className="mythic-eventing-user-input-source-cell flex flex-column gap-3 min-w-0 w-full">
             <TextField
                 label={`Default Value Source`}
                 select
@@ -2717,7 +2719,7 @@ const EventingUserInteractionSourcePicker = ({localInputOptions, onChange, defau
                 ))}
             </TextField>
             {default_value_source !== "custom" &&
-                <div className="mythic-eventing-step-helper-text">
+                <div className="mythic-eventing-step-helper-text text-2xs font-600 leading-135 text-muted">
                     Resolved from {default_value} when the step pauses.
                 </div>
             }
@@ -2745,13 +2747,13 @@ const EventingUserInteractionChoicesEditor = ({input, index, updateInputFields})
         setChoices(nextChoices);
     }
     return (
-        <div className="mythic-eventing-user-input-choices">
-            <div className="mythic-eventing-user-input-choice-list">
+        <div className="mythic-eventing-user-input-choices flex flex-column gap-3 min-w-0 w-full rounded bg-surface border-subtle">
+            <div className="mythic-eventing-user-input-choice-list flex flex-column gap-4 min-w-0 w-full">
                 {choices.length === 0 &&
                     <EventingStepEmptyInline>No choices configured.</EventingStepEmptyInline>
                 }
                 {choices.map((choice, choiceIndex) => (
-                    <div className="mythic-eventing-user-input-choice-row" key={`choice-${index}-${choiceIndex}`}>
+                    <div className="mythic-eventing-user-input-choice-row items-center gap-4 min-w-0 w-full grid" key={`choice-${index}-${choiceIndex}`}>
                         <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={() => removeChoice(choiceIndex)}>
                             <DeleteIcon fontSize="small" />
                         </MythicActionButton>
@@ -2763,9 +2765,9 @@ const EventingUserInteractionChoicesEditor = ({input, index, updateInputFields})
                         />
                     </div>
                 ))}
-                <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" onClick={addChoice} size="small" variant="outlined" startIcon={<AddCircleIcon fontSize="small" />}>
+                <MythicActionButton compact tone="success" onClick={addChoice} size="small" variant="outlined" startIcon={<AddCircleIcon fontSize="small" />}>
                     Add choice
-                </Button>
+                </MythicActionButton>
             </div>
         </div>
     )
@@ -2807,12 +2809,12 @@ const EventingStepUserInteraction = ({config, localInputOptions, onChange}) => {
         updateUserInteraction({inputs: nextInputs});
     }
     return (
-        <div className="mythic-eventing-step-dynamic-section mythic-eventing-step-user-interaction-section">
-            <div className="mythic-eventing-step-switch-stack">
-                <label className="mythic-eventing-step-switch-row">
-                    <span className="mythic-eventing-step-switch-copy">
-                        <span className="mythic-eventing-step-switch-title">Require approval</span>
-                        <span className="mythic-eventing-step-switch-subtitle">Pause before this step runs until an operator approves it.</span>
+        <div className="mythic-eventing-step-dynamic-section items-start flex flex-column gap-4 mythic-eventing-step-user-interaction-section items-stretch w-full">
+            <div className="mythic-eventing-step-switch-stack flex flex-column gap-4 min-w-0">
+                <label className="mythic-eventing-step-switch-row items-center flex gap-4 rounded cursor-pointer bg-neutral-1 border-subtle">
+                    <span className="mythic-eventing-step-switch-copy flex flex-fill flex-column min-w-0">
+                        <span className="mythic-eventing-step-switch-title text-xs font-850 leading-120 text-primary">Require approval</span>
+                        <span className="mythic-eventing-step-switch-subtitle text-2xs font-600 leading-125 text-muted">Pause before this step runs until an operator approves it.</span>
                     </span>
                     <Switch
                         checked={userInteraction.approval_required}
@@ -2830,7 +2832,7 @@ const EventingStepUserInteraction = ({config, localInputOptions, onChange}) => {
                     />
                 }
                 {userInteraction.approval_required &&
-                    <div className="mythic-eventing-step-approval-policy-row">
+                    <div className="mythic-eventing-step-approval-policy-row flex flex-column gap-2 min-w-0 w-full">
                         <TextField
                             label="Bot approval role"
                             select
@@ -2851,15 +2853,15 @@ const EventingStepUserInteraction = ({config, localInputOptions, onChange}) => {
                                 <MenuItem key={`user-interaction-approver-${value}`} value={value}>{data.label}</MenuItem>
                             ))}
                         </TextField>
-                        <div className="mythic-eventing-step-helper-text">
+                        <div className="mythic-eventing-step-helper-text text-2xs font-600 leading-135 text-muted">
                             {userInteractionBotApprovalApprovers[userInteraction.approval_policy.bot_context.approver]?.description}
                         </div>
                     </div>
                 }
-                <label className="mythic-eventing-step-switch-row">
-                    <span className="mythic-eventing-step-switch-copy">
-                        <span className="mythic-eventing-step-switch-title">Require user input</span>
-                        <span className="mythic-eventing-step-switch-subtitle">Collect key/value data and merge it into this step's runtime inputs.</span>
+                <label className="mythic-eventing-step-switch-row items-center flex gap-4 rounded cursor-pointer bg-neutral-1 border-subtle">
+                    <span className="mythic-eventing-step-switch-copy flex flex-fill flex-column min-w-0">
+                        <span className="mythic-eventing-step-switch-title text-xs font-850 leading-120 text-primary">Require user input</span>
+                        <span className="mythic-eventing-step-switch-subtitle text-2xs font-600 leading-125 text-muted">Collect key/value data and merge it into this step's runtime inputs.</span>
                     </span>
                     <Switch
                         checked={userInteraction.input_required || userInteraction.inputs.length > 0}
@@ -2878,17 +2880,17 @@ const EventingStepUserInteraction = ({config, localInputOptions, onChange}) => {
                 }
             </div>
             {(userInteraction.input_required || userInteraction.inputs.length > 0) &&
-                <div className="mythic-eventing-step-list">
+                <div className="mythic-eventing-step-list flex flex-column gap-4 min-w-0 w-full">
                     {userInteraction.inputs.length === 0 &&
                         <EventingStepEmptyInline>No input fields configured.</EventingStepEmptyInline>
                     }
                     {userInteraction.inputs.map((input, index) => (
-                        <div className="mythic-eventing-step-list-item mythic-eventing-step-list-item-editable mythic-eventing-user-input-field-row" key={`user-interaction-input-${index}`}>
+                        <div className="mythic-eventing-step-list-item p-4 items-start flex gap-4 mythic-eventing-step-list-item-editable mythic-eventing-user-input-field-row min-w-0 w-full rounded bg-neutral-1 border-subtle" key={`user-interaction-input-${index}`}>
                             <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={() => removeInputField(index)}>
                                 <DeleteIcon fontSize="small" />
                             </MythicActionButton>
-                            <div className="mythic-eventing-step-list-content">
-                                <div className="mythic-eventing-step-field-grid">
+                            <div className="mythic-eventing-step-list-content flex-fill min-w-0">
+                                <div className="mythic-eventing-step-field-grid gap-6 min-w-0 grid grid-cols-2">
                                     <MythicTextField
                                         name={"Name"}
                                         placeholder="Input name"
@@ -2955,10 +2957,10 @@ const EventingStepUserInteraction = ({config, localInputOptions, onChange}) => {
                                         updateInputFields={updateInputFields}
                                     />
                                 }
-                                <label className="mythic-eventing-step-switch-row mythic-eventing-step-switch-row-compact">
-                                    <span className="mythic-eventing-step-switch-copy">
-                                        <span className="mythic-eventing-step-switch-title">Required</span>
-                                        <span className="mythic-eventing-step-switch-subtitle">User must supply this value before the step resumes.</span>
+                                <label className="mythic-eventing-step-switch-row items-center flex gap-4 mythic-eventing-step-switch-row-compact min-w-0 w-full rounded cursor-pointer bg-neutral-1 border-subtle">
+                                    <span className="mythic-eventing-step-switch-copy flex flex-fill flex-column min-w-0">
+                                        <span className="mythic-eventing-step-switch-title text-xs font-850 leading-120 text-primary">Required</span>
+                                        <span className="mythic-eventing-step-switch-subtitle text-2xs font-600 leading-125 text-muted">User must supply this value before the step resumes.</span>
                                     </span>
                                     <Switch
                                         checked={input.required}
@@ -2973,9 +2975,9 @@ const EventingStepUserInteraction = ({config, localInputOptions, onChange}) => {
                 </div>
             }
             {(userInteraction.input_required || userInteraction.inputs.length > 0) &&
-                <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" onClick={addInputField} variant="outlined" startIcon={<AddCircleIcon fontSize="small" />}>
+                <MythicActionButton compact tone="success" onClick={addInputField} variant="outlined" startIcon={<AddCircleIcon fontSize="small" />}>
                     Add input field
-                </Button>
+                </MythicActionButton>
             }
         </div>
     )
@@ -3087,21 +3089,21 @@ const EventingStep = ({step, allSteps, updateStep, index, step1Data, updateStep1
         }
     }, [allSteps, name]);
     return (
-        <div className="mythic-eventing-step-config-card mythic-eventing-step-config-card-modern">
-            <div className="mythic-eventing-step-config-summary">
-                <div className="mythic-eventing-step-config-summary-copy">
-                    <div className="mythic-eventing-step-config-summary-title">{name || `Step ${index + 1}`}</div>
-                    <div className="mythic-eventing-step-config-summary-subtitle">{description || "Describe what this step does and how it should run."}</div>
+        <div className="mythic-eventing-step-config-card mythic-eventing-step-config-card-modern bg-surface-muted overflow-hidden rounded bg-neutral-1 border-subtle">
+            <div className="mythic-eventing-step-config-summary p-6 items-start flex gap-6 justify-between min-w-0 bg-neutral-1 border-b-subtle">
+                <div className="mythic-eventing-step-config-summary-copy min-w-0">
+                    <div className="mythic-eventing-step-config-summary-title text-sm font-850 leading-120 text-primary">{name || `Step ${index + 1}`}</div>
+                    <div className="mythic-eventing-step-config-summary-subtitle text-muted text-xs font-600 leading-135">{description || "Describe what this step does and how it should run."}</div>
                 </div>
-                <div className="mythic-eventing-step-config-summary-actions">
+                <div className="mythic-eventing-step-config-summary-actions items-start flex flex-none gap-4">
                     <MythicChip label={selectedAction} tone="info" />
                     {hasUserInteractionConfig(userInteraction) &&
                         <MythicChip label="user interaction" tone="warning" />
                     }
-                    <label className="mythic-eventing-step-switch-row">
-                        <span className="mythic-eventing-step-switch-copy">
-                            <span className="mythic-eventing-step-switch-title">Continue on error</span>
-                            <span className="mythic-eventing-step-switch-subtitle">Allow later steps to run if this one fails.</span>
+                    <label className="mythic-eventing-step-switch-row items-center flex gap-4 rounded cursor-pointer bg-neutral-1 border-subtle">
+                        <span className="mythic-eventing-step-switch-copy flex flex-fill flex-column min-w-0">
+                            <span className="mythic-eventing-step-switch-title text-xs font-850 leading-120 text-primary">Continue on error</span>
+                            <span className="mythic-eventing-step-switch-subtitle text-2xs font-600 leading-125 text-muted">Allow later steps to run if this one fails.</span>
                         </span>
                         <Switch
                             checked={continueOnError}
@@ -3112,13 +3114,13 @@ const EventingStep = ({step, allSteps, updateStep, index, step1Data, updateStep1
                     </label>
                 </div>
             </div>
-            <div className="mythic-eventing-step-config-content">
+            <div className="mythic-eventing-step-config-content p-6 flex flex-column gap-6">
                 <EventingStepConfigSection
-                    className="mythic-eventing-step-config-section-wide"
+                    className="mythic-eventing-step-config-section-wide w-full"
                     title="Step identity"
                     description="Give this step a clear name so other steps can reference it."
                 >
-                    <div className="mythic-eventing-step-field-grid">
+                    <div className="mythic-eventing-step-field-grid gap-6 min-w-0 grid grid-cols-2">
                         <EventingStepFieldBlock label="Name">
                             <MythicTextField placeholder={"Step name..."} onChange={onChangeName} value={name}
                                              marginBottom={"0px"}/>
@@ -3130,7 +3132,7 @@ const EventingStep = ({step, allSteps, updateStep, index, step1Data, updateStep1
                     </div>
                 </EventingStepConfigSection>
                 <EventingStepConfigSection
-                    className="mythic-eventing-step-config-section-wide"
+                    className="mythic-eventing-step-config-section-wide w-full"
                     title="Action"
                     description={actionOptionsData[selectedAction]?.description}
                 >
@@ -3153,7 +3155,7 @@ const EventingStep = ({step, allSteps, updateStep, index, step1Data, updateStep1
                         </FormControl>
                     </EventingStepFieldBlock>
                 </EventingStepConfigSection>
-                <div className="mythic-eventing-step-section-stack">
+                <div className="mythic-eventing-step-section-stack flex flex-column gap-6 min-w-0">
                     <EventingStepConfigSection
                         title="Inputs"
                         description="Map values from triggers, environment data, Mythic, or earlier step outputs."
@@ -3173,18 +3175,18 @@ const EventingStep = ({step, allSteps, updateStep, index, step1Data, updateStep1
                     </EventingStepConfigSection>
                 </div>
                 <EventingStepConfigSection
-                    className="mythic-eventing-step-config-section-wide"
+                    className="mythic-eventing-step-config-section-wide w-full"
                     title="User interaction"
                     description="Pause before execution to request approval, runtime input, or both."
                 >
                     <EventingStepUserInteraction config={userInteraction} localInputOptions={localInputOptions} onChange={onChangeUserInteraction} />
                 </EventingStepConfigSection>
                 <EventingStepConfigSection
-                    className="mythic-eventing-step-config-section-wide"
+                    className="mythic-eventing-step-config-section-wide w-full"
                     title="Action data"
                     description="Configure the values this action needs when it runs."
                 >
-                    <div className="mythic-eventing-step-action-data">
+                    <div className="mythic-eventing-step-action-data min-w-0">
                         {ActionDataElement !== null && ActionDataElement !== undefined &&
                             <ActionDataElement allSteps={allSteps} updateStep={updateStep} index={index}
                                                prevData={step?.action_data} step1Data={step1Data}
@@ -3195,21 +3197,21 @@ const EventingStep = ({step, allSteps, updateStep, index, step1Data, updateStep1
                     </div>
                 </EventingStepConfigSection>
                 <EventingStepConfigSection
-                    className="mythic-eventing-step-config-section-wide"
+                    className="mythic-eventing-step-config-section-wide w-full"
                     title="Dependencies"
                     description="Choose steps that must finish before this step can start."
                 >
-                    <div className="mythic-eventing-step-dynamic-section">
-                        <div className="mythic-eventing-step-list">
+                    <div className="mythic-eventing-step-dynamic-section items-start flex flex-column gap-4">
+                        <div className="mythic-eventing-step-list flex flex-column gap-4 min-w-0 w-full">
                             {dependsOn.length === 0 &&
                                 <EventingStepEmptyInline>No dependencies configured.</EventingStepEmptyInline>
                             }
                             {dependsOn.map((d, i) => (
-                                <div className="mythic-eventing-step-list-item" key={"dependson" + i}>
+                                <div className="mythic-eventing-step-list-item p-4 items-start flex gap-4 min-w-0 w-full rounded bg-neutral-1 border-subtle" key={"dependson" + i}>
                                     <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={() => removeDependsOn(i)}>
                                         <DeleteIcon fontSize="small" />
                                     </MythicActionButton>
-                                    <div className="mythic-eventing-step-list-content">
+                                    <div className="mythic-eventing-step-list-content flex-fill min-w-0">
                                         <FormControl sx={{display: "inline-block", width: "100%"}} size="small">
                                             <TextField
                                                 label={"Which step must complete before this step executes"}
@@ -3232,9 +3234,9 @@ const EventingStep = ({step, allSteps, updateStep, index, step1Data, updateStep1
                                 </div>
                             ))}
                         </div>
-                        <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" onClick={addDependsOn} variant="outlined" startIcon={<AddCircleIcon fontSize="small" />}>
+                        <MythicActionButton compact tone="success" onClick={addDependsOn} variant="outlined" startIcon={<AddCircleIcon fontSize="small" />}>
                             Add dependency
-                        </Button>
+                        </MythicActionButton>
                     </div>
                 </EventingStepConfigSection>
             </div>
@@ -3330,20 +3332,20 @@ const CreateEventingStep2 = ({finished, back, first, last, cancel, prevData, ste
         }
     }, [prevData]);
     return (
-        <div className="mythic-eventing-wizard-step">
-            <div className="mythic-eventing-wizard-toolbar">
+        <div className="mythic-eventing-wizard-step flex flex-fill flex-column min-h-0">
+            <div className="mythic-eventing-wizard-toolbar items-center flex justify-between border-b-subtle">
                 <div>
-                    <div className="mythic-eventing-wizard-toolbar-title">{steps.length} configured {steps.length === 1 ? "step" : "steps"}</div>
-                    <div className="mythic-eventing-wizard-toolbar-subtitle">{step1Data?.trigger || "manual"} trigger</div>
+                    <div className="mythic-eventing-wizard-toolbar-title text-primary text-sm font-850 leading-120">{steps.length} configured {steps.length === 1 ? "step" : "steps"}</div>
+                    <div className="mythic-eventing-wizard-toolbar-subtitle text-xs font-650 text-muted">{step1Data?.trigger || "manual"} trigger</div>
                 </div>
-                <div className="mythic-eventing-wizard-toolbar-actions">
-                    <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-info" onClick={() => setDisplayHelp(true)} variant={"outlined"}
+                <div className="mythic-eventing-wizard-toolbar-actions flex flex-none flex-wrap gap-4 justify-end">
+                    <MythicActionButton compact tone="info" onClick={() => setDisplayHelp(true)} variant={"outlined"}
                             size={"small"}>
                         Display Help
-                    </Button>
-                    <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" size={"small"} onClick={addStep} variant="outlined" startIcon={<AddCircleIcon fontSize="small" />}>
+                    </MythicActionButton>
+                    <MythicActionButton compact tone="success" size={"small"} onClick={addStep} variant="outlined" startIcon={<AddCircleIcon fontSize="small" />}>
                         Add Step
-                    </Button>
+                    </MythicActionButton>
                 </div>
             </div>
             {displayHelp &&
@@ -3358,36 +3360,36 @@ const CreateEventingStep2 = ({finished, back, first, last, cancel, prevData, ste
                               />}
                 />
             }
-            <div className={`mythic-eventing-wizard-step-browser ${steps.length === 0 ? "mythic-eventing-wizard-step-browser-empty" : ""}`.trim()}>
+            <div className={`mythic-eventing-wizard-step-browser flex flex-fill ${steps.length === 0 ? "mythic-eventing-wizard-step-browser-empty" : ""} min-h-0 min-w-0`.trim()}>
                 {steps.length > 0 &&
-                    <div className="mythic-eventing-step-nav">
-                        <div className="mythic-eventing-step-nav-header">
-                            <div className="mythic-eventing-step-nav-title">Step index</div>
-                            <div className="mythic-eventing-step-nav-subtitle">Jump to a step</div>
+                    <div className="mythic-eventing-step-nav flex flex-column min-h-0 min-w-0 bg-neutral-1 border-r-subtle">
+                        <div className="mythic-eventing-step-nav-header border-b-subtle">
+                            <div className="mythic-eventing-step-nav-title text-xs font-850 leading-120 text-primary">Step index</div>
+                            <div className="mythic-eventing-step-nav-subtitle text-xs font-650 leading-120 text-muted">Jump to a step</div>
                         </div>
-                        <div className="mythic-eventing-step-nav-list">
+                        <div className="mythic-eventing-step-nav-list flex flex-fill flex-column gap-3 min-h-0">
                             {steps.map((s, i) => (
                                 <button
-                                    className={`mythic-eventing-step-nav-item ${activeStepIndex === i ? "mythic-eventing-step-nav-item-active" : ""}`.trim()}
+                                    className={`mythic-eventing-step-nav-item bg-transparent border-transparent items-start flex gap-4 rounded cursor-pointer text-muted text-left${activeStepIndex === i ? " mythic-eventing-step-nav-item-active mythic-tone-primary bg-tone-1 border-tone-2 text-primary" : ""} min-w-0 w-full`.trim()}
                                     key={"step-nav" + i}
                                     onClick={() => scrollToStep(i)}
                                     type="button"
                                 >
-                                    <span className="mythic-eventing-step-nav-number">{i + 1}</span>
-                                    <span className="mythic-eventing-step-nav-copy">
-                                        <span className="mythic-eventing-step-nav-name">{s.name || "Unnamed step"}</span>
-                                        <span className="mythic-eventing-step-nav-action">{s.action || "task_create"}</span>
+                                    <span className="mythic-eventing-step-nav-number text-xs leading-100 items-center inline-flex justify-center rounded mythic-tone-primary bg-tone-1 border border-tone-1 text-tone">{i + 1}</span>
+                                    <span className="mythic-eventing-step-nav-copy flex flex-fill flex-column min-w-0">
+                                        <span className="mythic-eventing-step-nav-name text-xs font-850 leading-120 truncate whitespace-nowrap">{s.name || "Unnamed step"}</span>
+                                        <span className="mythic-eventing-step-nav-action text-2xs font-700 leading-120 truncate text-muted whitespace-nowrap">{s.action || "task_create"}</span>
                                     </span>
                                 </button>
                             ))}
                         </div>
                     </div>
                 }
-                <div className="mythic-eventing-wizard-step-scroll mythic-eventing-wizard-step-scroll-browser" onScroll={updateActiveStepFromScroll} ref={stepScrollRef}>
+                <div className="mythic-eventing-wizard-step-scroll py-6 px-8 flex-fill mythic-eventing-wizard-step-scroll-browser flex-fill min-h-0 overflow-auto" onScroll={updateActiveStepFromScroll} ref={stepScrollRef}>
                     {steps.length === 0 ? (
-                        <div className="mythic-eventing-wizard-empty">
-                            <div className="mythic-eventing-wizard-empty-title">No steps configured</div>
-                            <div className="mythic-eventing-wizard-empty-subtitle">Add a step to start building this workflow.</div>
+                        <div className="mythic-eventing-wizard-empty text-sm font-650 overflow-hidden rounded bg-neutral-1 border-subtle text-muted text-center">
+                            <div className="mythic-eventing-wizard-empty-title text-sm font-850 text-primary">No steps configured</div>
+                            <div className="mythic-eventing-wizard-empty-subtitle text-xs font-650 text-muted">Add a step to start building this workflow.</div>
                         </div>
                     ) : steps.map( (s, i) => (
                         <div
@@ -3399,10 +3401,10 @@ const CreateEventingStep2 = ({finished, back, first, last, cancel, prevData, ste
                                 }
                             }}
                         >
-                            <div className="mythic-eventing-step-shell-header">
+                            <div className="mythic-eventing-step-shell-header items-center flex gap-6 justify-between">
                                 <div>
-                                    <div className="mythic-eventing-step-shell-title">Step {i + 1}</div>
-                                    <div className="mythic-eventing-step-shell-subtitle">{s.name || "Unnamed step"}</div>
+                                    <div className="mythic-eventing-step-shell-title text-xs leading-120 mythic-tone-primary text-tone">Step {i + 1}</div>
+                                    <div className="mythic-eventing-step-shell-subtitle text-sm font-850 leading-120 text-primary">{s.name || "Unnamed step"}</div>
                                 </div>
                                 <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" size="small" onClick={() => removeStep(i)}>
                                     <DeleteIcon fontSize="small" />
@@ -3607,10 +3609,10 @@ const CreateEventingStep3 = ({finished, back, first, last, cancel, prevData, ste
         }
     }
     return (
-        <div className="mythic-eventing-wizard-step">
-            <div className="mythic-eventing-wizard-step-scroll">
-                <div className="mythic-eventing-wizard-review-card">
-                <div className="mythic-eventing-wizard-review-toolbar">
+        <div className="mythic-eventing-wizard-step flex flex-fill flex-column min-h-0">
+            <div className="mythic-eventing-wizard-step-scroll py-6 px-8 flex-fill min-h-0 overflow-auto">
+                <div className="mythic-eventing-wizard-review-card flex flex-column overflow-hidden h-full min-h-0 rounded bg-neutral-1 border-subtle">
+                <div className="mythic-eventing-wizard-review-toolbar p-5 items-center flex flex-wrap gap-4 border-b-subtle">
                     <FormControl sx={{display: "inline-block", width: "12rem",}}>
                         <TextField
                             label={"Reformat output"}
@@ -3627,10 +3629,10 @@ const CreateEventingStep3 = ({finished, back, first, last, cancel, prevData, ste
                             ))}
                         </TextField>
                     </FormControl>
-                    <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-info" onClick={testOutput} size={"small"} variant="outlined">Test output</Button>
-                    <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-info" onClick={previewGraph} size={"small"} variant="outlined" startIcon={<AccountTreeIcon fontSize="small" />}>
+                    <MythicActionButton compact tone="info" onClick={testOutput} size={"small"} variant="outlined">Test output</MythicActionButton>
+                    <MythicActionButton compact tone="info" onClick={previewGraph} size={"small"} variant="outlined" startIcon={<AccountTreeIcon fontSize="small" />}>
                         Graph
-                    </Button>
+                    </MythicActionButton>
                     {openEventStepRender.open &&
                         <MythicDialog fullWidth={true} maxWidth="xl" open={openEventStepRender.open}
                                       onClose={() => {
@@ -3642,7 +3644,7 @@ const CreateEventingStep3 = ({finished, back, first, last, cancel, prevData, ste
                         />
                     }
                 </div>
-                <div className="mythic-eventing-wizard-editor">
+                <div className="mythic-eventing-wizard-editor flex-fill min-h-0 overflow-hidden">
                 <ResponseDisplayPlaintext autoFormat={false} plaintext={renderedVersion} onChangeContent={onChangeFileText} initial_mode={outputFormat} expand={true} />
                 </div>
                 </div>
@@ -3719,21 +3721,21 @@ export function CreateEventingStepper(props){
           mode === "duplicate" ? "Start from an existing workflow and save it as a new one." : "Build a workflow from trigger metadata through generated output."
       );
     return (
-        <DialogContent className="mythic-eventing-wizard-dialog-content">
-            <div className="mythic-eventing-wizard">
+        <DialogContent className="mythic-eventing-wizard-dialog-content overflow-hidden">
+            <div className="mythic-eventing-wizard flex flex-column h-full min-h-0 min-w-0 bg-surface-raised">
                 <div className="mythic-eventing-wizard-header">
-                    <div className="mythic-eventing-wizard-title-row">
+                    <div className="mythic-eventing-wizard-title-row items-start flex justify-between min-w-0">
                         <div>
-                            <div className="mythic-eventing-wizard-title">{wizardTitle}</div>
-                            <div className="mythic-eventing-wizard-subtitle">{wizardSubtitle}</div>
+                            <div className="mythic-eventing-wizard-title text-base font-850 leading-120 text-primary">{wizardTitle}</div>
+                            <div className="mythic-eventing-wizard-subtitle text-xs font-600 leading-135 text-muted">{wizardSubtitle}</div>
                         </div>
                         <MythicChip label={`Step ${activeStep + 1} of ${steps.length}`} tone="primary" />
                     </div>
                 </div>
-                <div className="mythic-eventing-wizard-content">
+                <div className="mythic-eventing-wizard-content flex flex-fill flex-column min-h-0">
                     <div className="mythic-eventing-wizard-content-heading">
-                        <div className="mythic-eventing-wizard-content-title">{activeStepDetails.title}</div>
-                        <div className="mythic-eventing-wizard-content-subtitle">{activeStepDetails.subtitle}</div>
+                        <div className="mythic-eventing-wizard-content-title text-primary text-sm font-850 leading-120">{activeStepDetails.title}</div>
+                        <div className="mythic-eventing-wizard-content-subtitle text-muted text-xs font-600 leading-135">{activeStepDetails.subtitle}</div>
                     </div>
                 {getStepContent(activeStep)}
                 </div>

@@ -4,7 +4,7 @@ import {useQuery, gql} from '@apollo/client';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import {Backdrop, Button, CircularProgress} from '@mui/material';
+import {Backdrop, CircularProgress} from '@mui/material';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableContainer from '@mui/material/TableContainer';
@@ -105,7 +105,7 @@ const callbackGroupColumns = [
 const CallbackGroupStatusCell = ({callback}) => {
     const payloadType = callback.payload?.payloadtype?.name || "unknown";
     return (
-        <div className="mythic-tree-groups-callback-icons">
+        <div className="mythic-tree-groups-callback-icons items-center flex flex-none gap-3">
             <MythicStyledTooltip title={callback.active ? "Callback is active" : "Callback is not active"}>
                 <MythicChip
                     icon={callback.active ? <VisibilityIcon /> : <VisibilityOffIcon />}
@@ -115,7 +115,7 @@ const CallbackGroupStatusCell = ({callback}) => {
                 />
             </MythicStyledTooltip>
             <MythicStyledTooltip title={payloadType}>
-                <span className="mythic-tree-groups-agent-icon">
+                <span className="mythic-tree-groups-agent-icon items-center inline-flex justify-center">
                     <MythicAgentSVGIcon payload_type={payloadType} style={{width: "28px", height: "28px"}} />
                 </span>
             </MythicStyledTooltip>
@@ -123,7 +123,7 @@ const CallbackGroupStatusCell = ({callback}) => {
     );
 };
 const CallbackGroupCellValue = ({value, className = ""}) => (
-    <span className={`mythic-tree-groups-table-value ${className}`.trim()} title={value || ""}>
+    <span className={`mythic-tree-groups-table-value ${className} min-w-0 truncate whitespace-nowrap`.trim()} title={value || ""}>
         {value || "-"}
     </span>
 );
@@ -159,7 +159,7 @@ const CallbackGroupTable = ({callbacks, emptyMessage, tableId}) => {
     return (
         <>
             <TableContainer
-                className="mythic-dialog-table-wrap mythic-fixed-row-table-wrap mythic-tree-groups-table-wrap"
+                className="mythic-dialog-table-wrap mythic-fixed-row-table-wrap mythic-tree-groups-table-wrap overflow-auto"
                 data-testid={`${safeTableId}-scroll-region`}
                 id={`${safeTableId}-scroll-region`}
                 role="region"
@@ -198,7 +198,7 @@ const CallbackGroupTable = ({callbacks, emptyMessage, tableId}) => {
                                         <CallbackGroupStatusCell callback={callback} />
                                     </MythicStyledTableCell>
                                     <MythicStyledTableCell>
-                                        <CallbackGroupCellValue className="mythic-tree-groups-callback-id" value={`#${callback.display_id}`} />
+                                        <CallbackGroupCellValue className="mythic-tree-groups-callback-id text-sm font-800 text-primary" value={`#${callback.display_id}`} />
                                     </MythicStyledTableCell>
                                     <MythicStyledTableCell>
                                         <CallbackGroupCellValue value={callback.user} />
@@ -252,9 +252,9 @@ export function ViewCallbackMythicTreeGroupsDialog(props){
     }, [groups]);
     return (
         <React.Fragment>
-          <DialogTitle id="form-dialog-title" className="mythic-tree-groups-title">
-              <div className="mythic-dialog-title-row">
-                  <div className="mythic-tree-groups-title-copy">
+          <DialogTitle id="form-dialog-title" className="mythic-tree-groups-title relative">
+              <div className="mythic-dialog-title-row items-center flex flex-wrap gap-5 justify-between min-w-0">
+                  <div className="mythic-tree-groups-title-copy flex flex-column gap-1 min-w-0">
                       <span>Callbacks for {props.group_name}</span>
                       <span>These callbacks contribute aggregated process data for this group.</span>
                   </div>
@@ -279,9 +279,9 @@ export function ViewCallbackMythicTreeGroupsDialog(props){
               />
           </DialogContent>
           <DialogActions>
-            <Button onClick={props.onClose}>
+            <MythicActionButton onClick={props.onClose}>
               Close
-            </Button>
+            </MythicActionButton>
           </DialogActions>
             {openViewAllCallbacksDialog &&
                 <MythicDialog
@@ -336,22 +336,22 @@ export function ViewAllCallbackMythicTreeGroupsDialog(props){
     }
     return (
         <React.Fragment>
-            <DialogTitle id="form-dialog-title" className="mythic-tree-groups-title">Callback tree groups
+            <DialogTitle id="form-dialog-title" className="mythic-tree-groups-title relative">Callback tree groups
             </DialogTitle>
             <DialogContent dividers={true} className="mythic-tree-groups-content">
-                <div className="mythic-tree-groups-help">
+                <div className="mythic-tree-groups-help text-xs leading-135 rounded text-muted bg-surface-muted border-subtle">
                     Callbacks with no groups or with only the "Default" group are not shown.
                 </div>
                 {groups.length === 0 ? (
-                    <div className="mythic-tree-groups-empty">
+                    <div className="mythic-tree-groups-empty border-dashed text-xs items-center flex justify-center rounded bg-surface-muted text-muted text-center">
                         No callback tree groups found.
                     </div>
                 ) : (
                     groups.map( (g, i) => (
-                        <div key={g.group} className="mythic-dialog-section mythic-tree-groups-section">
-                            <div className="mythic-dialog-section-header">
+                        <div key={g.group} className="mythic-dialog-section bg-surface-muted border-subtle mythic-tree-groups-section min-w-0 rounded">
+                            <div className="mythic-dialog-section-header items-start flex gap-6 justify-between min-w-0">
                                 <div>
-                                    <div className="mythic-dialog-section-title">
+                                    <div className="mythic-dialog-section-title text-sm font-700 leading-125 text-primary">
                                         {g.group}
                                     </div>
                                     <div className="mythic-dialog-section-description">
@@ -369,9 +369,9 @@ export function ViewAllCallbackMythicTreeGroupsDialog(props){
                 )}
             </DialogContent>
             <DialogActions>
-                <Button onClick={props.onClose}>
+                <MythicActionButton onClick={props.onClose}>
                     Close
-                </Button>
+                </MythicActionButton>
             </DialogActions>
         </React.Fragment>
     )

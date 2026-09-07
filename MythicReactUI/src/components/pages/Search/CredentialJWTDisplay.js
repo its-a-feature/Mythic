@@ -112,7 +112,7 @@ const prettyJWTJSON = (value) => {
 
 function JWTJSONBlock({title, value}){
     return (
-        <div className="mythic-credential-search-jwt-json-block">
+        <div className="mythic-credential-search-jwt-json-block grid-col-full gap-2 min-w-0 rounded grid border mythic-tone-primary border-tone-2">
             <span>{title}</span>
             <pre>{prettyJWTJSON(value)}</pre>
         </div>
@@ -133,18 +133,18 @@ export function CredentialJWTDisplay({credential, metadata, identity, validityCh
         <>
             {showSummary &&
                 <CredentialInspectorSection title="JWT Metadata">
-                    <div className="mythic-credential-search-chip-list mythic-credential-search-section-chips">
+                    <div className="mythic-credential-search-chip-list items-center flex gap-2 flex-wrap mythic-credential-search-section-chips grid-col-full">
                         {summaryEntries.map(([key, value]) => (
-                            <MythicChip key={key} size="small" variant="outlined" label={`${key}: ${compactMetadataValue(value)}`} className="mythic-credential-search-mini-chip" />
+                            <MythicChip compact key={key} variant="outlined" label={`${key}: ${compactMetadataValue(value)}`} />
                         ))}
                         {validityChips.map((chip) => (
-                            <MythicChip key={chip.label} size="small" color={chip.color} variant="outlined" label={chip.label} className="mythic-credential-search-mini-chip" />
+                            <MythicChip compact key={chip.label} color={chip.color} variant="outlined" label={chip.label} />
                         ))}
                     </div>
                     {warningValues.length > 0 &&
-                        <div className="mythic-credential-search-warning-list">
+                        <div className="mythic-credential-search-warning-list grid-col-full flex flex-wrap gap-2">
                             {warningValues.map((warning, index) => (
-                                <MythicChip key={`warning-${index}`} size="small" color="warning" variant="outlined" label={compactMetadataValue(warning)} className="mythic-credential-search-warning-chip" />
+                                <MythicChip compact key={`warning-${index}`} color="warning" variant="outlined" label={compactMetadataValue(warning)} className="max-w-full" />
                             ))}
                         </div>
                     }

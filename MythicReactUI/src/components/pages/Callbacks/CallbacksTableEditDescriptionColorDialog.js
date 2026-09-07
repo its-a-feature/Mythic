@@ -1,5 +1,5 @@
 import React, {useEffect} from 'react';
-import Button from '@mui/material/Button';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -88,9 +88,9 @@ export function CallbacksTableEditDescriptionColorDialog(props) {
                                 label="Callback color"
                                 onChange={setColor}
                             />
-                            <Button onClick={() => setColor("")} color="success" variant="outlined" size="small">
+                            <MythicActionButton colorMode="always" onClick={() => setColor("")} tone="success" variant="outlined" size="small">
                                 Clear
-                            </Button>
+                            </MythicActionButton>
                         </Box>
                     </Box>
                     <Box sx={{display: "grid", gridTemplateColumns: {xs: "1fr", sm: "1fr 1fr"}, gap: 1}}>
@@ -127,13 +127,13 @@ export function CallbacksTableEditDescriptionColorDialog(props) {
             </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={props.onClose} variant="contained" color="primary">
+          <MythicActionButton colorMode="always" onClick={props.onClose} tone="primary" variant="contained">
             Close
-          </Button>
+          </MythicActionButton>
             {props.onSubmit &&
-                <Button onClick={onCommitSubmit} variant="contained" color="success">
+                <MythicActionButton colorMode="always" onClick={onCommitSubmit} tone="success" variant="contained">
                     Submit
-                </Button>
+                </MythicActionButton>
             }
         </DialogActions>
     </React.Fragment>

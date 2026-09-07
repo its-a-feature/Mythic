@@ -9,6 +9,7 @@ export const MythicActionButton = React.forwardRef(function MythicActionButton({
     appearance, // can be plain or raised
     autoWidth = false,
     children,
+    className = "",
     colorMode = "hover", // can be always or hover
     compact = false,
     icon,
@@ -43,6 +44,7 @@ export const MythicActionButton = React.forwardRef(function MythicActionButton({
         compact ? "mythic-action-button-compact" : "",
         muted ? "mythic-action-button-muted" : "",
         rotated ? "mythic-action-button-rotated" : "",
+        className,
     ].filter(Boolean).join(" ");
     const ariaLabel = props["aria-label"] || tooltip || (typeof label === "string" ? label : undefined);
     const content = label ?? children;

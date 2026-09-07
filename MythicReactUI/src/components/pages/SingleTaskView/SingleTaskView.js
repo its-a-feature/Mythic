@@ -309,11 +309,11 @@ export function SingleTaskView(props){
                 </>
             }
         />
-        <div className="mythic-single-task-list">
+        <div className="mythic-single-task-list flex flex-column gap-4 min-h-0 min-w-0 w-full">
             {tasks.map( (task) => (
                 task.type === "task" ? (
-                    <div className={`mythic-single-task-card-row${removing ? " mythic-single-task-card-row-removing" : ""}`} key={"taskdisplay:" + task.display_id}>
-                        <div className="mythic-single-task-display">
+                    <div className={`mythic-single-task-card-row items-start gap-4 grid${removing ? " mythic-single-task-card-row-removing" : ""} min-w-0 w-full`} key={"taskdisplay:" + task.display_id}>
+                        <div className="mythic-single-task-display min-w-0 w-full">
                             {
                                 task.is_interactive_task ? (
                                     <TaskDisplayInteractiveSearch key={"taskinteractdisplay" + task.id} me={me} task={task} responsesSurrounding={5} />
@@ -323,7 +323,7 @@ export function SingleTaskView(props){
                             }
                         </div>
                         {removing ? (
-                            <label className={`mythic-single-task-remove-control${task.checked ? " mythic-single-task-remove-control-selected" : ""}`}>
+                            <label className={`mythic-single-task-remove-control text-xs font-750 items-center flex flex-column flex-none gap-1 justify-center rounded cursor-pointer mythic-tone-error bg-tone-1 border border-tone-2 text-tone${task.checked ? " mythic-single-task-remove-control-selected" : ""}`}>
                                 <Checkbox
                                     checked={task.checked}
                                     color="error"
@@ -344,7 +344,7 @@ export function SingleTaskView(props){
                         title={getCallbackTitle(task)}
                         subtitle={
                             <>
-                                Callback <Link className="mythic-single-task-callback-link" color="inherit" underline="always" target="_blank" rel="noreferrer" href={"/new/callbacks/" + task.display_id}>#{task.display_id}</Link>
+                                Callback <Link className="mythic-single-task-callback-link font-800 wrap-anywhere" color="inherit" underline="always" target="_blank" rel="noreferrer" href={"/new/callbacks/" + task.display_id}>#{task.display_id}</Link>
                             </>
                         }
                         actions={

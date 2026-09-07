@@ -1,6 +1,5 @@
 import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
-import Button from '@mui/material/Button';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import TableCell from '@mui/material/TableCell';
@@ -124,13 +123,13 @@ export function InviteLinksDialog(props) {
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">
-            <div className="mythic-dialog-title-row">
+            <div className="mythic-dialog-title-row items-center flex flex-wrap gap-5 justify-between min-w-0">
                 <span>Manage Outstanding Invite Links</span>
                 <MythicStyledTooltip tooltipStyle={{display: "inline-flex"}}
                                      title={"Generate invite link for somebody to create their own username/password"}>
-                    <Button className="mythic-dialog-title-action" onClick={createInviteLink} size="small" variant="outlined">
+                    <MythicActionButton className="mythic-dialog-title-action bg-neutral-2 border-subtle text-primary text-xs font-750 rounded" onClick={createInviteLink} size="small" variant="outlined">
                         Generate Invite Link
-                    </Button>
+                    </MythicActionButton>
                 </MythicStyledTooltip>
             </div>
         </DialogTitle>

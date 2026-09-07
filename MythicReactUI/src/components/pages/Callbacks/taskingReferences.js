@@ -1,6 +1,7 @@
 import React from 'react';
 import {gql, useLazyQuery} from '@apollo/client';
-import {Box, Button, DialogActions, DialogContent, DialogTitle, Typography} from '@mui/material';
+import {Box, DialogActions, DialogContent, DialogTitle, Typography} from '@mui/material';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import {MythicDialog} from '../../MythicComponents/MythicDialog';
 import {MythicStyledTooltip} from '../../MythicComponents/MythicStyledTooltip';
 import {
@@ -132,7 +133,7 @@ const taskReferenceProviders = [
         },
         renderToken: (reference) => (
             <MythicStyledTooltip title={reference.raw}>
-                <span className="mythic-reference-token mythic-reference-token-keyword">{reference.raw}</span>
+                <span className="mythic-reference-token text-xs font-700 leading-140 items-center inline-flex mythic-reference-token-keyword max-w-full min-w-0 wrap-anywhere rounded cursor-pointer mythic-tone-secondary bg-tone-1 border border-tone-2 font-mono">{reference.raw}</span>
             </MythicStyledTooltip>
         ),
     },
@@ -375,33 +376,33 @@ function TaskReferenceConfirmationDialog({variables, references, taskReferenceCo
         <>
             <DialogTitle>Review Task References</DialogTitle>
             <DialogContent dividers>
-                <Box className="mythic-tasking-reference-review-context">
-                    <Typography component="div" className="mythic-tasking-reference-review-command">
+                <Box className="mythic-tasking-reference-review-context flex flex-column gap-3 min-w-0">
+                    <Typography component="div" className="mythic-tasking-reference-review-command text-muted text-xs font-800">
                         {variables?.command || "Task"} parameters
                     </Typography>
-                    <Box component="pre" className="mythic-tasking-reference-review-preview">
+                    <Box component="pre" className="mythic-tasking-reference-review-preview text-xs leading-145 overflow-auto rounded bg-surface-hover border font-mono whitespace-pre-wrap">
                         <TaskReferenceInlinePreview text={previewParams} taskReferenceContext={referenceContext} />
                     </Box>
                 </Box>
-                <Box className="mythic-tasking-reference-review-list">
+                <Box className="mythic-tasking-reference-review-list flex flex-column gap-4">
                     {references.map((reference, index) => {
                         const resolvedValue = loadingCredentials && isCredentialReference(reference) && !referenceContext.credentialsByID[Number(reference.selector)] ?
                             "Loading" :
                             getTaskReferenceReviewValue(reference, referenceContext);
                         return (
-                            <Box key={`${reference.raw}-${index}`} className="mythic-tasking-reference-review-row">
-                                <Box className="mythic-tasking-reference-review-row-header">
+                            <Box key={`${reference.raw}-${index}`} className="mythic-tasking-reference-review-row p-4 items-stretch flex flex-column gap-3 min-w-0 rounded border">
+                                <Box className="mythic-tasking-reference-review-row-header items-center flex gap-4 justify-between min-w-0">
                                     <TaskReferenceToken reference={reference} context={referenceContext} />
-                                    <Box className="mythic-tasking-reference-review-row-meta">
-                                        <Typography component="span" className="mythic-tasking-reference-review-label">
+                                    <Box className="mythic-tasking-reference-review-row-meta flex flex-column gap-1 min-w-0">
+                                        <Typography component="span" className="mythic-tasking-reference-review-label text-muted text-xs font-800">
                                             {getTaskReferenceReviewLabel(reference)}
                                         </Typography>
-                                        <Typography component="span" className="mythic-tasking-reference-review-raw">
+                                        <Typography component="span" className="mythic-tasking-reference-review-raw text-xs min-w-0 wrap-anywhere text-muted font-mono text-right">
                                             {reference.raw}
                                         </Typography>
                                     </Box>
                                 </Box>
-                                <Typography component="span" className="mythic-tasking-reference-review-value" title={resolvedValue}>
+                                <Typography component="span" className="mythic-tasking-reference-review-value text-xs leading-135 min-w-0 overflow-hidden wrap-anywhere text-muted font-mono whitespace-pre-wrap" title={resolvedValue}>
                                     {resolvedValue}
                                 </Typography>
                             </Box>
@@ -409,15 +410,15 @@ function TaskReferenceConfirmationDialog({variables, references, taskReferenceCo
                     })}
                 </Box>
                 {showUnavailableMessage &&
-                    <Typography component="div" color="error" className="mythic-tasking-reference-review-raw">
+                    <Typography component="div" color="error" className="mythic-tasking-reference-review-raw text-xs min-w-0 wrap-anywhere text-muted font-mono text-right">
                         One or more credential references are unavailable or deleted.
                     </Typography>
                 }
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose}>Cancel</Button>
-                <Button variant="outlined" onClick={() => onSubmit(false)}>Send Literal</Button>
-                <Button variant="contained" color="success" disabled={resolveDisabled} onClick={() => onSubmit(true)}>Resolve References</Button>
+                <MythicActionButton onClick={onClose}>Cancel</MythicActionButton>
+                <MythicActionButton variant="outlined" onClick={() => onSubmit(false)}>Send Literal</MythicActionButton>
+                <MythicActionButton colorMode="always" tone="success" variant="contained" disabled={resolveDisabled} onClick={() => onSubmit(true)}>Resolve References</MythicActionButton>
             </DialogActions>
         </>
     )
@@ -428,5 +429,5 @@ export function TaskReferenceToken({reference, context}) {
     if(provider){
         return provider.renderToken(reference, context || {credentialsByID: {}});
     }
-    return <span className="mythic-reference-token mythic-reference-token-warning">{reference.raw}</span>;
+    return <span className="mythic-reference-token text-xs font-700 leading-140 items-center inline-flex mythic-reference-token-warning max-w-full min-w-0 wrap-anywhere rounded cursor-pointer mythic-tone-secondary bg-tone-1 border border-tone-2 mythic-tone-warning border-tone-3 font-mono">{reference.raw}</span>;
 }

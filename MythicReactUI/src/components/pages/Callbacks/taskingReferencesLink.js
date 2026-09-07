@@ -1,6 +1,7 @@
 import React from 'react';
 import {gql, useQuery} from '@apollo/client';
-import {Autocomplete, Box, Button, CircularProgress, DialogActions, DialogContent, DialogTitle, Tab, Tabs, TextField, Typography} from '@mui/material';
+import {Autocomplete, Box, CircularProgress, DialogActions, DialogContent, DialogTitle, Tab, Tabs, TextField, Typography} from '@mui/material';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import LinkIcon from '@mui/icons-material/Link';
 import DeviceHubIcon from '@mui/icons-material/DeviceHub';
 import MemoryIcon from '@mui/icons-material/Memory';
@@ -247,7 +248,7 @@ export const getLinkTaskReferenceReviewValue = (reference, context={}) => {
 export function LinkReferenceToken({reference, linkReferences}) {
     return (
         <MythicStyledTooltip title={reference.raw}>
-            <span className="mythic-reference-token">
+            <span className="mythic-reference-token text-xs font-700 leading-140 items-center inline-flex max-w-full min-w-0 wrap-anywhere rounded cursor-pointer mythic-tone-secondary bg-tone-1 border border-tone-2 font-mono">
                 {getLinkTaskReferenceReviewValue(reference, {linkReferences})}
             </span>
         </MythicStyledTooltip>
@@ -529,10 +530,10 @@ function LinkInfoEdgeOptionSummary({option, icon}) {
         edgeSummary.description,
     ].filter(Boolean).join(" · ");
     return (
-        <Box className="mythic-link-reference-edge-summary">
-            <Box className="mythic-link-reference-edge-primary">
-                <span className="mythic-link-reference-icon">{icon}</span>
-                <Typography component="span" className="mythic-link-reference-edge-host">
+        <Box className="mythic-link-reference-edge-summary flex flex-column gap-3 min-w-0">
+            <Box className="mythic-link-reference-edge-primary items-center flex flex-wrap gap-3 min-w-0">
+                <span className="mythic-link-reference-icon inline-flex flex-none text-muted">{icon}</span>
+                <Typography component="span" className="mythic-link-reference-edge-host text-sm font-800 min-w-0 wrap-anywhere text-primary">
                     {edgeSummary.host}
                 </Typography>
                 <MythicChip size="small" variant="outlined" label={edgeSummary.callbackLabel} />
@@ -545,7 +546,7 @@ function LinkInfoEdgeOptionSummary({option, icon}) {
                     tone={edgeSummary.connectionActive ? "success" : "warning"}
                 />
             </Box>
-            <Typography component="span" className="mythic-link-reference-edge-secondary">
+            <Typography component="span" className="mythic-link-reference-edge-secondary text-xs leading-125 min-w-0 wrap-anywhere text-muted">
                 {secondaryDetails}
             </Typography>
         </Box>
@@ -583,7 +584,7 @@ function LinkReferenceOption({option, host, onSelect}) {
         }
     }
     return (
-        <Box className={`mythic-link-reference-row${option.profiles.length > 0 ? " mythic-link-reference-row-selectable" : ""}`}
+        <Box className={`mythic-link-reference-row flex flex-column gap-3 min-w-0 rounded border-subtle${option.profiles.length > 0 ? " mythic-link-reference-row-selectable cursor-pointer" : ""}`}
              onClick={onSelectFromRow}
              onKeyDown={(event) => {
                  if(event.key === "Enter" || event.key === " "){
@@ -597,27 +598,26 @@ function LinkReferenceOption({option, host, onSelect}) {
                 <LinkInfoEdgeOptionSummary option={option} icon={icon} />
             ) : (
                 <>
-                    <Box className="mythic-link-reference-row-header">
-                        <Typography component="span" className="mythic-link-reference-title">
-                            <span className="mythic-link-reference-icon">{icon}</span>
+                    <Box className="mythic-link-reference-row-header items-start flex gap-5 justify-between min-w-0">
+                        <Typography component="span" className="mythic-link-reference-title text-sm font-700 items-center inline-flex flex-fill gap-3 min-w-0 text-primary">
+                            <span className="mythic-link-reference-icon inline-flex flex-none text-muted">{icon}</span>
                             {option.title}
                         </Typography>
-                        <Typography component="span" className="mythic-link-reference-subtitle">
+                        <Typography component="span" className="mythic-link-reference-subtitle text-xs min-w-0 wrap-anywhere text-muted text-right">
                             {option.subtitle}
                         </Typography>
                     </Box>
-                    <Typography component="span" className="mythic-link-reference-detail" title={option.detail}>
+                    <Typography component="span" className="mythic-link-reference-detail text-xs leading-125 min-w-0 wrap-anywhere text-muted" title={option.detail}>
                         {option.detail}
                     </Typography>
                 </>
             )}
-            <Box className="mythic-link-reference-actions">
+            <Box className="mythic-link-reference-actions items-center flex flex-wrap gap-3">
                 {option.profiles.map((profile) => (
-                    <Button
+                    <MythicActionButton
                         key={profile.name}
                         size="small"
                         variant="outlined"
-                        color="inherit"
                         disabled={!hostReady}
                         className="mythic-link-reference-action-button"
                         startIcon={<LinkIcon fontSize="small" />}
@@ -628,7 +628,7 @@ function LinkReferenceOption({option, host, onSelect}) {
                         }}
                     >
                         {option.type === linkReferenceKinds.edge ? "Use edge" : `Use ${profile.name}`}
-                    </Button>
+                    </MythicActionButton>
                 ))}
                 {!hostReady &&
                     <Typography component="span" className="mythic-link-reference-requirement">
@@ -671,19 +671,19 @@ export function LinkReferencePickerDialog({operation_id, callback_id, parameterT
     return (
         <>
             <DialogTitle>{isAgentConnect ? "Select Payload / Callback for Linking" : "Select Existing Edge"}</DialogTitle>
-            <DialogContent dividers className="mythic-reference-picker-dialog mythic-link-reference-picker-dialog">
-                <Box className="mythic-link-reference-picker-header">
+            <DialogContent dividers className="mythic-reference-picker-dialog mythic-link-reference-picker-dialog flex flex-column overflow-hidden">
+                <Box className="mythic-link-reference-picker-header flex-none border-b-subtle">
                     {isAgentConnect &&
                         <Tabs
                             value={agentConnectTab}
                             onChange={(event, newValue) => setAgentConnectTab(newValue)}
-                            className="mythic-link-reference-tabs"
+                            className="mythic-link-reference-tabs border-b-subtle"
                         >
                             <Tab value={linkReferenceKinds.callback} label={`Callbacks (${callbackOptions.length})`} />
                             <Tab value={linkReferenceKinds.payload} label={`Payloads (${payloadOptions.length})`} />
                         </Tabs>
                     }
-                    <Box className="mythic-link-reference-search-row">
+                    <Box className="mythic-link-reference-search-row items-start flex flex-wrap gap-4 min-w-0">
                         <TextField
                             size="small"
                             fullWidth
@@ -698,8 +698,8 @@ export function LinkReferencePickerDialog({operation_id, callback_id, parameterT
                         <MythicChip size="small" variant="outlined" label={loading ? "Loading" : `${visibleOptions.length} shown`} />
                     </Box>
                     {isAgentConnect && agentConnectTab === linkReferenceKinds.payload &&
-                        <Box className="mythic-link-reference-host-row">
-                            <Typography component="span" className="mythic-link-reference-host-label">
+                        <Box className="mythic-link-reference-host-row items-center flex flex-wrap gap-5 min-w-0">
+                            <Typography component="span" className="mythic-link-reference-host-label text-sm font-700 flex-fill text-primary">
                                 Connect to the following payload on this host
                             </Typography>
                             <Autocomplete
@@ -728,7 +728,7 @@ export function LinkReferencePickerDialog({operation_id, callback_id, parameterT
                 ) : error ? (
                     <Typography component="div" color="error">Failed to load link options.</Typography>
                 ) : (
-                    <Box className="mythic-link-reference-results">
+                    <Box className="mythic-link-reference-results flex flex-fill flex-column gap-4 min-h-0 overflow-auto">
                         {visibleOptions.map((option) => (
                             <LinkReferenceOption key={option.id} option={option} host={host} onSelect={onSelect} />
                         ))}
@@ -739,7 +739,7 @@ export function LinkReferencePickerDialog({operation_id, callback_id, parameterT
                 )}
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose}>Cancel</Button>
+                <MythicActionButton onClick={onClose}>Cancel</MythicActionButton>
             </DialogActions>
         </>
     )

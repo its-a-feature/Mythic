@@ -110,22 +110,19 @@ export function MythicTabLabel(props) {
                                 <Badge color="success" variant="dot" invisible={!highlight} >
                                     {label}
                                 </Badge>
-                                <IconButton component='div' size='small' onClick={onClick} {...other}>
-                                    <CloseIcon />
-                                </IconButton>
                             </span>
                         }
                         {...a11yProps(index)}
                         {...other}
                         {...provided.dragHandleProps}
                         style={{
-                            padding: "0px 6px",
-                            margin: "0 3px 0 0",
-                            minHeight: "32px",
-                            borderRadius: `${theme.shape.borderRadius}px ${theme.shape.borderRadius}px 0 0`,
-                            borderTop: `3px solid ${selected ? tabAccent : "transparent"}`,
+                            padding: "0rem .5rem 0rem 0.5rem",
+                            margin: "0 0.125rem 0 0",
+                            minHeight: "2rem",
+                            borderRadius: `${theme.shape.borderRadius}px`,
+                            borderTop: selected ?  `3px solid ${tabAccent}` : `1px solid ${theme.borderColor}`,
                             borderRight: `1px solid ${theme.borderColor}`,
-                            borderBottom: selected ? `1px solid ${theme.palette.background.paper}` : `1px solid ${theme.borderColor}`,
+                            borderBottom: `1px solid ${theme.borderColor}`,
                             borderLeft: `1px solid ${theme.borderColor}`,
                             backgroundColor: selected ? selectedTabSurface : theme.surfaces?.muted,
                             backgroundImage: selected ?
@@ -144,7 +141,7 @@ export function MythicTabLabel(props) {
                                     transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
                                 }}
                             >
-                                <Paper variant="outlined" className={"dropdownMenuColored"}>
+                                <Paper variant="outlined" className={"dropdownMenuColored bg-surface rounded border"}>
                                     <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
                                         <MenuList id="split-button-menu"  >
                                             {contextMenuOptions.map((option, index) => (
@@ -155,6 +152,7 @@ export function MythicTabLabel(props) {
                                                     {option.name}
                                                 </MenuItem>
                                             ))}
+                                            <MenuItem onClick={onClick}>Close Tab</MenuItem>
                                         </MenuList>
                                     </ClickAwayListener>
                                 </Paper>
@@ -173,7 +171,7 @@ export function MythicSearchTabLabel(props) {
     return (
         <Tab
             label={
-                <span className="mythic-search-tab-label">
+                <span className="mythic-search-tab-label items-center inline-flex gap-3 whitespace-nowrap">
                     {iconComponent}
                     <span>{label}</span>
                 </span>

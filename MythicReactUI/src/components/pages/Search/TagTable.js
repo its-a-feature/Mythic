@@ -104,10 +104,10 @@ function TagTableRow(props){
                     <MythicActionButton appearance="raised" icon={<DeleteIcon />} iconOnly onClick={()=>{setOpenDeleteDialog(true);}} tone="error" tooltip="Remove tag" />
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <div className="mythic-tag-search-tag-cell"><TagsDisplay expand={true} tags={[props]} /></div>
+                    <div className="mythic-tag-search-tag-cell items-center flex min-w-0 overflow-hidden"><TagsDisplay expand={true} tags={[props]} /></div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <div className="mythic-search-result-value" style={singleLineCellStyle} title={props.source}>
+                    <div className="mythic-search-result-value text-xs leading-135 wrap-anywhere text-primary" style={singleLineCellStyle} title={props.source}>
                         {props.source}
                     </div>
                 </MythicStyledTableCell>
@@ -123,28 +123,28 @@ function TagTableRow(props){
 }
 
 const TagElementPanel = ({type, summary, actions, children}) => (
-    <div className="mythic-tag-search-element-card">
-        <div className="mythic-tag-search-element-header">
-            <div className="mythic-search-result-action-row">
-                <span className="mythic-tag-search-element-type">{type}</span>
+    <div className="mythic-tag-search-element-card p-4 flex flex-column gap-4 min-w-0 rounded bg-neutral-1 border-subtle">
+        <div className="mythic-tag-search-element-header items-center flex gap-4 justify-between min-w-0">
+            <div className="mythic-search-result-action-row items-center flex flex-nowrap gap-3 min-w-0">
+                <span className="mythic-tag-search-element-type text-xs leading-125 inline-flex rounded mythic-tone-primary bg-tone-1 border border-tone-2 text-primary whitespace-nowrap">{type}</span>
                 {summary}
             </div>
-            {actions ? <div className="mythic-search-result-action-row">{actions}</div> : null}
+            {actions ? <div className="mythic-search-result-action-row items-center flex flex-nowrap gap-3 min-w-0">{actions}</div> : null}
         </div>
-        <div className="mythic-tag-search-details-grid">
+        <div className="mythic-tag-search-details-grid min-w-0 grid">
             {children}
         </div>
     </div>
 );
 
 const TagDetailItem = ({label, children, wide=false, code=false, title}) => (
-    <div className={wide ? "mythic-tag-search-detail mythic-tag-search-detail-wide" : "mythic-tag-search-detail"}>
+    <div className={wide ? "mythic-tag-search-detail flex flex-column gap-1 mythic-tag-search-detail-wide grid-col-full min-w-0" : "mythic-tag-search-detail flex flex-column gap-1 min-w-0"}>
         <div className="mythic-search-result-label">{label}</div>
         {code ? (
-            <pre className="mythic-search-result-code mythic-tag-search-code">{children}</pre>
+            <pre className="mythic-search-result-code text-xs leading-140 mythic-tag-search-code max-w-full min-w-0 wrap-anywhere overflow-auto rounded bg-neutral-1 border-subtle text-primary font-mono whitespace-pre-wrap">{children}</pre>
         ) : (
-            <div className="mythic-search-result-value" title={title}>
-                {children || <span className="mythic-search-result-secondary">None</span>}
+            <div className="mythic-search-result-value text-xs leading-135 wrap-anywhere text-primary" title={title}>
+                {children || <span className="mythic-search-result-secondary text-xs leading-135 min-w-0 wrap-anywhere text-muted">None</span>}
             </div>
         )}
     </div>
@@ -161,7 +161,7 @@ const CallbackSummary = ({callback, includeDescription=false}) => {
         color: getReadableTextColor(safeColor),
     } : {};
     return (
-        <span className="mythic-tag-search-callback-summary" style={callbackStyle}>
+        <span className="mythic-tag-search-callback-summary text-xs leading-135 max-w-full min-w-0 truncate rounded bg-neutral-1 border-subtle whitespace-nowrap" style={callbackStyle}>
             {callback.user}{callback.integrity_level > 2 ? "*" : ""}@{callback.host}
             {includeDescription && callback.description ? ` - ${callback.description}` : ""}
         </span>
@@ -178,11 +178,11 @@ function TagTableRowElement(props){
                 <TagElementPanel
                     type="Task"
                     summary={
-                        <div className="mythic-search-result-link-row">
+                        <div className="mythic-search-result-link-row items-center inline-flex flex-wrap gap-2 min-w-0">
                             <Link href={"/new/task/" + props.task.display_id} color="textPrimary" target={"_blank"}>
                                 T-{props.task.display_id}
                             </Link>
-                            <span className="mythic-search-result-secondary">/</span>
+                            <span className="mythic-search-result-secondary text-xs leading-135 min-w-0 wrap-anywhere text-muted">/</span>
                             <Link href={"/new/callbacks/" + props.task.callback.display_id} color="textPrimary" target={"_blank"}>
                                 C-{props.task.callback.display_id}
                             </Link>
@@ -193,7 +193,7 @@ function TagTableRowElement(props){
                         <CallbackSummary callback={props.task.callback} includeDescription />
                     </TagDetailItem>
                     <TagDetailItem label="Command" wide>
-                        <span className="mythic-search-result-code mythic-tag-search-inline-code">
+                        <span className="mythic-search-result-code text-xs leading-140 mythic-tag-search-inline-code max-w-full min-w-0 wrap-anywhere rounded bg-neutral-1 border-subtle text-primary font-mono whitespace-pre-wrap">
                             {props.task.command_name} {props.task.display_params}
                         </span>
                     </TagDetailItem>
@@ -259,7 +259,7 @@ function TagTableRowElement(props){
                             </FileDownloadLinkWithAuth>
                         </TagDetailItem>
                         <TagDetailItem label="Hash" wide>
-                            <div className="mythic-search-result-stack">
+                            <div className="mythic-search-result-stack flex flex-column gap-2 min-w-0">
                                 <span>MD5: {props.filemetum.md5}</span>
                                 <span>SHA1: {props.filemetum.sha1}</span>
                             </div>
@@ -291,7 +291,7 @@ function TagTableRowElement(props){
             return (
                 <TagElementPanel
                     type="Payload"
-                    summary={props.payload.payloadtype?.name ? <span className="mythic-search-result-secondary">{props.payload.payloadtype.name}</span> : null}
+                    summary={props.payload.payloadtype?.name ? <span className="mythic-search-result-secondary text-xs leading-135 min-w-0 wrap-anywhere text-muted">{props.payload.payloadtype.name}</span> : null}
                     actions={
                         <MythicActionButton appearance="raised" icon={<InfoIconOutline />} iconOnly onClick={()=>setOpenDetailedView(true)} tone="info" tooltip="View payload details" />
                     }

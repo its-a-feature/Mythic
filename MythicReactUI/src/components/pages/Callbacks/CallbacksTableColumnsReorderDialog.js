@@ -80,7 +80,7 @@ export const DraggableList = ({ items, onDragEnd, onToggleVisibility }) => {
         <DragDropContext onDragEnd={onDragEnd}>
             <Droppable droppableId="callback-table-column-list">
                 {(provided) => (
-                    <div className="mythic-reorder-list" ref={provided.innerRef} {...provided.droppableProps}>
+                    <div className="mythic-reorder-list flex flex-fill flex-column gap-4 min-h-0 overflow-auto" ref={provided.innerRef} {...provided.droppableProps}>
                         {items.map((item, index) => (
                             <DraggableListItem onToggleVisibility={onToggleVisibility} item={item} index={index} key={item.key} />
                         ))}
@@ -98,16 +98,16 @@ export const DraggableListItem = ({ item, index, onToggleVisibility }) => {
                 const row = (
                     <div
                         ref={provided.innerRef}
-                        className={`mythic-reorder-row${snapshot.isDragging ? " mythic-reorder-row-dragging" : ""}${item.visible ? "" : " mythic-reorder-row-disabled"}`}
+                        className={`mythic-reorder-row items-center flex flex-none gap-4 rounded bg-surface-raised border-subtle text-primary shadow-none${snapshot.isDragging ? " mythic-reorder-row-dragging mythic-tone-primary bg-tone-1 border-tone-3 shadow-3" : ""}${item.visible ? "" : " mythic-reorder-row-disabled"} min-w-0 w-full`}
                         {...provided.draggableProps}
                     >
-                        <span className="mythic-reorder-drag-handle" {...provided.dragHandleProps}>
+                        <span className="mythic-reorder-drag-handle items-center inline-flex justify-center rounded bg-neutral-2 border-subtle text-muted" {...provided.dragHandleProps}>
                             <DragHandleIcon fontSize="small" />
                         </span>
-                        <div className="mythic-reorder-row-main">
-                            <span className="mythic-reorder-row-title">{item.name}</span>
+                        <div className="mythic-reorder-row-main items-center flex flex-fill gap-4 min-w-0">
+                            <span className="mythic-reorder-row-title text-sm font-750 leading-125 min-w-0 truncate whitespace-nowrap">{item.name}</span>
                         </div>
-                        <div className="mythic-reorder-row-actions">
+                        <div className="mythic-reorder-row-actions items-center flex flex-none gap-3">
                             <MythicActionButton iconOnly
                                 aria-label={item.visible ? `Hide ${item.name}` : `Show ${item.name}`}
                                 appearance="raised" colorMode="hover" tone={item.visible ? "error" : "info"}

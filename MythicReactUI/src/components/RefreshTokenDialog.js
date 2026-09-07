@@ -5,7 +5,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import {milisecondsToString, useInterval } from './utilities/Time';
 import {JWTTimeLeft, GetNewToken} from '../index';
 import {FailedRefresh} from '../cache';
-import { Button } from '@mui/material';
+import {MythicActionButton} from './MythicComponents/MythicActionButton';
 import { snackActions } from './utilities/Snackbar';
 
 
@@ -43,14 +43,13 @@ export function RefreshTokenDialog(props) {
           Your Session will expire in {timeLeft}
         </DialogContent>
         <DialogActions>
-          <Button onClick={onClose} variant="contained" color="primary">
+          <MythicActionButton colorMode="always" onClick={onClose} tone="primary" variant="contained">
             Logout
-          </Button>
-          <Button onClick={onCommitSubmit} variant="contained" color="success">
+          </MythicActionButton>
+          <MythicActionButton colorMode="always" onClick={onCommitSubmit} tone="success" variant="contained">
             Extend
-          </Button>
+          </MythicActionButton>
         </DialogActions>
       </React.Fragment>
     )
 }
-

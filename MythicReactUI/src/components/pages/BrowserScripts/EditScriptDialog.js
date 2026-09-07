@@ -272,17 +272,17 @@ export function EditScriptDialog(props) {
   return (
     <React.Fragment>
         <DialogTitle>
-            <Box className="mythic-dialog-title-row">
+            <Box className="mythic-dialog-title-row items-center flex flex-wrap gap-5 justify-between min-w-0">
                 <Box component="span">{props.title ? props.title : "Edit " + props.author + "'s BrowserScript Code"}</Box>
             </Box>
         </DialogTitle>
-        <DialogContent className="mythic-browser-script-dialog-content" dividers={true}>
-            <MythicDialogBody className="mythic-browser-script-dialog-body">
-                <Box className={`mythic-browser-script-target-panel ${targetOpen ? "mythic-browser-script-target-panel-open" : ""}`}>
-                    <Box className="mythic-browser-script-target-summary">
-                        <Box className="mythic-browser-script-target-copy">
-                            <Box component="span" className="mythic-browser-script-target-label">Script Target</Box>
-                            <Box className="mythic-browser-script-target-chips">
+        <DialogContent className="mythic-browser-script-dialog-content flex flex-column overflow-hidden" dividers={true}>
+            <MythicDialogBody className="mythic-browser-script-dialog-body flex-fill min-h-0 overflow-hidden">
+                <Box className={`mythic-browser-script-target-panel rounded bg-surface-raised border-subtle shadow-1${targetOpen ? " mythic-browser-script-target-panel-open" : ""} overflow-hidden`}>
+                    <Box className="mythic-browser-script-target-summary items-center flex gap-5 justify-between">
+                        <Box className="mythic-browser-script-target-copy items-center flex gap-5 min-w-0">
+                            <Box component="span" className="mythic-browser-script-target-label text-xs font-800 leading-100 flex-none text-muted">Script Target</Box>
+                            <Box className="mythic-browser-script-target-chips items-center flex flex-wrap gap-3 min-w-0">
                                 <MythicChip size="small" label={selectedPayloadTypeOption?.name || (targetLoading ? "Loading payload types" : "No payload type")} />
                                 <MythicChip size="small" label={selectedCommandOption?.cmd || "No command"} />
                             </Box>
@@ -306,7 +306,7 @@ export function EditScriptDialog(props) {
                         timeout="auto"
                         unmountOnExit
                     >
-                        <Box className="mythic-browser-script-target-details">
+                        <Box className="mythic-browser-script-target-details p-5 flex flex-column gap-4 bg-surface-muted">
                             <MythicFormGrid minWidth="16rem">
                                 <MythicFormField label="Payload Type">
                                     <FormControl fullWidth size="small">
@@ -348,7 +348,7 @@ export function EditScriptDialog(props) {
                     </Collapse>
                 </Box>
                 <Split
-                    className="mythic-browser-script-workbench"
+                    className="mythic-browser-script-workbench flex flex-column flex-fill min-h-0 min-w-0 w-full"
                     direction="vertical"
                     gutterSize={8}
                     minSize={[210, 300]}
@@ -357,19 +357,19 @@ export function EditScriptDialog(props) {
                     sizes={workbenchSplitSizes}
                 >
                     <Split
-                        className="mythic-browser-script-top-split"
+                        className="mythic-browser-script-top-split flex min-h-0 min-w-0 w-full"
                         gutterSize={8}
                         minSize={[320, 220]}
                         onDrag={resizeEditors}
                         onDragEnd={onTopDragEnd}
                         sizes={topSplitSizes}
                     >
-                        <div className="mythic-browser-script-pane mythic-browser-script-editor-pane">
-                            <div className="mythic-browser-script-pane-header">
+                        <div className="mythic-browser-script-pane flex flex-column mythic-browser-script-editor-pane h-full min-h-0 min-w-0 overflow-hidden rounded bg-surface-raised border-subtle">
+                            <div className="mythic-browser-script-pane-header text-xs font-800 items-center flex flex-none justify-between bg-surface-muted border-b-subtle text-primary">
                                 <span>Script Code</span>
                                 <span>JavaScript</span>
                             </div>
-                            <div className="mythic-browser-script-editor-frame">
+                            <div className="mythic-browser-script-editor-frame flex-fill min-h-0 min-w-0">
                                 <AceEditor
                                     mode="javascript"
                                     theme={theme.palette.mode === 'dark' ? 'monokai' : 'github'}
@@ -389,12 +389,12 @@ export function EditScriptDialog(props) {
                                 />
                             </div>
                         </div>
-                        <div className="mythic-browser-script-pane mythic-browser-script-console-pane">
-                            <div className="mythic-browser-script-pane-header">
+                        <div className="mythic-browser-script-pane flex flex-column mythic-browser-script-console-pane h-full min-h-0 min-w-0 overflow-hidden rounded bg-surface-raised border-subtle">
+                            <div className="mythic-browser-script-pane-header text-xs font-800 items-center flex flex-none justify-between bg-surface-muted border-b-subtle text-primary">
                                 <span>Console Output</span>
                                 <span>console.log</span>
                             </div>
-                            <div className="mythic-browser-script-editor-frame">
+                            <div className="mythic-browser-script-editor-frame flex-fill min-h-0 min-w-0">
                                 <AceEditor
                                     mode="javascript"
                                     theme={theme.palette.mode === 'dark' ? 'monokai' : 'github'}
@@ -416,12 +416,12 @@ export function EditScriptDialog(props) {
                             </div>
                         </div>
                     </Split>
-                    <div className="mythic-browser-script-pane mythic-browser-script-preview-pane">
-                        <div className="mythic-browser-script-pane-header">
+                    <div className="mythic-browser-script-pane flex flex-column mythic-browser-script-preview-pane h-full min-h-0 min-w-0 overflow-hidden rounded bg-surface-raised border-subtle">
+                        <div className="mythic-browser-script-pane-header text-xs font-800 items-center flex flex-none justify-between bg-surface-muted border-b-subtle text-primary">
                             <span>Test Preview</span>
                             <span>{availableTasks.length === 1 ? "1 task" : `${availableTasks.length} tasks`}</span>
                         </div>
-                        <div className="mythic-browser-script-preview-controls">
+                        <div className="mythic-browser-script-preview-controls bg-header flex-none border-b-subtle">
                             <FormControl fullWidth size="small">
                                 <InputLabel id="browser-script-test-task-label">Test Script With Task</InputLabel>
                                 <Select
@@ -439,7 +439,7 @@ export function EditScriptDialog(props) {
                                 </Select>
                             </FormControl>
                         </div>
-                        <div className="mythic-browser-script-preview-frame">
+                        <div className="mythic-browser-script-preview-frame p-4 flex-fill min-h-0 min-w-0 overflow-auto">
                             {tasksLoading ? (
                                 <MythicLoadingState compact title="Loading test tasks" description="Fetching previous tasks for this command." />
                             ) : selectedTask !== "" ? (

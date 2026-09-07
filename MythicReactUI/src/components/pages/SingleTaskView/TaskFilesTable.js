@@ -27,15 +27,15 @@ export function TaskFilesTable(props){
    }
    const fileCountLabel = files.length === 1 ? "1 file" : `${files.length} files`;
   return (
-    <div className="mythic-single-task-metadata-section">
+    <div className="mythic-single-task-metadata-section flex flex-column gap-3 min-w-0 w-full">
         <MythicSectionHeader
             dense
             title="Files / Screenshots"
             subtitle="Files, payloads, downloads, uploads, and screenshots associated with these tasks."
             actions={<MythicPageHeaderChip label={fileCountLabel} />}
         />
-        <TableContainer className="mythic-single-task-table-wrap">
-          <Table className="mythic-single-task-table mythic-single-task-files-table" size="small">
+        <TableContainer className="mythic-single-task-table-wrap overflow-auto bg-surface-raised">
+          <Table className="mythic-single-task-table table-fixed mythic-single-task-files-table" size="small">
                 <TableHead>
                     <TableRow>
                         <MythicStyledTableCell>Filename</MythicStyledTableCell>
@@ -48,9 +48,9 @@ export function TaskFilesTable(props){
                 <TableBody>
                   {files.map( (file) => (
                     <TableRow key={"file" + file.id} hover>
-                      <MythicStyledTableCell className="mythic-single-task-cell-break">
+                      <MythicStyledTableCell className="mythic-single-task-cell-break wrap-anywhere whitespace-pre-wrap">
                         {!file.deleted && file.complete ? (
-                          <FileDownloadLinkWithAuth className="mythic-single-task-table-link" href={"/direct/download/" + file.agent_file_id}>{b64DecodeUnicode(file.filename_text)}</FileDownloadLinkWithAuth>
+                          <FileDownloadLinkWithAuth className="mythic-single-task-table-link font-700" href={"/direct/download/" + file.agent_file_id}>{b64DecodeUnicode(file.filename_text)}</FileDownloadLinkWithAuth>
                         ) : ( 
                           !file.complete ? (
                             b64DecodeUnicode(file.filename_text) +  " (" + file.chunks_received + "/" + file.total_chunks + ")"
@@ -60,10 +60,10 @@ export function TaskFilesTable(props){
                       <MythicStyledTableCell>
                         <TaskFileTypeChip file={file} />
                       </MythicStyledTableCell>
-                      <MythicStyledTableCell className="mythic-single-task-cell-break">{b64DecodeUnicode(file.full_remote_path_text) === "" ? ("") : (file.host + "\n" + b64DecodeUnicode(file.full_remote_path_text)) }</MythicStyledTableCell>
-                      <MythicStyledTableCell className="mythic-single-task-cell-break">{file.comment}</MythicStyledTableCell>
+                      <MythicStyledTableCell className="mythic-single-task-cell-break wrap-anywhere whitespace-pre-wrap">{b64DecodeUnicode(file.full_remote_path_text) === "" ? ("") : (file.host + "\n" + b64DecodeUnicode(file.full_remote_path_text)) }</MythicStyledTableCell>
+                      <MythicStyledTableCell className="mythic-single-task-cell-break wrap-anywhere whitespace-pre-wrap">{file.comment}</MythicStyledTableCell>
                       <MythicStyledTableCell>
-                        <div className="mythic-single-task-hash-list">
+                        <div className="mythic-single-task-hash-list text-xs flex flex-column gap-2 wrap-anywhere font-mono">
                           <span>MD5: {file.md5}</span>
                           <span>SHA1: {file.sha1}</span>
                         </div>

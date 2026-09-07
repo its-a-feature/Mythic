@@ -1,6 +1,6 @@
 import React from 'react';
 import { styled } from '@mui/material/styles';
-import Button from '@mui/material/Button';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -91,14 +91,13 @@ export function SelectPayloadTypeDialog(props) {
             </React.Fragment>
         </DialogContent>
         <DialogActions>
-          <Button onClick={props.onClose} variant="contained" color="primary">
+            <MythicActionButton colorMode="always" onClick={props.onClose} tone="primary" variant="contained">
             Close
-          </Button>
-          <Button onClick={handleSubmit} variant="contained" color="success">
+            </MythicActionButton>
+            <MythicActionButton colorMode="always" onClick={handleSubmit} tone="success" variant="contained">
             Select
-          </Button>
+            </MythicActionButton>
         </DialogActions>
   </Root>
   );
 }
-

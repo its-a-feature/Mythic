@@ -31,15 +31,15 @@ export function TaskMITREATTACKTable(props){
    }
    const attackCountLabel = attacks.length === 1 ? "1 technique" : `${attacks.length} techniques`;
   return (
-    <div className="mythic-single-task-metadata-section">
+    <div className="mythic-single-task-metadata-section flex flex-column gap-3 min-w-0 w-full">
         <MythicSectionHeader
             dense
             title="MITRE ATT&CK Mappings"
             subtitle="Unique techniques mapped from the selected tasks."
             actions={<MythicPageHeaderChip label={attackCountLabel} />}
         />
-        <TableContainer className="mythic-single-task-table-wrap">
-          <Table className="mythic-single-task-table mythic-single-task-mitre-table" size="small">
+        <TableContainer className="mythic-single-task-table-wrap overflow-auto bg-surface-raised">
+          <Table className="mythic-single-task-table table-fixed mythic-single-task-mitre-table" size="small">
                 <TableHead>
                     <TableRow>
                         <MythicStyledTableCell style={{width: "10rem"}}>Technique ID</MythicStyledTableCell>
@@ -50,7 +50,7 @@ export function TaskMITREATTACKTable(props){
                   {attacks.map( (attack) => (
                     <TableRow key={'attack' + attack.attack.id} hover>
                       <MythicStyledTableCell>{attack.attack.t_num}</MythicStyledTableCell>
-                      <MythicStyledTableCell className="mythic-single-task-cell-break">{attack.attack.name}</MythicStyledTableCell>
+                      <MythicStyledTableCell className="mythic-single-task-cell-break wrap-anywhere whitespace-pre-wrap">{attack.attack.name}</MythicStyledTableCell>
                     </TableRow>
                   ))}
                 </TableBody>

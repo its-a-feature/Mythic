@@ -169,7 +169,7 @@ export function SettingsGlobalDialog(props) {
                     title="Default User Preferences"
                     description="Applies only to users created after this setting is saved. Existing user preferences are not overwritten."
                 >
-                    <Box className="mythic-form-code-editor">
+                    <Box className="mythic-form-code-editor min-w-0 overflow-hidden rounded border-subtle">
                         <ResponseDisplayPlaintext plaintext={userPreferencesRef.current} onChangeContent={onChangePreferences} initial_mode={"json"} autoFormat={true} />
                     </Box>
                 </MythicDialogSection>

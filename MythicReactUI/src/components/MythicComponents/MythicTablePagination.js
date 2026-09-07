@@ -22,7 +22,7 @@ export const MythicTablePagination = ({
     const controlledPage = page === undefined ? {} : {page};
 
     return (
-        <Box className={`mythic-table-footer ${className}`.trim()} id={id} style={containerStyle}>
+        <Box className={`mythic-table-footer flex justify-center items-center flex-wrap gap-4 rounded bg-surface-muted border-subtle ${className} w-full`.trim()} id={id} style={containerStyle}>
             <Pagination
                 count={pageCount}
                 variant="outlined"
@@ -37,9 +37,9 @@ export const MythicTablePagination = ({
                 {...paginationProps}
             />
             {summary !== undefined && summary !== null ? (
-                <Typography className="mythic-table-total">{summary}</Typography>
+                <Typography className="mythic-table-total text-sm font-650 text-muted whitespace-nowrap">{summary}</Typography>
             ) : totalCount !== undefined && (
-                <Typography className="mythic-table-total">{label}: {totalCount}</Typography>
+                <Typography className="mythic-table-total text-sm font-650 text-muted whitespace-nowrap">{label}: {totalCount}</Typography>
             )}
         </Box>
     );

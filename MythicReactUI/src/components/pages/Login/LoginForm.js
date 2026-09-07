@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import {Button, Divider} from '@mui/material';
+import {Divider} from '@mui/material';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import { Navigate } from 'react-router-dom';
 import {meState, successfulLogin, FailedRefresh} from '../../../cache';
@@ -217,9 +218,9 @@ export function LoginForm(props){
                         <MythicTextField name='password' type="password" onEnter={submit} value={password} autoComplete={"current-password"}
                                          onChange={onPasswordChange} debounceDelay={0} showLabel={true}
                                          marginTop={0} marginBottom={0}/>
-                        <Button type="submit" color="primary" startIcon={<LoginIcon />} variant="contained" fullWidth>
+                        <MythicActionButton type="submit" colorMode="always" tone="primary" startIcon={<LoginIcon />} variant="contained" fullWidth>
                             Login
-                        </Button>
+                        </MythicActionButton>
                     </>
                 }
                 {requestField.length > 0 &&
@@ -235,15 +236,15 @@ export function LoginForm(props){
                                              autoComplete={r.name === "password" ? "current-password" : "off"}
                                              marginTop={0} marginBottom={0}/>
                         ))}
-                        <Button type="submit" color="primary" startIcon={<LoginIcon />} variant="contained" fullWidth>
+                        <MythicActionButton type="submit" colorMode="always" tone="primary" startIcon={<LoginIcon />} variant="contained" fullWidth>
                             Login via {selectedAuthOptionRef.current.idp}
-                        </Button>
+                        </MythicActionButton>
                     </>
                 }
                 {authOptions.length > 0 &&
                     <>
                         <Divider>Custom auth</Divider>
-                        <Button ref={dropdownAnchorRef}
+                        <MythicActionButton ref={dropdownAnchorRef}
                                 type="button"
                                 variant={"outlined"}
                                 fullWidth
@@ -251,10 +252,10 @@ export function LoginForm(props){
                                 endIcon={<ExpandMoreIcon />}
                                 onClick={() => {
                                     setOpenUpdateDialog(!openUpdate);
-                                }} color="info"
+                                }} colorMode="always" tone="info"
                         >
                             Providers
-                        </Button>
+                        </MythicActionButton>
                         <Popper open={openUpdate} anchorEl={dropdownAnchorRef.current}
                                 role={undefined} transition disablePortal placement="bottom-end" style={{zIndex: 4}}>
                             {({TransitionProps, placement}) => (
@@ -264,7 +265,7 @@ export function LoginForm(props){
                                         transformOrigin: placement.startsWith('bottom') ? 'right top' : 'right bottom',
                                     }}
                                 >
-                                    <AuthMenuPaper className={"dropdownMenuColored"}>
+                                    <AuthMenuPaper className={"dropdownMenuColored bg-surface rounded border"}>
                                         <ClickAwayListener onClickAway={handleClose}
                                                            mouseEvent={"onMouseDown"}>
                                             <MenuList id="split-button-menu">

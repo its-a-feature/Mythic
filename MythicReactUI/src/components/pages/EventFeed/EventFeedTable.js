@@ -14,7 +14,7 @@ import {MythicEmptyState} from "../../MythicComponents/MythicStateDisplay";
 
 const EventList = ({onUpdateLevel, onUpdateResolution, operationeventlog}) => {
    return (
-    <div className="mythic-column-stack">
+    <div className="mythic-column-stack flex flex-column gap-4 min-w-0">
         {operationeventlog.length === 0 ? (
             <MythicEmptyState
                 compact
@@ -97,7 +97,7 @@ export function EventFeedTable(props){
                 </MythicTableToolbarGroup>
             </MythicTableToolbar>
 
-            <TableContainer component="div" className="mythic-create-section-fill mythic-create-section-scroll">
+            <TableContainer component="div" className="mythic-create-section-fill flex-fill mythic-create-section-scroll overflow-auto">
                     <EventList 
                         onUpdateResolution={props.onUpdateResolution}
                         onUpdateLevel={props.onUpdateLevel}

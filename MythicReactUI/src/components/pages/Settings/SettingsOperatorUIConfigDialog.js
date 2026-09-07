@@ -1,6 +1,5 @@
 import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
-import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -47,7 +46,6 @@ import {
     DragDropContext,
     Droppable,
 } from "@hello-pangea/dnd";
-import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
 
 const interactTypeOptions = [
     {value: "interact", display: "Accordions"},
@@ -94,16 +92,16 @@ const TaskingMetadataSummary = ({value, onChange}) => {
     }
     return (
         <>
-            <Box className="mythic-tasking-visibility-panel mythic-tasking-visibility-summary-panel">
+            <Box className="mythic-tasking-visibility-panel p-6 flex flex-column gap-6 mythic-tasking-visibility-summary-panel rounded grid bg-neutral-1 border-subtle">
                 <Box>
-                    <Typography component="div" className="mythic-tasking-visibility-title">
+                    <Typography component="div" className="mythic-tasking-visibility-title text-sm font-800 leading-125 text-primary">
                         Tasking metadata
                     </Typography>
-                    <Typography component="div" className="mythic-tasking-visibility-description">
+                    <Typography component="div" className="mythic-tasking-visibility-description text-xs leading-135 text-muted">
                         Selected chips appear in this order above task commands.
                     </Typography>
                 </Box>
-                <Box className="mythic-tasking-visibility-summary-actions">
+                <Box className="mythic-tasking-visibility-summary-actions items-center flex flex-wrap gap-4 justify-end min-w-0">
                     <MythicChip tone={"secondary"} label={`${selectedOptions.length} shown` + (hiddenCount > 0 ? `, ${hiddenCount} hidden`: "")}/>
 
                     <MythicActionButton
@@ -116,7 +114,7 @@ const TaskingMetadataSummary = ({value, onChange}) => {
                         Manage
                     </MythicActionButton>
                 </Box>
-                <Box className="mythic-tasking-visibility-chip-row">
+                <Box className="mythic-tasking-visibility-chip-row grid-col-full items-center flex flex-fill flex-wrap gap-3 min-w-0">
                     {selectedOptions.length > 0 ? (
                         selectedOptions.map((option, index) => (
                             <MythicChip
@@ -131,7 +129,7 @@ const TaskingMetadataSummary = ({value, onChange}) => {
                             />
                         ))
                     ) : (
-                        <Typography component="div" className="mythic-tasking-visibility-empty">
+                        <Typography component="div" className="mythic-tasking-visibility-empty text-xs text-muted">
                             No tasking metadata selected.
                         </Typography>
                     )}
@@ -208,7 +206,7 @@ const TaskingMetadataDraggableList = ({items, onDragEnd, onToggleVisibility}) =>
         <DragDropContext onDragEnd={onDragEnd}>
             <Droppable droppableId="tasking-metadata-layout-list">
                 {(provided) => (
-                    <div className="mythic-reorder-list" ref={provided.innerRef} {...provided.droppableProps}>
+                    <div className="mythic-reorder-list flex flex-fill flex-column gap-4 min-h-0 overflow-auto" ref={provided.innerRef} {...provided.droppableProps}>
                         {items.map((item, index) => (
                             <TaskingMetadataDraggableListItem
                                 item={item}
@@ -231,17 +229,17 @@ const TaskingMetadataDraggableListItem = ({item, index, onToggleVisibility}) => 
                 const row = (
                     <div
                         ref={provided.innerRef}
-                        className={`mythic-reorder-row mythic-tasking-metadata-row${snapshot.isDragging ? " mythic-reorder-row-dragging" : ""}${item.visible ? "" : " mythic-reorder-row-disabled"}`}
+                        className={`mythic-reorder-row items-center flex flex-none gap-4 mythic-tasking-metadata-row rounded bg-surface-raised border-subtle text-primary shadow-none${snapshot.isDragging ? " mythic-reorder-row-dragging mythic-tone-primary bg-tone-1 border-tone-3 shadow-3" : ""}${item.visible ? "" : " mythic-reorder-row-disabled"} min-w-0 w-full`}
                         {...provided.draggableProps}
                     >
-                        <span className="mythic-reorder-drag-handle" {...provided.dragHandleProps}>
+                        <span className="mythic-reorder-drag-handle items-center inline-flex justify-center rounded bg-neutral-2 border-subtle text-muted" {...provided.dragHandleProps}>
                             <DragHandleIcon fontSize="small" />
                         </span>
-                        <div className="mythic-reorder-row-main">
-                            <span className="mythic-reorder-row-title">{item.display}</span>
-                            <span className="mythic-reorder-row-description">{item.description}</span>
+                        <div className="mythic-reorder-row-main items-center flex flex-fill gap-4 min-w-0">
+                            <span className="mythic-reorder-row-title text-sm font-750 leading-125 min-w-0 truncate whitespace-nowrap">{item.display}</span>
+                            <span className="mythic-reorder-row-description text-muted text-xs font-600 leading-125 truncate whitespace-nowrap">{item.description}</span>
                         </div>
-                        <div className="mythic-reorder-row-actions">
+                        <div className="mythic-reorder-row-actions items-center flex flex-none gap-3">
                             <MythicActionButton iconOnly
                                 aria-label={item.visible ? `Hide ${item.display}` : `Show ${item.display}`}
                                 appearance="raised" colorMode="hover" tone={item.visible ? "error" : "info"}
@@ -857,13 +855,13 @@ const BackgroundImageEditor = ({palette, backgroundFileImageDarkRef, backgroundF
                         <Typography variant="body2" sx={{fontWeight: 700, flexGrow: 1, color: imageOption.mode === "dark" ? "#ffffff" : "#111827"}}>
                             {imageOption.label}
                         </Typography>
-                        <Button size="small" color="info" variant="contained" onClick={() => imageOption.ref.current.click()}>
+                        <MythicActionButton colorMode="always" size="small" tone="info" variant="contained" onClick={() => imageOption.ref.current.click()}>
                             Upload
                             <input ref={imageOption.ref} onChange={imageOption.onChange} type="file" hidden />
-                        </Button>
-                        <Button size="small" color="warning" variant="contained" onClick={() => onChangePaletteColor("backgroundImage", imageOption.mode, null)}>
+                        </MythicActionButton>
+                        <MythicActionButton colorMode="always" size="small" tone="warning" variant="contained" onClick={() => onChangePaletteColor("backgroundImage", imageOption.mode, null)}>
                             Remove
-                        </Button>
+                        </MythicActionButton>
                     </Box>
                     <Box
                         sx={{
@@ -998,6 +996,9 @@ export function SettingsOperatorUIConfigDialog(props) {
     const initialShowOPSECBypassUsername = GetMythicSetting({setting_name: "showOPSECBypassUsername", default_value: operatorSettingDefaults.showOPSECBypassUsername});
     const [showOPSECBypassUsername, setShowOPSECBypassUsername] = React.useState(initialShowOPSECBypassUsername);
 
+    const initialVirtualizedTablePadding = GetMythicSetting({setting_name: "virtualizedTablePadding", default_value: operatorSettingDefaults.virtualizedTablePadding});
+    const [virtualizedTablePadding, setVirtualizedTablePadding] = React.useState(initialVirtualizedTablePadding);
+
     const initialPalette = GetMythicSetting({setting_name: 'palette', default_value: operatorSettingDefaults.palette});
     const [palette, setPalette] = React.useState(() => buildInitialPalette(initialPalette));
     const [resumeNotifications, setResumeNotifications] = React.useState(false);
@@ -1035,6 +1036,9 @@ export function SettingsOperatorUIConfigDialog(props) {
     const onChangeTaskingContextFields = (evt) => {
         setTaskingContextFields(evt.target.value);
     }
+    const onChangeVirtualizedTablePadding = (name, value, error) => {
+        setVirtualizedTablePadding(value);
+    }
     const onAccept = () => {
       if(resumeNotifications){
           localStorage.setItem("dnd", JSON.stringify({
@@ -1055,6 +1059,7 @@ export function SettingsOperatorUIConfigDialog(props) {
               hideTaskingContext,
               taskingContextFields,
               showOPSECBypassUsername,
+              virtualizedTablePadding: parseInt(virtualizedTablePadding),
               palette: palette
       }});
       snackActions.success("updating settings");
@@ -1078,6 +1083,7 @@ export function SettingsOperatorUIConfigDialog(props) {
       setHideTaskingContext(operatorSettingDefaults.hideTaskingContext);
       setTaskingContextFields(operatorSettingDefaults.taskingContextFields);
       setShowOPSECBypassUsername(operatorSettingDefaults.showOPSECBypassUsername);
+      setVirtualizedTablePadding(operatorSettingDefaults.virtualizedTablePadding);
     }
     const clearAllUserSettings = () => {
         clearSettings();
@@ -1156,30 +1162,32 @@ export function SettingsOperatorUIConfigDialog(props) {
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">
-            <Box className="mythic-dialog-title-row mythic-ui-settings-title-row">
-                <Box className="mythic-ui-settings-title-copy">
-                    <Typography component="div" className="mythic-ui-settings-title">
+            <Box className="mythic-dialog-title-row items-center flex flex-wrap gap-5 justify-between mythic-ui-settings-title-row items-start min-w-0">
+                <Box className="mythic-ui-settings-title-copy flex flex-column gap-1 min-w-0">
+                    <Typography component="div" className="mythic-ui-settings-title text-base font-750 leading-125 text-primary">
                         Configure UI Settings
                     </Typography>
-                    <Typography variant={"body2"} className="mythic-ui-settings-subtitle">
+                    <Typography variant={"body2"} className="mythic-ui-settings-subtitle leading-135 text-muted">
                         Community themes are located on <Link target={"_blank"} href={"https://github.com/MythicMeta/CommunityThemes"}>GitHub</Link>
                     </Typography>
                 </Box>
-                <Box className="mythic-ui-settings-title-actions">
+                <Box className="mythic-ui-settings-title-actions items-center flex flex-wrap gap-3 justify-end min-w-0">
                     <MythicStyledTooltip title={"Copy all preferences as JSON"}>
-                        <Button
-                            className="mythic-dialog-title-action mythic-ui-settings-title-button mythic-action-tone-hover mythic-tone-info"
+                        <MythicActionButton
+                            className="mythic-dialog-title-action mythic-ui-settings-title-button"
+                            tone="info"
                             onClick={getCurrentPreferences}
                             size="small"
                             variant="outlined"
                             startIcon={<CloudDownloadIcon fontSize="small" />}
                         >
                             Export
-                        </Button>
+                        </MythicActionButton>
                     </MythicStyledTooltip>
                     <MythicStyledTooltip title={"Copy only color preferences as JSON"}>
-                        <Button
-                            className="mythic-dialog-title-action mythic-ui-settings-title-button mythic-action-tone-hover mythic-tone-info"
+                        <MythicActionButton
+                            className="mythic-dialog-title-action mythic-ui-settings-title-button"
+                            tone="info"
                             onClick={getCurrentColorPreferences}
                             size="small"
                             variant="outlined"
@@ -1188,11 +1196,12 @@ export function SettingsOperatorUIConfigDialog(props) {
                             }
                         >
                             Export Colors
-                        </Button>
+                        </MythicActionButton>
                     </MythicStyledTooltip>
                     <MythicStyledTooltip title={"Import preferences from a JSON file"}>
-                        <Button
-                            className="mythic-dialog-title-action mythic-ui-settings-title-button mythic-action-tone-hover mythic-tone-success"
+                        <MythicActionButton
+                            className="mythic-dialog-title-action mythic-ui-settings-title-button"
+                            tone="success"
                             onClick={()=>fileInputRef.current.click()}
                             size="small"
                             variant="outlined"
@@ -1200,7 +1209,7 @@ export function SettingsOperatorUIConfigDialog(props) {
                         >
                             Import
                             <input ref={fileInputRef} onChange={onFileChange} type="file" hidden />
-                        </Button>
+                        </MythicActionButton>
                     </MythicStyledTooltip>
                 </Box>
             </Box>
@@ -1353,6 +1362,14 @@ export function SettingsOperatorUIConfigDialog(props) {
                           </Select>
                       </MythicStyledTableCell>
                   </TableRow>
+                  <TableRow hover>
+                      <MythicStyledTableCell>Virtualized Table Padding</MythicStyledTableCell>
+                      <MythicStyledTableCell>
+                          <MythicTextField value={virtualizedTablePadding} onChange={onChangeVirtualizedTablePadding} showLabel={false}
+                                           type={"number"}
+                          />
+                      </MythicStyledTableCell>
+                  </TableRow>
                   <TableRow>
                       <MythicStyledTableCell colSpan={2} style={{paddingTop: "16px", paddingBottom: "16px"}}>
                           <ColorPaletteEditor
@@ -1369,20 +1386,20 @@ export function SettingsOperatorUIConfigDialog(props) {
           </Table>
         </TableContainer>
         <DialogActions>
-            <Button onClick={props.onClose} variant="contained" color="primary">
+            <MythicActionButton colorMode="always" onClick={props.onClose} tone="primary" variant="contained">
                 Cancel
-            </Button>
-            <Button onClick={clearAllUserSettings} variant="outlined" color="error">
+            </MythicActionButton>
+            <MythicActionButton colorMode="always" onClick={clearAllUserSettings} tone="error" variant="outlined">
                 Clear ALL User Settings
-            </Button>
-            <Button onClick={setDefaults} variant="outlined" color="warning">
+            </MythicActionButton>
+            <MythicActionButton colorMode="always" onClick={setDefaults} tone="warning" variant="outlined">
                 Reset ALL
-            </Button>
-            <Button onClick={() => setColorDefaults("dark")} variant={"contained"} color={"secondary"}>Reset Dark Mode</Button>
-            <Button onClick={() => setColorDefaults("light")} variant={"contained"} color={"secondary"}>Reset Light Mode</Button>
-            <Button onClick={onAccept} variant="contained" color="success">
+            </MythicActionButton>
+            <MythicActionButton colorMode="always" onClick={() => setColorDefaults("dark")} tone="secondary" variant={"contained"}>Reset Dark Mode</MythicActionButton>
+            <MythicActionButton colorMode="always" onClick={() => setColorDefaults("light")} tone="secondary" variant={"contained"}>Reset Light Mode</MythicActionButton>
+            <MythicActionButton colorMode="always" onClick={onAccept} tone="success" variant="contained">
                 Update
-            </Button>
+            </MythicActionButton>
         </DialogActions>
     </React.Fragment>
   );

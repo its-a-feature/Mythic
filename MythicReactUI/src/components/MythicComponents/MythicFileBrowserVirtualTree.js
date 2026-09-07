@@ -449,7 +449,7 @@ const FileBrowserVirtualTreePreMemo = ({
       }
   }, [selectedFolderData, flattenedNodes]);
   return flattenedNodes.length > 0 ? (
-    <div className="mythic-process-browser-table-shell">
+    <div className="mythic-process-browser-table-shell flex flex-column h-full min-h-0 min-w-0 overflow-hidden w-full relative">
       <StyledAutoSizer>
       {(AutoSizerProps) => (
         <List

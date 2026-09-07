@@ -223,22 +223,22 @@ export function Step1SelectOS(props){
         payloadConfigRef.current = payload
     }
     return (
-        <div className="mythic-create-flow-shell">
-            <div className="mythic-create-flow-content">
-                <div className="mythic-create-selection-grid">
-                    <section className="mythic-create-section">
-                        <div className="mythic-create-section-header">
+        <div className="mythic-create-flow-shell flex flex-column gap-6 h-full min-h-0">
+            <div className="mythic-create-flow-content flex flex-fill flex-column gap-6 min-h-0 overflow-hidden">
+                <div className="mythic-create-selection-grid flex-none gap-6 min-w-0 grid">
+                    <section className="mythic-create-section p-6 flex flex-column gap-5 min-h-0 min-w-0 overflow-hidden rounded bg-surface-muted border-subtle">
+                        <div className="mythic-create-section-header items-start flex gap-6 justify-between min-w-0">
                             <div>
-                                <Typography component="div" className="mythic-create-section-title">
+                                <Typography component="div" className="mythic-create-section-title text-sm font-800 leading-125 text-primary">
                                     Select operating system
                                 </Typography>
-                                <Typography component="div" className="mythic-create-section-description">
+                                <Typography component="div" className="mythic-create-section-description text-xs leading-135 text-muted">
                                     Filter wrapper types by the target platform.
                                 </Typography>
                             </div>
                         </div>
                         <Select
-                            className="mythic-create-select"
+                            className="mythic-create-select w-full"
                             value={os}
                             disabled={!props.first}
                             onChange={onChangeOS}
@@ -250,23 +250,23 @@ export function Step1SelectOS(props){
                             }
                         </Select>
                         <div>
-                            <span className="mythic-create-meta-label">Compatible wrapper types</span>
-                            <div className="mythic-create-meta-value">{payloadtypesPerOS[os]?.join(", ")}</div>
+                            <span className="mythic-create-meta-label text-xs font-750 leading-120 text-muted">Compatible wrapper types</span>
+                            <div className="mythic-create-meta-value text-sm leading-135 wrap-anywhere text-primary">{payloadtypesPerOS[os]?.join(", ")}</div>
                         </div>
                     </section>
-                    <section className="mythic-create-section">
-                        <div className="mythic-create-section-header">
+                    <section className="mythic-create-section p-6 flex flex-column gap-5 min-h-0 min-w-0 overflow-hidden rounded bg-surface-muted border-subtle">
+                        <div className="mythic-create-section-header items-start flex gap-6 justify-between min-w-0">
                             <div>
-                                <Typography component="div" className="mythic-create-section-title">
+                                <Typography component="div" className="mythic-create-section-title text-sm font-800 leading-125 text-primary">
                                     Select wrapper type
                                 </Typography>
-                                <Typography component="div" className="mythic-create-section-description">
+                                <Typography component="div" className="mythic-create-section-description text-xs leading-135 text-muted">
                                     Choose the wrapper family to configure for this build.
                                 </Typography>
                             </div>
                         </div>
                         <Select
-                            className="mythic-create-select"
+                            className="mythic-create-select w-full"
                             disabled={!props.first}
                             value={selectedPayloadType}
                             onChange={evt => setSelectedPayloadType(evt.target.value)}
@@ -277,24 +277,24 @@ export function Step1SelectOS(props){
                                 ))
                             }
                         </Select>
-                        <div className="mythic-create-agent-summary">
-                            <div className="mythic-create-agent-icon">
+                        <div className="mythic-create-agent-summary items-start flex gap-6 min-w-0">
+                            <div className="mythic-create-agent-icon items-center flex justify-center rounded bg-neutral-1 border-subtle">
                                 <MythicAgentSVGIcon payload_type={selectedPayloadType} style={{width: "100%", height: "100%", objectFit: "contain"}} />
                             </div>
-                            <div className="mythic-create-meta-list">
+                            <div className="mythic-create-meta-list flex flex-column gap-4 min-w-0">
                                 <div>
-                                    <span className="mythic-create-meta-label">Version</span>
-                                    <div className="mythic-create-meta-value">{payloadtypeData[selectedPayloadType]?.semver || "Unknown"}</div>
+                                    <span className="mythic-create-meta-label text-xs font-750 leading-120 text-muted">Version</span>
+                                    <div className="mythic-create-meta-value text-sm leading-135 wrap-anywhere text-primary">{payloadtypeData[selectedPayloadType]?.semver || "Unknown"}</div>
                                 </div>
                                 <div>
-                                    <span className="mythic-create-meta-label">Description</span>
-                                    <div className="mythic-create-meta-value">{payloadtypeData[selectedPayloadType]?.note || "No description available."}</div>
+                                    <span className="mythic-create-meta-label text-xs font-750 leading-120 text-muted">Description</span>
+                                    <div className="mythic-create-meta-value text-sm leading-135 wrap-anywhere text-primary">{payloadtypeData[selectedPayloadType]?.note || "No description available."}</div>
                                 </div>
                             </div>
                         </div>
                     </section>
                 </div>
-                <section className="mythic-create-section mythic-create-section-fill">
+                <section className="mythic-create-section p-6 flex flex-column gap-5 mythic-create-section-fill flex-fill min-h-0 min-w-0 overflow-hidden rounded bg-surface-muted border-subtle">
                     {props.first ? (
                         <div style={{display: "flex", flexDirection: "column", flexGrow: 1, minHeight: 0, overflow: "hidden", position: "relative"}}>
                             {openBackdrop &&
@@ -318,7 +318,7 @@ export function Step1SelectOS(props){
                 </section>
             </div>
 
-            <div className="mythic-create-flow-footer">
+            <div className="mythic-create-flow-footer flex-none">
                 <CreatePayloadNavigationButtons
                     first={props.first}
                     last={props.last}

@@ -57,7 +57,7 @@ export function ProxySearchTable(props){
 
     return (
         <TableContainer style={{overflowY: "auto", flexGrow: 1, marginTop: "5px"}}>
-            <Table stickyHeader size="small" style={{tableLayout: "fixed"}}>
+            <Table stickyHeader size="small" style={{}}>
                 <TableHead>
                     <TableRow>
                         <TableCell style={{width: "9rem"}}>State</TableCell>
@@ -65,13 +65,13 @@ export function ProxySearchTable(props){
                         <TableCell style={{width: "9rem"}}>Task Info</TableCell>
                         <TableCell style={{width: "7rem"}}>Bound Port</TableCell>
                         <TableCell >Remote Connection</TableCell>
-                        <TableCell style={{width: "9rem"}}>
+                        <TableCell style={{width: "8rem"}}>
                             <MythicStyledTooltip title={"Rx is bytes Mythic received from the agent. Tx is bytes Mythic sent to the agent"} >
                                 Total Rx/Tx
                             </MythicStyledTooltip>
                         </TableCell>
-                        <TableCell style={{width: "7rem"}}>Proxy Type</TableCell>
-                        <TableCell style={{width: "9rem"}}>Last Updated</TableCell>
+                        <TableCell style={{width: "6rem"}}>Type</TableCell>
+                        <TableCell style={{width: "6rem"}}>Last Use</TableCell>
                         <TableCell style={{width: "4rem"}}></TableCell>
                     </TableRow>
                 </TableHead>
@@ -147,7 +147,7 @@ function ProxySearchTableRow(props){
                     />
                 }
                 <MythicStyledTableCell>
-                    <div className="mythic-search-result-action-row">
+                    <div className="mythic-search-result-action-row items-center flex flex-nowrap gap-3 min-w-0">
                         {props.deleted ? (
                             <MythicActionButton appearance="raised" icon={<RestoreFromTrashIcon />} iconOnly onClick={()=>{setOpenDeleteDialog(true);}} tone="success" tooltip="Start Proxy Port on Mythic Server" />
                         ) :
@@ -157,20 +157,20 @@ function ProxySearchTableRow(props){
                     </div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <div className="mythic-search-result-stack">
-                        <div className="mythic-search-result-primary">{props.callback.user}@{props.callback.host}</div>
+                    <div className="mythic-search-result-stack flex flex-column gap-2 min-w-0">
+                        <div className="mythic-search-result-primary text-sm font-750 leading-135 min-w-0 wrap-anywhere text-primary">{props.callback.user}@{props.callback.host}</div>
                         {props.callback.description &&
-                            <div className="mythic-search-result-secondary">{props.callback.description}</div>
+                            <div className="mythic-search-result-secondary text-xs leading-135 min-w-0 wrap-anywhere text-muted">{props.callback.description}</div>
                         }
                     </div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <div className="mythic-search-result-link-row">
+                    <div className="mythic-search-result-link-row items-center inline-flex flex-wrap gap-2 min-w-0">
                         <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
                             href={"/new/callbacks/" + props.callback.display_id}>
                                 C-{props.callback.display_id}
                         </Link>
-                        <span className="mythic-search-result-secondary">/</span>
+                        <span className="mythic-search-result-secondary text-xs leading-135 min-w-0 wrap-anywhere text-muted">/</span>
                         <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
                               href={"/new/task/" + props.task.display_id}>
                             T-{props.task.display_id}
@@ -178,43 +178,43 @@ function ProxySearchTableRow(props){
                     </div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <span className="mythic-search-result-code">{props.local_port}</span>
+                    <span className="mythic-search-result-code text-xs leading-140 max-w-full min-w-0 wrap-anywhere rounded bg-neutral-1 border-subtle text-primary font-mono whitespace-pre-wrap">{props.local_port}</span>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <div className="mythic-search-result-stack">
+                    <div className="mythic-search-result-stack flex flex-column gap-2 min-w-0">
                     {props.remote_port !== 0 &&
-                        <div className="mythic-search-result-primary">{props.remote_ip}:{props.remote_port}</div>
+                        <div className="mythic-search-result-primary text-sm font-750 leading-135 min-w-0 wrap-anywhere text-primary">{props.remote_ip}:{props.remote_port}</div>
                     }
                     {props.remote_port === 0 &&
-                        <div className="mythic-search-result-secondary">No remote endpoint</div>
+                        <div className="mythic-search-result-secondary text-xs leading-135 min-w-0 wrap-anywhere text-muted">No remote endpoint</div>
                     }
                     {props.username !== "" &&
-                        <div className="mythic-search-result-stack">
-                            <div className="mythic-search-result-inline">
+                        <div className="mythic-search-result-stack flex flex-column gap-2 min-w-0">
+                            <div className="mythic-search-result-inline items-center flex flex-wrap gap-3 min-w-0">
                                 <span className="mythic-search-result-label">Auth</span>
-                                <span className="mythic-search-result-value">{props.username}</span>
+                                <span className="mythic-search-result-value text-xs leading-135 wrap-anywhere text-primary">{props.username}</span>
                             </div>
-                            <div className="mythic-search-result-inline">
+                            <div className="mythic-search-result-inline items-center flex flex-wrap gap-3 min-w-0">
                                 <span className="mythic-search-result-label">Password</span>
-                                <span className="mythic-search-result-value">{props.password}</span>
+                                <span className="mythic-search-result-value text-xs leading-135 wrap-anywhere text-primary">{props.password}</span>
                             </div>
                         </div>
                     }
                     </div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <div className="mythic-search-result-stack">
-                        <span className="mythic-search-result-metric">
+                    <div className="mythic-search-result-stack flex flex-column gap-2 min-w-0">
+                        <span className="mythic-search-result-metric items-center inline-flex gap-2 rounded bg-neutral-1 border-subtle">
                             <MythicStyledTooltip title={"Rx is bytes Mythic received from the agent"}>
                                 <span className="mythic-search-result-metric-label">Rx</span>
                             </MythicStyledTooltip>
-                            <span className="mythic-search-result-value">{getStringSize({cellData: {"plaintext": String(props.bytes_received)}})}</span>
+                            <span className="mythic-search-result-value text-xs leading-135 wrap-anywhere text-primary">{getStringSize({cellData: {"plaintext": String(props.bytes_received)}})}</span>
                         </span>
-                        <span className="mythic-search-result-metric">
+                        <span className="mythic-search-result-metric items-center inline-flex gap-2 rounded bg-neutral-1 border-subtle">
                             <MythicStyledTooltip title={"Tx is bytes Mythic sent to the agent"}>
                                 <span className="mythic-search-result-metric-label">Tx</span>
                             </MythicStyledTooltip>
-                            <span className="mythic-search-result-value">{getStringSize({cellData: {"plaintext": String(props.bytes_sent)}})}</span>
+                            <span className="mythic-search-result-value text-xs leading-135 wrap-anywhere text-primary">{getStringSize({cellData: {"plaintext": String(props.bytes_sent)}})}</span>
                         </span>
                     </div>
                 </MythicStyledTableCell>

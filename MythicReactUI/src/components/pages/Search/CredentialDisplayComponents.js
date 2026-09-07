@@ -54,16 +54,16 @@ export const getCredentialValidityChips = (metadata) => {
 
 export function CredentialInspectorSection({title, actions, children, tone=""}){
     const sectionClassName = [
-        "mythic-credential-search-section",
+        "mythic-credential-search-section min-w-0",
         tone ? `mythic-credential-search-section-${tone}` : "",
     ].filter(Boolean).join(" ");
     return (
         <section className={sectionClassName}>
-            <div className="mythic-credential-search-section-header">
+            <div className="mythic-credential-search-section-header text-xs font-850 items-center flex gap-4 justify-between min-w-0 text-muted">
                 <span>{title}</span>
-                {actions && <div className="mythic-credential-search-section-actions">{actions}</div>}
+                {actions && <div className="mythic-credential-search-section-actions items-center flex">{actions}</div>}
             </div>
-            <div className="mythic-credential-search-section-body">
+            <div className="mythic-credential-search-section-body gap-3 min-w-0 grid grid-cols-2">
                 {children}
             </div>
         </section>
@@ -74,22 +74,22 @@ export function CredentialDetail({label, value, chip, wide=false, code=false, ac
     const isReactValue = React.isValidElement(value);
     const displayValue = value === undefined || value === null || value === "" ? "-" : value;
     const detailClassName = [
-        "mythic-credential-search-detail",
-        wide ? "mythic-credential-search-detail-wide" : "",
-        emphasis ? "mythic-credential-search-detail-emphasis" : "",
+        "mythic-credential-search-detail min-w-0 rounded border-subtle",
+        wide ? "mythic-credential-search-detail-wide grid-col-full" : "",
+        emphasis ? "mythic-credential-search-detail-emphasis border-primary-2" : "",
         tone ? `mythic-credential-search-detail-${tone}` : "",
     ].filter(Boolean).join(" ");
     return (
         <div className={detailClassName}>
             <span>{label}</span>
-            <div className="mythic-credential-search-detail-value-row">
-                <strong className={code ? "mythic-credential-search-code" : ""} title={isReactValue ? undefined : `${displayValue}`}>
+            <div className="mythic-credential-search-detail-value-row items-center gap-3 min-w-0 grid">
+                <strong className={code ? "mythic-credential-search-code font-mono" : ""} title={isReactValue ? undefined : `${displayValue}`}>
                     {displayValue}
                 </strong>
-                {action && <div className="mythic-credential-search-detail-action">{action}</div>}
+                {action && <div className="mythic-credential-search-detail-action items-center flex flex-none">{action}</div>}
             </div>
             {chip &&
-                <MythicChip size="small" color={chip.color} variant="outlined" label={chip.label} className="mythic-credential-search-inline-chip" />
+                <MythicChip compact color={chip.color} variant="outlined" label={chip.label} className="max-w-full" />
             }
         </div>
     )
@@ -97,7 +97,7 @@ export function CredentialDetail({label, value, chip, wide=false, code=false, ac
 
 export function CredentialMetadataPair({name, value, tone=""}){
     const pairClassName = [
-        "mythic-credential-search-metadata-pair",
+        "mythic-credential-search-metadata-pair min-w-0 rounded border-subtle",
         tone ? `mythic-credential-search-metadata-pair-${tone}` : "",
     ].filter(Boolean).join(" ");
     return (
@@ -112,12 +112,12 @@ export function CredentialMetadataPair({name, value, tone=""}){
 
 export function MetadataValue({value}){
     if(Array.isArray(value)){
-        return <MythicChip size="small" variant="outlined" label={`array[${value.length}]`} className="mythic-credential-search-mini-chip" />
+        return <MythicChip compact variant="outlined" label={`array[${value.length}]`} className="max-w-full" />
     }
     if(isPlainObject(value)){
         const entries = Object.entries(value);
         return (
-            <div className="mythic-credential-search-nested-metadata">
+            <div className="mythic-credential-search-nested-metadata gap-1 min-w-0 grid font-mono whitespace-normal">
                 {entries.map(([key, nestedValue]) => (
                     <div key={key}>
                         <span>{key}</span>

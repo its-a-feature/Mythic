@@ -258,7 +258,7 @@ function PoperDropdown({onGetCommands, onGetTasks, onGetCommandsFiltered, onGetT
                     transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
                 }}
                 >
-                <Paper className={"dropdownMenuColored"}>
+                <Paper className={"dropdownMenuColored bg-surface rounded border"}>
                     <ClickAwayListener onClickAway={() => setDropdownOpen(false)}>
                     <MenuList id="split-button-menu">
                         {dropDownOptions.map((option, index) => (

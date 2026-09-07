@@ -91,14 +91,14 @@ export const adjustOutput = (e, newTime) => {
 }
 
 const EventingGridCell = ({children, className = "", rowData}) => (
-    <div className={`mythic-eventing-instance-cell ${className}`.trim()} data-selected={rowData?.selected ? "true" : undefined}>
+    <div className={`mythic-eventing-instance-cell items-center flex ${className} min-w-0 w-full`.trim()} data-selected={rowData?.selected ? "true" : undefined}>
         {children}
     </div>
 );
 const eventingInstanceMenuIconStyle = {fontSize: "1rem", marginRight: "8px"};
 const EventingInstanceIdCell = ({onOpenMenu, rowData}) => (
-    <EventingGridCell className="mythic-eventing-instance-id-cell" rowData={rowData}>
-        <span className="mythic-eventing-instance-id">{rowData.id}</span>
+    <EventingGridCell className="mythic-eventing-instance-id-cell gap-2 justify-between" rowData={rowData}>
+        <span className="mythic-eventing-instance-id font-850 min-w-0 truncate text-primary whitespace-nowrap">{rowData.id}</span>
         <MythicActionButton iconOnly
             aria-haspopup="menu"
             appearance="raised" colorMode="hover" tone="info"
@@ -434,12 +434,12 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
                         return <CallbacksTableStringCell rowData={selectedRow} cellData={row.trigger} />
                     case "Time":
                         return (
-                            <EventingGridCell className="mythic-eventing-instances-time-cell" rowData={selectedRow}>
-                                <div className="mythic-eventing-instances-time-line">
+                            <EventingGridCell className="mythic-eventing-instances-time-cell items-start flex flex-column gap-1 justify-center min-w-0 overflow-hidden w-full" rowData={selectedRow}>
+                                <div className="mythic-eventing-instances-time-line leading-125 items-center flex gap-3 min-w-0 truncate whitespace-nowrap">
                                     <CalendarMonthTwoToneIcon fontSize="small" />
                                     {toLocalTime(row?.created_at, me?.user?.view_utc_time)}
                                 </div>
-                                <div className="mythic-eventing-instances-time-line mythic-eventing-instances-time-secondary">
+                                <div className="mythic-eventing-instances-time-line leading-125 items-center flex gap-3 mythic-eventing-instances-time-secondary text-xs min-w-0 truncate text-muted whitespace-nowrap">
                                     <AccessAlarmTwoToneIcon fontSize="small" />
                                     {row.end_timestamp === null &&
                                         <Moment filter={(newTime) => adjustOutput(row, newTime)} interval={1000}
@@ -507,7 +507,7 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
         return getInstanceMenuOptions(rowDataStatic);
     }
     return (
-        <div className="mythic-eventing-instances-grid">
+        <div className="mythic-eventing-instances-grid flex flex-fill h-full min-h-0 min-w-0 overflow-hidden w-full relative">
             <MythicResizableGrid
                 name={"eventing_instances_table"}
                 callbackTableGridRef={callbackTableGridRef}

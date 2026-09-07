@@ -1,6 +1,5 @@
 import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
-import Button from '@mui/material/Button';
 import {C2ProfileBuildDialog} from './C2ProfileBuildDialog';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import WifiIcon from '@mui/icons-material/Wifi';
@@ -201,17 +200,17 @@ export function C2ProfilesRow({service, showDeleted}) {
                     {service.container_running ? (
                         service.running ?
                             (
-                                <ButtonGroup className="mythic-split-action-group" ref={dropdownAnchorRef} aria-label="split button" >
-                                    <Button size="small"
-                                            className="mythic-compact-action mythic-action-tone mythic-tone-error"
-                                            disabled={alreadyRunningStartStop}
-                                            onClick={onStartStopProfile}
-                                            style={{width: "100%"}}>
+                                <ButtonGroup className="mythic-split-action-group inline-flex overflow-hidden" ref={dropdownAnchorRef} aria-label="split button" >
+                                    <MythicActionButton
+                                        compact tone="error"
+                                        colorMode="always" disabled={alreadyRunningStartStop}
+                                        onClick={onStartStopProfile}>
                                         {alreadyRunningStartStop ? "Waiting..." : "Stop Profile"}
-                                    </Button>
-                                    <Button
-                                        size="small"
-                                        className="mythic-compact-icon-action mythic-action-tone mythic-tone-error"
+                                    </MythicActionButton>
+                                    <MythicActionButton tone="error" colorMode="always"
+                                        size="small" variant={"outlined"}
+                                                        compact
+                                                        icon={<ArrowDropDownIcon fontSize="small" />}
                                         disabled={alreadyRunningStartStop}
                                         aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
                                         aria-expanded={dropdownOpen ? 'true' : undefined}
@@ -219,24 +218,22 @@ export function C2ProfilesRow({service, showDeleted}) {
                                         aria-haspopup="menu"
                                         onClick={handleDropdownToggle}
                                     >
-                                        <ArrowDropDownIcon fontSize="small" />
-                                    </Button>
+
+                                    </MythicActionButton>
                                 </ButtonGroup>
                             )
                             :
                             (
                                 service.is_p2p ? null : (
-                                    <ButtonGroup className="mythic-split-action-group" size="small" ref={dropdownAnchorRef} aria-label="split button"  >
-                                        <Button size="small"
-                                                className="mythic-compact-action mythic-action-tone mythic-tone-success"
+                                    <ButtonGroup className="mythic-split-action-group inline-flex overflow-hidden" size="small" ref={dropdownAnchorRef} aria-label="split button"  >
+                                        <MythicActionButton compact tone="success" colorMode="always" size="small"
                                                 disabled={alreadyRunningStartStop}
                                                 onClick={onStartStopProfile}
                                                 style={{width: "100%"}}>
                                             {alreadyRunningStartStop ? "Waiting..." : "Start Profile"}
-                                        </Button>
-                                        <Button
+                                        </MythicActionButton>
+                                        <MythicActionButton iconOnly tone="success" colorMode="always"
                                             size="small"
-                                            className="mythic-compact-icon-action mythic-action-tone mythic-tone-success"
                                                 disabled={alreadyRunningStartStop}
                                             aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
                                             aria-expanded={dropdownOpen ? 'true' : undefined}
@@ -245,13 +242,13 @@ export function C2ProfilesRow({service, showDeleted}) {
                                             onClick={handleDropdownToggle}
                                         >
                                             <ArrowDropDownIcon fontSize="small" />
-                                        </Button>
+                                        </MythicActionButton>
                                     </ButtonGroup>
                                 )
 
                             )
                     ) : null}
-                    <div className="mythic-compact-actions" style={{marginTop: "0.4rem"}}>
+                    <div className="items-center flex flex-wrap gap-3" style={{marginTop: "0.4rem"}}>
                     <MythicStyledTooltip title={"Documentation"}>
                         <MythicActionButton iconOnly
                             appearance="raised" colorMode="hover" tone="info"
@@ -296,7 +293,7 @@ export function C2ProfilesRow({service, showDeleted}) {
                                     transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
                                 }}
                             >
-                                <Paper className={"dropdownMenuColored"}>
+                                <Paper className={"dropdownMenuColored bg-surface rounded border"}>
                                     <ClickAwayListener onClickAway={handleDropdownClose} mouseEvent={"onMouseDown"}>
                                         <MenuList id="split-button-menu">
                                             <MenuItem key={"dropdownprofile" + service.id + "menu1"} onClick={()=>{setOpenProfileConfigDialog(true);}}>View/Edit Config</MenuItem>

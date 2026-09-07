@@ -1,5 +1,5 @@
 import React from 'react';
-import Button from '@mui/material/Button';
+import {MythicActionButton} from './MythicActionButton';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import 'ace-builds/src-noconflict/mode-json';
@@ -24,9 +24,9 @@ export function PreviewFileMediaDialog({agent_file_id, filename, onClose, editab
           <ResponseDisplayMedia media={{agent_file_id, filename, editable}} expand={true} />
         </DialogContent>
         <DialogActions>
-          <Button variant="contained" onClick={onClose} color="primary">
+        <MythicActionButton colorMode="always" variant="contained" onClick={onClose} tone="primary">
             Close
-          </Button>
+        </MythicActionButton>
         </DialogActions>
   </React.Fragment>
   );

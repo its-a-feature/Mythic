@@ -43,16 +43,16 @@ export function CallbackSearchTable(props){
     }
 
     return (
-        <TableContainer style={{height: "100%", overflowY: "auto"}}>
-            <Table stickyHeader size="small" style={{"maxWidth": "100%", "overflow": "auto", tableLayout: "fixed"}}>
+        <TableContainer style={{height: "100%", overflow: "scroll"}}>
+            <Table stickyHeader size="small" style={{width: "100%", overflow: "scroll", }}>
                 <TableHead>
                     <TableRow>
                         <TableCell style={{width: "3rem"}}>View</TableCell>
                         <TableCell >User</TableCell>
                         <TableCell >Domain</TableCell>
                         <TableCell >Host</TableCell>
-                        <TableCell> PID</TableCell>
-                        <TableCell >Last Checkin</TableCell>
+                        <TableCell style={{width: "6rem"}}> PID</TableCell>
+                        <TableCell style={{width: "12rem"}}>Last Checkin</TableCell>
                         <TableCell >Description</TableCell>
                         <TableCell >IP</TableCell>
                         <TableCell style={{width: "5rem"}}>ID</TableCell>

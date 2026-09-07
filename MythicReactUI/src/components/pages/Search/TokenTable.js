@@ -142,7 +142,7 @@ function TokenTableRow(props){
                 }
                 
                 <MythicStyledTableCell>
-                    <div className="mythic-search-result-action-row">
+                    <div className="mythic-search-result-action-row items-center flex flex-nowrap gap-3 min-w-0">
                         {props.deleted ? (
                             <MythicActionButton appearance="raised" icon={<VisibilityOffIcon />} iconOnly onClick={()=>{setOpenDeleteDialog(true);}} tone="success" tooltip="Restore Token for use in Tasking" />
                         ) : (
@@ -152,9 +152,9 @@ function TokenTableRow(props){
                     </div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <div className="mythic-search-result-action-row">
+                    <div className="mythic-search-result-action-row items-center flex flex-nowrap gap-3 min-w-0">
                         <MythicActionButton appearance="raised" icon={<EditIcon />} iconOnly onClick={() => setEditUserDialog(true)} tone="info" tooltip="Edit token user" />
-                        <span className="mythic-search-result-primary">{props.user}</span>
+                        <span className="mythic-search-result-primary text-sm font-750 leading-135 min-w-0 wrap-anywhere text-primary">{props.user}</span>
                     </div>
 
                     {editUserDialog &&  <MythicDialog fullWidth={true} maxWidth="md" open={editUserDialog}
@@ -164,9 +164,9 @@ function TokenTableRow(props){
                     }
                 </MythicStyledTableCell>
                 <MythicStyledTableCell >
-                    <div className="mythic-search-result-action-row">
+                    <div className="mythic-search-result-action-row items-center flex flex-nowrap gap-3 min-w-0">
                         <MythicActionButton appearance="raised" icon={<ConfirmationNumberIcon />} iconOnly onClick={()=>{setViewTokenDialog(true);}} tone="info" tooltip="View Token Information" />
-                        <span className="mythic-search-result-code">{props.token_id}</span>
+                        <span className="mythic-search-result-code text-xs leading-140 max-w-full min-w-0 wrap-anywhere rounded bg-neutral-1 border-subtle text-primary font-mono whitespace-pre-wrap">{props.token_id}</span>
                     </div>
                     {viewTokenDialog && <MythicDialog fullWidth={true} maxWidth="md" open={viewTokenDialog}
                         onClose={()=>{setViewTokenDialog(false);}} 
@@ -174,9 +174,9 @@ function TokenTableRow(props){
                     />}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <div className="mythic-search-result-action-row">
+                    <div className="mythic-search-result-action-row items-center flex flex-nowrap gap-3 min-w-0">
                         <MythicActionButton appearance="raised" icon={<EditIcon />} iconOnly onClick={() => setEditDescriptionDialog(true)} tone="info" tooltip="Edit token description" />
-                        <span className="mythic-search-result-secondary">{props.description || "No description"}</span>
+                        <span className="mythic-search-result-secondary text-xs leading-135 min-w-0 wrap-anywhere text-muted">{props.description || "No description"}</span>
                     </div>
 
                     {editDescriptionDialog && <MythicDialog fullWidth={true} maxWidth="md" open={editDescriptionDialog}
@@ -186,7 +186,7 @@ function TokenTableRow(props){
                     }
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <div className="mythic-search-result-link-row">
+                    <div className="mythic-search-result-link-row items-center inline-flex flex-wrap gap-2 min-w-0">
                         <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
                             href={"/new/task/" + props.task.display_id}>
                                 T-{props.task.display_id}
@@ -194,17 +194,17 @@ function TokenTableRow(props){
                     </div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <div className="mythic-search-result-link-row">
+                    <div className="mythic-search-result-link-row items-center inline-flex flex-wrap gap-2 min-w-0">
                         {props.callbacktokens?.length > 0 ? props.callbacktokens.map( (cbt) => (
                             <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" key={"callbacklink" + cbt.callback.display_id + "row" + props.id}
                                 href={"/new/callbacks/" + cbt.callback.display_id}>
                                     C-{cbt.callback.display_id}
                             </Link>
-                        )) : <span className="mythic-search-result-secondary">No callbacks</span>}
+                        )) : <span className="mythic-search-result-secondary text-xs leading-135 min-w-0 wrap-anywhere text-muted">No callbacks</span>}
                     </div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <div className="mythic-search-result-primary">{props.host}</div>
+                    <div className="mythic-search-result-primary text-sm font-750 leading-135 min-w-0 wrap-anywhere text-primary">{props.host}</div>
                 </MythicStyledTableCell>
             </TableRow>
         </React.Fragment>

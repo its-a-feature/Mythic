@@ -1,5 +1,5 @@
 import React from 'react';
-import Button from '@mui/material/Button';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -104,7 +104,7 @@ export function OperationTableRowNotificationsDialog(props) {
                   name="name"
                 />
                 <FormControlLabel
-                  className="mythic-dialog-switch-row"
+                  className="mythic-dialog-switch-row items-center flex justify-between w-full"
                   label="Complete Operation"
                   labelPlacement="start"
                   control={<Switch checked={complete} onChange={onBoolChange} color="warning" />}
@@ -141,7 +141,7 @@ export function OperationTableRowNotificationsDialog(props) {
                   name="Banner Text"
               />
               <Box
-                  className="mythic-dialog-preview"
+                  className="mythic-dialog-preview items-center flex min-w-0 rounded border-subtle"
                   sx={{
                       mt: 1,
                       backgroundColor: bannerColor,
@@ -155,12 +155,12 @@ export function OperationTableRowNotificationsDialog(props) {
           </MythicDialogBody>
         </DialogContent>
         <DialogActions>
-          <Button onClick={props.onClose} variant="contained" color="primary">
+            <MythicActionButton colorMode="always" onClick={props.onClose} tone="primary" variant="contained">
             Cancel
-          </Button>
-          <Button onClick={onAccept} variant="contained" color="success">
+            </MythicActionButton>
+            <MythicActionButton colorMode="always" onClick={onAccept} tone="success" variant="contained">
             Update
-          </Button>
+            </MythicActionButton>
         </DialogActions>
   </React.Fragment>
   );

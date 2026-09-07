@@ -13,7 +13,8 @@ import {useTheme} from '@mui/material/styles';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import { Button, Link} from '@mui/material';
+import {Link} from '@mui/material';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 
 export function MitreMapDisplayDialog({entry, showCountGrouping, onClose}){
     const [commands, setCommands] = React.useState([]);
@@ -70,9 +71,9 @@ export function MitreMapDisplayDialog({entry, showCountGrouping, onClose}){
            
           </DialogContent>
           <DialogActions>
-            <Button onClick={onClose} variant="contained" color="primary">
+            <MythicActionButton colorMode="always" onClick={onClose} tone="primary" variant="contained">
               Close
-            </Button>
+            </MythicActionButton>
         </DialogActions>
         </React.Fragment>
         )
@@ -103,8 +104,8 @@ function DetailedCommandMappingTables({commands}){
                   <TableRow hover key={"command" + entry}>
                       <TableCell>{entry}</TableCell>
                       <TableCell>
-                      <Button variant="contained" color="primary" target="_blank"
-                              href={"/docs/agents/" + c[0] + "/commands/" + entry}>Docs</Button>
+                      <MythicActionButton colorMode="always" variant="contained" tone="primary" target="_blank"
+                              href={"/docs/agents/" + c[0] + "/commands/" + entry}>Docs</MythicActionButton>
                       </TableCell>
                   </TableRow>
                 ))}

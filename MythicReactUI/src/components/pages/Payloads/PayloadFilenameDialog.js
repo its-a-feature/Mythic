@@ -7,7 +7,7 @@ import {MythicErrorState, MythicLoadingState} from "../../MythicComponents/Mythi
 
 const updateDescriptionMutation = gql`
 mutation updateDescription ($file_id: Int!, $filename: bytea!) {
-  update_filemeta_by_pk(pk_columns: {id: $file_id}, _set: {filename: $filename}) {
+  update_filemeta_by_pk(pk_columns: {id: $file_id}, _set: {filename: $filename, }) {
     filename_text
     id
   }

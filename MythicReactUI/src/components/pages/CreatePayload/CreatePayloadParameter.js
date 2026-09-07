@@ -496,7 +496,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
         snackActions.info(
             <span style={{display: "inline-flex", alignItems: "center", gap: "8px"}}>
                 {label}
-                <Button
+                <MythicActionButton
                     size="small"
                     variant="outlined"
                     onClick={(event) => {
@@ -505,7 +505,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                     }}
                 >
                     Undo
-                </Button>
+                </MythicActionButton>
             </span>,
             {autoClose: 8000}
         );
@@ -785,7 +785,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 )
             case "ChooseOne":
                 return (
-                    <div className="mythic-create-inline-control">
+                    <div className="mythic-create-inline-control items-center flex gap-4 min-w-0 w-full relative">
                         <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
                             <CircularProgress color="inherit" />
                         </Backdrop>
@@ -819,7 +819,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                         <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
                             <CircularProgress color="inherit" />
                         </Backdrop>
-                        <div className="mythic-create-inline-control">
+                        <div className="mythic-create-inline-control items-center flex gap-4 min-w-0 w-full relative">
                             <FormControl style={{flex: "0 1 12rem"}}>
                                 <Select
                                     multiple={false}
@@ -835,7 +835,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                                     }
                                 </Select>
                             </FormControl>
-                            <span className="mythic-create-choice-divider">OR</span>
+                            <span className="mythic-create-choice-divider text-xs font-800 flex-none text-muted">OR</span>
                             <MythicTextField name={name} requiredValue={required} placeholder={"Custom Value"} value={chooseOneCustomValue} multiline={true} maxRows={5}
                                              onChange={onChangeTextChooseOneCustom} display="inline-block"
                             />
@@ -852,7 +852,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 )
             case "ChooseMultiple":
                 return (
-                    <div className="mythic-create-inline-control">
+                    <div className="mythic-create-inline-control items-center flex gap-4 min-w-0 w-full relative">
                         <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
                             <CircularProgress color="inherit" />
                         </Backdrop>
@@ -960,7 +960,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 return (
                     <React.Fragment>
                         {dictValue.map( (opt, i) => (
-                            <div className="mythic-create-dictionary-row" key={"dictval" + i}>
+                            <div className="mythic-create-dictionary-row items-center gap-4 min-w-0 grid" key={"dictval" + i}>
                                 <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="error" onClick={(e) => {removeDictEntry(i)}} size="small"><DeleteIcon fontSize="small" /> </MythicActionButton>
                                 <Input startAdornment={<Button disabled>Key</Button>} size="small" value={opt.name} onChange={(e) => onChangeDictKey(e, i)}></Input>
                                 <Input startAdornment={<Button disabled>Value</Button>} size="small" value={opt.value} onChange={(e) => onChangeDictVal(e, i)}></Input>
@@ -968,7 +968,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                         )
                         )}
                         {dictSelectOptions.length > 0 ? (
-                            <div className="mythic-create-dictionary-add">
+                            <div className="mythic-create-dictionary-add items-center flex gap-4">
                                 <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="success" size="small" onClick={addDictValEntry}> <AddCircleIcon fontSize="small" /> </MythicActionButton>
                                 <Select size="small" value={dictSelectOptionsChoice} onChange={(e) => setDictSelectOptionsChoice(e.target.value)}>
                                     {dictSelectOptions.map( (selectOpt, i) => (
@@ -1006,16 +1006,17 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                             <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
                                 <CircularProgress color="inherit" />
                             </Backdrop>
-                            <div className="mythic-create-inline-control" style={{alignItems: "center", flexWrap: "wrap"}}>
-                                <Button
-                                    className="mythic-compact-action mythic-action-tone-hover mythic-tone-info"
+                            <div className="mythic-create-inline-control items-center flex gap-4 min-w-0 w-full relative" style={{alignItems: "center", flexWrap: "wrap"}}>
+                                <MythicActionButton
+                                    compact
+                                    tone="info"
                                     component="label"
                                     size="small"
                                     variant="contained"
                                 >
                                     Upload
                                     <input onChange={onConfigEditorUpload} type="file" hidden accept=".json,application/json,text/plain" />
-                                </Button>
+                                </MythicActionButton>
                                 {hasPresets &&
                                     <FormControl size="small" style={{flex: "1 1 14rem", minWidth: "12rem"}}>
                                         <Select
@@ -1037,22 +1038,24 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                                         </Select>
                                     </FormControl>
                                 }
-                                <Button
-                                    className="mythic-compact-action mythic-action-tone-hover mythic-tone-warning"
+                                <MythicActionButton
+                                    compact
+                                    tone="warning"
                                     size="small"
                                     variant="contained"
                                     onClick={onClearConfigEditor}
                                 >
                                     Clear
-                                </Button>
-                                <Button
-                                    className="mythic-compact-action mythic-action-tone-hover mythic-tone-success"
+                                </MythicActionButton>
+                                <MythicActionButton
+                                    compact
+                                    tone="success"
                                     size="small"
                                     variant="contained"
                                     onClick={openEditor}
                                 >
                                     Edit
-                                </Button>
+                                </MythicActionButton>
                                 <div style={{alignItems: "center", display: "flex", gap: "0.35rem", marginLeft: "auto", minWidth: 0}}>
                                     <MythicChip size="small" label={status.label} color={chipColor} />
                                     {dynamic_query_function !== "" && dynamic_query_function !== undefined &&
@@ -1078,7 +1081,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                                 <React.Fragment>
                                     <MythicDraggableDialogTitle>
                                         <div style={{display: "flex", flexDirection: "column", gap: "0.35rem", minWidth: 0}}>
-                                            <Typography component="div" className="mythic-dialog-section-title">
+                                            <Typography component="div" className="mythic-dialog-section-title text-sm font-700 leading-125 text-primary">
                                                 {editorTitle}
                                             </Typography>
                                             {hasJSONStringSchema &&
@@ -1103,7 +1106,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                                     </MythicDraggableDialogTitle>
                                     <DialogContent
                                         dividers={true}
-                                        className="mythic-json-dialog-body"
+                                        className="mythic-json-dialog-body overflow-auto"
                                         style={{display: "flex", flexDirection: "column"}}
                                     >
                                         <MythicDialogBody compact>
@@ -1113,12 +1116,12 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                                                     description="Edit the raw JSON string stored for this parameter."
                                                     actions={
                                                         <React.Fragment>
-                                                            <Button size="small" variant="contained" onClick={onFormatConfigEditorJson}>
+                                                            <MythicActionButton size="small" variant="contained" onClick={onFormatConfigEditorJson}>
                                                                 Format
-                                                            </Button>
-                                                            <Button size="small" variant="contained" onClick={onCopyConfigToClipboard}>
+                                                            </MythicActionButton>
+                                                            <MythicActionButton size="small" variant="contained" onClick={onCopyConfigToClipboard}>
                                                                 Copy
-                                                            </Button>
+                                                            </MythicActionButton>
                                                         </React.Fragment>
                                                     }
                                                 >
@@ -1281,25 +1284,25 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
     const isModified = modifiedValue();
     if(displayMode === "card"){
         return (
-            <div className={`mythic-create-parameter-card ${isModified ? "mythic-create-parameter-card-modified" : ""}`.trim()} key={"buildparam" + id}>
-                <div className="mythic-create-parameter-copy">
-                    <div className="mythic-create-parameter-title-row">
-                        <Typography component="div" className="mythic-create-parameter-title">
+            <div className={`mythic-create-parameter-card gap-6 rounded grid bg-surface border-subtle${isModified ? " mythic-create-parameter-card-modified" : ""} min-w-0`.trim()} key={"buildparam" + id}>
+                <div className="mythic-create-parameter-copy min-w-0">
+                    <div className="mythic-create-parameter-title-row items-start flex flex-wrap gap-4 justify-between min-w-0">
+                        <Typography component="div" className="mythic-create-parameter-title text-sm font-800 leading-125 min-w-0 text-primary">
                             {display_name ? display_name : name}
                         </Typography>
                     </div>
-                    <div className="mythic-create-parameter-chips">
+                    <div className="mythic-create-parameter-chips items-center flex flex-wrap gap-2">
                         <MythicChip compact label={parameter_type} />
                         {required && <MythicChip compact label="Required" tone="error" />}
                         {isModified && <MythicChip compact label="Modified" tone="warning" />}
                     </div>
                     {description &&
-                        <Typography component="div" className="mythic-create-parameter-description">
+                        <Typography component="div" className="mythic-create-parameter-description text-xs text-muted">
                             {description}
                         </Typography>
                     }
                 </div>
-                <div className="mythic-create-parameter-control">
+                <div className="mythic-create-parameter-control min-w-0 relative">
                     {getParameterObject()}
                 </div>
             </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import {Button} from '@mui/material';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import { Navigate } from 'react-router-dom';
 import {restartWebsockets} from '../../../index';
@@ -106,9 +106,9 @@ export function InviteForm(props){
                                 <MythicTextField name='email' value={email} onChange={onChangeText}
                                                  debounceDelay={0} showLabel={true} autoComplete={"email"}
                                                  marginTop={0} marginBottom={0}/>
-                                <Button type="submit" color="primary" startIcon={<PersonAddAlt1Icon />} variant="contained" fullWidth>
+                                <MythicActionButton type="submit" colorMode="always" tone="primary" startIcon={<PersonAddAlt1Icon />} variant="contained" fullWidth>
                                     Register
-                                </Button>
+                                </MythicActionButton>
                             </AuthFormStack>
                         </LoginLayout>
                     )

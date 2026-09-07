@@ -37,15 +37,15 @@ query getP2PProfilesAndCallbacks{
 }
 `;
 const CallbackSummary = ({callback, label}) => (
-    <Box className="mythic-c2-edge-callback-summary">
+    <Box className="mythic-c2-edge-callback-summary items-start flex flex-column justify-center rounded bg-surface border-subtle">
         {label &&
             <Typography component="div" className="mythic-c2-edge-summary-label">
                 {label}
             </Typography>
         }
-        <Box className="mythic-c2-edge-summary-main">
-            <span className="mythic-c2-edge-callback-id">#{callback?.display_id}</span>
-            <span className="mythic-c2-edge-summary-description">
+        <Box className="mythic-c2-edge-summary-main items-center flex flex-wrap gap-3 min-w-0">
+            <span className="mythic-c2-edge-callback-id text-sm font-850 text-primary">#{callback?.display_id}</span>
+            <span className="mythic-c2-edge-summary-description text-xs min-w-0 truncate text-muted whitespace-nowrap">
                 {callback?.description || "No description"}
             </span>
         </Box>
@@ -121,7 +121,7 @@ export function ManuallyAddEdgeDialog(props) {
     if (loading) {
      return (
         <>
-            <DialogTitle className="mythic-accent-dialog-title">Add P2P Edge</DialogTitle>
+            <DialogTitle className="mythic-accent-dialog-title relative">Add P2P Edge</DialogTitle>
             <DialogContent dividers={true}>
                 <LinearProgress />
             </DialogContent>
@@ -132,7 +132,7 @@ export function ManuallyAddEdgeDialog(props) {
      console.error(error);
      return (
         <>
-            <DialogTitle className="mythic-accent-dialog-title">Add P2P Edge</DialogTitle>
+            <DialogTitle className="mythic-accent-dialog-title relative">Add P2P Edge</DialogTitle>
             <DialogContent dividers={true}>
                 <MythicDialogBody>
                     <MythicDialogSection title="Unable to load edge options" description={error.message} />
@@ -146,8 +146,8 @@ export function ManuallyAddEdgeDialog(props) {
     }
   return (
     <>
-        <DialogTitle className="mythic-accent-dialog-title">
-            <div className="mythic-dialog-title-row">
+        <DialogTitle className="mythic-accent-dialog-title relative">
+            <div className="mythic-dialog-title-row items-center flex flex-wrap gap-5 justify-between min-w-0">
                 <div>
                     <Typography component="div" className="mythic-c2-action-title-text">
                         Add P2P Edge

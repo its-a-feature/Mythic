@@ -115,12 +115,12 @@ const StoredFileLink = ({file, children}) => {
 };
 
 const FileDetailSection = ({title, actions, children}) => (
-    <section className="mythic-file-inspector-section">
-        <div className="mythic-file-inspector-section-header">
+    <section className="mythic-file-inspector-section min-w-0 border-b-subtle">
+        <div className="mythic-file-inspector-section-header text-xs font-850 items-center flex gap-4 justify-between text-muted">
             <span>{title}</span>
-            {actions && <div className="mythic-file-inspector-section-actions">{actions}</div>}
+            {actions && <div className="mythic-file-inspector-section-actions flex gap-2">{actions}</div>}
         </div>
-        <div className="mythic-file-inspector-section-body">
+        <div className="mythic-file-inspector-section-body gap-3 min-w-0 grid grid-cols-2">
             {children}
         </div>
     </section>
@@ -136,9 +136,9 @@ const FileDetail = ({label, value, children, wide = false, code = false, copy = 
         }
     }
     return (
-        <div className={`mythic-file-inspector-detail${wide ? " mythic-file-inspector-detail-wide" : ""}`}>
+        <div className={`mythic-file-inspector-detail rounded grid bg-surface border-subtle${wide ? " mythic-file-inspector-detail-wide grid-col-full" : ""} min-w-0`}>
             <span>{label}</span>
-            <strong className={code ? "mythic-file-inspector-code" : ""}>
+            <strong className={code ? "mythic-file-inspector-code font-mono" : ""}>
                 {children || displayValue}
                 {copy &&
                     <span style={{float:"right"}}>
@@ -186,23 +186,23 @@ export const FileCopySwitcher = ({file, activeRecord, onChange}) => {
     }
 
     return (
-        <div className="mythic-file-copy-switcher" role="group" aria-label="Copy relationship">
+        <div className="mythic-file-copy-switcher py-4 px-6 items-stretch flex gap-3 min-w-0 bg-surface border-b-subtle" role="group" aria-label="Copy relationship">
             <button
                 type="button"
-                className={`mythic-file-copy-node${activeRecord === "selected" ? " mythic-file-copy-node-active" : ""}`}
+                className={`mythic-file-copy-node rounded cursor-pointer grid bg-surface-muted border-subtle text-left${activeRecord === "selected" ? " mythic-file-copy-node-active mythic-tone-info bg-tone-1 border-tone" : ""} min-w-0`}
                 aria-pressed={activeRecord === "selected"}
                 onClick={() => onChange("selected")}>
                 <span>This file</span>
                 <strong>{getFileName(file)}</strong>
             </button>
-            <div className="mythic-file-copy-relation">
+            <div className="mythic-file-copy-relation items-center flex flex-none gap-1">
                 <ArrowForwardIcon aria-hidden="true" />
                 <span>copy of</span>
                 <ArrowForwardIcon aria-hidden="true" />
             </div>
             <button
                 type="button"
-                className={`mythic-file-copy-node${activeRecord === "original" ? " mythic-file-copy-node-active" : ""}`}
+                className={`mythic-file-copy-node rounded cursor-pointer grid bg-surface-muted border-subtle text-left${activeRecord === "original" ? " mythic-file-copy-node-active mythic-tone-info bg-tone-1 border-tone" : ""} min-w-0`}
                 aria-pressed={activeRecord === "original"}
                 onClick={() => onChange("original")}>
                 <span>Tracked original</span>
@@ -267,7 +267,7 @@ const TrackedOriginalDetails = ({file, me}) => (
         <FileIdentifiersSection file={file} copyValues />
         <FileSourceContextSection file={file} />
         <FileDetailSection title="Comment">
-            <div className="mythic-file-inspector-comment">
+            <div className="mythic-file-inspector-comment bg-surface border-subtle text-xs grid-col-full rounded text-muted whitespace-pre-wrap">
                 {(file.comment || "").trim().length > 0 ? file.comment : "No comment."}
             </div>
         </FileDetailSection>
@@ -338,7 +338,7 @@ export function FileMetaInspector({file, kind, me, onEditComment}) {
 
     if(!file){
         return (
-            <aside className="mythic-file-inspector mythic-file-inspector-empty">
+            <aside className="mythic-file-inspector bg-surface-muted border-subtle flex flex-column mythic-file-inspector-empty items-center gap-4 justify-center h-full min-h-0 min-w-0 overflow-hidden rounded text-muted">
                 <InsertDriveFileOutlinedIcon fontSize="small" />
                 <Typography variant="body2">No file selected</Typography>
             </aside>
@@ -350,7 +350,7 @@ export function FileMetaInspector({file, kind, me, onEditComment}) {
     const status = getFileStatus(inspectedFile);
 
     return (
-        <aside className="mythic-file-inspector">
+        <aside className="mythic-file-inspector bg-surface-muted border-subtle flex flex-column h-full min-h-0 min-w-0 overflow-hidden rounded">
             {editCommentDialogOpen &&
                 <MythicDialog
                     fullWidth={true}
@@ -382,8 +382,8 @@ export function FileMetaInspector({file, kind, me, onEditComment}) {
                     }
                 />
             }
-            <div className="mythic-file-inspector-header">
-                <div className="mythic-file-inspector-title">
+            <div className="mythic-file-inspector-header py-5 px-6 border-b-subtle">
+                <div className="mythic-file-inspector-title text-sm font-850 items-center flex flex-wrap gap-3 min-w-0">
                     <InsertDriveFileOutlinedIcon fontSize="small" />
                     <span>{getFileName(inspectedFile)}</span>
                     <MythicChip
@@ -400,7 +400,7 @@ export function FileMetaInspector({file, kind, me, onEditComment}) {
                 </div>
             </div>
             <FileCopySwitcher file={file} activeRecord={activeRecord} onChange={setActiveRecord} />
-            <div className="mythic-file-inspector-body">
+            <div className="mythic-file-inspector-body p-5 flex flex-fill flex-column gap-4 min-h-0 overflow-auto">
                 {viewingOriginal ? (
                     <TrackedOriginalDetails file={inspectedFile} me={me} />
                 ) : (
@@ -422,13 +422,13 @@ export function FileMetaInspector({file, kind, me, onEditComment}) {
                                     tooltip="Edit file comment"
                                 />
                             }>
-                            <div className="mythic-file-inspector-comment">
+                            <div className="mythic-file-inspector-comment bg-surface border-subtle text-xs grid-col-full rounded text-muted whitespace-pre-wrap">
                                 {(file.comment || "").trim().length > 0 ? file.comment : "No comment."}
                             </div>
                         </FileDetailSection>
 
                         <FileDetailSection title="Tags">
-                            <div className="mythic-file-inspector-tags">
+                            <div className="mythic-file-inspector-tags bg-surface border-subtle grid-col-full items-center flex gap-3 overflow-hidden rounded">
                                 <ViewEditTags target_object="filemeta_id" target_object_id={file.id} me={me} />
                                 <TagsDisplay tags={file.tags || []} />
                             </div>
@@ -446,7 +446,7 @@ export function FileMetaInspector({file, kind, me, onEditComment}) {
                                     tooltip="Host file through C2"
                                 />
                             }>
-                            <div className="mythic-file-inspector-hosting">
+                            <div className="mythic-file-inspector-hosting grid-col-full min-w-0 overflow-auto">
                                 <HostedFileLocationsTable hostedFiles={file.c2profile_file_hosts || []} />
                             </div>
                         </FileDetailSection>
@@ -459,8 +459,8 @@ export function FileMetaInspector({file, kind, me, onEditComment}) {
 
 export function FileMetaSplitView({children, file, kind, me, onEditComment}) {
     return (
-        <Split direction="horizontal" sizes={[60, 40]} gutterSize={8} className="mythic-file-search">
-            <div className="mythic-file-search-results">
+        <Split direction="horizontal" sizes={[60, 40]} gutterSize={8} className="mythic-file-search flex flex-fill h-full min-h-0 min-w-0 overflow-hidden">
+            <div className="mythic-file-search-results bg-surface-muted border-subtle flex flex-column h-full min-h-0 min-w-0 overflow-hidden rounded">
                 {children}
             </div>
             <FileMetaInspector file={file} kind={kind} me={me} onEditComment={onEditComment} />

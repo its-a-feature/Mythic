@@ -1,5 +1,6 @@
 import React from 'react';
 import Chip from '@mui/material/Chip';
+import {useTheme} from "@mui/material/styles";
 
 const supportedTones = new Set([
     "primary",
@@ -15,26 +16,43 @@ export const normalizeMythicChipTone = (tone) => supportedTones.has(tone) ? tone
 
 const ChipPrimitive = React.forwardRef(function ChipPrimitive({
     className = "",
-    color = "default",
+    color = undefined,
     compact = false,
-    customColor = false,
     iconOnly = false,
     muted = false,
     shape,
     size = "small",
-    tone,
-    variant = "soft",
+    tone = undefined,
+    variant = "outlined",
     ...props
 }, ref) {
-    const resolvedTone = normalizeMythicChipTone(tone || (color !== "default" ? color : "secondary"));
-    const muiVariant = variant === "soft" ? "outlined" : variant;
-    const shapeClass = shape === "square" ? "mythic-square-chip" : "mythic-chip";
-
+    const resolvedTone = normalizeMythicChipTone(tone || (color ? color : "secondary"));
+    const muiVariant = variant ? variant : "outlined";
+    const hasCustomColor = Boolean(color) && !supportedTones.has(color);
+    const resolvedClassName = [
+        "mythic-chip-base",
+        "text-xs",
+        "font-800",
+        "items-center",
+        "inline-flex",
+        "gap-2",
+        "max-w-full",
+        "min-w-0",
+        "truncate",
+        "whitespace-nowrap",
+        shape === "square" ? "mythic-square-chip" : "mythic-chip",
+        hasCustomColor ? "mythic-chip-custom-color" : `mythic-tone-${resolvedTone}`,
+        compact ? "mythic-chip-compact text-2xs" : "",
+        muted ? "mythic-chip-muted" : "",
+        iconOnly ? "mythic-chip-icon-only justify-center" : "",
+        variant === "outlined" ? "mythic-chip-outlined" : "",
+        className,
+    ].filter(Boolean).join(" ");
     return (
         <Chip
             ref={ref}
-            className={`mythic-chip-base ${shapeClass}${customColor ? " mythic-chip-custom-color" : ` mythic-tone-${resolvedTone}`}${compact ? " mythic-chip-compact" : ""}${muted ? " mythic-chip-muted" : ""}${iconOnly ? " mythic-chip-icon-only" : ""}${variant === "outlined" ? " mythic-chip-outlined" : ""}${className ? ` ${className}` : ""}`}
-            color={color}
+            className={resolvedClassName}
+            //color={color ? color : undefined}
             size={size}
             variant={muiVariant}
             {...props}

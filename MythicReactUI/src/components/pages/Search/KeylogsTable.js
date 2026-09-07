@@ -165,39 +165,39 @@ function KeylogTableRow(props){
         <React.Fragment>
             <TableRow hover>
                 <MythicStyledTableCell>
-                    <div className="mythic-search-result-stack">
-                        <div className="mythic-search-result-link-row">
+                    <div className="mythic-search-result-stack flex flex-column gap-2 min-w-0">
+                        <div className="mythic-search-result-link-row items-center inline-flex flex-wrap gap-2 min-w-0">
                             <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>C-{props.task.callback.display_id}</Link>
-                            <span className="mythic-search-result-secondary">/</span>
+                            <span className="mythic-search-result-secondary text-xs leading-135 min-w-0 wrap-anywhere text-muted">/</span>
                             <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>T-{props.task.display_id}</Link>
                         </div>
 
                         {props.task?.callback?.mythictree_groups.length > 0 ? (
-                            <div className="mythic-search-result-secondary">
+                            <div className="mythic-search-result-secondary text-xs leading-135 min-w-0 wrap-anywhere text-muted">
                                 Groups: {props?.task?.callback.mythictree_groups.join(", ")}
                             </div>
                         ) : null}
                     </div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell style={{wordBreak: "break-all"}}>
-                    <div className="mythic-search-result-stack mythic-search-result-stack-spacious">
-                        <div className="mythic-search-result-inline">
+                    <div className="mythic-search-result-stack flex flex-column gap-2 mythic-search-result-stack-spacious gap-3 min-w-0">
+                        <div className="mythic-search-result-inline items-center flex flex-wrap gap-3 min-w-0">
                             <span className="mythic-search-result-label">User</span>
-                            <span className="mythic-search-result-value">{props.user}</span>
+                            <span className="mythic-search-result-value text-xs leading-135 wrap-anywhere text-primary">{props.user}</span>
                         </div>
-                        <div className="mythic-search-result-inline">
+                        <div className="mythic-search-result-inline items-center flex flex-wrap gap-3 min-w-0">
                             <span className="mythic-search-result-label">Host</span>
-                            <span className="mythic-search-result-value">{props.task.callback.host}</span>
+                            <span className="mythic-search-result-value text-xs leading-135 wrap-anywhere text-primary">{props.task.callback.host}</span>
                         </div>
-                        <div className="mythic-search-result-inline">
+                        <div className="mythic-search-result-inline items-center flex flex-wrap gap-3 min-w-0">
                             <span className="mythic-search-result-label">Window</span>
-                            <span className="mythic-search-result-value">{props.window}</span>
+                            <span className="mythic-search-result-value text-xs leading-135 wrap-anywhere text-primary">{props.window}</span>
                         </div>
-                        <div className="mythic-search-result-inline">
+                        <div className="mythic-search-result-inline items-center flex flex-wrap gap-3 min-w-0">
                             <span className="mythic-search-result-label">Time</span>
-                            <span className="mythic-search-result-value">{toLocalTime(props.timestamp, me?.user?.view_utc_time || false)}</span>
+                            <span className="mythic-search-result-value text-xs leading-135 wrap-anywhere text-primary">{toLocalTime(props.timestamp, me?.user?.view_utc_time || false)}</span>
                         </div>
-                        <div className="mythic-search-result-action-row">
+                        <div className="mythic-search-result-action-row items-center flex flex-nowrap gap-3 min-w-0">
                             <MythicActionButton appearance="raised"
                                 icon={<FullscreenIcon />}
                                 iconOnly
@@ -205,19 +205,19 @@ function KeylogTableRow(props){
                                 tone="info"
                                 tooltip="View current page data grouped together for this program"
                             />
-                            <span className="mythic-search-result-secondary">View window together</span>
+                            <span className="mythic-search-result-secondary text-xs leading-135 min-w-0 wrap-anywhere text-muted">View window together</span>
                         </div>
                     </div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell >
-                    <div className="mythic-search-result-stack">
-                        <div className="mythic-search-result-action-row">
+                    <div className="mythic-search-result-stack flex flex-column gap-2 min-w-0">
+                        <div className="mythic-search-result-action-row items-center flex flex-nowrap gap-3 min-w-0">
                             <MythicActionButton appearance="raised" icon={<ContentCopyIcon />} iconOnly onClick={() => onCopyToClipboard(keylogData)} tone="info" tooltip="Copy to clipboard" />
                             {keylogData.length > 500 ? (
                                 <MythicActionButton appearance="raised" icon={<OpenInNewIcon />} iconOnly onClick={() => {setOpenDisplayKeylogData(true);}} tone="info" tooltip="Open full keylog data" />
                             ) : null}
                         </div>
-                        <pre className="mythic-search-result-code mythic-search-result-code-compact">{keylogData.slice(0, 500)}{keylogData.length > 500 ? "..." : null}</pre>
+                        <pre className="mythic-search-result-code text-xs leading-140 mythic-search-result-code-compact max-w-full min-w-0 wrap-anywhere overflow-hidden rounded bg-neutral-1 border-subtle text-primary font-mono whitespace-pre-wrap">{keylogData.slice(0, 500)}{keylogData.length > 500 ? "..." : null}</pre>
                         {openDisplayKeylogData &&
                             <MythicDialog maxWidth={"100%"} fullWidth={true} open={openDisplayKeylogData} onClose={() => {setOpenDisplayKeylogData(false);}}
                                   innerDialog={

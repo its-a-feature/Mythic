@@ -1,5 +1,5 @@
 import React from 'react';
-import Button from '@mui/material/Button';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -114,12 +114,12 @@ export function EventGroupTableEditDialog({onClose, selectedEventGroup, includeS
                 <ResponseDisplayPlaintext plaintext={workflowRef.current} onChangeContent={updateWorkflow} initial_mode={outputFormat} expand={true} />
             </DialogContent>
             <DialogActions>
-                <Button className="mythic-compact-action" onClick={onClose} variant="contained">
+                <MythicActionButton compact onClick={onClose} variant="contained">
                     Close
-                </Button>
-                <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" onClick={includeSteps ? submitAsFile : onUpdateClick} variant="contained">
+                </MythicActionButton>
+                <MythicActionButton compact tone="success" onClick={includeSteps ? submitAsFile : onUpdateClick} variant="contained">
                     {includeSteps ? "Create New Workflow": "Update"}
-                </Button>
+                </MythicActionButton>
             </DialogActions>
         </React.Fragment>
     );

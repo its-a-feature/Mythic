@@ -13,7 +13,7 @@ import {useTheme} from '@mui/material/styles';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import {Button, Link} from '@mui/material';
+import {Link} from '@mui/material';
 import { toLocalTime } from '../../utilities/Time';
 import {PayloadsTableRowBuildProcessPerStep} from './PayloadsTableRowBuildProgress';
 import {b64DecodeUnicode} from '../Callbacks/ResponseDisplay';
@@ -182,9 +182,9 @@ export function DetailedPayloadTable(props){
            <DetailedPayloadInnerTable {...props} />
           </DialogContent>
           <DialogActions>
-            <Button onClick={props.onClose} variant="contained" color="primary">
+            <MythicActionButton colorMode="always" onClick={props.onClose} tone="primary" variant="contained">
               Close
-            </Button>
+            </MythicActionButton>
         </DialogActions>
         </React.Fragment>
         )
@@ -224,10 +224,10 @@ export function DetailedPayloadComparisonTable(props){
     return (
         <React.Fragment>
             <DialogTitle id="form-dialog-title">
-                <div className="mythic-dialog-title-row">
+                <div className="mythic-dialog-title-row items-center flex flex-wrap gap-5 justify-between min-w-0">
                     <span>Compare Payload Configurations</span>
                     <Select
-                        className="mythic-dialog-title-select"
+                        className="mythic-dialog-title-select rounded bg-neutral-2"
                         size="small"
                         value={view}
                         onChange={handleViewChange}
@@ -317,9 +317,9 @@ export function DetailedPayloadComparisonTable(props){
                 </Split>
             </DialogContent>
                 <DialogActions>
-                    <Button onClick={props.onClose} variant="contained" color="primary">
+                    <MythicActionButton colorMode="always" onClick={props.onClose} tone="primary" variant="contained">
                         Close
-                    </Button>
+                    </MythicActionButton>
                 </DialogActions>
         </React.Fragment>
 )
@@ -807,7 +807,7 @@ function DetailedPayloadInnerTable(props){
                     <MythicSectionHeader
                         title="Loaded Commands"
                         actions={
-                            <Button variant="outlined" size="small" onClick={()=>{setOpenAddRemoveCommandsDialog(true)}}>Add/Remove Commands</Button>
+                            <MythicActionButton variant="outlined" size="small" onClick={()=>{setOpenAddRemoveCommandsDialog(true)}}>Add/Remove Commands</MythicActionButton>
                         }
                     />
                     {commands.length > 0 &&
@@ -829,7 +829,7 @@ function DetailedPayloadInnerTable(props){
                                   <TableCell>{cmd.mythic}</TableCell>
                                   <TableCell>{cmd.payload}</TableCell>
                                   <TableCell>
-                                    <div className="mythic-compact-actions mythic-compact-actions-nowrap">
+                                    <div className="items-center flex flex-wrap gap-3 flex-nowrap">
                                       <MythicStyledTooltip title="Open command documentation">
                                           <MythicActionButton iconOnly
                                               appearance="raised" colorMode="hover" tone="info"

@@ -77,9 +77,9 @@ export function EventFeedTableEvents(props){
                     </React.Fragment>
                 }
                 secondary={
-                <div className="mythic-search-result-inline mythic-search-result-inline-nowrap">
+                <div className="mythic-search-result-inline items-center flex flex-wrap gap-3 mythic-search-result-inline-nowrap flex-nowrap min-w-0">
                     <GetEventStatusChip message={props} />
-                    <pre className="mythic-search-result-code">
+                    <pre className="mythic-search-result-code text-xs leading-140 max-w-full min-w-0 wrap-anywhere rounded bg-neutral-1 border-subtle text-primary font-mono whitespace-pre-wrap">
                         {props.message}
                     </pre>
                 </div>

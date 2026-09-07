@@ -1,5 +1,5 @@
 import React from 'react';
-import Button from '@mui/material/Button';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import {gql, useMutation} from '@apollo/client';
@@ -186,9 +186,9 @@ export function NewTagtypesDialog(props) {
                         label="Tag color"
                         onChange={setColor}
                     />
-                    <Button size="small" variant="outlined" onClick={() => setColor("")}>
+                    <MythicActionButton size="small" variant="outlined" onClick={() => setColor("")}>
                       Clear
-                    </Button>
+                    </MythicActionButton>
                   </>
                 }
             >

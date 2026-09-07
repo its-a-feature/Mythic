@@ -16,7 +16,7 @@ import MythicResizableGrid from '../../MythicComponents/MythicResizableGrid';
 import {faCopy, faKey} from '@fortawesome/free-solid-svg-icons';
 import {getIconName} from '../../utilities/IconName';
 import {Dropdown, DropdownMenuItem} from "../../MythicComponents/MythicNestedMenus";
-import {GetComputedFontSize} from "../../MythicComponents/MythicSavedUserSetting";
+import {GetComputedFontSize, GetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import {MythicSectionHeader} from "../../MythicComponents/MythicPageHeader";
 import {
@@ -28,6 +28,7 @@ import {
 import {gql, useMutation} from '@apollo/client';
 import {CredentialTableNewCredentialDialog} from "../Search/CredentialTableNewCredentialDialog";
 import {getReadableTextColor, isValidHexColor} from "../../MythicComponents/MythicColorInput";
+import {operatorSettingDefaults} from "../../../cache";
 
 export {getIconName};
 
@@ -137,7 +138,7 @@ const ResponseDisplayTableFontAwesomeEndIcon = ({cellData}) => {
 }
 const ResponseDisplayTableStringCell = ({cellData, rowData}) => {
   return (
-    <div className="mythic-response-table-cell" style={{...(cellData?.cellStyle || null), height: "100%"}}>
+    <div className="mythic-response-table-cell items-center inline-flex gap-2 max-w-full min-w-0 whitespace-nowrap" style={{...(cellData?.cellStyle || null), height: "100%"}}>
       <ResponseDisplayTableStringCellCopy cellData={cellData} />
       <ResponseDisplayTableFontAwesomeStartIcon cellData={cellData} />
       {cellData?.plaintextHoverText? (
@@ -158,7 +159,7 @@ const ResponseDisplayTableStringCell = ({cellData, rowData}) => {
 }
 const ResponseDisplayTableNumberCell = ({cellData, rowData}) => {
   return (
-    <div className="mythic-response-table-cell" style={{...(cellData?.cellStyle || null), height: "100%"}}>
+    <div className="mythic-response-table-cell items-center inline-flex gap-2 max-w-full min-w-0 whitespace-nowrap" style={{...(cellData?.cellStyle || null), height: "100%"}}>
       {cellData?.copyIcon? 
         <MythicStyledTooltip title={"Copy to clipboard"}>
             <MythicActionButton iconOnly onClick={() => onCopyToClipboard(cellData["plaintext"])} size="small">
@@ -215,7 +216,7 @@ export const getStringSize = ({cellData}) => {
 }
 const ResponseDisplayTableSizeCell = ({cellData, rowData}) => {
   return (
-    <div className="mythic-response-table-cell" style={{...(cellData?.cellStyle || null), height: "100%"}}>
+    <div className="mythic-response-table-cell items-center inline-flex gap-2 max-w-full min-w-0 whitespace-nowrap" style={{...(cellData?.cellStyle || null), height: "100%"}}>
         {cellData?.plaintextHoverText? (
         <MythicStyledTooltip title={cellData.plaintextHoverText} >
           <pre style={{display: "inline-block", margin: 0}}>
@@ -231,13 +232,10 @@ const ResponseDisplayTableSizeCell = ({cellData, rowData}) => {
      </div>
   );
 }
-const actionCellButtonStyle = {paddingTop: 0, paddingBottom: 0};
-const getActionButtonClassName = (intent = "info") => {
-  return `mythic-compact-action mythic-action-tone-hover mythic-tone-${intent === "danger" ? "error" : intent}`;
-}
+const getActionButtonTone = (intent = "info") => intent === "danger" ? "error" : intent;
 const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData, task}) => {
   return (
-    <div className="mythic-response-table-cell mythic-response-table-action-cell" style={{ height: "100%"}}>
+    <div className="mythic-response-table-cell items-center inline-flex gap-2 mythic-response-table-action-cell gap-4 max-w-full min-w-0 whitespace-nowrap" style={{ height: "100%"}}>
       {cellData?.plaintext && cellData.plaintext}
       {cellData?.button && <ResponseDisplayTableActionCellButton cellData={cellData} callback_id={callback_id} task={task} />}
     </div>
@@ -349,7 +347,7 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id, task}) => 
             <React.Fragment>
               <MythicStyledTooltip title={cellData?.button?.hoverText || "View Data"} >
                 <MythicActionButton size="small"
-                        tone={getActionButtonClassName("info")}
+                        tone={getActionButtonTone("info")}
                         onClick={() => setOpenButton(true)} disabled={cellData?.button?.disabled || false}
                         iconOnly={cellData?.button?.name === undefined}
                                     colorMode={"hover"}
@@ -371,7 +369,7 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id, task}) => 
             <React.Fragment>
               <MythicStyledTooltip title={cellData?.button?.hoverText || "View Data"} >
                 <MythicActionButton size="small"
-                        tone={getActionButtonClassName("info")}
+                        tone={getActionButtonTone("info")}
                         onClick={() => setOpenButton(true)} disabled={cellData?.button?.disabled || false}
                         iconOnly={cellData?.button?.name === undefined}
                                     colorMode={"hover"}
@@ -390,7 +388,7 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id, task}) => 
             <React.Fragment>
               <MythicStyledTooltip title={cellData?.button?.hoverText || "View Data"} >
                 <MythicActionButton size="small"
-                        tone={getActionButtonClassName("info")}
+                        tone={getActionButtonTone("info")}
                                     colorMode={"hover"}
                                     iconOnly={cellData?.button?.name === undefined}
                         onClick={() => setOpenButton(true)} disabled={cellData?.button?.disabled || false}
@@ -411,7 +409,7 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id, task}) => 
             <React.Fragment>
               <MythicStyledTooltip title={cellData?.button?.hoverText || "Create Credential"} >
                 <MythicActionButton size="small"
-                        tone={getActionButtonClassName("success")}
+                        tone={getActionButtonTone("success")}
                                     colorMode={"hover"}
                                     iconOnly={cellData?.button?.name === undefined}
                         onClick={() => setOpenCredentialButton(true)} disabled={cellData?.button?.disabled || false}
@@ -433,7 +431,7 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id, task}) => 
                 <MythicActionButton size="small"
                                     onClick={() => setOpenTaskingButton(true)}
                                     disabled={cellData?.button?.disabled || false}
-                                    tone={getActionButtonClassName("warning")}
+                                    tone={getActionButtonTone("warning")}
                                     colorMode={"hover"}
                                     iconOnly={cellData?.button?.name === undefined}
                                     icon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.disabled ? "unset" : getIconColor(theme, cellData?.button?.startIconColor || "")}}/> : undefined}
@@ -492,7 +490,7 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id, task}) => 
                   />
               }
               <MythicActionButton size="small" ref={dropdownAnchorRef}
-                      tone={getActionButtonClassName("info")}
+                      tone={getActionButtonTone("info")}
                       onClick={() => setOpenDropdownButton(true)}
                                   colorMode={"hover"}
                       disabled={cellData?.button?.disabled || false}
@@ -545,7 +543,8 @@ const createRowCells = ({row, rowIndex, headers, callback_id, task}) => {
   })
 }
 export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
-  const rowHeight = GetComputedFontSize() + 15;
+  const [virtualizedTablePadding, setVirtualizedTablePadding] = React.useState(operatorSettingDefaults.virtualizedTablePadding);
+  const rowHeight = GetComputedFontSize() + virtualizedTablePadding;
   const headerHeight = GetComputedFontSize() + 35;
   const maxHeight = 375;
   const [dataHeight, setDataHeight] = React.useState(maxHeight);
@@ -877,7 +876,16 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
       }
     },
   ];
-  
+  useEffect( () => {
+      try {
+        const storageItem = GetMythicSetting({setting_name: "virtualizedTablePadding", default_value: operatorSettingDefaults.virtualizedTablePadding});
+        if(storageItem !== null){
+          setVirtualizedTablePadding(parseInt(storageItem));
+        }
+      }catch(error){
+        console.log("Failed to load virtualizedTablePadding", error);
+      }
+  }, []);
   useEffect( () => {
     setAllData(table.rows.map(getReadableBrowserScriptRow));
     setDataHeight(Math.min(maxHeight, (table.rows.length * rowHeight) + headerHeight));
@@ -890,7 +898,7 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
         {height: dataHeight, position: "relative", width: "100%"}
   }, [expand, dataHeight, gridData]);
   return (
-        <div className="mythic-response-table" style={{height: "100%", position: "relative"}}>
+        <div className="mythic-response-table flex flex-column max-w-full min-w-0 overflow-hidden w-full" style={{height: "100%", position: "relative"}}>
             {table?.title && (
                 <MythicSectionHeader
                     dense
@@ -899,7 +907,7 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
                 />
             )}
 
-          <div className="mythic-response-table-grid" style={tableStyle}>
+          <div className="mythic-response-table-grid max-w-full min-w-0 overflow-hidden w-full" style={tableStyle}>
             <MythicResizableGrid
                   columns={columns}
                   sortIndicatorIndex={sortColumn}

@@ -1091,7 +1091,7 @@ const FileBrowserTableTop = ({
                     InputProps={{
                         className: "mythic-file-browser-pathInput",
                         endAdornment: (
-                            <div className="mythic-file-browser-toolbarGroup mythic-file-browser-toolbarGroupEnd">
+                            <div className="mythic-file-browser-toolbarGroup items-center inline-flex mythic-file-browser-toolbarGroupEnd">
                                 <MythicStyledTooltip title={`Task current callback (${tabInfo["displayID"]}) to list contents`}>
                                     <MythicActionButton iconOnly
                                         appearance="plain" colorMode="hover" shape="square" tone="info"
@@ -1166,9 +1166,9 @@ const FileBrowserTableTop = ({
                             </div>
                         ),
                         startAdornment: (
-                            <div className="mythic-file-browser-toolbarGroup mythic-file-browser-toolbarGroupStart">
+                            <div className="mythic-file-browser-toolbarGroup items-center inline-flex mythic-file-browser-toolbarGroupStart">
                                 {tokenOptions.length > 0 &&
-                                    <div className="mythic-file-browser-tokenSelect">
+                                    <div className="mythic-file-browser-tokenSelect overflow-hidden">
                                         <CallbacksTabsTaskingInputTokenSelect width={"100%"}
                                             options={tokenOptions} changeSelectedToken={changeSelectedToken}/>
                                     </div>

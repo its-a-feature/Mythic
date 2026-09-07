@@ -202,22 +202,22 @@ export function Step5Build(props){
     }
 
     return (
-        <div className="mythic-create-flow-shell">
-            <div className="mythic-create-flow-content">
-                <div className="mythic-create-selection-grid">
-                    <section className="mythic-create-section">
-                        <div className="mythic-create-agent-summary">
-                            <div className="mythic-create-agent-icon">
+        <div className="mythic-create-flow-shell flex flex-column gap-6 h-full min-h-0">
+            <div className="mythic-create-flow-content flex flex-fill flex-column gap-6 min-h-0 overflow-hidden">
+                <div className="mythic-create-selection-grid flex-none gap-6 min-w-0 grid">
+                    <section className="mythic-create-section p-6 flex flex-column gap-5 min-h-0 min-w-0 overflow-hidden rounded bg-surface-muted border-subtle">
+                        <div className="mythic-create-agent-summary items-start flex gap-6 min-w-0">
+                            <div className="mythic-create-agent-icon items-center flex justify-center rounded bg-neutral-1 border-subtle">
                                 <MythicAgentSVGIcon payload_type={props.buildOptions[1].payload_type} style={{width: "100%", height: "100%", objectFit: "contain"}} />
                             </div>
-                            <div className="mythic-create-meta-list">
+                            <div className="mythic-create-meta-list flex flex-column gap-4 min-w-0">
                                 <div>
-                                    <span className="mythic-create-meta-label">Operating system</span>
-                                    <div className="mythic-create-meta-value">{props.buildOptions[1].os}</div>
+                                    <span className="mythic-create-meta-label text-xs font-750 leading-120 text-muted">Operating system</span>
+                                    <div className="mythic-create-meta-value text-sm leading-135 wrap-anywhere text-primary">{props.buildOptions[1].os}</div>
                                 </div>
                                 <div>
-                                    <span className="mythic-create-meta-label">Description</span>
-                                    <div className="mythic-create-meta-value">{props.buildOptions[1].description}</div>
+                                    <span className="mythic-create-meta-label text-xs font-750 leading-120 text-muted">Description</span>
+                                    <div className="mythic-create-meta-value text-sm leading-135 wrap-anywhere text-primary">{props.buildOptions[1].description}</div>
                                 </div>
                                 <MythicStyledTooltip title={"Edit OS / Payload Type"}>
                                     <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" size="small" onClick={() => props.moveToStep(0)}>
@@ -227,18 +227,18 @@ export function Step5Build(props){
                             </div>
                         </div>
                     </section>
-                    <section className="mythic-create-section">
-                        <div className="mythic-create-section-header">
+                    <section className="mythic-create-section p-6 flex flex-column gap-5 min-h-0 min-w-0 overflow-hidden rounded bg-surface-muted border-subtle">
+                        <div className="mythic-create-section-header items-start flex gap-6 justify-between min-w-0">
                             <div>
-                                <Typography component="div" className="mythic-create-section-title">
+                                <Typography component="div" className="mythic-create-section-title text-sm font-800 leading-125 text-primary">
                                     Payload name and description
                                 </Typography>
-                                <Typography component="div" className="mythic-create-section-description">
+                                <Typography component="div" className="mythic-create-section-description text-xs leading-135 text-muted">
                                     These values are used for the generated file and operator-facing description.
                                 </Typography>
                             </div>
                         </div>
-                        <div className="mythic-form">
+                        <div className="mythic-form flex flex-column gap-6 min-w-0 w-full">
                             <MythicTextField onEnter={finished} autoFocus={true} required={false} placeholder={"Filename"}
                                              value={filename} multiline={false} onChange={onChangeFilename} display="inline-block"/>
                             <MythicTextField onEnter={finished} required={false} placeholder={"description"} value={description}
@@ -247,9 +247,9 @@ export function Step5Build(props){
                     </section>
                 </div>
 
-                <div className="mythic-create-builder-split mythic-create-builder-split-three">
-                    <section className="mythic-create-section mythic-create-section-scroll">
-                        <Typography component="div" className="mythic-create-section-title" style={{textAlign: "center"}}>
+                <div className="mythic-create-builder-split flex-fill gap-6 mythic-create-builder-split-three min-h-0 overflow-hidden grid">
+                    <section className="mythic-create-section p-6 flex flex-column gap-5 mythic-create-section-scroll min-h-0 min-w-0 overflow-hidden overflow-auto rounded bg-surface-muted border-subtle">
+                        <Typography component="div" className="mythic-create-section-title text-sm font-800 leading-125 text-primary" style={{textAlign: "center"}}>
                             Build parameter configuration
                             <MythicStyledTooltip title={"Edit Build Parameters"}>
                                 <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" size="small" onClick={() => props.moveToStep(1)}>
@@ -259,8 +259,8 @@ export function Step5Build(props){
                         </Typography>
                         <ConfigurationSummary buildParameters={props.buildOptions[1].parameters} os={props.buildOptions[1].os} />
                     </section>
-                    <section className="mythic-create-section mythic-create-section-scroll">
-                        <Typography component="div" className="mythic-create-section-title" style={{textAlign: "center"}}>
+                    <section className="mythic-create-section p-6 flex flex-column gap-5 mythic-create-section-scroll min-h-0 min-w-0 overflow-hidden overflow-auto rounded bg-surface-muted border-subtle">
+                        <Typography component="div" className="mythic-create-section-title text-sm font-800 leading-125 text-primary" style={{textAlign: "center"}}>
                             Command selection
                             <MythicStyledTooltip title={"Edit Commands"}>
                                 <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" size="small" onClick={() => props.moveToStep(2)}>
@@ -280,8 +280,8 @@ export function Step5Build(props){
                         ))}
 
                     </section>
-                    <section className="mythic-create-section mythic-create-section-scroll">
-                        <Typography component="div" className="mythic-create-section-title" style={{textAlign: "center"}}>
+                    <section className="mythic-create-section p-6 flex flex-column gap-5 mythic-create-section-scroll min-h-0 min-w-0 overflow-hidden overflow-auto rounded bg-surface-muted border-subtle">
+                        <Typography component="div" className="mythic-create-section-title text-sm font-800 leading-125 text-primary" style={{textAlign: "center"}}>
                             C2 configuration
                             <MythicStyledTooltip title={"Edit C2 Parameters"}>
                                 <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" size="small" onClick={() => props.moveToStep(3)}>
@@ -297,7 +297,7 @@ export function Step5Build(props){
                 </div>
             </div>
 
-            <div className="mythic-create-flow-footer">
+            <div className="mythic-create-flow-footer flex-none">
                 <CreatePayloadNavigationButtons
                     first={props.first}
                     last={props.last}

@@ -1,6 +1,7 @@
 import React, {useEffect, useState, useMemo, useContext} from 'react';
 import {DrawC2PathElementsFlowWithProvider} from './C2PathDialog';
 import {Button} from '@mui/material';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import MenuItem from '@mui/material/MenuItem';
 import {useMutation } from '@apollo/client';
 import {hideCallbackMutation, removeEdgeMutation, addEdgeMutation} from './CallbackMutations';
@@ -87,47 +88,51 @@ const GraphViewOptions = ({viewConfig, setViewConfig}) => {
         setViewConfig({...viewConfig, rankDir: viewConfig["rankDir"] === "LR" ? "TB" : "LR"});
     }
     return (
-        <div className="mythic-callback-graph-options">
+        <div className="mythic-callback-graph-options flex flex-column gap-4">
             <Button
                 size="small"
-                className="mythic-callback-graph-options-toggle"
+                className="mythic-callback-graph-options-toggle rounded"
                 onClick={() => setShowConfiguration(!showConfiguration)}
             >
                 {showConfiguration ? "Hide Graph Options" : "Graph Options"}
             </Button>
             {showConfiguration &&
-                <div className="mythic-callback-graph-options-panel">
-                    <div className="mythic-callback-graph-options-actions">
-                        <Button
+                <div className="mythic-callback-graph-options-panel flex flex-column gap-5 min-w-0 rounded bg-surface border-subtle">
+                    <div className="mythic-callback-graph-options-actions flex flex-wrap gap-3 min-w-0">
+                        <MythicActionButton
                             size="small"
-                            className={`mythic-callback-graph-option-button${!viewConfig["include_disconnected"] ? " mythic-action-tone mythic-tone-success" : ""}`}
+                            className="mythic-callback-graph-option-button"
+                            colorMode={!viewConfig["include_disconnected"] ? "always" : "hover"}
+                            tone={!viewConfig["include_disconnected"] ? "success" : "neutral"}
                             onClick={() => toggleViewConfig("include_disconnected")}
                         >
                             {viewConfig["include_disconnected"] ? "All Edges" : "Active Edges"}
-                        </Button>
-                        <Button
+                        </MythicActionButton>
+                        <MythicActionButton
                             size="small"
-                            className={`mythic-callback-graph-option-button${viewConfig["show_all_nodes"] ? " mythic-action-tone mythic-tone-warning" : ""}`}
+                            className="mythic-callback-graph-option-button"
+                            colorMode={viewConfig["show_all_nodes"] ? "always" : "hover"}
+                            tone={viewConfig["show_all_nodes"] ? "warning" : "neutral"}
                             onClick={() => toggleViewConfig("show_all_nodes")}
                         >
                             {viewConfig["show_all_nodes"] ? "All Callbacks" : "Connected Callbacks"}
-                        </Button>
+                        </MythicActionButton>
                         <Button
                             size="small"
-                            className="mythic-callback-graph-option-button"
+                            className="mythic-callback-graph-option-button rounded"
                             onClick={toggleRankDirection}
                         >
                             {viewConfig["rankDir"] === "LR" ? "Left to Right" : "Top to Bottom"}
                         </Button>
                         <Button
                             size="small"
-                            className="mythic-callback-graph-option-button"
+                            className="mythic-callback-graph-option-button rounded"
                             onClick={() => toggleViewConfig("packet_flow_view")}
                         >
                             {viewConfig["packet_flow_view"] ? "Egress Routes" : "Connection Directions"}
                         </Button>
                     </div>
-                    <div className="mythic-callback-graph-options-fields">
+                    <div className="mythic-callback-graph-options-fields gap-5 min-w-0 grid">
                         <FormControl size="small" className="mythic-callback-graph-options-field">
                             <InputLabel id="callback-graph-group-label">Group By</InputLabel>
                             <Select
@@ -172,7 +177,7 @@ const GraphViewOptions = ({viewConfig, setViewConfig}) => {
                         </FormControl>
                     </div>
                     {viewConfig["show_all_nodes"] &&
-                        <div className="mythic-callback-graph-options-warning">
+                        <div className="mythic-callback-graph-options-warning text-xs rounded mythic-tone-warning bg-tone-1 border border-tone-2 text-tone">
                             Showing all callbacks can be slow in large operations.
                         </div>
                     }

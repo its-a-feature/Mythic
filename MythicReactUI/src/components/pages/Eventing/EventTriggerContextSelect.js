@@ -1,6 +1,5 @@
 import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React, {useContext} from 'react';
-import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
@@ -264,9 +263,9 @@ export function EventTriggerContextSelectDialog({onClose, triggerContext}) {
                         ))}
                         <TableRow>
                             <MythicStyledTableCell>
-                                <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" onClick={addRow} variant="contained" startIcon={<AddCircleIcon fontSize="small" />}>
+                                <MythicActionButton compact tone="success" onClick={addRow} variant="contained" startIcon={<AddCircleIcon fontSize="small" />}>
                                     Add Entry
-                                </Button>
+                                </MythicActionButton>
                             </MythicStyledTableCell>
                             <MythicStyledTableCell></MythicStyledTableCell>
                         </TableRow>
@@ -276,12 +275,12 @@ export function EventTriggerContextSelectDialog({onClose, triggerContext}) {
 
             </DialogContent>
             <DialogActions>
-                <Button className="mythic-compact-action" onClick={onClose} variant="contained">
+                <MythicActionButton compact onClick={onClose} variant="contained">
                     Close
-                </Button>
-                <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" onClick={onSubmit} variant="contained">
+                </MythicActionButton>
+                <MythicActionButton compact tone="success" onClick={onSubmit} variant="contained">
                     Submit
-                </Button>
+                </MythicActionButton>
             </DialogActions>
         </React.Fragment>
     );

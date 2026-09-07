@@ -1,5 +1,5 @@
 import React from 'react';
-import Button from '@mui/material/Button';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -52,9 +52,9 @@ export function EventGroupConsumingContainersDialog({onClose, selectedEventGroup
                 </TableContainer>
             </DialogContent>
             <DialogActions>
-                <Button className="mythic-compact-action" onClick={onClose} variant="contained">
+                <MythicActionButton compact onClick={onClose} variant="contained">
                     Close
-                </Button>
+                </MythicActionButton>
             </DialogActions>
         </React.Fragment>
     );

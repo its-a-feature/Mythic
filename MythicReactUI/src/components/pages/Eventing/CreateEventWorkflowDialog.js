@@ -7,7 +7,6 @@ import { gql, useLazyQuery } from '@apollo/client';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import Button from '@mui/material/Button';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import CategoryIcon from '@mui/icons-material/Category';
@@ -85,12 +84,12 @@ export function TestEventGroupFileDialog({onClose, initialWorkflow}){
     }
     return (
         <React.Fragment>
-            <DialogTitle id="form-dialog-title" className="mythic-eventing-editor-dialog-title">
+            <DialogTitle id="form-dialog-title" className="mythic-eventing-editor-dialog-title items-start flex justify-between border-b-subtle">
                 <div>
                     <div className="mythic-eventing-editor-title">Create and verify eventing workflow</div>
-                    <div className="mythic-eventing-editor-subtitle">Edit workflow source and validate it before upload.</div>
+                    <div className="mythic-eventing-editor-subtitle text-xs font-600 leading-135 text-muted">Edit workflow source and validate it before upload.</div>
                 </div>
-                <div className="mythic-eventing-editor-title-actions">
+                <div className="mythic-eventing-editor-title-actions flex flex-none gap-3">
                     <MythicStyledTooltip title={"Preview graph"}>
                         <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" size="small" onClick={previewGraph}>
                             <AccountTreeIcon fontSize="small" />
@@ -120,19 +119,19 @@ export function TestEventGroupFileDialog({onClose, initialWorkflow}){
                     />
                 }
             </DialogTitle>
-            <DialogContent className="mythic-eventing-editor-dialog-content">
+            <DialogContent className="mythic-eventing-editor-dialog-content overflow-hidden">
                 <ResponseDisplayPlaintext plaintext={fileText.current} onChangeContent={onChangeFileText} initial_mode={"yaml"} expand={true} />
             </DialogContent>
-            <DialogActions className="mythic-eventing-wizard-actions">
-                <Button className="mythic-compact-action" variant="outlined" onClick={onClose}>
+            <DialogActions className="mythic-eventing-wizard-actions gap-4 border-t-subtle">
+                <MythicActionButton compact variant="outlined" onClick={onClose}>
                     Close
-                </Button>
-                <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-info" variant={"outlined"} onClick={testFile}>
+                </MythicActionButton>
+                <MythicActionButton compact tone="info" variant={"outlined"} onClick={testFile}>
                     Test
-                </Button>
-                <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" variant={"outlined"} onClick={submitAsFile}>
+                </MythicActionButton>
+                <MythicActionButton compact tone="success" variant={"outlined"} onClick={submitAsFile}>
                     Save and Submit
-                </Button>
+                </MythicActionButton>
             </DialogActions>
         </React.Fragment>
     )

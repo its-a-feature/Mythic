@@ -1,4 +1,5 @@
-import {Button, Link} from '@mui/material';
+import {Link} from '@mui/material';
+import {MythicActionButton} from "../MythicComponents/MythicActionButton";
 import {snackActions} from "./Snackbar";
 import {mythicFetch} from "./MythicConnection";
 
@@ -46,8 +47,8 @@ export function FileDownloadLinkWithAuth({href, children, ...props}){
 export function FileDownloadButtonWithAuth({href, children, ...props}){
 
     return (
-        <Button href={href} onClick={(e) => handleAuthLink(e, href)} {...props}>
+        <MythicActionButton href={href} onClick={(e) => handleAuthLink(e, href)} {...props}>
             {children}
-        </Button>
+        </MythicActionButton>
     );
 }

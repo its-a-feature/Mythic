@@ -6,7 +6,6 @@ import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import HideSourceIcon from '@mui/icons-material/HideSource';
 import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 import {MythicStyledTooltip} from '../../MythicComponents/MythicStyledTooltip';
-import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
 import DialogTitle from '@mui/material/DialogTitle';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
@@ -97,35 +96,37 @@ export function PayloadsTableRowBuildProgress(props){
         }
         setBuildProgressData(newBuildData);
     }, [props.payload_build_steps])
-    const buildStepClick = (step) => {
+    const buildStepClick = (e, step) => {
+        e?.stopPropagation();
+        e?.preventDefault();
         setDisplayData({...step, current_step: buildProgressData.current_step});
         setOpenStatusDialog(true);
     }
     const getButton = (step) => {
         if(step.step_skip){
-            return <BuildStepIconButton muted onClick={() => buildStepClick(step)}><HideSourceIcon fontSize="small" /></BuildStepIconButton>
+            return <BuildStepIconButton muted onClick={(e) => buildStepClick(e, step)}><HideSourceIcon fontSize="small" /></BuildStepIconButton>
         }
         if(step.end_time === null){
             // this will either be the current step or a future step
             if(step.start_time === null){
                 // this we have no info on it, so it's just waiting
-                return <BuildStepIconButton muted onClick={() => buildStepClick(step)}><PanoramaFishEyeIcon fontSize="small" /></BuildStepIconButton>
+                return <BuildStepIconButton muted onClick={(e) => buildStepClick(e, step)}><PanoramaFishEyeIcon fontSize="small" /></BuildStepIconButton>
             } else {
                 if(props.build_phase === "building"){
-                    return <BuildStepIconButton onClick={() => buildStepClick(step)}><TimelapseIcon fontSize="small" /></BuildStepIconButton>
+                    return <BuildStepIconButton onClick={(e) => buildStepClick(e, step)}><TimelapseIcon fontSize="small" /></BuildStepIconButton>
                 } else {
-                    return <BuildStepIconButton muted onClick={() => buildStepClick(step)}><HideSourceIcon fontSize="small" /></BuildStepIconButton>
+                    return <BuildStepIconButton muted onClick={(e) => buildStepClick(e, step)}><HideSourceIcon fontSize="small" /></BuildStepIconButton>
                 }
             }
         } else if(step.step_success) {
-            return <BuildStepIconButton tone="success" onClick={() => buildStepClick(step)}><CheckCircleOutlineIcon fontSize="small" /></BuildStepIconButton>
+            return <BuildStepIconButton tone="success" onClick={(e) => buildStepClick(e, step)}><CheckCircleOutlineIcon fontSize="small" /></BuildStepIconButton>
         } else {
-            return <BuildStepIconButton tone="error" onClick={() => buildStepClick(step)}><HighlightOffIcon fontSize="small" /></BuildStepIconButton>
+            return <BuildStepIconButton tone="error" onClick={(e) => buildStepClick(e, step)}><HighlightOffIcon fontSize="small" /></BuildStepIconButton>
         }
     }
     return (
         <>
-            <span className="mythic-compact-actions" style={props.build_phase === "success" ? {
+            <span className="items-center flex flex-wrap gap-3" style={props.build_phase === "success" ? {
                 filter: "grayscale(1)",
                 opacity: 0.5} : {}}>
                 {buildProgressData.total_steps > 0 &&
@@ -239,9 +240,9 @@ export function PayloadBuildStepStatusDialog(props) {
             </TableContainer>
         </DialogContent>
         <DialogActions>
-          <Button variant="contained" onClick={props.onClose} color="primary">
+          <MythicActionButton colorMode="always" variant="contained" onClick={props.onClose} tone="primary">
             Close
-          </Button>
+          </MythicActionButton>
         </DialogActions>
   </React.Fragment>
   );
@@ -313,30 +314,32 @@ export function PayloadsTableRowBuildProcessPerStep(props){
         }
         setBuildProgressData(newBuildData);
     }, [props.payload_build_steps])
-    const buildStepClick = (step) => {
+    const buildStepClick = (e, step) => {
+        e?.preventDefault();
+        e?.stopPropagation();
         setDisplayData({...step, current_step: buildProgressData.current_step});
         setOpenStatusDialog(true);
     }
     const getButton = (step) => {
         if(step.step_skip){
-            return <BuildStepIconButton onClick={() => buildStepClick(step)}><HideSourceIcon fontSize="small" /></BuildStepIconButton>
+            return <BuildStepIconButton onClick={(e) => buildStepClick(e, step)}><HideSourceIcon fontSize="small" /></BuildStepIconButton>
         }
         if(step.end_time === null){
             // this will either be the current step or a future step
             if(step.start_time === null){
                 // this we have no info on it, so it's just waiting
-                return <BuildStepIconButton muted onClick={() => buildStepClick(step)}><PanoramaFishEyeIcon fontSize="small" /></BuildStepIconButton>
+                return <BuildStepIconButton muted onClick={(e) => buildStepClick(e, step)}><PanoramaFishEyeIcon fontSize="small" /></BuildStepIconButton>
             } else {
                 if(props.build_status === "building"){
-                    return <BuildStepIconButton onClick={() => buildStepClick(step)}><TimelapseIcon fontSize="small" /></BuildStepIconButton>
+                    return <BuildStepIconButton onClick={(e) => buildStepClick(e, step)}><TimelapseIcon fontSize="small" /></BuildStepIconButton>
                 } else {
-                    return <BuildStepIconButton onClick={() => buildStepClick(step)}><HideSourceIcon fontSize="small" /></BuildStepIconButton>
+                    return <BuildStepIconButton onClick={(e) => buildStepClick(e, step)}><HideSourceIcon fontSize="small" /></BuildStepIconButton>
                 }
             }
         } else if(step.step_success) {
-            return <BuildStepIconButton tone="success" onClick={() => buildStepClick(step)}><CheckCircleOutlineIcon fontSize="small" /></BuildStepIconButton>
+            return <BuildStepIconButton tone="success" onClick={(e) => buildStepClick(e, step)}><CheckCircleOutlineIcon fontSize="small" /></BuildStepIconButton>
         } else {
-            return <BuildStepIconButton tone="error" onClick={() => buildStepClick(step)}><HighlightOffIcon fontSize="small" /></BuildStepIconButton>
+            return <BuildStepIconButton tone="error" onClick={(e) => buildStepClick(e, step)}><HighlightOffIcon fontSize="small" /></BuildStepIconButton>
         }
     }
     return (

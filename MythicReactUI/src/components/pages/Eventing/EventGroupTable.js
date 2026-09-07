@@ -1,7 +1,7 @@
 import React from 'react';
 import { gql, useLazyQuery, useMutation } from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
-import Button from '@mui/material/Button';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import {toLocalTime} from "../../utilities/Time";
 import NotificationsActiveTwoToneIcon from '@mui/icons-material/NotificationsActiveTwoTone';
 import NotificationsOffTwoToneIcon from '@mui/icons-material/NotificationsOffTwoTone';
@@ -172,7 +172,7 @@ export function EventGroupTable({selectedEventGroup, me, showInstances, showGrap
          }});
      }
  return (
-     <div className="mythic-eventing-detail" style={{height: height || "100%"}}>
+     <div className="mythic-eventing-detail flex flex-column gap-4 h-full min-h-0 min-w-0 overflow-auto" style={{height: height || "100%"}}>
 
          {selectedEventGroup.id === 0 &&
              <MythicPageHeader
@@ -348,11 +348,11 @@ function EventGroupWorkflowOverview({
     const createdAt = toLocalTime(selectedEventGroup?.created_at, me?.user?.view_utc_time);
 
     return (
-        <div className="mythic-eventing-workflow-overview">
-            <div className="mythic-eventing-workflow-overview-header">
-                <div className="mythic-eventing-workflow-overview-title-block">
-                    <div className="mythic-eventing-workflow-overview-title-row">
-                        <span className="mythic-eventing-workflow-overview-title">{selectedEventGroup?.name}</span>
+        <div className="mythic-eventing-workflow-overview flex-none gap-6 min-w-0 overflow-hidden w-full rounded grid bg-surface-raised border-subtle text-primary shadow-1">
+            <div className="mythic-eventing-workflow-overview-header grid-col-full items-start flex gap-6 justify-between min-w-0 border-b-subtle">
+                <div className="mythic-eventing-workflow-overview-title-block flex flex-fill flex-column gap-2 min-w-0">
+                    <div className="mythic-eventing-workflow-overview-title-row items-center flex flex-wrap gap-4 min-w-0">
+                        <span className="mythic-eventing-workflow-overview-title text-base font-800 min-w-0 wrap-anywhere text-primary">{selectedEventGroup?.name}</span>
                         <MythicPageHeaderChip
                             icon={selectedEventGroup?.active ? <NotificationsActiveTwoToneIcon /> : <NotificationsOffTwoToneIcon />}
                             label={selectedEventGroup?.active ? "Enabled" : "Disabled"}
@@ -361,43 +361,43 @@ function EventGroupWorkflowOverview({
                         {selectedEventGroup?.deleted && <MythicPageHeaderChip label="Deleted" status="error" />}
                     </div>
                     {selectedEventGroup?.description &&
-                        <div className="mythic-eventing-workflow-overview-description">{selectedEventGroup.description}</div>
+                        <div className="mythic-eventing-workflow-overview-description text-xs font-650 leading-135 min-w-0 wrap-anywhere text-muted">{selectedEventGroup.description}</div>
                     }
                 </div>
-                <div className="mythic-eventing-workflow-overview-header-actions">
+                <div className="mythic-eventing-workflow-overview-header-actions items-center flex flex-fill flex-wrap gap-3 justify-end max-w-full">
                     {selectedEventGroup?.deleted ? (
-                        <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" variant="outlined" size="small" startIcon={<RestoreFromTrashIcon fontSize="small" />} onClick={onRestore}>
+                        <MythicActionButton compact tone="success" variant="outlined" size="small" startIcon={<RestoreFromTrashIcon fontSize="small" />} onClick={onRestore}>
                             Restore
-                        </Button>
+                        </MythicActionButton>
                     ) : (
-                        <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-error" variant="outlined" size="small" startIcon={<DeleteIcon fontSize="small" />} onClick={onDelete}>
+                        <MythicActionButton compact tone="error" variant="outlined" size="small" startIcon={<DeleteIcon fontSize="small" />} onClick={onDelete}>
                             Delete
-                        </Button>
+                        </MythicActionButton>
                     )}
                     {selectedEventGroup?.active ? (
-                        <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-warning" variant="outlined" size="small" startIcon={<NotificationsActiveTwoToneIcon fontSize="small" />} onClick={onDisable}>
+                        <MythicActionButton compact tone="warning" variant="outlined" size="small" startIcon={<NotificationsActiveTwoToneIcon fontSize="small" />} onClick={onDisable}>
                             Disable
-                        </Button>
+                        </MythicActionButton>
                     ) : (
-                        <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" variant="outlined" size="small" startIcon={<NotificationsOffTwoToneIcon fontSize="small" />} onClick={onEnable}>
+                        <MythicActionButton compact tone="success" variant="outlined" size="small" startIcon={<NotificationsOffTwoToneIcon fontSize="small" />} onClick={onEnable}>
                             Enable
-                        </Button>
+                        </MythicActionButton>
                     )}
                 </div>
             </div>
-            <div className="mythic-eventing-workflow-overview-section mythic-eventing-workflow-overview-primary">
-                <div className="mythic-eventing-workflow-overview-field">
-                    <span className="mythic-eventing-workflow-overview-label">Created by</span>
-                    <span className="mythic-eventing-workflow-overview-value">{createdBy}</span>
-                    <span className="mythic-eventing-workflow-overview-subvalue">{createdAt}</span>
+            <div className="mythic-eventing-workflow-overview-section flex flex-column gap-5 mythic-eventing-workflow-overview-primary min-w-0">
+                <div className="mythic-eventing-workflow-overview-field flex flex-column gap-3 min-w-0">
+                    <span className="mythic-eventing-workflow-overview-label text-2xs font-800 leading-115 text-muted">Created by</span>
+                    <span className="mythic-eventing-workflow-overview-value text-sm font-800 leading-125 min-w-0 wrap-anywhere text-primary">{createdBy}</span>
+                    <span className="mythic-eventing-workflow-overview-subvalue text-xs font-650 leading-130 min-w-0 wrap-anywhere text-muted">{createdAt}</span>
                 </div>
-                <div className="mythic-eventing-workflow-overview-field">
-                    <span className="mythic-eventing-workflow-overview-label">Trigger behavior</span>
-                    <div className="mythic-eventing-workflow-chip-row">
-                        <SquareChip compact label={selectedEventGroup?.trigger || "unknown"} tone="info" />
+                <div className="mythic-eventing-workflow-overview-field flex flex-column gap-3 min-w-0">
+                    <span className="mythic-eventing-workflow-overview-label text-2xs font-800 leading-115 text-muted">Trigger behavior</span>
+                    <div className="mythic-eventing-workflow-chip-row items-center flex flex-wrap gap-3 min-w-0">
+                        <SquareChip compact label={selectedEventGroup?.trigger || "unknown"} />
                     </div>
                     {selectedEventGroup?.trigger === "cron" &&
-                        <span className="mythic-eventing-workflow-overview-subvalue mythic-eventing-workflow-overview-icon-line">
+                        <span className="mythic-eventing-workflow-overview-subvalue text-xs font-650 leading-130 mythic-eventing-workflow-overview-icon-line items-center inline-flex gap-3 min-w-0 wrap-anywhere text-muted">
                             <CalendarMonthTwoToneIcon fontSize="small" />
                             {toLocalTime(selectedEventGroup?.next_scheduled_run, me?.user?.view_utc_time)}
                         </span>
@@ -405,10 +405,10 @@ function EventGroupWorkflowOverview({
                 </div>
             </div>
 
-            <div className="mythic-eventing-workflow-overview-section">
-                <div className="mythic-eventing-workflow-overview-field">
-                    <span className="mythic-eventing-workflow-overview-label">Keywords</span>
-                    <div className="mythic-eventing-workflow-chip-row">
+            <div className="mythic-eventing-workflow-overview-section flex flex-column gap-5 min-w-0">
+                <div className="mythic-eventing-workflow-overview-field flex flex-column gap-3 min-w-0">
+                    <span className="mythic-eventing-workflow-overview-label text-2xs font-800 leading-115 text-muted">Keywords</span>
+                    <div className="mythic-eventing-workflow-chip-row items-center flex flex-wrap gap-3 min-w-0">
                         {keywords.length === 0 ? (
                             <MythicChip compact label="No keywords" />
                         ) : (
@@ -425,46 +425,51 @@ function EventGroupWorkflowOverview({
                         )}
                     </div>
                 </div>
-                <div className="mythic-eventing-workflow-overview-field">
-                    <span className="mythic-eventing-workflow-overview-label">Run context</span>
-                    <div className="mythic-eventing-workflow-chip-row">
+                <div className="mythic-eventing-workflow-overview-field flex flex-column gap-3 min-w-0">
+                    <span className="mythic-eventing-workflow-overview-label text-2xs font-800 leading-115 text-muted">Run context</span>
+                    <div className="mythic-eventing-workflow-chip-row items-center flex flex-wrap gap-3 min-w-0">
                         <SquareChip compact label={selectedEventGroup?.run_as || "unknown"} />
-                        <Button
-                            className={`mythic-eventing-workflow-approval-button mythic-action-tone mythic-tone-${isApproved ? "success" : "warning"}`}
+                        <MythicActionButton
+                            className="mythic-eventing-workflow-approval-button"
+                            colorMode="always"
+                            tone={isApproved ? "success" : "warning"}
                             size="small"
                             startIcon={isApproved ? <ChecklistRtlTwoToneIcon fontSize="small" /> : <RuleTwoToneIcon fontSize="small" />}
                             onClick={onOpenApproval}
                         >
                             {isApproved ? "Approved" : "Needs approval"}
-                        </Button>
+                        </MythicActionButton>
                     </div>
                 </div>
             </div>
 
-            <div className="mythic-eventing-workflow-overview-section mythic-eventing-workflow-overview-actions">
-                <div className="mythic-eventing-workflow-action-group">
-                    <span className="mythic-eventing-workflow-overview-label">Attached details</span>
-                    <div className="mythic-eventing-workflow-button-row">
-                        <Button
-                            className="mythic-compact-action mythic-action-tone-hover mythic-tone-info"
+            <div className="mythic-eventing-workflow-overview-section flex flex-column gap-5 mythic-eventing-workflow-overview-actions gap-6 min-w-0">
+                <div className="mythic-eventing-workflow-action-group flex flex-column gap-3 min-w-0">
+                    <span className="mythic-eventing-workflow-overview-label text-2xs font-800 leading-115 text-muted">Attached details</span>
+                    <div className="mythic-eventing-workflow-button-row items-center flex flex-wrap gap-3 min-w-0">
+                        <MythicActionButton
+                            compact
+                            tone="info"
                             disabled={!hasTriggerData}
                             size="small"
                             startIcon={<InfoTwoToneIcon fontSize="small" />}
                             onClick={onOpenTriggerData}
                         >
                             Trigger data
-                        </Button>
-                        <Button
-                            className="mythic-compact-action mythic-action-tone-hover mythic-tone-info"
+                        </MythicActionButton>
+                        <MythicActionButton
+                            compact
+                            tone="info"
                             disabled={!hasEnvironment}
                             size="small"
                             startIcon={<InfoTwoToneIcon fontSize="small" />}
                             onClick={onOpenEnvironment}
                         >
                             Environment
-                        </Button>
-                        <Button
-                            className="mythic-compact-action mythic-action-tone-hover mythic-tone-info"
+                        </MythicActionButton>
+                        <MythicActionButton
+                            compact
+                            tone="info"
                             size="small"
                             startIcon={
                                 <Badge badgeContent={fileCount} color="secondary">
@@ -474,10 +479,11 @@ function EventGroupWorkflowOverview({
                             onClick={onManageFiles}
                         >
                             Files
-                        </Button>
+                        </MythicActionButton>
                         {consumingContainers.length > 0 &&
-                            <Button
-                                className={`mythic-compact-action ${consumingContainersErrors > 0 ? "mythic-action-tone-hover mythic-tone-error" : "mythic-action-tone-hover mythic-tone-info"}`.trim()}
+                            <MythicActionButton
+                                compact
+                                tone={consumingContainersErrors > 0 ? "error" : "info"}
                                 size="small"
                                 startIcon={
                                     <Badge badgeContent={consumingContainersErrors} color="error">
@@ -487,62 +493,67 @@ function EventGroupWorkflowOverview({
                                 onClick={onOpenContainers}
                             >
                                 Containers
-                            </Button>
+                            </MythicActionButton>
                         }
                     </div>
                 </div>
-                <div className="mythic-eventing-workflow-action-group">
-                    <span className="mythic-eventing-workflow-overview-label">Workflow actions</span>
-                    <div className="mythic-eventing-workflow-button-row">
+                <div className="mythic-eventing-workflow-action-group flex flex-column gap-3 min-w-0">
+                    <span className="mythic-eventing-workflow-overview-label text-2xs font-800 leading-115 text-muted">Workflow actions</span>
+                    <div className="mythic-eventing-workflow-button-row items-center flex flex-wrap gap-3 min-w-0">
                         {selectedEventGroup?.trigger === "manual" &&
-                            <Button
-                                className="mythic-compact-action mythic-action-tone-hover mythic-tone-success"
+                            <MythicActionButton
+                                compact
+                                tone="success"
                                 size="small"
                                 startIcon={<PlayCircleFilledTwoToneIcon fontSize="small" />}
                                 onClick={onTriggerManual}
                             >
-                                Run now
-                            </Button>
+                                Run
+                            </MythicActionButton>
                         }
                         {keywords.length > 0 &&
-                            <Button
-                                className="mythic-compact-action mythic-action-tone-hover mythic-tone-success"
+                            <MythicActionButton
+                                compact
+                                tone="success"
                                 size="small"
                                 startIcon={<SpellcheckIcon fontSize="small" />}
                                 onClick={onOpenKeywordTrigger}
                             >
                                 Keyword run
-                            </Button>
+                            </MythicActionButton>
                         }
                         <MythicStyledTooltip title="Edit workflow metadata, settings, and steps">
-                            <Button
-                                className="mythic-compact-action mythic-action-tone-hover mythic-tone-info"
+                            <MythicActionButton
+                                compact
+                                tone="info"
                                 size="small"
                                 startIcon={<EditNoteTwoToneIcon fontSize="small" />}
                                 onClick={onEdit}
                             >
-                                Edit details
-                            </Button>
+                                Edit
+                            </MythicActionButton>
                         </MythicStyledTooltip>
                         <MythicStyledTooltip title="Large graph view">
-                            <Button
-                                className="mythic-compact-action mythic-action-tone-hover mythic-tone-info"
+                            <MythicActionButton
+                                compact
+                                tone="info"
                                 size="small"
                                 startIcon={<OpenInNewTwoToneIcon fontSize="small" />}
                                 onClick={onOpenGraph}
                             >
-                                Open graph
-                            </Button>
+                                Graph
+                            </MythicActionButton>
                         </MythicStyledTooltip>
                         <MythicStyledTooltip title="Create a new workflow using this workflow as the starting point">
-                            <Button
-                                className="mythic-compact-action mythic-action-tone-hover mythic-tone-success"
+                            <MythicActionButton
+                                compact
+                                tone="success"
                                 size="small"
                                 startIcon={<ContentCopyTwoToneIcon fontSize="small" />}
                                 onClick={onClone}
                             >
-                                Duplicate workflow
-                            </Button>
+                                Duplicate
+                            </MythicActionButton>
                         </MythicStyledTooltip>
                     </div>
                 </div>
@@ -579,7 +590,7 @@ function RenderSteps({selectedEventGroup, selectedInstanceID}){
     }
 
     return (
-        <div className="mythic-eventing-graph-panel">
+        <div className="mythic-eventing-graph-panel overflow-hidden rounded bg-surface-muted border-subtle">
             {getRenderer()}
         </div>
     )

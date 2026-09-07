@@ -1,5 +1,5 @@
 import React from 'react';
-import Button from '@mui/material/Button';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import DialogActions from '@mui/material/DialogActions';
 import DialogTitle from '@mui/material/DialogTitle';
 import Grid from '@mui/material/Grid';
@@ -255,9 +255,9 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback}) {
                   onTasked={onTasked}/>
           }
           <DialogActions>
-            <Button onClick={onClose} variant="contained" color="primary">
+            <MythicActionButton colorMode="always" onClick={onClose} tone="primary" variant="contained">
               Cancel
-            </Button>
+            </MythicActionButton>
           </DialogActions>
       </React.Fragment>
   );

@@ -1,5 +1,6 @@
 import React from 'react';
 import Button from '@mui/material/Button';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import Switch from '@mui/material/Switch';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -152,7 +153,7 @@ export function ArtifactTableNewArtifactDialog(props) {
           </MythicDialogSection>
           <MythicDialogSection title="Cleanup State">
             <FormControlLabel
-                className="mythic-dialog-switch-row"
+                className="mythic-dialog-switch-row items-center flex justify-between w-full"
                 label={"Artifact needs to be cleaned up"}
                 control={
                   <Switch
@@ -167,7 +168,7 @@ export function ArtifactTableNewArtifactDialog(props) {
             />
             {needsCleanup &&
                 <FormControlLabel
-                    className="mythic-dialog-switch-row"
+                    className="mythic-dialog-switch-row items-center flex justify-between w-full"
                     label={"Artifact is already cleaned up"}
                     labelPlacement={"start"}
                     control={<Switch
@@ -184,12 +185,12 @@ export function ArtifactTableNewArtifactDialog(props) {
         </MythicDialogBody>
       </DialogContent>
       <DialogActions>
-        <Button onClick={props.onClose} variant="contained">
+        <MythicActionButton onClick={props.onClose} variant="contained">
           Close
-        </Button>
-        <Button onClick={onSubmit} color="success" variant="contained">
+        </MythicActionButton>
+        <MythicActionButton colorMode="always" onClick={onSubmit} tone="success" variant="contained">
           Create
-        </Button>
+        </MythicActionButton>
       </DialogActions>
     </React.Fragment>
   );

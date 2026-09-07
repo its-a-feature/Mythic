@@ -177,7 +177,7 @@ export function OperationTableRow(props){
                 }
                 </TableCell>
                 <TableCell>
-                    <div className="mythic-status-stack">
+                    <div className="mythic-status-stack items-center flex flex-wrap gap-3 min-w-0">
                         <span>{props.name}</span>
                         {props.complete &&
                             <MythicStatusChip label="Completed" status="completed" />

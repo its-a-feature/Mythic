@@ -8,7 +8,7 @@ import "ace-builds/src-noconflict/mode-json";
 import "ace-builds/src-noconflict/theme-github";
 import "ace-builds/src-noconflict/theme-monokai";
 import "ace-builds/src-noconflict/ext-searchbox";
-import Button from '@mui/material/Button';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import {useTheme} from '@mui/material/styles';
 
 const create_payload = gql`
@@ -122,10 +122,9 @@ export function ViewPayloadConfigJSON(props) {
                     }}
                 />
             </div>
-            <Button onClick={onCommitSubmit} variant="contained" color="success">
+            <MythicActionButton colorMode="always" onClick={onCommitSubmit} tone="success" variant="contained">
                 {"Create New Payload"}
-            </Button>
+            </MythicActionButton>
         </React.Fragment>
     );
 }
-

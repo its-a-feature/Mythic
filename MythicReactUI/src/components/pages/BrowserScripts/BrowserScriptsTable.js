@@ -104,7 +104,7 @@ export function BrowserScriptsTable(props){
                 </MythicTableToolbarGroup>
             </MythicTableToolbar>
             <TableContainer style={{flexGrow: 1, minHeight: 0, overflow: "auto"}}>
-            <Table className="mythic-browser-scripts-table" stickyHeader={true} size="small">
+            <Table className="mythic-browser-scripts-table table-fixed max-w-full w-full" stickyHeader={true} size="small">
                 <TableHead>
                     <TableRow>
                         <MythicStyledTableCell style={{width: "24rem"}}>Script</MythicStyledTableCell>
@@ -112,7 +112,7 @@ export function BrowserScriptsTable(props){
                         <MythicStyledTableCell style={{width: "9.5rem"}}>Active</MythicStyledTableCell>
                         <MythicStyledTableCell style={{width: "12rem"}}>Source</MythicStyledTableCell>
                         <MythicStyledTableCell style={{width: "4rem", textAlign: "center"}}>Actions</MythicStyledTableCell>
-                        <MythicStyledTableCell className="mythic-browser-script-spacer-cell" />
+                        <MythicStyledTableCell className="mythic-browser-script-spacer-cell min-w-0" />
                     </TableRow>
                 </TableHead>
                 <TableBody>

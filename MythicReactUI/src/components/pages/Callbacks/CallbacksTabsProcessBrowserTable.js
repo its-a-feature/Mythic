@@ -1,5 +1,5 @@
 import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
-import React, {useCallback, useMemo} from 'react';
+import React, {useCallback, useEffect, useMemo} from 'react';
 import {useLazyQuery, gql, useMutation } from '@apollo/client';
 import { MythicDialog, MythicViewJSONAsTableDialog, MythicModifyStringDialog } from '../../MythicComponents/MythicDialog';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
@@ -37,6 +37,7 @@ import {
     isGridColumnFilterActive
 } from "../../MythicComponents/MythicResizableGrid/GridColumnFilterDialog";
 import {MythicChip} from "../../MythicComponents/MythicChip";
+import {operatorSettingDefaults} from "../../../cache";
 
 const getPermissionsDataQuery = gql`
     query getPermissionsQuery($mythictree_id: Int!) {
@@ -55,7 +56,7 @@ const updateFileComment = gql`
     }
 `;
 const ProcessMenuIcon = ({children, tone="neutral"}) => (
-    <span className={`mythic-process-menu-icon mythic-tone-${tone}`}>
+    <span className={`mythic-process-menu-icon text-tone items-center inline-flex justify-center mythic-tone-${tone}`}>
         {children}
     </span>
 );
@@ -299,6 +300,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
     const [openNodes, setOpenNodes] = React.useState({});
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
     const [filterOptions, setFilterOptions] = React.useState({});
+    const [virtualizedTablePadding, setVirtualizedTablePadding] = React.useState(operatorSettingDefaults.virtualizedTablePadding);
     const selectedColumn = React.useRef({});
     const [columnVisibility, setColumnVisibility] = React.useState({
         "visible": defaultVisibleColumns,
@@ -1099,6 +1101,14 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         }catch(error){
             console.log("Failed to load process_browser_table_filter_options", error);
         }
+        try {
+            const storageItem = GetMythicSetting({setting_name: "virtualizedTablePadding", default_value: operatorSettingDefaults.virtualizedTablePadding});
+            if(storageItem !== null){
+                setVirtualizedTablePadding(parseInt(storageItem));
+            }
+        }catch(error){
+            console.log("Failed to load virtualizedTablePadding", error);
+        }
         setLoading(false);
     }, []);
     const onSubmitColumnReorder = (newOrder) => {
@@ -1142,7 +1152,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
     }, [expandOrCollapseAll, updatedTreeAdjMatrix]);
     if(loading){
         return (
-            <div className="mythic-process-browser-table-shell">
+            <div className="mythic-process-browser-table-shell flex flex-column h-full min-h-0 min-w-0 overflow-hidden w-full relative">
                 <ProcessBrowserSummaryStrip summary={processSummary} quickFilter={quickFilter} />
                 <div style={{overflowY: "hidden", flexGrow: 1, position: "relative"}}>
                     <div style={{
@@ -1157,15 +1167,15 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         )
     }
     return (
-        <div className="mythic-process-browser-table-shell">
+        <div className="mythic-process-browser-table-shell flex flex-column h-full min-h-0 min-w-0 overflow-hidden w-full relative">
             <ProcessBrowserSummaryStrip summary={processSummary} quickFilter={quickFilter} />
-            <div className="mythic-process-browser-grid-shell">
+            <div className="mythic-process-browser-grid-shell flex-fill min-h-0 min-w-0 overflow-hidden">
                 <MythicResizableGrid
                     columns={columns}
                     sortIndicatorIndex={sortColumn}
                     sortDirection={sortData.sortDirection}
                     items={gridData}
-                    rowHeight={Math.max(32, GetComputedFontSize() + 10)}
+                    rowHeight={ GetComputedFontSize() + virtualizedTablePadding}
                     onClickHeader={onClickHeader}
                     onDoubleClickRow={localOnDoubleClick}
                     onRowClick={localOnRowClick}
@@ -1259,7 +1269,7 @@ const ProcessBrowserSummaryStrip = ({summary, quickFilter}) => {
         {label: summary.columnFiltered ? "Column filters" : "No column filters", tone: summary.columnFiltered ? "info" : "muted"},
     ];
     return (
-        <div className="mythic-process-summary-strip">
+        <div className="mythic-process-summary-strip items-center flex flex-none flex-nowrap gap-3 bg-surface border-b-subtle">
             {chips.map((chip) => (
                 <MythicChip
                     key={chip.label}
@@ -1273,7 +1283,7 @@ const ProcessBrowserSummaryStrip = ({summary, quickFilter}) => {
     );
 };
 const ProcessBrowserDetail = ({label, value, wide=false}) => (
-    <div className={`mythic-process-inspector-detail ${wide ? "mythic-process-inspector-detailWide" : ""}`}>
+    <div className={`mythic-process-inspector-detail py-3 px-4 rounded bg-surface border-subtle${wide ? " mythic-process-inspector-detailWide" : ""} min-w-0`}>
         <span>{label}</span>
         <strong title={value === undefined || value === null || value === "" ? "-" : `${value}`}>
             {value === undefined || value === null || value === "" ? "-" : value}
@@ -1294,9 +1304,9 @@ const ProcessBrowserInspector = ({nodeData, rowData, treeRootData, host, group, 
         group,
     };
     return (
-        <div className="mythic-process-inspector">
-            <div className="mythic-process-inspector-header">
-                <div className="mythic-process-inspector-title">
+        <div className="mythic-process-inspector rounded bg-surface-muted border-t-subtle shadow-2">
+            <div className="mythic-process-inspector-header items-center flex gap-6 justify-between min-w-0">
+                <div className="mythic-process-inspector-title font-800 items-center flex flex-fill gap-3 min-w-0 text-primary">
                     <TerminalIcon fontSize="small" />
                     <span title={nodeData?.name_text || ""}>{nodeData?.name_text || "Selected process"}</span>
                     {getProcessIntegrity(nodeData) > 3 &&
@@ -1306,7 +1316,7 @@ const ProcessBrowserInspector = ({nodeData, rowData, treeRootData, host, group, 
                         <MythicChip compact icon={<DeleteOutlineIcon />} label="Deleted" tone="error" />
                     }
                 </div>
-                <div className="mythic-process-inspector-actions">
+                <div className="mythic-process-inspector-actions items-center flex">
                     <FileBrowserTableRowActionCell
                         treeRootData={treeRootData}
                         host={host}
@@ -1322,8 +1332,8 @@ const ProcessBrowserInspector = ({nodeData, rowData, treeRootData, host, group, 
                     </MythicActionButton>
                 </div>
             </div>
-            <div className="mythic-process-inspector-body">
-                <div className="mythic-process-inspector-details">
+            <div className="mythic-process-inspector-body gap-5 min-w-0 grid">
+                <div className="mythic-process-inspector-details gap-3 min-w-0 grid">
                     <ProcessBrowserDetail label="PID" value={metadata.process_id || nodeData?.full_path_text} />
                     <ProcessBrowserDetail label="PPID" value={metadata.parent_process_id || nodeData?.parent_path_text} />
                     <ProcessBrowserDetail label="User" value={metadata.user} />
@@ -1333,19 +1343,19 @@ const ProcessBrowserInspector = ({nodeData, rowData, treeRootData, host, group, 
                     <ProcessBrowserDetail label="Callbacks" value={callbackIds || getProcessCallbackCount(nodeData)} wide />
                     <ProcessBrowserDetail label="Comment" value={nodeData?.comment} wide />
                 </div>
-                <div className="mythic-process-inspector-side">
-                    <div className="mythic-process-inspector-tags">
+                <div className="mythic-process-inspector-side flex flex-column gap-3 min-w-0">
+                    <div className="mythic-process-inspector-tags items-center flex gap-3 min-w-0 overflow-hidden rounded bg-surface border-subtle">
                         {nodeData?.id &&
                             <ViewEditTags
                                 target_object={"mythictree_id"}
                                 target_object_id={nodeData.id || 0}
                                 me={me} />
                         }
-                        <div className="mythic-tag-list mythic-tag-list-truncate">
+                        <div className="mythic-tag-list items-center flex flex-fill flex-nowrap gap-2 mythic-tag-list-truncate min-w-0 overflow-hidden">
                             <TagsDisplay tags={nodeData?.tags || []} />
                         </div>
                     </div>
-                    <div className="mythic-process-inspector-command" title={metadata.command_line || ""}>
+                    <div className="mythic-process-inspector-command text-xs leading-135 overflow-auto rounded bg-surface border-subtle text-primary font-mono whitespace-pre-wrap" title={metadata.command_line || ""}>
                         {metadata.command_line || "No command line recorded."}
                     </div>
                 </div>
@@ -1362,8 +1372,8 @@ const FileBrowserTableRowNameCell = ({ rowData, treeRootData, host, children, ha
     const matchLabels = rowData.filterMatchLabels || [];
     const extraMatchCount = Math.max(0, matchLabels.length - 3);
     return (
-        <div className={`mythic-process-name-cell ${nodeData?.deleted ? "mythic-process-row-deleted" : ""}`}>
-            <span className="mythic-process-indent" style={{width: `${indentWidth}px`}} />
+        <div className={`mythic-process-name-cell items-center flex gap-2 ${nodeData?.deleted ? "mythic-process-row-deleted text-disabled" : ""} h-full min-w-0 overflow-hidden w-full`}>
+            <span className="mythic-process-indent flex-none" style={{width: `${indentWidth}px`}} />
             {hasChildren ? (
                 <MythicActionButton iconOnly
                     appearance="plain" compact shape="square"
@@ -1379,8 +1389,8 @@ const FileBrowserTableRowNameCell = ({ rowData, treeRootData, host, children, ha
             ) : (
                 <span className="mythic-process-expand-spacer" />
             )}
-            <TerminalIcon className="mythic-process-name-icon" fontSize="small" />
-            <span className="mythic-process-name-text" title={displayName}>
+            <TerminalIcon className="mythic-process-name-icon flex-none text-muted" fontSize="small" />
+            <span className="mythic-process-name-text flex-fill truncate min-w-0 whitespace-nowrap" title={displayName}>
                 {displayName}
             </span>
             {elevated &&
@@ -1390,7 +1400,7 @@ const FileBrowserTableRowNameCell = ({ rowData, treeRootData, host, children, ha
                 <MythicChip compact icon={<DeleteOutlineIcon />} iconOnly label="Deleted" title="Deleted process entry" tone="error" />
             }
             {matchLabels.length > 0 &&
-                <span className="mythic-process-match-chips" title={`Matched: ${matchLabels.join(", ")}`}>
+                <span className="mythic-process-match-chips items-center inline-flex flex-none gap-1 min-w-0" title={`Matched: ${matchLabels.join(", ")}`}>
                     {matchLabels.slice(0, 3).map((label) => (
                         <MythicChip compact key={label} label={label} tone="info" />
                     ))}
@@ -1409,12 +1419,12 @@ const FileBrowserTagsCell = ({rowData, treeRootData, host, me}) => {
     const nodeData = treeRootData?.[host]?.[rowData["full_path_text"]];
     return (
         nodeData?.id ? (
-            <div className="mythic-tag-cell mythic-tag-cell-fill">
+            <div className="mythic-tag-cell items-center flex gap-3 mythic-tag-cell-fill min-w-0 overflow-hidden h-full w-full">
                 <ViewEditTags 
                     target_object={"mythictree_id"} 
                     target_object_id={nodeData?.id || 0}
                     me={me} />
-                <div className="mythic-tag-list mythic-tag-list-truncate">
+                <div className="mythic-tag-list items-center flex flex-fill flex-nowrap gap-2 mythic-tag-list-truncate min-w-0 overflow-hidden">
                     <TagsDisplay tags={nodeData?.tags || []} />
                 </div>
             </div>
@@ -1424,7 +1434,7 @@ const FileBrowserTagsCell = ({rowData, treeRootData, host, me}) => {
 const FileBrowserTableRowStringCell = ({cellData, treeRootData, host, rowData}) => {
     const displayValue = cellData === null || cellData === undefined ? "" : cellData;
     return (
-        <div className="mythic-process-string-cell" title={`${displayValue}`}>{displayValue}</div>
+        <div className="mythic-process-string-cell text-xs items-center flex flex-fill h-full min-w-0 truncate w-full text-primary whitespace-nowrap" title={`${displayValue}`}>{displayValue}</div>
     )
 }
 const FileBrowserTableRowActionCell = ({rowData, treeRootData, host, getProcessRowMenuOptions}) => {

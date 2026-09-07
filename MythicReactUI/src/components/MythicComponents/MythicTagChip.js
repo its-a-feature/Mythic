@@ -7,31 +7,22 @@ export const getTagReadableTextColor = (theme, color) => {
   return isValidHexColor(color) ? getReadableTextColor(color) : theme.palette.text.primary;
 }
 
-export const TagTypeChip = ({tagtype, label, sx={}, ...props}) => {
+export const TagTypeChip = ({tagtype, label, sx={}}) => {
   const theme = useTheme();
   const color = tagtype?.color || "";
   const textColor = getTagReadableTextColor(theme, color);
   return (
     <MythicChip
-        customColor
+        color={color}
         label={label || tagtype?.name || "Tag"}
         size="small"
         sx={{
           backgroundColor: color || "transparent",
           border: "1px solid",
-          borderColor: color ? "rgba(0,0,0,0.16)" : theme.table?.borderSoft || theme.borderColor,
+          borderColor: theme.borderColor,
           color: textColor,
-          fontWeight: 800,
-          maxWidth: "100%",
-          "& .MuiChip-label": {
-            color: "inherit",
-            minWidth: 0,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          },
           ...sx,
         }}
-        {...props}
     />
   );
 }

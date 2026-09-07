@@ -1,6 +1,6 @@
 import React, {useEffect, useCallback, useMemo, useState} from 'react';
 import {createPortal} from 'react-dom';
-import Button from '@mui/material/Button';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import ELK from 'elkjs/lib/elk.bundled.js';
@@ -171,7 +171,7 @@ const getEdgeRouteParts = (edge) => {
 const C2ActionRoute = ({edge}) => {
     const route = getEdgeRouteParts(edge);
     return (
-        <div className="mythic-c2-action-route">
+        <div className="mythic-c2-action-route text-xs font-800 items-center flex flex-wrap gap-3 text-primary">
             <span>{route.source}</span>
             <MythicChip compact label={route.profile} tone="primary" />
             <span>{route.destination}</span>
@@ -269,7 +269,7 @@ const C2CollapsedGroupEdgeDialog = ({details, onClose, onOpenCallbackTasking}) =
     };
     return (
         <>
-            <DialogTitle className="mythic-accent-dialog-title">
+            <DialogTitle className="mythic-accent-dialog-title relative">
                 <Typography component="div" className="mythic-c2-action-title-text">
                     {details?.groupLabel || "Callback Group"} Route Summary
                 </Typography>
@@ -278,8 +278,8 @@ const C2CollapsedGroupEdgeDialog = ({details, onClose, onOpenCallbackTasking}) =
                 </Typography>
             </DialogTitle>
             <DialogContent dividers={true}>
-                <div className="mythic-c2-action-body">
-                    <div className="mythic-c2-collapsed-edge-summary">
+                <div className="mythic-c2-action-body flex flex-column gap-5 min-w-0">
+                    <div className="mythic-c2-collapsed-edge-summary flex flex-wrap gap-4">
                         <MythicChip label={routeSummary.label} tone={routeSummary.tone} />
                         <MythicChip label={`${routeSummary.activeEdgeCount} active links`} />
                         <MythicChip label={`${routeSummary.endedEdgeCount} ended links`} />
@@ -302,18 +302,18 @@ const C2CollapsedGroupEdgeDialog = ({details, onClose, onOpenCallbackTasking}) =
                         />
                     }
                     {edges.length === 0 ?
-                        <div className="mythic-c2-action-empty">
+                        <div className="mythic-c2-action-empty border-dashed-subtle text-xs items-center flex rounded bg-neutral-2 text-muted">
                             No C2 route edges are currently represented by this collapsed group.
                         </div> :
                     filteredEdges.length === 0 ?
-                        <div className="mythic-c2-action-empty">
+                        <div className="mythic-c2-action-empty border-dashed-subtle text-xs items-center flex rounded bg-neutral-2 text-muted">
                             No represented edges match that filter.
                         </div> :
-                        <div className="mythic-c2-action-list mythic-c2-collapsed-edge-list">
+                        <div className="mythic-c2-action-list flex flex-column gap-4 mythic-c2-collapsed-edge-list">
                             {visibleEdges.map((edge) => (
-                                <div key={edge.id} className="mythic-c2-action-card mythic-c2-collapsed-edge-card">
-                                    <div className="mythic-c2-action-card-main">
-                                        <div className="mythic-c2-action-route">
+                                <div key={edge.id} className="mythic-c2-action-card p-5 items-start flex gap-5 justify-between mythic-c2-collapsed-edge-card min-w-0 w-full rounded cursor-pointer bg-surface-muted border-subtle text-primary text-left">
+                                    <div className="mythic-c2-action-card-main flex flex-fill flex-column gap-2 min-w-0">
+                                        <div className="mythic-c2-action-route text-xs font-800 items-center flex flex-wrap gap-3 text-primary">
                                             <span>{edge.source}</span>
                                             <MythicChip compact label={edge.profile} tone="primary" />
                                             <span>{edge.destination}</span>
@@ -323,36 +323,42 @@ const C2CollapsedGroupEdgeDialog = ({details, onClose, onOpenCallbackTasking}) =
                                             {edge.sourceHost && ` from ${edge.sourceHost}`}
                                             {edge.destinationHost && edge.destination !== "Mythic" && ` to ${edge.destinationHost}`}
                                         </Typography>
-                                        <div className="mythic-c2-collapsed-edge-card-actions">
+                                        <div className="mythic-c2-collapsed-edge-card-actions flex flex-wrap gap-3">
                                             {edge.sourceCallbackId && onOpenCallbackTasking &&
-                                                <Button
+                                                <MythicActionButton
+                                                    className="mythic-c2-collapsed-edge-action"
+                                                    compact
+                                                    tone="info"
                                                     size="small"
                                                     variant="outlined"
-                                                    className="mythic-c2-collapsed-edge-action mythic-compact-action mythic-action-tone-hover mythic-tone-info"
                                                     onClick={() => openCallbackTasking(edge.sourceCallbackId)}
                                                 >
                                                     Task {edge.source}
-                                                </Button>
+                                                </MythicActionButton>
                                             }
                                             {edge.destinationCallbackId && edge.destinationCallbackId !== edge.sourceCallbackId && onOpenCallbackTasking &&
-                                                <Button
+                                                <MythicActionButton
+                                                    className="mythic-c2-collapsed-edge-action"
+                                                    compact
+                                                    tone="info"
                                                     size="small"
                                                     variant="outlined"
-                                                    className="mythic-c2-collapsed-edge-action mythic-compact-action mythic-action-tone-hover mythic-tone-info"
                                                     onClick={() => openCallbackTasking(edge.destinationCallbackId)}
                                                 >
                                                     Task {edge.destination}
-                                                </Button>
+                                                </MythicActionButton>
                                             }
                                             {edge.active &&
-                                                <Button
+                                                <MythicActionButton
+                                                    className="mythic-c2-collapsed-edge-action"
+                                                    compact
+                                                    tone="error"
                                                     size="small"
                                                     variant="outlined"
-                                                    className="mythic-c2-collapsed-edge-action mythic-compact-action mythic-action-tone-hover mythic-tone-error"
                                                     onClick={() => removeRepresentedEdge(edge)}
                                                 >
                                                     Remove edge
-                                                </Button>
+                                                </MythicActionButton>
                                             }
                                         </div>
                                     </div>
@@ -360,7 +366,7 @@ const C2CollapsedGroupEdgeDialog = ({details, onClose, onOpenCallbackTasking}) =
                                 </div>
                             ))}
                             {filteredEdges.length > visibleEdges.length &&
-                                <div className="mythic-c2-action-empty">
+                                <div className="mythic-c2-action-empty border-dashed-subtle text-xs items-center flex rounded bg-neutral-2 text-muted">
                                     Showing {visibleEdges.length} of {filteredEdges.length} matching represented edges.
                                 </div>
                             }
@@ -383,7 +389,7 @@ const C2ManualRemoveEdgeDialog = ({options = [], onSubmit, onClose}) => {
     };
     return (
         <>
-            <DialogTitle className="mythic-accent-dialog-title">
+            <DialogTitle className="mythic-accent-dialog-title relative">
                 <Typography component="div" className="mythic-c2-action-title-text">
                     Remove Active Edge
                 </Typography>
@@ -392,12 +398,12 @@ const C2ManualRemoveEdgeDialog = ({options = [], onSubmit, onClose}) => {
                 </Typography>
             </DialogTitle>
             <DialogContent dividers={true}>
-                <div className="mythic-c2-action-body">
+                <div className="mythic-c2-action-body flex flex-column gap-5 min-w-0">
                     {options.length === 0 ?
-                        <div className="mythic-c2-action-empty">
+                        <div className="mythic-c2-action-empty border-dashed-subtle text-xs items-center flex rounded bg-neutral-2 text-muted">
                             No active edges are available to remove for this callback.
                         </div> :
-                        <div className="mythic-c2-action-list">
+                        <div className="mythic-c2-action-list flex flex-column gap-4">
                             {options.map((edge) => {
                                 const route = getEdgeRouteParts(edge);
                                 const selected = selectedEdge?.id === edge.id;
@@ -405,10 +411,10 @@ const C2ManualRemoveEdgeDialog = ({options = [], onSubmit, onClose}) => {
                                     <button
                                         type="button"
                                         key={edge.id}
-                                        className={`mythic-c2-action-card ${selected ? "mythic-c2-action-card-selected" : ""}`}
+                                        className={`mythic-c2-action-card p-5 items-start flex gap-5 justify-between rounded cursor-pointer bg-surface-muted border-subtle text-primary text-left${selected ? " mythic-c2-action-card-selected" : ""} min-w-0 w-full`}
                                         onClick={() => setSelectedEdge(edge)}
                                     >
-                                        <div className="mythic-c2-action-card-main">
+                                        <div className="mythic-c2-action-card-main flex flex-fill flex-column gap-2 min-w-0">
                                             <C2ActionRoute edge={edge} />
                                             <Typography component="div" className="mythic-c2-action-card-description">
                                                 {route.isP2P ? "Peer-to-peer link" : "Direct egress link"} from {route.source} through {route.profile}.
@@ -440,7 +446,7 @@ const C2SelectLinkCommandDialog = ({options = [], callback, onSubmit, onClose}) 
     };
     return (
         <>
-            <DialogTitle className="mythic-accent-dialog-title">
+            <DialogTitle className="mythic-accent-dialog-title relative">
                 <Typography component="div" className="mythic-c2-action-title-text">
                     Select Link Command
                 </Typography>
@@ -449,12 +455,12 @@ const C2SelectLinkCommandDialog = ({options = [], callback, onSubmit, onClose}) 
                 </Typography>
             </DialogTitle>
             <DialogContent dividers={true}>
-                <div className="mythic-c2-action-body">
+                <div className="mythic-c2-action-body flex flex-column gap-5 min-w-0">
                     {options.length === 0 ?
-                        <div className="mythic-c2-action-empty">
+                        <div className="mythic-c2-action-empty border-dashed-subtle text-xs items-center flex rounded bg-neutral-2 text-muted">
                             No loaded commands support graph link tasking for this callback.
                         </div> :
-                        <div className="mythic-c2-action-list">
+                        <div className="mythic-c2-action-list flex flex-column gap-4">
                             {options.map((option) => {
                                 const command = option.command;
                                 const selected = selectedCommand?.command?.id === command.id;
@@ -462,12 +468,12 @@ const C2SelectLinkCommandDialog = ({options = [], callback, onSubmit, onClose}) 
                                     <button
                                         type="button"
                                         key={command.id}
-                                        className={`mythic-c2-action-card ${selected ? "mythic-c2-action-card-selected" : ""}`}
+                                        className={`mythic-c2-action-card p-5 items-start flex gap-5 justify-between rounded cursor-pointer bg-surface-muted border-subtle text-primary text-left${selected ? " mythic-c2-action-card-selected" : ""} min-w-0 w-full`}
                                         onClick={() => setSelectedCommand(option)}
                                     >
-                                        <div className="mythic-c2-action-card-main">
-                                            <div className="mythic-c2-action-command-row">
-                                                <span className="mythic-c2-action-command-name">{command.cmd}</span>
+                                        <div className="mythic-c2-action-card-main flex flex-fill flex-column gap-2 min-w-0">
+                                            <div className="mythic-c2-action-command-row items-center flex flex-wrap gap-3">
+                                                <span className="mythic-c2-action-command-name text-sm font-850 text-primary font-mono">{command.cmd}</span>
                                                 {command.needs_admin &&
                                                     <MythicChip compact label="Admin" tone="warning" />
                                                 }
@@ -711,7 +717,7 @@ export function C2PathDialog({callback, callbackgraphedges, onClose, onOpenTab})
     <>
         {taskReferenceSubmitDialog}
         <DialogTitle className="mythic-c2-path-title">
-            <div className="mythic-c2-path-title-row">
+            <div className="mythic-c2-path-title-row items-center flex flex-wrap gap-6 justify-between min-w-0">
                 <div className="mythic-c2-path-title-copy">
                     <Typography component="div" className="mythic-c2-path-title-text">
                         Callback {callback.display_id}'s Egress Path
@@ -720,7 +726,7 @@ export function C2PathDialog({callback, callbackgraphedges, onClose, onOpenTab})
                         Review routes, grouping, and link-tasking options for this callback.
                     </Typography>
                 </div>
-                <div className="mythic-c2-path-summary">
+                <div className="mythic-c2-path-summary items-center flex flex-wrap gap-3">
                     <MythicChip icon={<RouteSummaryIcon />} label={routeSummary.label} tone={routeSummary.tone} />
                     <MythicChip label={`${routeSummary.activeEdgeCount} active`} />
                     <MythicChip label={`${routeSummary.endedEdgeCount} ended`} />
@@ -730,12 +736,12 @@ export function C2PathDialog({callback, callbackgraphedges, onClose, onOpenTab})
             </div>
         </DialogTitle>
         <DialogContent dividers={true} className="mythic-c2-path-content">
-            <div className={`mythic-c2-path-route-panel mythic-c2-path-route-panel-${routeSummary.tone}`}>
-                <div className="mythic-c2-path-route-state">
-                    <span className="mythic-c2-path-route-icon">
+            <div className={`mythic-c2-path-route-panel items-center flex flex-wrap gap-6 justify-between mythic-c2-path-route-panel-${routeSummary.tone} rounded border-subtle min-w-0`}>
+                <div className="mythic-c2-path-route-state items-center flex gap-5">
+                    <span className="mythic-c2-path-route-icon items-center inline-flex flex-none justify-center rounded bg-surface border-subtle text-muted">
                         <RouteSummaryIcon fontSize="small" />
                     </span>
-                    <div className="mythic-c2-path-route-copy">
+                    <div className="mythic-c2-path-route-copy min-w-0">
                         <Typography component="div" className="mythic-c2-path-route-label">
                             {routeSummary.label}
                         </Typography>
@@ -744,26 +750,26 @@ export function C2PathDialog({callback, callbackgraphedges, onClose, onOpenTab})
                         </Typography>
                     </div>
                 </div>
-                <div className="mythic-c2-path-legend">
-                    <span className="mythic-c2-path-legend-item">
+                <div className="mythic-c2-path-legend items-center flex flex-wrap gap-4 justify-end">
+                    <span className="mythic-c2-path-legend-item text-xs font-750 leading-100 items-center inline-flex gap-2 rounded bg-neutral-1 border-subtle text-muted whitespace-nowrap">
                         <WifiIcon fontSize="inherit" />
                         Direct to Mythic
                     </span>
-                    <span className="mythic-c2-path-legend-item">
+                    <span className="mythic-c2-path-legend-item text-xs font-750 leading-100 items-center inline-flex gap-2 rounded bg-neutral-1 border-subtle text-muted whitespace-nowrap">
                         <InsertLinkTwoToneIcon fontSize="inherit" />
                         P2P route
                     </span>
-                    <span className="mythic-c2-path-legend-item">
-                        <span className="mythic-c2-path-edge-swatch mythic-c2-path-edge-swatch-active" />
+                    <span className="mythic-c2-path-legend-item text-xs font-750 leading-100 items-center inline-flex gap-2 rounded bg-neutral-1 border-subtle text-muted whitespace-nowrap">
+                        <span className="mythic-c2-path-edge-swatch mythic-c2-path-edge-swatch-active rounded-full" />
                         Active link
                     </span>
-                    <span className="mythic-c2-path-legend-item">
-                        <span className="mythic-c2-path-edge-swatch mythic-c2-path-edge-swatch-ended" />
+                    <span className="mythic-c2-path-legend-item text-xs font-750 leading-100 items-center inline-flex gap-2 rounded bg-neutral-1 border-subtle text-muted whitespace-nowrap">
+                        <span className="mythic-c2-path-edge-swatch mythic-c2-path-edge-swatch-ended rounded-full mythic-tone-error bg-tone" />
                         Ended link
                     </span>
                 </div>
             </div>
-            <div className="mythic-c2-path-toolbar">
+            <div className="mythic-c2-path-toolbar p-6 items-center flex flex-wrap gap-6 justify-between min-w-0 rounded bg-surface-muted border-subtle">
                 <div className="mythic-c2-path-toolbar-copy">
                     <Typography component="div" className="mythic-c2-path-toolbar-title">
                         Graph View
@@ -772,7 +778,7 @@ export function C2PathDialog({callback, callbackgraphedges, onClose, onOpenTab})
                         Adjust labels and grouping without changing callback state.
                     </Typography>
                 </div>
-                <div className="mythic-c2-path-controls">
+                <div className="mythic-c2-path-controls items-center flex flex-wrap gap-5 justify-end">
                 <FormControl size="small" className="mythic-c2-path-control">
                     <InputLabel id="c2-path-group-label">Group By</InputLabel>
                     <Select
@@ -851,7 +857,7 @@ export function C2PathDialog({callback, callbackgraphedges, onClose, onOpenTab})
                               />}
                 />
             }
-            <div className="mythic-c2-path-canvas mythic-graph-canvas">
+            <div className="mythic-c2-path-canvas flex-fill mythic-graph-canvas min-h-0 min-w-0 overflow-hidden rounded relative bg-surface border-subtle">
                 <DrawC2PathElementsFlowWithProvider
                     providedNodes={providedCallbackNodesRef.current}
                     edges={callbackgraphedges}
@@ -920,31 +926,31 @@ function AgentNode({data}) {
         opacity: 0.5
     } : {};
     const nodeClasses = [
-        "mythic-c2-agent-node",
+        "mythic-c2-agent-node items-center flex flex-column gap-4 justify-center h-full min-w-0 w-full rounded relative",
         data?.isMythic ? "mythic-c2-agent-node-mythic" : "",
         data?.isFocused ? "mythic-c2-agent-node-focused" : "",
     ].filter(Boolean).join(" ");
     return (
         <div className={nodeClasses} style={{padding: 0, margin: 0, ...additionalStyles}}>
             {egressRoutes.length > 0 &&
-                <div className="mythic-c2-agent-node-egress-routes">
+                <div className="mythic-c2-agent-node-egress-routes items-center flex flex-wrap gap-2 justify-center overflow-hidden relative">
                     {visibleEgressRoutes.map((route) => (
                         <span
                             key={`${route.profile}-${route.id}`}
-                            className={`mythic-c2-agent-node-egress-route ${route.active ? "mythic-c2-agent-node-egress-route-active" : "mythic-c2-agent-node-egress-route-ended"}`}
+                            className={`mythic-c2-agent-node-egress-route text-2xs leading-100 items-center inline-flex gap-3 rounded-full bg-surface border-subtle text-muted${route.active ? " mythic-c2-agent-node-egress-route-active border-success-2" : " mythic-c2-agent-node-egress-route-ended mythic-tone-error border-tone-2 text-muted"} truncate whitespace-nowrap`}
                         >
                             {route.has_logo &&
                                 <MythicAgentSVGIconNoTooltip
                                     payload_type={route.profile}
                                     is_p2p={false}
-                                    className="mythic-c2-agent-node-egress-route-icon"
+                                    className="mythic-c2-agent-node-egress-route-icon flex-none"
                                 />
                             }
                             <span>{route.profile}</span>
                         </span>
                     ))}
                     {egressRoutes.length > visibleEgressRoutes.length &&
-                        <span className="mythic-c2-agent-node-egress-route mythic-c2-agent-node-egress-route-more">
+                        <span className="mythic-c2-agent-node-egress-route text-2xs leading-100 items-center inline-flex gap-3 mythic-c2-agent-node-egress-route-more truncate rounded-full bg-surface border-subtle text-muted whitespace-nowrap">
                             +{egressRoutes.length - visibleEgressRoutes.length}
                         </span>
                     }
@@ -958,7 +964,7 @@ function AgentNode({data}) {
             }
             <ImageWithAuth alt={data.img} style={{margin: egressRoutes.length > 0 ? "0 auto" : "auto"}} src={data.img}  className={"circleImageNode"} />
             <Handle type={"target"} position={targetPosition} isConnectable={false}/>
-            <Typography className="mythic-c2-agent-node-label" >{data.label}</Typography>
+            <Typography className="mythic-c2-agent-node-label max-w-full truncate whitespace-nowrap" >{data.label}</Typography>
         </div>
     )
 }
@@ -1034,69 +1040,69 @@ export function GroupNode({data}) {
             <>
                 <Handle id={sourceHandleId} type={"source"} position={sourcePosition} isConnectable={false} className="mythic-c2-group-node-handle" />
                 <div
-                    className={`mythic-c2-group-node ${data.expanded ? "mythic-c2-group-node-expanded" : "mythic-c2-group-node-collapsed"}`}
+                    className={`mythic-c2-group-node flex flex-column gap-4 justify-start relative border-subtle text-primary shadow-2${data.expanded ? " mythic-c2-group-node-expanded" : " mythic-c2-group-node-collapsed"} h-full min-w-0 overflow-hidden w-full`}
                     data-node-id={data.groupId}
                 >
-                    <div className="mythic-c2-group-node-header">
-                        <div className="mythic-c2-group-node-title-wrap">
+                    <div className="mythic-c2-group-node-header items-start flex gap-4 justify-between min-w-0">
+                        <div className="mythic-c2-group-node-title-wrap min-w-0">
                             <Typography component="div" className="mythic-c2-group-node-kicker">
                                 {data.groupTypeLabel || "Callback group"}
                             </Typography>
-                            <Typography component="div" className="mythic-c2-group-node-title">
+                            <Typography component="div" className="mythic-c2-group-node-title truncate whitespace-nowrap">
                                 {data.label}
                             </Typography>
                         </div>
-                        <button type="button" className="mythic-c2-group-node-toggle nodrag nopan" onClick={onToggle}>
+                        <button type="button" className="mythic-c2-group-node-toggle text-2xs leading-100 flex-none nodrag nopan rounded cursor-pointer border-subtle text-muted" onClick={onToggle}>
                             {data.expanded ? "Hide callbacks" : "Show callbacks"}
                         </button>
                     </div>
-                    <div className="mythic-c2-group-node-stats">
-                        <button type="button" className="mythic-c2-group-node-stat nodrag nopan" onClick={onInspectRoutes}>{data.totalCount} callbacks</button>
-                        <button type="button" className="mythic-c2-group-node-stat mythic-c2-group-node-stat-success nodrag nopan" onClick={onInspectRoutes}>{data.activeCount} active</button>
+                    <div className="mythic-c2-group-node-stats flex flex-wrap gap-2">
+                        <button type="button" className="mythic-c2-group-node-stat text-2xs leading-100 items-center inline-flex nodrag nopan rounded-full cursor-pointer bg-neutral-2 border-subtle text-muted" onClick={onInspectRoutes}>{data.totalCount} callbacks</button>
+                        <button type="button" className="mythic-c2-group-node-stat text-2xs leading-100 items-center inline-flex mythic-c2-group-node-stat-success nodrag nopan rounded-full cursor-pointer bg-neutral-2 border-subtle text-muted mythic-tone-success bg-tone-1 border-tone-2" onClick={onInspectRoutes}>{data.activeCount} active</button>
                         {data.routeSummary &&
-                            <button type="button" className={`mythic-c2-group-node-stat mythic-c2-group-node-stat-${data.routeSummary.tone} nodrag nopan`} onClick={onInspectRoutes}>
+                            <button type="button" className={`mythic-c2-group-node-stat text-2xs leading-100 items-center inline-flex mythic-c2-group-node-stat-${data.routeSummary.tone} rounded-full cursor-pointer bg-neutral-2 border-subtle text-muted nodrag nopan`} onClick={onInspectRoutes}>
                                 {data.routeSummary.label}
                             </button>
                         }
                         {data.p2pCount > 0 &&
-                            <button type="button" className="mythic-c2-group-node-stat nodrag nopan" onClick={onInspectRoutes}>{data.p2pCount} p2p</button>
+                            <button type="button" className="mythic-c2-group-node-stat text-2xs leading-100 items-center inline-flex nodrag nopan rounded-full cursor-pointer bg-neutral-2 border-subtle text-muted" onClick={onInspectRoutes}>{data.p2pCount} p2p</button>
                         }
                         {data.egressCount > 0 &&
-                            <button type="button" className="mythic-c2-group-node-stat nodrag nopan" onClick={onInspectRoutes}>{data.egressCount} egress</button>
+                            <button type="button" className="mythic-c2-group-node-stat text-2xs leading-100 items-center inline-flex nodrag nopan rounded-full cursor-pointer bg-neutral-2 border-subtle text-muted" onClick={onInspectRoutes}>{data.egressCount} egress</button>
                         }
                     </div>
                     {data.routeSummary?.profileNames?.length > 0 &&
-                        <div className="mythic-c2-group-node-muted">
+                        <div className="mythic-c2-group-node-muted text-2xs truncate text-muted whitespace-nowrap">
                             Routes: {data.routeSummary.profileNames.slice(0, 3).join(", ")}
                             {data.routeSummary.profileNames.length > 3 ? ` +${data.routeSummary.profileNames.length - 3}` : ""}
                         </div>
                     }
                     {data.payloadTypes?.length > 0 &&
-                        <div className="mythic-c2-group-node-muted">
+                        <div className="mythic-c2-group-node-muted text-2xs truncate text-muted whitespace-nowrap">
                             Payloads: {data.payloadTypes.join(", ")}
                         </div>
                     }
                     {data.expanded &&
-                        <div className="mythic-c2-group-node-members">
-                            <div className="mythic-c2-group-node-members-row">
+                        <div className="mythic-c2-group-node-members flex flex-column gap-3 min-w-0">
+                            <div className="mythic-c2-group-node-members-row flex flex-wrap gap-2 overflow-hidden">
                                 {(data.visibleMembers || []).map((member) => (
                                     <button
                                         type="button"
                                         key={member.id}
-                                        className={`mythic-c2-group-node-member nodrag nopan ${member.active ? "mythic-c2-group-node-member-active" : ""}`}
+                                        className={`mythic-c2-group-node-member text-2xs leading-100 nodrag nopan rounded-full cursor-pointer bg-neutral-2 border-subtle text-muted${member.active ? " mythic-c2-group-node-member-active border-success-2" : ""}`}
                                         onClick={(event) => onSelectMember(event, member.id)}
                                     >
                                         #{member.display_id}
                                     </button>
                                 ))}
                                 {data.hiddenMemberCount > 0 &&
-                                    <span className="mythic-c2-group-node-member mythic-c2-group-node-member-muted">
+                                    <span className="mythic-c2-group-node-member text-2xs leading-100 mythic-c2-group-node-member-muted rounded-full cursor-pointer bg-neutral-2 border-subtle text-muted">
                                         +{data.hiddenMemberCount} hidden
                                     </span>
                                 }
                             </div>
                             {data.totalCount > data.defaultMemberLimit &&
-                                <div className="mythic-c2-group-node-actions nodrag nopan">
+                                <div className="mythic-c2-group-node-actions flex flex-wrap gap-2 nodrag nopan rounded relative bg-surface-translucent border-subtle">
                                     {data.hiddenMemberCount > 0 &&
                                         <button type="button" onClick={onShowMore}>Show more</button>
                                     }
@@ -1118,7 +1124,7 @@ export function GroupNode({data}) {
     return (
         <>
             <Handle hidden type={"source"} position={sourcePosition} isConnectable={false} />
-            <div className={"groupNode"} style={{width: data.width, height: data.height, margin: "auto"}}>
+            <div className={"groupNode rounded border"} style={{width: data.width, height: data.height, margin: "auto"}}>
                 <Typography style={{textAlign: "center", margin: 0, padding: 0}} >{data.label}</Typography>
             </div>
             <Handle type={"target"} hidden position={targetPosition} isConnectable={false} />
@@ -1127,7 +1133,7 @@ export function GroupNode({data}) {
 
     )
 }
-const nodeTypes = { "agentNode": AgentNode, "groupNode": GroupNode, "taskNode": TaskNode, "browserscriptNode": BrowserscriptNode };
+const nodeTypes = { "agentNode": AgentNode, "groupNode rounded": GroupNode, "taskNode": TaskNode, "browserscriptNode": BrowserscriptNode };
 
 export function C2LabelEdge({  id,  sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data,
                                 labelStyle, markerStart, markerEnd, labelBgStyle, style, label
@@ -1175,7 +1181,7 @@ export function C2LabelEdge({  id,  sourceX, sourceY, targetX, targetY, sourcePo
                     {data?.collapsedGroupEdge ?
                         <button
                             type="button"
-                            className={`mythic-c2-group-edge-summary mythic-c2-group-edge-summary-${data.routeSummary?.tone || "neutral"}`}
+                            className={`mythic-c2-group-edge-summary border-neutral-3 text-2xs leading-100 items-center inline-flex gap-3 mythic-c2-group-edge-summary-${data.routeSummary?.tone || "neutral"} rounded-full cursor-pointer bg-surface text-muted shadow-3 whitespace-nowrap`}
                             onClick={(event) => {
                                 event.stopPropagation();
                                 data.onInspectCollapsedEdge?.(data.summaryDetails);
@@ -1187,15 +1193,14 @@ export function C2LabelEdge({  id,  sourceX, sourceY, targetX, targetY, sourcePo
                         </button> :
                         showProfileLabel &&
                             <MythicChip
-                                className={`mythic-c2-edge-profile-chip${data?.has_logo ? " mythic-c2-edge-profile-chip-with-icon" : ""}`}
                                 icon={data?.has_logo ?
                                     <MythicAgentSVGIconNoTooltip
                                         payload_type={label}
                                         is_p2p={data.is_p2p}
-                                        className="mythic-c2-edge-profile-icon"
+                                        className="mythic-c2-edge-profile-icon inline-flex flex-none justify-center"
                                     /> : undefined
                                 }
-                                label={<span className="mythic-c2-edge-profile-name">{label}</span>}
+                                label={label}
                             />
                     }
                 </div>
@@ -1230,7 +1235,7 @@ const getCallbackGroupHeight = (node) => {
     return 132 + routeLine + payloadLine + extraStatRow;
 };
 const getWidth = (node) => {
-    if(node.type === "groupNode" && node.data?.callbackGroup){
+    if(node.type === "groupNode rounded" && node.data?.callbackGroup){
         return getCallbackGroupWidth(node);
     }
     if(node.type === "agentNode" && node.data?.egressRoutes?.length > 0){
@@ -1274,7 +1279,7 @@ const getHeight = (node) => {
     if(node.hidden){
         return 0;
     }
-    if(node.type === "groupNode" && node.data?.callbackGroup){
+    if(node.type === "groupNode rounded" && node.data?.callbackGroup){
         return getCallbackGroupHeight(node);
     }
     if(node.type === "agentNode" && node.data?.egressRoutes?.length > 0){
@@ -1286,7 +1291,7 @@ const getHeight = (node) => {
     return 80;
 }
 const getGroupLayoutOptions = (group, options) => {
-    if(group.type === "groupNode" && group.data?.callbackGroup && group.data?.expanded){
+    if(group.type === "groupNode rounded" && group.data?.callbackGroup && group.data?.expanded){
         const topPadding = getCallbackGroupHeight(group) + 28;
         return {
             ...options,
@@ -1779,7 +1784,7 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
     };
     const onNodeContextMenu = useCallback( (event, node) => {
         if(!contextMenu){return}
-        if(node.type === "groupNode"){
+        if(node.type === "groupNode rounded"){
             return;
         }
         event.preventDefault();
@@ -1903,7 +1908,7 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
                 parentIds.push({
                     id: groupId,
                     position: { x: 110, y: 110 },
-                    type: "groupNode",
+                    type: "groupNode rounded",
                     width: 280,
                     height: 118,
                     data: {
@@ -2687,7 +2692,7 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
     }, [graphData, view_config, setNodes, setEdgeFlow, updateNodeInternals, fitView]);
     const onlyRenderVisibleGraphElements = nodes.length > 20;
     return (
-        <div className="mythic-graph-canvas mythic-c2-flow-canvas" style={{height: "100%", width: "100%"}} ref={viewportRef}>
+        <div className="mythic-graph-canvas mythic-c2-flow-canvas min-h-0 min-w-0 overflow-hidden rounded relative bg-surface border-subtle" style={{height: "100%", width: "100%"}} ref={viewportRef}>
                 <ReactFlow
                     fitView
                     onlyRenderVisibleElements={onlyRenderVisibleGraphElements}
@@ -2715,12 +2720,12 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
                     </Controls>
                 </ReactFlow>
             {openContextMenu && typeof document !== "undefined" && createPortal(
-                <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu mythic-graph-context-menu">
+                <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu mythic-graph-context-menu rounded bg-surface border shadow-3 absolute">
                     {contextMenu.map( (m) => (
-                        <Button key={m.title} color={"info"} className="context-menu-button mythic-graph-context-menu-button mythic-action-tone-hover mythic-tone-info" onClick={() => {
+                        <MythicActionButton key={m.title} className="context-menu-button mythic-graph-context-menu-button w-full text-left" tone="info" onClick={() => {
                             m.onClick(contextMenuNode.current);
                             setOpenContextMenu(false);
-                        }}>{m.title}</Button>
+                        }}>{m.title}</MythicActionButton>
                         ))}
                 </div>,
                 document.body
@@ -2843,7 +2848,7 @@ export const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme,
     }, [edgeFlow, nodes, setOpenContextMenu, graphData.edges])
     const onNodeContextMenu = useCallback( (event, node) => {
         if(!contextMenu){return}
-        if(node.type === "groupNode"){
+        if(node.type === "groupNode rounded"){
             return;
         }
         event.preventDefault();
@@ -3182,7 +3187,7 @@ export const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme,
                 parentIds.push({
                     id: groupByValue,
                     position: { x: 110, y: 110 },
-                    type: "groupNode",
+                    type: "groupNode rounded",
                     width: 200,
                     height: 200,
                     data: {
@@ -3401,7 +3406,7 @@ export const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme,
 
     }
     return (
-        <div className="mythic-graph-canvas" style={{height: "100%", width: "100%"}} ref={viewportRef}>
+        <div className="mythic-graph-canvas min-h-0 min-w-0 overflow-hidden rounded relative bg-surface border-subtle" style={{height: "100%", width: "100%"}} ref={viewportRef}>
             <ReactFlow
                 fitView
                 onlyRenderVisibleElements={false}
@@ -3434,12 +3439,12 @@ export const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme,
                 </Controls>
             </ReactFlow>
             {openContextMenu && typeof document !== "undefined" && createPortal(
-                <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu mythic-graph-context-menu">
+                <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu mythic-graph-context-menu rounded bg-surface border shadow-3 absolute">
                     {localContextMenu.map( (m) => (
-                        <Button key={m?.key ? m.key : m.title} color={"info"} className="context-menu-button mythic-graph-context-menu-button mythic-action-tone-hover mythic-tone-info" onClick={() => {
+                        <MythicActionButton key={m?.key ? m.key : m.title} className="context-menu-button mythic-graph-context-menu-button w-full text-left" tone="info" onClick={() => {
                             m.onClick(contextMenuNode.current);
                             setOpenContextMenu(false);
-                        }}>{m.title}</Button>
+                        }}>{m.title}</MythicActionButton>
                     ))}
                 </div>,
                 document.body

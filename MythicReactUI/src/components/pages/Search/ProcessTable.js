@@ -52,7 +52,7 @@ export function ProcessTable(props){
             <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>
-                        <TableCell style={{width: "5rem"}}>Metadata</TableCell>
+                        <TableCell style={{width: "6rem"}}>Metadata</TableCell>
                         <TableCell style={{width: "6rem"}}> PID </TableCell>
                         <TableCell >Info</TableCell>
                         <TableCell >Name</TableCell>
@@ -107,7 +107,7 @@ function ProcessTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <div
-                        className="mythic-search-result-value"
+                        className="mythic-search-result-value text-xs leading-135 wrap-anywhere text-primary"
                         style={{...singleLineCellStyle, textDecoration: props.deleted ? "line-through" : ""}}
                         title={props.full_path_text}
                     >
@@ -115,13 +115,13 @@ function ProcessTableRow(props){
                     </div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <div className="mythic-search-result-stack">
-                        <div className="mythic-search-result-inline">
+                    <div className="mythic-search-result-stack flex flex-column gap-2 min-w-0">
+                        <div className="mythic-search-result-inline items-center flex flex-wrap gap-3 min-w-0">
                             <span className="mythic-search-result-label">Host</span>
-                            <span className="mythic-search-result-value">{props.host}</span>
+                            <span className="mythic-search-result-value text-xs leading-135 wrap-anywhere text-primary">{props.host}</span>
                         </div>
                         {props.callback ? (
-                            <div className="mythic-search-result-link-row">
+                            <div className="mythic-search-result-link-row items-center inline-flex flex-wrap gap-2 min-w-0">
                                 <span className="mythic-search-result-label">Callback</span>
                                 <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
                                       href={"/new/callbacks/" + props.callback.display_id}>
@@ -129,7 +129,7 @@ function ProcessTableRow(props){
                                 </Link>
                                 {props.task ? (
                                     <>
-                                        <span className="mythic-search-result-secondary">/</span>
+                                        <span className="mythic-search-result-secondary text-xs leading-135 min-w-0 wrap-anywhere text-muted">/</span>
                                         <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
                                               href={"/new/task/" + props.task.display_id}>
                                             T-{props.task.display_id}
@@ -139,7 +139,7 @@ function ProcessTableRow(props){
                             </div>
                         ) : null}
                         {props.callback?.mythictree_groups.length > 0 ? (
-                            <div className="mythic-search-result-secondary">
+                            <div className="mythic-search-result-secondary text-xs leading-135 min-w-0 wrap-anywhere text-muted">
                                 Groups: {props?.callback.mythictree_groups.join(", ")}
                             </div>
                         ) : null}
@@ -147,8 +147,8 @@ function ProcessTableRow(props){
                 </MythicStyledTableCell>
 
                 <MythicStyledTableCell>
-                    <div className="mythic-search-result-stack">
-                        <div className="mythic-search-result-value" style={singleLineCellStyle} title={props.name_text}>
+                    <div className="mythic-search-result-stack flex flex-column gap-2 min-w-0">
+                        <div className="mythic-search-result-value text-xs leading-135 wrap-anywhere text-primary" style={singleLineCellStyle} title={props.name_text}>
                             {props.name_text}
                         </div>
                         {props.deleted &&
@@ -157,9 +157,9 @@ function ProcessTableRow(props){
                     </div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <div className="mythic-search-result-action-row">
+                    <div className="mythic-search-result-action-row items-center flex flex-nowrap gap-3 min-w-0">
                         <MythicActionButton appearance="raised" icon={<EditIcon />} iconOnly onClick={() => setEditCommentDialogOpen(true)} tone="info" tooltip="Edit comment" />
-                        <span className="mythic-search-result-secondary">{props.comment || "No comment"}</span>
+                        <span className="mythic-search-result-secondary text-xs leading-135 min-w-0 wrap-anywhere text-muted">{props.comment || "No comment"}</span>
                     </div>
                     </MythicStyledTableCell>
                 <MythicStyledTableCell>

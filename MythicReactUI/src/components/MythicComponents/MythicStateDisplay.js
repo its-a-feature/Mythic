@@ -1,6 +1,6 @@
 import React from 'react';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
+import {MythicActionButton} from './MythicActionButton';
 import CircularProgress from '@mui/material/CircularProgress';
 import Skeleton from '@mui/material/Skeleton';
 import TableCell from '@mui/material/TableCell';
@@ -90,9 +90,9 @@ export function MythicStateDisplay({
                 }
                 {action || (actionLabel && onAction) ? (
                     action || (
-                        <Button size="small" variant="outlined" onClick={onAction} sx={{mt: 0.5}}>
+                        <MythicActionButton size="small" variant="outlined" onClick={onAction} sx={{mt: 0.5}}>
                             {actionLabel}
-                        </Button>
+                        </MythicActionButton>
                     )
                 ) : null}
             </Box>

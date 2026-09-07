@@ -97,6 +97,7 @@ export const operatorSettingDefaults =  {
     taskingContextFields: ["impersonation_context", "cwd"],
     ["experiment-responseStreamLimit"]: 200,
     chatSelectedChannelID: 0,
+    virtualizedTablePadding: 8,
     sideShortcuts: defaultShortcuts,
     palette: {
         primary: {

@@ -11,11 +11,11 @@ const CreatePayloadBuildParameterGroup = ({group, children}) => {
     const toggleCollapsed = () => setCollapsed((current) => !current);
 
     return (
-        <section className="mythic-create-parameter-group mythic-column-stack">
+        <section className="mythic-create-parameter-group mythic-column-stack flex flex-column gap-4 min-w-0">
             {hasHeader &&
                 <div
                     aria-expanded={!collapsed}
-                    className="mythic-create-parameter-group-header mythic-create-parameter-group-header-collapsible"
+                    className="mythic-create-parameter-group-header text-header text-sm font-800 leading-125 items-center flex gap-2 mythic-create-parameter-group-header-collapsible min-w-0 rounded cursor-pointer border-subtle"
                     onClick={toggleCollapsed}
                     onKeyDown={(event) => {
                         if(event.key === "Enter" || event.key === " "){
@@ -27,20 +27,20 @@ const CreatePayloadBuildParameterGroup = ({group, children}) => {
                     tabIndex={0}
                 >
                     {collapsed ?
-                        <ChevronRightIcon className="mythic-create-parameter-group-header-icon" fontSize="small" /> :
-                        <ExpandMoreIcon className="mythic-create-parameter-group-header-icon" fontSize="small" />
+                        <ChevronRightIcon className="mythic-create-parameter-group-header-icon flex-none" fontSize="small" /> :
+                        <ExpandMoreIcon className="mythic-create-parameter-group-header-icon flex-none" fontSize="small" />
                     }
-                    <span className="mythic-create-parameter-group-header-title">{group.name}</span>
+                    <span className="mythic-create-parameter-group-header-title min-w-0 wrap-anywhere">{group.name}</span>
                 </div>
             }
             {hasHeader ? (
                 <Collapse in={!collapsed} timeout="auto">
-                    <div className="mythic-column-stack">
+                    <div className="mythic-column-stack flex flex-column gap-4 min-w-0">
                         {children}
                     </div>
                 </Collapse>
             ) : (
-                <div className="mythic-column-stack">
+                <div className="mythic-column-stack flex flex-column gap-4 min-w-0">
                     {children}
                 </div>
             )}
@@ -63,7 +63,7 @@ export function CreatePayloadBuildParametersTable(props){
         }, {});
     }
     return (
-        <div className="mythic-create-parameter-scroll">
+        <div className="mythic-create-parameter-scroll flex flex-column gap-6 h-full min-h-0 overflow-auto w-full">
             {buildParameters.map(b => (
                 b.parameters.length > 0 &&
                 <CreatePayloadBuildParameterGroup group={b} key={b?.name || 'undefined'}>

@@ -1,6 +1,7 @@
 import { LoggedInRoute } from './utilities/LoggedInRoute';
 import React, {createContext} from 'react';
-import {Button, Typography} from '@mui/material';
+import {Typography} from '@mui/material';
+import {MythicActionButton} from './MythicComponents/MythicActionButton';
 import { useReactiveVar } from '@apollo/client';
 import { useDarkMode } from './utilities/useDarkMode';
 import { alpha, createTheme, ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
@@ -1287,11 +1288,11 @@ export function App(props) {
                                                 ? "Connection to Mythic was lost. Check the server or network. If this deployment uses a self-signed certificate, Chrome may require approval again."
                                                 : "Connection to Mythic was lost. Check the server or network, then reload Mythic."}
                                     </Typography>
-                                    <Button color="inherit" size="small" variant="outlined"
+                                    <MythicActionButton size="small" variant="outlined"
                                             onClick={() => window.location.reload()}
                                             sx={{fontWeight: 700, minWidth: "auto", py: 0.25}}>
                                         Reload Mythic
-                                    </Button>
+                                    </MythicActionButton>
                                 </div>
                             }
                             <div style={{

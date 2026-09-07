@@ -24,7 +24,6 @@ import { copyStringToClipboard } from '../../utilities/Clipboard';
 import MythicResizableGrid from '../../MythicComponents/MythicResizableGrid';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import {faFilter} from '@fortawesome/free-solid-svg-icons';
-import {MythicTransferListDialog} from '../../MythicComponents/MythicTransferList';
 import {TagsDisplay, ViewEditTags} from '../../MythicComponents/MythicTag';
 import { toLocalTime } from '../../utilities/Time';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -42,6 +41,7 @@ import {
     gridValuePassesFilter,
     isGridColumnFilterActive
 } from "../../MythicComponents/MythicResizableGrid/GridColumnFilterDialog";
+import {operatorSettingDefaults} from "../../../cache";
 
 const updateFileComment = gql`
     mutation updateCommentMutation($mythictree_id: Int!, $comment: String!) {
@@ -65,6 +65,7 @@ export const CallbacksTabsCustomFileBasedBrowserTable = (props) => {
     const permissionDataRef = React.useRef({metadata: {}, name: ""});
     const commentDataRef = React.useRef({id: 0, comment: ""});
     const [loading, setLoading] = React.useState(true);
+    const [virtualizedTablePadding, setVirtualizedTablePadding] = React.useState(operatorSettingDefaults.virtualizedTablePadding);
     const [sortData, setSortData] = React.useState({"sortKey": null, "sortDirection": null, "sortType": null})
     const [columnVisibility, setColumnVisibility] = React.useState({
         "visible": [...props.treeConfig.table.visible],
@@ -673,6 +674,14 @@ export const CallbacksTabsCustomFileBasedBrowserTable = (props) => {
         }catch(error){
             console.log("Failed to load custom browser_table_filter_options", error);
         }
+        try {
+            const storageItem = GetMythicSetting({setting_name: "virtualizedTablePadding", default_value: operatorSettingDefaults.virtualizedTablePadding});
+            if(storageItem !== null){
+                setVirtualizedTablePadding(parseInt(storageItem));
+            }
+        }catch(error){
+            console.log("Failed to load virtualizedTablePadding", error);
+        }
         setLoading(false);
     }, []);
     const onSubmitColumnReorder = (newOrder) => {
@@ -727,7 +736,7 @@ export const CallbacksTabsCustomFileBasedBrowserTable = (props) => {
                         sortIndicatorIndex={sortColumn}
                         sortDirection={sortData.sortDirection}
                         items={gridData}
-                        rowHeight={GetComputedFontSize() + 7}
+                        rowHeight={GetComputedFontSize() + virtualizedTablePadding}
                         onClickHeader={onClickHeader}
                         onDoubleClickRow={onRowDoubleClick}
                         contextMenuOptions={contextMenuOptions}

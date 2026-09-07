@@ -2,7 +2,6 @@ import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React from 'react';
 import Box from '@mui/material/Box';
 import Breadcrumbs from '@mui/material/Breadcrumbs';
-import Button from '@mui/material/Button';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import Link from '@mui/material/Link';
@@ -250,10 +249,11 @@ export function C2ProfileListFilesDialog(props) {
   return (
     <React.Fragment>
       <DialogTitle id="form-dialog-title">
-        <div className="mythic-dialog-title-row">
+        <div className="mythic-dialog-title-row items-center flex flex-wrap gap-5 justify-between min-w-0">
           <span>{props.container_name}'s Current Files</span>
-          <Button
-            className="mythic-dialog-title-action mythic-action-tone-hover mythic-tone-success"
+          <MythicActionButton
+            className="mythic-dialog-title-action"
+            tone="success"
             component="label"
             size="small"
             startIcon={<FileUploadIcon fontSize="small" />}
@@ -261,7 +261,7 @@ export function C2ProfileListFilesDialog(props) {
           >
             Upload File
             <input onChange={onFileChange} type="file" multiple hidden />
-          </Button>
+          </MythicActionButton>
         </div>
       </DialogTitle>
       <DialogContent dividers={true} sx={fileBrowserContentSx}>
@@ -363,7 +363,7 @@ const ContainerFolderRow = ({folder, onOpen}) => {
         <FolderIcon color="primary" fontSize="small" />
       </TableCell>
       <TableCell>
-        <Button
+        <MythicActionButton
           endIcon={<KeyboardArrowRightIcon fontSize="small" />}
           onClick={onOpen}
           size="small"
@@ -371,7 +371,7 @@ const ContainerFolderRow = ({folder, onOpen}) => {
           variant="text"
         >
           {folder}
-        </Button>
+        </MythicActionButton>
       </TableCell>
       <TableCell>Folder</TableCell>
       <TableCell align="right" />

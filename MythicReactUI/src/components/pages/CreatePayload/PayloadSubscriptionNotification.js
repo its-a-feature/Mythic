@@ -13,6 +13,7 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogTitle from '@mui/material/DialogTitle';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {Button, Typography} from '@mui/material';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import {FileDownloadLinkWithAuth} from "../../utilities/FileDownloadWithAuth";
 
 const PREFIX = 'PayloadSubscriptionNotification';
@@ -150,9 +151,9 @@ const SnackMessageError = (props) => {
                     tabSize: 4
                 }}/>
         <DialogActions>
-          <Button className="mythic-compact-action" variant="contained" onClick={props.onClose}>
+          <MythicActionButton compact variant="contained" onClick={props.onClose}>
             Close
-          </Button>
+          </MythicActionButton>
         </DialogActions>
         </React.Fragment>
     );

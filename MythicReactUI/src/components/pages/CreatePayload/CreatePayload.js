@@ -74,12 +74,12 @@ export function CreatePayload(props){
 
     return (
         <MythicPageBody>
-        <div className="mythic-create-flow-shell">
-            <div className="mythic-detail-section-header">
-                <Typography variant="h5" className="mythic-detail-section-title">
+        <div className="mythic-create-flow-shell flex flex-column gap-6 h-full min-h-0">
+            <div className="mythic-detail-section-header bg-header border-accent text-header items-center flex flex-wrap justify-between min-w-0 overflow-hidden w-full rounded relative">
+                <Typography variant="h5" className="mythic-detail-section-title text-header text-xl font-750">
                     Payload Creation
                 </Typography>
-                <div className="mythic-create-section-fill">
+                <div className="mythic-create-section-fill flex-fill">
                 <Stepper activeStep={activeStep} alternativeLabel>
                     {steps.map((label, index) => (
                         <Step key={label}>
@@ -90,7 +90,7 @@ export function CreatePayload(props){
                 </Stepper>
                 </div>
             </div>
-            <div className="mythic-create-flow-content mythic-create-section-scroll">
+            <div className="mythic-create-flow-content flex flex-fill flex-column gap-6 mythic-create-section-scroll min-h-0 overflow-hidden overflow-auto">
                 {getStepContent(activeStep)}
             </div>
         </div>

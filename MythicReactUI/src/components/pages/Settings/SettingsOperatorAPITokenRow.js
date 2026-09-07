@@ -19,7 +19,7 @@ export function APITokenRow(props){
                     )}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <Box className="mythic-state-toggle-cell">
+                    <Box className="mythic-state-toggle-cell items-center flex gap-3 min-w-0">
                         <Switch
                             color="success"
                             disabled={props.deleted}

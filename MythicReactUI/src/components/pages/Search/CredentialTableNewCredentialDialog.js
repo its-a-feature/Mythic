@@ -1,5 +1,6 @@
 import React from 'react';
 import Button from '@mui/material/Button';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -139,12 +140,12 @@ export function CredentialTableNewCredentialDialog(props) {
             </MythicDialogBody>
         </DialogContent>
         <DialogActions>
-          <Button onClick={props.onClose} variant="contained" >
+          <MythicActionButton onClick={props.onClose} variant="contained" >
             Close
-          </Button>
-          <Button onClick={onSubmit} color="success" variant="contained" >
+          </MythicActionButton>
+          <MythicActionButton colorMode="always" onClick={onSubmit} tone="success" variant="contained" >
             {submitText}
-          </Button>
+          </MythicActionButton>
         </DialogActions>
     </React.Fragment>
   );

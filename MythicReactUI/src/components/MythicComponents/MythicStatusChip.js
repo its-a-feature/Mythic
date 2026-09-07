@@ -23,7 +23,7 @@ const statusConfig = {
     info: {tone: "info", icon: <InfoOutlinedIcon />, label: "Info"},
     active: {tone: "success", icon: <RadioButtonCheckedIcon />, label: "Active"},
     inactive: {tone: "error", icon: <RadioButtonUncheckedIcon />, label: "Inactive"},
-    disabled: {tone: "warning", icon: <RadioButtonUncheckedIcon />, label: "Disabled"},
+    disabled: {tone: "neutral", icon: <RadioButtonUncheckedIcon />, label: "Disabled"},
     deleted: {tone: "error", icon: <DeleteOutlineIcon />, label: "Deleted"},
     locked: {tone: "warning", icon: <LockOutlinedIcon />, label: "Locked"},
     building: {tone: "warning", icon: <TimelapseIcon />, label: "Building"},
@@ -81,7 +81,7 @@ export function MythicStatusIcon({
     const config = getMythicStatusConfig(status);
     const icon = React.cloneElement(config.icon, {
         ...props,
-        className: `mythic-icon-tone mythic-tone-${config.tone}${className ? ` ${className}` : ""}`,
+        className: `mythic-icon-tone text-tone mythic-tone-${config.tone}${className ? ` ${className}` : ""}`,
     });
 
     return tooltip ? (

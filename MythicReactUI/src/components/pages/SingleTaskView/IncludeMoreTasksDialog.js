@@ -1,5 +1,5 @@
 import React, {useState, useEffect} from 'react';
-import Button from '@mui/material/Button';
+import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -46,11 +46,11 @@ export function IncludeMoreTasksDialog(props) {
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Add More Tasks to View</DialogTitle>
-        <DialogContent className="mythic-dialog-body" dividers={true}>
-            <div className="mythic-dialog-section">
-                <div className="mythic-dialog-section-header">
+        <DialogContent className="mythic-dialog-body flex flex-column gap-6 min-w-0 w-full" dividers={true}>
+            <div className="mythic-dialog-section bg-surface-muted border-subtle min-w-0 rounded">
+                <div className="mythic-dialog-section-header items-start flex gap-6 justify-between min-w-0">
                     <div>
-                        <Typography className="mythic-dialog-section-title">Task window</Typography>
+                        <Typography className="mythic-dialog-section-title text-sm font-700 leading-125 text-primary">Task window</Typography>
                         <Typography className="mythic-dialog-section-description">Choose the anchor task and how many nearby tasks to pull into this view.</Typography>
                     </div>
                 </div>
@@ -68,15 +68,15 @@ export function IncludeMoreTasksDialog(props) {
                     ) )}
                   </Select>
                 </FormControl>
-                <div className="mythic-single-task-dialog-grid">
+                <div className="mythic-single-task-dialog-grid items-start gap-5 min-w-0 grid">
                     <MythicTextField type="number" value={beforeCount} onChange={(name, value, error)=>setBeforeCount(value)} name={"Number of tasks before"} marginBottom="0px" />
                     <MythicTextField type="number" value={afterCount} onChange={(name, value, error)=>setAfterCount(value)} name={"Number of tasks after"} marginBottom="0px" />
                 </div>
             </div>
-            <div className="mythic-dialog-section">
-                <div className="mythic-dialog-section-header">
+            <div className="mythic-dialog-section bg-surface-muted border-subtle min-w-0 rounded">
+                <div className="mythic-dialog-section-header items-start flex gap-6 justify-between min-w-0">
                     <div>
-                        <Typography className="mythic-dialog-section-title">Search scope</Typography>
+                        <Typography className="mythic-dialog-section-title text-sm font-700 leading-125 text-primary">Search scope</Typography>
                         <Typography className="mythic-dialog-section-description">Limit the neighboring task search to this callback, all callbacks, or an operator.</Typography>
                     </div>
                 </div>
@@ -100,10 +100,10 @@ export function IncludeMoreTasksDialog(props) {
             </div>
         </DialogContent>
         <DialogActions>
-          <Button className="mythic-compact-action" onClick={props.onClose} variant="contained">
+          <MythicActionButton compact onClick={props.onClose} variant="contained">
             Close
-          </Button>
-          <Button className="mythic-compact-action mythic-action-tone-hover mythic-tone-success" disabled={taskOptions.length === 0} onClick={onRequestSubmit} variant="contained" color="success">Fetch Tasks</Button>
+          </MythicActionButton>
+          <MythicActionButton compact tone="success" disabled={taskOptions.length === 0} onClick={onRequestSubmit} variant="contained" color="success">Fetch Tasks</MythicActionButton>
         </DialogActions>
   </React.Fragment>
   );
