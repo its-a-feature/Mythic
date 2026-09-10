@@ -112,6 +112,9 @@ func updateNginxBlockLists() {
 	outputString += "deny all;"
 	if !config.GetMythicEnv().GetBool("nginx_use_volume") {
 		ipFilePath := filepath.Join(utils.GetCwdFromExe(), "nginx-docker", "config", "blockips.conf")
+		if err := os.MkdirAll(filepath.Dir(ipFilePath), 0755); err != nil {
+			log.Fatalf("[-] Failed to create nginx-docker/config directory for block list file: %v\n", err)
+		}
 		if err := os.WriteFile(ipFilePath, []byte(outputString), 0600); err != nil {
 			log.Fatalf("[-] Failed to write out block list file: %v\n", err)
 		}
