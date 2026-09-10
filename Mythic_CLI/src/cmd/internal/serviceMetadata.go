@@ -185,14 +185,17 @@ func AddMythicService(service string, removeVolume bool) {
 			}
 		}
 	case "mythic_graphql":
-		pStruct["depends_on"] = map[string]map[string]string{
-			"mythic_postgres": {
-				"condition": "service_healthy",
-			},
+		dependsOn := map[string]map[string]string{
 			"mythic_server": {
 				"condition": "service_healthy",
 			},
 		}
+		if isPostgresInternal() {
+			dependsOn["mythic_postgres"] = map[string]string{
+				"condition": "service_healthy",
+			}
+		}
+		pStruct["depends_on"] = dependsOn
 		if mythicEnv.GetBool("hasura_use_build_context") {
 			pStruct["build"] = map[string]interface{}{
 				"context": "./hasura-docker",
@@ -208,8 +211,8 @@ func AddMythicService(service string, removeVolume bool) {
 			pStruct["mem_limit"] = mythicEnv.GetString("hasura_mem_limit")
 		}
 		environment := []string{
-			"HASURA_GRAPHQL_DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}",
-			"HASURA_GRAPHQL_METADATA_DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}",
+			"HASURA_GRAPHQL_DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=${POSTGRES_SSLMODE:-disable}",
+			"HASURA_GRAPHQL_METADATA_DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=${POSTGRES_SSLMODE:-disable}",
 			"HASURA_GRAPHQL_ENABLE_CONSOLE=true",
 			"HASURA_GRAPHQL_DEV_MODE=false",
 			"HASURA_GRAPHQL_ADMIN_SECRET=${HASURA_SECRET}",
@@ -469,17 +472,20 @@ func AddMythicService(service string, removeVolume bool) {
 			}
 		}
 	case "mythic_react":
-		pStruct["depends_on"] = map[string]map[string]string{
+		dependsOn := map[string]map[string]string{
 			"mythic_server": {
 				"condition": "service_healthy",
 			},
 			"mythic_graphql": {
 				"condition": "service_healthy",
 			},
-			"mythic_postgres": {
-				"condition": "service_healthy",
-			},
 		}
+		if isPostgresInternal() {
+			dependsOn["mythic_postgres"] = map[string]string{
+				"condition": "service_healthy",
+			}
+		}
+		pStruct["depends_on"] = dependsOn
 		if mythicEnv.GetBool("mythic_react_debug") {
 			pStruct["build"] = map[string]interface{}{
 				"context": "./MythicReactUI",
@@ -574,17 +580,20 @@ func AddMythicService(service string, removeVolume bool) {
 		}
 
 	case "mythic_jupyter":
-		pStruct["depends_on"] = map[string]map[string]string{
+		dependsOn := map[string]map[string]string{
 			"mythic_server": {
-				"condition": "service_healthy",
-			},
-			"mythic_postgres": {
 				"condition": "service_healthy",
 			},
 			"mythic_graphql": {
 				"condition": "service_healthy",
 			},
 		}
+		if isPostgresInternal() {
+			dependsOn["mythic_postgres"] = map[string]string{
+				"condition": "service_healthy",
+			}
+		}
+		pStruct["depends_on"] = dependsOn
 		if mythicEnv.GetBool("jupyter_use_build_context") {
 			pStruct["build"] = map[string]interface{}{
 				"context": "./jupyter-docker",
@@ -665,14 +674,17 @@ func AddMythicService(service string, removeVolume bool) {
 			}
 		}
 	case "mythic_server":
-		pStruct["depends_on"] = map[string]map[string]string{
-			"mythic_postgres": {
-				"condition": "service_healthy",
-			},
+		dependsOn := map[string]map[string]string{
 			"mythic_rabbitmq": {
 				"condition": "service_healthy",
 			},
 		}
+		if isPostgresInternal() {
+			dependsOn["mythic_postgres"] = map[string]string{
+				"condition": "service_healthy",
+			}
+		}
+		pStruct["depends_on"] = dependsOn
 		if mythicEnv.GetBool("mythic_server_use_build_context") {
 			pStruct["build"] = map[string]interface{}{
 				"context": "./mythic-docker",
@@ -710,6 +722,7 @@ func AddMythicService(service string, removeVolume bool) {
 			"POSTGRES_HOST=${POSTGRES_HOST}",
 			"POSTGRES_PORT=${POSTGRES_PORT}",
 			"POSTGRES_PASSWORD=${POSTGRES_PASSWORD}",
+			"POSTGRES_SSLMODE=${POSTGRES_SSLMODE}",
 			"RABBITMQ_HOST=${RABBITMQ_HOST}",
 			"RABBITMQ_PORT=${RABBITMQ_PORT}",
 			"RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}",
@@ -1002,4 +1015,8 @@ func applyImageMirror(imageURL, mirror string) string {
 		}
 	}
 	return mirror + "/" + imageURL
+}
+
+func isPostgresInternal() bool {
+	return config.GetMythicEnv().GetString("POSTGRES_HOST") == "127.0.0.1" || config.GetMythicEnv().GetString("POSTGRES_HOST") == "mythic_postgres"
 }
