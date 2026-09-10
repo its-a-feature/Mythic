@@ -88,7 +88,7 @@ func ServiceStart(containers []string, keepVolume bool) error {
 		return err
 	}
 	// nginx-specific housekeeping only applies when mythic_nginx runs locally
-	if isNginxInternal() {
+	if isServiceInternal("mythic_nginx") {
 		updateNginxBlockLists()
 		if err := generateCerts(); err != nil {
 			log.Printf("[-] Failed to generate certs: %v\n", err)
