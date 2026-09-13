@@ -469,199 +469,202 @@ func updatePayloadTypeBuildParameters(in PayloadTypeSyncMessage, payloadtype dat
 	buildParameterMutex.Lock()
 	defer buildParameterMutex.Unlock()
 	syncingParameters := in.PayloadType.BuildParameters
-	databaseParameter := databaseStructs.Buildparameter{}
 	updatedAndDeletedParameters := []string{}
-	if rows, err := database.DB.NamedQuery(`SELECT
+	databaseParameters := []databaseStructs.Buildparameter{}
+	// Drain the cursor before issuing writes on the same connection. lib/pq
+	// cannot interleave an open cursor with Exec/Bind on the same connection
+	// without desynchronizing the protocol.
+	rows, err := database.DB.NamedQuery(`SELECT
 		*
 		FROM buildparameter
 		WHERE payload_type_id = :id
-	`, payloadtype); err != nil {
+	`, payloadtype)
+	if err != nil {
 		logging.LogError(err, "Failed to fetch build parameters for payloadtype when syncing")
 		return err
-	} else {
-		defer rows.Close()
-		for rows.Next() {
-			found := false
-			if err = rows.StructScan(&databaseParameter); err != nil {
-				logging.LogError(err, "Failed to parse buildparameter into structure when syncing command")
-				return err
-			} else {
-				//logging.LogDebug("Got row from buildparameter while syncing payloadtype", "row", databaseParameter)
-				for _, newParameter := range syncingParameters {
-					if newParameter.Name == databaseParameter.Name && !utils.SliceContains(updatedAndDeletedParameters, newParameter.Name) {
-						// we found a matching parameter name, update it
-						//logging.LogDebug("Found matching newParameter.Name and databaseParameter.Name", "name", newParameter.Name)
-						updatedAndDeletedParameters = append(updatedAndDeletedParameters, databaseParameter.Name)
-						found = true
-						// update it
-						databaseParameter.Description = newParameter.Description
-						databaseParameter.Randomize = newParameter.Randomize
-						databaseParameter.FormatString = newParameter.FormatString
-						databaseParameter.ParameterType = newParameter.ParameterType
-						databaseParameter.Required = newParameter.Required
-						databaseParameter.VerifierRegex = newParameter.VerifierRegex
-						databaseParameter.Deleted = false
-						databaseParameter.GroupName = newParameter.GroupName
-						databaseParameter.SupportedOS = GetMythicJSONArrayFromStruct(newParameter.SupportedOS)
-						databaseParameter.HideConditions = GetMythicJSONArrayFromStruct(newParameter.HideConditions)
-						databaseParameter.IsCryptoType = newParameter.IsCryptoType
-						databaseParameter.UiPosition = newParameter.UiPosition
-						databaseParameter.DynamicQueryFunction = newParameter.DynamicQueryFunction
-						defaultVal, err := getSyncToDatabaseValueForDefaultValue(newParameter.ParameterType, newParameter.DefaultValue, newParameter.Choices)
-						if err != nil {
-							logging.LogError(err, "Failed to getSyncToDatabaseValueForDefaultValue for updating build parameter")
-							return err
-						}
-						databaseParameter.DefaultValue = defaultVal
-						choices, err := getSyncToDatabaseValueForChoices(newParameter.ParameterType, newParameter.Choices, newParameter.DictionaryChoices)
-						if err != nil {
-							logging.LogError(err, "Failed to call getSyncToDatabaseValueForChoices")
-							return err
-						}
-						databaseParameter.Choices = choices
-						_, err = database.DB.NamedExec(`UPDATE buildparameter SET 
-								description=:description, default_value=:default_value, choices=:choices,
-								parameter_type=:parameter_type, required=:required, randomize=:randomize,
-								verifier_regex=:verifier_regex, deleted=:deleted, format_string=:format_string,
-								crypto_type=:crypto_type, group_name=:group_name, supported_os=:supported_os,
-								hide_conditions=:hide_conditions, ui_position=:ui_position, dynamic_query_function=:dynamic_query_function 
-								WHERE id=:id`, databaseParameter,
-						)
-						if err != nil {
-							logging.LogError(err, "Failed to update build parameter in database", "build_parameter", databaseParameter)
-							return err
-						}
-						break
-					}
-				}
-			}
-			if !found {
-				//logging.LogDebug("Failed to find matching parameter name, deleting parameter", "parameter", databaseParameter)
+	}
+	for rows.Next() {
+		databaseParameter := databaseStructs.Buildparameter{}
+		if err = rows.StructScan(&databaseParameter); err != nil {
+			rows.Close()
+			logging.LogError(err, "Failed to parse buildparameter into structure when syncing command")
+			return err
+		}
+		databaseParameters = append(databaseParameters, databaseParameter)
+	}
+	if err = rows.Close(); err != nil {
+		logging.LogError(err, "Failed to close buildparameter rows")
+		return err
+	}
+	for _, databaseParameter := range databaseParameters {
+		found := false
+		for _, newParameter := range syncingParameters {
+			if newParameter.Name == databaseParameter.Name && !utils.SliceContains(updatedAndDeletedParameters, newParameter.Name) {
 				updatedAndDeletedParameters = append(updatedAndDeletedParameters, databaseParameter.Name)
-				// we didn't see the current parameter in the syncingParameters from the agent container
-				// this means that it once existed, but shouldn't anymore - mark it as deleted
-				if _, err = database.DB.NamedExec("UPDATE buildparameter SET deleted=true WHERE id=:id", databaseParameter); err != nil {
-					logging.LogError(err, "Failed to mark build parameter as deleted")
+				found = true
+				databaseParameter.Description = newParameter.Description
+				databaseParameter.Randomize = newParameter.Randomize
+				databaseParameter.FormatString = newParameter.FormatString
+				databaseParameter.ParameterType = newParameter.ParameterType
+				databaseParameter.Required = newParameter.Required
+				databaseParameter.VerifierRegex = newParameter.VerifierRegex
+				databaseParameter.Deleted = false
+				databaseParameter.GroupName = newParameter.GroupName
+				databaseParameter.SupportedOS = GetMythicJSONArrayFromStruct(newParameter.SupportedOS)
+				databaseParameter.HideConditions = GetMythicJSONArrayFromStruct(newParameter.HideConditions)
+				databaseParameter.IsCryptoType = newParameter.IsCryptoType
+				databaseParameter.UiPosition = newParameter.UiPosition
+				databaseParameter.DynamicQueryFunction = newParameter.DynamicQueryFunction
+				defaultVal, err := getSyncToDatabaseValueForDefaultValue(newParameter.ParameterType, newParameter.DefaultValue, newParameter.Choices)
+				if err != nil {
+					logging.LogError(err, "Failed to getSyncToDatabaseValueForDefaultValue for updating build parameter")
 					return err
 				}
+				databaseParameter.DefaultValue = defaultVal
+				choices, err := getSyncToDatabaseValueForChoices(newParameter.ParameterType, newParameter.Choices, newParameter.DictionaryChoices)
+				if err != nil {
+					logging.LogError(err, "Failed to call getSyncToDatabaseValueForChoices")
+					return err
+				}
+				databaseParameter.Choices = choices
+				_, err = database.DB.NamedExec(`UPDATE buildparameter SET 
+						description=:description, default_value=:default_value, choices=:choices,
+						parameter_type=:parameter_type, required=:required, randomize=:randomize,
+						verifier_regex=:verifier_regex, deleted=:deleted, format_string=:format_string,
+						crypto_type=:crypto_type, group_name=:group_name, supported_os=:supported_os,
+						hide_conditions=:hide_conditions, ui_position=:ui_position, dynamic_query_function=:dynamic_query_function 
+						WHERE id=:id`, databaseParameter,
+				)
+				if err != nil {
+					logging.LogError(err, "Failed to update build parameter in database", "build_parameter", databaseParameter)
+					return err
+				}
+				break
+			}
+		}
+		if !found {
+			updatedAndDeletedParameters = append(updatedAndDeletedParameters, databaseParameter.Name)
+			if _, err = database.DB.NamedExec("UPDATE buildparameter SET deleted=true WHERE id=:id", databaseParameter); err != nil {
+				logging.LogError(err, "Failed to mark build parameter as deleted")
+				return err
 			}
 		}
 	}
-	// now that we've handled all the ones that should be updated or deleted, the rest should be added
 	for _, newParameter := range syncingParameters {
 		if utils.SliceContains(updatedAndDeletedParameters, newParameter.Name) {
-			// this means we've already deleted or updated this specific parameter group for this command, so it's not new
 			continue
-		} else {
-			// we have a new parameter group / command parameter to add in
-			databaseParameter = databaseStructs.Buildparameter{
-				Name:                 newParameter.Name,
-				Description:          newParameter.Description,
-				Randomize:            newParameter.Randomize,
-				FormatString:         newParameter.FormatString,
-				VerifierRegex:        newParameter.VerifierRegex,
-				Deleted:              false,
-				IsCryptoType:         newParameter.IsCryptoType,
-				Required:             newParameter.Required,
-				ParameterType:        newParameter.ParameterType,
-				PayloadTypeID:        payloadtype.ID,
-				GroupName:            newParameter.GroupName,
-				UiPosition:           newParameter.UiPosition,
-				DynamicQueryFunction: newParameter.DynamicQueryFunction,
-			}
-			defaultVal, err := getSyncToDatabaseValueForDefaultValue(newParameter.ParameterType, newParameter.DefaultValue, newParameter.Choices)
-			if err != nil {
-				logging.LogError(err, "Failed to getSyncToDatabaseValueForDefaultValue for brand new build parameter")
-				return err
-			}
-			databaseParameter.DefaultValue = defaultVal
-			choices, err := getSyncToDatabaseValueForChoices(newParameter.ParameterType, newParameter.Choices, newParameter.DictionaryChoices)
-			if err != nil {
-				logging.LogError(err, "Failed to call getSyncToDatabaseValueForChoices")
-				return err
-			}
-			databaseParameter.Choices = choices
-			databaseParameter.SupportedOS = GetMythicJSONArrayFromStruct(newParameter.SupportedOS)
-			databaseParameter.HideConditions = GetMythicJSONArrayFromStruct(newParameter.HideConditions)
-			statement, err := database.DB.PrepareNamed(`INSERT INTO buildparameter 
-				(name,description,default_value,verifier_regex,deleted,
-					required,parameter_type,payload_type_id, choices, crypto_type, randomize, format_string,
-				 group_name, supported_os, hide_conditions, ui_position, dynamic_query_function) 
-				VALUES (:name, :description, :default_value, :verifier_regex, :deleted,
-				:required, :parameter_type, :payload_type_id, :choices, :crypto_type, :randomize, :format_string,
-				        :group_name, :supported_os, :hide_conditions, :ui_position, :dynamic_query_function) 
-				RETURNING id`,
-			)
-			if err != nil {
-				logging.LogError(err, "Failed to create new buildparameter statement when importing payloadtype")
-				return err
-			}
-			err = statement.Get(&databaseParameter.ID, databaseParameter)
-			if err != nil {
-				logging.LogError(err, "Failed to create new build parameter")
-				return err
-			}
+		}
+		databaseParameter := databaseStructs.Buildparameter{
+			Name:                 newParameter.Name,
+			Description:          newParameter.Description,
+			Randomize:            newParameter.Randomize,
+			FormatString:         newParameter.FormatString,
+			VerifierRegex:        newParameter.VerifierRegex,
+			Deleted:              false,
+			IsCryptoType:         newParameter.IsCryptoType,
+			Required:             newParameter.Required,
+			ParameterType:        newParameter.ParameterType,
+			PayloadTypeID:        payloadtype.ID,
+			GroupName:            newParameter.GroupName,
+			UiPosition:           newParameter.UiPosition,
+			DynamicQueryFunction: newParameter.DynamicQueryFunction,
+		}
+		defaultVal, err := getSyncToDatabaseValueForDefaultValue(newParameter.ParameterType, newParameter.DefaultValue, newParameter.Choices)
+		if err != nil {
+			logging.LogError(err, "Failed to getSyncToDatabaseValueForDefaultValue for brand new build parameter")
+			return err
+		}
+		databaseParameter.DefaultValue = defaultVal
+		choices, err := getSyncToDatabaseValueForChoices(newParameter.ParameterType, newParameter.Choices, newParameter.DictionaryChoices)
+		if err != nil {
+			logging.LogError(err, "Failed to call getSyncToDatabaseValueForChoices")
+			return err
+		}
+		databaseParameter.Choices = choices
+		databaseParameter.SupportedOS = GetMythicJSONArrayFromStruct(newParameter.SupportedOS)
+		databaseParameter.HideConditions = GetMythicJSONArrayFromStruct(newParameter.HideConditions)
+		statement, err := database.DB.PrepareNamed(`INSERT INTO buildparameter 
+			(name,description,default_value,verifier_regex,deleted,
+				required,parameter_type,payload_type_id, choices, crypto_type, randomize, format_string,
+			 group_name, supported_os, hide_conditions, ui_position, dynamic_query_function) 
+			VALUES (:name, :description, :default_value, :verifier_regex, :deleted,
+			:required, :parameter_type, :payload_type_id, :choices, :crypto_type, :randomize, :format_string,
+			        :group_name, :supported_os, :hide_conditions, :ui_position, :dynamic_query_function) 
+			RETURNING id`,
+		)
+		if err != nil {
+			logging.LogError(err, "Failed to create new buildparameter statement when importing payloadtype")
+			return err
+		}
+		err = statement.Get(&databaseParameter.ID, databaseParameter)
+		if err != nil {
+			logging.LogError(err, "Failed to create new build parameter")
+			return err
 		}
 	}
 	return nil
 }
 
 func updatePayloadTypeC2Profiles(in PayloadTypeSyncMessage, payloadtype databaseStructs.Payloadtype) error {
-	// get all currently associated c2 profiles from database
-	// if profile in database but not in sync message, delete it
-	// if profile in sync message but not in database, add it
 	c2ProfileMutex.Lock()
 	defer c2ProfileMutex.Unlock()
 	syncingC2Profiles := in.PayloadType.SupportedC2Profiles
-	databaseC2Profile := databaseStructs.Payloadtypec2profile{}
-	if rows, err := database.DB.NamedQuery(`SELECT
-		payloadtypec2profile.id,
-		c2profile.name "c2profile.name"
-		FROM payloadtypec2profile 
-		JOIN c2profile ON payloadtypec2profile.c2_profile_id = c2profile.id 
-		WHERE
-		payload_type_id = :id
-	`, payloadtype); err != nil {
-		logging.LogError(err, "Failed to get payloadtypec2profile from database")
+	updatedAndDeletedC2Profiles := []string{}
+	databaseC2Profiles := []databaseStructs.Payloadtypec2profile{}
+	// Drain the cursor before issuing writes on the same connection. lib/pq
+	// cannot interleave an open cursor with Exec/Bind on the same connection
+	// without desynchronizing the protocol.
+	rows, err := database.DB.NamedQuery(`SELECT
+	*
+	FROM payloadtypec2profile
+	JOIN c2profile ON payloadtypec2profile.c2_profile_id = c2profile.id
+	WHERE payloadtypec2profile.payload_type_id = :id
+	`, payloadtype)
+	if err != nil {
+		logging.LogError(err, "Failed to fetch c2profile mappings when syncing")
 		return err
-	} else {
-		defer rows.Close()
-		for rows.Next() {
-			if err = rows.StructScan(&databaseC2Profile); err != nil {
-				logging.LogError(err, "Failed to get row from payloadtypec2profile")
+	}
+	for rows.Next() {
+		databaseC2Profile := databaseStructs.Payloadtypec2profile{}
+		if err = rows.StructScan(&databaseC2Profile); err != nil {
+			rows.Close()
+			logging.LogError(err, "Failed to parse c2profile into structure when syncing")
+			return err
+		}
+		databaseC2Profiles = append(databaseC2Profiles, databaseC2Profile)
+	}
+	if err = rows.Close(); err != nil {
+		logging.LogError(err, "Failed to close c2profile rows")
+		return err
+	}
+	for _, databaseC2Profile := range databaseC2Profiles {
+		found := false
+		for _, newC2Profile := range syncingC2Profiles {
+			if newC2Profile == databaseC2Profile.C2profile.Name {
+				updatedAndDeletedC2Profiles = append(updatedAndDeletedC2Profiles, databaseC2Profile.C2profile.Name)
+				found = true
+				break
+			}
+		}
+		if !found {
+			if _, err = database.DB.NamedExec("DELETE FROM payloadtypec2profile WHERE id=:id", databaseC2Profile); err != nil {
+				logging.LogError(err, "Failed to delete c2profile mapping")
 				return err
-			} else {
-				logging.LogDebug("Got row from payloadtypec2profile", "row", databaseC2Profile)
-				if utils.SliceContains(syncingC2Profiles, databaseC2Profile.C2profile.Name) {
-					syncingC2Profiles = utils.RemoveStringFromSliceNoOrder(syncingC2Profiles, databaseC2Profile.C2profile.Name)
-					continue
-				} else {
-					// got a current payloadtypec2profile mapping that shouldn't exist anymore, delete it from the database
-					if _, err = database.DB.NamedExec("DELETE FROM payloadtypec2profile WHERE id=:id", databaseC2Profile); err != nil {
-						logging.LogError(err, "Failed to delete payloadtypec2profile mapping")
-						return err
-					}
-				}
 			}
 		}
 	}
-	// everything else left in syncingC2Profiles needs to be added
-	for _, name := range syncingC2Profiles {
-		c2profile := databaseStructs.C2profile{Name: name}
-		if err := database.DB.Get(&c2profile, "SELECT id FROM c2profile WHERE name=$1", name); err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				logging.LogError(nil, "Payload Type supports C2 Profile that's not yet installed", "c2profile", name, "payloadtype", payloadtype.Name)
-			} else {
-				logging.LogError(err, "Failed to get c2profile to associate with payloadtype", "c2profile", name, "c2profiles", syncingC2Profiles)
-			}
-		} else {
-			databaseC2Profile = databaseStructs.Payloadtypec2profile{C2ProfileID: c2profile.ID, PayloadTypeID: payloadtype.ID}
-			if _, err := database.DB.NamedExec(`INSERT INTO 
-				payloadtypec2profile (payload_type_id, c2_profile_id)
-				VALUES (:payload_type_id, :c2_profile_id)`,
-				databaseC2Profile); err != nil {
-				logging.LogError(err, "Failed to create new payloadtypec2profile mapping")
-			}
+	for _, newC2Profile := range syncingC2Profiles {
+		if utils.SliceContains(updatedAndDeletedC2Profiles, newC2Profile) {
+			continue
+		}
+		c2ProfileToAdd := databaseStructs.C2profile{}
+		if err := database.DB.Get(&c2ProfileToAdd, `SELECT * FROM c2profile WHERE name=$1 and active=true`, newC2Profile); err != nil {
+			logging.LogError(err, "Payload Type supports C2 Profile that's not yet installed", "c2profile", newC2Profile, "payloadtype", in.PayloadType.Name)
+			continue
+		}
+		params := map[string]interface{}{"payload_type_id": payloadtype.ID, "c2_profile_id": c2ProfileToAdd.ID}
+		if _, err := database.DB.NamedExec(`INSERT INTO payloadtypec2profile (payload_type_id, c2_profile_id) VALUES (:payload_type_id, :c2_profile_id)`, params); err != nil {
+			logging.LogError(err, "Failed to create payload type c2profile mapping association")
 		}
 	}
 	return nil
@@ -674,7 +677,7 @@ func updatePayloadTypeWrappers(in PayloadTypeSyncMessage, payloadtype databaseSt
 	syncingWrappers := in.PayloadType.SupportedWrapperPayloadTypes
 	databaseWrapper := databaseStructs.Wrappedpayloadtypes{}
 	if payloadtype.Wrapper {
-		if rows, err := database.DB.NamedQuery(`SELECT
+		rows, err := database.DB.NamedQuery(`SELECT
 		wrappedpayloadtypes.id,
 		payloadtype.name "wrapped.name",
 		payloadtype.id "wrapped.id"
@@ -682,31 +685,28 @@ func updatePayloadTypeWrappers(in PayloadTypeSyncMessage, payloadtype databaseSt
 		JOIN payloadtype ON wrappedpayloadtypes.wrapped_id = payloadtype.id
 		WHERE
 		wrapper_id = :id
-	`, payloadtype); err != nil {
+	`, payloadtype)
+		if err != nil {
 			logging.LogError(err, "Failed to get wrappedpayloadtypes from database")
 			return err
-		} else {
-			defer rows.Close()
-			for rows.Next() {
-				if err = rows.StructScan(&databaseWrapper); err != nil {
-					logging.LogError(err, "Failed to get row from wrappedpayloadtypes for importing new payloadtype")
-					return err
-				} else {
-					logging.LogDebug("Got row from wrappedpayloadtypes", "row", databaseWrapper)
-					if utils.SliceContains(syncingWrappers, databaseWrapper.Wrapped.Name) {
-						syncingWrappers = utils.RemoveStringFromSliceNoOrder(syncingWrappers, databaseWrapper.Wrapped.Name)
-					} else {
-						// got a current wrapper payload type that shouldn't exist anymore, delete it from the database
-						//if _, err = database.DB.NamedExec("DELETE FROM wrappedpayloadtypes WHERE id=:id", databaseWrapper); err != nil {
-						//	logging.LogError(err, "Failed to delete wrappedpayloadtypes mapping")
-						//	return err
-						//}
-					}
-				}
+		}
+		for rows.Next() {
+			if err = rows.StructScan(&databaseWrapper); err != nil {
+				rows.Close()
+				logging.LogError(err, "Failed to get row from wrappedpayloadtypes for importing new payloadtype")
+				return err
+			}
+			logging.LogDebug("Got row from wrappedpayloadtypes", "row", databaseWrapper)
+			if utils.SliceContains(syncingWrappers, databaseWrapper.Wrapped.Name) {
+				syncingWrappers = utils.RemoveStringFromSliceNoOrder(syncingWrappers, databaseWrapper.Wrapped.Name)
 			}
 		}
+		if err = rows.Close(); err != nil {
+			logging.LogError(err, "Failed to close wrappedpayloadtypes rows")
+			return err
+		}
 	} else {
-		if rows, err := database.DB.NamedQuery(`SELECT
+		rows, err := database.DB.NamedQuery(`SELECT
 		wrappedpayloadtypes.id,
 		payloadtype.name "wrapper.name",
 		payloadtype.id "wrapper.id"
@@ -714,31 +714,27 @@ func updatePayloadTypeWrappers(in PayloadTypeSyncMessage, payloadtype databaseSt
 		JOIN payloadtype ON wrappedpayloadtypes.wrapper_id = payloadtype.id
 		WHERE
 		wrapped_id = :id
-	`, payloadtype); err != nil {
+	`, payloadtype)
+		if err != nil {
 			logging.LogError(err, "Failed to get wrappedpayloadtypes from database")
 			return err
-		} else {
-			defer rows.Close()
-			for rows.Next() {
-				if err = rows.StructScan(&databaseWrapper); err != nil {
-					logging.LogError(err, "Failed to get row from wrappedpayloadtypes for importing new payloadtype")
-					return err
-				} else {
-					logging.LogDebug("Got row from wrappedpayloadtypes", "row", databaseWrapper)
-					if utils.SliceContains(syncingWrappers, databaseWrapper.Wrapper.Name) {
-						syncingWrappers = utils.RemoveStringFromSliceNoOrder(syncingWrappers, databaseWrapper.Wrapper.Name)
-					} else {
-						// got a current wrapper payload type that shouldn't exist anymore, delete it from the database
-						//if _, err = database.DB.NamedExec("DELETE FROM wrappedpayloadtypes WHERE id=:id", databaseWrapper); err != nil {
-						//	logging.LogError(err, "Failed to delete wrappedpayloadtypes mapping")
-						//	return err
-						//}
-					}
-				}
+		}
+		for rows.Next() {
+			if err = rows.StructScan(&databaseWrapper); err != nil {
+				rows.Close()
+				logging.LogError(err, "Failed to get row from wrappedpayloadtypes for importing new payloadtype")
+				return err
+			}
+			logging.LogDebug("Got row from wrappedpayloadtypes", "row", databaseWrapper)
+			if utils.SliceContains(syncingWrappers, databaseWrapper.Wrapper.Name) {
+				syncingWrappers = utils.RemoveStringFromSliceNoOrder(syncingWrappers, databaseWrapper.Wrapper.Name)
 			}
 		}
+		if err = rows.Close(); err != nil {
+			logging.LogError(err, "Failed to close wrappedpayloadtypes rows")
+			return err
+		}
 	}
-
 	// everything else left in syncingWrappers needs to be added
 	for _, name := range syncingWrappers {
 		targetWrapper := databaseStructs.Payloadtype{Name: name}
@@ -761,12 +757,11 @@ func updatePayloadTypeWrappers(in PayloadTypeSyncMessage, payloadtype databaseSt
 				VALUES (:wrapper_id, :wrapped_id)`,
 					databaseWrapper); err != nil {
 					logging.LogError(err, "Failed to create new wrappedpayloadtype mapping")
-					continue // don't bail out on one, keep going
+					continue
 				}
 			} else if err != nil {
 				logging.LogError(err, "failed to fetch wrapper maps")
 			}
-
 		}
 	}
 	return nil
@@ -809,111 +804,91 @@ func updatePayloadTypeCommands(in PayloadTypeSyncMessage, payloadtype databaseSt
 	commandsMutex.Lock()
 	defer commandsMutex.Unlock()
 	syncingCommands := in.CommandList
-	databaseCommand := databaseStructs.Command{}
 	updatedAndDeletedCommands := []string{}
-	if rows, err := database.DB.NamedQuery(`SELECT
-		* 
-		FROM command 
-		WHERE payload_type_id = :id
-	`, payloadtype); err != nil {
+	databaseCommands := []databaseStructs.Command{}
+	rows, err := database.DB.NamedQuery(`SELECT
+	*
+	FROM command
+	WHERE payload_type_id = :id
+	`, payloadtype)
+	if err != nil {
 		logging.LogError(err, "Failed to fetch commands for payloadtype when syncing")
 		return err
-	} else {
-		defer rows.Close()
-		for rows.Next() {
-			if err = rows.StructScan(&databaseCommand); err != nil {
-				logging.LogError(err, "Failed to parse command into structure when syncing payloadtype")
+	}
+	for rows.Next() {
+		databaseCommand := databaseStructs.Command{}
+		if err = rows.StructScan(&databaseCommand); err != nil {
+			rows.Close()
+			logging.LogError(err, "Failed to parse command into structure when syncing payloadtype")
+			return err
+		}
+		databaseCommands = append(databaseCommands, databaseCommand)
+	}
+	if err = rows.Close(); err != nil {
+		logging.LogError(err, "Failed to close command rows")
+		return err
+	}
+	for _, databaseCommand := range databaseCommands {
+		updatedAndDeletedCommands = append(updatedAndDeletedCommands, databaseCommand.Cmd)
+		found := false
+		for _, newCommand := range syncingCommands {
+			if newCommand.Name == databaseCommand.Cmd {
+				found = true
+				setEmptyCommandAttributes(&newCommand)
+				databaseCommand.NeedsAdmin = newCommand.NeedsAdminPermissions
+				databaseCommand.HelpCmd = newCommand.HelpString
+				databaseCommand.Description = newCommand.Description
+				databaseCommand.Version = int(newCommand.Version)
+				databaseCommand.SupportedUiFeatures = GetMythicJSONArrayFromStruct(newCommand.SupportedUIFeatures)
+				databaseCommand.Author = newCommand.Author
+				databaseCommand.Deleted = false
+				databaseCommand.ScriptOnly = newCommand.ScriptOnlyCommand
+				attributes := map[string]interface{}{
+					"supported_os":              newCommand.CommandAttributes.SupportedOS,
+					"builtin":                   newCommand.CommandAttributes.CommandIsBuiltin,
+					"suggested_command":         newCommand.CommandAttributes.CommandIsSuggested,
+					"load_only":                 newCommand.CommandAttributes.CommandCanOnlyBeLoadedLater,
+					"filter_by_build_parameter": newCommand.CommandAttributes.FilterCommandAvailabilityByAgentBuildParameters,
+				}
+				for k, v := range newCommand.CommandAttributes.AdditionalAttributes {
+					attributes[k] = v
+				}
+				databaseCommand.Attributes = GetMythicJSONTextFromStruct(attributes)
+				_, err = database.DB.NamedExec(`UPDATE command SET 
+					needs_admin=:needs_admin, help_cmd=:help_cmd, description=:description, "version"=:version, attributes=:attributes, 
+					supported_ui_features=:supported_ui_features, author=:author, deleted=:deleted, script_only=:script_only 
+					WHERE id=:id`, databaseCommand,
+				)
+				if err != nil {
+					logging.LogError(err, "Failed to update command in database")
+					return err
+				}
+				if err := updateCommandForSync(in, payloadtype, newCommand, databaseCommand); err != nil {
+					return err
+				}
+				break
+			}
+		}
+		if !found && !databaseCommand.Deleted {
+			logging.LogDebug("Need to delete command", "cmd", databaseCommand)
+			_, err = database.DB.NamedExec(`UPDATE command SET 
+				deleted=true 
+				WHERE id=:id`, databaseCommand,
+			)
+			if err != nil {
+				logging.LogError(err, "Failed to mark command as deleted in database", "command", databaseCommand)
 				return err
-			} else {
-				//logging.LogDebug("Got row from commands while syncing payloadtype", "row", databaseCommand)
-				updatedAndDeletedCommands = append(updatedAndDeletedCommands, databaseCommand.Cmd)
-				found := false
-				for _, newCommand := range syncingCommands {
-					if newCommand.Name == databaseCommand.Cmd {
-						found = true
-
-						databaseCommand.NeedsAdmin = newCommand.NeedsAdminPermissions
-						databaseCommand.HelpCmd = newCommand.HelpString
-						databaseCommand.Description = newCommand.Description
-						databaseCommand.Version = int(newCommand.Version)
-						databaseCommand.SupportedUiFeatures = GetMythicJSONArrayFromStruct(newCommand.SupportedUIFeatures)
-						databaseCommand.Author = newCommand.Author
-						databaseCommand.Deleted = false
-						databaseCommand.ScriptOnly = newCommand.ScriptOnlyCommand
-						if len(newCommand.CommandAttributes.SupportedOS) == 0 {
-							newCommand.CommandAttributes.SupportedOS = make([]string, 0)
-						}
-						if len(newCommand.CommandAttributes.FilterCommandAvailabilityByAgentBuildParameters) == 0 {
-							newCommand.CommandAttributes.FilterCommandAvailabilityByAgentBuildParameters = make(map[string]string)
-						}
-						if newCommand.CommandAttributes.SupportedOS == nil {
-							newCommand.CommandAttributes.SupportedOS = make([]string, 0)
-						}
-						if newCommand.CommandAttributes.FilterCommandAvailabilityByAgentBuildParameters == nil {
-							newCommand.CommandAttributes.FilterCommandAvailabilityByAgentBuildParameters = make(map[string]string)
-						}
-						attributes := map[string]interface{}{
-							"supported_os":              newCommand.CommandAttributes.SupportedOS,
-							"builtin":                   newCommand.CommandAttributes.CommandIsBuiltin,
-							"suggested_command":         newCommand.CommandAttributes.CommandIsSuggested,
-							"load_only":                 newCommand.CommandAttributes.CommandCanOnlyBeLoadedLater,
-							"filter_by_build_parameter": newCommand.CommandAttributes.FilterCommandAvailabilityByAgentBuildParameters,
-						}
-						for k, v := range newCommand.CommandAttributes.AdditionalAttributes {
-							attributes[k] = v
-						}
-						//logging.LogDebug("updating command", "struct values", newCommand.CommandAttributes, "map values", attributes)
-						//logging.LogDebug("updating database attributes to new thing", "attributes", attributes, "supported_os", attributes["supported_os"], "newfeatures", newCommand.SupportedUIFeatures)
-						databaseCommand.Attributes = GetMythicJSONTextFromStruct(attributes)
-						//logging.LogDebug("Found matching cmd when syncing payload type, time to update it", "cmd_new", databaseCommand)
-						_, err = database.DB.NamedExec(`UPDATE command SET 
-							needs_admin=:needs_admin, help_cmd=:help_cmd, description=:description, "version"=:version, attributes=:attributes, 
-							supported_ui_features=:supported_ui_features, author=:author, deleted=:deleted, script_only=:script_only 
-							WHERE id=:id`, databaseCommand,
-						)
-						if err != nil {
-							logging.LogError(err, "Failed to update command in database")
-							return err
-						} else {
-							if err := updatePayloadTypeCommandParameters(in, payloadtype, newCommand.CommandParameters, databaseCommand); err != nil {
-								return err
-							} else if err := updatePayloadTypeCommandBrowserScripts(in, newCommand, databaseCommand); err != nil {
-								return err
-							} else if err := updatePayloadTypeCommandMitreAttack(in, newCommand, databaseCommand); err != nil {
-								return err
-							}
-						}
-						break
-					}
-				}
-				if !found {
-					// we didn't see the current command in the syncingCommands list from the agent container
-					// this means that it once existed, but shouldn't anymore - mark it as deleted
-					if !databaseCommand.Deleted {
-						logging.LogDebug("Need to delete command", "cmd", databaseCommand)
-						_, err = database.DB.NamedExec(`UPDATE command SET 
-							deleted=true 
-							WHERE id=:id`, databaseCommand,
-						)
-						if err != nil {
-							logging.LogError(err, "Failed to mark command as deleted in database", "command", databaseCommand)
-							return err
-						}
-					}
-
-				}
 			}
 		}
 	}
 	for _, newCommand := range syncingCommands {
-		//logging.LogInfo("looping to see if need to add command", "updatedAndDeleted", updatedAndDeletedCommands, "current", newCommand.Name)
 		if utils.SliceContains(updatedAndDeletedCommands, newCommand.Name) {
 			continue
 		}
 		if newCommand.Name == "" {
 			continue
 		}
-		databaseCommand = databaseStructs.Command{
+		databaseCommand := databaseStructs.Command{
 			Cmd:                 newCommand.Name,
 			NeedsAdmin:          newCommand.NeedsAdminPermissions,
 			HelpCmd:             newCommand.HelpString,
@@ -925,7 +900,7 @@ func updatePayloadTypeCommands(in PayloadTypeSyncMessage, payloadtype databaseSt
 			Deleted:             false,
 			ScriptOnly:          newCommand.ScriptOnlyCommand,
 		}
-		//logging.LogDebug("adding a new command", "new attributes", newCommand.CommandAttributes)
+		setEmptyCommandAttributes(&newCommand)
 		attributes := map[string]interface{}{
 			"supported_os":              newCommand.CommandAttributes.SupportedOS,
 			"builtin":                   newCommand.CommandAttributes.CommandIsBuiltin,
@@ -936,14 +911,7 @@ func updatePayloadTypeCommands(in PayloadTypeSyncMessage, payloadtype databaseSt
 		for k, v := range newCommand.CommandAttributes.AdditionalAttributes {
 			attributes[k] = v
 		}
-		if len(newCommand.CommandAttributes.SupportedOS) == 0 {
-			newCommand.CommandAttributes.SupportedOS = make([]string, 0)
-		}
-		if len(newCommand.CommandAttributes.FilterCommandAvailabilityByAgentBuildParameters) == 0 {
-			newCommand.CommandAttributes.FilterCommandAvailabilityByAgentBuildParameters = make(map[string]string)
-		}
 		databaseCommand.Attributes = GetMythicJSONTextFromStruct(attributes)
-		// create a new command for this payload type
 		if statement, err := database.DB.PrepareNamed(`INSERT INTO command 
 			(cmd,needs_admin,help_cmd,description,payload_type_id,"version",supported_ui_features,author,deleted,script_only,attributes) 
 			VALUES (:cmd, :needs_admin, :help_cmd, :description, :payload_type_id, :version, :supported_ui_features, :author, :deleted, :script_only, :attributes) 
@@ -955,17 +923,34 @@ func updatePayloadTypeCommands(in PayloadTypeSyncMessage, payloadtype databaseSt
 			if err = statement.Get(&databaseCommand.ID, databaseCommand); err != nil {
 				logging.LogError(err, "Failed to create new command")
 				return err
-			} else {
-				//logging.LogDebug("New command", "command", databaseCommand)
-				if err := updatePayloadTypeCommandParameters(in, payloadtype, newCommand.CommandParameters, databaseCommand); err != nil {
-					return err
-				} else if err := updatePayloadTypeCommandBrowserScripts(in, newCommand, databaseCommand); err != nil {
-					return err
-				} else if err := updatePayloadTypeCommandMitreAttack(in, newCommand, databaseCommand); err != nil {
-					return err
-				}
+			}
+			if err := updateCommandForSync(in, payloadtype, newCommand, databaseCommand); err != nil {
+				return err
 			}
 		}
+	}
+	return nil
+}
+
+// setEmptyCommandAttributes normalizes nil slices/maps so comparisons are deterministic.
+func setEmptyCommandAttributes(cmd *Command) {
+	if len(cmd.CommandAttributes.SupportedOS) == 0 && cmd.CommandAttributes.SupportedOS == nil {
+		cmd.CommandAttributes.SupportedOS = []string{}
+	}
+	if len(cmd.CommandAttributes.FilterCommandAvailabilityByAgentBuildParameters) == 0 && cmd.CommandAttributes.FilterCommandAvailabilityByAgentBuildParameters == nil {
+		cmd.CommandAttributes.FilterCommandAvailabilityByAgentBuildParameters = map[string]string{}
+	}
+}
+
+func updateCommandForSync(in PayloadTypeSyncMessage, payloadtype databaseStructs.Payloadtype, newCommand Command, databaseCommand databaseStructs.Command) error {
+	if err := updatePayloadTypeCommandParameters(in, payloadtype, newCommand.CommandParameters, databaseCommand); err != nil {
+		return err
+	}
+	if err := updatePayloadTypeCommandBrowserScripts(in, newCommand, databaseCommand); err != nil {
+		return err
+	}
+	if err := updatePayloadTypeCommandMitreAttack(in, newCommand, databaseCommand); err != nil {
+		return err
 	}
 	return nil
 }
@@ -976,93 +961,89 @@ func updatePayloadTypeCommandParameters(in PayloadTypeSyncMessage, payloadtype d
 	// if a parameter is in the sync message, but not in the database, add it
 	// if a parameter is in both, update it
 	syncingParameters := newParameters
-	databaseParameter := databaseStructs.Commandparameters{}
 	updatedAndDeletedParameters := []string{}
-	if rows, err := database.DB.NamedQuery(`SELECT
+	databaseParameters := []databaseStructs.Commandparameters{}
+	rows, err := database.DB.NamedQuery(`SELECT
 		*
 		FROM commandparameters
 		WHERE command_id = :id
-	`, command); err != nil {
+	`, command)
+	if err != nil {
 		logging.LogError(err, "Failed to fetch command parameters for command when syning")
 		return err
-	} else {
-		defer rows.Close()
-		for rows.Next() {
-			if err = rows.StructScan(&databaseParameter); err != nil {
-				logging.LogError(err, "Failed to parse commandparameter into structure when syncing command")
-				return err
-			} else {
-				//logging.LogDebug("Got row from commandparameters while syncing command", "row", databaseParameter)
-				found := false
-				for _, newParameter := range syncingParameters {
-					if newParameter.Name == databaseParameter.Name {
-						// we found a matching parameter name, but now need to loop through this command's parameter groups
-						//logging.LogDebug("Found matching newParameter.Name and databaseParameter.Name", "name", newParameter.Name)
-						for _, newParameterGroup := range newParameter.ParameterGroupInformation {
-							//logging.LogDebug("Looking to see if group names match", "newParameterGroup.GroupName", newParameterGroup.GroupName, "databaseParameter.ParameterGroupName", databaseParameter.ParameterGroupName)
-							if newParameterGroup.GroupName == databaseParameter.ParameterGroupName {
-								// we found an exact match to update
-
-								updatedAndDeletedParameters = append(updatedAndDeletedParameters, databaseParameter.Name+databaseParameter.ParameterGroupName)
-								found = true
-								//logging.LogDebug("updating found to true and appending value", "updatedAndDeletedParameters", updatedAndDeletedParameters)
-								// update it
-								if newParameter.CLIName == "" {
-									newParameter.CLIName = strings.ReplaceAll(newParameter.Name, " ", "-")
-								}
-								if newParameter.ModalDisplayName == "" {
-									newParameter.ModalDisplayName = newParameter.Name
-								}
-								databaseParameter.CliName = newParameter.CLIName
-								databaseParameter.DisplayName = newParameter.ModalDisplayName
-								databaseParameter.Description = newParameter.Description
-								databaseParameter.Choices = GetMythicJSONArrayFromStruct(newParameter.Choices)
-								if defaultVal, err := getSyncToDatabaseValueForDefaultValue(newParameter.ParameterType, newParameter.DefaultValue, newParameter.Choices); err != nil {
-									logging.LogError(err, "Failed to getSyncToDatabaseValueForDefaultValue for updating command parameter")
-									return err
-								} else {
-									databaseParameter.DefaultValue = defaultVal
-								}
-								databaseParameter.SupportedAgents = GetMythicJSONArrayFromStruct(newParameter.SupportedAgents)
-								databaseParameter.LimitCredentialsByType = GetMythicJSONArrayFromStruct(newParameter.LimitCredentialsByType)
-								databaseParameter.ChoicesAreAllCommands = newParameter.ChoicesAreAllCommands
-								databaseParameter.ChoicesAreLoadedCommands = newParameter.ChoicesAreLoadedCommands
-								databaseParameter.Required = newParameterGroup.ParameterIsRequired
-								databaseParameter.UiPosition = int(newParameterGroup.UIModalPosition)
-								databaseParameter.Type = string(newParameter.ParameterType)
-								if len(newParameter.FilterCommandChoicesByCommandAttributes) == 0 {
-									newParameter.FilterCommandChoicesByCommandAttributes = make(map[string]string)
-								}
-								databaseParameter.ChoiceFilterByCommandAttributes = GetMythicJSONTextFromStruct(newParameter.FilterCommandChoicesByCommandAttributes)
-								databaseParameter.DynamicQueryFunction = newParameter.DynamicQueryFunctionName
-								databaseParameter.SupportedAgentBuildParameters = GetMythicJSONTextFromStruct(newParameter.SupportedAgentBuildParameters)
-								databaseParameter.VerifierRegex = newParameter.VerifierRegex
-								_, err = database.DB.NamedExec(`UPDATE commandparameters SET 
-									cli_name=:cli_name, display_name=:display_name, description=:description, choices=:choices, default_value=:default_value, 
-									supported_agents=:supported_agents, supported_agent_build_parameters=:supported_agent_build_parameters,
-									choices_are_all_commands=:choices_are_all_commands, choices_are_loaded_commands=:choices_are_loaded_commands, 
-									choice_filter_by_command_attributes=:choice_filter_by_command_attributes, dynamic_query_function=:dynamic_query_function, 
-									required=:required, ui_position=:ui_position, "type"=:type, limit_credentials_by_type=:limit_credentials_by_type,
-									verifier_regex=:verifier_regex
-									WHERE id=:id`, databaseParameter,
-								)
-								if err != nil {
-									logging.LogError(err, "Failed to update command parameter in database", "command_parameter", databaseParameter)
-									return err
-								}
-							}
+	}
+	for rows.Next() {
+		databaseParameter := databaseStructs.Commandparameters{}
+		if err = rows.StructScan(&databaseParameter); err != nil {
+			rows.Close()
+			logging.LogError(err, "Failed to parse commandparameter into structure when syncing command")
+			return err
+		}
+		databaseParameters = append(databaseParameters, databaseParameter)
+	}
+	if err = rows.Close(); err != nil {
+		logging.LogError(err, "Failed to close command parameter rows")
+		return err
+	}
+	for _, databaseParameter := range databaseParameters {
+		found := false
+		for _, newParameter := range syncingParameters {
+			if newParameter.Name == databaseParameter.Name {
+				for _, newParameterGroup := range newParameter.ParameterGroupInformation {
+					if newParameterGroup.GroupName == databaseParameter.ParameterGroupName {
+						updatedAndDeletedParameters = append(updatedAndDeletedParameters, databaseParameter.Name+databaseParameter.ParameterGroupName)
+						found = true
+						if newParameter.CLIName == "" {
+							newParameter.CLIName = strings.ReplaceAll(newParameter.Name, " ", "-")
+						}
+						if newParameter.ModalDisplayName == "" {
+							newParameter.ModalDisplayName = newParameter.Name
+						}
+						databaseParameter.CliName = newParameter.CLIName
+						databaseParameter.DisplayName = newParameter.ModalDisplayName
+						databaseParameter.Description = newParameter.Description
+						databaseParameter.Choices = GetMythicJSONArrayFromStruct(newParameter.Choices)
+						if defaultVal, err := getSyncToDatabaseValueForDefaultValue(newParameter.ParameterType, newParameter.DefaultValue, newParameter.Choices); err != nil {
+							logging.LogError(err, "Failed to getSyncToDatabaseValueForDefaultValue for updating command parameter")
+							return err
+						} else {
+							databaseParameter.DefaultValue = defaultVal
+						}
+						databaseParameter.SupportedAgents = GetMythicJSONArrayFromStruct(newParameter.SupportedAgents)
+						databaseParameter.LimitCredentialsByType = GetMythicJSONArrayFromStruct(newParameter.LimitCredentialsByType)
+						databaseParameter.ChoicesAreAllCommands = newParameter.ChoicesAreAllCommands
+						databaseParameter.ChoicesAreLoadedCommands = newParameter.ChoicesAreLoadedCommands
+						databaseParameter.Required = newParameterGroup.ParameterIsRequired
+						databaseParameter.UiPosition = int(newParameterGroup.UIModalPosition)
+						databaseParameter.Type = string(newParameter.ParameterType)
+						if len(newParameter.FilterCommandChoicesByCommandAttributes) == 0 {
+							newParameter.FilterCommandChoicesByCommandAttributes = make(map[string]string)
+						}
+						databaseParameter.ChoiceFilterByCommandAttributes = GetMythicJSONTextFromStruct(newParameter.FilterCommandChoicesByCommandAttributes)
+						databaseParameter.DynamicQueryFunction = newParameter.DynamicQueryFunctionName
+						databaseParameter.SupportedAgentBuildParameters = GetMythicJSONTextFromStruct(newParameter.SupportedAgentBuildParameters)
+						databaseParameter.VerifierRegex = newParameter.VerifierRegex
+						_, err = database.DB.NamedExec(`UPDATE commandparameters SET 
+							cli_name=:cli_name, display_name=:display_name, description=:description, choices=:choices, default_value=:default_value, 
+							supported_agents=:supported_agents, supported_agent_build_parameters=:supported_agent_build_parameters,
+							choices_are_all_commands=:choices_are_all_commands, choices_are_loaded_commands=:choices_are_loaded_commands, 
+							choice_filter_by_command_attributes=:choice_filter_by_command_attributes, dynamic_query_function=:dynamic_query_function, 
+							required=:required, ui_position=:ui_position, "type"=:type, limit_credentials_by_type=:limit_credentials_by_type,
+							verifier_regex=:verifier_regex
+							WHERE id=:id`, databaseParameter,
+						)
+						if err != nil {
+							logging.LogError(err, "Failed to update command parameter in database", "command_parameter", databaseParameter)
+							return err
 						}
 					}
 				}
-				if !found {
-					//logging.LogDebug("Failed to find matching group and parameter name")
-					// we didn't see the current parameter in the syncingParameters from the agent container
-					// this means that it once existed, but shouldn't anymore - mark it as deleted
-					logging.LogDebug("Need to delete command parameter", "parameter", databaseParameter, "cmd", command)
-					if _, err = database.DB.NamedExec("DELETE FROM commandparameters WHERE id=:id", databaseParameter); err != nil {
-						logging.LogError(err, "Failed to delete commandparameter mapping")
-					}
-				}
+			}
+		}
+		if !found {
+			logging.LogDebug("Need to delete command parameter", "parameter", databaseParameter, "cmd", command)
+			if _, err = database.DB.NamedExec("DELETE FROM commandparameters WHERE id=:id", databaseParameter); err != nil {
+				logging.LogError(err, "Failed to delete commandparameter mapping")
 			}
 		}
 	}
@@ -1070,60 +1051,55 @@ func updatePayloadTypeCommandParameters(in PayloadTypeSyncMessage, payloadtype d
 	for _, newParameter := range syncingParameters {
 		for _, newParameterGroup := range newParameter.ParameterGroupInformation {
 			if utils.SliceContains(updatedAndDeletedParameters, newParameter.Name+newParameterGroup.GroupName) {
-				// this means we've already deleted or updated this specific parameter group for this command, so it's not new
 				continue
+			}
+			if newParameter.CLIName == "" {
+				newParameter.CLIName = strings.ReplaceAll(newParameter.Name, " ", "-")
+			}
+			if newParameter.ModalDisplayName == "" {
+				newParameter.ModalDisplayName = newParameter.Name
+			}
+			databaseParameter := databaseStructs.Commandparameters{
+				Name:                     newParameter.Name,
+				DisplayName:              newParameter.ModalDisplayName,
+				CliName:                  newParameter.CLIName,
+				Description:              newParameter.Description,
+				Choices:                  GetMythicJSONArrayFromStruct(newParameter.Choices),
+				LimitCredentialsByType:   GetMythicJSONArrayFromStruct(newParameter.LimitCredentialsByType),
+				SupportedAgents:          GetMythicJSONArrayFromStruct(newParameter.SupportedAgents),
+				ChoicesAreAllCommands:    newParameter.ChoicesAreAllCommands,
+				ChoicesAreLoadedCommands: newParameter.ChoicesAreLoadedCommands,
+				Required:                 newParameterGroup.ParameterIsRequired,
+				UiPosition:               int(newParameterGroup.UIModalPosition),
+				Type:                     string(newParameter.ParameterType),
+				ParameterGroupName:       newParameterGroup.GroupName,
+				CommandID:                command.ID,
+				DynamicQueryFunction:     newParameter.DynamicQueryFunctionName,
+				VerifierRegex:            newParameter.VerifierRegex,
+			}
+			if defaultVal, err := getSyncToDatabaseValueForDefaultValue(newParameter.ParameterType, newParameter.DefaultValue, newParameter.Choices); err != nil {
+				logging.LogError(err, "Failed to getSyncToDatabaseValueForDefaultValue for brand new command parameter", "newParameter", newParameter)
+				return err
 			} else {
-				if newParameter.CLIName == "" {
-					newParameter.CLIName = strings.ReplaceAll(newParameter.Name, " ", "-")
-				}
-				if newParameter.ModalDisplayName == "" {
-					newParameter.ModalDisplayName = newParameter.Name
-				}
-				// we have a new parameter group / command parameter to add in
-				databaseParameter = databaseStructs.Commandparameters{
-					Name:                     newParameter.Name,
-					DisplayName:              newParameter.ModalDisplayName,
-					CliName:                  newParameter.CLIName,
-					Description:              newParameter.Description,
-					Choices:                  GetMythicJSONArrayFromStruct(newParameter.Choices),
-					LimitCredentialsByType:   GetMythicJSONArrayFromStruct(newParameter.LimitCredentialsByType),
-					SupportedAgents:          GetMythicJSONArrayFromStruct(newParameter.SupportedAgents),
-					ChoicesAreAllCommands:    newParameter.ChoicesAreAllCommands,
-					ChoicesAreLoadedCommands: newParameter.ChoicesAreLoadedCommands,
-					Required:                 newParameterGroup.ParameterIsRequired,
-					UiPosition:               int(newParameterGroup.UIModalPosition),
-					Type:                     string(newParameter.ParameterType),
-					ParameterGroupName:       newParameterGroup.GroupName,
-					CommandID:                command.ID,
-					DynamicQueryFunction:     newParameter.DynamicQueryFunctionName,
-					VerifierRegex:            newParameter.VerifierRegex,
-				}
-				if defaultVal, err := getSyncToDatabaseValueForDefaultValue(newParameter.ParameterType, newParameter.DefaultValue, newParameter.Choices); err != nil {
-					logging.LogError(err, "Failed to getSyncToDatabaseValueForDefaultValue for brand new command parameter", "newParameter", newParameter)
+				databaseParameter.DefaultValue = defaultVal
+			}
+			databaseParameter.ChoiceFilterByCommandAttributes = GetMythicJSONTextFromStruct(newParameter.FilterCommandChoicesByCommandAttributes)
+			databaseParameter.SupportedAgentBuildParameters = GetMythicJSONTextFromStruct(newParameter.SupportedAgentBuildParameters)
+			if statement, err := database.DB.PrepareNamed(`INSERT INTO commandparameters 
+				("name",display_name,cli_name,description,command_id,choices,default_value,supported_agents,choices_are_all_commands,
+				choices_are_loaded_commands,required,ui_position,"type",choice_filter_by_command_attributes,dynamic_query_function,supported_agent_build_parameters,parameter_group_name,
+				 limit_credentials_by_type, verifier_regex) 
+				VALUES (:name, :display_name, :cli_name, :description, :command_id, :choices, :default_value, :supported_agents, :choices_are_all_commands,
+				:choices_are_loaded_commands, :required, :ui_position, :type, :choice_filter_by_command_attributes, :dynamic_query_function, :supported_agent_build_parameters, :parameter_group_name,
+				        :limit_credentials_by_type, :verifier_regex) 
+				RETURNING id`,
+			); err != nil {
+				logging.LogError(err, "Failed to create new command parameters statement when importing payloadtype")
+				return err
+			} else {
+				if err = statement.Get(&databaseParameter.ID, databaseParameter); err != nil {
+					logging.LogError(err, "Failed to create new command parameter")
 					return err
-				} else {
-					databaseParameter.DefaultValue = defaultVal
-				}
-				databaseParameter.ChoiceFilterByCommandAttributes = GetMythicJSONTextFromStruct(newParameter.FilterCommandChoicesByCommandAttributes)
-				databaseParameter.SupportedAgentBuildParameters = GetMythicJSONTextFromStruct(newParameter.SupportedAgentBuildParameters)
-				if statement, err := database.DB.PrepareNamed(`INSERT INTO commandparameters 
-					("name",display_name,cli_name,description,command_id,choices,default_value,supported_agents,choices_are_all_commands,
-					choices_are_loaded_commands,required,ui_position,"type",choice_filter_by_command_attributes,dynamic_query_function,supported_agent_build_parameters,parameter_group_name,
-					 limit_credentials_by_type, verifier_regex) 
-					VALUES (:name, :display_name, :cli_name, :description, :command_id, :choices, :default_value, :supported_agents, :choices_are_all_commands,
-					:choices_are_loaded_commands, :required, :ui_position, :type, :choice_filter_by_command_attributes, :dynamic_query_function, :supported_agent_build_parameters, :parameter_group_name,
-					        :limit_credentials_by_type, :verifier_regex) 
-					RETURNING id`,
-				); err != nil {
-					logging.LogError(err, "Failed to create new command parameters statement when importing payloadtype")
-					return err
-				} else {
-					if err = statement.Get(&databaseParameter.ID, databaseParameter); err != nil {
-						logging.LogError(err, "Failed to create new command parameter")
-						return err
-					} else {
-						//logging.LogDebug("New command parameter", "command_parameter", databaseParameter)
-					}
 				}
 			}
 		}
@@ -1133,235 +1109,243 @@ func updatePayloadTypeCommandParameters(in PayloadTypeSyncMessage, payloadtype d
 
 func updatePayloadTypeCommandBrowserScripts(in PayloadTypeSyncMessage, syncCommand Command, command databaseStructs.Command) error {
 	databaseBrowserScript := databaseStructs.Browserscript{}
-	/*
-		if syncCommand.AssociatedBrowserScript != nil {
-			logging.LogDebug("syncing browser script", "raw script", syncCommand.AssociatedBrowserScript.Script, "encoded", base64.StdEncoding.EncodeToString([]byte(syncCommand.AssociatedBrowserScript.Script)))
-			//syncCommand.AssociatedBrowserScript.Script = base64.StdEncoding.EncodeToString([]byte(syncCommand.AssociatedBrowserScript.Script))
-		}
-
-	*/
-	if rows, err := database.DB.NamedQuery(`SELECT
+	found := false
+	rows, err := database.DB.NamedQuery(`SELECT
 	*
 	FROM browserscript
-	WHERE command_id = :id and for_new_ui = true and operator_id IS NULL`, command); err != nil {
+	WHERE command_id = :id and for_new_ui = true and operator_id IS NULL`, command)
+	if err != nil {
 		logging.LogError(err, "Failed to get browserscript")
 		return err
-	} else {
-		found := false
-		defer rows.Close()
-		for rows.Next() {
-			if err = rows.StructScan(&databaseBrowserScript); err != nil {
-				logging.LogError(err, "Failed to parse browserscript into structure when syncing command")
-				return err
-			} else {
-				found = true
-				//logging.LogDebug("Got row for browserscript", "row", databaseBrowserScript)
-				if syncCommand.AssociatedBrowserScript != nil {
-					databaseBrowserScript.Script = syncCommand.AssociatedBrowserScript.Script
-					databaseBrowserScript.ContainerVersion = syncCommand.AssociatedBrowserScript.Script
-					databaseBrowserScript.ContainerVersionAuthor = syncCommand.AssociatedBrowserScript.Author
-					_, err = database.DB.NamedExec(`UPDATE browserscript SET 
-						container_version=:container_version, container_version_author=:container_version_author 
-						WHERE id=:id`, databaseBrowserScript,
-					)
-					if err != nil {
-						logging.LogError(err, "Failed to update command browserscript in database", "browserscript", databaseBrowserScript)
-						return err
-					} else {
-						updateBrowserScriptForAllOperators(databaseBrowserScript)
-					}
-				} else {
-					// we're syncing null, but something exists, so we need to delete it for everybody
-					if _, err = database.DB.NamedExec("DELETE FROM browserscript WHERE id=:id", databaseBrowserScript); err != nil {
-						logging.LogError(err, "Failed to delete browserscript mapping")
-						return err
-					} else {
-						removeBrowserScriptFromAllOperators(databaseBrowserScript)
-					}
-				}
-
-			}
+	}
+	for rows.Next() {
+		if err = rows.StructScan(&databaseBrowserScript); err != nil {
+			rows.Close()
+			logging.LogError(err, "Failed to parse browserscript into structure when syncing command")
+			return err
 		}
-		if syncCommand.AssociatedBrowserScript != nil && !found {
-			// we have one registered for syncing from the container, and we didn't find anything that exists
-			// create a new browserscript entry for Null operator, then for all operators
-			databaseBrowserScript = databaseStructs.Browserscript{
-				Author:                 syncCommand.AssociatedBrowserScript.Author,
-				Script:                 syncCommand.AssociatedBrowserScript.Script,
-				ContainerVersion:       syncCommand.AssociatedBrowserScript.Script,
-				ContainerVersionAuthor: syncCommand.AssociatedBrowserScript.Author,
-				CommandID:              command.ID,
-				PayloadTypeID:          command.PayloadTypeID,
-				Active:                 true,
-				UserModified:           false,
-				ForNewUi:               true,
-			}
-			if _, err := database.DB.NamedExec(`INSERT INTO
-				browserscript (author, script, container_version, container_version_author, command_id, payload_type_id, active, user_modified, for_new_ui)
-				VALUES (:author, :script, :container_version, :container_version_author, :command_id, :payload_type_id, :active, :user_modified, :for_new_ui)`,
-				databaseBrowserScript); err != nil {
-				logging.LogError(err, "Failed to create new browserscript mapping")
+		found = true
+	}
+	if err = rows.Close(); err != nil {
+		logging.LogError(err, "Failed to close browserscript rows")
+		return err
+	}
+	if found {
+		if syncCommand.AssociatedBrowserScript != nil {
+			databaseBrowserScript.Script = syncCommand.AssociatedBrowserScript.Script
+			databaseBrowserScript.ContainerVersion = syncCommand.AssociatedBrowserScript.Script
+			databaseBrowserScript.ContainerVersionAuthor = syncCommand.AssociatedBrowserScript.Author
+			_, err = database.DB.NamedExec(`UPDATE browserscript SET 
+				container_version=:container_version, container_version_author=:container_version_author 
+				WHERE id=:id`, databaseBrowserScript,
+			)
+			if err != nil {
+				logging.LogError(err, "Failed to update command browserscript in database", "browserscript", databaseBrowserScript)
 				return err
-			} else {
-				addBrowserScriptToAllOperators(databaseBrowserScript)
 			}
+			updateBrowserScriptForAllOperators(databaseBrowserScript)
+		} else {
+			// we're syncing null, but something exists, so we need to delete it for everybody
+			if _, err = database.DB.NamedExec("DELETE FROM browserscript WHERE id=:id", databaseBrowserScript); err != nil {
+				logging.LogError(err, "Failed to delete browserscript mapping")
+				return err
+			}
+			removeBrowserScriptFromAllOperators(databaseBrowserScript)
+		}
+		return nil
+	}
+	if syncCommand.AssociatedBrowserScript != nil && !found {
+		databaseBrowserScript = databaseStructs.Browserscript{
+			Author:                 syncCommand.AssociatedBrowserScript.Author,
+			Script:                 syncCommand.AssociatedBrowserScript.Script,
+			ContainerVersion:       syncCommand.AssociatedBrowserScript.Script,
+			ContainerVersionAuthor: syncCommand.AssociatedBrowserScript.Author,
+			CommandID:              command.ID,
+			PayloadTypeID:          command.PayloadTypeID,
+			Active:                 true,
+			UserModified:           false,
+			ForNewUi:               true,
+		}
+		if _, err := database.DB.NamedExec(`INSERT INTO
+			browserscript (author, script, container_version, container_version_author, command_id, payload_type_id, active, user_modified, for_new_ui)
+			VALUES (:author, :script, :container_version, :container_version_author, :command_id, :payload_type_id, :active, :user_modified, :for_new_ui)`,
+			databaseBrowserScript); err != nil {
+			logging.LogError(err, "Failed to create new browserscript mapping")
+			return err
+		} else {
+			addBrowserScriptToAllOperators(databaseBrowserScript)
 		}
 	}
 	return nil
 }
 
 func addBrowserScriptToAllOperators(browserscript databaseStructs.Browserscript) error {
-	operator := databaseStructs.Operator{}
-	if rows, err := database.DB.Queryx(`SELECT
+	operators := []databaseStructs.Operator{}
+	rows, err := database.DB.Queryx(`SELECT
 		id
 		FROM operator
-	`); err != nil {
+	`)
+	if err != nil {
 		logging.LogError(err, "Failed to get operators")
 		return err
-	} else {
-		defer rows.Close()
-		for rows.Next() {
-			if err = rows.StructScan(&operator); err != nil {
-				logging.LogError(err, "Failed to parse operator into structure")
-				return err
-			} else {
-				browserscript.OperatorID = sql.NullInt64{Valid: true, Int64: int64(operator.ID)}
-				if _, err := database.DB.NamedExec(`INSERT INTO
-					browserscript (author, script, container_version, container_version_author, command_id, payload_type_id, active, user_modified, for_new_ui, operator_id)
-					VALUES (:author, :script, :container_version, :container_version_author, :command_id, :payload_type_id, :active, :user_modified, :for_new_ui, :operator_id)`,
-					browserscript); err != nil {
-					logging.LogError(err, "Failed to create new browserscript mapping for operator", "operator", operator)
-					return err
-				}
-			}
+	}
+	for rows.Next() {
+		operator := databaseStructs.Operator{}
+		if err = rows.StructScan(&operator); err != nil {
+			rows.Close()
+			logging.LogError(err, "Failed to parse operator into structure")
+			return err
+		}
+		operators = append(operators, operator)
+	}
+	if err = rows.Close(); err != nil {
+		logging.LogError(err, "Failed to close operator rows")
+		return err
+	}
+	for _, operator := range operators {
+		browserscript.OperatorID = sql.NullInt64{Valid: true, Int64: int64(operator.ID)}
+		if _, err := database.DB.NamedExec(`INSERT INTO
+			browserscript (author, script, container_version, container_version_author, command_id, payload_type_id, active, user_modified, for_new_ui, operator_id)
+			VALUES (:author, :script, :container_version, :container_version_author, :command_id, :payload_type_id, :active, :user_modified, :for_new_ui, :operator_id)`,
+			browserscript); err != nil {
+			logging.LogError(err, "Failed to create new browserscript mapping for operator", "operator", operator)
+			return err
 		}
 	}
 	return nil
 }
 
 func updateBrowserScriptForAllOperators(browserscript databaseStructs.Browserscript) error {
-	operatorScript := databaseStructs.Browserscript{}
-	if rows, err := database.DB.NamedQuery(`SELECT
-	*
-	FROM browserscript
-	WHERE operator_id IS NOT NULL and command_id = :command_id
-	`, browserscript); err != nil {
+	operatorScripts := []databaseStructs.Browserscript{}
+	rows, err := database.DB.NamedQuery(`SELECT
+		*
+		FROM browserscript
+		WHERE operator_id IS NOT NULL and command_id = :command_id
+	`, browserscript)
+	if err != nil {
 		logging.LogError(err, "Failed to get operators")
 		return err
-	} else {
-		defer rows.Close()
-		for rows.Next() {
-			if err = rows.StructScan(&operatorScript); err != nil {
-				logging.LogError(err, "Failed to parse browserscript into structure for updating scripts")
-				return err
-			} else {
-				if operatorScript.ContainerVersionAuthor == operatorScript.Author {
-					operatorScript.Author = browserscript.Author
-				}
-				if !operatorScript.UserModified {
-					operatorScript.Script = browserscript.Script
-				}
-				operatorScript.ContainerVersion = browserscript.Script
-				operatorScript.ContainerVersionAuthor = browserscript.Author
-				//logging.LogDebug("updating browser script for user", "script", operatorScript.Script)
-				if _, err := database.DB.NamedExec(`UPDATE browserscript SET
-					author=:author, script=:script, container_version=:container_version, container_version_author=:container_version_author
-					WHERE id=:id`,
-					operatorScript); err != nil {
-					logging.LogError(err, "Failed to update browserscript mapping for operator", "operator_script", operatorScript)
-					return err
-				}
-			}
+	}
+	for rows.Next() {
+		operatorScript := databaseStructs.Browserscript{}
+		if err = rows.StructScan(&operatorScript); err != nil {
+			rows.Close()
+			logging.LogError(err, "Failed to parse browserscript into structure for updating scripts")
+			return err
+		}
+		operatorScripts = append(operatorScripts, operatorScript)
+	}
+	if err = rows.Close(); err != nil {
+		logging.LogError(err, "Failed to close operator browserscript rows")
+		return err
+	}
+	for _, operatorScript := range operatorScripts {
+		if operatorScript.ContainerVersionAuthor == operatorScript.Author {
+			operatorScript.Author = browserscript.Author
+		}
+		if !operatorScript.UserModified {
+			operatorScript.Script = browserscript.Script
+		}
+		operatorScript.ContainerVersion = browserscript.Script
+		operatorScript.ContainerVersionAuthor = browserscript.Author
+		if _, err := database.DB.NamedExec(`UPDATE browserscript SET
+			author=:author, script=:script, container_version=:container_version, container_version_author=:container_version_author
+			WHERE id=:id`,
+			operatorScript); err != nil {
+			logging.LogError(err, "Failed to update browserscript mapping for operator", "operator_script", operatorScript)
+			return err
 		}
 	}
 	return nil
 }
 
 func removeBrowserScriptFromAllOperators(browserscript databaseStructs.Browserscript) error {
-	operatorScript := databaseStructs.Browserscript{}
-	if rows, err := database.DB.NamedQuery(`SELECT
-	*
-	FROM browserscript
-	WHERE command_id = :command_id
-	`, browserscript); err != nil {
+	operatorScripts := []databaseStructs.Browserscript{}
+	rows, err := database.DB.NamedQuery(`SELECT
+		*
+		FROM browserscript
+		WHERE command_id = :command_id
+	`, browserscript)
+	if err != nil {
 		logging.LogError(err, "Failed to get browserscripts for command", "command", browserscript.CommandID)
 		return err
-	} else {
-		defer rows.Close()
-		for rows.Next() {
-			if err = rows.StructScan(&operatorScript); err != nil {
-				logging.LogError(err, "Failed to parse operator into structure")
-				return err
-			} else {
-				if _, err = database.DB.NamedExec("DELETE FROM browserscript WHERE id=:id", operatorScript); err != nil {
-					logging.LogError(err, "Failed to delete browserscript mapping")
-					return err
-				}
-			}
+	}
+	for rows.Next() {
+		operatorScript := databaseStructs.Browserscript{}
+		if err = rows.StructScan(&operatorScript); err != nil {
+			rows.Close()
+			logging.LogError(err, "Failed to parse operator into structure")
+			return err
+		}
+		operatorScripts = append(operatorScripts, operatorScript)
+	}
+	if err = rows.Close(); err != nil {
+		logging.LogError(err, "Failed to close operator browserscript rows for removal")
+		return err
+	}
+	for _, operatorScript := range operatorScripts {
+		if _, err = database.DB.NamedExec("DELETE FROM browserscript WHERE id=:id", operatorScript); err != nil {
+			logging.LogError(err, "Failed to delete browserscript mapping")
+			return err
 		}
 	}
 	return nil
 }
 
 func updatePayloadTypeCommandMitreAttack(in PayloadTypeSyncMessage, syncCommand Command, command databaseStructs.Command) error {
-	databaseMitreAttack := databaseStructs.Attackcommand{}
 	seenMitreAttack := []string{}
-	if rows, err := database.DB.NamedQuery(`SELECT
+	databaseMitreAttacks := []databaseStructs.Attackcommand{}
+	rows, err := database.DB.NamedQuery(`SELECT
 		attackcommand.id,
 		attack.t_num "attack.t_num"
 		FROM attackcommand 
 		JOIN attack ON attackcommand.attack_id = attack.id 
 		WHERE
 		command_id = :id
-	`, command); err != nil {
+	`, command)
+	if err != nil {
 		logging.LogError(err, "Failed to get attackcommand from database")
 		return err
-	} else {
-		defer rows.Close()
-		for rows.Next() {
-			if err = rows.StructScan(&databaseMitreAttack); err != nil {
-				logging.LogError(err, "Failed to parse mitre att&ck into structure")
+	}
+	for rows.Next() {
+		databaseMitreAttack := databaseStructs.Attackcommand{}
+		if err = rows.StructScan(&databaseMitreAttack); err != nil {
+			rows.Close()
+			logging.LogError(err, "Failed to parse mitre att&ck into structure")
+			return err
+		}
+		databaseMitreAttacks = append(databaseMitreAttacks, databaseMitreAttack)
+	}
+	if err = rows.Close(); err != nil {
+		logging.LogError(err, "Failed to close mitre attack rows")
+		return err
+	}
+	for _, databaseMitreAttack := range databaseMitreAttacks {
+		if utils.SliceContains(syncCommand.MitreAttackMappings, databaseMitreAttack.Attack.TNum) {
+			seenMitreAttack = append(seenMitreAttack, databaseMitreAttack.Attack.TNum)
+		} else {
+			if _, err = database.DB.NamedExec(`DELETE FROM attackcommand WHERE id=:id`, databaseMitreAttack); err != nil {
+				logging.LogError(err, "Failed to delete attackcommand mapping")
 				return err
-			} else {
-				// check if databaseMitreAttack is in syncCommand.MitreAttackMappings
-				// if it is, mark it as seen and move on
-				// if it's not, it needs to be removed
-				if utils.SliceContains(syncCommand.MitreAttackMappings, databaseMitreAttack.Attack.TNum) {
-					seenMitreAttack = append(seenMitreAttack, databaseMitreAttack.Attack.TNum)
-				} else {
-					if _, err = database.DB.NamedExec(`DELETE FROM attackcommand WHERE id=:id`, databaseMitreAttack); err != nil {
-						logging.LogError(err, "Failed to delete attackcommand")
-						return err
-					}
-				}
 			}
 		}
 	}
-	// anything else in syncCommand.MitreAttackMappings that's not in seenMitreAttack needs to be added
-	for _, newMitreAttack := range syncCommand.MitreAttackMappings {
-		if utils.SliceContains(seenMitreAttack, newMitreAttack) {
-			// do nothing
-		} else {
-			// add it
-			attack := databaseStructs.Attack{}
-			if err := database.DB.Get(&attack, "SELECT * FROM attack WHERE t_num=$1", newMitreAttack); err != nil {
-				logging.LogError(err, "Failed to find ATT&CK TNum", "t_num", newMitreAttack)
-				SendAllOperationsMessage(
-					fmt.Sprintf("%s:%s - Failed to find ATT&CK TNum: %s", in.PayloadType.Name, syncCommand.Name, newMitreAttack),
-					0, "", database.MESSAGE_LEVEL_INFO, true)
-			} else {
-				if _, err := database.DB.NamedExec(`INSERT INTO
-					attackcommand (attack_id, command_id)
-					VALUES (:attack_id, :command_id)`,
-					databaseStructs.Attackcommand{
-						AttackID:  attack.ID,
-						CommandID: command.ID,
-					},
-				); err != nil {
-					logging.LogError(err, "Failed to add new MITRE ATT&CK mapping", "attack", attack.ID, "command", command.ID)
-					return err
-				}
-			}
+	// add the new attackcommand mappings
+	for _, mitreAttackTNum := range syncCommand.MitreAttackMappings {
+		if utils.SliceContains(seenMitreAttack, mitreAttackTNum) {
+			continue
+		}
+		attack := databaseStructs.Attack{}
+		if err := database.DB.Get(&attack, `SELECT id FROM attack WHERE t_num=$1`, mitreAttackTNum); err != nil {
+			logging.LogError(err, "Failed to get attack information from database for syncing mitre attack mapping", "attack.t_num", mitreAttackTNum)
+			return err
+		}
+		attackcommand := databaseStructs.Attackcommand{CommandID: command.ID, AttackID: attack.ID}
+		if _, err := database.DB.NamedExec(`INSERT INTO
+			attackcommand(attack_id, command_id)
+			VALUES(:attack_id,:command_id)`, attackcommand); err != nil {
+			logging.LogError(err, "Failed to insert attackcommand into database")
+			return err
 		}
 	}
 	return nil
