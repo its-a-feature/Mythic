@@ -22,15 +22,18 @@ export const MythicTimestamp = ({
     interval = 0,
     withTitle = false,
     titleFormat = "YYYY-MM-DD HH:mm:ss",
+    serverSkew = 0,
 }) => {
     const compute = () => {
         const t = dayjs(children);
         if (!t.isValid()) return "";
         if (duration) {
-            const end = dayjs(endTime);
-            return formatDiff((end.isValid() ? end : dayjs()).diff(t));
+            const end = endTime ? dayjs(endTime) : dayjs().add(serverSkew, 'ms');
+            return formatDiff(end.diff(t));
         }
-        return fromNow ? t.fromNow(true) : t.format(titleFormat);
+        return fromNow
+            ? dayjs(t).subtract(serverSkew, 'ms').fromNow(true)
+            : t.format(titleFormat);
     };
     const [display, setDisplay] = useState(compute);
     useEffect(() => {

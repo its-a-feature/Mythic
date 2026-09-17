@@ -417,6 +417,7 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
                                             interval={1000}
                                             withTitle
                                             titleFormat={"YYYY-MM-DD HH:mm:ss"}
+                                            serverSkew={me?.user?.server_skew}
                                             fromNow
                                             ago
                                         >
@@ -430,6 +431,7 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
                                             endTime={row.end_timestamp ?? row.updated_at}
                                             withTitle
                                             titleFormat={"YYYY-MM-DD HH:mm:ss"}
+                                            serverSkew={me?.user?.server_skew}
                                         >
                                             {row.created_at + "Z"}
                                         </MythicTimestamp>

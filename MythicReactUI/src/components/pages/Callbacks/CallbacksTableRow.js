@@ -215,6 +215,7 @@ export const CallbacksTableLastCheckinCell = React.memo( ({rowData, cellData, me
                     interval={1000}
                     withTitle
                     titleFormat={"YYYY-MM-DD HH:mm:ss"}
+                    serverSkew={me?.user?.server_skew}
                     fromNow
                     ago
                 >
