@@ -315,7 +315,6 @@ const InteractiveTerminalDisplay = ({
             event.preventDefault();
             writeLocalTerminalAction(onTerminalInputRef.current?.(pastedText));
         };
-        terminalElement.addEventListener("paste", handleTerminalPaste);
         terminal.attachCustomKeyEventHandler((event) => {
             if(!onTerminalKeyEventRef.current){
                 return true;
@@ -344,6 +343,7 @@ const InteractiveTerminalDisplay = ({
                 terminal.focus();
             }
         });
+        terminal.textarea.addEventListener("paste", handleTerminalPaste);
         return () => {
             if(fitAnimationFrameRef.current !== null){
                 window.cancelAnimationFrame(fitAnimationFrameRef.current);
