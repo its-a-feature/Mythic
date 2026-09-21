@@ -299,15 +299,16 @@ select_permissions:
         - current_operation_id
         - deleted
         - email
-        - failed_login_count
         - id
-        - last_failed_login_timestamp
         - last_login
         - username
         - view_utc_time
       filter:
-        id:
-          _lte: X-Hasura-Scope-operator-read-operator
+        _and:
+          - id:
+              _lte: X-Hasura-Scope-operator-read-operator
+          - id:
+              _eq: x-hasura-user-id
   - role: spectator
     permission:
       columns:
@@ -324,8 +325,11 @@ select_permissions:
         - username
         - view_utc_time
       filter:
-        id:
-          _lte: X-Hasura-Scope-operator-read-operator
+        _and:
+          - id:
+              _lte: X-Hasura-Scope-operator-read-operator
+          - id:
+              _eq: x-hasura-user-id
 update_permissions:
   - role: mythic_admin
     permission:
