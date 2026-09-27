@@ -51,7 +51,12 @@ func RsaEncryptBytes(plainBytes []byte, publicKey []byte) ([]byte, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse public key to encrypt with RSA: %v", err)
 		}
-		pubKey = pubAny.(*rsa.PublicKey)
+		switch pub := pubAny.(type) {
+		case *rsa.PublicKey:
+			pubKey = pub
+		default:
+			return nil, fmt.Errorf("successfully parsed public key, but wasn't of type RSA")
+		}
 	}
 
 	encryptedData, err := rsa.EncryptOAEP(hash, rand.Reader, pubKey, plainBytes, nil)
