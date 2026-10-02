@@ -169,6 +169,7 @@ const InteractiveTerminalDisplay = ({
     lineInputBuffer,
     onTerminalInput,
     onTerminalKeyEvent,
+    onTerminalResize,
 }) => {
     const terminalScrollContainerRef = React.useRef(null);
     const terminalElementRef = React.useRef(null);
@@ -185,6 +186,7 @@ const InteractiveTerminalDisplay = ({
     const localEchoVisibleRef = React.useRef(false);
     const onTerminalInputRef = React.useRef(onTerminalInput);
     const onTerminalKeyEventRef = React.useRef(onTerminalKeyEvent);
+    const onTerminalResizeRef = React.useRef(onTerminalResize);
     const unwrappedColumnCountRef = React.useRef(0);
     const [terminalReady, setTerminalReady] = React.useState(false);
     const longestLineLength = React.useMemo( () => {
@@ -205,15 +207,16 @@ const InteractiveTerminalDisplay = ({
                 return;
             }
             const rows = Math.max(1, proposedDimensions.rows);
+            const visibleCols = Math.max(1, proposedDimensions.cols);
             if(wrapTextRef.current){
                 fitAddon.fit();
                 scrollContainer.scrollLeft = 0;
             } else {
-                const visibleCols = Math.max(1, proposedDimensions.cols);
                 const cols = Math.max(visibleCols, unwrappedColumnCountRef.current);
                 terminalElement.style.width = `${Math.ceil((cols / visibleCols) * scrollContainer.clientWidth)}px`;
                 terminal.resize(cols, rows);
             }
+            onTerminalResizeRef.current?.(visibleCols, rows);
         }catch(error){
             console.error(error);
         }
@@ -278,6 +281,9 @@ const InteractiveTerminalDisplay = ({
     React.useEffect( () => {
         onTerminalKeyEventRef.current = onTerminalKeyEvent;
     }, [onTerminalKeyEvent]);
+    React.useEffect( () => {
+        onTerminalResizeRef.current = onTerminalResize;
+    }, [onTerminalResize]);
     React.useEffect( () => {
         if(wrapText){
             unwrappedColumnCountRef.current = 0;
@@ -542,6 +548,8 @@ export const ResponseDisplayInteractive = (props) =>{
     const rawResponsesRef = React.useRef([]);
     const rawPrintableInputBufferRef = React.useRef("");
     const rawPrintableInputTimerRef = React.useRef(null);
+    const lastResizeRef = React.useRef({cols: 0, rows: 0});
+    const resizeTimerRef = React.useRef(null);
     const lineInputBufferRef = React.useRef("");
     const [search, setSearch] = React.useState("");
     const [totalCount, setTotalCount] = React.useState(0);
@@ -845,6 +853,36 @@ export const ResponseDisplayInteractive = (props) =>{
             });
         }
     }, [sendInteractiveInput]);
+    const sendTerminalResize = React.useCallback( (cols, rows) => {
+        if(!canSendTerminalInput){
+            return;
+        }
+        if(lastResizeRef.current.cols === cols && lastResizeRef.current.rows === rows){
+            return;
+        }
+        lastResizeRef.current = {cols, rows};
+        if(resizeTimerRef.current !== null){
+            clearTimeout(resizeTimerRef.current);
+        }
+        resizeTimerRef.current = setTimeout(() => {
+            resizeTimerRef.current = null;
+            const payload = `${cols},${rows},0,0`;
+            sendInteractiveInput({
+                params: payload,
+                originalParams: `resize ${cols}x${rows}`,
+                interactiveTaskType: 25, // InteractiveTask.WindowChange
+                pendingLabel: `Resize ${cols}x${rows}`,
+            });
+        }, 150);
+    }, [canSendTerminalInput, sendInteractiveInput]);
+    React.useEffect( () => {
+        return () => {
+            if(resizeTimerRef.current !== null){
+                clearTimeout(resizeTimerRef.current);
+                resizeTimerRef.current = null;
+            }
+        };
+    }, []);
     const queueRawPrintableInput = React.useCallback( (terminalData) => {
         rawPrintableInputBufferRef.current += terminalData;
         if(rawPrintableInputTimerRef.current !== null){
@@ -1028,7 +1066,8 @@ export const ResponseDisplayInteractive = (props) =>{
                                               inputMode={inputMode}
                                               lineInputBuffer={lineInputBuffer}
                                               onTerminalInput={handleTerminalData}
-                                              onTerminalKeyEvent={handleTerminalKeyEvent}/>
+                                              onTerminalKeyEvent={handleTerminalKeyEvent}
+                                              onTerminalResize={sendTerminalResize}/>
               </div>
           </div>
 
