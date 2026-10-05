@@ -27,11 +27,12 @@ type MythicRPCProxyStartMessageResponse struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_PROXY_START,
-		RoutingKey: MYTHIC_RPC_PROXY_START,
-		Handler:    processMythicRPCProxyStart,
-		Scopes:     []string{mythicjwt.SCOPE_TASK_WRITE},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_PROXY_START,
+		RoutingKey:     MYTHIC_RPC_PROXY_START,
+		Handler:        processMythicRPCProxyStart,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_TASK_WRITE},
 	})
 }
 

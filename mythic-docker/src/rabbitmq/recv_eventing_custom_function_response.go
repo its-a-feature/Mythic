@@ -20,11 +20,12 @@ type NewCustomEventingMessageResponse struct {
 
 func init() {
 	RabbitMQConnection.AddDirectQueue(DirectQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      EVENTING_CUSTOM_FUNCTION_RESPONSE,
-		RoutingKey: EVENTING_CUSTOM_FUNCTION_RESPONSE,
-		Handler:    processEventingCustomFunctionResponse,
-		Scopes:     []string{},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          EVENTING_CUSTOM_FUNCTION_RESPONSE,
+		RoutingKey:     EVENTING_CUSTOM_FUNCTION_RESPONSE,
+		Handler:        processEventingCustomFunctionResponse,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{},
 	})
 }
 

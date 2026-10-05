@@ -113,13 +113,17 @@ func TestMythicRabbitmqConnection() {
 	log.Printf("[*] Waiting for RabbitMQ to come online (Retry Count = %d)\n", maxCount)
 	for i := range count {
 		log.Printf("[*] Attempting to connect to RabbitMQ at %s:%s, attempt %d/%d\n", rabbitmqAddress, rabbitmqPort, i+1, maxCount)
-		conn, err := amqp.Dial(fmt.Sprintf("amqp://%s:%s@%s:%s/mythic_vhost", mythicEnv.GetString("RABBITMQ_USER"), mythicEnv.GetString("RABBITMQ_PASSWORD"), rabbitmqAddress, rabbitmqPort))
+		conn, err := amqp.Dial(fmt.Sprintf("amqp://%s:%s@%s:%s/%s",
+			mythicEnv.GetString("RABBITMQ_SERVER_USER"), mythicEnv.GetString("RABBITMQ_SERVER_PASSWORD"),
+			rabbitmqAddress, rabbitmqPort, mythicEnv.GetString("RABBITMQ_SECURE_VHOST")))
 		if err != nil {
 			log.Printf("[-] Failed to connect to RabbitMQ, retrying in %ds\n", sleepTime)
 			time.Sleep(10 * time.Second)
 		} else {
 			conn.Close()
-			log.Printf("[+] Successfully connected to RabbitMQ at amqp://%s:***@%s:%s/mythic_vhost\n\n", mythicEnv.GetString("RABBITMQ_USER"), rabbitmqAddress, rabbitmqPort)
+			log.Printf("[+] Successfully connected to RabbitMQ at amqp://%s:***@%s:%s/%s\n\n",
+				mythicEnv.GetString("RABBITMQ_SERVER_USER"), rabbitmqAddress, rabbitmqPort,
+				mythicEnv.GetString("RABBITMQ_SECURE_VHOST"))
 			return
 		}
 	}

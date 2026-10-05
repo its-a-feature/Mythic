@@ -42,11 +42,12 @@ type MythicRPCCustomBrowserSearchDataResponse struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_CUSTOMBROWSER_SEARCH,
-		RoutingKey: MYTHIC_RPC_CUSTOMBROWSER_SEARCH,
-		Handler:    processMythicRPCCustomBrowserSearch,
-		Scopes:     []string{mythicjwt.SCOPE_BROWSER_READ},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_CUSTOMBROWSER_SEARCH,
+		RoutingKey:     MYTHIC_RPC_CUSTOMBROWSER_SEARCH,
+		Handler:        processMythicRPCCustomBrowserSearch,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_BROWSER_READ},
 	})
 }
 

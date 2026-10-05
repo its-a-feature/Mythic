@@ -113,6 +113,7 @@ func CreateOperationWebhook(c *gin.Context) {
 		return
 	}
 	database.CreateOperationBotForOperation(newOperation)
+	rabbitmq.RefreshOnlineContainerCapabilities()
 	err = UpdateHasuraClaims(c, true)
 	if err != nil {
 		logging.LogError(err, "Failed to update claims")

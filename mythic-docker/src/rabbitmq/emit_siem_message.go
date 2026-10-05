@@ -39,13 +39,9 @@ func GetLoggingRoutingKey(loggingAction LOG_TYPE) string {
 func (r *rabbitMQConnection) EmitSiemMessage(loggingMessage LoggingMessage) error {
 	localLoggingMessage := loggingMessage
 	localLoggingMessage.ServerName = utils.MythicConfig.GlobalServerName
-	if err := r.SendStructMessage(
-		MYTHIC_TOPIC_EXCHANGE,
-		GetLoggingRoutingKey(loggingMessage.Action),
-		"",
-		localLoggingMessage,
-		true,
-		nil,
+	if err := r.sendConsumingContainerTopicMessage(
+		string(CONSUMING_SERVICES_TYPE_LOGGING), string(loggingMessage.Action),
+		GetLoggingRoutingKey(loggingMessage.Action), localLoggingMessage,
 	); err != nil {
 		//logging.LogError(err, "Failed to emit SIEM Message")
 		return err

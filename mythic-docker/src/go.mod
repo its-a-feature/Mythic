@@ -3,6 +3,7 @@ module github.com/its-a-feature/Mythic
 go 1.25.1
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-co-op/gocron/v2 v2.19.1
 	github.com/go-viper/mapstructure/v2 v2.5.0

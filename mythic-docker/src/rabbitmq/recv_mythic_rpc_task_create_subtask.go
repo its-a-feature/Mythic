@@ -30,11 +30,12 @@ type MythicRPCTaskCreateSubtaskMessageResponse struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_TASK_CREATE_SUBTASK,    // swap out with queue in rabbitmq.constants.go file
-		RoutingKey: MYTHIC_RPC_TASK_CREATE_SUBTASK,    // swap out with routing key in rabbitmq.constants.go file
-		Handler:    processMythicRPCTaskCreateSubtask, // points to function that takes in amqp.Delivery and returns interface{}
-		Scopes:     []string{mythicjwt.SCOPE_TASK_WRITE},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_TASK_CREATE_SUBTASK,    // swap out with queue in rabbitmq.constants.go file
+		RoutingKey:     MYTHIC_RPC_TASK_CREATE_SUBTASK,    // swap out with routing key in rabbitmq.constants.go file
+		Handler:        processMythicRPCTaskCreateSubtask, // points to function that takes in amqp.Delivery and returns interface{}
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_TASK_WRITE},
 	})
 }
 

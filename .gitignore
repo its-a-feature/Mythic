@@ -175,3 +175,4 @@ nginx-docker/config/blockips.conf
 .gocache/
 MythicReactUI/build
 MythicReactUI/node_modules
+rabbitmq-docker/generated/

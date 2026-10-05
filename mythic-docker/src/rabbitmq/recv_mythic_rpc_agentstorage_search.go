@@ -11,6 +11,7 @@ import (
 )
 
 type MythicRPCAgentstorageSearchMessage struct {
+	OperationID    int    `json:"operation_id"`
 	SearchUniqueID string `json:"unique_id" db:"unique_id"` // required
 }
 type MythicRPCAgentstorageSearchMessageResponse struct {
@@ -26,16 +27,17 @@ type MythicRPCAgentstorageSearchResult struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_AGENTSTORAGE_SEARCH,
-		RoutingKey: MYTHIC_RPC_AGENTSTORAGE_SEARCH,
-		Handler:    processMythicRPCAgentstorageSearch,
-		Scopes:     []string{},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_AGENTSTORAGE_SEARCH,
+		RoutingKey:     MYTHIC_RPC_AGENTSTORAGE_SEARCH,
+		Handler:        processMythicRPCAgentstorageSearch,
+		Authentication: RabbitMQAuthenticationContainerOperation,
+		Scopes:         []string{},
 	})
 }
 
 // Endpoint: MYTHIC_RPC_AGENTSTORAGE_SEARCH
-func MythicRPCAgentstorageSearch(input MythicRPCAgentstorageSearchMessage) MythicRPCAgentstorageSearchMessageResponse {
+func MythicRPCAgentstorageSearch(input MythicRPCAgentstorageSearchMessage, authContext RabbitMQAuthContext) MythicRPCAgentstorageSearchMessageResponse {
 	response := MythicRPCAgentstorageSearchMessageResponse{
 		Success: false,
 	}
@@ -44,7 +46,9 @@ func MythicRPCAgentstorageSearch(input MythicRPCAgentstorageSearchMessage) Mythi
 	if err := database.DB.Select(&agentStorageMessages, `SELECT
 	*
 	FROM agentstorage
-	WHERE unique_id ILIKE $1`, searchUniqueID); err != nil {
+	WHERE operation_id = $1
+	  AND container_principal = $2
+	  AND unique_id ILIKE $3`, authContext.OperationID, authContext.ContainerPrincipal, searchUniqueID); err != nil {
 		logging.LogError(err, "Failed to search agentstorage data")
 		response.Error = err.Error()
 		return response
@@ -70,7 +74,16 @@ func processMythicRPCAgentstorageSearch(msg amqp.Delivery) interface{} {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
 	} else {
-		return MythicRPCAgentstorageSearch(incomingMessage)
+		authContext, err := getVerifiedRabbitMQRequestContext(msg)
+		if err != nil {
+			responseMsg.Error = err.Error()
+			return responseMsg
+		}
+		if incomingMessage.OperationID != authContext.OperationID {
+			responseMsg.Error = "operation_id does not match the authenticated operation context"
+			return responseMsg
+		}
+		return MythicRPCAgentstorageSearch(incomingMessage, authContext)
 	}
 	return responseMsg
 }

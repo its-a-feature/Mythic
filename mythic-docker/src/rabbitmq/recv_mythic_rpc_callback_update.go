@@ -49,11 +49,12 @@ type MythicRPCCallbackUpdateMessageResponse struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_CALLBACK_UPDATE,
-		RoutingKey: MYTHIC_RPC_CALLBACK_UPDATE,
-		Handler:    processMythicRPCCallbackUpdate,
-		Scopes:     []string{mythicjwt.SCOPE_CALLBACK_WRITE},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_CALLBACK_UPDATE,
+		RoutingKey:     MYTHIC_RPC_CALLBACK_UPDATE,
+		Handler:        processMythicRPCCallbackUpdate,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_CALLBACK_WRITE},
 	})
 }
 

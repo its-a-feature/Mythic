@@ -21,11 +21,13 @@ type PTOnNewCallbackResponse struct {
 
 func init() {
 	RabbitMQConnection.AddDirectQueue(DirectQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      PT_ON_NEW_CALLBACK_RESPONSE_ROUTING_KEY,
-		RoutingKey: PT_ON_NEW_CALLBACK_RESPONSE_ROUTING_KEY,
-		Handler:    processOnNewCallbackResponse,
-		Scopes:     []string{mythicjwt.SCOPE_CALLBACK_WRITE},
+		Exchange:          MYTHIC_EXCHANGE,
+		Queue:             PT_ON_NEW_CALLBACK_RESPONSE_ROUTING_KEY,
+		RoutingKey:        PT_ON_NEW_CALLBACK_RESPONSE_ROUTING_KEY,
+		Handler:           processOnNewCallbackResponse,
+		Authentication:    RabbitMQAuthenticationContainerAuthContext,
+		Scopes:            []string{mythicjwt.SCOPE_CALLBACK_WRITE},
+		ContainerIdentity: extractOnNewCallbackResponseIdentity,
 	})
 
 }
@@ -33,8 +35,13 @@ func init() {
 // handle payload build response messages coming back on the queue
 func processOnNewCallbackResponse(msg amqp.Delivery) {
 	logging.LogInfo("got message", "routingKey", msg.RoutingKey)
+	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
+	if err != nil {
+		logging.LogError(err, "Failed to get auth headers")
+		return
+	}
 	newCallbackResponse := PTOnNewCallbackResponse{}
-	err := json.Unmarshal(msg.Body, &newCallbackResponse)
+	err = json.Unmarshal(msg.Body, &newCallbackResponse)
 	if err != nil {
 		logging.LogError(err, "Failed to process new callback response message")
 		return
@@ -47,8 +54,8 @@ func processOnNewCallbackResponse(msg amqp.Delivery) {
 	err = database.DB.Get(&databaseCallback, `SELECT 
 			callback.display_id, callback.operation_id
 			FROM callback 
-			WHERE agent_callback_id=$1 
-			LIMIT 1`, newCallbackResponse.AgentCallbackID)
+			WHERE agent_callback_id=$1 AND operation_id=$2
+			LIMIT 1`, newCallbackResponse.AgentCallbackID, authContext.OperationID)
 	if err != nil {
 		logging.LogError(err, "Failed to get payload from the database")
 		return

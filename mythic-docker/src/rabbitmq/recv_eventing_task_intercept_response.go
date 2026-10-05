@@ -27,11 +27,12 @@ type TaskInterceptMessageResponse struct {
 
 func init() {
 	RabbitMQConnection.AddDirectQueue(DirectQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      EVENTING_TASK_INTERCEPT_RESPONSE,
-		RoutingKey: EVENTING_TASK_INTERCEPT_RESPONSE,
-		Handler:    processEventingTaskInterceptResponse,
-		Scopes:     []string{mythicjwt.SCOPE_TASK_WRITE},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          EVENTING_TASK_INTERCEPT_RESPONSE,
+		RoutingKey:     EVENTING_TASK_INTERCEPT_RESPONSE,
+		Handler:        processEventingTaskInterceptResponse,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_TASK_WRITE},
 	})
 }
 

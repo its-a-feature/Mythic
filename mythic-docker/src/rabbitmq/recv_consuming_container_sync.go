@@ -49,11 +49,13 @@ const (
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      "mythic_consume_consuming_container_sync",
-		RoutingKey: CONSUMING_CONTAINER_SYNC_ROUTING_KEY,
-		Handler:    processConsumingContainerSyncMessages,
-		Scopes:     []string{},
+		Exchange:          MYTHIC_EXCHANGE,
+		Queue:             "mythic_consume_consuming_container_sync",
+		RoutingKey:        CONSUMING_CONTAINER_SYNC_ROUTING_KEY,
+		Handler:           processConsumingContainerSyncMessages,
+		Authentication:    RabbitMQAuthenticationContainer,
+		ContainerIdentity: extractConsumingContainerSyncIdentity,
+		Scopes:            []string{},
 	})
 }
 

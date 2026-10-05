@@ -14,11 +14,12 @@ import (
 
 func init() {
 	RabbitMQConnection.AddDirectQueue(DirectQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      CUSTOMBROWSER_EXPORT_FUNCTION_RESPONSE,
-		RoutingKey: CUSTOMBROWSER_EXPORT_FUNCTION_RESPONSE,
-		Handler:    processCbExportFunctionResponseMessages,
-		Scopes:     []string{mythicjwt.SCOPE_BROWSER_READ},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          CUSTOMBROWSER_EXPORT_FUNCTION_RESPONSE,
+		RoutingKey:     CUSTOMBROWSER_EXPORT_FUNCTION_RESPONSE,
+		Handler:        processCbExportFunctionResponseMessages,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_BROWSER_READ},
 	})
 }
 

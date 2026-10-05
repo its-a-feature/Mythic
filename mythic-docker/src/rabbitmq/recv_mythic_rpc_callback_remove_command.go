@@ -24,11 +24,12 @@ type MythicRPCCallbackRemoveCommandMessageResponse struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_CALLBACK_REMOVE_COMMAND,
-		RoutingKey: MYTHIC_RPC_CALLBACK_REMOVE_COMMAND,
-		Handler:    processMythicRPCCallbackRemoveCommand,
-		Scopes:     []string{mythicjwt.SCOPE_CALLBACK_WRITE},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_CALLBACK_REMOVE_COMMAND,
+		RoutingKey:     MYTHIC_RPC_CALLBACK_REMOVE_COMMAND,
+		Handler:        processMythicRPCCallbackRemoveCommand,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_CALLBACK_WRITE},
 	})
 }
 
