@@ -26,11 +26,12 @@ type MythicRPCCallbackAddCommandMessageResponse struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_CALLBACK_ADD_COMMAND,
-		RoutingKey: MYTHIC_RPC_CALLBACK_ADD_COMMAND,
-		Handler:    processMythicRPCCallbackAddCommand,
-		Scopes:     []string{mythicjwt.SCOPE_CALLBACK_WRITE},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_CALLBACK_ADD_COMMAND,
+		RoutingKey:     MYTHIC_RPC_CALLBACK_ADD_COMMAND,
+		Handler:        processMythicRPCCallbackAddCommand,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_CALLBACK_WRITE},
 	})
 }
 

@@ -19,19 +19,23 @@ type QueueHandler func(amqp.Delivery)
 type RPCQueueHandler func(amqp.Delivery) interface{}
 
 type RPCQueueStruct struct {
-	Exchange   string
-	Queue      string
-	RoutingKey string
-	Handler    RPCQueueHandler
-	Scopes     []string
+	Exchange          string
+	Queue             string
+	RoutingKey        string
+	Handler           RPCQueueHandler
+	Authentication    RabbitMQAuthenticationMode
+	ContainerIdentity RabbitMQContainerIdentityExtractor
+	Scopes            []string
 }
 type DirectQueueStruct struct {
-	Exchange   string
-	Queue      string
-	RoutingKey string
-	Handler    QueueHandler
-	Scopes     []string
-	Sequential bool
+	Exchange          string
+	Queue             string
+	RoutingKey        string
+	Handler           QueueHandler
+	Authentication    RabbitMQAuthenticationMode
+	ContainerIdentity RabbitMQContainerIdentityExtractor
+	Scopes            []string
+	Sequential        bool
 }
 
 type channelMutex struct {
@@ -57,6 +61,7 @@ type rabbitMQConnection struct {
 	rpcReturn        chan amqp.Return
 	rpcPending       map[string]chan rpcResponse
 	rpcExchanges     map[string]bool
+	rpcReplyQueue    string
 	RPCQueues        []RPCQueueStruct
 	DirectQueues     []DirectQueueStruct
 }
@@ -67,13 +72,29 @@ func (r *rabbitMQConnection) AddRPCQueue(input RPCQueueStruct) {
 	r.addListenerMutex.Lock()
 	r.RPCQueues = append(r.RPCQueues, input)
 	r.addListenerMutex.Unlock()
-	RegisterRabbitMQRPCScopePolicy(input.Queue, input.Scopes)
+	if input.Queue != MYTHIC_RPC_DIRECT_FILE_TOKEN_CREATE {
+		if err := RegisterRabbitMQRPCPolicy(input.Queue, RabbitMQRPCPolicy{
+			Authentication:    input.Authentication,
+			RequiredScopes:    input.Scopes,
+			ContainerIdentity: input.ContainerIdentity,
+		}); err != nil {
+			panic(err)
+		}
+	}
 }
 func (r *rabbitMQConnection) AddDirectQueue(input DirectQueueStruct) {
 	r.addListenerMutex.Lock()
 	r.DirectQueues = append(r.DirectQueues, input)
 	r.addListenerMutex.Unlock()
-	RegisterRabbitMQRPCScopePolicy(input.Queue, input.Scopes)
+	if input.Queue != MYTHIC_RPC_DIRECT_FILE_TOKEN_CREATE {
+		if err := RegisterRabbitMQRPCPolicy(input.Queue, RabbitMQRPCPolicy{
+			Authentication:    input.Authentication,
+			RequiredScopes:    input.Scopes,
+			ContainerIdentity: input.ContainerIdentity,
+		}); err != nil {
+			panic(err)
+		}
+	}
 }
 func (r *rabbitMQConnection) startListeners() {
 	exclusiveQueue := true

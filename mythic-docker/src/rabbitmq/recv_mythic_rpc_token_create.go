@@ -22,11 +22,12 @@ type MythicRPCTokenCreateTokenData = agentMessagePostResponseToken
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_TOKEN_CREATE,
-		RoutingKey: MYTHIC_RPC_TOKEN_CREATE,
-		Handler:    processMythicRPCTokenCreate,
-		Scopes:     []string{mythicjwt.SCOPE_RESPONSE_WRITE},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_TOKEN_CREATE,
+		RoutingKey:     MYTHIC_RPC_TOKEN_CREATE,
+		Handler:        processMythicRPCTokenCreate,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_RESPONSE_WRITE},
 	})
 }
 

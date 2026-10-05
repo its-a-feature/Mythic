@@ -23,11 +23,12 @@ type ResponseInterceptMessageResponse struct {
 
 func init() {
 	RabbitMQConnection.AddDirectQueue(DirectQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      EVENTING_RESPONSE_INTERCEPT_RESPONSE,
-		RoutingKey: EVENTING_RESPONSE_INTERCEPT_RESPONSE,
-		Handler:    processEventingResponseInterceptResponse,
-		Scopes:     []string{},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          EVENTING_RESPONSE_INTERCEPT_RESPONSE,
+		RoutingKey:     EVENTING_RESPONSE_INTERCEPT_RESPONSE,
+		Handler:        processEventingResponseInterceptResponse,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{},
 	})
 }
 

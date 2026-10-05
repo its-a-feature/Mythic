@@ -29,11 +29,13 @@ type TrSyncMessage struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      "mythic_consume_tr_sync",
-		RoutingKey: TR_SYNC_ROUTING_KEY,
-		Handler:    processTrSyncMessages,
-		Scopes:     []string{},
+		Exchange:          MYTHIC_EXCHANGE,
+		Queue:             "mythic_consume_tr_sync",
+		RoutingKey:        TR_SYNC_ROUTING_KEY,
+		Handler:           processTrSyncMessages,
+		Authentication:    RabbitMQAuthenticationContainer,
+		ContainerIdentity: extractTranslationContainerSyncIdentity,
+		Scopes:            []string{},
 	})
 }
 

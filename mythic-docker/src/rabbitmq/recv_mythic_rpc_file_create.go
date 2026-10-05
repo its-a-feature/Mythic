@@ -39,11 +39,12 @@ type MythicRPCFileCreateMessageResponse struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_FILE_CREATE,
-		RoutingKey: MYTHIC_RPC_FILE_CREATE,
-		Handler:    processMythicRPCFileCreate,
-		Scopes:     []string{mythicjwt.SCOPE_FILE_WRITE},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_FILE_CREATE,
+		RoutingKey:     MYTHIC_RPC_FILE_CREATE,
+		Handler:        processMythicRPCFileCreate,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_FILE_WRITE},
 	})
 }
 

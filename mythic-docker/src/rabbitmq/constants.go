@@ -2,11 +2,23 @@ package rabbitmq
 
 import "time"
 
+func rabbitMQExchangeType(exchange string) string {
+	if exchange == MYTHIC_EXCHANGE || exchange == MYTHIC_TOPIC_EXCHANGE || exchange == MYTHIC_RPC_REPLY_EXCHANGE {
+		return "topic"
+	}
+	return "direct"
+}
+
+func rabbitMQExchangeAutoDelete(exchange string) bool {
+	return exchange != MYTHIC_EXCHANGE && exchange != MYTHIC_TOPIC_EXCHANGE && exchange != MYTHIC_RPC_REPLY_EXCHANGE
+}
+
 type RPCRetryPolicy int
 
 const (
 	MYTHIC_EXCHANGE                        = "mythic_exchange"
 	MYTHIC_TOPIC_EXCHANGE                  = "mythic_topic_exchange"
+	MYTHIC_RPC_REPLY_EXCHANGE              = "mythic_rpc_reply_exchange"
 	MYTHIC_RABBITMQ_AUTH_CONTEXT_HEADER    = "mythic-auth-context"
 	RETRY_CONNECT_DELAY                    = 5 * time.Second
 	CHECK_CONTAINER_STATUS_DELAY           = 10 * time.Second

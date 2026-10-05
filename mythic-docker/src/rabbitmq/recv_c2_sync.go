@@ -89,11 +89,13 @@ type SimplifiedParameterDictionary struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      "mythic_consume_c2_sync",
-		RoutingKey: C2_SYNC_ROUTING_KEY,
-		Handler:    processC2SyncMessages,
-		Scopes:     []string{},
+		Exchange:          MYTHIC_EXCHANGE,
+		Queue:             "mythic_consume_c2_sync",
+		RoutingKey:        C2_SYNC_ROUTING_KEY,
+		Handler:           processC2SyncMessages,
+		Authentication:    RabbitMQAuthenticationContainer,
+		ContainerIdentity: extractC2SyncIdentity,
+		Scopes:            []string{},
 	})
 }
 

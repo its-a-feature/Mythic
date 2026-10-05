@@ -37,11 +37,12 @@ type MythicRPCCredentialSearchCredentialData struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_CREDENTIAL_SEARCH,
-		RoutingKey: MYTHIC_RPC_CREDENTIAL_SEARCH,
-		Handler:    processMythicRPCCredentialSearch,
-		Scopes:     []string{mythicjwt.SCOPE_CREDENTIAL_READ},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_CREDENTIAL_SEARCH,
+		RoutingKey:     MYTHIC_RPC_CREDENTIAL_SEARCH,
+		Handler:        processMythicRPCCredentialSearch,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_CREDENTIAL_READ},
 	})
 }
 

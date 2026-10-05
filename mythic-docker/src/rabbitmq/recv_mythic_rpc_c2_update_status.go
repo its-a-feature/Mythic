@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -24,11 +23,12 @@ type MythicRPCC2UpdateStatusMessageResponse struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_C2_UPDATE_STATUS,
-		RoutingKey: MYTHIC_RPC_C2_UPDATE_STATUS,
-		Handler:    processMythicRPCC2UpdateStatus,
-		Scopes:     []string{mythicjwt.SCOPE_C2_WRITE},
+		Exchange:          MYTHIC_EXCHANGE,
+		Queue:             MYTHIC_RPC_C2_UPDATE_STATUS,
+		RoutingKey:        MYTHIC_RPC_C2_UPDATE_STATUS,
+		Handler:           processMythicRPCC2UpdateStatus,
+		Authentication:    RabbitMQAuthenticationContainer,
+		ContainerIdentity: extractC2StatusIdentity,
 	})
 }
 

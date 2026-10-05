@@ -27,10 +27,11 @@ type MythicRPCDirectFileTokenCreateMessageResponse struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_DIRECT_FILE_TOKEN_CREATE,
-		RoutingKey: MYTHIC_RPC_DIRECT_FILE_TOKEN_CREATE,
-		Handler:    processMythicRPCDirectFileTokenCreate,
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_DIRECT_FILE_TOKEN_CREATE,
+		RoutingKey:     MYTHIC_RPC_DIRECT_FILE_TOKEN_CREATE,
+		Handler:        processMythicRPCDirectFileTokenCreate,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
 	})
 }
 

@@ -22,11 +22,12 @@ type MythicRPCCallbackTokenCreateCallbackTokenData = agentMessagePostResponseCal
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_CALLBACKTOKEN_CREATE,
-		RoutingKey: MYTHIC_RPC_CALLBACKTOKEN_CREATE,
-		Handler:    processMythicRPCCallbackTokenCreate,
-		Scopes:     []string{mythicjwt.SCOPE_CALLBACK_WRITE},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_CALLBACKTOKEN_CREATE,
+		RoutingKey:     MYTHIC_RPC_CALLBACKTOKEN_CREATE,
+		Handler:        processMythicRPCCallbackTokenCreate,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_CALLBACK_WRITE},
 	})
 }
 

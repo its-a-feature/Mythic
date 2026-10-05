@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -941,6 +942,52 @@ func (d *DockerComposeManager) ResetRabbitmq(useVolume bool) {
 		}
 	}
 }
+
+func (d *DockerComposeManager) ImportRabbitMQDefinitions(path string) error {
+	containerPath := "/tmp/mythic-generated-definitions.json"
+	if _, err := d.runDocker([]string{"cp", path, "mythic_rabbitmq:" + containerPath}); err != nil {
+		return err
+	}
+	var startupErr error
+	for attempt := 0; attempt < 30; attempt++ {
+		if _, startupErr = d.runDocker([]string{"exec", "mythic_rabbitmq", "rabbitmq-diagnostics", "-q", "ping"}); startupErr == nil {
+			break
+		}
+		time.Sleep(2 * time.Second)
+	}
+	if startupErr != nil {
+		return fmt.Errorf("RabbitMQ did not become ready for identity reconciliation: %w", startupErr)
+	}
+	if _, err := d.runDocker([]string{"exec", "mythic_rabbitmq", "rabbitmqctl", "import_definitions", containerPath}); err != nil {
+		return err
+	}
+	usersJSON, err := d.runDocker([]string{"exec", "mythic_rabbitmq", "rabbitmqctl", "list_users", "--formatter", "json"})
+	if err != nil {
+		return err
+	}
+	var users []struct {
+		Name string   `json:"user"`
+		Tags []string `json:"tags"`
+	}
+	if err := json.Unmarshal([]byte(usersJSON), &users); err != nil {
+		return fmt.Errorf("parse RabbitMQ users: %w", err)
+	}
+	for _, user := range users {
+		if !slices.Contains(user.Tags, "mythic_container") && !slices.Contains(user.Tags, "mythic_server") {
+			continue
+		}
+		// Credential changes do not terminate existing AMQP sessions.
+		if _, err := d.runDocker([]string{"exec", "mythic_rabbitmq", "rabbitmqctl", "close_all_user_connections", user.Name, "Mythic identity reconciliation"}); err != nil {
+			return err
+		}
+		if _, err := d.runDocker([]string{"exec", "mythic_rabbitmq", "rabbitmqctl", "delete_user", user.Name}); err != nil {
+			return err
+		}
+	}
+	_, err = d.runDocker([]string{"exec", "mythic_rabbitmq", "rabbitmqctl", "import_definitions", containerPath})
+	return err
+}
+
 func (d *DockerComposeManager) BackupDatabase(backupPath string, useVolume bool) error {
 	if !useVolume {
 		workingPath := utils.GetCwdFromExe()

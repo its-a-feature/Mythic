@@ -303,11 +303,19 @@ If it's anything else, mythic-cli will not spin up this container as it assumes 
 If you have a remote agent container connecting to Mythic, you MUST set this to false so that the remote agent container can connect to Mythic.`
 
 	mythicEnv.SetDefault("rabbitmq_user", "mythic_user")
-	mythicEnvInfo["rabbitmq_user"] = `This is the user that all containers use to connect to RabbitMQ queues`
+	mythicEnvInfo["rabbitmq_user"] = `Legacy RabbitMQ bootstrap user. Mythic v4 server and third-party containers use dedicated identities in rabbitmq_secure_vhost.`
 
 	mythicEnv.SetDefault("rabbitmq_password", utils.GenerateRandomPassword(30))
-	mythicEnvInfo["rabbitmq_password"] = `This is the randomly generated password that all containers use to connect to RabbitMQ queues`
+	mythicEnvInfo["rabbitmq_password"] = `Password for the legacy bootstrap user; it is not shared with Mythic v4 third-party containers.`
 	mythicEnv.SetDefault("rabbitmq_vhost", "mythic_vhost")
+	mythicEnv.SetDefault("rabbitmq_server_user", "mythic_server")
+	mythicEnv.SetDefault("rabbitmq_server_password", utils.GenerateRandomPassword(48))
+	mythicEnv.SetDefault("rabbitmq_secure_vhost", "mythic_v4")
+	mythicEnvInfo["rabbitmq_server_user"] = `Dedicated RabbitMQ principal used only by the Mythic server.`
+	mythicEnvInfo["rabbitmq_server_password"] = `Dedicated RabbitMQ password used only by the Mythic server.`
+	mythicEnvInfo["rabbitmq_secure_vhost"] = `Isolated RabbitMQ vhost for Mythic v4 server and per-container principals.`
+	mythicEnv.SetDefault("container_identity_secret", utils.GenerateRandomPassword(64))
+	mythicEnvInfo["container_identity_secret"] = `Server-only secret used to derive a distinct request-signing key for each third-party container. Never expose this value to a container.`
 
 	mythicEnv.SetDefault("rabbitmq_cpus", defaultNumberOfCPUs)
 	mythicEnvInfo["rabbitmq_cpus"] = `Set this to limit the maximum number of CPUs this service is able to consume`
@@ -325,7 +333,7 @@ If this is false, then the local filesystem is mounted inside the container inst
 Setting this to "true" means that the local Mythic/rabbitmq-docker/Dockerfile is used to generate the image used for the mythic_rabbitmq container instead of the hosted image. `
 
 	mythicEnv.SetDefault("rabbitmq_vhost", "mythic_vhost")
-	mythicEnvInfo["rabbitmq_vhost"] = `The VHost attribute on RabbitMQ allows you to logically separate queues into separate "hosts" while keeping the same names. This helps with collisions if you have multiple instances of something running concurrently.`
+	mythicEnvInfo["rabbitmq_vhost"] = `Legacy bootstrap vhost. Protected Mythic v4 traffic uses rabbitmq_secure_vhost.`
 
 	mythicEnv.SetDefault("custom_rpc_timeout", 0)
 	mythicEnvInfo["custom_rpc_timeout"] = `This is an optional timeout in seconds for Mythic RPC calls that are expected to be slow but still valid. If set to 0, Mythic uses the default RPC timeout.`

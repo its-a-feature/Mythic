@@ -33,11 +33,12 @@ type MythicRPCCallbackEdgeSearchMessageResponse struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_CALLBACK_EDGE_SEARCH,
-		RoutingKey: MYTHIC_RPC_CALLBACK_EDGE_SEARCH,
-		Handler:    processMythicRPCCallbackEdgeSearch,
-		Scopes:     []string{mythicjwt.SCOPE_CALLBACK_READ},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_CALLBACK_EDGE_SEARCH,
+		RoutingKey:     MYTHIC_RPC_CALLBACK_EDGE_SEARCH,
+		Handler:        processMythicRPCCallbackEdgeSearch,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_CALLBACK_READ},
 	})
 }
 

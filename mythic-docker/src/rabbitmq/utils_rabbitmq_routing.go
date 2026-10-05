@@ -338,14 +338,27 @@ func (r *rabbitMQConnection) getRPCClientLocked(exchange string, exclusiveQueue 
 	}
 	confirmChannel := ch.NotifyPublish(make(chan amqp.Confirmation, 1))
 	notifyReturnChannel := ch.NotifyReturn(make(chan amqp.Return, 1))
+	if err = ch.ExchangeDeclare(MYTHIC_RPC_REPLY_EXCHANGE, "topic", true, false, false, false, nil); err != nil {
+		ch.Close()
+		return nil, nil, nil, err
+	}
+	replyQueue, err := ch.QueueDeclare("", false, true, true, false, nil)
+	if err != nil {
+		ch.Close()
+		return nil, nil, nil, err
+	}
+	if err = ch.QueueBind(replyQueue.Name, "#.reply.#", MYTHIC_RPC_REPLY_EXCHANGE, false, nil); err != nil {
+		ch.Close()
+		return nil, nil, nil, err
+	}
 	msgs, err := ch.Consume(
-		"amq.rabbitmq.reply-to", // queue name
-		"",                      // consumer
-		true,                    // auto-ack
-		exclusiveQueue,          // exclusive
-		false,                   // no local
-		false,                   // no wait
-		nil,                     // args
+		replyQueue.Name, // queue name
+		"",              // consumer
+		true,            // auto-ack
+		exclusiveQueue,  // exclusive
+		false,           // no local
+		false,           // no wait
+		nil,             // args
 	)
 	if err != nil {
 		ch.Close()
@@ -354,6 +367,7 @@ func (r *rabbitMQConnection) getRPCClientLocked(exchange string, exclusiveQueue 
 	r.rpcChannel = ch
 	r.rpcConfirm = confirmChannel
 	r.rpcReturn = notifyReturnChannel
+	r.rpcReplyQueue = replyQueue.Name
 	if r.rpcPending == nil {
 		r.rpcPending = make(map[string]chan rpcResponse)
 	}
@@ -374,13 +388,13 @@ func (r *rabbitMQConnection) declareRPCExchangeLocked(ch *amqp.Channel, exchange
 		return nil
 	}
 	err := ch.ExchangeDeclare(
-		exchange, // exchange name
-		"direct", // type of exchange, ex: topic, fanout, direct, etc
-		true,     // durable
-		true,     // auto-deleted
-		false,    // internal
-		false,    // no-wait
-		nil,      // arguments
+		exchange,                             // exchange name
+		rabbitMQExchangeType(exchange),       // type of exchange
+		true,                                 // durable
+		rabbitMQExchangeAutoDelete(exchange), // auto-deleted
+		false,                                // internal
+		false,                                // no-wait
+		nil,                                  // arguments
 	)
 	if err == nil {
 		r.rpcExchanges[exchange] = true
@@ -423,6 +437,7 @@ func (r *rabbitMQConnection) resetRPCClientLocked(ch *amqp.Channel, err error) {
 		r.rpcConfirm = nil
 		r.rpcReturn = nil
 		r.rpcExchanges = nil
+		r.rpcReplyQueue = ""
 	}
 }
 
@@ -445,7 +460,7 @@ func (r *rabbitMQConnection) publishRPCMessage(exchange string, queue string, co
 		ContentType:   "application/json",
 		CorrelationId: correlationID,
 		Body:          body,
-		ReplyTo:       "amq.rabbitmq.reply-to",
+		ReplyTo:       correlationID,
 		Headers:       additionalHeaders,
 	}
 	err = ch.Publish(
@@ -550,13 +565,13 @@ func (r *rabbitMQConnection) ReceiveFromMythicDirectExchange(exchange string, qu
 			continue
 		}
 		err = ch.ExchangeDeclare(
-			exchange, // exchange name
-			"direct", // type of exchange, ex: topic, fanout, direct, etc
-			true,     // durable
-			true,     // auto-deleted
-			false,    // internal
-			false,    // no-wait
-			nil,      // arguments
+			exchange,                             // exchange name
+			rabbitMQExchangeType(exchange),       // type of exchange
+			true,                                 // durable
+			rabbitMQExchangeAutoDelete(exchange), // auto-deleted
+			false,                                // internal
+			false,                                // no-wait
+			nil,                                  // arguments
 		)
 		if err != nil {
 			logging.LogError(err, "Failed to declare exchange", "exchange", exchange, "exchange_type", "direct", "retry_wait_time", RETRY_CONNECT_DELAY)
@@ -610,11 +625,12 @@ func (r *rabbitMQConnection) ReceiveFromMythicDirectExchange(exchange string, qu
 		go func() {
 			for d := range msgs {
 				//logging.LogDebug("got direct message", "queue", q.Name, "msg", d.Body)
-				_, err = authorizeRabbitMQRPCRequest(queue, d)
-				if err != nil {
-					logging.LogError(err, "RabbitMQ direct exchange auth check failed", "queue", queue)
+				authContext, authErr := authorizeRabbitMQRPCRequest(queue, d)
+				if authErr != nil {
+					logging.LogError(authErr, "RabbitMQ direct exchange auth check failed", "queue", queue)
 					continue
 				}
+				attachVerifiedRabbitMQRequestContext(&d, authContext)
 				if sequential {
 					handler(d)
 				} else {
@@ -644,13 +660,13 @@ func (r *rabbitMQConnection) ReceiveFromRPCQueue(exchange string, queue string, 
 			continue
 		}
 		err = ch.ExchangeDeclare(
-			exchange, // exchange name
-			"direct", // type of exchange, ex: topic, fanout, direct, etc
-			true,     // durable
-			true,     // auto-deleted
-			false,    // internal
-			false,    // no-wait
-			nil,      // arguments
+			exchange,                             // exchange name
+			rabbitMQExchangeType(exchange),       // type of exchange
+			true,                                 // durable
+			rabbitMQExchangeAutoDelete(exchange), // auto-deleted
+			false,                                // internal
+			false,                                // no-wait
+			nil,                                  // arguments
 		)
 		if err != nil {
 			logging.LogError(err, "Failed to declare exchange", "exchange", exchange, "exchange_type", "direct", "retry_wait_time", RPC_TIMEOUT, "queue", queue)
@@ -715,11 +731,15 @@ func (r *rabbitMQConnection) ReceiveFromRPCQueue(exchange string, queue string, 
 						return
 					}
 					var responseMsg interface{}
-					_, err = authorizeRabbitMQRPCRequest(queue, d)
-					if err != nil {
-						logging.LogError(err, "RabbitMQ RPC auth check failed", "queue", queue)
-						responseMsg = rabbitMQAuthErrorResponse(err)
+					authContext, authErr := authorizeRabbitMQRPCRequest(queue, d)
+					if authErr != nil {
+						logging.LogError(authErr, "RabbitMQ RPC auth check failed", "queue", queue)
+						if ackErr := ch.Ack(d.DeliveryTag, false); ackErr != nil {
+							logging.LogError(ackErr, "Failed to Ack rejected RabbitMQ RPC request", "queue", queue)
+						}
+						continue
 					} else {
+						attachVerifiedRabbitMQRequestContext(&d, authContext)
 						responseMsg = handler(d)
 					}
 					responseMsgJson, err := json.Marshal(responseMsg)
@@ -727,11 +747,12 @@ func (r *rabbitMQConnection) ReceiveFromRPCQueue(exchange string, queue string, 
 						logging.LogError(err, "Failed to generate JSON for rpc response", "queue", queue)
 						continue
 					}
+					replyRoutingKey := fmt.Sprintf("%s.reply.%s", authContext.ContainerPrincipal, d.CorrelationId)
 					err = ch.Publish(
-						"",        // exchange
-						d.ReplyTo, //routing key
-						true,      // mandatory
-						false,     // immediate
+						MYTHIC_RPC_REPLY_EXCHANGE, // exchange
+						replyRoutingKey,           // routing key
+						true,                      // mandatory
+						false,                     // immediate
 						amqp.Publishing{
 							ContentType:   "application/json",
 							Body:          responseMsgJson,
@@ -773,13 +794,13 @@ func (r *rabbitMQConnection) CheckConsumerExists(exchange string, queue string, 
 		return false, err
 	}
 	err = ch.ExchangeDeclare(
-		exchange, // exchange name
-		"direct", // type of exchange, ex: topic, fanout, direct, etc
-		true,     // durable
-		true,     // auto-deleted
-		false,    // internal
-		false,    // no-wait
-		nil,      // arguments
+		exchange,                             // exchange name
+		rabbitMQExchangeType(exchange),       // type of exchange
+		true,                                 // durable
+		rabbitMQExchangeAutoDelete(exchange), // auto-deleted
+		false,                                // internal
+		false,                                // no-wait
+		nil,                                  // arguments
 	)
 	if err != nil {
 		logging.LogError(err, "Failed to declare exchange", "exchange", exchange, "exchange_type", "direct", "retry_wait_time", RETRY_CONNECT_DELAY)
@@ -826,13 +847,13 @@ func (r *rabbitMQConnection) GetNumberOfConsumersDirectChannels(exchange string,
 		return 0, err
 	}
 	err = ch.ExchangeDeclare(
-		exchange, // exchange name
-		kind,     // type of exchange, ex: topic, fanout, direct, etc
-		true,     // durable
-		true,     // auto-deleted
-		false,    // internal
-		false,    // no-wait
-		nil,      // arguments
+		exchange,                             // exchange name
+		kind,                                 // type of exchange, ex: topic, fanout, direct, etc
+		true,                                 // durable
+		rabbitMQExchangeAutoDelete(exchange), // auto-deleted
+		false,                                // internal
+		false,                                // no-wait
+		nil,                                  // arguments
 	)
 	if err != nil {
 		logging.LogError(err, "Failed to declare exchange", "exchange", MYTHIC_TOPIC_EXCHANGE, "exchange_type", "topic", "retry_wait_time", RETRY_CONNECT_DELAY)
@@ -880,13 +901,13 @@ func (r *rabbitMQConnection) ReceiveFromMythicDirectTopicExchange(exchange strin
 			time.Sleep(RETRY_CONNECT_DELAY)
 			continue
 		} else if err = ch.ExchangeDeclare(
-			exchange, // exchange name
-			"topic",  // type of exchange, ex: topic, fanout, direct, etc
-			true,     // durable
-			true,     // auto-deleted
-			false,    // internal
-			false,    // no-wait
-			nil,      // arguments
+			exchange,                             // exchange name
+			"topic",                              // type of exchange, ex: topic, fanout, direct, etc
+			true,                                 // durable
+			rabbitMQExchangeAutoDelete(exchange), // auto-deleted
+			false,                                // internal
+			false,                                // no-wait
+			nil,                                  // arguments
 		); err != nil {
 			logging.LogError(err, "Failed to declare exchange", "exchange", exchange, "exchange_type", "direct", "retry_wait_time", RETRY_CONNECT_DELAY)
 			time.Sleep(RETRY_CONNECT_DELAY)

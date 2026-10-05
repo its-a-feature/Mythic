@@ -25,11 +25,12 @@ type MythicRPCArtifactCreateMessageResponse struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_ARTIFACT_CREATE,
-		RoutingKey: MYTHIC_RPC_ARTIFACT_CREATE,
-		Handler:    processMythicRPCArtifactCreate,
-		Scopes:     []string{mythicjwt.SCOPE_RESPONSE_WRITE},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_ARTIFACT_CREATE,
+		RoutingKey:     MYTHIC_RPC_ARTIFACT_CREATE,
+		Handler:        processMythicRPCArtifactCreate,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_RESPONSE_WRITE},
 	})
 }
 

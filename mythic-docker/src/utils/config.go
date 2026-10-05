@@ -38,12 +38,13 @@ type Config struct {
 	AgentMessagePostResponseQueueSize       int
 
 	// rabbitmq configuration
-	RabbitmqHost     string
-	RabbitmqPort     uint
-	RabbitmqUser     string
-	RabbitmqPassword string
-	RabbitmqVHost    string
-	CustomRPCTimeout time.Duration
+	RabbitmqHost            string
+	RabbitmqPort            uint
+	RabbitmqUser            string
+	RabbitmqPassword        string
+	RabbitmqVHost           string
+	ContainerIdentitySecret string
+	CustomRPCTimeout        time.Duration
 
 	// postgres configuration
 	PostgresHost     string
@@ -90,6 +91,7 @@ func Initialize() {
 	mythicEnv.SetDefault("rabbitmq_user", "mythic_user")
 	mythicEnv.SetDefault("rabbitmq_password", "")
 	mythicEnv.SetDefault("rabbitmq_vhost", "mythic_vhost")
+	mythicEnv.SetDefault("container_identity_secret", "")
 	mythicEnv.SetDefault("custom_rpc_timeout", 0)
 	// jwt configuration
 	mythicEnv.SetDefault("jwt_secret", "")
@@ -195,6 +197,7 @@ func setConfigFromEnv(mythicEnv *viper.Viper) {
 	MythicConfig.RabbitmqUser = mythicEnv.GetString("rabbitmq_user")
 	MythicConfig.RabbitmqPassword = mythicEnv.GetString("rabbitmq_password")
 	MythicConfig.RabbitmqVHost = mythicEnv.GetString("rabbitmq_vhost")
+	MythicConfig.ContainerIdentitySecret = mythicEnv.GetString("container_identity_secret")
 	if MythicConfig.RabbitmqVHost == "" {
 		MythicConfig.RabbitmqVHost = "mythic_vhost"
 	}

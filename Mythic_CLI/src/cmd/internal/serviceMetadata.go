@@ -1,10 +1,17 @@
 package internal
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
+	"sort"
 	"strings"
 
 	"github.com/MythicMeta/Mythic_CLI/cmd/config"
@@ -492,14 +499,17 @@ func AddMythicService(service string, removeVolume bool) {
 		if !mythicEnv.GetBool("rabbitmq_use_volume") {
 			pStruct["volumes"] = []string{
 				"./rabbitmq-docker/storage:/var/lib/rabbitmq",
-				"./rabbitmq-docker/generate_config.sh:/generate_config.sh",
-				"./rabbitmq-docker/rabbitmq.conf:/tmp/base_rabbitmq.conf",
 			}
 		} else {
 			pStruct["volumes"] = []string{
 				"mythic_rabbitmq_volume:/var/lib/rabbitmq",
 			}
 		}
+		pStruct["volumes"] = append(pStruct["volumes"].([]string),
+			"./rabbitmq-docker/generate_config.sh:/generate_config.sh:ro",
+			"./rabbitmq-docker/rabbitmq.conf:/tmp/base_rabbitmq.conf:ro",
+			"./rabbitmq-docker/generated/definitions.json:/etc/rabbitmq/definitions.json:ro",
+		)
 		if _, ok := volumes["mythic_rabbitmq"]; !ok {
 			volumes["mythic_rabbitmq_volume"] = map[string]interface{}{
 				"name": "mythic_rabbitmq_volume",
@@ -744,7 +754,10 @@ func AddMythicService(service string, removeVolume bool) {
 			"POSTGRES_PASSWORD=${POSTGRES_PASSWORD}",
 			"RABBITMQ_HOST=${RABBITMQ_HOST}",
 			"RABBITMQ_PORT=${RABBITMQ_PORT}",
-			"RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}",
+			"RABBITMQ_USER=${RABBITMQ_SERVER_USER}",
+			"RABBITMQ_PASSWORD=${RABBITMQ_SERVER_PASSWORD}",
+			"RABBITMQ_VHOST=${RABBITMQ_SECURE_VHOST}",
+			"CONTAINER_IDENTITY_SECRET=${CONTAINER_IDENTITY_SECRET}",
 		}
 		if mythicEnv.GetString("mythic_docker_networking") == "bridge" {
 			mythicServerPorts := []string{
@@ -871,6 +884,17 @@ func AddMythicService(service string, removeVolume bool) {
 	_ = manager.GetManager().SetServiceConfiguration(service, pStruct)
 }
 func Add3rdPartyService(service string, additionalConfigs map[string]interface{}, removeVolume bool) error {
+	principal, err := config.ValidateContainerPrincipal(service, config.GetMythicEnv().GetString("rabbitmq_server_user"))
+	if err != nil {
+		return err
+	}
+	if installed, listErr := manager.GetManager().GetAllInstalled3rdPartyServiceNames(); listErr == nil {
+		for _, existing := range installed {
+			if existing != service && config.CanonicalContainerPrincipal(existing) == principal {
+				return fmt.Errorf("services %q and %q resolve to the same RabbitMQ identity %q", existing, service, principal)
+			}
+		}
+	}
 	existingConfig, _ := manager.GetManager().GetServiceConfiguration(service)
 	if _, ok := existingConfig["environment"]; !ok {
 		existingConfig["environment"] = []interface{}{}
@@ -965,11 +989,13 @@ func Add3rdPartyService(service string, additionalConfigs map[string]interface{}
 	environment := []string{
 		"MYTHIC_ADDRESS=http://${MYTHIC_SERVER_HOST}:${MYTHIC_SERVER_PORT}/agent_message",
 		"MYTHIC_WEBSOCKET=ws://${MYTHIC_SERVER_HOST}:${MYTHIC_SERVER_PORT}/ws/agent_message",
-		"RABBITMQ_USER=${RABBITMQ_USER}",
-		"RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}",
+		fmt.Sprintf("RABBITMQ_USER=%s", canonicalContainerPrincipal(service)),
+		fmt.Sprintf("RABBITMQ_PASSWORD=%s", config.DeriveContainerBrokerPassword(config.GetMythicEnv().GetString("container_identity_secret"), service)),
 		"RABBITMQ_PORT=${RABBITMQ_PORT}",
 		"RABBITMQ_HOST=${RABBITMQ_HOST}",
-		"RABBITMQ_VHOST=${RABBITMQ_VHOST}",
+		"RABBITMQ_VHOST=${RABBITMQ_SECURE_VHOST}",
+		fmt.Sprintf("MYTHIC_CONTAINER_PRINCIPAL=%s", canonicalContainerPrincipal(service)),
+		fmt.Sprintf("MYTHIC_CONTAINER_AUTH_TOKEN=%s", deriveContainerIdentityToken(config.GetMythicEnv().GetString("container_identity_secret"), canonicalContainerPrincipal(service))),
 		"MYTHIC_SERVER_HOST=${MYTHIC_SERVER_HOST}",
 		"MYTHIC_SERVER_PORT=${MYTHIC_SERVER_PORT}",
 		"MYTHIC_SERVER_GRPC_PORT=${MYTHIC_SERVER_GRPC_PORT}",
@@ -994,8 +1020,35 @@ func Add3rdPartyService(service string, additionalConfigs map[string]interface{}
 	}
 	return manager.GetManager().SetServiceConfiguration(service, existingConfig)
 }
+
+func canonicalContainerPrincipal(service string) string {
+	return config.CanonicalContainerPrincipal(service)
+}
+
+func deriveContainerIdentityToken(masterSecret, principal string) string {
+	return config.DeriveContainerIdentityToken(masterSecret, principal)
+}
+
 func RemoveService(service string) error {
-	return manager.GetManager().RemoveServices([]string{service}, false)
+	if err := manager.GetManager().RemoveServices([]string{service}, false); err != nil {
+		return err
+	}
+	return reconcileInstalledRabbitMQIdentities(true)
+}
+
+func reconcileInstalledRabbitMQIdentities(force bool) error {
+	services, err := manager.GetManager().GetAllInstalled3rdPartyServiceNames()
+	if err != nil {
+		return err
+	}
+	definitionsPath, err := writeRabbitMQDefinitions(services)
+	if err != nil {
+		return err
+	}
+	if !manager.GetManager().IsServiceRunning("mythic_rabbitmq") {
+		return nil
+	}
+	return reconcileRabbitMQDefinitions(definitionsPath, force)
 }
 
 func Initialize() {
@@ -1019,6 +1072,194 @@ func Initialize() {
 			log.Printf("[-] Error adding 3rd party service: %v\n", err)
 		}
 	}
+	if _, err := writeRabbitMQDefinitions(installedContainers); err != nil {
+		log.Fatalf("[-] Failed to generate RabbitMQ identity definitions: %v\n", err)
+	}
+}
+
+type rabbitMQDefinitionUser struct {
+	Name             string   `json:"name"`
+	PasswordHash     string   `json:"password_hash"`
+	HashingAlgorithm string   `json:"hashing_algorithm"`
+	Tags             []string `json:"tags"`
+}
+
+type rabbitMQDefinitionPermission struct {
+	User      string `json:"user"`
+	VHost     string `json:"vhost"`
+	Configure string `json:"configure"`
+	Write     string `json:"write"`
+	Read      string `json:"read"`
+}
+
+type rabbitMQDefinitionTopicPermission struct {
+	User     string `json:"user"`
+	VHost    string `json:"vhost"`
+	Exchange string `json:"exchange"`
+	Write    string `json:"write"`
+	Read     string `json:"read"`
+}
+
+type rabbitMQDefinitionExchange struct {
+	Name       string         `json:"name"`
+	VHost      string         `json:"vhost"`
+	Type       string         `json:"type"`
+	Durable    bool           `json:"durable"`
+	AutoDelete bool           `json:"auto_delete"`
+	Internal   bool           `json:"internal"`
+	Arguments  map[string]any `json:"arguments"`
+}
+
+type rabbitMQDefinitions struct {
+	Users            []rabbitMQDefinitionUser            `json:"users"`
+	VHosts           []map[string]string                 `json:"vhosts"`
+	Permissions      []rabbitMQDefinitionPermission      `json:"permissions"`
+	TopicPermissions []rabbitMQDefinitionTopicPermission `json:"topic_permissions"`
+	Exchanges        []rabbitMQDefinitionExchange        `json:"exchanges"`
+}
+
+func writeRabbitMQDefinitions(services []string) (string, error) {
+	mythicEnv := config.GetMythicEnv()
+	masterSecret := mythicEnv.GetString("container_identity_secret")
+	vhost := mythicEnv.GetString("rabbitmq_secure_vhost")
+	serverUser := mythicEnv.GetString("rabbitmq_server_user")
+	serverPassword := mythicEnv.GetString("rabbitmq_server_password")
+	if err := validateRabbitMQIdentityBoundary(vhost, serverUser,
+		mythicEnv.GetString("rabbitmq_vhost"), mythicEnv.GetString("rabbitmq_user")); err != nil {
+		return "", err
+	}
+	definitions, err := buildRabbitMQDefinitions(services, masterSecret, vhost, serverUser, serverPassword)
+	if err != nil {
+		return "", err
+	}
+	content, err := json.MarshalIndent(definitions, "", "  ")
+	if err != nil {
+		return "", err
+	}
+	content = append(content, '\n')
+	definitionsDir := filepath.Join(utils.GetCwdFromExe(), "rabbitmq-docker", "generated")
+	if err := os.MkdirAll(definitionsDir, 0700); err != nil {
+		return "", err
+	}
+	definitionsPath := filepath.Join(definitionsDir, "definitions.json")
+	// RabbitMQ reads this bind-mounted file as an unprivileged user.
+	if err := utils.AtomicWriteFile(definitionsPath, content, 0644); err != nil {
+		return "", err
+	}
+	return definitionsPath, nil
+}
+
+func reconcileRabbitMQDefinitions(definitionsPath string, force bool) error {
+	content, err := os.ReadFile(definitionsPath)
+	if err != nil {
+		return err
+	}
+	digest := sha256.Sum256(content)
+	digestText := hex.EncodeToString(digest[:])
+	markerPath := filepath.Join(filepath.Dir(definitionsPath), "applied-definitions.sha256")
+	if !force {
+		if applied, readErr := os.ReadFile(markerPath); readErr == nil && strings.TrimSpace(string(applied)) == digestText {
+			return nil
+		}
+	}
+	if err := manager.GetManager().ImportRabbitMQDefinitions(definitionsPath); err != nil {
+		return err
+	}
+	return utils.AtomicWriteFile(markerPath, []byte(digestText+"\n"), 0644)
+}
+
+const containerPublishRoutingPattern = `^(pt_sync|pt_build_response|pt_c2_build_response|pt_on_new_callback_response|pt_task_opsec_pre_check_response|pt_task_create_tasking_response|pt_task_opsec_post_check_response|pt_task_completion_function_response|pt_task_process_response_response|pt_task_agent_rpc_response|c2_sync|tr_sync|consuming_container_sync|eventing_(custom_function|conditional_check|task_intercept|response_intercept)_response|container_on_start_response|chat_response|custombrowser_sync|custombrowser_exportfunction_response|mythic_rpc_[a-z0-9_]+)$`
+const containerReceiveSuffixPattern = `(pt_rpc_resync|payload_build|payload_c2_build|pt_task_opsec_pre_check|pt_task_create_tasking|pt_on_new_callback|pt_task_opsec_post_check|pt_command_dynamic_query_function|pt_build_parameter_dynamic_query_function|pt_command_typedarray_parse|pt_task_completion_function|pt_task_process_response|pt_task_agent_rpc|pt_command_help_function|chat_request|chat_cancel|c2_rpc_resync|c2_rpc_opsec_check|c2_rpc_config_check|c2_rpc_parameter_dynamic_query_function|c2_rpc_get_ioc|c2_rpc_sample_message|c2_rpc_redirector_rules|c2_rpc_start_server|c2_rpc_stop_server|c2_rpc_get_server_debug_output|c2_rpc_host_file|container_rpc_get_file|container_rpc_remove_file|container_rpc_list_file|container_rpc_write_file|tr_rpc_resync|tr_rpc_generate_keys|tr_rpc_from_mythic_c2|tr_rpc_to_mythic_c2|tr_rpc_encrypt_bytes|tr_rpc_decrypt_bytes|consuming_container_rpc_resync|eventing_custom_function|eventing_conditional_check|eventing_task_intercept|eventing_response_intercept|auth_rpc_get_idp_redirect|auth_rpc_process_idp_response|auth_rpc_get_idp_metadata|auth_rpc_get_nonidp_redirect|auth_rpc_process_nonidp_response|auth_rpc_get_nonidp_metadata|container_on_start|custombrowser_exportfunction)`
+
+func buildRabbitMQDefinitions(services []string, masterSecret, vhost, serverUser, serverPassword string) (rabbitMQDefinitions, error) {
+	if masterSecret == "" || vhost == "" || serverUser == "" || serverPassword == "" {
+		return rabbitMQDefinitions{}, fmt.Errorf("RabbitMQ identity definitions require non-empty master secret, vhost, server user, and server password")
+	}
+	serverPrincipal := config.CanonicalContainerPrincipal(serverUser)
+	if serverPrincipal == "" || serverPrincipal == "guest" || serverPrincipal == "mythic_user" {
+		return rabbitMQDefinitions{}, fmt.Errorf("RabbitMQ server user %q is invalid or reserved", serverUser)
+	}
+	definitions := rabbitMQDefinitions{
+		VHosts: []map[string]string{{"name": vhost}},
+		Exchanges: []rabbitMQDefinitionExchange{
+			{Name: "mythic_exchange", VHost: vhost, Type: "topic", Durable: true, AutoDelete: false, Arguments: map[string]any{}},
+			{Name: "mythic_topic_exchange", VHost: vhost, Type: "topic", Durable: true, AutoDelete: false, Arguments: map[string]any{}},
+			{Name: "mythic_rpc_reply_exchange", VHost: vhost, Type: "topic", Durable: true, AutoDelete: false, Arguments: map[string]any{}},
+		},
+		Users: []rabbitMQDefinitionUser{{
+			Name: serverUser, PasswordHash: rabbitMQPasswordHash(masterSecret, serverUser, serverPassword),
+			HashingAlgorithm: "rabbit_password_hashing_sha256", Tags: []string{"monitoring", "mythic_server"},
+		}},
+		Permissions: []rabbitMQDefinitionPermission{{
+			User: serverUser, VHost: vhost, Configure: ".*", Write: ".*", Read: ".*",
+		}},
+	}
+	services = append([]string{}, services...)
+	sort.Strings(services)
+	seen := map[string]string{}
+	reserved := map[string]bool{config.CanonicalContainerPrincipal(serverUser): true, "guest": true, "mythic_user": true}
+	for _, service := range services {
+		principal := config.CanonicalContainerPrincipal(service)
+		if principal == "" {
+			return rabbitMQDefinitions{}, fmt.Errorf("service name %q cannot be represented as a secure container principal", service)
+		}
+		if reserved[principal] {
+			return rabbitMQDefinitions{}, fmt.Errorf("service %q resolves to reserved RabbitMQ identity %q", service, principal)
+		}
+		if prior, exists := seen[principal]; exists {
+			return rabbitMQDefinitions{}, fmt.Errorf("services %q and %q resolve to the same RabbitMQ identity %q", prior, service, principal)
+		}
+		seen[principal] = service
+		password := config.DeriveContainerBrokerPassword(masterSecret, principal)
+		quoted := regexp.QuoteMeta(principal)
+		definitions.Users = append(definitions.Users, rabbitMQDefinitionUser{
+			Name: principal, PasswordHash: rabbitMQPasswordHash(masterSecret, principal, password),
+			HashingAlgorithm: "rabbit_password_hashing_sha256", Tags: []string{"mythic_container"},
+		})
+		definitions.Permissions = append(definitions.Permissions, rabbitMQDefinitionPermission{
+			User: principal, VHost: vhost,
+			Configure: fmt.Sprintf("^(%s_.*|amq\\.gen-.*)$", quoted),
+			Write:     fmt.Sprintf("^(mythic_exchange|mythic_topic_exchange|mythic_rpc_reply_exchange|%s_.*|amq\\.gen-.*)$", quoted),
+			Read:      fmt.Sprintf("^(mythic_exchange|mythic_topic_exchange|mythic_rpc_reply_exchange|%s_.*|amq\\.gen-.*)$", quoted),
+		})
+		definitions.TopicPermissions = append(definitions.TopicPermissions, rabbitMQDefinitionTopicPermission{
+			User: principal, VHost: vhost, Exchange: "mythic_exchange", Write: containerPublishRoutingPattern,
+			Read: fmt.Sprintf("^%s_%s$", quoted, containerReceiveSuffixPattern),
+		}, rabbitMQDefinitionTopicPermission{
+			User: principal, VHost: vhost, Exchange: "mythic_topic_exchange", Write: "^$",
+			Read: fmt.Sprintf(`^%s\.(emit_log|emit_webhook)\.[a-z0-9_]+$`, quoted),
+		}, rabbitMQDefinitionTopicPermission{
+			User: principal, VHost: vhost, Exchange: "mythic_rpc_reply_exchange",
+			Write: fmt.Sprintf(`^%s\.reply\.[A-Za-z0-9-]+$`, quoted),
+			Read:  fmt.Sprintf(`^%s\.reply\.[A-Za-z0-9-]+$`, quoted),
+		})
+	}
+	return definitions, nil
+}
+
+func validateRabbitMQIdentityBoundary(secureVhost, serverUser, legacyVhost, legacyUser string) error {
+	if secureVhost == "" || serverUser == "" {
+		return fmt.Errorf("RabbitMQ secure vhost and server user must be non-empty")
+	}
+	if secureVhost == legacyVhost {
+		return fmt.Errorf("RabbitMQ secure vhost %q must differ from legacy vhost", secureVhost)
+	}
+	serverPrincipal := config.CanonicalContainerPrincipal(serverUser)
+	legacyPrincipal := config.CanonicalContainerPrincipal(legacyUser)
+	if serverPrincipal == "" || serverPrincipal == "guest" || serverPrincipal == "mythic_user" ||
+		(legacyPrincipal != "" && serverPrincipal == legacyPrincipal) {
+		return fmt.Errorf("RabbitMQ server user %q must be a dedicated, non-legacy identity", serverUser)
+	}
+	return nil
+}
+
+func rabbitMQPasswordHash(masterSecret, username, password string) string {
+	saltSeed := sha256.Sum256([]byte("mythic-rabbitmq-salt:v1:" + masterSecret + ":" + username))
+	salt := saltSeed[:4]
+	hashInput := append(append([]byte{}, salt...), []byte(password)...)
+	digest := sha256.Sum256(hashInput)
+	hashed := append(append([]byte{}, salt...), digest[:]...)
+	return base64.StdEncoding.EncodeToString(hashed)
 }
 
 // applyImageMirror rewrites imageURL to be served from mirror by stripping the

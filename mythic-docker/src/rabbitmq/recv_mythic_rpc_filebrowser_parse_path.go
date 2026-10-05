@@ -19,11 +19,12 @@ type MythicRPCFileBrowserParsePathMessageResponse struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_FILEBROWSER_PARSE_PATH,
-		RoutingKey: MYTHIC_RPC_FILEBROWSER_PARSE_PATH,
-		Handler:    processMythicRPCFileBrowserParsePath,
-		Scopes:     []string{},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_FILEBROWSER_PARSE_PATH,
+		RoutingKey:     MYTHIC_RPC_FILEBROWSER_PARSE_PATH,
+		Handler:        processMythicRPCFileBrowserParsePath,
+		Authentication: RabbitMQAuthenticationContainer,
+		Scopes:         []string{},
 	})
 }
 

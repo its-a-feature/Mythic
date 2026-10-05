@@ -68,6 +68,7 @@ type CLIManager interface {
 	ResetDatabase(useVolume bool)
 	// ResetRabbitmq deletes the current rabbitmq storage or volume
 	ResetRabbitmq(useVolume bool)
+	ImportRabbitMQDefinitions(path string) error
 	// BackupDatabase saves a copy of the database to the specified path
 	BackupDatabase(backupPath string, useVolume bool) error
 	// RestoreDatabase restores a saved copy of the database from the specified path

@@ -22,11 +22,12 @@ type MythicRPCOperationEventLogCreateMessageResponse struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_EVENTLOG_CREATE,
-		RoutingKey: MYTHIC_RPC_EVENTLOG_CREATE,
-		Handler:    processMythicRPCOperationEventLogCreate,
-		Scopes:     []string{mythicjwt.SCOPE_EVENTLOG_WRITE},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_EVENTLOG_CREATE,
+		RoutingKey:     MYTHIC_RPC_EVENTLOG_CREATE,
+		Handler:        processMythicRPCOperationEventLogCreate,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_EVENTLOG_WRITE},
 	})
 }
 
