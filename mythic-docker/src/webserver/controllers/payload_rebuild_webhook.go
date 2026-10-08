@@ -2,6 +2,7 @@ package webcontroller
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/authentication"
@@ -66,7 +67,8 @@ func PayloadRebuildWebhook(c *gin.Context) {
 		})
 		return
 	}
-	payloadConfiguration.Description = payload.Description
+	payloadConfiguration.Description = "Rebuilt by " + operatorOperation.CurrentOperator.Username +
+		" at " + time.Now().UTC().Format(rabbitmq.TIME_FORMAT_STRING_YYYY_MM_DD_HH_MM_SS)
 	payloadConfiguration.SelectedOS = payload.Os
 	payloadConfiguration.PayloadType = payload.Payloadtype.Name
 	payloadConfiguration.C2Profiles = rabbitmq.GetPayloadC2ProfileInformation(payload)
