@@ -77,11 +77,35 @@ func ServiceStart(containers []string, keepVolume bool) error {
 			Add3rdPartyService(service, map[string]interface{}{}, !keepVolume)
 		}
 	}
-	manager.GetManager().TestPorts(finalContainers)
-	err = manager.GetManager().StartServices(finalContainers, config.GetMythicEnv().GetBool("REBUILD_ON_START"))
+	dockerComposeContainers, err = manager.GetManager().GetAllInstalled3rdPartyServiceNames()
 	if err != nil {
-		log.Printf("[-] Failed to start services: %v", err)
 		return err
+	}
+	manager.GetManager().TestPorts(finalContainers)
+	rabbitDefinitionsPath, err := writeRabbitMQDefinitions(dockerComposeContainers)
+	if err != nil {
+		return fmt.Errorf("generate RabbitMQ identity definitions: %w", err)
+	}
+	rabbitSelected := slices.Contains(finalContainers, "mythic_rabbitmq")
+	if rabbitSelected {
+		if err = manager.GetManager().StartServices([]string{"mythic_rabbitmq"}, config.GetMythicEnv().GetBool("REBUILD_ON_START")); err != nil {
+			return fmt.Errorf("start RabbitMQ before identity reconciliation: %w", err)
+		}
+		finalContainers = slices.DeleteFunc(finalContainers, func(service string) bool {
+			return service == "mythic_rabbitmq"
+		})
+	}
+	if manager.GetManager().IsServiceRunning("mythic_rabbitmq") {
+		if err = reconcileRabbitMQDefinitions(rabbitDefinitionsPath, rabbitSelected); err != nil {
+			return fmt.Errorf("reconcile RabbitMQ container identities: %w", err)
+		}
+	}
+	if len(finalContainers) > 0 {
+		err = manager.GetManager().StartServices(finalContainers, config.GetMythicEnv().GetBool("REBUILD_ON_START"))
+		if err != nil {
+			log.Printf("[-] Failed to start services: %v", err)
+			return err
+		}
 	}
 	if err != nil {
 		log.Printf("[-] Failed to remove images\n%v\n", err)

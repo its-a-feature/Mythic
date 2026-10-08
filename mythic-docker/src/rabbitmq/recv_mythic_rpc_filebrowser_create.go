@@ -22,11 +22,12 @@ type MythicRPCFileBrowserCreateFileBrowserData = agentMessagePostResponseFileBro
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_FILEBROWSER_CREATE,
-		RoutingKey: MYTHIC_RPC_FILEBROWSER_CREATE,
-		Handler:    processMythicRPCFileBrowserCreate,
-		Scopes:     []string{mythicjwt.SCOPE_BROWSER_WRITE},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_FILEBROWSER_CREATE,
+		RoutingKey:     MYTHIC_RPC_FILEBROWSER_CREATE,
+		Handler:        processMythicRPCFileBrowserCreate,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_BROWSER_WRITE},
 	})
 }
 
@@ -48,7 +49,7 @@ func MythicRPCFileBrowserCreate(input MythicRPCFileBrowserCreateMessage, authCon
 		FROM task
 		JOIN callback ON task.callback_id = callback.id
 		JOIN payload ON callback.registered_payload_id = payload.id
-		WHERE task.id = $1 AND task.operation_id=$2`, input.TaskID, authContext)
+		WHERE task.id = $1 AND task.operation_id=$2`, input.TaskID, authContext.OperationID)
 	if err != nil {
 		logging.LogError(err, "Failed to fetch task")
 		response.Error = err.Error()

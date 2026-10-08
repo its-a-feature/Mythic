@@ -24,11 +24,13 @@ var pendingAgentRPCResponses pendingAgentRPCResponseQueue
 
 func init() {
 	RabbitMQConnection.AddDirectQueue(DirectQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      PT_TASK_AGENT_RPC_RESPONSE,
-		RoutingKey: PT_TASK_AGENT_RPC_RESPONSE,
-		Handler:    processPtTaskAgentRPCResponseMessages,
-		Scopes:     []string{mythicjwt.SCOPE_TASK_WRITE},
+		Exchange:          MYTHIC_EXCHANGE,
+		Queue:             PT_TASK_AGENT_RPC_RESPONSE,
+		RoutingKey:        PT_TASK_AGENT_RPC_RESPONSE,
+		Handler:           processPtTaskAgentRPCResponseMessages,
+		Authentication:    RabbitMQAuthenticationContainerAuthContext,
+		Scopes:            []string{mythicjwt.SCOPE_TASK_WRITE},
+		ContainerIdentity: extractAgentTaskResponseIdentity,
 	})
 }
 

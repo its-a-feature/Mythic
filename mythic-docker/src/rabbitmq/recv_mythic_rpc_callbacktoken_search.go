@@ -23,11 +23,12 @@ type MythicRPCCallbackTokenSearchMessageResponse struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_CALLBACKTOKEN_SEARCH,
-		RoutingKey: MYTHIC_RPC_CALLBACKTOKEN_SEARCH,
-		Handler:    processMythicRPCCallbackTokenSearch,
-		Scopes:     []string{mythicjwt.SCOPE_CALLBACK_READ},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_CALLBACKTOKEN_SEARCH,
+		RoutingKey:     MYTHIC_RPC_CALLBACKTOKEN_SEARCH,
+		Handler:        processMythicRPCCallbackTokenSearch,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_CALLBACK_READ},
 	})
 }
 

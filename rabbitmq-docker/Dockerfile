@@ -2,9 +2,9 @@ FROM rabbitmq:3-management-alpine
 ADD rabbitmq.conf /etc/rabbitmq/rabbitmq.conf
 ADD generate_config.sh /generate_config.sh
 ADD rabbitmq.conf /tmp/base_rabbitmq.conf
+ADD definitions.empty.json /etc/rabbitmq/definitions.json
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=5 --start-period=5s \
   CMD rabbitmq-diagnostics -q check_port_connectivity || exit 1
 
 CMD /bin/sh -c  "chmod +x /generate_config.sh && /generate_config.sh && rabbitmq-server"
-

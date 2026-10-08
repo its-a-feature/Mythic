@@ -28,11 +28,12 @@ type MythicRPCPayloadOnHostCreateData struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_PAYLOADONHOST_CREATE,
-		RoutingKey: MYTHIC_RPC_PAYLOADONHOST_CREATE,
-		Handler:    processMythicRPCPayloadOnHostCreate,
-		Scopes:     []string{mythicjwt.SCOPE_PAYLOAD_WRITE},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_PAYLOADONHOST_CREATE,
+		RoutingKey:     MYTHIC_RPC_PAYLOADONHOST_CREATE,
+		Handler:        processMythicRPCPayloadOnHostCreate,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_PAYLOAD_WRITE},
 	})
 }
 

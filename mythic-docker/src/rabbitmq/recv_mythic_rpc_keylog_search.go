@@ -28,11 +28,12 @@ type MythicRPCKeylogSearchKeylogData struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_KEYLOG_SEARCH,
-		RoutingKey: MYTHIC_RPC_KEYLOG_SEARCH,
-		Handler:    processMythicRPCKeylogSearch,
-		Scopes:     []string{mythicjwt.SCOPE_RESPONSE_READ},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_KEYLOG_SEARCH,
+		RoutingKey:     MYTHIC_RPC_KEYLOG_SEARCH,
+		Handler:        processMythicRPCKeylogSearch,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_RESPONSE_READ},
 	})
 }
 

@@ -71,13 +71,9 @@ func GetWebhookRoutingKey(webhookAction WEBHOOK_TYPE) string {
 func (r *rabbitMQConnection) EmitWebhookMessage(webhookMessage WebhookMessage) error {
 	localWebhookMessage := webhookMessage
 	localWebhookMessage.ServerName = utils.MythicConfig.GlobalServerName
-	if err := r.SendStructMessage(
-		MYTHIC_TOPIC_EXCHANGE,
-		GetWebhookRoutingKey(webhookMessage.Action),
-		"",
-		localWebhookMessage,
-		true,
-		nil,
+	if err := r.sendConsumingContainerTopicMessage(
+		string(CONSUMING_SERVICES_TYPE_WEBHOOK), string(webhookMessage.Action),
+		GetWebhookRoutingKey(webhookMessage.Action), localWebhookMessage,
 	); err != nil {
 		//logging.LogError(err, "Failed to emit webhook Message")
 		return err

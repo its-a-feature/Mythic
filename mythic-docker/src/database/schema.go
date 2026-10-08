@@ -670,7 +670,9 @@ CREATE FUNCTION public.update_task_timestamp_on_update() RETURNS trigger
 CREATE TABLE public.agentstorage (
     id integer NOT NULL,
     data bytea DEFAULT '\x'::bytea NOT NULL,
-    unique_id text NOT NULL
+    unique_id text NOT NULL,
+    operation_id integer NOT NULL,
+    container_principal text NOT NULL
 );
 
 
@@ -2919,10 +2921,12 @@ CREATE INDEX active ON public.callback USING btree (active);
 
 
 --
--- Name: agentstorage_unique_id; Type: INDEX; Schema: public; Owner: -
+-- Name: agentstorage_tenant_unique_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX agentstorage_unique_id ON public.agentstorage USING btree (unique_id);
+CREATE UNIQUE INDEX agentstorage_tenant_unique_id ON public.agentstorage USING btree (operation_id, container_principal, unique_id) WHERE ((operation_id IS NOT NULL) AND (container_principal IS NOT NULL));
+
+CREATE INDEX agentstorage_legacy_quarantine ON public.agentstorage USING btree (id) WHERE ((operation_id IS NULL) OR (container_principal IS NULL));
 
 
 --
@@ -4054,6 +4058,14 @@ ALTER TABLE ONLY public.attacktask
 
 ALTER TABLE ONLY public.attacktask
     ADD CONSTRAINT attacktask_task_id_fkey FOREIGN KEY (task_id) REFERENCES public.task(id) ON DELETE CASCADE;
+
+
+--
+-- Name: agentstorage agentstorage_operation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.agentstorage
+    ADD CONSTRAINT agentstorage_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id) ON DELETE CASCADE;
 
 
 --

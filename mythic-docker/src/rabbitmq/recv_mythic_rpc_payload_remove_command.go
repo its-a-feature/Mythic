@@ -22,11 +22,12 @@ type MythicRPCPayloadRemoveCommandMessageResponse struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_PAYLOAD_REMOVE_COMMAND,
-		RoutingKey: MYTHIC_RPC_PAYLOAD_REMOVE_COMMAND,
-		Handler:    processMythicRPCPayloadRemoveCommand,
-		Scopes:     []string{mythicjwt.SCOPE_PAYLOAD_WRITE},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_PAYLOAD_REMOVE_COMMAND,
+		RoutingKey:     MYTHIC_RPC_PAYLOAD_REMOVE_COMMAND,
+		Handler:        processMythicRPCPayloadRemoveCommand,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_PAYLOAD_WRITE},
 	})
 }
 

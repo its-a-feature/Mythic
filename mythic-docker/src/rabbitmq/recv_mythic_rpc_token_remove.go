@@ -22,11 +22,12 @@ type MythicRPCTokenRemoveTokenData = agentMessagePostResponseToken
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_TOKEN_REMOVE,
-		RoutingKey: MYTHIC_RPC_TOKEN_REMOVE,
-		Handler:    processMythicRPCTokenRemove,
-		Scopes:     []string{mythicjwt.SCOPE_RESPONSE_WRITE},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_TOKEN_REMOVE,
+		RoutingKey:     MYTHIC_RPC_TOKEN_REMOVE,
+		Handler:        processMythicRPCTokenRemove,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_RESPONSE_WRITE},
 	})
 }
 

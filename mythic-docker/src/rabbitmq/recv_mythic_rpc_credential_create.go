@@ -22,11 +22,12 @@ type MythicRPCCredentialCreateCredentialData = agentMessagePostResponseCredentia
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_CREDENTIAL_CREATE,
-		RoutingKey: MYTHIC_RPC_CREDENTIAL_CREATE,
-		Handler:    processMythicRPCCredentialCreate,
-		Scopes:     []string{mythicjwt.SCOPE_CREDENTIAL_WRITE},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_CREDENTIAL_CREATE,
+		RoutingKey:     MYTHIC_RPC_CREDENTIAL_CREATE,
+		Handler:        processMythicRPCCredentialCreate,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_CREDENTIAL_WRITE},
 	})
 }
 

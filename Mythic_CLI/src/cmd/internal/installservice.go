@@ -450,7 +450,7 @@ func UninstallService(services []string) {
 				}
 			}
 			log.Printf("[*] Removing %s from docker-compose\n", strings.ToLower(service))
-			err := manager.GetManager().RemoveServices([]string{strings.ToLower(service)}, false)
+			err := RemoveService(strings.ToLower(service))
 			if err != nil {
 				log.Printf("[-] Failed to remove docker compose entry: %v\n", err)
 				return

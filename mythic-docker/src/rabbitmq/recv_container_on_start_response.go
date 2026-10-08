@@ -11,17 +11,20 @@ import (
 
 type ContainerOnStartMessageResponse struct {
 	ContainerName string `json:"container_name"`
+	OperationID   int    `json:"operation_id"`
 	Stdout        string `json:"stdout"`
 	Stderr        string `json:"stderr"`
 }
 
 func init() {
 	RabbitMQConnection.AddDirectQueue(DirectQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      CONTAINER_ON_START_RESPONSE,
-		RoutingKey: CONTAINER_ON_START_RESPONSE,
-		Handler:    processContainerOnStartMessageResponse,
-		Scopes:     []string{},
+		Exchange:          MYTHIC_EXCHANGE,
+		Queue:             CONTAINER_ON_START_RESPONSE,
+		RoutingKey:        CONTAINER_ON_START_RESPONSE,
+		Handler:           processContainerOnStartMessageResponse,
+		Authentication:    RabbitMQAuthenticationContainerOperation,
+		ContainerIdentity: extractContainerOnStartResponseIdentity,
+		Scopes:            []string{},
 	})
 }
 

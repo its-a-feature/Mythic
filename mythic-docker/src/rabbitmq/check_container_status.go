@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -30,7 +31,14 @@ var checkContainerStatusAddCustomBrowserChannel = make(chan databaseStructs.Cust
 var customBrowsersToCheck = map[string]databaseStructs.CustomBrowser{}
 var containerOnStartLock sync.Mutex
 var containerOnStartInFlight = map[string]bool{}
+var containerCapabilityLastScan = map[string]time.Time{}
+var containerOperationCapabilityLastIssued = map[string]time.Time{}
 var addContainerCheckLock sync.Mutex
+
+const (
+	containerCapabilityRefreshInterval = 12 * time.Hour
+	containerCapabilityScanInterval    = 1 * time.Minute
+)
 
 func claimContainerOnStart(containerName string) bool {
 	containerOnStartLock.Lock()
@@ -46,6 +54,77 @@ func clearContainerOnStart(containerName string) {
 	containerOnStartLock.Lock()
 	delete(containerOnStartInFlight, containerName)
 	containerOnStartLock.Unlock()
+}
+
+func containerCapabilityNeedsScan(containerName string, now time.Time) bool {
+	containerOnStartLock.Lock()
+	defer containerOnStartLock.Unlock()
+	lastScan, ok := containerCapabilityLastScan[containerName]
+	return !ok || now.Sub(lastScan) >= containerCapabilityScanInterval
+}
+
+func containerOperationCapabilityKey(containerName string, operationID int) string {
+	return fmt.Sprintf("%s:%d", containerName, operationID)
+}
+
+func containerOperationCapabilityNeedsRefresh(containerName string, operationID int, now time.Time) bool {
+	containerOnStartLock.Lock()
+	defer containerOnStartLock.Unlock()
+	lastIssued, ok := containerOperationCapabilityLastIssued[containerOperationCapabilityKey(containerName, operationID)]
+	return !ok || now.Sub(lastIssued) >= containerCapabilityRefreshInterval
+}
+
+func recordContainerOperationCapabilityIssued(containerName string, operationID int, issued time.Time) {
+	containerOnStartLock.Lock()
+	containerOperationCapabilityLastIssued[containerOperationCapabilityKey(containerName, operationID)] = issued
+	containerOnStartLock.Unlock()
+
+}
+
+func ForgetOperationContainerCapabilities(operationID int) {
+	containerOnStartLock.Lock()
+	defer containerOnStartLock.Unlock()
+	suffix := fmt.Sprintf(":%d", operationID)
+	for key := range containerOperationCapabilityLastIssued {
+		if strings.HasSuffix(key, suffix) {
+			delete(containerOperationCapabilityLastIssued, key)
+		}
+	}
+
+}
+
+func RefreshOnlineContainerCapabilities() {
+	containers := map[string]struct{}{}
+	addContainerCheckLock.Lock()
+	for name, entry := range payloadTypesToCheck {
+		if entry.ContainerRunning && !entry.Deleted {
+			containers[name] = struct{}{}
+		}
+	}
+	for name, entry := range c2profilesToCheck {
+		if entry.ContainerRunning && !entry.Deleted {
+			containers[name] = struct{}{}
+		}
+	}
+	for name, entry := range translationContainersToCheck {
+		if entry.ContainerRunning && !entry.Deleted {
+			containers[name] = struct{}{}
+		}
+	}
+	for name, entry := range consumingContainersToCheck {
+		if entry.ContainerRunning && !entry.Deleted {
+			containers[name] = struct{}{}
+		}
+	}
+	for name, entry := range customBrowsersToCheck {
+		if entry.ContainerRunning && !entry.Deleted {
+			containers[name] = struct{}{}
+		}
+	}
+	addContainerCheckLock.Unlock()
+	for containerName := range containers {
+		go CreateAPITokenAndSendOnStartMessage(containerName)
+	}
 }
 
 func checkContainerStatusAddPT() {
@@ -95,6 +174,9 @@ func initializeContainers() {
 	} else {
 		for i, _ := range payloadtypes {
 			checkContainerStatusAddPtChannel <- payloadtypes[i]
+			if payloadtypes[i].ContainerRunning && !payloadtypes[i].Deleted {
+				go CreateAPITokenAndSendOnStartMessage(payloadtypes[i].Name)
+			}
 		}
 	}
 	c2profiles := []databaseStructs.C2profile{}
@@ -103,6 +185,9 @@ func initializeContainers() {
 	} else {
 		for i, _ := range c2profiles {
 			checkContainerStatusAddC2Channel <- c2profiles[i]
+			if c2profiles[i].ContainerRunning && !c2profiles[i].Deleted {
+				go CreateAPITokenAndSendOnStartMessage(c2profiles[i].Name)
+			}
 		}
 	}
 	translations := []databaseStructs.Translationcontainer{}
@@ -111,6 +196,9 @@ func initializeContainers() {
 	} else {
 		for i, _ := range translations {
 			checkContainerStatusAddTrChannel <- translations[i]
+			if translations[i].ContainerRunning && !translations[i].Deleted {
+				go CreateAPITokenAndSendOnStartMessage(translations[i].Name)
+			}
 		}
 	}
 	consumingContainers := []databaseStructs.ConsumingContainer{}
@@ -119,6 +207,9 @@ func initializeContainers() {
 	} else {
 		for i, _ := range consumingContainers {
 			checkContainerStatusAddConsumingContainerChannel <- consumingContainers[i]
+			if consumingContainers[i].ContainerRunning && !consumingContainers[i].Deleted {
+				go CreateAPITokenAndSendOnStartMessage(consumingContainers[i].Name)
+			}
 		}
 	}
 	customBrowsers := []databaseStructs.CustomBrowser{}
@@ -127,6 +218,9 @@ func initializeContainers() {
 	} else {
 		for i, _ := range customBrowsers {
 			checkContainerStatusAddCustomBrowserChannel <- customBrowsers[i]
+			if customBrowsers[i].ContainerRunning && !customBrowsers[i].Deleted {
+				go CreateAPITokenAndSendOnStartMessage(customBrowsers[i].Name)
+			}
 		}
 	}
 }
@@ -164,7 +258,18 @@ func CreateAPITokenAndSendOnStartMessage(containerName string) {
 		logging.LogError(err, "Failed to fetch operations")
 		return
 	}
+	now := time.Now().UTC()
+	containerOnStartLock.Lock()
+	containerCapabilityLastScan[containerName] = now
+	containerOnStartLock.Unlock()
 	for _, operation := range operations {
+		if !containerOperationCapabilityNeedsRefresh(containerName, operation.ID, now) {
+			continue
+		}
+		operationGeneration, lifecycleStable := snapshotRabbitMQOperationCapabilityLifecycle(operation.ID)
+		if !lifecycleStable {
+			continue
+		}
 		apiToken := databaseStructs.Apitokens{
 			TokenValue: "",
 			Active:     true,
@@ -248,14 +353,45 @@ func CreateAPITokenAndSendOnStartMessage(containerName string) {
 		}
 		onStartMessage.APIToken = plainAPITokenValue
 		go expireAPITokenAfterShortLivedTTL(apiToken.ID)
-		err = RabbitMQConnection.SendContainerOnStart(onStartMessage, RabbitMQAuthContext{
-			OperatorID:   apiToken.OperatorID,
-			OperationID:  onStartMessage.OperationID,
-			APITokensID:  apiToken.ID,
-			SourceScopes: apiToken.Scopes,
+		operationActive := false
+		activeErr := database.DB.Get(&operationActive, `SELECT EXISTS (
+			SELECT 1 FROM operation WHERE id=$1 AND complete=false AND deleted=false
+		)`, operation.ID)
+		if activeErr != nil || !operationActive {
+			expireAPIToken(apiToken.ID)
+			if activeErr != nil {
+				logging.LogError(activeErr, "Failed to revalidate operation before container capability issuance", "operation_id", operation.ID)
+			}
+			continue
+		}
+		authContextToken, sendErr := RabbitMQConnection.SendContainerOnStart(onStartMessage, RabbitMQAuthContext{
+			OperationID:        onStartMessage.OperationID,
+			ContainerPrincipal: onStartMessage.ContainerName,
+			SourceScopes:       append([]string{}, apiToken.Scopes...),
 		})
-		if err != nil {
-			logging.LogError(err, "Failed to send container on start")
+		if sendErr != nil {
+			logging.LogError(sendErr, "Failed to send container on start")
+			continue
+		}
+		issuanceValid := false
+		rabbitMQOperationLifecycleLock.Lock()
+		currentLifecycle := rabbitMQOperationLifecycles[operation.ID]
+		if !currentLifecycle.Changing && currentLifecycle.Generation == operationGeneration {
+			operationStillActive := false
+			if err := database.DB.Get(&operationStillActive, `SELECT EXISTS (
+				SELECT 1 FROM operation WHERE id=$1 AND complete=false AND deleted=false
+			)`, operation.ID); err == nil && operationStillActive {
+				recordContainerOperationCapabilityIssued(containerName, operation.ID, time.Now().UTC())
+				issuanceValid = true
+			} else if err != nil {
+				logging.LogError(err, "Failed to finalize container capability issuance", "operation_id", operation.ID)
+			}
+		}
+		rabbitMQOperationLifecycleLock.Unlock()
+		if !issuanceValid {
+			InvalidateRabbitMQAuthContextToken(authContextToken)
+			expireAPIToken(apiToken.ID)
+			continue
 		}
 		// wait a few seconds between each message to give the container a chance to process the message
 		time.Sleep(5 * time.Second)
@@ -473,6 +609,32 @@ func checkContainerStatus() {
 				} else {
 					logging.LogError(nil, "Failed to get custom browser from map for updating running status")
 				}
+			}
+		}
+		now := time.Now().UTC()
+		for container, entry := range payloadTypesToCheck {
+			if entry.ContainerRunning && !entry.Deleted && containerCapabilityNeedsScan(container, now) {
+				go CreateAPITokenAndSendOnStartMessage(container)
+			}
+		}
+		for container, entry := range c2profilesToCheck {
+			if entry.ContainerRunning && !entry.Deleted && containerCapabilityNeedsScan(container, now) {
+				go CreateAPITokenAndSendOnStartMessage(container)
+			}
+		}
+		for container, entry := range translationContainersToCheck {
+			if entry.ContainerRunning && !entry.Deleted && containerCapabilityNeedsScan(container, now) {
+				go CreateAPITokenAndSendOnStartMessage(container)
+			}
+		}
+		for container, entry := range consumingContainersToCheck {
+			if entry.ContainerRunning && !entry.Deleted && containerCapabilityNeedsScan(container, now) {
+				go CreateAPITokenAndSendOnStartMessage(container)
+			}
+		}
+		for container, entry := range customBrowsersToCheck {
+			if entry.ContainerRunning && !entry.Deleted && containerCapabilityNeedsScan(container, now) {
+				go CreateAPITokenAndSendOnStartMessage(container)
 			}
 		}
 		addContainerCheckLock.Unlock()

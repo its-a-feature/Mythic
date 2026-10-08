@@ -26,11 +26,12 @@ type MythicRPCProcessCreateProcessDataMeta = agentMessagePostResponseProcessesMe
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_PROCESS_CREATE,
-		RoutingKey: MYTHIC_RPC_PROCESS_CREATE,
-		Handler:    processMythicRPCProcessCreate,
-		Scopes:     []string{mythicjwt.SCOPE_BROWSER_WRITE},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_PROCESS_CREATE,
+		RoutingKey:     MYTHIC_RPC_PROCESS_CREATE,
+		Handler:        processMythicRPCProcessCreate,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_BROWSER_WRITE},
 	})
 }
 

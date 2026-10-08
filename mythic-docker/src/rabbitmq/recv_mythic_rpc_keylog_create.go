@@ -22,11 +22,12 @@ type MythicRPCKeylogCreateProcessData = agentMessagePostResponseKeylogs
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_KEYLOG_CREATE,
-		RoutingKey: MYTHIC_RPC_KEYLOG_CREATE,
-		Handler:    processMythicRPCKeylogCreate,
-		Scopes:     []string{mythicjwt.SCOPE_RESPONSE_WRITE},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_KEYLOG_CREATE,
+		RoutingKey:     MYTHIC_RPC_KEYLOG_CREATE,
+		Handler:        processMythicRPCKeylogCreate,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_RESPONSE_WRITE},
 	})
 }
 

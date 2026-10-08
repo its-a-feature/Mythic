@@ -2,21 +2,25 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/MythicMeta/Mythic_CLI/cmd/config"
-	"github.com/spf13/cobra"
+	"log"
 	"os"
 	"sort"
 	"strings"
 	"text/tabwriter"
+
+	"github.com/MythicMeta/Mythic_CLI/cmd/config"
+	"github.com/MythicMeta/Mythic_CLI/cmd/manager"
+	"github.com/spf13/cobra"
 )
 
 // configServiceCmd
 var configServiceCmd = &cobra.Command{
-	Use:   "service",
+	Use:   "service [name]",
 	Short: "Get configurations for remote services",
 	Long: `Get configuration variables to use with a remote service - 
 a service that runs on a host other than the host where Mythic is running`,
-	Run: configService,
+	Args: cobra.ExactArgs(1),
+	Run:  configService,
 }
 
 func init() {
@@ -40,9 +44,36 @@ func configService(cmd *cobra.Command, args []string) {
 		"MYTHIC_SERVER_PORT",
 		"MYTHIC_SERVER_GRPC_PORT",
 		"RABBITMQ_HOST",
-		"RABBITMQ_PASSWORD",
 		"RABBITMQ_PORT",
 	})
+	serviceName, validationErr := config.ValidateContainerPrincipal(args[0], config.GetMythicEnv().GetString("rabbitmq_server_user"))
+	if validationErr != nil {
+		log.Printf("[-] %v\n", validationErr)
+		return
+	}
+	installed, installedErr := manager.GetManager().GetAllInstalled3rdPartyServiceNames()
+	if installedErr != nil {
+		log.Printf("[-] Failed to read provisioned services: %v\n", installedErr)
+		return
+	}
+	found := false
+	for _, candidate := range installed {
+		if config.CanonicalContainerPrincipal(candidate) == serviceName {
+			found = true
+			break
+		}
+	}
+	if !found {
+		log.Printf("[-] Service %q is not provisioned in docker-compose; install/add it before requesting credentials\n", serviceName)
+		return
+	}
+	configuration["RABBITMQ_USER"] = serviceName
+	configuration["RABBITMQ_PASSWORD"] = config.DeriveContainerBrokerPassword(
+		config.GetMythicEnv().GetString("container_identity_secret"), serviceName)
+	configuration["RABBITMQ_VHOST"] = config.GetMythicEnv().GetString("rabbitmq_secure_vhost")
+	configuration["MYTHIC_CONTAINER_PRINCIPAL"] = serviceName
+	configuration["MYTHIC_CONTAINER_AUTH_TOKEN"] = config.DeriveContainerIdentityToken(
+		config.GetMythicEnv().GetString("container_identity_secret"), serviceName)
 	keys := make([]string, 0, len(configuration))
 	for k := range configuration {
 		keys = append(keys, k)

@@ -18,14 +18,15 @@ type MythicRPCObjectActionFakeNotRealMessageResponse struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_BLANK,                        // swap out with queue in rabbitmq.constants.go file
-		RoutingKey: MYTHIC_RPC_BLANK,                        // swap out with routing key in rabbitmq.constants.go file
-		Handler:    processFakeMythicRPCObjectActionNotReal, // points to function that takes in amqp.Delivery and returns interface{}
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_BLANK,                        // swap out with queue in rabbitmq.constants.go file
+		RoutingKey:     MYTHIC_RPC_BLANK,                        // swap out with routing key in rabbitmq.constants.go file
+		Handler:        processFakeMythicRPCObjectActionNotReal, // points to function that takes in amqp.Delivery and returns interface{}
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
 	})
 }
 
-//MYTHIC_RPC_OBJECT_ACTION - Say what the function does
+// MYTHIC_RPC_OBJECT_ACTION - Say what the function does
 func MythicRPCObjectActionFakeNotReal(input MythicRPCObjectActionFakeNotRealMessage) MythicRPCObjectActionFakeNotRealMessageResponse {
 	response := MythicRPCObjectActionFakeNotRealMessageResponse{}
 	return response

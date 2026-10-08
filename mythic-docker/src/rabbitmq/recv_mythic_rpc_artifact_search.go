@@ -29,11 +29,12 @@ type MythicRPCArtifactSearchArtifactData struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_ARTIFACT_SEARCH,
-		RoutingKey: MYTHIC_RPC_ARTIFACT_SEARCH,
-		Handler:    processMythicRPCArtifactSearch,
-		Scopes:     []string{mythicjwt.SCOPE_RESPONSE_READ},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_ARTIFACT_SEARCH,
+		RoutingKey:     MYTHIC_RPC_ARTIFACT_SEARCH,
+		Handler:        processMythicRPCArtifactSearch,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_RESPONSE_READ},
 	})
 }
 
