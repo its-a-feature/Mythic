@@ -62,7 +62,7 @@
     "semver": "^7.6.2",
     "sql.js": "^1.13.0",
     "styled-components": "^6.1.17",
-    "uuid": "^9.0.1",
+    "uuid": "^14.0.0",
     "webpack": "^5.105.0",
     "word-wrap": "^1.2.5"
   },
