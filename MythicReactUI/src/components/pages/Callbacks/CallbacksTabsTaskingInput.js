@@ -827,7 +827,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                     buffer += value;
                     return;
                 }
-                else if(value === " "){
+                else if([" ", "\t", "\r", "\n"].includes(value)){
                     if(backslash){
                         backslash = false;
                         //buffer += " ";
