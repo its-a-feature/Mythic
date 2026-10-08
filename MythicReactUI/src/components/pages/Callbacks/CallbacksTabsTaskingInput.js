@@ -332,7 +332,7 @@ const parseCommandLineForParameterPreview = (commandLine, command) => {
                     buffer += value;
                     return;
                 }
-                if(value === " "){
+                if([" ", "\t", "\r", "\n"].includes(value)){
                     if(backslash){
                         backslash = false;
                         buffer += "\\";
@@ -1451,7 +1451,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                     buffer += value;
                     return;
                 }
-                else if(value === " "){
+                else if([" ", "\t", "\r", "\n"].includes(value)){
                     if(backslash){
                         backslash = false;
                         //buffer += " ";

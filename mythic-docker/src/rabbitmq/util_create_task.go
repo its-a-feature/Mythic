@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -1067,7 +1068,7 @@ func SplitOperatorAliasExpandedTaskLine(line string, commandParameterSets ...[]d
 					buffer += string(value)
 					continue
 				}
-				if value == ' ' {
+				if slices.Contains([]int32{' ', '\r', '\n', '\t'}, value) {
 					if backslash {
 						backslash = false
 						buffer += "\\"
