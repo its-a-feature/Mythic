@@ -21,7 +21,7 @@ import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
 import {TaskTokenDialog} from './TaskTokenDialog';
 import Grid from '@mui/material/Grid';
 import ReplayIcon from '@mui/icons-material/Replay';
-import {gql, useMutation, useLazyQuery } from '@apollo/client';
+import {gql, useApolloClient, useMutation } from '@apollo/client';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faExclamationTriangle} from '@fortawesome/free-solid-svg-icons';
 import { faExternalLinkAlt, faExpandArrowsAlt } from '@fortawesome/free-solid-svg-icons';
@@ -41,6 +41,7 @@ import IconButton from '@mui/material/IconButton';
 import Paper from '@mui/material/Paper';
 import {EventTriggerContextSelectDialog} from "../Eventing/EventTriggerContextSelect";
 import PlayCircleFilledTwoToneIcon from '@mui/icons-material/PlayCircleFilledTwoTone';
+import {prepareTaskOutputDownload} from './TaskOutputDownload';
 
 const ReissueTaskMutationGQL = gql`
 mutation reissueTaskMutation($task_id: Int!){
@@ -58,13 +59,22 @@ mutation reissueTaskHandlerMutation($task_id: Int!){
   }
 }
 `;
-const getAllResponsesLazyQuery = gql`
-query subResponsesQuery($task_id: Int!) {
-  response(where: {task_id: {_eq: $task_id}}, order_by: {id: asc}) {
-    id
-    response: response_text
-  }
-}`;
+const useTaskOutputDownload = () => {
+    const client = useApolloClient();
+    return React.useCallback(async taskID => {
+        try{
+            const {filename, output} = await prepareTaskOutputDownload({
+                client,
+                taskID,
+                decodeResponse: b64DecodeUnicode
+            });
+            downloadFileFromMemory(output, filename);
+        }catch(error){
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            snackActions.error("Failed to download task output: " + errorMessage);
+        }
+    }, [client]);
+};
 
 export const TaskDisplayContainer = ({task, me}) => {
     const [viewBrowserScript, setViewBrowserScript] = React.useState(true);
@@ -197,23 +207,12 @@ const SideDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput,
     const [openTokenDialog, setOpenTokenDialog] = React.useState(false);
     const [openStdoutStderrDialog, setOpenStdoutStderrDialog] = React.useState(false);
     const [openOpsecDialog, setOpenOpsecDialog] = React.useState({open: false, view: "pre"});
-    const [downloadResponses] = useLazyQuery(getAllResponsesLazyQuery, {
-        fetchPolicy: "network-only",
-        onCompleted: (data) => {
-            const output = data.response.reduce( (prev, cur) => {
-                return prev + b64DecodeUnicode(cur.response);
-            }, b64DecodeUnicode(""));
-            downloadFileFromMemory(output, "task_" + task.id + ".txt");
-        },
-        onError: (data) => {
-
-        }
-    });
+    const downloadTaskOutput = useTaskOutputDownload();
     React.useEffect( () => {
         setTask(taskData);
     }, [taskData.id, taskData.token, taskData.original_params, taskData.opsec_pre_blocked, taskData.opsec_pre_bypassed, taskData.opsec_post_blocked, taskData.opsec_post_bypassed])
     const onDownloadResponses = () => {
-        downloadResponses({variables: {task_id: task.id}});
+        downloadTaskOutput(taskData.id);
     };
     const copyToClipboard = () => {
         let command = task?.command?.cmd || task.command_name;
@@ -463,23 +462,12 @@ const SpeedDialDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput
   const [openTokenDialog, setOpenTokenDialog] = React.useState(false);
   const [openStdoutStderrDialog, setOpenStdoutStderrDialog] = React.useState(false);
   const [openOpsecDialog, setOpenOpsecDialog] = React.useState({open: false, view: "pre"});
-  const [downloadResponses] = useLazyQuery(getAllResponsesLazyQuery, {
-    fetchPolicy: "network-only",
-    onCompleted: (data) => {
-      const output = data.response.reduce( (prev, cur) => {
-        return prev + b64DecodeUnicode(cur.response);
-      }, b64DecodeUnicode(""));
-      downloadFileFromMemory(output, "task_" + task.id + ".txt");
-    },
-    onError: (data) => {
-
-    }
-  });
+  const downloadTaskOutput = useTaskOutputDownload();
   React.useEffect( () => {
     setTask(taskData);
   }, [taskData.id, taskData.token, taskData.original_params, taskData.opsec_pre_blocked, taskData.opsec_pre_bypassed, taskData.opsec_post_blocked, taskData.opsec_post_bypassed])
   const onDownloadResponses = () => {
-    downloadResponses({variables: {task_id: task.id}});
+    downloadTaskOutput(taskData.id);
     setOpenSpeedDial(false);
   };
   const copyToClipboard = () => {
