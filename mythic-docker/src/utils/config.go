@@ -47,6 +47,8 @@ type Config struct {
 	PostgresDB       string
 	PostgresUser     string
 	PostgresPassword string
+	PostgresSSLMode  string
+	PostgresDebug    bool
 
 	// jwt configuration
 	JWTSecret []byte
@@ -78,6 +80,8 @@ func Initialize() {
 	mythicEnv.SetDefault("postgres_db", "mythic_db")
 	mythicEnv.SetDefault("postgres_user", "mythic_user")
 	mythicEnv.SetDefault("postgres_password", "")
+	mythicEnv.SetDefault("postgres_sslmode", "disable")
+	mythicEnv.SetDefault("postgres_debug", false)
 	// rabbitmq configuration
 	mythicEnv.SetDefault("rabbitmq_host", "mythic_rabbitmq")
 	mythicEnv.SetDefault("rabbitmq_port", 5672)
@@ -180,6 +184,8 @@ func setConfigFromEnv(mythicEnv *viper.Viper) {
 	MythicConfig.PostgresDB = mythicEnv.GetString("postgres_db")
 	MythicConfig.PostgresUser = mythicEnv.GetString("postgres_user")
 	MythicConfig.PostgresPassword = mythicEnv.GetString("postgres_password")
+	MythicConfig.PostgresSSLMode = mythicEnv.GetString("postgres_sslmode")
+	MythicConfig.PostgresDebug = mythicEnv.GetBool("postgres_debug")
 	// rabbitmq configuration
 	MythicConfig.RabbitmqHost = mythicEnv.GetString("rabbitmq_host")
 	MythicConfig.RabbitmqPort = mythicEnv.GetUint("rabbitmq_port")

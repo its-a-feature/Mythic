@@ -36,6 +36,11 @@ func Initialize() {
 			logging.LogInfo("Disconnecting from database and reconnecting to load new schema")
 			DB.Close()
 			DB = getNewDbConnection()
+			if utils.MythicConfig.PostgresDebug {
+				if _, err := DB.Exec("CREATE EXTENSION IF NOT EXISTS pg_stat_statements SCHEMA public;"); err != nil {
+					logging.LogWarning("Failed to create pg_stat_statements extension (requires superuser)", "error", err.Error())
+				}
+			}
 			// we need to initialize the admin user and operation
 			salt := uuid.NewString()
 			newUser := databaseStructs.Operator{
@@ -161,12 +166,13 @@ func checkDBConnection() {
 func getNewDbConnection() *sqlx.DB {
 	for {
 		logging.LogInfo("Attempting to connect to database...", "host", utils.MythicConfig.PostgresHost, "port", utils.MythicConfig.PostgresPort)
-		conn, err := sqlx.Connect("postgres", fmt.Sprintf("user='%s' password='%s' host='%s' port='%d' dbname='%s' sslmode=disable connect_timeout=10",
+		conn, err := sqlx.Connect("postgres", fmt.Sprintf("user='%s' password='%s' host='%s' port='%d' dbname='%s' sslmode=%s connect_timeout=10",
 			utils.MythicConfig.PostgresUser,
 			utils.MythicConfig.PostgresPassword,
 			utils.MythicConfig.PostgresHost,
 			utils.MythicConfig.PostgresPort,
-			utils.MythicConfig.PostgresDB),
+			utils.MythicConfig.PostgresDB,
+			utils.MythicConfig.PostgresSSLMode),
 		)
 		if err != nil {
 			logging.LogError(err, "Failed to connect to database", "host", utils.MythicConfig.PostgresHost, "port", utils.MythicConfig.PostgresPort)
