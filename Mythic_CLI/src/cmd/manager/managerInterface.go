@@ -1,10 +1,11 @@
 package manager
 
 import (
-	"github.com/MythicMeta/Mythic_CLI/cmd/config"
-	"github.com/MythicMeta/Mythic_CLI/cmd/utils"
 	"log"
 	"path/filepath"
+
+	"github.com/MythicMeta/Mythic_CLI/cmd/config"
+	"github.com/MythicMeta/Mythic_CLI/cmd/utils"
 )
 
 type CLIManager interface {
@@ -12,6 +13,8 @@ type CLIManager interface {
 	GetManagerName() string
 	// IsServiceRunning checks if a service by the specified name is currently running or not
 	IsServiceRunning(service string) bool
+	// IsServiceInternal checks if a service is configured to run locally in docker vs externally
+	IsServiceInternal(service string) bool
 	// CheckRequiredManagerVersion checks if the version of the management software installed is a valid version or not
 	CheckRequiredManagerVersion() bool
 	// GenerateRequiredConfig creates any necessary base configuration files needed by the manager, like a docker-compose.yml file

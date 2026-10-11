@@ -4847,7 +4847,7 @@ ALTER TABLE ONLY public.wrappedpayloadtypes
 ALTER TABLE ONLY public.wrappedpayloadtypes
     ADD CONSTRAINT wrappedpayloadtypes_wrapper_id_fkey FOREIGN KEY (wrapper_id) REFERENCES public.payloadtype(id) ON DELETE CASCADE;
 
-CREATE EXTENSION pg_stat_statements SCHEMA public;
+-- CREATE EXTENSION pg_stat_statements SCHEMA public;
 
 --
 -- PostgreSQL database dump complete

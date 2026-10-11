@@ -67,9 +67,7 @@ func GetIntendedMythicServiceNames() ([]string, error) {
 			}
 		case "mythic_jupyter":
 			if mythicEnv.GetString("JUPYTER_HOST") == "127.0.0.1" || mythicEnv.GetString("JUPYTER_HOST") == "mythic_jupyter" {
-				if mythicEnv.GetBool("JUPYTER_INCLUDE") {
-					containerList = append(containerList, service)
-				}
+				containerList = append(containerList, service)
 			}
 			/*
 				case "mythic_grafana":
@@ -274,6 +272,9 @@ If it's anything else, mythic-cli will not spin up this container as it assumes 
 	mythicEnv.SetDefault("postgres_password", utils.GenerateRandomPassword(30))
 	mythicEnvInfo["postgres_password"] = `This is the randomly generated password that mythic_server and mythic_graphql use to connect to the mythic_postgres container`
 
+	mythicEnv.SetDefault("postgres_sslmode", "disable")
+	mythicEnvInfo["postgres_sslmode"] = `This specifies the SSL mode used when connecting to the PostgreSQL database (e.g. disable, require, verify-ca, verify-full)`
+
 	mythicEnv.SetDefault("postgres_cpus", defaultNumberOfCPUs)
 	mythicEnvInfo["postgres_cpus"] = `Set this to limit the maximum number of CPUs this service is able to consume`
 
@@ -438,9 +439,6 @@ If this is false, then the local filesystem is mounted inside the container inst
 	mythicEnv.SetDefault("jupyter_use_build_context", false)
 	mythicEnvInfo["jupyter_use_build_context"] = `The mythic_jupyter container by default pulls configuration from a pre-compiled Docker image hosted on GitHub's Container Registry (ghcr.io). 
 Setting this to "true" means that the local Mythic/jupyter-docker/Dockerfile is used to generate the image used for the mythic_jupyter container instead of the hosted image.`
-
-	mythicEnv.SetDefault("jupyter_include", true)
-	mythicEnvInfo["jupyter_include"] = `This specifies if the Jupyter container should be included in the Mythic instance. `
 
 	// debugging help ---------------------------------------------
 	mythicEnv.SetDefault("postgres_debug", false)

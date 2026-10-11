@@ -93,6 +93,18 @@ func (d *DockerComposeManager) IsServiceRunning(service string) bool {
 	return false
 }
 
+// IsServiceInternal checks if a service is configured to run locally in docker vs externally
+func (d *DockerComposeManager) IsServiceInternal(service string) bool {
+	if !utils.StringInSlice(service, config.MythicPossibleServices) {
+		return true
+	}
+	intendedServices, err := config.GetIntendedMythicServiceNames()
+	if err != nil {
+		return true
+	}
+	return utils.StringInSlice(service, intendedServices)
+}
+
 // DoesImageExist use Docker API to check existing images for the specified name
 func (d *DockerComposeManager) DoesImageExist(service string) bool {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -627,7 +639,7 @@ func (d *DockerComposeManager) TestPorts(services []string) {
 	for key, val := range portChecks {
 		// only check ports for services we're about to start
 		if utils.StringInSlice(val[1], services) {
-			if mythicEnv.GetString(key) == val[1] || mythicEnv.GetString(key) == "127.0.0.1" {
+			if d.IsServiceInternal(val[1]) {
 				addServices = append(addServices, val[1])
 				p, err := net.Listen("tcp", ":"+strconv.Itoa(mythicEnv.GetInt(val[0])))
 				if err != nil {

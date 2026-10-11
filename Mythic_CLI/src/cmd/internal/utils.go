@@ -10,8 +10,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
-	"github.com/MythicMeta/Mythic_CLI/cmd/config"
-	"github.com/MythicMeta/Mythic_CLI/cmd/utils"
 	"io"
 	"log"
 	"math/big"
@@ -19,6 +17,9 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/MythicMeta/Mythic_CLI/cmd/config"
+	"github.com/MythicMeta/Mythic_CLI/cmd/utils"
 )
 
 // code to generate self-signed certs pulled from github.com/kabukky/httpscerts
@@ -112,6 +113,9 @@ func updateNginxBlockLists() {
 	outputString += "deny all;"
 	if !config.GetMythicEnv().GetBool("nginx_use_volume") {
 		ipFilePath := filepath.Join(utils.GetCwdFromExe(), "nginx-docker", "config", "blockips.conf")
+		if err := os.MkdirAll(filepath.Dir(ipFilePath), 0755); err != nil {
+			log.Fatalf("[-] Failed to create nginx-docker/config directory for block list file: %v\n", err)
+		}
 		if err := os.WriteFile(ipFilePath, []byte(outputString), 0600); err != nil {
 			log.Fatalf("[-] Failed to write out block list file: %v\n", err)
 		}
