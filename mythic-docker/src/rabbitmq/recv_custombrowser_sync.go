@@ -113,7 +113,8 @@ func customBrowserSync(in CustomBrowserSyncMessage) error {
 	}
 	if !isValidContainerVersion(in.ContainerVersion) {
 		logging.LogError(nil, "attempting to sync bad custom browser container version")
-		return errors.New(fmt.Sprintf("Version, %s, isn't supported. The max supported version is < %s. \nThis likely means your PyPi or Golang library is out of date and should be updated.", in.ContainerVersion, validContainerVersionMax))
+		return errors.New(fmt.Sprintf("%s's version, %s, isn't supported. Only versions >= %s and < %s are supported. \nThis likely means your PyPi or Golang library is out of date compared to the Mythic server.",
+			in.CustomBrowser.Name, in.ContainerVersion, validContainerVersionMin, validContainerVersionMax))
 	}
 	err := database.DB.Get(&customSyncBrowser, `SELECT * FROM custombrowser WHERE "name"=$1`, in.CustomBrowser.Name)
 	if errors.Is(sql.ErrNoRows, err) {

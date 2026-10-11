@@ -79,7 +79,7 @@ func trSync(in TrSyncMessage) error {
 	}
 	if !isValidContainerVersion(in.ContainerVersion) {
 		logging.LogError(nil, "attempting to sync bad payload container version", "translation container", in.Name)
-		return errors.New(fmt.Sprintf("%s's version, %s, isn't supported. Only versions < %s and >= %s are supported. \nThis likely means your PyPi or Golang library is out of date compared to the Mythic server.",
+		return errors.New(fmt.Sprintf("%s's version, %s, isn't supported. Only versions >= %s and < %s are supported. \nThis likely means your PyPi or Golang library is out of date compared to the Mythic server.",
 			in.Name, in.ContainerVersion, validContainerVersionMin, validContainerVersionMax))
 	}
 	err := database.DB.Get(&translationDatabase, `SELECT id 

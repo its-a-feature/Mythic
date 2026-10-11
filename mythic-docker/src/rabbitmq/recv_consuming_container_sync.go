@@ -92,9 +92,10 @@ func consumingServicesSync(in ConsumingContainerSyncMessage) error {
 	if in.ConsumingContainer.Name == "" {
 		logging.LogError(nil, "Can't have consuming container with empty name - bad sync")
 		return errors.New("can't have consuming container with empty name - bad sync")
-	} else if !isValidContainerVersion(in.ContainerVersion) {
+	}
+	if !isValidContainerVersion(in.ContainerVersion) {
 		logging.LogError(nil, "attempting to sync bad payload container version", "consuming container", in.ConsumingContainer.Name)
-		return errors.New(fmt.Sprintf("%s's version, %s, isn't supported. Only versions < %s and >= %s are supported. \nThis likely means your PyPi or Golang library is out of date compared to the Mythic server.",
+		return errors.New(fmt.Sprintf("%s's version, %s, isn't supported. Only versions >= %s and < %s are supported. \nThis likely means your PyPi or Golang library is out of date compared to the Mythic server.",
 			in.ConsumingContainer.Name, in.ContainerVersion, validContainerVersionMin, validContainerVersionMax))
 	}
 	if err := database.DB.Get(&consumingContainer, `SELECT * FROM consuming_container WHERE "name"=$1`, in.ConsumingContainer.Name); err != nil {
