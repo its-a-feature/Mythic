@@ -67,16 +67,7 @@ func AddMythicService(service string, removeVolume bool) {
 		} else {
 			delete(pStruct, "ports")
 			pStruct["network_mode"] = "host"
-			pStruct["extra_hosts"] = []string{
-				"mythic_server:127.0.0.1",
-				"mythic_rabbitmq:127.0.0.1",
-				"mythic_nginx:127.0.0.1",
-				"mythic_react:127.0.0.1",
-				"mythic_documentation:127.0.0.1",
-				"mythic_graphql:127.0.0.1",
-				"mythic_jupyter:127.0.0.1",
-				"mythic_postgres:127.0.0.1",
-			}
+			pStruct["extra_hosts"] = getExtraHosts()
 			if mythicEnv.GetBool("postgres_bind_localhost_only") {
 				pStruct["command"] = "postgres -c \"max_connections=100\" -p ${POSTGRES_PORT} -c config_file=/etc/postgresql.conf -c \"listen_addresses=localhost\""
 			} else {
@@ -146,16 +137,7 @@ func AddMythicService(service string, removeVolume bool) {
 		} else {
 			delete(pStruct, "ports")
 			pStruct["network_mode"] = "host"
-			pStruct["extra_hosts"] = []string{
-				"mythic_server:127.0.0.1",
-				"mythic_rabbitmq:127.0.0.1",
-				"mythic_nginx:127.0.0.1",
-				"mythic_react:127.0.0.1",
-				"mythic_documentation:127.0.0.1",
-				"mythic_graphql:127.0.0.1",
-				"mythic_jupyter:127.0.0.1",
-				"mythic_postgres:127.0.0.1",
-			}
+			pStruct["extra_hosts"] = getExtraHosts()
 			if mythicEnv.GetBool("documentation_bind_localhost_only") {
 				pStruct["environment"] = []string{
 					"DOCUMENTATION_PORT=${DOCUMENTATION_PORT}",
@@ -185,13 +167,21 @@ func AddMythicService(service string, removeVolume bool) {
 			}
 		}
 	case "mythic_graphql":
-		pStruct["depends_on"] = map[string]map[string]string{
-			"mythic_postgres": {
+		dependsOn := map[string]map[string]string{}
+		if isServiceInternal("mythic_server") {
+			dependsOn["mythic_server"] = map[string]string{
 				"condition": "service_healthy",
-			},
-			"mythic_server": {
+			}
+		}
+		if isServiceInternal("mythic_postgres") {
+			dependsOn["mythic_postgres"] = map[string]string{
 				"condition": "service_healthy",
-			},
+			}
+		}
+		if len(dependsOn) > 0 {
+			pStruct["depends_on"] = dependsOn
+		} else {
+			delete(pStruct, "depends_on")
 		}
 		if mythicEnv.GetBool("hasura_use_build_context") {
 			pStruct["build"] = map[string]interface{}{
@@ -208,8 +198,8 @@ func AddMythicService(service string, removeVolume bool) {
 			pStruct["mem_limit"] = mythicEnv.GetString("hasura_mem_limit")
 		}
 		environment := []string{
-			"HASURA_GRAPHQL_DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}",
-			"HASURA_GRAPHQL_METADATA_DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}",
+			"HASURA_GRAPHQL_DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=${POSTGRES_SSLMODE:-disable}",
+			"HASURA_GRAPHQL_METADATA_DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=${POSTGRES_SSLMODE:-disable}",
 			"HASURA_GRAPHQL_ENABLE_CONSOLE=true",
 			"HASURA_GRAPHQL_DEV_MODE=false",
 			"HASURA_GRAPHQL_ADMIN_SECRET=${HASURA_SECRET}",
@@ -239,16 +229,7 @@ func AddMythicService(service string, removeVolume bool) {
 		} else {
 			delete(pStruct, "ports")
 			pStruct["network_mode"] = "host"
-			pStruct["extra_hosts"] = []string{
-				"mythic_server:127.0.0.1",
-				"mythic_rabbitmq:127.0.0.1",
-				"mythic_nginx:127.0.0.1",
-				"mythic_react:127.0.0.1",
-				"mythic_documentation:127.0.0.1",
-				"mythic_graphql:127.0.0.1",
-				"mythic_jupyter:127.0.0.1",
-				"mythic_postgres:127.0.0.1",
-			}
+			pStruct["extra_hosts"] = getExtraHosts()
 			if mythicEnv.GetBool("hasura_bind_localhost_only") {
 				environment = append(environment, "HASURA_GRAPHQL_SERVER_HOST=127.0.0.1")
 			} else {
@@ -264,22 +245,36 @@ func AddMythicService(service string, removeVolume bool) {
 			delete(pStruct, "volumes")
 		}
 	case "mythic_nginx":
-		pStruct["depends_on"] = map[string]map[string]string{
-			"mythic_server": {
+		dependsOn := map[string]map[string]string{}
+		if isServiceInternal("mythic_server") {
+			dependsOn["mythic_server"] = map[string]string{
 				"condition": "service_healthy",
-			},
-			"mythic_react": {
+			}
+		}
+		if isServiceInternal("mythic_react") {
+			dependsOn["mythic_react"] = map[string]string{
 				"condition": "service_started",
-			},
-			"mythic_jupyter": {
+			}
+		}
+		if isServiceInternal("mythic_jupyter") {
+			dependsOn["mythic_jupyter"] = map[string]string{
 				"condition": "service_healthy",
-			},
-			"mythic_documentation": {
+			}
+		}
+		if isServiceInternal("mythic_documentation") {
+			dependsOn["mythic_documentation"] = map[string]string{
 				"condition": "service_started",
-			},
-			"mythic_graphql": {
+			}
+		}
+		if isServiceInternal("mythic_graphql") {
+			dependsOn["mythic_graphql"] = map[string]string{
 				"condition": "service_healthy",
-			},
+			}
+		}
+		if len(dependsOn) > 0 {
+			pStruct["depends_on"] = dependsOn
+		} else {
+			delete(pStruct, "depends_on")
 		}
 		if mythicEnv.GetBool("nginx_use_build_context") {
 			pStruct["build"] = map[string]interface{}{
@@ -348,16 +343,7 @@ func AddMythicService(service string, removeVolume bool) {
 		} else {
 			delete(pStruct, "ports")
 			pStruct["network_mode"] = "host"
-			pStruct["extra_hosts"] = []string{
-				"mythic_server:127.0.0.1",
-				"mythic_rabbitmq:127.0.0.1",
-				"mythic_nginx:127.0.0.1",
-				"mythic_react:127.0.0.1",
-				"mythic_documentation:127.0.0.1",
-				"mythic_graphql:127.0.0.1",
-				"mythic_jupyter:127.0.0.1",
-				"mythic_postgres:127.0.0.1",
-			}
+			pStruct["extra_hosts"] = getExtraHosts()
 			if mythicEnv.GetBool("nginx_bind_localhost_only") {
 				finalNginxEnv = append(finalNginxEnv, "NGINX_BIND_IPV4=127.0.0.1", "NGINX_BIND_IPV6=[::1]")
 			} else {
@@ -434,16 +420,7 @@ func AddMythicService(service string, removeVolume bool) {
 		} else {
 			delete(pStruct, "ports")
 			pStruct["network_mode"] = "host"
-			pStruct["extra_hosts"] = []string{
-				"mythic_server:127.0.0.1",
-				"mythic_rabbitmq:127.0.0.1",
-				"mythic_nginx:127.0.0.1",
-				"mythic_react:127.0.0.1",
-				"mythic_documentation:127.0.0.1",
-				"mythic_graphql:127.0.0.1",
-				"mythic_jupyter:127.0.0.1",
-				"mythic_postgres:127.0.0.1",
-			}
+			pStruct["extra_hosts"] = getExtraHosts()
 			if mythicEnv.GetBool("rabbitmq_bind_localhost_only") {
 				environment = append(environment, "RABBITMQ_NODE_IP_ADDRESS=127.0.0.1", "RABBITMQ_NODE_PORT=${RABBITMQ_PORT}")
 			} else {
@@ -469,16 +446,26 @@ func AddMythicService(service string, removeVolume bool) {
 			}
 		}
 	case "mythic_react":
-		pStruct["depends_on"] = map[string]map[string]string{
-			"mythic_server": {
+		dependsOn := map[string]map[string]string{}
+		if isServiceInternal("mythic_server") {
+			dependsOn["mythic_server"] = map[string]string{
 				"condition": "service_healthy",
-			},
-			"mythic_graphql": {
+			}
+		}
+		if isServiceInternal("mythic_graphql") {
+			dependsOn["mythic_graphql"] = map[string]string{
 				"condition": "service_healthy",
-			},
-			"mythic_postgres": {
+			}
+		}
+		if isServiceInternal("mythic_postgres") {
+			dependsOn["mythic_postgres"] = map[string]string{
 				"condition": "service_healthy",
-			},
+			}
+		}
+		if len(dependsOn) > 0 {
+			pStruct["depends_on"] = dependsOn
+		} else {
+			delete(pStruct, "depends_on")
 		}
 		if mythicEnv.GetBool("mythic_react_debug") {
 			pStruct["build"] = map[string]interface{}{
@@ -550,16 +537,7 @@ func AddMythicService(service string, removeVolume bool) {
 		} else {
 			delete(pStruct, "ports")
 			pStruct["network_mode"] = "host"
-			pStruct["extra_hosts"] = []string{
-				"mythic_server:127.0.0.1",
-				"mythic_rabbitmq:127.0.0.1",
-				"mythic_nginx:127.0.0.1",
-				"mythic_react:127.0.0.1",
-				"mythic_documentation:127.0.0.1",
-				"mythic_graphql:127.0.0.1",
-				"mythic_jupyter:127.0.0.1",
-				"mythic_postgres:127.0.0.1",
-			}
+			pStruct["extra_hosts"] = getExtraHosts()
 			if mythicEnv.GetBool("mythic_react_bind_localhost_only") {
 				pStruct["environment"] = []string{
 					"MYTHIC_REACT_PORT=${MYTHIC_REACT_PORT}",
@@ -574,16 +552,26 @@ func AddMythicService(service string, removeVolume bool) {
 		}
 
 	case "mythic_jupyter":
-		pStruct["depends_on"] = map[string]map[string]string{
-			"mythic_server": {
+		dependsOn := map[string]map[string]string{}
+		if isServiceInternal("mythic_server") {
+			dependsOn["mythic_server"] = map[string]string{
 				"condition": "service_healthy",
-			},
-			"mythic_postgres": {
+			}
+		}
+		if isServiceInternal("mythic_graphql") {
+			dependsOn["mythic_graphql"] = map[string]string{
 				"condition": "service_healthy",
-			},
-			"mythic_graphql": {
+			}
+		}
+		if isServiceInternal("mythic_postgres") {
+			dependsOn["mythic_postgres"] = map[string]string{
 				"condition": "service_healthy",
-			},
+			}
+		}
+		if len(dependsOn) > 0 {
+			pStruct["depends_on"] = dependsOn
+		} else {
+			delete(pStruct, "depends_on")
 		}
 		if mythicEnv.GetBool("jupyter_use_build_context") {
 			pStruct["build"] = map[string]interface{}{
@@ -620,16 +608,7 @@ func AddMythicService(service string, removeVolume bool) {
 		} else {
 			delete(pStruct, "ports")
 			pStruct["network_mode"] = "host"
-			pStruct["extra_hosts"] = []string{
-				"mythic_server:127.0.0.1",
-				"mythic_rabbitmq:127.0.0.1",
-				"mythic_nginx:127.0.0.1",
-				"mythic_react:127.0.0.1",
-				"mythic_documentation:127.0.0.1",
-				"mythic_graphql:127.0.0.1",
-				"mythic_jupyter:127.0.0.1",
-				"mythic_postgres:127.0.0.1",
-			}
+			pStruct["extra_hosts"] = getExtraHosts()
 			environment := []string{
 				"JUPYTER_TOKEN=${JUPYTER_TOKEN}",
 				"CHOWN_EXTRA=/projects",
@@ -665,13 +644,21 @@ func AddMythicService(service string, removeVolume bool) {
 			}
 		}
 	case "mythic_server":
-		pStruct["depends_on"] = map[string]map[string]string{
-			"mythic_postgres": {
+		dependsOn := map[string]map[string]string{}
+		if isServiceInternal("mythic_rabbitmq") {
+			dependsOn["mythic_rabbitmq"] = map[string]string{
 				"condition": "service_healthy",
-			},
-			"mythic_rabbitmq": {
+			}
+		}
+		if isServiceInternal("mythic_postgres") {
+			dependsOn["mythic_postgres"] = map[string]string{
 				"condition": "service_healthy",
-			},
+			}
+		}
+		if len(dependsOn) > 0 {
+			pStruct["depends_on"] = dependsOn
+		} else {
+			delete(pStruct, "depends_on")
 		}
 		if mythicEnv.GetBool("mythic_server_use_build_context") {
 			pStruct["build"] = map[string]interface{}{
@@ -710,6 +697,7 @@ func AddMythicService(service string, removeVolume bool) {
 			"POSTGRES_HOST=${POSTGRES_HOST}",
 			"POSTGRES_PORT=${POSTGRES_PORT}",
 			"POSTGRES_PASSWORD=${POSTGRES_PASSWORD}",
+			"POSTGRES_SSLMODE=${POSTGRES_SSLMODE}",
 			"RABBITMQ_HOST=${RABBITMQ_HOST}",
 			"RABBITMQ_PORT=${RABBITMQ_PORT}",
 			"RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}",
@@ -740,16 +728,7 @@ func AddMythicService(service string, removeVolume bool) {
 		} else {
 			delete(pStruct, "ports")
 			pStruct["network_mode"] = "host"
-			pStruct["extra_hosts"] = []string{
-				"mythic_server:127.0.0.1",
-				"mythic_rabbitmq:127.0.0.1",
-				"mythic_nginx:127.0.0.1",
-				"mythic_react:127.0.0.1",
-				"mythic_documentation:127.0.0.1",
-				"mythic_graphql:127.0.0.1",
-				"mythic_jupyter:127.0.0.1",
-				"mythic_postgres:127.0.0.1",
-			}
+			pStruct["extra_hosts"] = getExtraHosts()
 		}
 
 		if _, ok := pStruct["environment"]; ok {
@@ -774,10 +753,12 @@ func AddMythicService(service string, removeVolume bool) {
 			}
 		}
 	case "mythic_sync":
-		pStruct["depends_on"] = map[string]map[string]string{
-			"mythic_nginx": {
-				"condition": "service_healthy",
-			},
+		if isServiceInternal("mythic_nginx") {
+			pStruct["depends_on"] = map[string]map[string]string{
+				"mythic_nginx": {"condition": "service_healthy"},
+			}
+		} else {
+			delete(pStruct, "depends_on")
 		}
 		absPath, err := filepath.Abs(filepath.Join(manager.GetManager().GetPathTo3rdPartyServicesOnDisk(), service))
 		if err != nil {
@@ -822,16 +803,7 @@ func AddMythicService(service string, removeVolume bool) {
 			delete(pStruct, "extra_hosts")
 		} else {
 			pStruct["network_mode"] = "host"
-			pStruct["extra_hosts"] = []string{
-				"mythic_server:127.0.0.1",
-				"mythic_rabbitmq:127.0.0.1",
-				"mythic_nginx:127.0.0.1",
-				"mythic_react:127.0.0.1",
-				"mythic_documentation:127.0.0.1",
-				"mythic_graphql:127.0.0.1",
-				"mythic_jupyter:127.0.0.1",
-				"mythic_postgres:127.0.0.1",
-			}
+			pStruct["extra_hosts"] = getExtraHosts()
 		}
 
 	}
@@ -863,29 +835,25 @@ func Add3rdPartyService(service string, additionalConfigs map[string]interface{}
 		"args":    config.GetBuildArguments(),
 	}
 	existingConfig["network_mode"] = "host"
-	existingConfig["extra_hosts"] = []string{
-		"mythic_server:127.0.0.1",
-		"mythic_rabbitmq:127.0.0.1",
-		"mythic_nginx:127.0.0.1",
-		"mythic_react:127.0.0.1",
-		"mythic_documentation:127.0.0.1",
-		"mythic_graphql:127.0.0.1",
-		"mythic_jupyter:127.0.0.1",
-		"mythic_postgres:127.0.0.1",
+	existingConfig["extra_hosts"] = getExtraHosts()
+
+	dependsOn := map[string]map[string]string{}
+	if isServiceInternal("mythic_server") {
+		dependsOn["mythic_server"] = map[string]string{"condition": "service_healthy"}
 	}
-	existingConfig["depends_on"] = map[string]map[string]string{
-		"mythic_server": {
-			"condition": "service_healthy",
-		},
-		"mythic_rabbitmq": {
-			"condition": "service_healthy",
-		},
-		"mythic_nginx": {
-			"condition": "service_healthy",
-		},
-		"mythic_graphql": {
-			"condition": "service_healthy",
-		},
+	if isServiceInternal("mythic_rabbitmq") {
+		dependsOn["mythic_rabbitmq"] = map[string]string{"condition": "service_healthy"}
+	}
+	if isServiceInternal("mythic_graphql") {
+		dependsOn["mythic_graphql"] = map[string]string{"condition": "service_healthy"}
+	}
+	if isServiceInternal("mythic_nginx") {
+		dependsOn["mythic_nginx"] = map[string]string{"condition": "service_healthy"}
+	}
+	if len(dependsOn) > 0 {
+		existingConfig["depends_on"] = dependsOn
+	} else {
+		delete(existingConfig, "depends_on")
 	}
 	agentConfigs := config.GetConfigStrings([]string{fmt.Sprintf("%s_.*", service)})
 	agentUseBuildContextKey := fmt.Sprintf("%s_use_build_context", service)
@@ -1002,4 +970,18 @@ func applyImageMirror(imageURL, mirror string) string {
 		}
 	}
 	return mirror + "/" + imageURL
+}
+
+func isServiceInternal(service string) bool {
+	return manager.GetManager().IsServiceInternal(service)
+}
+
+func getExtraHosts() []string {
+	extraHosts := []string{}
+	for _, service := range config.MythicPossibleServices {
+		if isServiceInternal(service) {
+			extraHosts = append(extraHosts, fmt.Sprintf("%s:127.0.0.1", service))
+		}
+	}
+	return extraHosts
 }

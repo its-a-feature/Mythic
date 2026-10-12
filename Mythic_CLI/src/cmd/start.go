@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"log"
+
 	"github.com/MythicMeta/Mythic_CLI/cmd/config"
 	"github.com/MythicMeta/Mythic_CLI/cmd/internal"
 	"github.com/spf13/cobra"
@@ -31,6 +33,6 @@ func start(cmd *cobra.Command, args []string) {
 		keepVolume = !config.GetMythicEnv().GetBool("REBUILD_ON_START")
 	}
 	if err := internal.ServiceStart(args, localKeepVolume); err != nil {
-
+		log.Fatalf("[-] Failed to start Mythic: %v\n", err)
 	}
 }

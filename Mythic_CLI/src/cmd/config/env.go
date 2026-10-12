@@ -271,6 +271,9 @@ If it's anything else, mythic-cli will not spin up this container as it assumes 
 	mythicEnv.SetDefault("postgres_password", utils.GenerateRandomPassword(30))
 	mythicEnvInfo["postgres_password"] = `This is the randomly generated password that mythic_server and mythic_graphql use to connect to the mythic_postgres container`
 
+	mythicEnv.SetDefault("postgres_sslmode", "disable")
+	mythicEnvInfo["postgres_sslmode"] = `This specifies the SSL mode used when connecting to the PostgreSQL database (e.g. disable, require, verify-ca, verify-full)`
+
 	mythicEnv.SetDefault("postgres_cpus", defaultNumberOfCPUs)
 	mythicEnvInfo["postgres_cpus"] = `Set this to limit the maximum number of CPUs this service is able to consume`
 
