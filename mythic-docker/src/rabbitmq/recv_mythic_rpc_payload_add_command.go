@@ -23,11 +23,12 @@ type MythicRPCPayloadAddCommandMessageResponse struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_PAYLOAD_ADD_COMMAND,
-		RoutingKey: MYTHIC_RPC_PAYLOAD_ADD_COMMAND,
-		Handler:    processMythicRPCPayloadAddCommand,
-		Scopes:     []string{mythicjwt.SCOPE_PAYLOAD_WRITE},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_PAYLOAD_ADD_COMMAND,
+		RoutingKey:     MYTHIC_RPC_PAYLOAD_ADD_COMMAND,
+		Handler:        processMythicRPCPayloadAddCommand,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_PAYLOAD_WRITE},
 	})
 }
 

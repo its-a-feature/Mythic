@@ -60,11 +60,13 @@ type PayloadBuildResponse struct {
 
 func init() {
 	RabbitMQConnection.AddDirectQueue(DirectQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      "mythic_consume_payload_build",
-		RoutingKey: PT_BUILD_RESPONSE_ROUTING_KEY,
-		Handler:    processPayloadBuildResponse,
-		Scopes:     []string{mythicjwt.SCOPE_PAYLOAD_WRITE},
+		Exchange:          MYTHIC_EXCHANGE,
+		Queue:             "mythic_consume_payload_build",
+		RoutingKey:        PT_BUILD_RESPONSE_ROUTING_KEY,
+		Handler:           processPayloadBuildResponse,
+		Authentication:    RabbitMQAuthenticationContainerAuthContext,
+		Scopes:            []string{mythicjwt.SCOPE_PAYLOAD_WRITE},
+		ContainerIdentity: extractPayloadBuildResponseIdentity,
 	})
 
 }
@@ -78,6 +80,11 @@ func processPayloadBuildResponse(msg amqp.Delivery) {
 		logging.LogError(err, "Failed to process payload build response message")
 		return
 	}
+	authContext, err := getVerifiedRabbitMQRequestContext(msg)
+	if err != nil {
+		logging.LogError(err, "Failed to get auth headers for payload build response")
+		return
+	}
 	//logging.LogInfo("got build response", "buildMsg", payloadBuildResponse)
 	databasePayload := databaseStructs.Payload{}
 	err = database.DB.Get(&databasePayload, `SELECT 
@@ -87,18 +94,11 @@ func processPayloadBuildResponse(msg amqp.Delivery) {
 			filemeta.id "filemeta.id"
 			FROM payload 
 			JOIN filemeta ON payload.file_id = filemeta.id
-			WHERE uuid=$1 
-			LIMIT 1`, payloadBuildResponse.PayloadUUID)
+			WHERE uuid=$1 AND payload.operation_id=$2
+			LIMIT 1`, payloadBuildResponse.PayloadUUID, authContext.OperationID)
 	if err != nil {
 		logging.LogError(err, "Failed to get payload from the database")
 		return
-	}
-	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
-	if err == nil {
-		if databasePayload.OperationID != authContext.OperationID {
-			logging.LogError(err, "Payload build response message does not match operation ID")
-			return
-		}
 	}
 	expireAPITokensForPayload(databasePayload.ID)
 	databasePayload.BuildMessage += payloadBuildResponse.BuildMessage

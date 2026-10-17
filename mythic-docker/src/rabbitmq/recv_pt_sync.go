@@ -200,11 +200,13 @@ type BrowserScript struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      PT_SYNC_ROUTING_KEY,
-		RoutingKey: PT_SYNC_ROUTING_KEY,
-		Handler:    processPayloadSyncMessages,
-		Scopes:     []string{},
+		Exchange:          MYTHIC_EXCHANGE,
+		Queue:             PT_SYNC_ROUTING_KEY,
+		RoutingKey:        PT_SYNC_ROUTING_KEY,
+		Handler:           processPayloadSyncMessages,
+		Authentication:    RabbitMQAuthenticationContainer,
+		ContainerIdentity: extractPayloadTypeSyncIdentity,
+		Scopes:            []string{},
 	})
 }
 

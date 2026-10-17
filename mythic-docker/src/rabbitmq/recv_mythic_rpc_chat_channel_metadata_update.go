@@ -34,11 +34,12 @@ type chatChannelMetadataUpdateTarget struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_CHAT_CHANNEL_METADATA_UPDATE,
-		RoutingKey: MYTHIC_RPC_CHAT_CHANNEL_METADATA_UPDATE,
-		Handler:    processMythicRPCChatChannelMetadataUpdate,
-		Scopes:     []string{mythicjwt.SCOPE_CHAT_AI_WRITE},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_CHAT_CHANNEL_METADATA_UPDATE,
+		RoutingKey:     MYTHIC_RPC_CHAT_CHANNEL_METADATA_UPDATE,
+		Handler:        processMythicRPCChatChannelMetadataUpdate,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_CHAT_AI_WRITE},
 	})
 }
 

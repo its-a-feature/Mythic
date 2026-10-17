@@ -483,12 +483,13 @@ var (
 
 func init() {
 	RabbitMQConnection.AddDirectQueue(DirectQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      CHAT_RESPONSE_ROUTING_KEY,
-		RoutingKey: CHAT_RESPONSE_ROUTING_KEY,
-		Handler:    processChatContainerResponse,
-		Scopes:     []string{mythicjwt.SCOPE_CHAT_AI_WRITE},
-		Sequential: true,
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          CHAT_RESPONSE_ROUTING_KEY,
+		RoutingKey:     CHAT_RESPONSE_ROUTING_KEY,
+		Handler:        processChatContainerResponse,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_CHAT_AI_WRITE},
+		Sequential:     true,
 	})
 }
 

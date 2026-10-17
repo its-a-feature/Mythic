@@ -17,11 +17,13 @@ import (
 
 func init() {
 	RabbitMQConnection.AddDirectQueue(DirectQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      PT_TASK_CREATE_TASKING_RESPONSE,
-		RoutingKey: PT_TASK_CREATE_TASKING_RESPONSE,
-		Handler:    processPtTaskCreateMessages,
-		Scopes:     []string{mythicjwt.SCOPE_TASK_WRITE},
+		Exchange:          MYTHIC_EXCHANGE,
+		Queue:             PT_TASK_CREATE_TASKING_RESPONSE,
+		RoutingKey:        PT_TASK_CREATE_TASKING_RESPONSE,
+		Handler:           processPtTaskCreateMessages,
+		Authentication:    RabbitMQAuthenticationContainerAuthContext,
+		Scopes:            []string{mythicjwt.SCOPE_TASK_WRITE},
+		ContainerIdentity: extractTaskResponseIdentity,
 	})
 }
 

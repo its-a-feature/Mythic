@@ -34,11 +34,12 @@ type MythicRPCPayloadSearchMessageResponse struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_PAYLOAD_SEARCH,     // swap out with queue in rabbitmq.constants.go file
-		RoutingKey: MYTHIC_RPC_PAYLOAD_SEARCH,     // swap out with routing key in rabbitmq.constants.go file
-		Handler:    processMythicRPCPayloadSearch, // points to function that takes in amqp.Delivery and returns interface{}
-		Scopes:     []string{mythicjwt.SCOPE_PAYLOAD_READ},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_PAYLOAD_SEARCH,     // swap out with queue in rabbitmq.constants.go file
+		RoutingKey:     MYTHIC_RPC_PAYLOAD_SEARCH,     // swap out with routing key in rabbitmq.constants.go file
+		Handler:        processMythicRPCPayloadSearch, // points to function that takes in amqp.Delivery and returns interface{}
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_PAYLOAD_READ},
 	})
 }
 

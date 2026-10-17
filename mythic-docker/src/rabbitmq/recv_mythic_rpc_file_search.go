@@ -52,11 +52,12 @@ type MythicRPCFileSearchMessageResponse struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_FILE_SEARCH,
-		RoutingKey: MYTHIC_RPC_FILE_SEARCH,
-		Handler:    processMythicRPCFileSearch,
-		Scopes:     []string{mythicjwt.SCOPE_FILE_READ},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_FILE_SEARCH,
+		RoutingKey:     MYTHIC_RPC_FILE_SEARCH,
+		Handler:        processMythicRPCFileSearch,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_FILE_READ},
 	})
 }
 

@@ -2,6 +2,7 @@
 !Dockerfile
 !generate_config.sh
 !rabbitmq.conf
+!definitions.empty.json
 
 .DS_Store
 storage/

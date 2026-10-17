@@ -26,10 +26,11 @@ type MythicRPCHandleAgentJsonMessageResponse struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_HANDLE_AGENT_JSON,
-		RoutingKey: MYTHIC_RPC_HANDLE_AGENT_JSON,
-		Handler:    processMythicRPCHandleAgentJson,
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_HANDLE_AGENT_JSON,
+		RoutingKey:     MYTHIC_RPC_HANDLE_AGENT_JSON,
+		Handler:        processMythicRPCHandleAgentJson,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
 		Scopes: []string{
 			mythicjwt.SCOPE_CALLBACK_WRITE,
 			mythicjwt.SCOPE_RESPONSE_WRITE,

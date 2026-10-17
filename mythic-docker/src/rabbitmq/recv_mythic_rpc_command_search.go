@@ -44,11 +44,13 @@ type MythicRPCCommandSearchCommandData struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_COMMAND_SEARCH,     // swap out with queue in rabbitmq.constants.go file
-		RoutingKey: MYTHIC_RPC_COMMAND_SEARCH,     // swap out with routing key in rabbitmq.constants.go file
-		Handler:    processMythicRPCCommandSearch, // points to function that takes in amqp.Delivery and returns interface{}
-		Scopes:     []string{},
+		Exchange:          MYTHIC_EXCHANGE,
+		Queue:             MYTHIC_RPC_COMMAND_SEARCH,     // swap out with queue in rabbitmq.constants.go file
+		RoutingKey:        MYTHIC_RPC_COMMAND_SEARCH,     // swap out with routing key in rabbitmq.constants.go file
+		Handler:           processMythicRPCCommandSearch, // points to function that takes in amqp.Delivery and returns interface{}
+		Authentication:    RabbitMQAuthenticationContainer,
+		ContainerIdentity: extractCommandSearchIdentity,
+		Scopes:            []string{},
 	})
 }
 

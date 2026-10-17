@@ -21,11 +21,12 @@ type ConditionalCheckEventingMessageResponse struct {
 
 func init() {
 	RabbitMQConnection.AddDirectQueue(DirectQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      EVENTING_CONDITIONAL_CHECK_RESPONSE,
-		RoutingKey: EVENTING_CONDITIONAL_CHECK_RESPONSE,
-		Handler:    processEventingConditionalCheckResponse,
-		Scopes:     []string{},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          EVENTING_CONDITIONAL_CHECK_RESPONSE,
+		RoutingKey:     EVENTING_CONDITIONAL_CHECK_RESPONSE,
+		Handler:        processEventingConditionalCheckResponse,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{},
 	})
 }
 

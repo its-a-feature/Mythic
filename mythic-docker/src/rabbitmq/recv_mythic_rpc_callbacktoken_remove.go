@@ -22,11 +22,12 @@ type MythicRPCCallbackTokenRemoveCallbackTokenData = agentMessagePostResponseCal
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_CALLBACKTOKEN_REMOVE,
-		RoutingKey: MYTHIC_RPC_CALLBACKTOKEN_REMOVE,
-		Handler:    processMythicRPCCallbackTokenRemove,
-		Scopes:     []string{mythicjwt.SCOPE_CALLBACK_WRITE},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_CALLBACKTOKEN_REMOVE,
+		RoutingKey:     MYTHIC_RPC_CALLBACKTOKEN_REMOVE,
+		Handler:        processMythicRPCCallbackTokenRemove,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_CALLBACK_WRITE},
 	})
 }
 

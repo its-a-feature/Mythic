@@ -20,11 +20,12 @@ type MythicRPCCallbackEdgeRemoveMessageResponse struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_CALLBACK_EDGE_REMOVE,
-		RoutingKey: MYTHIC_RPC_CALLBACK_EDGE_REMOVE,
-		Handler:    processMythicRPCCallbackEdgeRemove,
-		Scopes:     []string{mythicjwt.SCOPE_CALLBACK_WRITE},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_CALLBACK_EDGE_REMOVE,
+		RoutingKey:     MYTHIC_RPC_CALLBACK_EDGE_REMOVE,
+		Handler:        processMythicRPCCallbackEdgeRemove,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_CALLBACK_WRITE},
 	})
 }
 

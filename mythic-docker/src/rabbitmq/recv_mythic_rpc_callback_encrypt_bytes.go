@@ -25,11 +25,12 @@ type MythicRPCCallbackEncryptBytesMessageResponse struct {
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      MYTHIC_RPC_CALLBACK_ENCRYPT_BYTES,
-		RoutingKey: MYTHIC_RPC_CALLBACK_ENCRYPT_BYTES,
-		Handler:    processMythicRPCCallbackEncryptBytes,
-		Scopes:     []string{mythicjwt.SCOPE_CALLBACK_WRITE},
+		Exchange:       MYTHIC_EXCHANGE,
+		Queue:          MYTHIC_RPC_CALLBACK_ENCRYPT_BYTES,
+		RoutingKey:     MYTHIC_RPC_CALLBACK_ENCRYPT_BYTES,
+		Handler:        processMythicRPCCallbackEncryptBytes,
+		Authentication: RabbitMQAuthenticationContainerAuthContext,
+		Scopes:         []string{mythicjwt.SCOPE_CALLBACK_WRITE},
 	})
 }
 

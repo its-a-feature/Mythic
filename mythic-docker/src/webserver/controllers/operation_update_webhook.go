@@ -114,6 +114,7 @@ func UpdateOperationWebhook(c *gin.Context) {
 		})
 		return
 	}
+	wasActive := !currentOperation.Complete && !currentOperation.Deleted
 	updatingWebhook := false
 	if input.Input.Name != nil {
 		currentOperation.Name = *input.Input.Name
@@ -226,18 +227,34 @@ func UpdateOperationWebhook(c *gin.Context) {
 			}
 		}
 	}
+	lifecycleChange := input.Input.Complete != nil || input.Input.Deleted != nil
+	if lifecycleChange {
+		rabbitmq.BeginRabbitMQOperationCapabilityLifecycleChange(currentOperation.ID)
+	}
 	_, err = database.DB.NamedExec(`UPDATE operation SET 
 		 	"name"=:name, complete=:complete, webhook=:webhook, 
 		 	channel=:channel, deleted=:deleted, banner_text=:banner_text, banner_color=:banner_color 
                  WHERE id=:id`,
 		currentOperation)
 	if err != nil {
+		if lifecycleChange {
+			rabbitmq.EndRabbitMQOperationCapabilityLifecycleChange(currentOperation.ID)
+		}
 		logging.LogError(err, "Failed to update operation data")
 		c.JSON(http.StatusOK, UpdateOperationResponse{
 			Status: "error",
 			Error:  err.Error(),
 		})
 		return
+	}
+	if currentOperation.Complete || currentOperation.Deleted {
+		rabbitmq.InvalidateRabbitMQAuthContextsForOperation(currentOperation.ID)
+		rabbitmq.ForgetOperationContainerCapabilities(currentOperation.ID)
+	} else if !wasActive {
+		rabbitmq.RefreshOnlineContainerCapabilities()
+	}
+	if lifecycleChange {
+		rabbitmq.EndRabbitMQOperationCapabilityLifecycleChange(currentOperation.ID)
 	}
 	err = UpdateHasuraClaims(c, true)
 	if err != nil {

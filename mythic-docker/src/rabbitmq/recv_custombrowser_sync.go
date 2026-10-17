@@ -71,11 +71,13 @@ var validCustomBrowserTypes = []string{"file"}
 
 func init() {
 	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
-		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      CUSTOMBROWSER_SYNC_ROUTING_KEY,
-		RoutingKey: CUSTOMBROWSER_SYNC_ROUTING_KEY,
-		Handler:    processCustomBrowserSyncMessages,
-		Scopes:     []string{},
+		Exchange:          MYTHIC_EXCHANGE,
+		Queue:             CUSTOMBROWSER_SYNC_ROUTING_KEY,
+		RoutingKey:        CUSTOMBROWSER_SYNC_ROUTING_KEY,
+		Handler:           processCustomBrowserSyncMessages,
+		Authentication:    RabbitMQAuthenticationContainer,
+		ContainerIdentity: extractCustomBrowserSyncIdentity,
+		Scopes:            []string{},
 	})
 }
 
