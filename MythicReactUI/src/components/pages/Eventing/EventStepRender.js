@@ -20,8 +20,6 @@ import {ReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import {useTheme} from '@mui/material/styles';
-import {adjustDurationOutput, adjustOutput} from "./EventGroupInstancesTable";
-import Moment from 'react-moment';
 import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -60,6 +58,7 @@ import {getMythicStatusConfig, MythicStatusChip} from "../../MythicComponents/My
 import {MythicChip, SquareChip} from "../../MythicComponents/MythicChip";
 import TextField from '@mui/material/TextField';
 import {meState} from "../../../cache";
+import { MythicTimestamp } from "../../MythicComponents/MythicTimestamp";
 
 
 const getEventSteps = gql`
@@ -372,26 +371,28 @@ const GetTimeDuration = ({data, customStyle}) => {
                 data?.status === "queued" ? (
                     "Waiting..."
                 ) : (
-                    <Moment filter={(newTime) => adjustOutput(data, newTime)} interval={1000}
-                            parse={"YYYY-MM-DDTHH:mm:ss.SSSSSSZ"}
-                            withTitle
-                            titleFormat={"YYYY-MM-DD HH:mm:ss"}
-                            fromNow ago
+                    <MythicTimestamp
+                        interval={1000}
+                        withTitle
+                        titleFormat={"YYYY-MM-DD HH:mm:ss"}
+                        fromNow
+                        ago
                     >
                         {data?.created_at + "Z"}
-                    </Moment>
+                    </MythicTimestamp>
                 )
 
             ) : (
-                <Moment filter={(newTime) => adjustDurationOutput(data, newTime)}
-                        parse={"YYYY-MM-DDTHH:mm:ss.SSSSSSZ"}
-                        withTitle
-                        titleFormat={"YYYY-MM-DD HH:mm:ss"}
+                <MythicTimestamp
+                    duration
+                    endTime={data?.end_timestamp}
+                    parse={"YYYY-MM-DDTHH:mm:ss.SSSSSSZ"}
+                    withTitle
+                    titleFormat={"YYYY-MM-DD HH:mm:ss"}
                 >
                     {data?.created_at + "Z"}
-                </Moment>
+                </MythicTimestamp>
             )}
-
         </Typography>
     )
 }
