@@ -94,7 +94,7 @@ func GenerateAPITokenWebhook(c *gin.Context) {
 		WHERE operatoroperation.operator_id=$1 and operatoroperation.operation_id=$2`,
 			issuingUser.ID, targetOperator.CurrentOperationID.Int64)
 		if err != nil {
-			c.JSON(http.StatusOK, UpdateCurrentOperationResponse{
+			c.JSON(http.StatusOK, GenerateAPITokenResponse{
 				Status: "error",
 				Error:  "Cannot generate an apitoken for a bot that's a member of an operation you don't belong to",
 			})
