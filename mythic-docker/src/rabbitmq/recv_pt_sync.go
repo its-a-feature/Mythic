@@ -461,7 +461,6 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 	if err != nil {
 		logging.LogError(err, "Failed to save container icons")
 	}
-	return nil
 	if in.PayloadType.TranslationContainerName != "" {
 		translationContainer := databaseStructs.Translationcontainer{
 			Name: in.PayloadType.TranslationContainerName,
