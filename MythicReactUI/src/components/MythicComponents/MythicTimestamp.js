@@ -3,7 +3,9 @@ import { useState, useEffect } from "react";
 import { MythicStyledTooltip } from './MythicStyledTooltip';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import utc from 'dayjs/plugin/utc';
 dayjs.extend(relativeTime);
+dayjs.extend(utc);
 
 const formatDiff = (ms) => {
     if (ms < 0) ms = 0;
@@ -24,26 +26,33 @@ export const MythicTimestamp = ({
     titleFormat = "YYYY-MM-DD HH:mm:ss",
     serverSkew = 0,
 }) => {
+    const [now, setNow] = useState(Date.now);
+    useEffect(() => {
+        if (!interval) return;
+        const id = setInterval(() => setNow(Date.now()), interval);
+        return () => clearInterval(id);
+    }, [interval]);
+
+    // Mythic's server timestamps without an explicit offset represent UTC.
+    const t = dayjs.utc(children);
     const compute = () => {
-        const t = dayjs(children);
         if (!t.isValid()) return "";
+        const serverNow = dayjs(now).add(serverSkew, 'ms');
         if (duration) {
-            const end = endTime ? dayjs(endTime) : dayjs().add(serverSkew, 'ms');
+            const end = endTime != null ? dayjs.utc(endTime) : serverNow;
+            if (!end.isValid()) return "";
             return formatDiff(end.diff(t));
         }
-        return fromNow
-            ? dayjs(t).subtract(serverSkew, 'ms').fromNow(true)
-            : t.format(titleFormat);
+        if (fromNow) {
+            const seconds = Math.round(Math.abs(serverNow.diff(t)) / 1000);
+            if (seconds < 60) return `${seconds} ${seconds === 1 ? 'second' : 'seconds'}`;
+            return t.from(serverNow, true);
+        }
+        return t.local().format(titleFormat);
     };
-    const [display, setDisplay] = useState(compute);
-    useEffect(() => {
-        setDisplay(compute());
-        if (!interval) return;
-        const id = setInterval(() => setDisplay(compute()), interval);
-        return () => clearInterval(id);
-    }, [children, interval]);
+    const display = compute();
 
-    const title = withTitle ? dayjs(children).format(titleFormat) : "";
+    const title = withTitle && t.isValid() ? t.local().format(titleFormat) : "";
     if (withTitle) return (
         <MythicStyledTooltip title={title}>
             <span>{display}</span>

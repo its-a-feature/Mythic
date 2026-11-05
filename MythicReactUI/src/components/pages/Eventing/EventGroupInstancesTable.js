@@ -424,7 +424,7 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
                                             {row.created_at + "Z"}
                                         </MythicTimestamp>
                                     }
-                                    
+
                                     {row.end_timestamp !== null &&
                                         <MythicTimestamp
                                             duration
