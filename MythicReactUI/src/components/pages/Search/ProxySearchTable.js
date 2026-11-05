@@ -6,7 +6,6 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import Moment from 'react-moment';
 import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
 import { gql, useMutation } from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
@@ -14,12 +13,12 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import RestoreFromTrashIcon from '@mui/icons-material/RestoreFromTrash';
 import {getStringSize} from '../Callbacks/ResponseDisplayTable';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
-import {adjustOutput} from "../Eventing/EventGroupInstancesTable";
 import SpeedIcon from '@mui/icons-material/Speed';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {MythicChip} from "../../MythicComponents/MythicChip";
 import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
 import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
+import {MythicTimestamp} from '../../MythicComponents/MythicTimestamp';
 
 const toggleProxy = gql`
 mutation ToggleProxyMutation($callbackport_id: Int!, $action: String!){
@@ -222,14 +221,15 @@ function ProxySearchTableRow(props){
                     <MythicChip compact label={props.port_type} />
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <Moment filter={(newTime) => adjustOutput(props, newTime)} interval={1000}
-                            parse={"YYYY-MM-DDTHH:mm:ss.SSSSSSZ"}
-                            withTitle
-                            titleFormat={"YYYY-MM-DD HH:mm:ss"}
-                            fromNow ago
+                    <MythicTimestamp
+                        interval={1000}
+                        withTitle
+                        titleFormat={"YYYY-MM-DD HH:mm:ss"}
+                        fromNow
+                        ago
                     >
                         {props.updated_at + "Z"}
-                    </Moment>
+                    </MythicTimestamp>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     {props.remote_port !== 0 &&

@@ -15,8 +15,6 @@ import CancelTwoToneIcon from '@mui/icons-material/CancelTwoTone';
 import ReplayIcon from '@mui/icons-material/Replay';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
-import Moment from 'react-moment';
-import moment from 'moment';
 import {snackActions} from "../../utilities/Snackbar";
 import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import OpenInNewTwoToneIcon from '@mui/icons-material/OpenInNewTwoTone';
@@ -34,6 +32,7 @@ import {
     isGridColumnFilterActive
 } from "../../MythicComponents/MythicResizableGrid/GridColumnFilterDialog";
 import {Dropdown, DropdownMenuItem} from "../../MythicComponents/MythicNestedMenus";
+import {MythicTimestamp} from "../../MythicComponents/MythicTimestamp";
 
 const cancelEventGroupInstanceMutation = gql(`
 mutation cancelEventGroupInstanceMutation($eventgroupinstance_id: Int!){
@@ -59,36 +58,8 @@ mutation runAgainEventGroupInstanceMutation($eventgroupinstance_id: Int!){
     }
 }
 `);
-export const adjustDurationOutput = (e, newTime) => {
-    let start = moment(e.created_at);
-    let end = moment(e.end_timestamp !== null ? e.end_timestamp : e.updated_at);
-    let diffDuration = moment.duration(end.diff(start));
-    let output = "";
-    if(diffDuration.days() > 0){
-        output += diffDuration.days() + "d ";
-    }
-    if(diffDuration.hours() > 0){
-        output += diffDuration.hours() + "h ";
-    }
-    if(diffDuration.minutes() > 0){
-        output += diffDuration.minutes() + "m ";
-    }
-    if(diffDuration.seconds() > 0){
-        output += diffDuration.seconds() + "s ";
-    }
-    if(output === ""){
-        return "1s";
-    }
-    return output;
-}
-export const adjustOutput = (e, newTime) => {
-    if(newTime === "a few seconds"){
-        moment.relativeTimeThreshold('s', 60);
-        moment.relativeTimeThreshold('ss', 0);
-        return moment(e.created_at + "Z", "YYYY-MM-DDTHH:mm:ss.SSSSSSZ").fromNow(true)
-    }
-    return newTime;
-}
+
+
 
 const EventingGridCell = ({children, className = "", rowData}) => (
     <div className={`mythic-eventing-instance-cell items-center flex ${className} min-w-0 w-full`.trim()} data-selected={rowData?.selected ? "true" : undefined}>
@@ -442,23 +413,28 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
                                 <div className="mythic-eventing-instances-time-line leading-125 items-center flex gap-3 mythic-eventing-instances-time-secondary text-xs min-w-0 truncate text-muted whitespace-nowrap">
                                     <AccessAlarmTwoToneIcon fontSize="small" />
                                     {row.end_timestamp === null &&
-                                        <Moment filter={(newTime) => adjustOutput(row, newTime)} interval={1000}
-                                                parse={"YYYY-MM-DDTHH:mm:ss.SSSSSSZ"}
-                                                withTitle
-                                                titleFormat={"YYYY-MM-DD HH:mm:ss"}
-                                                fromNow ago
+                                        <MythicTimestamp
+                                            interval={1000}
+                                            withTitle
+                                            titleFormat={"YYYY-MM-DD HH:mm:ss"}
+                                            serverSkew={me?.user?.server_skew}
+                                            fromNow
+                                            ago
                                         >
                                             {row.created_at + "Z"}
-                                        </Moment>
+                                        </MythicTimestamp>
                                     }
+                                    
                                     {row.end_timestamp !== null &&
-                                        <Moment filter={(newTime) => adjustDurationOutput(row, newTime)}
-                                                parse={"YYYY-MM-DDTHH:mm:ss.SSSSSSZ"}
-                                                withTitle
-                                                titleFormat={"YYYY-MM-DD HH:mm:ss"}
+                                        <MythicTimestamp
+                                            duration
+                                            endTime={row.end_timestamp ?? row.updated_at}
+                                            withTitle
+                                            titleFormat={"YYYY-MM-DD HH:mm:ss"}
+                                            serverSkew={me?.user?.server_skew}
                                         >
                                             {row.created_at + "Z"}
-                                        </Moment>
+                                        </MythicTimestamp>
                                     }
                                 </div>
                             </EventingGridCell>

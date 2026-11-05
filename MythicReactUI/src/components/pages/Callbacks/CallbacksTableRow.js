@@ -21,8 +21,6 @@ import { MythicSelectFromRawListDialog } from '../../MythicComponents/MythicSele
 import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
 import { areEqual } from 'react-window';
 import {CallbackGraphEdgesContext, OnOpenTabContext} from './CallbacksTop';
-import Moment from 'react-moment';
-import moment from 'moment';
 import {GetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import TerminalIcon from '@mui/icons-material/Terminal';
 import VerticalSplitIcon from '@mui/icons-material/VerticalSplit';
@@ -30,6 +28,7 @@ import {faSocks} from '@fortawesome/free-solid-svg-icons';
 import {TagsDisplay, ViewEditTags} from "../../MythicComponents/MythicTag";
 import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
+import {MythicTimestamp} from "../../MythicComponents/MythicTimestamp";
 import ButtonGroup from "@mui/material/ButtonGroup";
 import Button from "@mui/material/Button";
 
@@ -188,15 +187,6 @@ export const CallbacksTableStringCell = React.memo(({rowData, cellData}) => {
     )
 }, areEqual)
 export const CallbacksTableLastCheckinCell = React.memo( ({rowData, cellData, me}) => {
-    const adjustOutput = (newTime) => {
-        if(newTime === "a few seconds"){
-            moment.relativeTimeThreshold('s', 60);
-            moment.relativeTimeThreshold('ss', 0);
-            return moment(rowData.last_checkin + "Z", "YYYY-MM-DDTHH:mm:ss.SSSSSSZ").subtract(me?.user?.server_skew || 0, 'millisecond').fromNow(true)
-        }
-        return moment(rowData.last_checkin + "Z", "YYYY-MM-DDTHH:mm:ss.SSSSSSZ").subtract(me?.user?.server_skew || 0, 'millisecond').fromNow(true);
-        //return newTime;
-    }
     if(rowData?.payload?.payloadtype?.agent_type !== "agent"){
         return ""
     }
@@ -221,13 +211,16 @@ export const CallbacksTableLastCheckinCell = React.memo( ({rowData, cellData, me
                 </MythicStyledTooltip>
             }
             <span className="mythic-callback-cellText min-w-0 truncate whitespace-nowrap">
-                <Moment filter={adjustOutput} interval={1000} parse={"YYYY-MM-DDTHH:mm:ss.SSSSSSZ"}
+                <MythicTimestamp
+                    interval={1000}
                     withTitle
                     titleFormat={"YYYY-MM-DD HH:mm:ss"}
-                    fromNow ago
+                    serverSkew={me?.user?.server_skew}
+                    fromNow
+                    ago
                 >
                     {rowData.last_checkin + "Z"}
-                </Moment>
+                </MythicTimestamp>
             </span>
         </div>
         
