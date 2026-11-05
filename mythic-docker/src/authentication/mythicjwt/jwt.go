@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
+	"github.com/google/uuid"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -17,6 +18,11 @@ import (
 )
 
 type CustomClaims struct {
+	// OperatorSessionVersion allows us to invalidate all active sessions for an account
+	// this increments automatically when key attributes about a user account change via database trigger in 003003027
+	OperatorSessionVersion int64 `json:"operator_session_version"`
+	// SessionUUID allows us to invalidate a single logon session and its refresh tokens by proxy
+	SessionUUID string `json:"session_uuid,omitempty"`
 	jwt.StandardClaims
 	UserID              int      `json:"user_id"`
 	AuthMethod          string   `json:"auth"`
@@ -94,34 +100,46 @@ func RefreshJWT(access_token string, refresh_token string) (string, string, int,
 		logging.LogError(err, "Failed to get user from id")
 		return "", "", 0, err
 	}
-	if !operator.Active || operator.Deleted {
-		return "", "", 0, errors.New("user is not active or deleted")
+	if err := ValidateSession(customClaims, operator); err != nil {
+		return "", "", 0, err
 	}
-	newAccessToken, newRefreshToken, userID, err := GenerateJWT(user, customClaims.AuthMethod, customClaims.EventStepInstanceID, customClaims.APITokensID)
+
+	// Consume the refresh pair before issuing its replacement so concurrent
+	// refreshes cannot both succeed.
+	RefreshTokenCacheLock.Lock()
+	if RefreshTokenCache[access_token] != refresh_token {
+		RefreshTokenCacheLock.Unlock()
+		return "", "", 0, ErrFailedToFindRefreshToken
+	}
+	delete(RefreshTokenCache, access_token)
+	RefreshTokenCacheLock.Unlock()
+	newAccessToken, newRefreshToken, userID, err := generateJWT(*operator, customClaims.AuthMethod, customClaims.EventStepInstanceID, customClaims.APITokensID, customClaims.SessionUUID)
 	if err != nil {
 		logging.LogError(err, "Failed to generate new access_token and refresh_token")
 		return "", "", 0, err
 	}
-	RefreshTokenCacheLock.Lock()
-	delete(RefreshTokenCache, access_token)
-	RefreshTokenCache[newAccessToken] = newRefreshToken
-	RefreshTokenCacheLock.Unlock()
 	return newAccessToken, newRefreshToken, userID, nil
 }
 
 func GenerateJWT(user databaseStructs.Operator, authMethod string, eventStepInstanceID int, APITokensID int) (string, string, int, error) {
+	return generateJWT(user, authMethod, eventStepInstanceID, APITokensID, uuid.NewString())
+}
+
+func generateJWT(user databaseStructs.Operator, authMethod string, eventStepInstanceID int, APITokensID int, sessionID string) (string, string, int, error) {
 	jwtStandardClaims := jwt.StandardClaims{
 		IssuedAt:  time.Now().UTC().Unix(),
 		ExpiresAt: time.Now().Add(JWTTimespan).UTC().Unix(),
 	}
 	claims := CustomClaims{
-		StandardClaims:      jwtStandardClaims,
-		UserID:              user.ID,
-		AuthMethod:          authMethod,
-		EventStepInstanceID: eventStepInstanceID,
-		APITokensID:         APITokensID,
-		OperationID:         int(user.CurrentOperationID.Int64),
-		Scopes:              []string{SCOPE_ALL},
+		OperatorSessionVersion: user.SessionVersion,
+		StandardClaims:         jwtStandardClaims,
+		UserID:                 user.ID,
+		AuthMethod:             authMethod,
+		SessionUUID:            sessionID,
+		EventStepInstanceID:    eventStepInstanceID,
+		APITokensID:            APITokensID,
+		OperationID:            int(user.CurrentOperationID.Int64),
+		Scopes:                 []string{SCOPE_ALL},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	access_token, err := token.SignedString(utils.MythicConfig.JWTSecret)
@@ -149,14 +167,15 @@ func GenerateScopedJWT(user databaseStructs.Operator, scopes []string, fileUUID 
 		ExpiresAt: time.Now().Add(ttl).UTC().Unix(),
 	}
 	claims := CustomClaims{
-		StandardClaims:      jwtStandardClaims,
-		UserID:              user.ID,
-		AuthMethod:          AUTH_METHOD_PAYLOAD,
-		OperationID:         int(user.CurrentOperationID.Int64),
-		Scopes:              scopes,
-		EventStepInstanceID: eventStepInstanceID,
-		APITokensID:         APITokensID,
-		FileUUID:            fileUUID,
+		OperatorSessionVersion: user.SessionVersion,
+		StandardClaims:         jwtStandardClaims,
+		UserID:                 user.ID,
+		AuthMethod:             AUTH_METHOD_PAYLOAD,
+		OperationID:            int(user.CurrentOperationID.Int64),
+		Scopes:                 scopes,
+		EventStepInstanceID:    eventStepInstanceID,
+		APITokensID:            APITokensID,
+		FileUUID:               fileUUID,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	access_token, err := token.SignedString(utils.MythicConfig.JWTSecret)
@@ -165,4 +184,37 @@ func GenerateScopedJWT(user databaseStructs.Operator, scopes []string, fileUUID 
 		return "", 0, err
 	}
 	return access_token, user.ID, nil
+}
+
+// ValidateSession is shared by request authentication and refresh. Old tokens
+// without a version are intentionally invalid after the migration.
+func ValidateSession(claims *CustomClaims, operator *databaseStructs.Operator) error {
+	if !operator.Active || operator.Deleted || claims.OperatorSessionVersion != operator.SessionVersion {
+		// invalidate all old access_tokens because something fundamentally changed about the user
+		return errors.New("operator credentials have been revoked")
+	}
+	if claims.AuthMethod == AUTH_METHOD_USER {
+		if claims.SessionUUID == "" {
+			return errors.New("missing session id")
+		}
+		// check to see if a specific session is invalidated, like logging out of one computer
+		var revoked bool
+		if err := database.DB.Get(&revoked, `SELECT EXISTS (SELECT 1 FROM revoked_session WHERE id=$1)`, claims.SessionUUID); err != nil {
+			return err
+		}
+		if revoked {
+			return errors.New("session has been logged out")
+		}
+	}
+	return nil
+}
+
+func RevokeSession(claims *CustomClaims) error {
+	if claims.AuthMethod != AUTH_METHOD_USER || claims.SessionUUID == "" {
+		return errors.New("not a user session")
+	}
+	// Refresh preserves the session ID, so one tombstone also revokes every
+	// access/refresh token descended from this login.
+	_, err := database.DB.Exec(`INSERT INTO revoked_session (id) VALUES ($1) ON CONFLICT (id) DO NOTHING`, claims.SessionUUID)
+	return err
 }

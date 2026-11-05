@@ -370,6 +370,14 @@ export const successfulRefresh = (data) => {
     localStorage.setItem("user", JSON.stringify(me));
 }
 export const FailedRefresh = (restart_websockets) =>{
+    const accessToken = localStorage.getItem("access_token");
+    if(accessToken){
+        fetch('/logout', {
+            method: 'POST',
+            headers: {'Authorization': `Bearer ${accessToken}`},
+            keepalive: true,
+        }).catch(() => {});
+    }
     console.log("failed refresh");
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");

@@ -316,17 +316,9 @@ func ProcessIDPResponse(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Authentication Failed"})
 		return
 	}
-	user := map[string]interface{}{
-		"current_operation":    currentOperation.CurrentOperation.Name,
-		"current_operation_id": currentOperation.CurrentOperation.ID,
-		"username":             currentOperation.CurrentOperator.Username,
-		"id":                   currentOperation.CurrentOperator.ID,
-		"user_id":              currentOperation.CurrentOperator.ID,
-	}
-	// setting cookie max age to 2 days
-	c.SetCookie("mythic", accessToken, 60*60*24*2, "/", strings.Split(c.Request.Host, ":")[0], true, true)
+	c.SetSameSite(http.SameSiteStrictMode)
 	jsonData, err := json.Marshal(map[string]interface{}{
-		"user":          user,
+		"user":          getUserJsonData(currentOperation),
 		"access_token":  accessToken,
 		"refresh_token": refreshToken,
 	})
@@ -334,10 +326,11 @@ func ProcessIDPResponse(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"error": err.Error()})
 		return
 	}
-	c.SetCookie("user", base64.StdEncoding.EncodeToString(jsonData), 10, "/", strings.Split(c.Request.Host, ":")[0], true, false)
-	c.SetSameSite(http.SameSiteStrictMode)
+	// specifically not setting this as httpOnly so that after redirecting back to the mythic UI we can pull out the access_token, refresh_token, and user info and remove the cookie
+	c.SetCookie("mythic", base64.StdEncoding.EncodeToString(jsonData), 10, "/new/login", strings.Split(c.Request.Host, ":")[0], true, false)
 	c.Redirect(http.StatusFound, "/new/login")
 }
+
 func getContainerType(containerName string, IDPName string) (string, error) {
 	consumingService := databaseStructs.ConsumingContainer{}
 	err := database.DB.Get(&consumingService, `SELECT * FROM consuming_container 

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/its-a-feature/Mythic/database"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/mitchellh/mapstructure"
 )
@@ -56,6 +57,15 @@ func handleAgentMessageCheckin(incoming *map[string]interface{}, UUIDInfo *cache
 		logging.LogError(err, "Failed to decode agent message into MythicRPCCallbackCreateMessage")
 		return nil, errors.New(fmt.Sprintf("Failed to decode agent message into MythicRPCCallbackCreateMessage struct: %s", err.Error()))
 	}
+	// Bind enrollment to the payload authenticated by the outer identity.
+	var authenticatedPayloadUUID string
+	if err := database.DB.Get(&authenticatedPayloadUUID, `SELECT uuid FROM payload WHERE id=$1`, UUIDInfo.PayloadID); err != nil {
+		return nil, err
+	}
+	if agentMessage.PayloadUUID != authenticatedPayloadUUID {
+		return nil, errors.New("checkin payload does not match authenticated identity")
+	}
+	mythicRPCCallbackCreateMessage.PayloadUUID = authenticatedPayloadUUID
 	mythicRPCCallbackCreateMessage.C2ProfileName = UUIDInfo.C2ProfileName
 	newCryptoKeys := UUIDInfo.getAllKeys()
 	if len(newCryptoKeys) > 0 {
@@ -84,9 +94,8 @@ func handleAgentMessageCheckin(incoming *map[string]interface{}, UUIDInfo *cache
 	response["id"] = mythicRPCCallbackCreateMessageResponse.AgentCallbackID
 	response["status"] = "success"
 	reflectBackOtherKeys(&response, &agentMessage.Other)
-	UUIDInfo.CallbackID = mythicRPCCallbackCreateMessageResponse.CallbackID
-	UUIDInfo.CallbackDisplayID = mythicRPCCallbackCreateMessageResponse.CallbackDisplayID
-	UUIDInfo.CryptoType = mythicRPCCallbackCreateMessage.CryptoType
+	// The payload/staging identity retains only enrollment authority. The next
+	// message uses the returned callback UUID and loads its own cache entry.
 	return response, nil
 
 }

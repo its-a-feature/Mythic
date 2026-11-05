@@ -56,7 +56,7 @@ func UpdateOperatorPasswordWebhook(c *gin.Context) {
 		})
 		return
 	}
-	if callingUser.ID != input.Input.UserID && !callingUser.Admin {
+	if !callingUser.Active || callingUser.Deleted || (callingUser.ID != input.Input.UserID && !callingUser.Admin) {
 		logging.LogError(err, "Cannot set the current password for another user if you're not an admin")
 		c.JSON(http.StatusOK, UpdateOperatorPasswordResponse{
 			Status: "error",

@@ -1,7 +1,6 @@
 package rabbitmq
 
 import (
-	"database/sql"
 	"encoding/json"
 	"time"
 
@@ -64,18 +63,17 @@ func MythicRPCDirectFileTokenCreate(input MythicRPCDirectFileTokenCreateMessage,
 			return response
 		}
 	}
-	user := databaseStructs.Operator{
-		ID: authContext.OperatorID,
-		CurrentOperationID: sql.NullInt64{
-			Valid: true,
-			Int64: int64(authContext.OperationID),
-		},
+	user, err := database.GetUserFromID(authContext.OperatorID)
+	if err != nil || !user.Active || user.Deleted {
+		response.Error = "operator is not available for direct file access"
+		return response
 	}
+
 	scope := mythicjwt.SCOPE_FILE_READ
 	if input.Action == "upload" || input.Action == "both" {
 		scope = mythicjwt.SCOPE_FILE_WRITE
 	}
-	token, _, err := mythicjwt.GenerateScopedJWT(user, []string{scope}, input.FileUUID, directFileScopedTokenTTL, authContext.EventStepInstanceID, authContext.APITokensID)
+	token, _, err := mythicjwt.GenerateScopedJWT(*user, []string{scope}, input.FileUUID, directFileScopedTokenTTL, authContext.EventStepInstanceID, authContext.APITokensID)
 	if err != nil {
 		logging.LogError(err, "Failed to generate JWT for direct file access")
 		response.Error = err.Error()

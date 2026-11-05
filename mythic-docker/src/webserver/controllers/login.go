@@ -38,8 +38,16 @@ func Login(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Authentication Failed"})
 		return
 	}
-	user := map[string]interface{}{
+	user := getUserJsonData(currentOperation)
+	c.JSON(http.StatusOK, gin.H{"access_token": accessToken, "refresh_token": refreshToken, "user": user})
+	return
+
+}
+
+func getUserJsonData(currentOperation *databaseStructs.Operatoroperation) map[string]interface{} {
+	return map[string]interface{}{
 		"current_operation":              currentOperation.CurrentOperation.Name,
+		"current_operation_name":         currentOperation.CurrentOperation.Name,
 		"current_operation_banner_text":  currentOperation.CurrentOperation.BannerText,
 		"current_operation_banner_color": currentOperation.CurrentOperation.BannerColor,
 		"current_operation_complete":     currentOperation.CurrentOperation.Complete,
@@ -52,9 +60,6 @@ func Login(c *gin.Context) {
 		"view_utc_time":                  currentOperation.CurrentOperator.ViewUtcTime,
 		"current_utc_time":               time.Now().UTC(),
 	}
-	c.JSON(http.StatusOK, gin.H{"access_token": accessToken, "refresh_token": refreshToken, "user": user})
-	return
-
 }
 
 func GetWhoamiWebhook(c *gin.Context) {
@@ -244,23 +249,23 @@ func RefreshJWT(c *gin.Context) {
 		return
 	}
 	// current_operation_name is retained as a compatibility alias for older clients.
-	user := map[string]interface{}{
-		"current_operation":              currentOperation.CurrentOperation.Name,
-		"current_operation_name":         currentOperation.CurrentOperation.Name,
-		"current_operation_id":           currentOperation.OperationID,
-		"current_operation_banner_text":  currentOperation.CurrentOperation.BannerText,
-		"current_operation_banner_color": currentOperation.CurrentOperation.BannerColor,
-		"current_operation_complete":     currentOperation.CurrentOperation.Complete,
-		"username":                       currentOperation.CurrentOperator.Username,
-		"id":                             currentOperation.CurrentOperator.ID,
-		"user_id":                        currentOperation.CurrentOperator.ID,
-		"admin":                          currentOperation.CurrentOperator.Admin,
-		"view_mode":                      currentOperation.ViewMode,
-		"view_utc_time":                  currentOperation.CurrentOperator.ViewUtcTime,
-		"current_utc_time":               time.Now().UTC(),
-	}
+	user := getUserJsonData(currentOperation)
 	c.Set(authentication.ContextKeyUserID, currentOperation.CurrentOperator.ID)
 	c.Set(authentication.ContextKeyUsername, currentOperation.CurrentOperator.Username)
 	c.JSON(http.StatusOK, gin.H{"access_token": accessToken, "refresh_token": refreshToken, "user": user})
 	return
+}
+
+func Logout(c *gin.Context) {
+	c.SetCookie("mythic", "", -1, "/", "", true, true)
+	claims, err := authentication.GetClaims(c)
+	if err == nil {
+		err = mythicjwt.RevokeSession(claims)
+	}
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Failed to revoke session"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "success"})
 }

@@ -263,6 +263,7 @@ func setRoutes(r *gin.Engine) {
 				}),
 				webcontroller.GetGlobalSettingWebhook)
 			// a refresh post will contain the access_token and refresh_token
+			protected.POST("/logout", webcontroller.Logout)
 			protected.POST("/refresh",
 				webcontroller.RefreshJWT)
 			staticFiles := protected.Group("/static")

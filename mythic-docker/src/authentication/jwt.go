@@ -40,7 +40,7 @@ var (
 		operator.current_operation_id "operator.current_operation_id"
 		FROM apitokens 
 		JOIN operator ON apitokens.operator_id = operator.id
-		WHERE apitokens.token_value=$1
+		WHERE apitokens.token_value=$1 AND operator.active=true AND operator.deleted=false
 		LIMIT 1`
 )
 
@@ -58,21 +58,6 @@ func getAPITokenFromDB(c *gin.Context, tokenString string) (databaseStructs.Apit
 	}
 	c.Set(ContextKeyAPIToken, databaseApiToken)
 	return databaseApiToken, nil
-}
-
-func claimsFromAPIToken(databaseApiToken databaseStructs.Apitokens) *mythicjwt.CustomClaims {
-	scopes := []string(databaseApiToken.Scopes)
-	claims := mythicjwt.CustomClaims{
-		UserID:      databaseApiToken.OperatorID,
-		AuthMethod:  databaseApiToken.TokenType,
-		APITokensID: databaseApiToken.ID,
-		OperationID: int(databaseApiToken.Operator.CurrentOperationID.Int64),
-		Scopes:      scopes,
-	}
-	if databaseApiToken.EventStepInstanceID.Valid {
-		claims.EventStepInstanceID = int(databaseApiToken.EventStepInstanceID.Int64)
-	}
-	return &claims
 }
 
 func looksLikeOpaqueAPIToken(tokenString string) bool {
@@ -113,7 +98,18 @@ func validateAndSetAPITokenContext(c *gin.Context, tokenString string) error {
 	c.Set(ContextKeyUsername, databaseApiToken.Operator.Username)
 	c.Set(ContextKeyAPIToken, databaseApiToken)
 	c.Set("account", databaseApiToken.Operator.AccountType)
-	c.Set(ContextKeyClaims, claimsFromAPIToken(databaseApiToken))
+	scopes := []string(databaseApiToken.Scopes)
+	claims := mythicjwt.CustomClaims{
+		UserID:      databaseApiToken.OperatorID,
+		AuthMethod:  databaseApiToken.TokenType,
+		APITokensID: databaseApiToken.ID,
+		OperationID: int(databaseApiToken.Operator.CurrentOperationID.Int64),
+		Scopes:      scopes,
+	}
+	if databaseApiToken.EventStepInstanceID.Valid {
+		claims.EventStepInstanceID = int(databaseApiToken.EventStepInstanceID.Int64)
+	}
+	c.Set(ContextKeyClaims, claims)
 	return nil
 }
 
@@ -190,6 +186,9 @@ func GetClaims(c *gin.Context) (*mythicjwt.CustomClaims, error) {
 	user, err := database.GetUserFromID(claims.UserID)
 	if err != nil {
 		logging.LogError(err, "failed to get user from id in GetClaims")
+		return nil, err
+	}
+	if err := mythicjwt.ValidateSession(&claims, user); err != nil {
 		return nil, err
 	}
 	claims.OperationID = int(user.CurrentOperationID.Int64)

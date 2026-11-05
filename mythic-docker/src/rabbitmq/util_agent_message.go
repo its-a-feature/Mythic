@@ -281,11 +281,10 @@ func UpdatePayloadInfoCallbackAllowed(payloadID int, callbackAllowed bool) {
 	cachedUUIDInfoMapMutex.Lock()
 	defer cachedUUIDInfoMapMutex.Unlock()
 	for _, uuidInfo := range cachedUUIDInfoMap {
-		if uuidInfo.PayloadID == payloadID && uuidInfo.UUIDType == UUIDTYPEPAYLOAD {
+		if uuidInfo.PayloadID == payloadID && uuidInfo.UUIDType != UUIDTYPECALLBACK {
 			uuidInfo.stateMutex.Lock()
 			uuidInfo.CallbackAllowedFromPayload = callbackAllowed
 			uuidInfo.stateMutex.Unlock()
-			return
 		}
 	}
 }
@@ -361,6 +360,11 @@ func processAgentMessageContent(agentMessageInput *AgentMessageRawInput, uuidInf
 		instanceResponse.Err = errors.New(errorMessage)
 		return response
 	}
+	// make sure UUID lookup matches an action that makes sense
+	if err := validateAgentIdentityAction(uuidInfo, decryptedMessage); err != nil {
+		instanceResponse.Err = err
+		return response
+	}
 	//logging.LogDebug("Parsing message from agent", "step 3", decryptedMessage)
 	if utils.MythicConfig.DebugAgentMessage {
 		stringMsg, err := json.Marshal(decryptedMessage)
@@ -374,7 +378,7 @@ func processAgentMessageContent(agentMessageInput *AgentMessageRawInput, uuidInf
 		}
 	}
 	delegateResponses := []delegateMessageResponse{}
-	getDelegateMessages := true // by default, we want to always get all delegate messages that are available
+	getDelegateMessages := uuidInfo.UUIDType == UUIDTYPECALLBACK // only callbacks can exchange delegated traffic
 	switch decryptedMessage["action"] {
 	case "checkin":
 		{
@@ -460,7 +464,7 @@ func processAgentMessageContent(agentMessageInput *AgentMessageRawInput, uuidInf
 		}
 	}
 	//logging.LogInfo("decrypted message after post response", "decrypted", decryptedMessage)
-	if _, ok := decryptedMessage[CALLBACK_MESSAGE_KEY_RESPONSES]; ok {
+	if _, ok := decryptedMessage[CALLBACK_MESSAGE_KEY_RESPONSES]; ok && uuidInfo.UUIDType == UUIDTYPECALLBACK {
 		// this means we got response data outside the post_response key, so handle it
 		if postResponseMap, postResponseMapErr := handleAgentMessagePostResponse(&decryptedMessage, uuidInfo); postResponseMapErr != nil {
 			logging.LogError(postResponseMapErr, "Failed to process 'responses' key in non-standard action")
@@ -769,6 +773,9 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 	newCache := cachedUUIDInfo{}
 
 	if uuidInfo := getCachedUUIDInfo(c2profile, messageUUID); uuidInfo != nil {
+		if err := validatePayloadAndStagingCanCreateCallbacks(uuidInfo); err != nil {
+			return nil, err
+		}
 		updateCachedCallbackCheckin(uuidInfo, updateCheckinTime)
 		return uuidInfo, nil
 	}
@@ -960,6 +967,9 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 			logging.LogError(err, "Tried to fetch translation container name")
 			return &newCache, nil
 		}
+	}
+	if err := validatePayloadAndStagingCanCreateCallbacks(&newCache); err != nil {
+		return nil, err
 	}
 	uuidInfo, alreadyCached := cacheUUIDInfo(c2profile, messageUUID, &newCache)
 	if alreadyCached {
@@ -1307,4 +1317,62 @@ func removeCachedEntry(uuidInfo *cachedUUIDInfo) {
 			delete(cachedUUIDInfoMap, k)
 		}
 	}
+}
+
+func validatePayloadAndStagingCanCreateCallbacks(info *cachedUUIDInfo) error {
+	if info.UUIDType == UUIDTYPECALLBACK {
+		return nil
+	}
+	var allowed bool
+	err := database.DB.Get(&allowed, `SELECT 
+    p.callback_allowed AND 
+    NOT p.deleted AND 
+    NOT o.complete
+ 	FROM payload p 
+ 	JOIN operation o ON o.id=p.operation_id
+ 	WHERE p.id=$1`, info.PayloadID)
+	if err != nil {
+		return err
+	}
+	if !allowed {
+		return errors.New("payload enrollment has been revoked")
+	}
+	return nil
+}
+
+func validateAgentIdentityAction(info *cachedUUIDInfo, message map[string]interface{}) error {
+	action, ok := message["action"].(string)
+	if !ok {
+		return errors.New("invalid agent action")
+	}
+	switch info.UUIDType {
+	case UUIDTYPECALLBACK:
+		if info.CallbackID <= 0 || action == "staging_rsa" || action == "staging_translation" {
+			return errors.New("invalid action for callback uuid")
+		}
+	case UUIDTYPEPAYLOAD, UUIDTYPESTAGING:
+		if action != "checkin" && action != "staging_rsa" && action != "staging_translation" {
+			return errors.New("action requires a callback uuid")
+		}
+		for _, key := range []string{CALLBACK_PORT_TYPE_SOCKS, CALLBACK_PORT_TYPE_RPORTFWD, CALLBACK_PORT_TYPE_INTERACTIVE} {
+			if _, ok := message[key]; ok {
+				return errors.New("proxy traffic requires a callback uuid")
+			}
+		}
+		if _, ok := message[CALLBACK_MESSAGE_KEY_RESPONSES]; ok {
+			return errors.New("responses require a callback uuid")
+		}
+		if _, ok := message[CALLBACK_MESSAGE_KEY_EDGES]; ok {
+			return errors.New("edges require a callback uuid")
+		}
+		if _, ok := message[CALLBACK_MESSAGE_KEY_ALERTS]; ok {
+			return errors.New("alerts require a callback uuid")
+		}
+		if _, ok := message["delegates"]; ok {
+			return errors.New("delegates require a callback uuid")
+		}
+	default:
+		return errors.New("unknown agent uuid type")
+	}
+	return nil
 }

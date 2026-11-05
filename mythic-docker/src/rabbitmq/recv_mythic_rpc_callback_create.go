@@ -157,6 +157,19 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage, authContext R
 		return response
 	}
 	defer transaction.Rollback()
+	// Serialize enrollment with payload/operation revocation and check it in the
+	// same transaction as callback insertion, including Push-C2/RPC creation.
+	var payloadID int
+	err = transaction.Get(&payloadID, `SELECT 
+    p.id 
+	FROM payload p
+ 	JOIN operation o ON o.id=p.operation_id
+ 	WHERE p.id=$1 AND p.operation_id=$2 AND NOT p.deleted
+ 	AND p.callback_allowed AND NOT o.complete FOR SHARE OF p, o`, payload.ID, authContext.OperationID)
+	if err != nil {
+		response.Error = "callback creation is not allowed"
+		return response
+	}
 	if authContext.EventStepInstanceID > 0 {
 		callback.EventStepInstanceID.Valid = true
 		callback.EventStepInstanceID.Int64 = int64(authContext.EventStepInstanceID)

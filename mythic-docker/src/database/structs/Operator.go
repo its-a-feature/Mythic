@@ -12,6 +12,7 @@ var (
 )
 
 type Operator struct {
+	SessionVersion           int64             `db:"session_version" json:"-"`
 	ID                       int               `db:"id" json:"id,omitempty"`
 	Username                 string            `db:"username" json:"username,omitempty"`
 	Password                 string            `db:"password" json:"-"`
