@@ -501,25 +501,19 @@ func updatePayloadTypeBuildParameters(in PayloadTypeSyncMessage, payloadtype dat
 	buildParameterMutex.Lock()
 	defer buildParameterMutex.Unlock()
 	syncingParameters := in.PayloadType.BuildParameters
-	databaseParameter := databaseStructs.Buildparameter{}
+	databaseParameterRows := []databaseStructs.Buildparameter{}
 	updatedAndDeletedParameters := []string{}
-	rows, err := database.DB.NamedQuery(`SELECT
+	err := database.DB.Select(&databaseParameterRows, `SELECT
 		*
 		FROM buildparameter
-		WHERE payload_type_id = :id
-	`, payloadtype)
+		WHERE payload_type_id = $1
+	`, payloadtype.ID)
 	if err != nil {
 		logging.LogError(err, "Failed to fetch build parameters for payloadtype when syncing")
 		return err
 	}
-	defer rows.Close()
-	for rows.Next() {
+	for _, databaseParameter := range databaseParameterRows {
 		found := false
-		err = rows.StructScan(&databaseParameter)
-		if err != nil {
-			logging.LogError(err, "Failed to parse buildparameter into structure when syncing command")
-			return err
-		}
 		//logging.LogDebug("Got row from buildparameter while syncing payloadtype", "row", databaseParameter)
 		for _, newParameter := range syncingParameters {
 			if newParameter.Name == databaseParameter.Name && !utils.SliceContains(updatedAndDeletedParameters, newParameter.Name) {
@@ -590,7 +584,7 @@ func updatePayloadTypeBuildParameters(in PayloadTypeSyncMessage, payloadtype dat
 			continue
 		}
 		// we have a new parameter group / command parameter to add in
-		databaseParameter = databaseStructs.Buildparameter{
+		databaseParameter := databaseStructs.Buildparameter{
 			Name:                 newParameter.Name,
 			Description:          newParameter.Description,
 			Randomize:            newParameter.Randomize,
@@ -653,26 +647,20 @@ func updatePayloadTypeC2Profiles(in PayloadTypeSyncMessage, payloadtype database
 	c2ProfileMutex.Lock()
 	defer c2ProfileMutex.Unlock()
 	syncingC2Profiles := in.PayloadType.SupportedC2Profiles
-	databaseC2Profile := databaseStructs.Payloadtypec2profile{}
-	rows, err := database.DB.NamedQuery(`SELECT
+	databaseC2ProfileRows := []databaseStructs.Payloadtypec2profile{}
+	err := database.DB.Select(&databaseC2ProfileRows, `SELECT
 		payloadtypec2profile.id,
 		c2profile.name "c2profile.name"
 		FROM payloadtypec2profile 
 		JOIN c2profile ON payloadtypec2profile.c2_profile_id = c2profile.id 
 		WHERE
-		payload_type_id = :id
-	`, payloadtype)
+		payload_type_id = $1
+	`, payloadtype.ID)
 	if err != nil {
 		logging.LogError(err, "Failed to get payloadtypec2profile from database")
 		return err
 	}
-	defer rows.Close()
-	for rows.Next() {
-		err = rows.StructScan(&databaseC2Profile)
-		if err != nil {
-			logging.LogError(err, "Failed to get row from payloadtypec2profile")
-			return err
-		}
+	for _, databaseC2Profile := range databaseC2ProfileRows {
 		logging.LogDebug("Got row from payloadtypec2profile", "row", databaseC2Profile)
 		if utils.SliceContains(syncingC2Profiles, databaseC2Profile.C2profile.Name) {
 			syncingC2Profiles = utils.RemoveStringFromSliceNoOrder(syncingC2Profiles, databaseC2Profile.C2profile.Name)
@@ -697,7 +685,7 @@ func updatePayloadTypeC2Profiles(in PayloadTypeSyncMessage, payloadtype database
 				logging.LogError(err, "Failed to get c2profile to associate with payloadtype", "c2profile", name, "c2profiles", syncingC2Profiles)
 			}
 		} else {
-			databaseC2Profile = databaseStructs.Payloadtypec2profile{C2ProfileID: c2profile.ID, PayloadTypeID: payloadtype.ID}
+			databaseC2Profile := databaseStructs.Payloadtypec2profile{C2ProfileID: c2profile.ID, PayloadTypeID: payloadtype.ID}
 			_, err = database.DB.NamedExec(`INSERT INTO 
 				payloadtypec2profile (payload_type_id, c2_profile_id)
 				VALUES (:payload_type_id, :c2_profile_id)`,
@@ -747,24 +735,18 @@ func updatePayloadTypeCommands(in PayloadTypeSyncMessage, payloadtype databaseSt
 	commandsMutex.Lock()
 	defer commandsMutex.Unlock()
 	syncingCommands := in.CommandList
-	databaseCommand := databaseStructs.Command{}
+	databaseCommandRows := []databaseStructs.Command{}
 	updatedAndDeletedCommands := []string{}
-	rows, err := database.DB.NamedQuery(`SELECT
+	err := database.DB.Select(&databaseCommandRows, `SELECT
 		* 
 		FROM command 
-		WHERE payload_type_id = :id
-	`, payloadtype)
+		WHERE payload_type_id = $1
+	`, payloadtype.ID)
 	if err != nil {
 		logging.LogError(err, "Failed to fetch commands for payloadtype when syncing")
 		return err
 	}
-	defer rows.Close()
-	for rows.Next() {
-		err = rows.StructScan(&databaseCommand)
-		if err != nil {
-			logging.LogError(err, "Failed to parse command into structure when syncing payloadtype")
-			return err
-		}
+	for _, databaseCommand := range databaseCommandRows {
 		//logging.LogDebug("Got row from commands while syncing payloadtype", "row", databaseCommand)
 		updatedAndDeletedCommands = append(updatedAndDeletedCommands, databaseCommand.Cmd)
 		found := false
@@ -854,7 +836,7 @@ func updatePayloadTypeCommands(in PayloadTypeSyncMessage, payloadtype databaseSt
 		if newCommand.Name == "" {
 			continue
 		}
-		databaseCommand = databaseStructs.Command{
+		databaseCommand := databaseStructs.Command{
 			Cmd:                 newCommand.Name,
 			NeedsAdmin:          newCommand.NeedsAdminPermissions,
 			HelpCmd:             newCommand.HelpString,
@@ -922,24 +904,18 @@ func updatePayloadTypeCommandParameters(in PayloadTypeSyncMessage, payloadtype d
 	// if a parameter is in the sync message, but not in the database, add it
 	// if a parameter is in both, update it
 	syncingParameters := newParameters
-	databaseParameter := databaseStructs.Commandparameters{}
+	databaseParameterRows := []databaseStructs.Commandparameters{}
 	updatedAndDeletedParameters := []string{}
-	rows, err := database.DB.NamedQuery(`SELECT
+	err := database.DB.Select(&databaseParameterRows, `SELECT
 		*
 		FROM commandparameters
-		WHERE command_id = :id
-	`, command)
+		WHERE command_id = $1
+	`, command.ID)
 	if err != nil {
 		logging.LogError(err, "Failed to fetch command parameters for command when syning")
 		return err
 	}
-	defer rows.Close()
-	for rows.Next() {
-		err = rows.StructScan(&databaseParameter)
-		if err != nil {
-			logging.LogError(err, "Failed to parse commandparameter into structure when syncing command")
-			return err
-		}
+	for _, databaseParameter := range databaseParameterRows {
 		//logging.LogDebug("Got row from commandparameters while syncing command", "row", databaseParameter)
 		found := false
 		for _, newParameter := range syncingParameters {
@@ -1026,7 +1002,7 @@ func updatePayloadTypeCommandParameters(in PayloadTypeSyncMessage, payloadtype d
 				newParameter.ModalDisplayName = newParameter.Name
 			}
 			// we have a new parameter group / command parameter to add in
-			databaseParameter = databaseStructs.Commandparameters{
+			databaseParameter := databaseStructs.Commandparameters{
 				Name:                     newParameter.Name,
 				DisplayName:              newParameter.ModalDisplayName,
 				CliName:                  newParameter.CLIName,
@@ -1076,7 +1052,7 @@ func updatePayloadTypeCommandParameters(in PayloadTypeSyncMessage, payloadtype d
 }
 
 func updatePayloadTypeCommandBrowserScripts(in PayloadTypeSyncMessage, syncCommand Command, command databaseStructs.Command) error {
-	databaseBrowserScript := databaseStructs.Browserscript{}
+	databaseBrowserScriptRows := []databaseStructs.Browserscript{}
 	/*
 		if syncCommand.AssociatedBrowserScript != nil {
 			logging.LogDebug("syncing browser script", "raw script", syncCommand.AssociatedBrowserScript.Script, "encoded", base64.StdEncoding.EncodeToString([]byte(syncCommand.AssociatedBrowserScript.Script)))
@@ -1084,22 +1060,16 @@ func updatePayloadTypeCommandBrowserScripts(in PayloadTypeSyncMessage, syncComma
 		}
 
 	*/
-	rows, err := database.DB.NamedQuery(`SELECT
+	err := database.DB.Select(&databaseBrowserScriptRows, `SELECT
 	*
 	FROM browserscript
-	WHERE command_id = :id and for_new_ui = true and operator_id IS NULL`, command)
+	WHERE command_id = $1 and for_new_ui = true and operator_id IS NULL`, command.ID)
 	if err != nil {
 		logging.LogError(err, "Failed to get browserscript")
 		return err
 	}
 	found := false
-	defer rows.Close()
-	for rows.Next() {
-		err = rows.StructScan(&databaseBrowserScript)
-		if err != nil {
-			logging.LogError(err, "Failed to parse browserscript into structure when syncing command")
-			return err
-		}
+	for _, databaseBrowserScript := range databaseBrowserScriptRows {
 		found = true
 		//logging.LogDebug("Got row for browserscript", "row", databaseBrowserScript)
 		if syncCommand.AssociatedBrowserScript != nil {
@@ -1135,7 +1105,7 @@ func updatePayloadTypeCommandBrowserScripts(in PayloadTypeSyncMessage, syncComma
 	if syncCommand.AssociatedBrowserScript != nil && !found {
 		// we have one registered for syncing from the container, and we didn't find anything that exists
 		// create a new browserscript entry for Null operator, then for all operators
-		databaseBrowserScript = databaseStructs.Browserscript{
+		databaseBrowserScript := databaseStructs.Browserscript{
 			Author:                 syncCommand.AssociatedBrowserScript.Author,
 			Script:                 syncCommand.AssociatedBrowserScript.Script,
 			ContainerVersion:       syncCommand.AssociatedBrowserScript.Script,
@@ -1164,8 +1134,8 @@ func updatePayloadTypeCommandBrowserScripts(in PayloadTypeSyncMessage, syncComma
 }
 
 func addBrowserScriptToAllOperators(browserscript databaseStructs.Browserscript) error {
-	operator := databaseStructs.Operator{}
-	rows, err := database.DB.Queryx(`SELECT
+	operatorRows := []databaseStructs.Operator{}
+	err := database.DB.Select(&operatorRows, `SELECT
 		id
 		FROM operator
 	`)
@@ -1173,13 +1143,7 @@ func addBrowserScriptToAllOperators(browserscript databaseStructs.Browserscript)
 		logging.LogError(err, "Failed to get operators")
 		return err
 	}
-	defer rows.Close()
-	for rows.Next() {
-		err = rows.StructScan(&operator)
-		if err != nil {
-			logging.LogError(err, "Failed to parse operator into structure")
-			return err
-		}
+	for _, operator := range operatorRows {
 		browserscript.OperatorID = sql.NullInt64{Valid: true, Int64: int64(operator.ID)}
 		_, err = database.DB.NamedExec(`INSERT INTO
 					browserscript (author, script, container_version, container_version_author, command_id, payload_type_id, active, user_modified, for_new_ui, operator_id)
@@ -1194,23 +1158,17 @@ func addBrowserScriptToAllOperators(browserscript databaseStructs.Browserscript)
 }
 
 func updateBrowserScriptForAllOperators(browserscript databaseStructs.Browserscript) error {
-	operatorScript := databaseStructs.Browserscript{}
-	rows, err := database.DB.NamedQuery(`SELECT
+	operatorScriptRows := []databaseStructs.Browserscript{}
+	err := database.DB.Select(&operatorScriptRows, `SELECT
 	*
 	FROM browserscript
-	WHERE operator_id IS NOT NULL and command_id = :command_id
-	`, browserscript)
+	WHERE operator_id IS NOT NULL and command_id = $1
+	`, browserscript.CommandID)
 	if err != nil {
 		logging.LogError(err, "Failed to get operators")
 		return err
 	}
-	defer rows.Close()
-	for rows.Next() {
-		err = rows.StructScan(&operatorScript)
-		if err != nil {
-			logging.LogError(err, "Failed to parse browserscript into structure for updating scripts")
-			return err
-		}
+	for _, operatorScript := range operatorScriptRows {
 		if operatorScript.ContainerVersionAuthor == operatorScript.Author {
 			operatorScript.Author = browserscript.Author
 		}
@@ -1233,23 +1191,17 @@ func updateBrowserScriptForAllOperators(browserscript databaseStructs.Browserscr
 }
 
 func removeBrowserScriptFromAllOperators(browserscript databaseStructs.Browserscript) error {
-	operatorScript := databaseStructs.Browserscript{}
-	rows, err := database.DB.NamedQuery(`SELECT
+	operatorScriptRows := []databaseStructs.Browserscript{}
+	err := database.DB.Select(&operatorScriptRows, `SELECT
 	*
 	FROM browserscript
-	WHERE command_id = :command_id
-	`, browserscript)
+	WHERE command_id = $1
+	`, browserscript.CommandID)
 	if err != nil {
 		logging.LogError(err, "Failed to get browserscripts for command", "command", browserscript.CommandID)
 		return err
 	}
-	defer rows.Close()
-	for rows.Next() {
-		err = rows.StructScan(&operatorScript)
-		if err != nil {
-			logging.LogError(err, "Failed to parse operator into structure")
-			return err
-		}
+	for _, operatorScript := range operatorScriptRows {
 		_, err = database.DB.NamedExec("DELETE FROM browserscript WHERE id=:id", operatorScript)
 		if err != nil {
 			logging.LogError(err, "Failed to delete browserscript mapping")
@@ -1260,27 +1212,21 @@ func removeBrowserScriptFromAllOperators(browserscript databaseStructs.Browsersc
 }
 
 func updatePayloadTypeCommandMitreAttack(in PayloadTypeSyncMessage, syncCommand Command, command databaseStructs.Command) error {
-	databaseMitreAttack := databaseStructs.Attackcommand{}
+	databaseMitreAttackRows := []databaseStructs.Attackcommand{}
 	seenMitreAttack := []string{}
-	rows, err := database.DB.NamedQuery(`SELECT
+	err := database.DB.Select(&databaseMitreAttackRows, `SELECT
 		attackcommand.id,
 		attack.t_num "attack.t_num"
 		FROM attackcommand 
 		JOIN attack ON attackcommand.attack_id = attack.id 
 		WHERE
-		command_id = :id
-	`, command)
+		command_id = $1
+	`, command.ID)
 	if err != nil {
 		logging.LogError(err, "Failed to get attackcommand from database")
 		return err
 	}
-	defer rows.Close()
-	for rows.Next() {
-		err = rows.StructScan(&databaseMitreAttack)
-		if err != nil {
-			logging.LogError(err, "Failed to parse mitre att&ck into structure")
-			return err
-		}
+	for _, databaseMitreAttack := range databaseMitreAttackRows {
 		// check if databaseMitreAttack is in syncCommand.MitreAttackMappings
 		// if it is, mark it as seen and move on
 		// if it's not, it needs to be removed

@@ -223,25 +223,19 @@ func updateC2Parameters(in C2SyncMessage, c2Profile databaseStructs.C2profile) e
 	// if a parameter is in the sync message, but not in the database, add it
 	// if a parameter is in both, update it
 	syncingParameters := in.Parameters
-	databaseParameter := databaseStructs.C2profileparameters{}
+	databaseParameters := []databaseStructs.C2profileparameters{}
 	updatedAndDeletedParameters := []string{}
-	rows, err := database.DB.NamedQuery(`SELECT
+	err := database.DB.Select(&databaseParameters, `SELECT
 		*
 		FROM c2profileparameters
-		WHERE c2_profile_id = :id
-	`, c2Profile)
+		WHERE c2_profile_id = $1
+	`, c2Profile.ID)
 	if err != nil {
 		logging.LogError(err, "Failed to fetch c2 parameters for c2 profile when syncing")
 		return err
 	}
-	defer rows.Close()
-	for rows.Next() {
+	for _, databaseParameter := range databaseParameters {
 		found := false
-		err = rows.StructScan(&databaseParameter)
-		if err != nil {
-			logging.LogError(err, "Failed to parse c2profileparameters into structure when syncing command")
-			return err
-		}
 		logging.LogDebug("Got row from c2profileparameters while syncing c2 profile", "row", databaseParameter)
 		for _, newParameter := range syncingParameters {
 			if newParameter.Name == databaseParameter.Name {
@@ -308,7 +302,7 @@ func updateC2Parameters(in C2SyncMessage, c2Profile databaseStructs.C2profile) e
 			continue
 		}
 		// we have a new parameter group / command parameter to add in
-		databaseParameter = databaseStructs.C2profileparameters{
+		databaseParameter := databaseStructs.C2profileparameters{
 			Name:          newParameter.Name,
 			Description:   newParameter.Description,
 			Randomize:     newParameter.Randomize,
