@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import {validateAuthRedirect} from './validateAuthRedirect';
 import {Divider} from '@mui/material';
 import {MythicActionButton} from '../../MythicComponents/MythicActionButton';
 import MythicTextField from '../../MythicComponents/MythicTextField';
@@ -171,7 +172,7 @@ export function LoginForm(props){
             response.json().then(data => {
                 if(data["status"] === "success"){
                     if(data["redirect"]){
-                        window.location = data["redirect"];
+                        window.location.assign(validateAuthRedirect(data["redirect"]));
                     } else if(data["request_fields"]){
                         let values = data["request_fields"].map(r => {return {"name": r, "value": ""}})
                         setRequestFields(values);

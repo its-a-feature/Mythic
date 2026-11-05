@@ -5,12 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"strings"
+	"unicode"
+
 	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/rabbitmq"
 	"github.com/its-a-feature/Mythic/utils"
-	"io"
-	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/database"
@@ -72,6 +75,19 @@ type GetAuthContainerRedirectResponse struct {
 	RequestFields []string `json:"request_fields"`
 }
 
+// ValidAuthRedirectURL accepts only absolute web URLs. In particular, never
+// forward active schemes to window.location in the login origin.
+func ValidAuthRedirectURL(raw string) bool {
+	if strings.Contains(raw, "\\") || strings.ContainsFunc(raw, func(r rune) bool {
+		return unicode.IsSpace(r) || unicode.IsControl(r)
+	}) {
+		return false
+	}
+	u, err := url.Parse(raw)
+	return err == nil && (u.Scheme == "https" || u.Scheme == "http") &&
+		u.Hostname() != "" && u.User == nil && u.Opaque == ""
+}
+
 func GetAuthContainerRedirect(c *gin.Context) {
 	containerName := c.Param("containerName")
 	IDPName := c.Param("IDPName")
@@ -89,7 +105,8 @@ func GetAuthContainerRedirect(c *gin.Context) {
 	}
 	containerType, err := getContainerType(containerName, IDPName)
 	if err != nil {
-		c.JSON(http.StatusOK, GetAuthContainerRedirectResponse{Error: err.Error(), Redirect: "error"})
+		c.JSON(http.StatusOK, GetAuthContainerRedirectResponse{Error: err.Error(), Status: "error"})
+		return
 	}
 	if containerType == "idp" {
 		redirectResponse, err := rabbitmq.RabbitMQConnection.SendAuthGetIDPRedirect(
@@ -108,6 +125,10 @@ func GetAuthContainerRedirect(c *gin.Context) {
 		}
 		if !redirectResponse.Success {
 			c.JSON(http.StatusOK, GetAuthContainerRedirectResponse{Error: redirectResponse.Error, Status: "error"})
+			return
+		}
+		if !ValidAuthRedirectURL(redirectResponse.RedirectURL) {
+			c.JSON(http.StatusOK, GetAuthContainerRedirectResponse{Error: "Authentication provider returned an invalid HTTP(S) redirect URL", Status: "error"})
 			return
 		}
 		for key, value := range redirectResponse.RedirectHeaders {
@@ -216,7 +237,8 @@ func ProcessIDPResponse(c *gin.Context) {
 
 	containerType, err := getContainerType(containerName, IDPName)
 	if err != nil {
-		c.JSON(http.StatusOK, GetAuthContainerRedirectResponse{Error: err.Error(), Redirect: "error"})
+		c.JSON(http.StatusOK, GetAuthContainerRedirectResponse{Error: err.Error(), Status: "error"})
+		return
 	}
 	var SuccessfulAuthentication bool
 	var Email string

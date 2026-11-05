@@ -1,9 +1,6 @@
-const DEFAULT_TIMEOUT_MS = 10000;
+import {createSandboxedWorker} from "./BrowserScriptSandbox";
 
-const createWorker = () => {
-    const publicURL = (process.env.PUBLIC_URL || "").replace(/\/$/, "");
-    return new Worker(`${publicURL}/browser-script-worker.js`);
-};
+const DEFAULT_TIMEOUT_MS = 10000;
 
 const toError = (errorData, phase) => {
     const error = new Error(errorData?.message || "Browser script failed");
@@ -14,7 +11,7 @@ const toError = (errorData, phase) => {
 };
 
 export class BrowserScriptRunner {
-    constructor({workerFactory=createWorker, timeoutMS=DEFAULT_TIMEOUT_MS} = {}) {
+    constructor({workerFactory=createSandboxedWorker, timeoutMS=DEFAULT_TIMEOUT_MS} = {}) {
         this.workerFactory = workerFactory;
         this.timeoutMS = timeoutMS;
         this.nextRequestID = 1;

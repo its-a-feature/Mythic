@@ -265,7 +265,9 @@ func setRoutes(r *gin.Engine) {
 			// a refresh post will contain the access_token and refresh_token
 			protected.POST("/refresh",
 				webcontroller.RefreshJWT)
-			protected.Static("/static", "./static")
+			staticFiles := protected.Group("/static")
+			staticFiles.Use(webcontroller.UntrustedContentHeaders)
+			staticFiles.Static("", "./static")
 			// following require you to have an operation set
 			allOperationMembers := protected.Group("/")
 			allOperationMembers.Use(authentication.RBACMiddlewareAll())

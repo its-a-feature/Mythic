@@ -1,5 +1,6 @@
 import React from 'react';
 import {mythicFetch} from "./MythicConnection";
+import {sanitizeSVG} from "./sanitizeSVG";
 
 export const ImageWithAuth = ({ src, onError, alt = "", ...props }) => {
     const [imageSrc, setImageSrc] = React.useState('');
@@ -27,7 +28,7 @@ export const ImageWithAuth = ({ src, onError, alt = "", ...props }) => {
                 if(!response.ok){
                     throw new Error(`Failed to fetch image: ${response.status}`);
                 }
-                const blob = await response.blob();
+                const blob = await sanitizeSVG(await response.blob());
                 objectUrl = URL.createObjectURL(blob);
                 if(cancelled){
                     URL.revokeObjectURL(objectUrl);

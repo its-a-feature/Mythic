@@ -14,6 +14,7 @@ import (
 )
 
 func FileDirectViewWebhook(c *gin.Context) {
+	UntrustedContentHeaders(c)
 	agentFileID := c.Param("file_uuid")
 	if agentFileID == "" {
 		logging.LogError(nil, "Failed to get file_uuid parameter")

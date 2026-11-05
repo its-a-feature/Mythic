@@ -33,6 +33,7 @@
     "ace-builds": "^1.40.1",
     "anser": "^2.3.2",
     "dayjs": "^1.11.13",
+    "dompurify": "^3.4.17",
     "elkjs": "^0.10.0",
     "graphql": "^16.10.0",
     "graphql-ws": "^6.0.4",

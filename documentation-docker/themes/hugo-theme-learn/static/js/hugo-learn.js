@@ -24,7 +24,10 @@ images.wrap(function(){
   // IF featherlight is false, do not use feather light
   if (f != 'false') {
     if (!image.parent("a").length) {
-      return "<a href='" + image[0].src + "' data-featherlight='image'></a>";
+      var anchor = document.createElement('a');
+      anchor.href = image[0].src;
+      anchor.setAttribute('data-featherlight', 'image');
+      return anchor;
     }
   }
 });
@@ -73,10 +76,13 @@ jQuery(document).ready(function() {
     var element = $(this);
     var url = encodeURI(document.location.origin + document.location.pathname);
     var link = url + "#"+element[0].id;
-    return " <span class='anchor' data-clipboard-text='"+link+"'>" +
-      "<i class='fas fa-link fa-lg'></i>" +
-      "</span>"
-    ;
+    var anchor = document.createElement('span');
+    anchor.className = 'anchor';
+    anchor.setAttribute('data-clipboard-text', link);
+    var icon = document.createElement('i');
+    icon.className = 'fas fa-link fa-lg';
+    anchor.appendChild(icon);
+    return anchor;
   });
 
   $(".anchor").on('mouseleave', function(e) {
@@ -102,7 +108,10 @@ window.mythicDocsEnhanceHugoLearnContent = function() {
     var f = o['featherlight'];
     if (f != 'false') {
       if (!image.parent("a").length) {
-        return "<a href='" + image[0].src + "' data-featherlight='image'></a>";
+        var anchor = document.createElement('a');
+        anchor.href = image[0].src;
+        anchor.setAttribute('data-featherlight', 'image');
+        return anchor;
       }
     }
   });
@@ -142,10 +151,13 @@ window.mythicDocsEnhanceHugoLearnContent = function() {
     var element = $(this);
     var url = encodeURI(document.location.origin + document.location.pathname);
     var link = url + "#"+element[0].id;
-    return " <span class='anchor' data-clipboard-text='"+link+"'>" +
-      "<i class='fas fa-link fa-lg'></i>" +
-      "</span>"
-    ;
+    var anchor = document.createElement('span');
+    anchor.className = 'anchor';
+    anchor.setAttribute('data-clipboard-text', link);
+    var icon = document.createElement('i');
+    icon.className = 'fas fa-link fa-lg';
+    anchor.appendChild(icon);
+    return anchor;
   });
 
   $(".anchor").on('mouseleave', function(e) {
