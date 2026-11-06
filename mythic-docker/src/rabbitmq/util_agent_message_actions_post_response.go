@@ -1069,7 +1069,7 @@ func insertAgentMessagePostResponseUserOutput(task databaseStructs.Task, userOut
 
 	return responseOutput.ID
 }
-func handleAgentMessagePostResponseInteractiveOutput(agentResponses *[]agentMessagePostResponseInteractive, operationID int) {
+func handleAgentMessagePostResponseInteractiveOutput(agentResponses *[]agentMessagePostResponseInteractive, operationID int, callbackID int) {
 	//logging.LogInfo("Got interactive responses", "responses", agentResponses)
 	for _, agentResponse := range *agentResponses {
 		task := databaseStructs.Task{}
@@ -1079,7 +1079,7 @@ func handleAgentMessagePostResponseInteractiveOutput(agentResponses *[]agentMess
 		err := database.DB.Get(&task, `SELECT
 			id, operation_id, eventstepinstance_id, apitokens_id
 			FROM task
-			WHERE agent_task_id=$1 AND operation_id=$2`, agentResponse.TaskUUID, operationID)
+			WHERE agent_task_id=$1 AND operation_id=$2 AND callback_id=$3`, agentResponse.TaskUUID, operationID, callbackID)
 		if err != nil {
 			logging.LogError(err, "Failed to find task")
 			continue

@@ -304,11 +304,8 @@ select_permissions:
         - username
         - view_utc_time
       filter:
-        _and:
-          - id:
-              _lte: X-Hasura-Scope-operator-read-operator
-          - id:
-              _eq: x-hasura-user-id
+        id:
+          _lte: X-Hasura-Scope-operator-read-operator
   - role: spectator
     permission:
       columns:
@@ -325,11 +322,8 @@ select_permissions:
         - username
         - view_utc_time
       filter:
-        _and:
-          - id:
-              _lte: X-Hasura-Scope-operator-read-operator
-          - id:
-              _eq: x-hasura-user-id
+        id:
+          _lte: X-Hasura-Scope-operator-read-operator
 update_permissions:
   - role: mythic_admin
     permission:

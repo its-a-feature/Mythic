@@ -758,9 +758,9 @@ func (c *callbackPortsInUse) routeProxyFromAgentMessage(agentMessage ProxyFromAg
 			for j := 0; j < len(agentMessage.InteractiveMessages); j++ {
 				port.interactiveMessagesFromAgent <- agentMessage.InteractiveMessages[j]
 			}
-			handleAgentMessagePostResponseInteractiveOutput(&agentMessage.InteractiveMessages, agentMessage.OperationID)
+			handleAgentMessagePostResponseInteractiveOutput(&agentMessage.InteractiveMessages, agentMessage.OperationID, agentMessage.CallbackID)
 		} else {
-			go handleAgentMessagePostResponseInteractiveOutput(&agentMessage.InteractiveMessages, agentMessage.OperationID)
+			go handleAgentMessagePostResponseInteractiveOutput(&agentMessage.InteractiveMessages, agentMessage.OperationID, agentMessage.CallbackID)
 		}
 	}
 }
