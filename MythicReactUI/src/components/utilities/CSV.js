@@ -8,6 +8,9 @@ const escapeCSVCell = (value) => {
     return '"' + text.replace(/"/g, '""') + '"';
 };
 
+export const serializeCSV = (records) =>
+    records.map(record => record.map(escapeCSVCell).join(",")).join("\r\n");
+
 export const serializeTableToCSV = (rows) => {
     if (rows.length === 0) {
         return "";
@@ -16,5 +19,5 @@ export const serializeTableToCSV = (rows) => {
     const records = [headers, ...rows.map(row => headers.map(header =>
         Object.prototype.hasOwnProperty.call(row, header) ? row[header] : ""
     ))];
-    return records.map(record => record.map(escapeCSVCell).join(",")).join("\r\n");
+    return serializeCSV(records);
 };

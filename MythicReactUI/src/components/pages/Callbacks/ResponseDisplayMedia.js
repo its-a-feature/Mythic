@@ -59,6 +59,7 @@ import {Backdrop, CircularProgress} from '@mui/material';
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import sqlWasm from "!!file-loader?name=sql-wasm-[contenthash].wasm!sql.js/dist/sql-wasm.wasm";
 import {copyStringToClipboard} from "../../utilities/Clipboard";
+import {serializeCSV} from "../../utilities/CSV";
 import {FileDownloadButtonWithAuth, FileDownloadLinkWithAuth} from "../../utilities/FileDownloadWithAuth";
 import {ImageWithAuth} from "../../utilities/ImageWithAuth";
 import {ResponseDisplayPlaintext} from "./ResponseDisplayPlaintext";
@@ -789,14 +790,7 @@ const DisplayDatabase = ({agent_file_id, expand, fileMetaData}) => {
         }
     }
     const onSaveOutputCSV = (result) => {
-        const filteredData = result.results.values;
-        let outputHeaders = "";
-        let outputRow = "";
-        outputHeaders = result.results.columns.join(",");
-        for(let i = 0; i < filteredData.length; i++){
-            outputRow += filteredData[i].join(",") + "\n"
-        }
-        onCopyToClipboard(outputHeaders + "\n" + outputRow);
+        onCopyToClipboard(serializeCSV([result.results.columns, ...result.results.values]));
     }
     const onSaveOutputPrettyPrint = (result) => {
         let tableData = result.results.values;
