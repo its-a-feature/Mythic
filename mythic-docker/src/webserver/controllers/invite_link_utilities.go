@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -16,6 +15,7 @@ import (
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/rabbitmq"
 	"github.com/its-a-feature/Mythic/utils"
+	"github.com/jmoiron/sqlx"
 )
 
 type CreateInviteLinkMessage struct {
@@ -46,7 +46,7 @@ type inviteLinkData struct {
 	Name                       string    `json:"name"`
 }
 
-var inviteUseMutex sync.Mutex
+var errInviteUnavailable = errors.New("Invite code is unavailable")
 
 func CreateInviteLink(c *gin.Context) {
 	var input CreateInviteLinkMessage
@@ -159,8 +159,8 @@ func CreateInviteLink(c *gin.Context) {
 		})
 		return
 	}
-	rabbitmq.SendAllOperationsMessage(fmt.Sprintf("%s generated a new invite link to this server: %s\n%s",
-		operator.Username, inviteLinkCode, inviteLinkURI), 0, "", database.MESSAGE_LEVEL_AUTH, false)
+	rabbitmq.SendAllOperationsMessage(fmt.Sprintf("%s generated a new invite link to this server",
+		operator.Username), 0, "", database.MESSAGE_LEVEL_AUTH, false)
 	c.JSON(http.StatusOK, CreateInviteLinkResponse{
 		Status: "success",
 		Link:   inviteLinkURI,
@@ -194,110 +194,121 @@ func UseInviteLink(c *gin.Context) {
 		})
 		return
 	}
-	operationID := 0
-	operationRole := ""
-	inviteUseMutex.Lock()
-	defer inviteUseMutex.Unlock()
-	invite := databaseStructs.InviteLink{}
-	err = database.DB.Get(&invite, `SELECT 
-    	short_code, created_at, operator_id, operation_id, "name", total_uses, total_used, operation_role, invite_link.id,
-    	operator.username "operator.username"
-		FROM invite_link 
-		JOIN operator ON operator.id = invite_link.operator_id
-		WHERE short_code=$1`, input.InviteCode)
+	newOperator, invite, err := redeemInviteLink(database.DB, input)
 	if err != nil {
-		logging.LogError(err, "failed to find short code")
-		c.JSON(http.StatusOK, gin.H{"error": "Unknown invite code"})
+		logging.LogError(err, "failed to redeem invite link")
+		message := "Failed to redeem invite code"
+		if errors.Is(err, errInviteUnavailable) {
+			message = errInviteUnavailable.Error()
+		} else {
+			logging.LogError(err, "Failed to redeem invite")
+		}
+		c.JSON(http.StatusOK, UseInviteLinkResponse{Status: "error", Error: message})
 		return
+	}
+	// Publish side effects only after all account and membership writes commit.
+	go database.AssignNewOperatorAllBrowserScripts(newOperator.ID)
+	rabbitmq.SendAllOperationsMessage(fmt.Sprintf("%s's invite link was used for user: %s",
+		invite.Operator.Username, newOperator.Username), 0, "", database.MESSAGE_LEVEL_AUTH, false)
+	c.JSON(http.StatusOK, UseInviteLinkResponse{Status: "success"})
+}
+
+func redeemInviteLink(db *sqlx.DB, input UseInviteLinkInput) (databaseStructs.Operator, databaseStructs.InviteLink, error) {
+	newOperator := databaseStructs.Operator{}
+	invite := databaseStructs.InviteLink{}
+	tx, err := db.Beginx()
+	if err != nil {
+		logging.LogError(err, "failed to begin transaction")
+		return newOperator, invite, err
+	}
+	defer tx.Rollback()
+
+	globalSetting := databaseStructs.GlobalSetting{}
+	err = database.DB.Get(&globalSetting, `SELECT setting FROM global_setting WHERE "name"=$1`, "server_config")
+	if err != nil {
+		return newOperator, invite, err
+	}
+	MythicServerConfig := databaseStructs.GlobalSettingServerConfig{}
+	err = mapstructure.Decode(globalSetting.Setting.StructValue(), &MythicServerConfig)
+	if err != nil {
+		return newOperator, invite, err
+	}
+	if !MythicServerConfig.AllowInviteLinks {
+		return newOperator, invite, err
+	}
+	err = tx.Get(&invite, `SELECT 
+    	invite_link.id, 
+    	invite_link.operator_id, 
+    	operation_id,
+		operation_role, 
+		total_uses, 
+		total_used, 
+		operator.username "operator.username"
+		FROM invite_link 
+		    JOIN operator ON operator.id = invite_link.operator_id
+		WHERE short_code=$1 AND 
+		      operator.active AND 
+		      NOT operator.deleted AND 
+		      operator.admin
+		FOR UPDATE OF invite_link FOR SHARE OF operator`, input.InviteCode)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return newOperator, invite, errInviteUnavailable
+		}
+		return newOperator, invite, err
 	}
 	if invite.TotalUsed >= invite.TotalUses {
-		c.JSON(http.StatusOK, gin.H{"error": "code already used max number of times"})
-		return
+		logging.LogError(err, "invite link already used too many times")
+		return newOperator, invite, errInviteUnavailable
 	}
-	invite.TotalUsed += 1
-	// get the associated database information
-	salt := uuid.New().String()
-	newOperator := databaseStructs.Operator{
-		Admin:            false,
-		Username:         input.Username,
-		Salt:             salt,
-		FailedLoginCount: 0,
-		Active:           true,
+	newOperator = databaseStructs.Operator{
+		Admin: false, Username: input.Username, Salt: uuid.NewString(), Active: true,
+		AccountType: databaseStructs.AccountTypeUser,
 	}
 	if input.Email != "" {
-		newOperator.Email.Valid = true
-		newOperator.Email.String = input.Email
+		newOperator.Email = sql.NullString{String: input.Email, Valid: true}
 	}
-	newOperator.AccountType = databaseStructs.AccountTypeUser
 	newOperator.Password = database.HashUserPassword(newOperator, input.Password)
-	statement, err := database.DB.PrepareNamed(`INSERT INTO operator 
-	(admin, username, salt, password, failed_login_count, active, account_type, email) 
-	VALUES (:admin, :username, :salt, :password, :failed_login_count, :active, :account_type, :email)
-	RETURNING id`)
+	err = tx.Get(&newOperator.ID, `INSERT INTO operator
+		(admin, username, salt, password, failed_login_count, active, account_type, email)
+		VALUES ($1,$2,$3,$4,0,$5,$6,$7) RETURNING id`,
+		newOperator.Admin, newOperator.Username, newOperator.Salt, newOperator.Password,
+		newOperator.Active, newOperator.AccountType, newOperator.Email)
 	if err != nil {
-		logging.LogError(err, "Failed to create named statement for new operator")
-		c.JSON(http.StatusOK, UseInviteLinkResponse{
-			Status: "error",
-			Error:  err.Error(),
-		})
-		return
+		logging.LogError(err, "failed to redeem invite link and create new operator")
+		return newOperator, invite, err
 	}
-	err = statement.Get(&newOperator.ID, newOperator)
-	if err != nil {
-		logging.LogError(err, "Failed to create new operator")
-		c.JSON(http.StatusOK, UseInviteLinkResponse{
-			Status: "error",
-			Error:  err.Error(),
-		})
-		return
-	}
-	_, err = database.DB.NamedExec(`UPDATE invite_link SET total_used=:total_used WHERE id=:id`, invite)
-	if err != nil {
-		logging.LogError(err, "Failed to update invite link counts")
-	}
-	go database.AssignNewOperatorAllBrowserScripts(newOperator.ID)
-	rabbitmq.SendAllOperationsMessage(fmt.Sprintf("%s's invite link, %s, was used for user: %s",
-		invite.Operator.Username, input.InviteCode, newOperator.Username), 0, "", database.MESSAGE_LEVEL_AUTH, false)
-	if invite.OperationID.Int64 > 0 {
-		if invite.OperationRole.String == "" || invite.OperationRole.String == database.OPERATOR_OPERATION_VIEW_MODE_LEAD {
+	if invite.OperationID.Valid && invite.OperationID.Int64 > 0 {
+		operationRole := database.OPERATOR_OPERATION_VIEW_MODE_SPECTATOR
+		switch invite.OperationRole.String {
+		case "", database.OPERATOR_OPERATION_VIEW_MODE_LEAD, database.OPERATOR_OPERATION_VIEW_MODE_OPERATOR:
 			operationRole = database.OPERATOR_OPERATION_VIEW_MODE_OPERATOR
-		} else if invite.OperationRole.String == database.OPERATOR_OPERATION_VIEW_MODE_SPECTATOR {
-			operationRole = database.OPERATOR_OPERATION_VIEW_MODE_SPECTATOR
-		} else if invite.OperationRole.String == database.OPERATOR_OPERATION_VIEW_MODE_OPERATOR {
-			operationRole = database.OPERATOR_OPERATION_VIEW_MODE_OPERATOR
-		} else {
-			operationRole = database.OPERATOR_OPERATION_VIEW_MODE_SPECTATOR
 		}
-		_, err = database.DB.NamedExec(`INSERT INTO operatoroperation 
-			(operator_id, operation_id, view_mode)
-			VALUES (:operator_id, :operation_id, :view_mode)`,
-			databaseStructs.Operatoroperation{
-				OperationID: int(invite.OperationID.Int64), OperatorID: newOperator.ID, ViewMode: operationRole,
-			})
+		_, err = tx.Exec(`INSERT INTO operatoroperation (operator_id, operation_id, view_mode)
+			VALUES ($1,$2,$3)`, newOperator.ID, invite.OperationID.Int64, operationRole)
 		if err != nil {
-			logging.LogError(err, "Failed to insert operator operation", "operation", invite.OperationID.Int64)
-			c.JSON(http.StatusOK, UseInviteLinkResponse{
-				Status: "error",
-				Error:  err.Error(),
-			})
-			return
+			logging.LogError(err, "failed to redeem invite link")
+			return newOperator, invite, err
 		}
-		newOperator.CurrentOperationID.Valid = true
-		newOperator.CurrentOperationID.Int64 = invite.OperationID.Int64
-		_, err = database.DB.NamedExec(`UPDATE operator SET current_operation_id=:current_operation_id WHERE id=:id`,
-			newOperator)
+		newOperator.CurrentOperationID = invite.OperationID
+		_, err = tx.Exec(`UPDATE operator SET current_operation_id=$1 WHERE id=$2`,
+			invite.OperationID, newOperator.ID)
 		if err != nil {
-			logging.LogError(err, "Failed to update operator operation", "operation", operationID)
-			c.JSON(http.StatusOK, UseInviteLinkResponse{
-				Status: "error",
-				Error:  err.Error(),
-			})
-			return
+			logging.LogError(err, "failed to redeem invite link")
+			return newOperator, invite, err
 		}
 	}
-	c.JSON(http.StatusOK, UseInviteLinkResponse{
-		Status: "success",
-	})
+	_, err = tx.Exec(`UPDATE invite_link SET total_used=total_used+1 WHERE id=$1`, invite.ID)
+	if err != nil {
+		logging.LogError(err, "failed to redeem invite link")
+		return newOperator, invite, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		logging.LogError(err, "failed to redeem invite link")
+		return newOperator, invite, err
+	}
+	return newOperator, invite, nil
 }
 
 type GetOutstandingInviteLinkResponse struct {
