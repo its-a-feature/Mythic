@@ -9,6 +9,7 @@ import 'react-virtualized/styles.css';
 import {TaskFromUIButton} from './TaskFromUIButton';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import { copyStringToClipboard } from '../../utilities/Clipboard';
+import {serializeTableToCSV} from '../../utilities/CSV';
 import {snackActions} from '../../utilities/Snackbar';
 import {MythicStyledTooltip} from '../../MythicComponents/MythicStyledTooltip';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
@@ -694,21 +695,7 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
       name: 'Copy Row as CSV', icon: null,
       click: ({event, columnIndex, rowIndex, data}) => {
           const filteredData = filterOutButtonsFromRowData(data);
-          let outputHeaders = "";
-          let outputRow = "";
-          for(const key of Object.keys(filteredData)){
-            if(outputHeaders === ""){
-              outputHeaders += key;
-            } else {
-              outputHeaders += "," + key;
-            }
-            if(outputRow === ""){
-              outputRow += filteredData[key];
-            }else{
-              outputRow += "," + filteredData[key];
-            }
-          }
-          onCopyToClipboard(outputHeaders + "\n" + outputRow);
+          onCopyToClipboard(serializeTableToCSV([filteredData]));
       },
       type: "item",
   },
@@ -781,28 +768,7 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
         event.stopPropagation();
         let tableData = sortedData.map(d => filterOutButtonsFromRowData(d));
         if(tableData.length === 0){return}
-        let outputHeaders = "";
-        let allOutput = "";
-
-        for(let i = 0; i < tableData.length; i++){
-          let outputRow = "";
-          for(const key of Object.keys(tableData[i])){
-            if(i === 0){
-              if(outputHeaders === ""){
-                outputHeaders += key;
-              } else {
-                outputHeaders += "," + key;
-              }
-            }
-            if(outputRow === ""){
-              outputRow += tableData[i][key];
-            }else{
-              outputRow += "," + tableData[i][key];
-            }
-          }
-          allOutput += outputRow + "\n";
-        }
-        onCopyToClipboard(outputHeaders + "\n" + allOutput);
+        onCopyToClipboard(serializeTableToCSV(tableData));
       }
     },
     {
