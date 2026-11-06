@@ -24,7 +24,7 @@ import (
 
 // A browser tab opens one websocket and runs a stream over it for each interactive task it shows.
 // Control messages are JSON text; output is binary: a 4 byte big-endian stream id, a 1 byte interactive
-// message type, then the data. Only "pty" streams exist so far.
+// message type, then the data. Guacd streams use the channel followed directly by Guacamole instructions.
 const (
 	interactiveLiveProtocol = "mythic.live.v1"
 	// browsers can't set headers on a websocket, so the token comes as a second subprotocol
@@ -49,7 +49,6 @@ var interactiveLiveUpgrader = websocket.Upgrader{
 type interactiveLiveClientMessage struct {
 	Type                string `json:"type"`
 	Channel             uint32 `json:"channel"`
-	Kind                string `json:"kind"`
 	TaskID              int    `json:"task_id"`
 	Bytes               int    `json:"bytes"`
 	InteractiveTaskType int    `json:"interactive_task_type"`
@@ -91,7 +90,10 @@ type interactiveLiveConnection struct {
 type interactiveLiveStream struct {
 	connection *interactiveLiveConnection
 	channel    uint32
+	protocol   rabbitmq.InteractiveTaskProtocol
 	task       interactiveLiveTask
+	guacd      *rabbitmq.GuacdViewerConnection
+	done       chan struct{}
 	// guarded by the connection
 	queue       []interactiveLiveFrame
 	queuedBytes int
@@ -102,10 +104,12 @@ type interactiveLiveStream struct {
 }
 
 type interactiveLiveTask struct {
-	ID                int    `db:"id"`
-	OperationID       int    `db:"operation_id"`
-	CallbackDisplayID int    `db:"callback_display_id"`
-	Command           string `db:"command"`
+	ID                  int                             `db:"id"`
+	AgentTaskID         string                          `db:"agent_task_id"`
+	OperationID         int                             `db:"operation_id"`
+	CallbackDisplayID   int                             `db:"callback_display_id"`
+	Command             string                          `db:"command"`
+	SupportedUIFeatures databaseStructs.MythicJSONArray `db:"supported_ui_features"`
 }
 
 // InteractiveLiveWebsocketTokenMiddleware moves the token from the websocket subprotocols into the Authorization
@@ -180,6 +184,10 @@ func (connection *interactiveLiveConnection) read() {
 			return
 		}
 		_ = connection.conn.SetReadDeadline(time.Now().Add(interactiveLiveReadTimeout))
+		if messageType == websocket.BinaryMessage {
+			connection.guacdInput(data)
+			continue
+		}
 		message := interactiveLiveClientMessage{}
 		if messageType != websocket.TextMessage || json.Unmarshal(data, &message) != nil {
 			continue
@@ -198,10 +206,6 @@ func (connection *interactiveLiveConnection) read() {
 }
 
 func (connection *interactiveLiveConnection) open(message interactiveLiveClientMessage) {
-	if message.Kind != "pty" {
-		connection.send(message.Channel, interactiveLiveServerMessage{Type: "closed", Reason: "unsupported kind"})
-		return
-	}
 	stream := &interactiveLiveStream{connection: connection, channel: message.Channel, opening: true}
 	connection.Lock()
 	_, exists := connection.streams[message.Channel]
@@ -214,7 +218,14 @@ func (connection *interactiveLiveConnection) open(message interactiveLiveClientM
 		connection.send(message.Channel, interactiveLiveServerMessage{Type: "closed", Reason: "stream unavailable"})
 		return
 	}
-	responseID, size, err := stream.watch(message.TaskID)
+	responseID := 0
+	size := rabbitmq.InteractiveLiveSize{}
+	err := stream.loadTask(message.TaskID)
+	if err == nil && stream.protocol == rabbitmq.InteractiveTaskProtocolTerminal {
+		responseID, size, err = stream.watch()
+	} else if err == nil {
+		err = stream.watchGuacd()
+	}
 	if err != nil {
 		connection.Lock()
 		delete(connection.streams, message.Channel)
@@ -232,21 +243,31 @@ func (connection *interactiveLiveConnection) open(message interactiveLiveClientM
 	connection.signal()
 }
 
-func (stream *interactiveLiveStream) watch(taskID int) (int, rabbitmq.InteractiveLiveSize, error) {
+func (stream *interactiveLiveStream) watch() (int, rabbitmq.InteractiveLiveSize, error) {
+	return rabbitmq.WatchInteractiveTask(stream.task.ID, stream.task.OperationID, stream)
+}
+
+func (stream *interactiveLiveStream) loadTask(taskID int) error {
 	operatorOperation, err := database.GetUserCurrentOperation(stream.connection.claims.UserID)
 	if err != nil {
-		return 0, rabbitmq.InteractiveLiveSize{}, errors.New("failed to get current operation")
+		return errors.New("failed to get current operation")
 	}
 	if err = database.DB.Get(&stream.task, `SELECT
-		task.id, task.operation_id, callback.display_id "callback_display_id",
-		COALESCE(command.cmd, task.command_name) "command"
+		task.id, task.agent_task_id, task.operation_id, callback.display_id "callback_display_id",
+		COALESCE(command.cmd, task.command_name) "command",
+		COALESCE(command.supported_ui_features, '[]'::jsonb) "supported_ui_features"
 		FROM task
 		JOIN callback ON task.callback_id = callback.id
 		LEFT JOIN command ON task.command_id = command.id
 		WHERE task.id=$1 AND task.operation_id=$2`, taskID, operatorOperation.CurrentOperation.ID); err != nil {
-		return 0, rabbitmq.InteractiveLiveSize{}, errors.New("task not found in current operation")
+		return errors.New("task not found in current operation")
 	}
-	return rabbitmq.WatchInteractiveTask(stream.task.ID, stream.task.OperationID, stream)
+	features := []string{}
+	if err = stream.task.SupportedUIFeatures.Unmarshal(&features); err != nil {
+		return errors.New("task has invalid interactive protocol metadata")
+	}
+	stream.protocol, err = rabbitmq.InteractiveTaskProtocolFromFeatures(features)
+	return err
 }
 
 func (connection *interactiveLiveConnection) closeStream(channel uint32) {
@@ -276,6 +297,10 @@ func (connection *interactiveLiveConnection) input(message interactiveLiveClient
 	stream, ok := connection.streams[message.Channel]
 	connection.Unlock()
 	if !ok {
+		return
+	}
+	if stream.protocol != rabbitmq.InteractiveTaskProtocolTerminal {
+		connection.send(message.Channel, interactiveLiveServerMessage{Type: "input_error", Error: "task is not a terminal"})
 		return
 	}
 	if InteractiveTask.MessageType(message.InteractiveTaskType) == InteractiveTask.WindowChange {
@@ -415,6 +440,9 @@ func (stream *interactiveLiveStream) InteractiveSize(size rabbitmq.InteractiveLi
 
 // leave stops watching the task, and stops this viewer's size counting towards it
 func (stream *interactiveLiveStream) leave() {
+	if stream.leaveGuacd() {
+		return
+	}
 	rabbitmq.UnwatchInteractiveTask(stream.task.ID, stream)
 	rabbitmq.ResizeInteractiveTask(stream.task.ID, stream, nil, applyInteractiveLiveResize)
 }

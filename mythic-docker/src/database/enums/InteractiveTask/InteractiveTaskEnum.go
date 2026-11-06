@@ -38,12 +38,31 @@ const (
 	FileEditorError    MessageType = 102
 )
 
+const (
+	// Reserve 200-299 for task-owned opaque byte-stream records. The task's
+	// command metadata fixes the stream protocol; these values describe only
+	// the record carried by this particular message.
+	StreamData   MessageType = 200
+	StreamWindow MessageType = 201
+	StreamClose  MessageType = 202
+	StreamReset  MessageType = 203
+)
+
 func IsValid(value int) bool {
 	switch MessageType(value) {
 	case FileEditorRequest, FileEditorResponse, FileEditorError:
 		return true
 	default:
 		return value >= 0 && value < int(interactiveEnd)
+	}
+}
+
+func IsByteStream(value MessageType) bool {
+	switch value {
+	case StreamData, StreamWindow, StreamClose, StreamReset:
+		return true
+	default:
+		return false
 	}
 }
 

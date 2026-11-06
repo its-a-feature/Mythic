@@ -105,6 +105,7 @@ func Initialize() {
 	invalidateAllNonUserAPITokens()
 	go startShortLivedAPITokenCleanup()
 	go startInteractiveScreenRecordingCleanup()
+	go startGuacdSessionCleanup()
 	InvalidateOperationEventLogCacheMap()
 	go listenForOperationsEventLogMessages()
 	go listenForWriteDownloadChunkToLocalDisk()

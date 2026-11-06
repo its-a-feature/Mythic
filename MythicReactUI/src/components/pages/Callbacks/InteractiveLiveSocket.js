@@ -1,6 +1,6 @@
 // One websocket per tab carries a stream for each interactive task on screen, so output shows up as soon as
 // mythic_server has it instead of when GraphQL next polls for it. Control messages are JSON; output is binary:
-// a 4 byte big-endian stream id, a 1 byte interactive message type, then the data.
+// a 4 byte big-endian channel followed by either PTY type+data or raw Guacamole instructions.
 const LIVE_PROTOCOL = "mythic.live.v1";
 // browsers can't set headers on a websocket, so the token goes as a second subprotocol
 const LIVE_TOKEN_PROTOCOL_PREFIX = "bearer.";
@@ -23,7 +23,7 @@ const sendLiveMessage = (message) => {
     return true;
 }
 const sendOpen = (channel, stream) => {
-    sendLiveMessage({type: "open", channel, kind: "pty", task_id: stream.taskID});
+    sendLiveMessage({type: "open", channel, task_id: stream.taskID});
 }
 const closeStream = (channel, reason) => {
     const stream = streams.get(channel);
@@ -35,12 +35,18 @@ const closeStream = (channel, reason) => {
 }
 const handleLiveMessage = (event) => {
     if(event.data instanceof ArrayBuffer){
-        if(event.data.byteLength < 5){
+        if(event.data.byteLength < 4){
             return;
         }
         const view = new DataView(event.data);
         const stream = streams.get(view.getUint32(0));
-        stream?.onOutput?.(view.getUint8(4), new Uint8Array(event.data, 5));
+        if(stream?.kind === "pty" && event.data.byteLength >= 5){
+            stream.onOutput?.(view.getUint8(4), new Uint8Array(event.data, 5));
+        } else if(stream?.kind === "guacd"){
+            const instruction = new Uint8Array(event.data, 4);
+            stream.onOutput?.(instruction);
+            stream.credit(instruction.length);
+        }
         return;
     }
     let message;
@@ -115,9 +121,9 @@ const closeWhenIdle = () => {
 // far is saved as that response (0 if it couldn't be saved), onSize({cols, rows}) when the terminal's size changes
 // because of what everyone watching can show, onInputError(error), and onClosed(reason) when the stream ends for
 // any reason other than calling close().
-export const openInteractiveLiveStream = (taskID, handlers) => {
+const openLiveStream = (taskID, kind, handlers) => {
     const channel = nextChannel++;
-    const stream = {taskID, canWrite: false, ...handlers};
+    const stream = {taskID, kind, canWrite: false, ...handlers};
     streams.set(channel, stream);
     clearTimeout(idleTimer);
     if(socket === null){
@@ -128,7 +134,7 @@ export const openInteractiveLiveStream = (taskID, handlers) => {
     } else if(socket.readyState === WebSocket.OPEN){
         sendOpen(channel, stream);
     }
-    return {
+    const handle = {
         // false if the input couldn't be sent this way
         sendInput: ({params, originalParams, interactiveTaskType}) => {
             if(!streams.has(channel) || !stream.canWrite){
@@ -148,6 +154,16 @@ export const openInteractiveLiveStream = (taskID, handlers) => {
                 sendLiveMessage({type: "credit", channel, bytes});
             }
         },
+        sendBinary: (bytes) => {
+            if(!streams.has(channel) || socket === null || socket.readyState !== WebSocket.OPEN){
+                return false;
+            }
+            const frame = new Uint8Array(4 + bytes.length);
+            new DataView(frame.buffer).setUint32(0, channel);
+            frame.set(bytes, 4);
+            socket.send(frame);
+            return true;
+        },
         close: () => {
             if(streams.delete(channel)){
                 sendLiveMessage({type: "close", channel});
@@ -155,4 +171,23 @@ export const openInteractiveLiveStream = (taskID, handlers) => {
             }
         },
     };
+    stream.credit = handle.credit;
+    return handle;
 }
+
+export const openInteractiveLiveStream = (taskID, handlers) => openLiveStream(taskID, "pty", handlers);
+
+// Opens a joined guacd user. Closing this handle detaches only this browser;
+// the task-owned guacd connection and recording continue on the server.
+export const openGuacdLiveStream = (taskID, handlers = {}) => {
+    const handle = openLiveStream(taskID, "guacd", handlers);
+    return {
+        ...handle,
+        sendInstruction: (instruction) => {
+            if(typeof instruction !== "string"){
+                return false;
+            }
+            return handle.sendBinary(new TextEncoder().encode(instruction));
+        },
+    };
+};

@@ -37,7 +37,7 @@ export function MythicDialog(props) {
   }
   const [draggedState, setDraggedState] = React.useState({
     style: {},
-    paperStyle: {margin: "0", height: "fit-content", width: "stretch"},
+    paperStyle: props.resizable ? {margin: "0"} : {margin: "0", height: "fit-content", width: "stretch"},
     containerStyle: {},
     hideBackdrop: false,
     modified: false,
@@ -96,12 +96,24 @@ export function MythicDialog(props) {
   return (
     <Dialog open={props.open} onClose={handleOnClose} scroll="paper" maxWidth={props.maxWidth} fullWidth={true}
             PaperComponent={MythicDraggableDialogPaper}
-            PaperProps={{draggableHandle: "#mythic-draggable-title", draggableCancel: '[class*="MuiDialogContent-root"]', draggableOnStart: onStart, draggableOnStop: onStop}}
+            PaperProps={{draggableHandle: "#mythic-draggable-title", draggableCancel: '[class*="MuiDialogContent-root"]', draggableOnStart: onStart, draggableOnStop: onStop,
+              "data-resizable": props.resizable ? "true" : undefined}}
             style={{...props.style, ...draggedState.style}} disableEnforceFocus={true} disablePortal={false}
             hideBackdrop={draggedState.hideBackdrop} aria-labelledby="scroll-dialog-title"
             aria-describedby="scroll-dialog-description"
             sx={{
-              ".MuiPaper-root": {borderRadius: "8px", backgroundColor: theme.palette.background.paper, border: `1px solid ${theme.borderColor}`, ...draggedState.paperStyle},
+              ".MuiPaper-root": {borderRadius: "8px", backgroundColor: theme.palette.background.paper, border: `1px solid ${theme.borderColor}`,
+                ...(props.resizable ? {
+                  resize: "both",
+                  overflow: "hidden",
+                  width: props.resizeInitialWidth || "min(80vw, 1200px)",
+                  height: props.resizeInitialHeight || "min(80vh, 900px)",
+                  minWidth: props.resizeMinWidth || "min(480px, calc(100vw - 32px))",
+                  minHeight: props.resizeMinHeight || "min(360px, calc(100vh - 32px))",
+                  maxWidth: "calc(100vw - 32px)",
+                  maxHeight: "calc(100vh - 32px)",
+                } : {}),
+                ...draggedState.paperStyle},
               ".MuiDialog-container": {...draggedState.containerStyle},
             }}
             onMouseDown={dialogOnClick} onContextMenu={(event) => event.stopPropagation()}>

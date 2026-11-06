@@ -66,6 +66,10 @@ jest.mock('./InteractiveLiveSocket', () => {
         },
     };
 });
+jest.mock('./GuacdTaskDisplay', () => ({
+    GuacdTaskDisplay: ({task, children}) =>
+        <div data-testid="guacd-task-display" data-task-id={task.id}>{children}</div>,
+}));
 jest.mock('../../utilities/Time', () => ({
     toLocalTime: (value) => `local:${value}`,
 }));
@@ -337,6 +341,30 @@ describe("ResponseDisplayInteractive", () => {
         act(() => root.unmount());
         container.remove();
         jest.useRealTimers();
+    });
+
+    test("selects guacd from the immutable task feature and keeps task output visible", async () => {
+        const task = {
+            id: 17,
+            response_count: 0,
+            display_id: 17,
+            completed: false,
+            is_interactive_task: false,
+            callback: {display_id: 3},
+            command: {
+                cmd: "not-an-rdp-command-name",
+                supported_ui_features: ["task_response:interactive:rdp"],
+            },
+        };
+        // createRoot is not a Testing Library render helper and needs act to flush effects.
+        // eslint-disable-next-line testing-library/no-unnecessary-act
+        await act(async () => {
+            root.render(<ResponseDisplayInteractive task={task} selectAllOutput={false} />);
+        });
+        const display = container.querySelector('[data-testid="guacd-task-display"]');
+        expect(display?.getAttribute("data-task-id")).toBe("17");
+        expect(container.querySelector('#taskoutput17')).not.toBeNull();
+        expect(global.mockLiveStreams).toHaveLength(0);
     });
 
     // the tasking console always renders with selectAllOutput

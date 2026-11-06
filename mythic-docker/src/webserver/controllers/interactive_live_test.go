@@ -28,6 +28,30 @@ func TestInteractiveLiveOutputFrame(t *testing.T) {
 	}
 }
 
+func TestInteractiveLiveGuacdFrameUsesTaskChannelWithoutTerminalType(t *testing.T) {
+	connection, stream := newTestInteractiveLiveStream()
+	stream.protocol = rabbitmq.InteractiveTaskProtocolRDP
+	instruction := []byte("4.sync,3.123;")
+	stream.GuacdOutput(instruction)
+	frames := connection.takeFrames()
+	want := append([]byte{0, 0, 0, 7}, instruction...)
+	if len(frames) != 1 || !bytes.Equal(frames[0].data, want) {
+		t.Fatalf("frames = %v", frames)
+	}
+}
+
+func TestInteractiveLiveRejectsTerminalInputForByteStreamTask(t *testing.T) {
+	connection, stream := newTestInteractiveLiveStream()
+	stream.protocol = rabbitmq.InteractiveTaskProtocolVNC
+	connection.input(interactiveLiveClientMessage{Channel: 7, InteractiveTaskType: int(InteractiveTask.Input), Params: "x"})
+	frames := connection.takeFrames()
+	message := interactiveLiveServerMessage{}
+	if len(frames) != 1 || json.Unmarshal(frames[0].data, &message) != nil ||
+		message.Type != "input_error" || message.Error != "task is not a terminal" {
+		t.Fatalf("frames = %v", frames)
+	}
+}
+
 func TestInteractiveLiveHoldsOutputUntilCredit(t *testing.T) {
 	connection, stream := newTestInteractiveLiveStream()
 	chunk := make([]byte, interactiveLiveWindow/2)

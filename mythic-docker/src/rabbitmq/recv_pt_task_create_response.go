@@ -25,6 +25,10 @@ func init() {
 	})
 }
 
+func ptTaskCreateErrorStatus(errorMessage string) string {
+	return PT_TASK_FUNCTION_STATUS_PREPROCESSING_ERROR + errorMessage
+}
+
 func processPtTaskCreateMessages(msg amqp.Delivery) {
 	payloadMsg := PTTaskCreateTaskingMessageResponse{}
 	authContext, err := GetRabbitMQAuthContextFromHeaders(msg.Headers)
@@ -133,7 +137,10 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 			if payloadMsg.TaskStatus != nil {
 				task.Status = *payloadMsg.TaskStatus
 			} else {
-				task.Status = PT_TASK_FUNCTION_STATUS_PREPROCESSING_ERROR
+				// Keep the payload handler's original error visible in the task
+				// status. It is also persisted below as stderr/response, but the
+				// generic status alone hides the actionable failure in the UI.
+				task.Status = ptTaskCreateErrorStatus(payloadMsg.Error)
 			}
 		}
 		if payloadMsg.ReprocessAtNewCommandPayloadType != nil && *payloadMsg.ReprocessAtNewCommandPayloadType != "" {

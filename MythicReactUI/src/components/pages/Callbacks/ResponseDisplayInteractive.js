@@ -27,6 +27,8 @@ import {mythicFetch} from "../../utilities/MythicConnection";
 import {toLocalTime} from "../../utilities/Time";
 import {meState} from "../../../cache";
 import {openInteractiveLiveStream} from "./InteractiveLiveSocket";
+import {GuacdTaskDisplay} from "./GuacdTaskDisplay";
+import {getInteractiveTaskProtocol} from "./InteractiveTaskProtocol";
 
 const subResponsesQuery = gql`
 subscription subResponsesQuery($task_id: Int!, $cursor_id: Int!) {
@@ -830,6 +832,8 @@ const normalizeLineBufferInput = (value) => {
 };
 export const ResponseDisplayInteractive = (props) =>{
     const theme = useTheme();
+    const interactiveProtocol = getInteractiveTaskProtocol(props.task) ?? "terminal";
+    const usesGuacd = ["rdp", "vnc"].includes(interactiveProtocol);
     const [backdropOpen, setBackdropOpen] = React.useState(false);
     const pageSize = React.useRef(100);
     const highestFetched = React.useRef(0);
@@ -1208,7 +1212,7 @@ export const ResponseDisplayInteractive = (props) =>{
         setAutoScroll(current => !current);
     }
     const canSendTerminalInput = !props.task?.is_interactive_task;
-    const watchLiveOutput = isLive && canSendTerminalInput && !props.task.completed;
+    const watchLiveOutput = !usesGuacd && isLive && canSendTerminalInput && !props.task.completed;
     React.useEffect( () => {
         if(!watchLiveOutput){
             return;
@@ -1602,6 +1606,30 @@ export const ResponseDisplayInteractive = (props) =>{
     }, [backdropOpen]);
     const panelHeight = props.expand ? "100%" : "clamp(260px, 36vh, 500px)";
     const outputMinHeight = props.expand ? 0 : "160px";
+  if(usesGuacd){
+      return (
+          <GuacdTaskDisplay task={props.task} expand={props.expand} responseCount={totalCount}>
+                  {props.searchOutput && <SearchBar onSubmitSearch={onSubmitSearch}/>}
+                  <div className="mythic-interactive-terminal-frame border-output flex flex-fill flex-column min-h-0 overflow-hidden w-full"
+                       ref={props.responseRef} id={`taskoutput${props.task.id}`}>
+                      <InteractiveTerminalDisplay data={visibleOutput}
+                                                  useASNIColor={useASNIColor}
+                                                  showTaskStatus={false}
+                                                  wrapText={true}
+                                                  autoScroll={true}
+                                                  theme={theme}
+                                                  canSendInput={false}
+                                                  inputMode="raw"
+                                                  lineInputBuffer="" />
+                  </div>
+                  <InteractivePaginationBar totalCount={totalCount} currentPage={currentPage}
+                                            onSubmitPageChange={onSubmitPageChange}
+                                            pageSize={pageSize.current} selectAllOutput={props.selectAllOutput}
+                                            isLive={isLive} canJumpToLive={!followLive && search === ""}
+                                            onJumpToLive={() => setFollowLive(true)} tuiActive={false}/>
+          </GuacdTaskDisplay>
+      );
+  }
   return (
 
       <div style={{
@@ -1616,7 +1644,7 @@ export const ResponseDisplayInteractive = (props) =>{
           color: theme.outputTextColor,
       }}>
           {playingRecordingFileID !== null &&
-              <MythicDialog fullWidth={true} maxWidth="lg" open={true}
+              <MythicDialog fullWidth={true} maxWidth="lg" open={true} resizable={true}
                             onClose={() => setPlayingRecordingFileID(null)}
                             innerDialog={<InteractiveScreenRecordingDialog agentFileID={playingRecordingFileID}
                                                                            onClose={() => setPlayingRecordingFileID(null)} />}
@@ -1870,8 +1898,8 @@ const InteractiveScreenRecordingDialog = ({agentFileID, onClose}) => {
     return (
         <React.Fragment>
             <MythicDraggableDialogTitle>Full-screen app recording</MythicDraggableDialogTitle>
-            <DialogContent dividers={true}>
-                <div ref={playerElementRef} />
+            <DialogContent dividers={true} style={{minHeight: 0, overflow: "auto"}}>
+                <div ref={playerElementRef} style={{height: "100%", width: "100%"}} />
             </DialogContent>
             <MythicDialogFooter>
                 <MythicDialogButton onClick={onClose}>Close</MythicDialogButton>

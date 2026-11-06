@@ -291,6 +291,13 @@ type agentMessagePostResponseInteractive struct {
 	TaskUUID    string                      `json:"task_id" mapstructure:"task_id" xml:"task_id"`
 	Data        string                      `json:"data" mapstructure:"data" xml:"data"`
 	MessageType InteractiveTask.MessageType `json:"message_type" mapstructure:"message_type" xml:"message_type"`
+	// Stream record fields are interpreted only when MessageType is one of
+	// InteractiveTask.Stream*. The task UUID identifies the stream and the
+	// task's immutable command metadata determines its protocol.
+	Offset uint64 `json:"offset,omitempty" mapstructure:"offset" xml:"offset,omitempty"`
+	Ack    uint64 `json:"ack,omitempty" mapstructure:"ack" xml:"ack,omitempty"`
+	Window uint32 `json:"window,omitempty" mapstructure:"window" xml:"window,omitempty"`
+	Reason string `json:"reason,omitempty" mapstructure:"reason" xml:"reason,omitempty"`
 }
 type agentMessagePostResponseCallback struct {
 	User                 *string   `json:"user" mapstructure:"user" xml:"user"`

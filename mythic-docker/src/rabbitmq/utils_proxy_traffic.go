@@ -753,13 +753,28 @@ func (c *callbackPortsInUse) routeProxyFromAgentMessage(agentMessage ProxyFromAg
 			port.messagesFromAgent <- agentMessage.Messages[j]
 		}
 	case CALLBACK_PORT_TYPE_INTERACTIVE:
+		terminalMessages := make([]agentMessagePostResponseInteractive, 0, len(agentMessage.InteractiveMessages))
+		for _, message := range agentMessage.InteractiveMessages {
+			if message.isByteStream() {
+				if err := interactiveByteStreams.handleAgentMessage(agentMessage.CallbackID, agentMessage.OperationID, message); err != nil &&
+					!errors.Is(err, errInteractiveByteStreamNotFound) {
+					logging.LogError(err, "Failed to route interactive byte stream message", "task_id", message.TaskUUID,
+						"message_type", message.MessageType)
+				}
+				continue
+			}
+			terminalMessages = append(terminalMessages, message)
+		}
+		if len(terminalMessages) == 0 {
+			return
+		}
 		port := c.getPortForCallbackTypeAndLocalPort(agentMessage.CallbackID, agentMessage.PortType, 0)
 		if port != nil {
-			for j := 0; j < len(agentMessage.InteractiveMessages); j++ {
-				port.interactiveMessagesFromAgent <- agentMessage.InteractiveMessages[j]
+			for _, message := range terminalMessages {
+				port.interactiveMessagesFromAgent <- message
 			}
 		}
-		handleAgentMessagePostResponseInteractiveOutput(&agentMessage.InteractiveMessages,
+		handleAgentMessagePostResponseInteractiveOutput(&terminalMessages,
 			agentMessage.OperationID, agentMessage.CallbackID)
 	}
 }
@@ -848,6 +863,7 @@ func (c *callbackPortsInUse) getDataForCallbackIdPortTypes(callbackId int, portT
 		ports := portsByType[portType]
 		switch portType {
 		case CALLBACK_PORT_TYPE_INTERACTIVE:
+			proxyData.Interactive = append(proxyData.Interactive, interactiveByteStreams.takeOutbound(callbackId)...)
 			for _, port := range ports {
 				proxyData.Interactive = append(proxyData.Interactive, port.GetData().([]agentMessagePostResponseInteractive)...)
 			}
@@ -980,6 +996,21 @@ func (c *callbackPortsInUse) GetOtherCallbackIdsWithPendingData(callbackId int) 
 		}
 	}
 	c.RUnlock()
+	// Reliable byte streams do not require a callbackport row, but their queued data must still be eligible for
+	// delegate routing when the callback is reachable through another callback.
+	for _, currentCallbackID := range interactiveByteStreams.pendingCallbackIDs(callbackId) {
+		found := false
+		for _, candidateCallbackID := range candidateCallbackIds {
+			if candidateCallbackID == currentCallbackID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			candidateCallbackIds = append(candidateCallbackIds, currentCallbackID)
+		}
+		markPendingCallbackId(currentCallbackID)
+	}
 
 	callbackIdsWithInteractiveTasks := submittedTasksAwaitingFetching.getCallbackIdsWithInteractiveTasks(candidateCallbackIds)
 	callbackIds := make([]int, 0, len(pendingCallbackIds)+len(callbackIdsWithInteractiveTasks))
