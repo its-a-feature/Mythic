@@ -104,6 +104,7 @@ func Initialize() {
 	RabbitMQConnection.channelMutexMap = make(map[string]*channelMutex)
 	invalidateAllNonUserAPITokens()
 	go startShortLivedAPITokenCleanup()
+	go startInteractiveScreenRecordingCleanup()
 	InvalidateOperationEventLogCacheMap()
 	go listenForOperationsEventLogMessages()
 	go listenForWriteDownloadChunkToLocalDisk()

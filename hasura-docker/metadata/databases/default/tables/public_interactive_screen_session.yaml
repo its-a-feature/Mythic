@@ -1,0 +1,92 @@
+table:
+  name: interactive_screen_session
+  schema: public
+object_relationships:
+  - name: filemeta
+    using:
+      foreign_key_constraint_on: filemeta_id
+select_permissions:
+  - role: mythic_admin
+    permission:
+      columns:
+        - collapsed
+        - cols
+        - end_response_id
+        - end_time
+        - filemeta_id
+        - id
+        - operation_id
+        - rows
+        - start_response_id
+        - start_time
+        - task_id
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _lte: X-Hasura-Scope-response-read-operation
+      allow_aggregations: true
+  - role: operation_admin
+    permission:
+      columns:
+        - collapsed
+        - cols
+        - end_response_id
+        - end_time
+        - filemeta_id
+        - id
+        - operation_id
+        - rows
+        - start_response_id
+        - start_time
+        - task_id
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _lte: X-Hasura-Scope-response-read-operation
+      allow_aggregations: true
+  - role: operator
+    permission:
+      columns:
+        - collapsed
+        - cols
+        - end_response_id
+        - end_time
+        - filemeta_id
+        - id
+        - operation_id
+        - rows
+        - start_response_id
+        - start_time
+        - task_id
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _lte: X-Hasura-Scope-response-read-operation
+      allow_aggregations: true
+  - role: spectator
+    permission:
+      columns:
+        - collapsed
+        - cols
+        - end_response_id
+        - end_time
+        - filemeta_id
+        - id
+        - operation_id
+        - rows
+        - start_response_id
+        - start_time
+        - task_id
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _lte: X-Hasura-Scope-response-read-operation
+      allow_aggregations: true

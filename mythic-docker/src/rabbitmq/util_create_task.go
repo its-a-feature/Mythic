@@ -832,6 +832,10 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 		return response
 	}
 	associateUploadedFilesWithTask(&task, createTaskInput.FileIDs)
+	if task.IsInteractiveTask && task.ParentTaskID.Valid &&
+		InteractiveTask.MessageType(task.InteractiveTaskType.Int64) == InteractiveTask.WindowChange {
+		recordInteractiveScreenResize(int(task.ParentTaskID.Int64), task.Params)
+	}
 	EventingChannel <- EventNotification{
 		Trigger:     eventing.TriggerTaskCreate,
 		OperationID: task.OperationID,

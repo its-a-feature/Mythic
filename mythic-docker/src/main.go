@@ -8,6 +8,9 @@ import (
 	"github.com/its-a-feature/Mythic/utils"
 	"github.com/its-a-feature/Mythic/webserver"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 import _ "net/http/pprof"
@@ -35,6 +38,14 @@ func main() {
 	// we will use rabbitmq to send messages to containers
 	fmt.Print("Step 5/6 - Initializing rabbitmq\n")
 	rabbitmq.Initialize()
+	// interactive input and output are saved in batches, so save what's waiting before stopping
+	go func() {
+		stop := make(chan os.Signal, 1)
+		signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+		<-stop
+		rabbitmq.SaveInteractiveLiveTasks()
+		os.Exit(0)
+	}()
 	// start serving up API routes
 	fmt.Print("Step 6/6 - Starting webserver\n")
 	webserver.StartServer(router)
