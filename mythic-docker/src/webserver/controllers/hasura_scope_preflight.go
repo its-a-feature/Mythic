@@ -709,7 +709,13 @@ var hasuraTableScopePolicies = map[string]hasuraTableScopePolicy{
 		},
 	},
 	"global_setting": {},
-	"invite_link":    {},
+	"interactive_screen_session": {
+		ReadScopes: []string{mythicjwt.SCOPE_RESPONSE_READ},
+		Relationships: map[string]string{
+			"filemeta": "filemeta",
+		},
+	},
+	"invite_link": {},
 	"keylog": {
 		ReadScopes: []string{mythicjwt.SCOPE_RESPONSE_READ},
 		Relationships: map[string]string{

@@ -164,6 +164,15 @@ func setRoutes(r *gin.Engine) {
 		r.GET("/auth_acs/:containerName/:IDPName", webcontroller.ProcessIDPResponse)
 		r.POST("/auth_acs/:containerName/:IDPName", webcontroller.ProcessIDPResponse)
 
+		// live interactive output; the websocket's token is moved into place before the usual checks
+		r.GET("/direct/live",
+			webcontroller.InteractiveLiveWebsocketTokenMiddleware(),
+			authentication.JwtAuthMiddleware(),
+			authentication.RBACMiddlewareAll(),
+			authentication.TokenScopeMiddleware([]string{
+				mythicjwt.SCOPE_TASK_READ,
+			}),
+			webcontroller.InteractiveLiveWebsocket)
 		// create a protected group that requires valid auth with a JWT to access
 		protected := r.Group("/")
 		protected.Use(authentication.JwtAuthMiddleware())

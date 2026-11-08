@@ -33,6 +33,7 @@
 - "!include public_eventstepinstance.yaml"
 - "!include public_filemeta.yaml"
 - "!include public_global_setting.yaml"
+- "!include public_interactive_screen_session.yaml"
 - "!include public_invite_link.yaml"
 - "!include public_keylog.yaml"
 - "!include public_loadedcommands.yaml"

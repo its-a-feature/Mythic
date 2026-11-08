@@ -758,10 +758,9 @@ func (c *callbackPortsInUse) routeProxyFromAgentMessage(agentMessage ProxyFromAg
 			for j := 0; j < len(agentMessage.InteractiveMessages); j++ {
 				port.interactiveMessagesFromAgent <- agentMessage.InteractiveMessages[j]
 			}
-			handleAgentMessagePostResponseInteractiveOutput(&agentMessage.InteractiveMessages, agentMessage.OperationID, agentMessage.CallbackID)
-		} else {
-			go handleAgentMessagePostResponseInteractiveOutput(&agentMessage.InteractiveMessages, agentMessage.OperationID, agentMessage.CallbackID)
 		}
+		handleAgentMessagePostResponseInteractiveOutput(&agentMessage.InteractiveMessages,
+			agentMessage.OperationID, agentMessage.CallbackID)
 	}
 }
 func (c *callbackPortsInUse) GetNextAvailableLocalPort() uint32 {
@@ -1120,6 +1119,10 @@ func (c *callbackPortsInUse) Remove(callbackId int, portType CallbackPortType, l
 	c.Lock()
 	c.removePortLocked(port)
 	c.Unlock()
+	if portType == CALLBACK_PORT_TYPE_INTERACTIVE {
+		saveInteractiveLiveTask(port.TaskID)
+		endInteractiveScreenTask(port.TaskID)
+	}
 	return nil
 }
 func isPortExposedThroughDocker(portToCheck int) bool {
