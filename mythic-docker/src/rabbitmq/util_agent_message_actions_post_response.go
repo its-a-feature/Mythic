@@ -291,6 +291,13 @@ type agentMessagePostResponseInteractive struct {
 	TaskUUID    string                      `json:"task_id" mapstructure:"task_id" xml:"task_id"`
 	Data        string                      `json:"data" mapstructure:"data" xml:"data"`
 	MessageType InteractiveTask.MessageType `json:"message_type" mapstructure:"message_type" xml:"message_type"`
+	// Stream record fields are interpreted only when MessageType is one of
+	// InteractiveTask.Stream*. The task UUID identifies the stream and the
+	// task's immutable command metadata determines its protocol.
+	Offset uint64 `json:"offset,omitempty" mapstructure:"offset" xml:"offset,omitempty"`
+	Ack    uint64 `json:"ack,omitempty" mapstructure:"ack" xml:"ack,omitempty"`
+	Window uint32 `json:"window,omitempty" mapstructure:"window" xml:"window,omitempty"`
+	Reason string `json:"reason,omitempty" mapstructure:"reason" xml:"reason,omitempty"`
 }
 type agentMessagePostResponseCallback struct {
 	User                 *string   `json:"user" mapstructure:"user" xml:"user"`
@@ -1068,53 +1075,6 @@ func insertAgentMessagePostResponseUserOutput(task databaseStructs.Task, userOut
 	}
 
 	return responseOutput.ID
-}
-func handleAgentMessagePostResponseInteractiveOutput(agentResponses *[]agentMessagePostResponseInteractive, operationID int, callbackID int) {
-	//logging.LogInfo("Got interactive responses", "responses", agentResponses)
-	for _, agentResponse := range *agentResponses {
-		task := databaseStructs.Task{}
-		if len(agentResponse.Data) == 0 {
-			continue
-		}
-		err := database.DB.Get(&task, `SELECT
-			id, operation_id, eventstepinstance_id, apitokens_id
-			FROM task
-			WHERE agent_task_id=$1 AND operation_id=$2 AND callback_id=$3`, agentResponse.TaskUUID, operationID, callbackID)
-		if err != nil {
-			logging.LogError(err, "Failed to find task")
-			continue
-		}
-		base64Decoded, err := base64.StdEncoding.DecodeString(agentResponse.Data)
-		if err != nil {
-			logging.LogError(err, "Failed to decode interactive task output")
-			continue
-		}
-		responseOutput := databaseStructs.Response{
-			Timestamp:   time.Now().UTC(),
-			TaskID:      task.ID,
-			IsError:     InteractiveTask.IsError(agentResponse.MessageType),
-			Response:    base64Decoded,
-			OperationID: task.OperationID,
-		}
-		responseOutput.InteractiveTaskType.Valid = true
-		responseOutput.InteractiveTaskType.Int64 = int64(agentResponse.MessageType)
-		if task.EventStepInstanceID.Valid {
-			responseOutput.EventStepInstanceID = task.EventStepInstanceID
-		}
-		if task.APITokensID.Valid {
-			responseOutput.APITokensID = task.APITokensID
-		}
-		if statement, err := database.DB.PrepareNamed(`INSERT INTO response
-		("timestamp", task_id, response, is_error, interactive_task_type, operation_id, eventstepinstance_id, apitokens_id)
-		VALUES (:timestamp, :task_id, :response, :is_error, :interactive_task_type, :operation_id, :eventstepinstance_id, :apitokens_id)
-		RETURNING id`); err != nil {
-			logging.LogError(err, "Failed to prepare new named statement for interactive task output", "response", agentResponse)
-		} else if err := statement.Get(&responseOutput.ID, responseOutput); err != nil {
-			logging.LogError(err, "Failed to insert new interactive task output", "task_id", responseOutput.TaskID)
-		} else {
-			go emitResponseLog(responseOutput.ID)
-		}
-	}
 }
 func handleAgentMessagePostResponseRemovedFiles(task databaseStructs.Task, removedFiles *[]agentMessagePostResponseRemovedFiles) error {
 	// mark the file / folder as removed and recursively mark all children as deleted too

@@ -19,6 +19,7 @@ import {operatorSettingDefaults} from "../../../cache";
 import {ResponseDisplayTabs} from "./ResponseDisplayTabs";
 import {MythicEmptyState, MythicLoadingState, MythicSearchEmptyState} from "../../MythicComponents/MythicStateDisplay";
 import {BrowserScriptRunner} from "./BrowserScriptRunner";
+import {getInteractiveTaskProtocol} from "./InteractiveTaskProtocol";
 
 const subResponsesStream = gql`
 subscription subResponsesStream($task_id: Int!){
@@ -141,7 +142,7 @@ const getLatestResponseID = (data) => {
 }
 export const ResponseDisplay = (props) =>{
   const fileEditor = props?.task?.command?.supported_ui_features.includes("task_response:file_editor") || false;
-  const interactive = props?.task?.command?.supported_ui_features.includes("task_response:interactive") || false;
+  const interactive = getInteractiveTaskProtocol(props?.task) !== null;
   return (
       fileEditor ? (
           <ResponseDisplayFileEditor {...props} key={props?.task?.id} />
@@ -410,7 +411,7 @@ const NonInteractiveResponseDisplay = (props) => {
 }
 export const ResponseDisplayConsole = (props) => {
   const fileEditor = props?.task?.command?.supported_ui_features.includes("task_response:file_editor") || false;
-  const interactive = props?.task?.command?.supported_ui_features.includes("task_response:interactive") || false;
+  const interactive = getInteractiveTaskProtocol(props?.task) !== null;
   return (
       fileEditor ? (
           <ResponseDisplayFileEditor {...props} />

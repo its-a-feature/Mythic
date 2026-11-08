@@ -27,7 +27,8 @@ const (
 	CtrlU     //^U - 0x15 - kill line backwards
 	CtrlW     //^W - 0x17 - kill word backwards
 	CtrlY     //^Y - 0x19 - yank
-	CtrlZ     //^Z - 0x1A - suspend process
+	CtrlZ        //^Z - 0x1A - suspend process
+	WindowChange //TIOCSWINSZ / SIGWINCH — Data is "cols,rows,pixel_width,pixel_height" (e.g. "132,43,0,0")
 	interactiveEnd
 
 	// Reserve 100-199 for file editor messages. These values intentionally do
@@ -37,12 +38,31 @@ const (
 	FileEditorError    MessageType = 102
 )
 
+const (
+	// Reserve 200-299 for task-owned opaque byte-stream records. The task's
+	// command metadata fixes the stream protocol; these values describe only
+	// the record carried by this particular message.
+	StreamData   MessageType = 200
+	StreamWindow MessageType = 201
+	StreamClose  MessageType = 202
+	StreamReset  MessageType = 203
+)
+
 func IsValid(value int) bool {
 	switch MessageType(value) {
 	case FileEditorRequest, FileEditorResponse, FileEditorError:
 		return true
 	default:
 		return value >= 0 && value < int(interactiveEnd)
+	}
+}
+
+func IsByteStream(value MessageType) bool {
+	switch value {
+	case StreamData, StreamWindow, StreamClose, StreamReset:
+		return true
+	default:
+		return false
 	}
 }
 

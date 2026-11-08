@@ -54,6 +54,35 @@ func AddMythicService(service string, removeVolume bool) {
 	volumes, _ := manager.GetManager().GetVolumes()
 
 	switch service {
+	case "mythic_guacd":
+		pStruct["build"] = map[string]interface{}{
+			"context": "./guacd-docker",
+			"args":    config.GetBuildArguments(),
+		}
+		pStruct["image"] = service
+		pStruct["environment"] = utils.UpdateEnvironmentVariables(pStruct["environment"].([]interface{}), []string{
+			"LOG_LEVEL=${DEBUG_LEVEL}",
+		})
+		// The upstream image checks only every five minutes. Mythic server waits
+		// for guacd to become healthy, so use a startup-friendly cadence here.
+		pStruct["healthcheck"] = map[string]interface{}{
+			"test":         []string{"CMD", "nc", "-z", "127.0.0.1", "4822"},
+			"interval":     "5s",
+			"timeout":      "3s",
+			"retries":      12,
+			"start_period": "5s",
+		}
+		// guacd performs no authentication. It is reachable only by other
+		// services on the Compose network (or localhost under host networking).
+		delete(pStruct, "ports")
+		delete(pStruct, "depends_on")
+		if mythicEnv.GetString("mythic_docker_networking") == "host" {
+			pStruct["network_mode"] = "host"
+			pStruct["extra_hosts"] = getExtraHosts()
+		} else {
+			delete(pStruct, "network_mode")
+			delete(pStruct, "extra_hosts")
+		}
 	case "mythic_postgres":
 		if mythicEnv.GetBool("postgres_use_build_context") {
 			pStruct["build"] = map[string]interface{}{
@@ -659,6 +688,11 @@ func AddMythicService(service string, removeVolume bool) {
 		}
 	case "mythic_server":
 		dependsOn := map[string]map[string]string{}
+		if isServiceInternal("mythic_guacd") {
+			dependsOn["mythic_guacd"] = map[string]string{
+				"condition": "service_healthy",
+			}
+		}
 		if isServiceInternal("mythic_postgres") {
 			dependsOn["mythic_postgres"] = map[string]string{
 				"condition": "service_healthy",
@@ -707,6 +741,8 @@ func AddMythicService(service string, removeVolume bool) {
 			"MYTHIC_SERVER_DYNAMIC_PORTS=${MYTHIC_SERVER_DYNAMIC_PORTS}",
 			"MYTHIC_SERVER_DYNAMIC_PORTS_BIND_LOCALHOST_ONLY=${MYTHIC_SERVER_DYNAMIC_PORTS_BIND_LOCALHOST_ONLY}",
 			"MYTHIC_DOCKER_NETWORKING=${MYTHIC_DOCKER_NETWORKING}",
+			"GUACD_HOST=${GUACD_HOST}",
+			"GUACD_PORT=${GUACD_PORT}",
 			"NGINX_PORT=${NGINX_PORT}",
 			"NGINX_HOST=${NGINX_HOST}",
 			"POSTGRES_HOST=${POSTGRES_HOST}",

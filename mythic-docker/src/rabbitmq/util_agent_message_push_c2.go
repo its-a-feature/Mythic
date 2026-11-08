@@ -129,59 +129,49 @@ type interceptProxyToAgentMessage struct {
 
 var interceptProxyToAgentMessageChan = make(chan interceptProxyToAgentMessage, 2000)
 
+var errNoPushC2Route = errors.New("callback isn't reachable over push c2")
+
+// sendProxyMessageToPushC2 sends proxy data straight to a callback connected over push C2, or through a connected
+// callback it's linked behind. It returns errNoPushC2Route if neither is possible.
+func sendProxyMessageToPushC2(callbackID int, proxyType string, message interface{}) error {
+	if grpc.PushC2Server.CheckClientConnected(callbackID) > PushC2Connections.Connected {
+		//logging.LogInfo("sending directly to callback")
+		return sendMessageToDirectPushC2(callbackID, map[string]interface{}{
+			"action":  "post_response",
+			proxyType: []interface{}{message},
+		})
+	}
+	connectedPushClients := grpc.PushC2Server.GetConnectedClients()
+	for _, clientID := range connectedPushClients {
+		if routablePath := callbackGraph.GetBFSPath(clientID, callbackID); routablePath != nil && len(routablePath) > 0 {
+			delegateMessages := pushC2AgentGetDelegateProxyMessages([]interface{}{message}, proxyType, routablePath)
+			if delegateMessages != nil {
+				newTaskMsg := map[string]interface{}{
+					"action":    "post_response",
+					"delegates": delegateMessages,
+				}
+				//logging.LogDebug("about to call sendMessageToDirectPushC2")
+				err := sendMessageToDirectPushC2(clientID, newTaskMsg)
+				if err != nil {
+					logging.LogError(err, "failed to send to push c2 delegate messages")
+				}
+				return err
+			}
+		}
+	}
+	return errNoPushC2Route
+}
+
 // interceptProxyDataToAgentForPushC2 checks if Proxy messages can be sent to a PushC2 agent first
 func interceptProxyDataToAgentForPushC2() {
 	for {
-		attemptedToSend := false
 		msg := <-interceptProxyToAgentMessageChan
 		//logging.LogInfo("got proxy message", "data", msg.Message, "other data", msg.InteractiveMessage)
-		if grpc.PushC2Server.CheckClientConnected(msg.CallbackID) > PushC2Connections.Connected {
-			//logging.LogInfo("sending directly to callback")
-			switch msg.ProxyType {
-			case CALLBACK_PORT_TYPE_INTERACTIVE:
-				_ = sendMessageToDirectPushC2(msg.CallbackID, map[string]interface{}{
-					"action":      "post_response",
-					msg.ProxyType: []interface{}{msg.InteractiveMessage},
-				})
-			case CALLBACK_PORT_TYPE_SOCKS:
-				fallthrough
-			case CALLBACK_PORT_TYPE_RPORTFWD:
-				_ = sendMessageToDirectPushC2(msg.CallbackID, map[string]interface{}{
-					"action":      "post_response",
-					msg.ProxyType: []interface{}{msg.Message},
-				})
-			}
-			attemptedToSend = true
-		} else {
-			connectedPushClients := grpc.PushC2Server.GetConnectedClients()
-			for _, clientID := range connectedPushClients {
-				if routablePath := callbackGraph.GetBFSPath(clientID, msg.CallbackID); routablePath != nil && len(routablePath) > 0 {
-					var delegateMessages interface{}
-					switch msg.ProxyType {
-					case CALLBACK_PORT_TYPE_INTERACTIVE:
-						delegateMessages = pushC2AgentGetDelegateProxyMessages([]interface{}{msg.InteractiveMessage}, msg.ProxyType, routablePath)
-					case CALLBACK_PORT_TYPE_SOCKS:
-						fallthrough
-					case CALLBACK_PORT_TYPE_RPORTFWD:
-						delegateMessages = pushC2AgentGetDelegateProxyMessages([]interface{}{msg.Message}, msg.ProxyType, routablePath)
-					}
-
-					if delegateMessages != nil {
-						newTaskMsg := map[string]interface{}{
-							"action":    "post_response",
-							"delegates": delegateMessages,
-						}
-						//logging.LogDebug("about to call sendMessageToDirectPushC2")
-						err := sendMessageToDirectPushC2(clientID, newTaskMsg)
-						if err != nil {
-							logging.LogError(err, "failed to send to push c2 delegate messages")
-						}
-						attemptedToSend = true
-						break
-					}
-				}
-			}
+		var message interface{} = msg.Message
+		if msg.ProxyType == CALLBACK_PORT_TYPE_INTERACTIVE {
+			message = msg.InteractiveMessage
 		}
+		attemptedToSend := !errors.Is(sendProxyMessageToPushC2(msg.CallbackID, msg.ProxyType, message), errNoPushC2Route)
 		// if we attempted to send a message but failed, drop it, socks traffic won't generally accept it anyway if it's late
 		if !attemptedToSend {
 			//logging.LogInfo("Couldn't send to push c2, saving to msg")

@@ -24,6 +24,7 @@ var MythicPossibleServices = []string{
 	"mythic_graphql",
 	"mythic_documentation",
 	"mythic_jupyter",
+	"mythic_guacd",
 }
 var mythicEnv = viper.New()
 var mythicEnvInfo = make(map[string]string)
@@ -69,6 +70,10 @@ func GetIntendedMythicServiceNames() ([]string, error) {
 			if mythicEnv.GetString("JUPYTER_HOST") == "127.0.0.1" || mythicEnv.GetString("JUPYTER_HOST") == "mythic_jupyter" {
 				containerList = append(containerList, service)
 			}
+		case "mythic_guacd":
+			if mythicEnv.GetString("GUACD_HOST") == "127.0.0.1" || mythicEnv.GetString("GUACD_HOST") == "mythic_guacd" {
+				containerList = append(containerList, service)
+			}
 			/*
 				case "mythic_grafana":
 					if mythicEnv.GetBool("postgres_debug") {
@@ -108,6 +113,10 @@ func setMythicConfigDefaultValues() {
 	mythicEnvInfo["global_manager"] = `This sets the management software used to control Mythic. The default is "docker" which uses Docker and Docker Compose. Valid options are currently: docker. Additional PRs can be made to implement the CLIManager Interface and provide more options.`
 
 	mythicEnv.SetDefault("global_restart_policy", "always")
+	mythicEnv.SetDefault("guacd_host", "mythic_guacd")
+	mythicEnvInfo["guacd_host"] = `The hostname of Mythic's private Apache Guacamole daemon. Use mythic_guacd for the bundled service.`
+	mythicEnv.SetDefault("guacd_port", 4822)
+	mythicEnvInfo["guacd_port"] = `The private TCP port used by mythic_server to connect to guacd. This port is not published by the bundled service.`
 	mythicEnvInfo["global_restart_policy"] = `This sets the restart policy for the containers within Mythic. Valid options should only be 'always', 'unless-stopped', and 'on-failure'. The default of 'always' will ensure that Mythic comes back up even when the server reboots. The 'unless-stopped' value means that Mythic should come back online after reboot unless you specifically ran './mythic-cli stop' first.`
 
 	mythicEnv.SetDefault("mythic_docker_image_mirror", "")
@@ -522,6 +531,10 @@ func parseMythicEnvironmentVariables() {
 		"MYTHIC_JUPYTER_HOST": {
 			"MYTHIC_JUPYTER_PORT",
 			"mythic_jupyter",
+		},
+		"GUACD_HOST": {
+			"GUACD_PORT",
+			"mythic_guacd",
 		},
 	}
 	for key, val := range portChecks {

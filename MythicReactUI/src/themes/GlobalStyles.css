@@ -1982,6 +1982,10 @@ html, #root {
     background-color: var(--mythic-color-output-control-bg);
     color: var(--mythic-color-output-text-base);
 }
+.mythic-interactive-terminal-toggle-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+}
 .mythic-interactive-terminal-empty-hint {
     color: var(--mythic-color-output-text-level-1);
     font-family: Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
