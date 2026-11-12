@@ -7,6 +7,9 @@ linux:
 macos:
 	cd Mythic_CLI && make build_macos && mv mythic-cli ../
 
+windows:
+	cd Mythic_CLI && make build_windows
+
 local:
 	cd Mythic_CLI && make build_local
 
