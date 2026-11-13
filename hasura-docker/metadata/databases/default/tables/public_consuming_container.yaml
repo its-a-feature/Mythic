@@ -1,107 +1,124 @@
-table:
-  name: consuming_container
-  schema: public
 array_relationships:
-  - name: chat_channels
-    using:
-      foreign_key_constraint_on:
-        column: chat_container_id
-        table:
-          name: chat_channel
-          schema: public
-  - name: chat_messages
-    using:
-      foreign_key_constraint_on:
-        column: chat_container_id
-        table:
-          name: chat_message
-          schema: public
-  - name: chat_requests
-    using:
-      foreign_key_constraint_on:
-        column: chat_container_id
-        table:
-          name: chat_request
-          schema: public
-  - name: eventgroupconsumingcontainers
-    using:
-      foreign_key_constraint_on:
-        column: consuming_container_id
-        table:
-          name: eventgroupconsumingcontainer
-          schema: public
-  - name: operator_aliases
-    using:
-      foreign_key_constraint_on:
-        column: consuming_container_id
-        table:
-          name: operator_alias
-          schema: public
+    - name: chat_channels
+      using:
+        foreign_key_constraint_on:
+            column: chat_container_id
+            table:
+                name: chat_channel
+                schema: public
+    - name: chat_messages
+      using:
+        foreign_key_constraint_on:
+            column: chat_container_id
+            table:
+                name: chat_message
+                schema: public
+    - name: chat_requests
+      using:
+        foreign_key_constraint_on:
+            column: chat_container_id
+            table:
+                name: chat_request
+                schema: public
+    - name: eventgroupconsumingcontainers
+      using:
+        foreign_key_constraint_on:
+            column: consuming_container_id
+            table:
+                name: eventgroupconsumingcontainer
+                schema: public
+    - name: operator_aliases
+      using:
+        foreign_key_constraint_on:
+            column: consuming_container_id
+            table:
+                name: operator_alias
+                schema: public
 select_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - container_running
-        - deleted
-        - id
-        - subscriptions
-        - description
-        - name
-        - semver
-        - type
-        - created_at
-        - updated_at
-      filter: {}
-    comment: ""
-  - role: operation_admin
-    permission:
-      columns:
-        - container_running
-        - deleted
-        - id
-        - subscriptions
-        - description
-        - name
-        - semver
-        - type
-        - created_at
-        - updated_at
-      filter: {}
-    comment: ""
-  - role: operator
-    permission:
-      columns:
-        - container_running
-        - deleted
-        - id
-        - subscriptions
-        - description
-        - name
-        - semver
-        - type
-        - created_at
-        - updated_at
-      filter: {}
-    comment: ""
-  - role: spectator
-    permission:
-      columns:
-        - container_running
-        - deleted
-        - id
-        - subscriptions
-        - description
-        - name
-        - semver
-        - type
-        - created_at
-        - updated_at
-      filter: {}
-    comment: ""
+    - comment: ""
+      permission:
+        columns:
+            - container_running
+            - deleted
+            - id
+            - subscriptions
+            - description
+            - name
+            - semver
+            - type
+            - created_at
+            - updated_at
+        filter: {}
+      role: mythic_admin
+    - comment: ""
+      permission:
+        columns:
+            - container_running
+            - deleted
+            - id
+            - subscriptions
+            - description
+            - name
+            - semver
+            - type
+            - created_at
+            - updated_at
+        filter: {}
+      role: operation_admin
+    - comment: ""
+      permission:
+        columns:
+            - container_running
+            - deleted
+            - id
+            - subscriptions
+            - description
+            - name
+            - semver
+            - type
+            - created_at
+            - updated_at
+        filter: {}
+      role: operator
+    - comment: ""
+      permission:
+        columns:
+            - container_running
+            - deleted
+            - id
+            - subscriptions
+            - description
+            - name
+            - semver
+            - type
+            - created_at
+            - updated_at
+        filter: {}
+      role: spectator
+table:
+    name: consuming_container
+    schema: public
 update_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - deleted
-      filter: {}
-      check: null
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-mythic-write-actor-ids
+        columns:
+            - deleted
+        filter:
+            _and:
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-mythic-write-actor-ids
+      role: mythic_admin

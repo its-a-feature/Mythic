@@ -1,6 +1,7 @@
 package webcontroller
 
 import (
+	"github.com/its-a-feature/Mythic/authentication"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"net/http"
 
@@ -41,16 +42,7 @@ func UpdateOperatorStatusWebhook(c *gin.Context) {
 		return
 	}
 	// get the associated database information
-	userID, err := GetUserIDFromGin(c)
-	if err != nil {
-		logging.LogError(err, "Failed to get userID from JWT")
-		c.JSON(http.StatusOK, UpdateOperatorStatusResponse{
-			Status: "error",
-			Error:  err.Error(),
-		})
-		return
-	}
-	callingUser, err := database.GetUserFromID(userID)
+	callingUser, err := authentication.GetRequestUser(c)
 	if err != nil {
 		logging.LogError(err, "Failed to get calling user information from database")
 		c.JSON(http.StatusOK, UpdateOperatorStatusResponse{
@@ -115,10 +107,6 @@ func UpdateOperatorStatusWebhook(c *gin.Context) {
 			Error:  "Failed to update operator",
 		})
 		return
-	}
-	err = UpdateHasuraClaims(c, true)
-	if err != nil {
-		logging.LogError(err, "Failed to update claims")
 	}
 	c.JSON(http.StatusOK, UpdateOperatorStatusResponse{
 		Status:  "success",

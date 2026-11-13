@@ -1,5 +1,7 @@
 package databaseStructs
 
+import authz "github.com/its-a-feature/Mythic/authorization"
+
 // CustomBrowser is custombrowser table
 type CustomBrowser struct {
 	ID                     int             `db:"id"`
@@ -19,4 +21,13 @@ type CustomBrowser struct {
 	ShowCurrentPath        bool            `db:"show_current_path"`
 	RowActions             MythicJSONArray `db:"row_actions"`
 	ExtraTableInputs       MythicJSONArray `db:"extra_table_inputs"`
+}
+
+// AuthorizationPolicy keeps custombrowser permissions beside its database model.
+func (CustomBrowser) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table: authz.TableRef{Schema: "public", Name: "custombrowser"},
+		Read:  authz.Rule{Public: true},
+		Write: authz.Rule{Permission: authz.SCOPE_MYTHIC_WRITE},
+	}
 }

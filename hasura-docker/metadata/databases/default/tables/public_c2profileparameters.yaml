@@ -1,112 +1,112 @@
-table:
-  name: c2profileparameters
-  schema: public
-object_relationships:
-  - name: c2profile
-    using:
-      foreign_key_constraint_on: c2_profile_id
 array_relationships:
-  - name: c2profileparametersinstances
-    using:
-      foreign_key_constraint_on:
-        column: c2_profile_parameters_id
-        table:
-          name: c2profileparametersinstance
-          schema: public
+    - name: c2profileparametersinstances
+      using:
+        foreign_key_constraint_on:
+            column: c2_profile_parameters_id
+            table:
+                name: c2profileparametersinstance
+                schema: public
+object_relationships:
+    - name: c2profile
+      using:
+        foreign_key_constraint_on: c2_profile_id
 select_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - crypto_type
-        - deleted
-        - randomize
-        - required
-        - c2_profile_id
-        - id
-        - ui_position
-        - choices
-        - choices_display_names
-        - hide_conditions
-        - json_string_schema
-        - default_value
-        - description
-        - display_name
-        - dynamic_query_function
-        - format_string
-        - group_name
-        - name
-        - parameter_type
-        - verifier_regex
-      filter: {}
-  - role: operation_admin
-    permission:
-      columns:
-        - crypto_type
-        - deleted
-        - randomize
-        - required
-        - c2_profile_id
-        - id
-        - ui_position
-        - choices
-        - choices_display_names
-        - hide_conditions
-        - json_string_schema
-        - default_value
-        - description
-        - display_name
-        - dynamic_query_function
-        - format_string
-        - group_name
-        - name
-        - parameter_type
-        - verifier_regex
-      filter: {}
-  - role: operator
-    permission:
-      columns:
-        - crypto_type
-        - deleted
-        - randomize
-        - required
-        - c2_profile_id
-        - id
-        - ui_position
-        - choices
-        - choices_display_names
-        - hide_conditions
-        - json_string_schema
-        - default_value
-        - description
-        - display_name
-        - dynamic_query_function
-        - format_string
-        - group_name
-        - name
-        - parameter_type
-        - verifier_regex
-      filter: {}
-  - role: spectator
-    permission:
-      columns:
-        - crypto_type
-        - deleted
-        - randomize
-        - required
-        - c2_profile_id
-        - id
-        - ui_position
-        - choices
-        - choices_display_names
-        - hide_conditions
-        - json_string_schema
-        - default_value
-        - description
-        - display_name
-        - dynamic_query_function
-        - format_string
-        - group_name
-        - name
-        - parameter_type
-        - verifier_regex
-      filter: {}
+    - permission:
+        columns:
+            - crypto_type
+            - deleted
+            - randomize
+            - required
+            - c2_profile_id
+            - id
+            - ui_position
+            - choices
+            - choices_display_names
+            - hide_conditions
+            - json_string_schema
+            - default_value
+            - description
+            - display_name
+            - dynamic_query_function
+            - format_string
+            - group_name
+            - name
+            - parameter_type
+            - verifier_regex
+        filter: {}
+      role: mythic_admin
+    - permission:
+        columns:
+            - crypto_type
+            - deleted
+            - randomize
+            - required
+            - c2_profile_id
+            - id
+            - ui_position
+            - choices
+            - choices_display_names
+            - hide_conditions
+            - json_string_schema
+            - default_value
+            - description
+            - display_name
+            - dynamic_query_function
+            - format_string
+            - group_name
+            - name
+            - parameter_type
+            - verifier_regex
+        filter: {}
+      role: operation_admin
+    - permission:
+        columns:
+            - crypto_type
+            - deleted
+            - randomize
+            - required
+            - c2_profile_id
+            - id
+            - ui_position
+            - choices
+            - choices_display_names
+            - hide_conditions
+            - json_string_schema
+            - default_value
+            - description
+            - display_name
+            - dynamic_query_function
+            - format_string
+            - group_name
+            - name
+            - parameter_type
+            - verifier_regex
+        filter: {}
+      role: operator
+    - permission:
+        columns:
+            - crypto_type
+            - deleted
+            - randomize
+            - required
+            - c2_profile_id
+            - id
+            - ui_position
+            - choices
+            - choices_display_names
+            - hide_conditions
+            - json_string_schema
+            - default_value
+            - description
+            - display_name
+            - dynamic_query_function
+            - format_string
+            - group_name
+            - name
+            - parameter_type
+            - verifier_regex
+        filter: {}
+      role: spectator
+table:
+    name: c2profileparameters
+    schema: public

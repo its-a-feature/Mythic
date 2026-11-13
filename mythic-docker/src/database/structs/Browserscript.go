@@ -3,6 +3,8 @@ package databaseStructs
 import (
 	"database/sql"
 	"time"
+
+	authz "github.com/its-a-feature/Mythic/authorization"
 )
 
 type Browserscript struct {
@@ -18,4 +20,18 @@ type Browserscript struct {
 	ContainerVersion       string        `db:"container_version"`
 	ContainerVersionAuthor string        `db:"container_version_author"`
 	ForNewUi               bool          `db:"for_new_ui"`
+}
+
+// AuthorizationPolicy keeps browserscript permissions beside its database model.
+func (Browserscript) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table: authz.TableRef{Schema: "public", Name: "browserscript"},
+		Read:  authz.Rule{Permission: authz.SCOPE_OPERATOR_READ},
+		Write: authz.Rule{Permission: authz.SCOPE_OPERATOR_WRITE},
+		Relationships: []authz.RelationshipBinding{
+			{Name: "command", Target: Command{}},
+			{Name: "operator", Target: Operator{}},
+			{Name: "payloadtype", Target: Payloadtype{}},
+		},
+	}
 }

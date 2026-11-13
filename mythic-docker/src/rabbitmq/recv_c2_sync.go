@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -204,7 +204,7 @@ func c2Sync(in C2SyncMessage) error {
 	go SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", c2Profile.Name, in.ContainerVersion), 0, "debug", database.MESSAGE_LEVEL_DEBUG, false)
 	go ResolveAllOperationsMessageBySource(getDownContainerSource(c2Profile.Name), 0)
 	go autoStartC2Profile(c2Profile, false, RabbitMQAuthContext{
-		SourceScopes: []string{mythicjwt.SCOPE_C2_WRITE},
+		SourceScopes: []string{authorization.SCOPE_C2_WRITE},
 	})
 	if newProfile {
 		go reSyncPayloadTypes()

@@ -7,7 +7,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/authentication"
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/database"
 )
 
@@ -33,9 +34,9 @@ func ScopeCheckWebhook(c *gin.Context) {
 		return
 	}
 	requiredScope := fmt.Sprintf("%s.%s",
-		strings.ToLower(strings.TrimSpace(input.Input.Resource)),
-		strings.ToLower(strings.TrimSpace(input.Input.Action)))
-	if !mythicjwt.IsKnownScopeOrAlias(requiredScope) || strings.HasSuffix(requiredScope, ".*") || requiredScope == mythicjwt.SCOPE_ALL {
+		input.Input.Resource,
+		input.Input.Action)
+	if !authorization.IsKnownScopeOrAlias(requiredScope) || strings.HasSuffix(requiredScope, ".*") || requiredScope == authorization.SCOPE_ALL {
 		c.JSON(http.StatusOK, gin.H{
 			"status": "error",
 			"error":  fmt.Sprintf("unknown scope %q", requiredScope),
@@ -43,9 +44,12 @@ func ScopeCheckWebhook(c *gin.Context) {
 		return
 	}
 
-	allowedByScope := mythicjwt.AllowsScope(claims.Scopes, requiredScope)
+	effectiveScopes, _ := authentication.EffectiveScopeList(c)
+	allowedByScope := authorization.AllowsScope(claims.Scopes, requiredScope)
 	allowedByOperation := true
-	if input.Input.OperationID > 0 {
+	if claims.APITokensID > 0 {
+		allowedByOperation = input.Input.OperationID == 0 || input.Input.OperationID == claims.OperationID
+	} else if input.Input.OperationID > 0 {
 		allowedByOperation = false
 		if operations, err := database.GetOperationsForUser(claims.UserID); err == nil {
 			for _, operation := range *operations {
@@ -70,7 +74,7 @@ func ScopeCheckWebhook(c *gin.Context) {
 		"reason":           reason,
 		"required_scope":   requiredScope,
 		"granted_scopes":   claims.Scopes,
-		"effective_scopes": mythicjwt.EffectiveScopes(claims.Scopes),
+		"effective_scopes": effectiveScopes,
 		"resource":         input.Input.Resource,
 		"action":           input.Input.Action,
 		"operation_id":     input.Input.OperationID,

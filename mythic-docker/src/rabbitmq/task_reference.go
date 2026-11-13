@@ -120,11 +120,12 @@ type taskReferenceStructuredParameterProvider struct {
 type taskReferenceResolveContext struct {
 	OperationID                  int
 	CallbackID                   int
+	Scopes                       map[string]bool
 	ParameterAliases             map[string][]string
 	StructuredParameterProviders map[string]taskReferenceStructuredParameterProvider
 }
 
-func expandTaskReferenceParameters(commandID int, operationID int, callbackID int, parameterGroupName string, params string) (string, bool, []PTTaskKeywordResolution, []taskReferencePostCreateAction, error) {
+func expandTaskReferenceParameters(commandID int, operationID int, callbackID int, parameterGroupName string, params string, scopes map[string]bool) (string, bool, []PTTaskKeywordResolution, []taskReferencePostCreateAction, error) {
 	if commandID <= 0 || operationID <= 0 {
 		logging.LogError(nil, "expandTaskReferenceParameters", "invalid command ID or operation ID")
 		return params, false, nil, nil, nil
@@ -142,6 +143,7 @@ func expandTaskReferenceParameters(commandID int, operationID int, callbackID in
 	context := taskReferenceResolveContext{
 		OperationID:      operationID,
 		CallbackID:       callbackID,
+		Scopes:           scopes,
 		ParameterAliases: make(map[string][]string),
 		// StructuredParameterProviders maps parameter names, CLI names, and
 		// display names to the provider that can hydrate that top-level value.

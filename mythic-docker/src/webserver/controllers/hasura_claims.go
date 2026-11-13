@@ -1,164 +1,162 @@
 package webcontroller
 
 import (
+	"bytes"
+	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
-	"sync"
+	"slices"
 
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/authentication"
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/database"
 	"github.com/its-a-feature/Mythic/logging"
 )
 
-var (
-	hasuraClaimsCache     = make(map[string]map[string]interface{})
-	hasuraClaimsCacheLock = sync.RWMutex{}
-)
-
-// Scope claims are numeric gates: positive IDs pass when scoped and fail against "0" otherwise.
-const hasuraScopeAllowedID = "2147483647"
-
-func UpdateHasuraClaims(c *gin.Context, invalidateAllOthers bool) error {
-	if invalidateAllOthers {
-		hasuraClaimsCacheLock.Lock()
-		hasuraClaimsCache = make(map[string]map[string]interface{})
-		hasuraClaimsCacheLock.Unlock()
-		return nil
+// GetHasuraClaims checks HTTP operations before Hasura executes them, then
+// supplies row/column claims. Authentication middleware caches the identity in
+// this same request; native WebSockets only authenticate at connection setup.
+func GetHasuraClaims(c *gin.Context) {
+	input, cached := c.Get("hasura")
+	if !cached {
+		// ExtractToken normally decoded the envelope in the authentication
+		// middleware. An Authorization header on the hook itself skips that path.
+		var request authentication.HasuraRequest
+		if err := c.ShouldBindJSON(&request); err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid Hasura request"})
+			return
+		}
+		input = request
+		c.Set("hasura", request)
 	}
-	input, ok := c.Get("hasura")
-	if !ok {
-		return errors.New("no hasura claims found")
-	}
-	hasuraInput := input.(authentication.HasuraRequest)
 	claims, err := authentication.GetClaims(c)
 	if err != nil {
-		return err
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication Failed"})
+		return
 	}
-	c.Set("GraphQLName", hasuraInput.Request.OperationName)
-	c.Set(authentication.ContextKeyUserID, claims.UserID)
-	c.Set("hasura_claims", claims)
-	hasuraClaims := make(map[string]interface{})
-	//logging.LogTrace("JWT claims", "claims", claims, "user", claims.UserID)
-	hasuraClaims["x-hasura-user-id"] = fmt.Sprintf("%d", claims.UserID)
-	user, err := database.GetUserFromID(claims.UserID)
-	//logging.LogTrace("user info", "user", user)
+	if claims.FileUUID != "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "file credentials cannot execute GraphQL"})
+		return
+	}
+	scopes, err := authentication.GetScopesSetFromClaims(c)
 	if err != nil {
-		logging.LogError(err, "Failed to fetch operator based on JWT UserID")
-		return err
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication Failed"})
+		return
 	}
-	if user.Deleted {
-		logging.LogError(errors.New("user is deleted"), "user is deleted")
-		return errors.New("user is deleted")
-	}
-	if !user.Active {
-		logging.LogError(errors.New("user is not active"), "user is not active")
-		return errors.New("user is not active")
-	}
-	c.Set(authentication.ContextKeyUsername, user.Username)
-	hasuraClaims["x-hasura-current-operation-id"] = "0"
-	hasuraClaims["x-hasura-current_operation"] = "null"
-	hasuraClaims["x-hasura-role"] = "spectator"
-	if claims.APITokensID > 0 {
-		hasuraClaims["x-hasura-apitokens-id"] = fmt.Sprintf("%d", claims.APITokensID)
-	} else {
-		hasuraClaims["x-hasura-apitokens-id"] = "0"
-	}
-	allOperations, err := database.GetOperationsForUser(claims.UserID)
-	if err != nil {
-		logging.LogError(err, "Failed to get all operations for user when generating hasura claims")
-		return err
-	}
-
-	for _, operatorOperation := range *allOperations {
-		//logging.LogInfo("operatorOperation info", "operatorOperation", operatorOperation)
-		if operatorOperation.CurrentOperation.ID == int(user.CurrentOperationID.Int64) {
-			hasuraClaims["x-hasura-role"] = operatorOperation.ViewMode
-			if hasuraClaims["x-hasura-role"] == "lead" {
-				hasuraClaims["x-hasura-role"] = "operation_admin"
+	// check permissions for each table requested
+	raw := bytes.TrimSpace(input.(authentication.HasuraRequest).Request)
+	if len(raw) > 0 && !bytes.Equal(raw, []byte("null")) {
+		// Hasura's POST hook includes the whole HTTP batch. Authorize every
+		// entry before returning any claims, so no earlier mutation can execute
+		// when a later entry is denied. Null/absent requests are connection auth.
+		requests := []authorization.GraphQLRequest{}
+		if raw[0] == '[' {
+			err = json.Unmarshal(raw, &requests)
+		} else {
+			requests = make([]authorization.GraphQLRequest, 1)
+			err = json.Unmarshal(raw, &requests[0])
+		}
+		if err != nil || len(requests) == 0 {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid GraphQL request"})
+			return
+		}
+		c.Set("graphql_requests", requests)
+		c.Set("GraphQLName", requests[0].OperationName)
+		// Share target facts across aliases and batch entries. Only the model's
+		// compiled parameterized lookup can reach the database, never client SQL.
+		targets := map[string]string{}
+		resolve := func(lookup authorization.ValueLookup, id interface{}) (string, error) {
+			key := fmt.Sprintf("%s/%v/%d", lookup.Query, id, claims.OperationID)
+			if value, cachedQuery := targets[key]; cachedQuery {
+				return value, nil
+			}
+			if len(targets) >= 128 {
+				return "", fmt.Errorf("too many explicit authorization targets")
+			}
+			var value string
+			err = database.DB.GetContext(c.Request.Context(), &value, lookup.Query, id, claims.OperationID)
+			if err != nil && !errors.Is(err, sql.ErrNoRows) {
+				return "", err
+			}
+			targets[key] = value
+			return value, nil
+		}
+		principal := authorization.Principal{APITokenID: claims.APITokensID, OperationID: claims.OperationID, Scopes: scopes}
+		for i := range requests {
+			err = requests[i].Authorize(authorization.Current, principal, resolve)
+			if err != nil {
+				// Hasura accepts only 200/401 from its auth hook and replaces this
+				// body with a generic denial. scopeCheck remains the diagnostic API.
+				logging.LogDebug("Failed to authorize request", "error", err)
+				c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+				return
 			}
 		}
-		if user.CurrentOperationID.Valid && (int(user.CurrentOperationID.Int64) == operatorOperation.CurrentOperation.ID) {
-			hasuraClaims["x-hasura-current-operation-id"] = fmt.Sprintf("%d", user.CurrentOperationID.Int64)
-			hasuraClaims["x-hasura-current_operation"] = user.CurrentOperation.Name
+	}
+	// assuming you have all permissions, now construct the hasura claims for subsequent row-filtering
+	operation, err := authentication.GetRequestOperation(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication Failed"})
+		return
+	}
+	role := operation.ViewMode
+	if role == "" {
+		role = "spectator"
+	}
+	if role == "lead" {
+		role = "operation_admin"
+	}
+	if operation.CurrentOperator.Admin {
+		role = "mythic_admin"
+	}
+	if !slices.Contains([]string{"spectator", "operation_admin", "operator", "mythic_admin"}, role) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid Hasura session role"})
+		return
+	}
+	grantedOperationIDs := "{}"
+	if claims.APITokensID > 0 {
+		// apitokens are only valid for a single operation
+		grantedOperationIDs = fmt.Sprintf("{%d}", claims.OperationID)
+	} else {
+		// Interactive sessions have validity across all their membership operations
+		err = database.DB.GetContext(c.Request.Context(), &grantedOperationIDs,
+			`SELECT COALESCE(array_agg(id ORDER BY id),ARRAY[]::integer[])::text FROM operation`)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication Failed"})
+			return
 		}
 	}
-	if user.Admin {
-		hasuraClaims["x-hasura-role"] = "mythic_admin"
+	values := map[string]string{
+		"x-hasura-user-id":              fmt.Sprint(claims.UserID),
+		"x-hasura-current-operation-id": fmt.Sprint(claims.OperationID),
+		"x-hasura-current_operation":    operation.CurrentOperation.Name,
+		"x-hasura-apitokens-id":         fmt.Sprint(claims.APITokensID),
+		"x-hasura-role":                 role,
 	}
-	for _, requirement := range mythicjwt.HasuraScopeRequirements() {
-		claimValue := "0"
-		if mythicjwt.AllowsScope(claims.Scopes, requirement.Scope) {
-			claimValue = hasuraScopeAllowedID
+	permissions := map[string]bool{}
+	for _, definition := range authorization.ScopeDefinitions() {
+		permissions[definition.Name] = true
+	}
+	// Include model field declarations in the session claims as well.
+	for _, table := range authorization.Current.Tables {
+		for _, rule := range table.Policy.FieldReads {
+			permissions[rule.Permission] = true
 		}
-		//logging.LogInfo("hasura claims", "claim", hasuraClaims)
-		hasuraClaims[requirement.SessionClaim] = claimValue
 	}
-	hasuraClaimsCacheLock.Lock()
-	hasuraClaimsCache[fmt.Sprintf("%d-%s-%d-%d-%s",
-		claims.UserID, claims.AuthMethod, claims.OperationID, claims.APITokensID, strings.Join(claims.Scopes, ","),
-	)] = hasuraClaims
-	hasuraClaimsCacheLock.Unlock()
-	return nil
-}
-func GetHasuraClaims(c *gin.Context) {
-	/*
-		x-hasura-user-id <-- user.ID
-		x-hasura-current_operation <-- operation name ("null" if not set)
-		x-hasura-current-operation-id <-- operation id ("0" if not set)
-		x-hasura-role <-- view mode for current operation
-			operator, spectator, operation_admin, mythic_admin
-		x-hasura-scope-<resource>-<access>-<anchor> <-- max int if scoped, otherwise "0"
-	*/
-	//logging.LogDebug("hasura webhook info", "headers", c.Request.Header)
-	input, ok := c.Get("hasura")
-	if !ok {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "No hasura found"})
-		return
+	grantedActorIDs := fmt.Sprintf("{%d}", claims.UserID)
+	for permission := range permissions {
+		operationIDs, actorIDs := "{}", "{}"
+		if scopes[authorization.SCOPE_ALL] || scopes[permission] {
+			operationIDs = grantedOperationIDs
+			actorIDs = grantedActorIDs
+		}
+		values[authorization.ClaimName(permission, true)] = operationIDs
+		values[authorization.ClaimName(permission, false)] = actorIDs
 	}
-	hasuraInput := input.(authentication.HasuraRequest)
-	//logging.LogInfo("hasura information", "hasuraRequest", hasuraInput)
-	claims, err := authentication.GetClaims(c)
-	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Authentication Failed"})
-		return
-	}
-	c.Set("GraphQLName", hasuraInput.Request.OperationName)
-	c.Set(authentication.ContextKeyUserID, claims.UserID)
-	c.Set("hasura_claims", claims)
-	if preflightError := hasuraScopePreflight(hasuraInput, claims); preflightError != nil {
-		writeHasuraScopePreflightError(c, preflightError)
-		return
-	}
-	hasuraClaimsCacheLock.RLock()
-	hasuraClaims, ok := hasuraClaimsCache[fmt.Sprintf("%d-%s-%d-%d-%s",
-		claims.UserID, claims.AuthMethod, claims.OperationID, claims.APITokensID, strings.Join(claims.Scopes, ","),
-	)]
-	hasuraClaimsCacheLock.RUnlock()
-	if ok {
-		c.JSON(http.StatusOK, hasuraClaims)
-		return
-	}
-	err = UpdateHasuraClaims(c, false)
-	if err != nil {
-		logging.LogError(err, "failed to update hasura claims")
-		c.JSON(http.StatusForbidden, gin.H{"error": "Authentication Failed"})
-		return
-	}
-	hasuraClaimsCacheLock.RLock()
-	hasuraClaims, ok = hasuraClaimsCache[fmt.Sprintf("%d-%s-%d-%d-%s",
-		claims.UserID, claims.AuthMethod, claims.OperationID, claims.APITokensID, strings.Join(claims.Scopes, ","),
-	)]
-	hasuraClaimsCacheLock.RUnlock()
-	if ok {
-		c.JSON(http.StatusOK, hasuraClaims)
-		return
-	}
-	// we successfully updated but for some reason the userID still isn't in our dictionary
-	logging.LogError(err, "failed to update hasura claims")
-	c.JSON(http.StatusForbidden, gin.H{"error": "Missing Hasura Claims"})
-	return
+	// WebSockets retain these connection-time claims until they disconnect.
+	c.JSON(http.StatusOK, values)
+	//logging.LogDebug("hasura claims", "value", values)
 }

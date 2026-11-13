@@ -1,5 +1,6 @@
 import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React, {useEffect} from 'react';
+import {buildLinkInfoValue} from './linkInfoUtils';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import Switch from '@mui/material/Switch';
@@ -593,21 +594,7 @@ export function TaskParametersDialogRow(props){
         props.onChange(props.name, agentConnectValue, false);
     }
     const onChangeLinkInfo = (index) => {
-        let choice;
-        if(props.choices[index]["source"]["id"] === props.callback_id){
-            choice = props.choices[index]["destination"];
-        }else{
-            choice = props.choices[index]["source"];
-        }
-        const c2profileparameters = choice["c2profileparametersinstances"].reduce( (prev, opt) => {
-            if(opt.c2_profile_id === props.choices[index]["c2profile"]["id"]){
-                return {...prev, [opt.c2profileparameter.name]: !opt.c2profileparameter.crypto_type ? opt.value : {crypto_type: opt.c2profileparameter.crypto_type, enc_key: opt.enc_key, dec_key: opt.dec_key} }
-            }else{
-                return {...prev};
-            }
-        }, {});
-        let agentConnectValue = {edge_id: choice.id, host: choice.host, agent_uuid: choice.payload.uuid, callback_uuid: choice.agent_callback_id, c2_profile: {name: props.choices[index]["c2profile"]["name"], parameters: c2profileparameters} };
-        props.onChange(props.name, agentConnectValue, false);
+        props.onChange(props.name, buildLinkInfoValue(props.choices[index], props.callback_id), false);
         setValue(index);
     }
     const onChangeValue = (evt) => {

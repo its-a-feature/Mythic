@@ -1,6 +1,7 @@
 package webcontroller
 
 import (
+	"github.com/its-a-feature/Mythic/authentication"
 	"net/http"
 	"os"
 
@@ -30,12 +31,7 @@ func FileDirectUploadWebhook(c *gin.Context) {
 		return
 	}
 	filemeta := databaseStructs.Filemeta{}
-	userID, err := GetUserIDFromGin(c)
-	if err != nil {
-		c.AbortWithStatus(http.StatusUnauthorized)
-		return
-	}
-	user, err := database.GetUserFromID(userID)
+	user, err := authentication.GetRequestUser(c)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return

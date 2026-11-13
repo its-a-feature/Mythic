@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -509,15 +510,25 @@ func chatRespondError(c *gin.Context, err string) {
 }
 
 func chatRequireScope(c *gin.Context, requiredScope string) bool {
-	claims, err := authentication.GetClaims(c)
+	scopes, err := authentication.GetScopesSetFromClaims(c)
 	if err != nil {
-		logging.LogError(err, "Failed to get claims for chat scope check")
+		logging.LogError(err, "Failed to get grants for chat scope check")
 		chatRespondError(c, "failed to get authentication claims")
 		return false
 	}
-	if !mythicjwt.AllowsScope(claims.Scopes, requiredScope) {
+	if !scopes[authorization.SCOPE_ALL] && !scopes[requiredScope] {
 		chatRespondError(c, fmt.Sprintf("missing required scope: %s", requiredScope))
 		return false
+	}
+	// Personal read-state changes are allowed for spectators. Shared chat writes
+	// must still respect the token owner's current role on this request.
+	claims, _ := authentication.GetClaims(c)
+	if claims.APITokensID > 0 && strings.HasSuffix(requiredScope, ".write") {
+		operation, err := authentication.GetRequestOperation(c)
+		if err != nil || !operation.CurrentOperator.Admin && operation.ViewMode == database.OPERATOR_OPERATION_VIEW_MODE_SPECTATOR {
+			chatRespondError(c, "the token owner's role does not allow chat writes")
+			return false
+		}
 	}
 	return true
 }
@@ -525,14 +536,14 @@ func chatRequireScope(c *gin.Context, requiredScope string) bool {
 func chatScopeForChannel(channel databaseStructs.ChatChannel, write bool) string {
 	if channel.ChannelType == databaseStructs.ChatChannelTypeAI {
 		if write {
-			return mythicjwt.SCOPE_CHAT_AI_WRITE
+			return authorization.SCOPE_CHAT_AI_WRITE
 		}
-		return mythicjwt.SCOPE_CHAT_AI_READ
+		return authorization.SCOPE_CHAT_AI_READ
 	}
 	if write {
-		return mythicjwt.SCOPE_CHAT_WRITE
+		return authorization.SCOPE_CHAT_WRITE
 	}
-	return mythicjwt.SCOPE_CHAT_READ
+	return authorization.SCOPE_CHAT_READ
 }
 
 func chatIsModerator(operatorOperation *databaseStructs.Operatoroperation) bool {
@@ -795,7 +806,7 @@ func validateAIChatChannelAPIToken(apiTokenID int, operationID int) (databaseStr
 	err := database.DB.Get(&apiToken, `SELECT apitokens.*
 		FROM apitokens
 		JOIN operatoroperation ON operatoroperation.operator_id = apitokens.operator_id
-		WHERE apitokens.id=$1 AND operatoroperation.operation_id=$2`,
+		WHERE apitokens.id=$1 AND apitokens.operation_id=$2 AND operatoroperation.operation_id=$2`,
 		apiTokenID, operationID)
 	if err != nil {
 		return apiToken, fmt.Errorf("failed to find an active API token for this operation")
@@ -806,10 +817,10 @@ func validateAIChatChannelAPIToken(apiTokenID int, operationID int) (databaseStr
 	if apiToken.TokenType != mythicjwt.AUTH_METHOD_API {
 		return apiToken, fmt.Errorf("AI chat channel API token must be a normal API token")
 	}
-	if !mythicjwt.AllowsScope(apiToken.Scopes, mythicjwt.SCOPE_APITOKEN_WRITE) ||
-		!mythicjwt.AllowsScope(apiToken.Scopes, mythicjwt.SCOPE_CHAT_AI_WRITE) {
+	if !authorization.AllowsScope(apiToken.Scopes, authorization.SCOPE_APITOKEN_WRITE) ||
+		!authorization.AllowsScope(apiToken.Scopes, authorization.SCOPE_CHAT_AI_WRITE) {
 		return apiToken, fmt.Errorf("AI chat channel API token must include %s and %s",
-			mythicjwt.SCOPE_APITOKEN_WRITE, mythicjwt.SCOPE_CHAT_AI_WRITE)
+			authorization.SCOPE_APITOKEN_WRITE, authorization.SCOPE_CHAT_AI_WRITE)
 	}
 	return apiToken, nil
 }
@@ -826,7 +837,7 @@ func chatChannelAuthContext(channel databaseStructs.ChatChannel) (rabbitmq.Rabbi
 		OperatorID:   apiToken.OperatorID,
 		OperationID:  channel.OperationID,
 		APITokensID:  apiToken.ID,
-		SourceScopes: mythicjwt.EffectiveScopes(apiToken.Scopes),
+		SourceScopes: append([]string{}, apiToken.Scopes...),
 	}, nil
 }
 

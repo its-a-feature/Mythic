@@ -2,6 +2,8 @@ package databaseStructs
 
 import (
 	"time"
+
+	authz "github.com/its-a-feature/Mythic/authorization"
 )
 
 type C2profile struct {
@@ -17,4 +19,13 @@ type C2profile struct {
 	Deleted          bool      `db:"deleted"`
 	SemVer           string    `db:"semver"`
 	HasLogo          bool      `db:"has_logo"`
+}
+
+// AuthorizationPolicy keeps c2profile permissions beside its database model.
+func (C2profile) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table: authz.TableRef{Schema: "public", Name: "c2profile"},
+		Read:  authz.Rule{Public: true},
+		Write: authz.Rule{Permission: authz.SCOPE_MYTHIC_WRITE},
+	}
 }

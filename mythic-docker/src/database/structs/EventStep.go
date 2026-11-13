@@ -2,6 +2,7 @@ package databaseStructs
 
 import (
 	"database/sql"
+	authz "github.com/its-a-feature/Mythic/authorization"
 	"time"
 )
 
@@ -49,4 +50,34 @@ type EventStepInstance struct {
 	UserInteractionResolvedAt sql.NullTime       `db:"user_interaction_resolved_at" json:"user_interaction_resolved_at" toml:"user_interaction_resolved_at" yaml:"user_interaction_resolved_at"`
 	EventStep                 EventStep          `db:"eventstep"`
 	EventGroupInstance        EventGroupInstance `db:"eventgroupinstance"`
+}
+
+// AuthorizationPolicy keeps eventstep permissions beside its database model.
+func (EventStep) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table:         authz.TableRef{Schema: "public", Name: "eventstep"},
+		OperationPath: []string{"operation_id"},
+		Read:          authz.Rule{Permission: authz.SCOPE_EVENTING_READ},
+		Write:         authz.Rule{Permission: authz.SCOPE_EVENTING_WRITE},
+		Relationships: []authz.RelationshipBinding{
+			{Name: "eventgroup", Target: EventGroup{}},
+			{Name: "operation", Target: Operation{}},
+			{Name: "operator", Target: Operator{}},
+		},
+	}
+}
+
+// AuthorizationPolicy keeps eventstepinstance permissions beside its database model.
+func (EventStepInstance) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table:         authz.TableRef{Schema: "public", Name: "eventstepinstance"},
+		OperationPath: []string{"operation_id"},
+		Read:          authz.Rule{Permission: authz.SCOPE_EVENTING_READ},
+		Write:         authz.Rule{Permission: authz.SCOPE_EVENTING_WRITE},
+		Relationships: []authz.RelationshipBinding{
+			{Name: "user_interaction_resolver", Target: Operator{}},
+			{Name: "operation", Target: Operation{}},
+			{Name: "operator", Target: Operator{}},
+		},
+	}
 }

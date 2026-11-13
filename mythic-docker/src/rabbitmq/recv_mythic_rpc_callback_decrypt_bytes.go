@@ -6,7 +6,8 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/logging"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -30,7 +31,7 @@ func init() {
 		Queue:      MYTHIC_RPC_CALLBACK_DECRYPT_BYTES,
 		RoutingKey: MYTHIC_RPC_CALLBACK_DECRYPT_BYTES,
 		Handler:    processMythicRPCCallbackDecryptBytes,
-		Scopes:     []string{mythicjwt.SCOPE_CALLBACK_WRITE},
+		Scopes:     []string{authorization.SCOPE_CALLBACK_WRITE},
 	})
 }
 

@@ -1,94 +1,118 @@
-table:
-  name: operator_alias
-  schema: public
 object_relationships:
-  - name: consuming_container
-    using:
-      foreign_key_constraint_on: consuming_container_id
-  - name: operator
-    using:
-      foreign_key_constraint_on: operator_id
-  - name: payloadtype
-    using:
-      foreign_key_constraint_on: payloadtype_id
+    - name: consuming_container
+      using:
+        foreign_key_constraint_on: consuming_container_id
+    - name: operator
+      using:
+        foreign_key_constraint_on: operator_id
+    - name: payloadtype
+      using:
+        foreign_key_constraint_on: payloadtype_id
 select_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - active
-        - alias
-        - alias_type
-        - consuming_container_id
-        - created_at
-        - id
-        - name
-        - operator_id
-        - payloadtype_id
-        - updated_at
-      filter:
-        _and:
-          - operator_id:
-              _eq: X-Hasura-User-Id
-          - operator_id:
-              _lte: X-Hasura-Scope-operator-read-operator
-      allow_aggregations: true
-  - role: operation_admin
-    permission:
-      columns:
-        - active
-        - alias
-        - alias_type
-        - consuming_container_id
-        - created_at
-        - id
-        - name
-        - operator_id
-        - payloadtype_id
-        - updated_at
-      filter:
-        _and:
-          - operator_id:
-              _eq: X-Hasura-User-Id
-          - operator_id:
-              _lte: X-Hasura-Scope-operator-read-operator
-      allow_aggregations: true
-  - role: operator
-    permission:
-      columns:
-        - active
-        - alias
-        - alias_type
-        - consuming_container_id
-        - created_at
-        - id
-        - name
-        - operator_id
-        - payloadtype_id
-        - updated_at
-      filter:
-        _and:
-          - operator_id:
-              _eq: X-Hasura-User-Id
-          - operator_id:
-              _lte: X-Hasura-Scope-operator-read-operator
-      allow_aggregations: true
-  - role: spectator
-    permission:
-      columns:
-        - active
-        - alias
-        - alias_type
-        - consuming_container_id
-        - created_at
-        - id
-        - name
-        - operator_id
-        - payloadtype_id
-        - updated_at
-      filter:
-        _and:
-          - operator_id:
-              _eq: X-Hasura-User-Id
-          - operator_id:
-              _lte: X-Hasura-Scope-operator-read-operator
-      allow_aggregations: true
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - active
+            - alias
+            - alias_type
+            - consuming_container_id
+            - created_at
+            - id
+            - name
+            - operator_id
+            - payloadtype_id
+            - updated_at
+        filter:
+            _and:
+                - operator_id:
+                    _eq: X-Hasura-User-Id
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-read-actor-ids
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - active
+            - alias
+            - alias_type
+            - consuming_container_id
+            - created_at
+            - id
+            - name
+            - operator_id
+            - payloadtype_id
+            - updated_at
+        filter:
+            _and:
+                - operator_id:
+                    _eq: X-Hasura-User-Id
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-read-actor-ids
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - active
+            - alias
+            - alias_type
+            - consuming_container_id
+            - created_at
+            - id
+            - name
+            - operator_id
+            - payloadtype_id
+            - updated_at
+        filter:
+            _and:
+                - operator_id:
+                    _eq: X-Hasura-User-Id
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-read-actor-ids
+      role: operator
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - active
+            - alias
+            - alias_type
+            - consuming_container_id
+            - created_at
+            - id
+            - name
+            - operator_id
+            - payloadtype_id
+            - updated_at
+        filter:
+            _and:
+                - operator_id:
+                    _eq: X-Hasura-User-Id
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-read-actor-ids
+      role: spectator
+table:
+    name: operator_alias
+    schema: public

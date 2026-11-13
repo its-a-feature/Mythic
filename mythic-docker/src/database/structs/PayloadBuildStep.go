@@ -2,6 +2,7 @@ package databaseStructs
 
 import (
 	"database/sql"
+	authz "github.com/its-a-feature/Mythic/authorization"
 )
 
 type PayloadBuildStep struct {
@@ -18,4 +19,17 @@ type PayloadBuildStep struct {
 	EndTime         sql.NullTime  `db:"end_time"`
 	Success         bool          `db:"step_success"`
 	StepSkip        bool          `db:"step_skip"`
+}
+
+// AuthorizationPolicy keeps payload_build_step permissions beside its database model.
+func (PayloadBuildStep) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table:         authz.TableRef{Schema: "public", Name: "payload_build_step"},
+		OperationPath: []string{"payload", "operation_id"},
+		Read:          authz.Rule{Permission: authz.SCOPE_PAYLOAD_READ},
+		Write:         authz.Rule{Permission: authz.SCOPE_PAYLOAD_WRITE},
+		Relationships: []authz.RelationshipBinding{
+			{Name: "payloadtype", Target: Payloadtype{}},
+		},
+	}
 }

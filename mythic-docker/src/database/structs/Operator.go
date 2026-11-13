@@ -2,6 +2,7 @@ package databaseStructs
 
 import (
 	"database/sql"
+	authz "github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/utils/structs"
 	"time"
 )
@@ -32,4 +33,16 @@ type Operator struct {
 	AccountType              string            `db:"account_type" json:"account_type"`
 	APITokensID              structs.NullInt64 `db:"apitokens_id" json:"api_tokens_id" mapstructure:"apitokens_id"`
 	Email                    sql.NullString    `db:"email" json:"email"`
+}
+
+// AuthorizationPolicy keeps operator permissions beside its database model.
+func (Operator) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table: authz.TableRef{Schema: "public", Name: "operator"},
+		Read:  authz.Rule{Permission: authz.SCOPE_OPERATOR_READ},
+		Write: authz.Rule{Permission: authz.SCOPE_OPERATOR_WRITE},
+		Relationships: []authz.RelationshipBinding{
+			{Name: "apitoken", Target: Apitokens{}},
+		},
+	}
 }

@@ -86,6 +86,28 @@ func (credentialTaskReferenceProvider) BatchResolveTaskReferences(context taskRe
 	if len(credentialIDs) == 0 {
 		return map[taskReference]taskReferenceResolvedValue{}, nil
 	}
+	// A reference can disclose the value through expanded params and keyword resolution.
+	// Right now a check here doesn't help because you can just read an agent's parameters
+	// for any task and see the expansion anyway. This will need more context, potentially
+	// also blocking agent parameters behind credential.value.read as well
+	/*
+		table := authorization.Current.Tables["credential"]
+		if permission := table.Policy.Read.Permission; permission != "" && !context.Scopes[authorization.SCOPE_ALL] && !context.Scopes[permission] {
+			return nil, fmt.Errorf("missing required scope: %s", permission)
+		}
+		for _, reference := range references {
+			if reference.Field != "" && reference.Field != "credential" {
+				continue
+			}
+			for _, rule := range table.Policy.FieldReads {
+				for _, field := range rule.Fields {
+					if field.Column == "credential" && !context.Scopes[authorization.SCOPE_ALL] && !context.Scopes[rule.Permission] {
+						return nil, fmt.Errorf("missing required scope: %s", rule.Permission)
+					}
+				}
+			}
+		}
+	*/
 
 	credentials := []databaseStructs.Credential{}
 	query, args, err := sqlx.In(`SELECT

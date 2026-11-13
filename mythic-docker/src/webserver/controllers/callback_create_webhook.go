@@ -40,13 +40,7 @@ func CreateCallbackWebhook(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
 		return
 	}
-	userID, err := GetUserIDFromGin(c)
-	if err != nil {
-		logging.LogError(err, "Failed to get userID from JWT")
-		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
-		return
-	}
-	user, err := database.GetUserFromID(userID)
+	user, err := authentication.GetRequestUser(c)
 	if err != nil {
 		logging.LogError(err, "Failed to get userID from JWT")
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})

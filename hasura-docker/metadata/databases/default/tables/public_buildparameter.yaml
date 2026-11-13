@@ -1,116 +1,116 @@
-table:
-  name: buildparameter
-  schema: public
-object_relationships:
-  - name: payloadtype
-    using:
-      foreign_key_constraint_on: payload_type_id
 array_relationships:
-  - name: buildparameterinstances
-    using:
-      foreign_key_constraint_on:
-        column: build_parameter_id
-        table:
-          name: buildparameterinstance
-          schema: public
+    - name: buildparameterinstances
+      using:
+        foreign_key_constraint_on:
+            column: build_parameter_id
+            table:
+                name: buildparameterinstance
+                schema: public
+object_relationships:
+    - name: payloadtype
+      using:
+        foreign_key_constraint_on: payload_type_id
 select_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - crypto_type
-        - deleted
-        - randomize
-        - required
-        - id
-        - payload_type_id
-        - ui_position
-        - choices
-        - choices_display_names
-        - hide_conditions
-        - json_string_schema
-        - supported_os
-        - default_value
-        - description
-        - display_name
-        - dynamic_query_function
-        - format_string
-        - group_name
-        - name
-        - parameter_type
-        - verifier_regex
-      filter: {}
-  - role: operation_admin
-    permission:
-      columns:
-        - crypto_type
-        - deleted
-        - randomize
-        - required
-        - id
-        - payload_type_id
-        - ui_position
-        - choices
-        - choices_display_names
-        - hide_conditions
-        - json_string_schema
-        - supported_os
-        - default_value
-        - description
-        - display_name
-        - dynamic_query_function
-        - format_string
-        - group_name
-        - name
-        - parameter_type
-        - verifier_regex
-      filter: {}
-  - role: operator
-    permission:
-      columns:
-        - crypto_type
-        - deleted
-        - randomize
-        - required
-        - id
-        - payload_type_id
-        - ui_position
-        - choices
-        - choices_display_names
-        - hide_conditions
-        - json_string_schema
-        - supported_os
-        - default_value
-        - description
-        - display_name
-        - dynamic_query_function
-        - format_string
-        - group_name
-        - name
-        - parameter_type
-        - verifier_regex
-      filter: {}
-  - role: spectator
-    permission:
-      columns:
-        - crypto_type
-        - deleted
-        - randomize
-        - required
-        - id
-        - payload_type_id
-        - ui_position
-        - choices
-        - choices_display_names
-        - hide_conditions
-        - json_string_schema
-        - supported_os
-        - default_value
-        - description
-        - display_name
-        - dynamic_query_function
-        - format_string
-        - group_name
-        - name
-        - parameter_type
-        - verifier_regex
-      filter: {}
+    - permission:
+        columns:
+            - crypto_type
+            - deleted
+            - randomize
+            - required
+            - id
+            - payload_type_id
+            - ui_position
+            - choices
+            - choices_display_names
+            - hide_conditions
+            - json_string_schema
+            - supported_os
+            - default_value
+            - description
+            - display_name
+            - dynamic_query_function
+            - format_string
+            - group_name
+            - name
+            - parameter_type
+            - verifier_regex
+        filter: {}
+      role: mythic_admin
+    - permission:
+        columns:
+            - crypto_type
+            - deleted
+            - randomize
+            - required
+            - id
+            - payload_type_id
+            - ui_position
+            - choices
+            - choices_display_names
+            - hide_conditions
+            - json_string_schema
+            - supported_os
+            - default_value
+            - description
+            - display_name
+            - dynamic_query_function
+            - format_string
+            - group_name
+            - name
+            - parameter_type
+            - verifier_regex
+        filter: {}
+      role: operation_admin
+    - permission:
+        columns:
+            - crypto_type
+            - deleted
+            - randomize
+            - required
+            - id
+            - payload_type_id
+            - ui_position
+            - choices
+            - choices_display_names
+            - hide_conditions
+            - json_string_schema
+            - supported_os
+            - default_value
+            - description
+            - display_name
+            - dynamic_query_function
+            - format_string
+            - group_name
+            - name
+            - parameter_type
+            - verifier_regex
+        filter: {}
+      role: operator
+    - permission:
+        columns:
+            - crypto_type
+            - deleted
+            - randomize
+            - required
+            - id
+            - payload_type_id
+            - ui_position
+            - choices
+            - choices_display_names
+            - hide_conditions
+            - json_string_schema
+            - supported_os
+            - default_value
+            - description
+            - display_name
+            - dynamic_query_function
+            - format_string
+            - group_name
+            - name
+            - parameter_type
+            - verifier_regex
+        filter: {}
+      role: spectator
+table:
+    name: buildparameter
+    schema: public

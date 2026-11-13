@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/google/uuid"
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -56,15 +57,7 @@ func CreateInviteLink(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	operatorID, err := GetUserIDFromGin(c)
-	if err != nil {
-		c.JSON(http.StatusOK, CreateInviteLinkResponse{
-			Status: "error",
-			Error:  "Failed to get user information",
-		})
-		return
-	}
-	operator, err := database.GetUserFromID(operatorID)
+	operator, err := authentication.GetRequestUser(c)
 	if err != nil {
 		c.JSON(http.StatusOK, CreateInviteLinkResponse{
 			Status: "error",
@@ -318,15 +311,7 @@ type GetOutstandingInviteLinkResponse struct {
 }
 
 func GetOutstandingInviteLinks(c *gin.Context) {
-	operatorID, err := GetUserIDFromGin(c)
-	if err != nil {
-		c.JSON(http.StatusOK, GetOutstandingInviteLinkResponse{
-			Status: "error",
-			Error:  "Failed to get user information",
-		})
-		return
-	}
-	operator, err := database.GetUserFromID(operatorID)
+	operator, err := authentication.GetRequestUser(c)
 	if err != nil {
 		c.JSON(http.StatusOK, GetOutstandingInviteLinkResponse{
 			Status: "error",
@@ -408,15 +393,7 @@ func UpdateInviteLink(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"error": err.Error()})
 		return
 	}
-	operatorID, err := GetUserIDFromGin(c)
-	if err != nil {
-		c.JSON(http.StatusOK, UpdateInviteLinkResponse{
-			Status: "error",
-			Error:  "Failed to get user information",
-		})
-		return
-	}
-	operator, err := database.GetUserFromID(operatorID)
+	operator, err := authentication.GetRequestUser(c)
 	if err != nil {
 		c.JSON(http.StatusOK, UpdateInviteLinkResponse{
 			Status: "error",

@@ -5,14 +5,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/authentication"
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+	"github.com/its-a-feature/Mythic/authorization"
 )
 
 type APITokenScopeDefinitionOutput struct {
-	Status             string                      `json:"status"`
-	Error              string                      `json:"error"`
-	Scopes             []mythicjwt.ScopeDefinition `json:"scopes"`
-	GrantableWildcards []string                    `json:"grantable_wildcards"`
+	Status             string                          `json:"status"`
+	Error              string                          `json:"error"`
+	Scopes             []authorization.ScopeDefinition `json:"scopes"`
+	GrantableWildcards []string                        `json:"grantable_wildcards"`
 }
 
 func APITokenScopeDefinitionsWebhook(c *gin.Context) {
@@ -26,7 +26,7 @@ func APITokenScopeDefinitionsWebhook(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, APITokenScopeDefinitionOutput{
 		Status:             "success",
-		Scopes:             mythicjwt.GrantableScopeDefinitions(claims.Scopes),
-		GrantableWildcards: mythicjwt.GrantableWildcardScopes(claims.Scopes),
+		Scopes:             authorization.GrantableScopeDefinitions(claims.Scopes),
+		GrantableWildcards: authorization.GrantableWildcardScopes(claims.Scopes),
 	})
 }

@@ -1,455 +1,471 @@
-table:
-  name: task
-  schema: public
-object_relationships:
-  - name: apitoken
-    using:
-      foreign_key_constraint_on: apitokens_id
-  - name: callback
-    using:
-      foreign_key_constraint_on: callback_id
-  - name: command
-    using:
-      foreign_key_constraint_on: command_id
-  - name: commentOperator
-    using:
-      foreign_key_constraint_on: comment_operator_id
-  - name: eventstepinstance
-    using:
-      foreign_key_constraint_on: eventstepinstance_id
-  - name: operator
-    using:
-      foreign_key_constraint_on: operator_id
-  - name: opsec_post_bypass_user
-    using:
-      foreign_key_constraint_on: opsec_post_bypass_user_id
-  - name: opsec_pre_bypass_user
-    using:
-      foreign_key_constraint_on: opsec_pre_bypass_user_id
-  - name: task
-    using:
-      foreign_key_constraint_on: parent_task_id
-  - name: token
-    using:
-      foreign_key_constraint_on: token_id
 array_relationships:
-  - name: apitokens
-    using:
-      foreign_key_constraint_on:
-        column: task_id
-        table:
-          name: apitokens
-          schema: public
-  - name: attacktasks
-    using:
-      foreign_key_constraint_on:
-        column: task_id
-        table:
-          name: attacktask
-          schema: public
-  - name: callbackports
-    using:
-      foreign_key_constraint_on:
-        column: task_id
-        table:
-          name: callbackport
-          schema: public
-  - name: callbacktokens
-    using:
-      foreign_key_constraint_on:
-        column: task_id
-        table:
-          name: callbacktoken
-          schema: public
-  - name: credentials
-    using:
-      foreign_key_constraint_on:
-        column: task_id
-        table:
-          name: credential
-          schema: public
-  - name: filemeta
-    using:
-      foreign_key_constraint_on:
-        column: task_id
-        table:
-          name: filemeta
-          schema: public
-  - name: keylogs
-    using:
-      foreign_key_constraint_on:
-        column: task_id
-        table:
-          name: keylog
-          schema: public
-  - name: mythictrees
-    using:
-      foreign_key_constraint_on:
-        column: task_id
-        table:
-          name: mythictree
-          schema: public
-  - name: payloadonhosts
-    using:
-      foreign_key_constraint_on:
-        column: task_id
-        table:
-          name: payloadonhost
-          schema: public
-  - name: payloads
-    using:
-      foreign_key_constraint_on:
-        column: task_id
-        table:
-          name: payload
-          schema: public
-  - name: responses
-    using:
-      foreign_key_constraint_on:
-        column: task_id
-        table:
-          name: response
-          schema: public
-  - name: tags
-    using:
-      foreign_key_constraint_on:
-        column: task_id
-        table:
-          name: tag
-          schema: public
-  - name: taskartifacts
-    using:
-      foreign_key_constraint_on:
-        column: task_id
-        table:
-          name: taskartifact
-          schema: public
-  - name: tasks
-    using:
-      foreign_key_constraint_on:
-        column: parent_task_id
-        table:
-          name: task
-          schema: public
-  - name: tokens
-    using:
-      foreign_key_constraint_on:
-        column: task_id
-        table:
-          name: token
-          schema: public
+    - name: apitokens
+      using:
+        foreign_key_constraint_on:
+            column: task_id
+            table:
+                name: apitokens
+                schema: public
+    - name: attacktasks
+      using:
+        foreign_key_constraint_on:
+            column: task_id
+            table:
+                name: attacktask
+                schema: public
+    - name: callbackports
+      using:
+        foreign_key_constraint_on:
+            column: task_id
+            table:
+                name: callbackport
+                schema: public
+    - name: callbacktokens
+      using:
+        foreign_key_constraint_on:
+            column: task_id
+            table:
+                name: callbacktoken
+                schema: public
+    - name: credentials
+      using:
+        foreign_key_constraint_on:
+            column: task_id
+            table:
+                name: credential
+                schema: public
+    - name: filemeta
+      using:
+        foreign_key_constraint_on:
+            column: task_id
+            table:
+                name: filemeta
+                schema: public
+    - name: keylogs
+      using:
+        foreign_key_constraint_on:
+            column: task_id
+            table:
+                name: keylog
+                schema: public
+    - name: mythictrees
+      using:
+        foreign_key_constraint_on:
+            column: task_id
+            table:
+                name: mythictree
+                schema: public
+    - name: payloadonhosts
+      using:
+        foreign_key_constraint_on:
+            column: task_id
+            table:
+                name: payloadonhost
+                schema: public
+    - name: payloads
+      using:
+        foreign_key_constraint_on:
+            column: task_id
+            table:
+                name: payload
+                schema: public
+    - name: responses
+      using:
+        foreign_key_constraint_on:
+            column: task_id
+            table:
+                name: response
+                schema: public
+    - name: tags
+      using:
+        foreign_key_constraint_on:
+            column: task_id
+            table:
+                name: tag
+                schema: public
+    - name: taskartifacts
+      using:
+        foreign_key_constraint_on:
+            column: task_id
+            table:
+                name: taskartifact
+                schema: public
+    - name: tasks
+      using:
+        foreign_key_constraint_on:
+            column: parent_task_id
+            table:
+                name: task
+                schema: public
+    - name: tokens
+      using:
+        foreign_key_constraint_on:
+            column: task_id
+            table:
+                name: token
+                schema: public
+object_relationships:
+    - name: apitoken
+      using:
+        foreign_key_constraint_on: apitokens_id
+    - name: callback
+      using:
+        foreign_key_constraint_on: callback_id
+    - name: command
+      using:
+        foreign_key_constraint_on: command_id
+    - name: commentOperator
+      using:
+        foreign_key_constraint_on: comment_operator_id
+    - name: eventstepinstance
+      using:
+        foreign_key_constraint_on: eventstepinstance_id
+    - name: operator
+      using:
+        foreign_key_constraint_on: operator_id
+    - name: opsec_post_bypass_user
+      using:
+        foreign_key_constraint_on: opsec_post_bypass_user_id
+    - name: opsec_pre_bypass_user
+      using:
+        foreign_key_constraint_on: opsec_pre_bypass_user_id
+    - name: task
+      using:
+        foreign_key_constraint_on: parent_task_id
+    - name: token
+      using:
+        foreign_key_constraint_on: token_id
 select_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - completed
-        - completed_callback_function_completed
-        - completed_callback_function_started
-        - group_callback_function_completed
-        - group_callback_function_started
-        - has_intercepted_response
-        - is_interactive_task
-        - opsec_post_blocked
-        - opsec_post_bypassed
-        - opsec_pre_blocked
-        - opsec_pre_bypassed
-        - process_at_original_command
-        - subtask_callback_function_completed
-        - subtask_callback_function_started
-        - apitokens_id
-        - callback_id
-        - command_id
-        - comment_operator_id
-        - display_id
-        - eventstepinstance_id
-        - id
-        - interactive_task_type
-        - operation_id
-        - operator_id
-        - opsec_post_bypass_user_id
-        - opsec_pre_bypass_user_id
-        - parent_task_id
-        - response_count
-        - token_id
-        - agent_task_id
-        - alias_resolution
-        - keyword_resolution
-        - command_name
-        - command_payload_type
-        - comment
-        - completed_callback_function
-        - display_params
-        - group_callback_function
-        - mythic_parsed_params
-        - opsec_post_bypass_role
-        - opsec_post_message
-        - opsec_pre_bypass_role
-        - opsec_pre_message
-        - original_params
-        - parameter_group_name
-        - params
-        - status
-        - stderr
-        - stdout
-        - subtask_callback_function
-        - subtask_group_name
-        - tasking_location
-        - status_timestamp_preprocessing
-        - status_timestamp_processed
-        - status_timestamp_processing
-        - status_timestamp_submitted
-        - timestamp
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-task-read-operation
-      allow_aggregations: true
-  - role: operation_admin
-    permission:
-      columns:
-        - completed
-        - completed_callback_function_completed
-        - completed_callback_function_started
-        - group_callback_function_completed
-        - group_callback_function_started
-        - has_intercepted_response
-        - is_interactive_task
-        - opsec_post_blocked
-        - opsec_post_bypassed
-        - opsec_pre_blocked
-        - opsec_pre_bypassed
-        - process_at_original_command
-        - subtask_callback_function_completed
-        - subtask_callback_function_started
-        - apitokens_id
-        - callback_id
-        - command_id
-        - comment_operator_id
-        - display_id
-        - eventstepinstance_id
-        - id
-        - interactive_task_type
-        - operation_id
-        - operator_id
-        - opsec_post_bypass_user_id
-        - opsec_pre_bypass_user_id
-        - parent_task_id
-        - response_count
-        - token_id
-        - agent_task_id
-        - alias_resolution
-        - keyword_resolution
-        - command_name
-        - command_payload_type
-        - comment
-        - completed_callback_function
-        - display_params
-        - group_callback_function
-        - mythic_parsed_params
-        - opsec_post_bypass_role
-        - opsec_post_message
-        - opsec_pre_bypass_role
-        - opsec_pre_message
-        - original_params
-        - parameter_group_name
-        - params
-        - status
-        - stderr
-        - stdout
-        - subtask_callback_function
-        - subtask_group_name
-        - tasking_location
-        - status_timestamp_preprocessing
-        - status_timestamp_processed
-        - status_timestamp_processing
-        - status_timestamp_submitted
-        - timestamp
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-task-read-operation
-      allow_aggregations: true
-  - role: operator
-    permission:
-      columns:
-        - completed
-        - completed_callback_function_completed
-        - completed_callback_function_started
-        - group_callback_function_completed
-        - group_callback_function_started
-        - has_intercepted_response
-        - is_interactive_task
-        - opsec_post_blocked
-        - opsec_post_bypassed
-        - opsec_pre_blocked
-        - opsec_pre_bypassed
-        - process_at_original_command
-        - subtask_callback_function_completed
-        - subtask_callback_function_started
-        - apitokens_id
-        - callback_id
-        - command_id
-        - comment_operator_id
-        - display_id
-        - eventstepinstance_id
-        - id
-        - interactive_task_type
-        - operation_id
-        - operator_id
-        - opsec_post_bypass_user_id
-        - opsec_pre_bypass_user_id
-        - parent_task_id
-        - response_count
-        - token_id
-        - agent_task_id
-        - alias_resolution
-        - keyword_resolution
-        - command_name
-        - command_payload_type
-        - comment
-        - completed_callback_function
-        - display_params
-        - group_callback_function
-        - mythic_parsed_params
-        - opsec_post_bypass_role
-        - opsec_post_message
-        - opsec_pre_bypass_role
-        - opsec_pre_message
-        - original_params
-        - parameter_group_name
-        - params
-        - status
-        - stderr
-        - stdout
-        - subtask_callback_function
-        - subtask_group_name
-        - tasking_location
-        - status_timestamp_preprocessing
-        - status_timestamp_processed
-        - status_timestamp_processing
-        - status_timestamp_submitted
-        - timestamp
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-task-read-operation
-      allow_aggregations: true
-  - role: spectator
-    permission:
-      columns:
-        - completed
-        - completed_callback_function_completed
-        - completed_callback_function_started
-        - group_callback_function_completed
-        - group_callback_function_started
-        - has_intercepted_response
-        - is_interactive_task
-        - opsec_post_blocked
-        - opsec_post_bypassed
-        - opsec_pre_blocked
-        - opsec_pre_bypassed
-        - process_at_original_command
-        - subtask_callback_function_completed
-        - subtask_callback_function_started
-        - apitokens_id
-        - callback_id
-        - command_id
-        - comment_operator_id
-        - display_id
-        - eventstepinstance_id
-        - id
-        - interactive_task_type
-        - operation_id
-        - operator_id
-        - opsec_post_bypass_user_id
-        - opsec_pre_bypass_user_id
-        - parent_task_id
-        - response_count
-        - token_id
-        - agent_task_id
-        - alias_resolution
-        - keyword_resolution
-        - command_name
-        - command_payload_type
-        - comment
-        - completed_callback_function
-        - display_params
-        - group_callback_function
-        - mythic_parsed_params
-        - opsec_post_bypass_role
-        - opsec_post_message
-        - opsec_pre_bypass_role
-        - opsec_pre_message
-        - original_params
-        - parameter_group_name
-        - params
-        - status
-        - stderr
-        - stdout
-        - subtask_callback_function
-        - subtask_group_name
-        - tasking_location
-        - status_timestamp_preprocessing
-        - status_timestamp_processed
-        - status_timestamp_processing
-        - status_timestamp_submitted
-        - timestamp
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-task-read-operation
-      allow_aggregations: true
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - completed
+            - completed_callback_function_completed
+            - completed_callback_function_started
+            - group_callback_function_completed
+            - group_callback_function_started
+            - has_intercepted_response
+            - is_interactive_task
+            - opsec_post_blocked
+            - opsec_post_bypassed
+            - opsec_pre_blocked
+            - opsec_pre_bypassed
+            - process_at_original_command
+            - subtask_callback_function_completed
+            - subtask_callback_function_started
+            - apitokens_id
+            - callback_id
+            - command_id
+            - comment_operator_id
+            - display_id
+            - eventstepinstance_id
+            - id
+            - interactive_task_type
+            - operation_id
+            - operator_id
+            - opsec_post_bypass_user_id
+            - opsec_pre_bypass_user_id
+            - parent_task_id
+            - response_count
+            - token_id
+            - agent_task_id
+            - alias_resolution
+            - keyword_resolution
+            - command_name
+            - command_payload_type
+            - comment
+            - completed_callback_function
+            - display_params
+            - group_callback_function
+            - mythic_parsed_params
+            - opsec_post_bypass_role
+            - opsec_post_message
+            - opsec_pre_bypass_role
+            - opsec_pre_message
+            - original_params
+            - parameter_group_name
+            - params
+            - status
+            - stderr
+            - stdout
+            - subtask_callback_function
+            - subtask_group_name
+            - tasking_location
+            - status_timestamp_preprocessing
+            - status_timestamp_processed
+            - status_timestamp_processing
+            - status_timestamp_submitted
+            - timestamp
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-task-read-operation-ids
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - completed
+            - completed_callback_function_completed
+            - completed_callback_function_started
+            - group_callback_function_completed
+            - group_callback_function_started
+            - has_intercepted_response
+            - is_interactive_task
+            - opsec_post_blocked
+            - opsec_post_bypassed
+            - opsec_pre_blocked
+            - opsec_pre_bypassed
+            - process_at_original_command
+            - subtask_callback_function_completed
+            - subtask_callback_function_started
+            - apitokens_id
+            - callback_id
+            - command_id
+            - comment_operator_id
+            - display_id
+            - eventstepinstance_id
+            - id
+            - interactive_task_type
+            - operation_id
+            - operator_id
+            - opsec_post_bypass_user_id
+            - opsec_pre_bypass_user_id
+            - parent_task_id
+            - response_count
+            - token_id
+            - agent_task_id
+            - alias_resolution
+            - keyword_resolution
+            - command_name
+            - command_payload_type
+            - comment
+            - completed_callback_function
+            - display_params
+            - group_callback_function
+            - mythic_parsed_params
+            - opsec_post_bypass_role
+            - opsec_post_message
+            - opsec_pre_bypass_role
+            - opsec_pre_message
+            - original_params
+            - parameter_group_name
+            - params
+            - status
+            - stderr
+            - stdout
+            - subtask_callback_function
+            - subtask_group_name
+            - tasking_location
+            - status_timestamp_preprocessing
+            - status_timestamp_processed
+            - status_timestamp_processing
+            - status_timestamp_submitted
+            - timestamp
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-task-read-operation-ids
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - completed
+            - completed_callback_function_completed
+            - completed_callback_function_started
+            - group_callback_function_completed
+            - group_callback_function_started
+            - has_intercepted_response
+            - is_interactive_task
+            - opsec_post_blocked
+            - opsec_post_bypassed
+            - opsec_pre_blocked
+            - opsec_pre_bypassed
+            - process_at_original_command
+            - subtask_callback_function_completed
+            - subtask_callback_function_started
+            - apitokens_id
+            - callback_id
+            - command_id
+            - comment_operator_id
+            - display_id
+            - eventstepinstance_id
+            - id
+            - interactive_task_type
+            - operation_id
+            - operator_id
+            - opsec_post_bypass_user_id
+            - opsec_pre_bypass_user_id
+            - parent_task_id
+            - response_count
+            - token_id
+            - agent_task_id
+            - alias_resolution
+            - keyword_resolution
+            - command_name
+            - command_payload_type
+            - comment
+            - completed_callback_function
+            - display_params
+            - group_callback_function
+            - mythic_parsed_params
+            - opsec_post_bypass_role
+            - opsec_post_message
+            - opsec_pre_bypass_role
+            - opsec_pre_message
+            - original_params
+            - parameter_group_name
+            - params
+            - status
+            - stderr
+            - stdout
+            - subtask_callback_function
+            - subtask_group_name
+            - tasking_location
+            - status_timestamp_preprocessing
+            - status_timestamp_processed
+            - status_timestamp_processing
+            - status_timestamp_submitted
+            - timestamp
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-task-read-operation-ids
+      role: operator
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - completed
+            - completed_callback_function_completed
+            - completed_callback_function_started
+            - group_callback_function_completed
+            - group_callback_function_started
+            - has_intercepted_response
+            - is_interactive_task
+            - opsec_post_blocked
+            - opsec_post_bypassed
+            - opsec_pre_blocked
+            - opsec_pre_bypassed
+            - process_at_original_command
+            - subtask_callback_function_completed
+            - subtask_callback_function_started
+            - apitokens_id
+            - callback_id
+            - command_id
+            - comment_operator_id
+            - display_id
+            - eventstepinstance_id
+            - id
+            - interactive_task_type
+            - operation_id
+            - operator_id
+            - opsec_post_bypass_user_id
+            - opsec_pre_bypass_user_id
+            - parent_task_id
+            - response_count
+            - token_id
+            - agent_task_id
+            - alias_resolution
+            - keyword_resolution
+            - command_name
+            - command_payload_type
+            - comment
+            - completed_callback_function
+            - display_params
+            - group_callback_function
+            - mythic_parsed_params
+            - opsec_post_bypass_role
+            - opsec_post_message
+            - opsec_pre_bypass_role
+            - opsec_pre_message
+            - original_params
+            - parameter_group_name
+            - params
+            - status
+            - stderr
+            - stdout
+            - subtask_callback_function
+            - subtask_group_name
+            - tasking_location
+            - status_timestamp_preprocessing
+            - status_timestamp_processed
+            - status_timestamp_processing
+            - status_timestamp_submitted
+            - timestamp
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-task-read-operation-ids
+      role: spectator
+table:
+    name: task
+    schema: public
 update_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - comment
-        - comment_operator_id
-        - completed
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-task-write-operation
-      check: null
-      set:
-        comment_operator_id: x-hasura-User-Id
-  - role: operation_admin
-    permission:
-      columns:
-        - comment
-        - comment_operator_id
-        - completed
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-task-write-operation
-      check: null
-      set:
-        comment_operator_id: x-hasura-User-Id
-  - role: operator
-    permission:
-      columns:
-        - comment
-        - comment_operator_id
-        - completed
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-task-write-operation
-      check: null
-      set:
-        comment_operator_id: x-hasura-User-Id
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - operation_id:
+                    _in: x-hasura-task-write-operation-ids
+        columns:
+            - comment
+            - comment_operator_id
+            - completed
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-task-write-operation-ids
+        set:
+            comment_operator_id: x-hasura-User-Id
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - operation_id:
+                    _in: x-hasura-task-write-operation-ids
+        columns:
+            - comment
+            - comment_operator_id
+            - completed
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-task-write-operation-ids
+        set:
+            comment_operator_id: x-hasura-User-Id
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - operation_id:
+                    _in: x-hasura-task-write-operation-ids
+        columns:
+            - comment
+            - comment_operator_id
+            - completed
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-task-write-operation-ids
+        set:
+            comment_operator_id: x-hasura-User-Id
+      role: operator

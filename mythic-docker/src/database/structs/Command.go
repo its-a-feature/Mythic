@@ -2,6 +2,8 @@ package databaseStructs
 
 import (
 	"time"
+
+	authz "github.com/its-a-feature/Mythic/authorization"
 )
 
 type Command struct {
@@ -19,4 +21,12 @@ type Command struct {
 	Deleted             bool            `db:"deleted"`
 	Attributes          MythicJSONText  `db:"attributes"`
 	ScriptOnly          bool            `db:"script_only"`
+}
+
+// AuthorizationPolicy keeps command permissions beside its database model.
+func (Command) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table: authz.TableRef{Schema: "public", Name: "command"},
+		Read:  authz.Rule{Public: true},
+	}
 }

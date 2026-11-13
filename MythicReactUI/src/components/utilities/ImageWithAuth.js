@@ -2,6 +2,34 @@ import React from 'react';
 import {mythicFetch} from "./MythicConnection";
 import {sanitizeSVG} from "./sanitizeSVG";
 
+const imageCache = new Map();
+const IMAGE_CACHE_LIFETIME = 5 * 60 * 1000;
+
+const getImageBlob = (src) => {
+    const token = localStorage.getItem('access_token');
+    const key = JSON.stringify([src, token]);
+    if(imageCache.has(key)){
+        return imageCache.get(key);
+    }
+    // Cache the promise immediately so simultaneous mounts share the fetch and sanitization.
+    const promise = (async () => {
+        const response = await mythicFetch(src, {headers: {
+            Authorization: `Bearer ${token}`,
+            MythicSource: "web",
+        }});
+        if(!response.ok){
+            throw new Error(`Failed to fetch image: ${response.status}`);
+        }
+        return sanitizeSVG(await response.blob());
+    })();
+    imageCache.set(key, promise);
+    promise.then(
+        () => setTimeout(() => imageCache.delete(key), IMAGE_CACHE_LIFETIME),
+        () => imageCache.delete(key), // Allow failed requests to be retried on the next mount.
+    );
+    return promise;
+};
+
 export const ImageWithAuth = ({ src, onError, alt = "", ...props }) => {
     const [imageSrc, setImageSrc] = React.useState('');
     const onErrorRef = React.useRef(onError);
@@ -19,21 +47,10 @@ export const ImageWithAuth = ({ src, onError, alt = "", ...props }) => {
         }
         setImageSrc((currentImageSrc) => currentImageSrc ? "" : currentImageSrc);
         const fetchImage = async () => {
-            const headers = {
-                Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-                MythicSource: "web"
-            };
             try {
-                const response = await mythicFetch(src, { headers });
-                if(!response.ok){
-                    throw new Error(`Failed to fetch image: ${response.status}`);
-                }
-                const blob = await sanitizeSVG(await response.blob());
+                const blob = await getImageBlob(src);
+                if(cancelled){return}
                 objectUrl = URL.createObjectURL(blob);
-                if(cancelled){
-                    URL.revokeObjectURL(objectUrl);
-                    return;
-                }
                 setImageSrc(objectUrl);
             } catch (error) {
                 console.error('Error fetching image:', error);

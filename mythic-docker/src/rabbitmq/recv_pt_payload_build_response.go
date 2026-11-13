@@ -3,7 +3,7 @@ package rabbitmq
 import (
 	"encoding/json"
 
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/eventing"
@@ -64,7 +64,7 @@ func init() {
 		Queue:      "mythic_consume_payload_build",
 		RoutingKey: PT_BUILD_RESPONSE_ROUTING_KEY,
 		Handler:    processPayloadBuildResponse,
-		Scopes:     []string{mythicjwt.SCOPE_PAYLOAD_WRITE},
+		Scopes:     []string{authorization.SCOPE_PAYLOAD_WRITE},
 	})
 
 }

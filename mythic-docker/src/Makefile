@@ -18,7 +18,7 @@ MYTHIC_DOCKER_NETWORKING?="host"
 
 export
 
-build:
+build: check_authorization
 	go mod tidy
 	GOEXPERIMENT=jsonv2 CGO_ENABLED=0 go build ${GO_BUILD_FLAGS} -o ${BINARY_NAME} -tags="nomsgpack" .
 copy_to_final:
@@ -75,3 +75,19 @@ run_custom: build run_custom_values
 clean:
 	go clean
 	rm ${BINARY_NAME}
+
+# Offline policy generation, alongside protobuf generation.
+.PHONY: build_authorization check_authorization test_authorization test_authorization_integration build_and_build_authorization
+build_authorization:
+	go run -tags=nomsgpack ./cmd/authzgen
+
+check_authorization:
+	go run -tags=nomsgpack ./cmd/authzgen -check
+
+test_authorization: check_authorization
+	go test -tags=nomsgpack ./authorization ./authentication/... ./database/... ./webserver/... ./rabbitmq/...
+
+test_authorization_integration: check_authorization
+	MYTHIC_AUTH_TEST_DOCKER=1 go test -tags=nomsgpack -run '^TestAuthorizationIntegration$$' -v ./webserver/controllers
+
+build_and_build_authorization: build_authorization build

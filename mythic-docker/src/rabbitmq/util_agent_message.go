@@ -42,6 +42,7 @@ type AgentMessageRawInput struct {
 	RemoteIP          string
 	Base64Response    bool
 	UpdateCheckinTime bool
+	IsDelegate        bool // Internal marker for recursively processed delegate messages.
 	TrackingID        string
 	AuthContext       RabbitMQAuthContext
 }
@@ -503,8 +504,9 @@ func processAgentMessageContent(agentMessageInput *AgentMessageRawInput, uuidInf
 						uuidInfo.OperationID, "debug", database.MESSAGE_LEVEL_AGENT_MESSGAGE, false)
 				}
 				currentDelegateMessage := AgentMessageRawInput{
-					C2Profile: delegate.C2ProfileName,
-					RemoteIP:  agentMessageInput.RemoteIP,
+					C2Profile:  delegate.C2ProfileName,
+					RemoteIP:   agentMessageInput.RemoteIP,
+					IsDelegate: true,
 				}
 				currentDelegateMessageBytes := []byte(delegate.Message)
 				currentDelegateMessage.Base64Message = &currentDelegateMessageBytes
@@ -572,7 +574,8 @@ func processAgentMessageContent(agentMessageInput *AgentMessageRawInput, uuidInf
 		}
 	}
 	// regardless of the message type, get proxy data if it exists (for both socks and rpfwd)
-	if getDelegateMessages {
+	// Only the outer response collects proxy delegates so nested callbacks cannot drain upstream data.
+	if getDelegateMessages && !agentMessageInput.IsDelegate {
 		delegateResponses = append(delegateResponses, getDelegateProxyMessages(uuidInfo.CallbackID, instanceResponse.AgentUUIDSize, agentMessageInput.UpdateCheckinTime)...)
 	}
 	if len(delegateResponses) > 0 {

@@ -11,13 +11,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-const rabbitMQAuthContextTokenPrefix = "mctx_"
+const rabbitMQAuthContextTokenPrefix = "mrtk_"
 
 type RabbitMQAuthContext struct {
 	ContextID           string   `json:"context_id"`
@@ -27,6 +28,17 @@ type RabbitMQAuthContext struct {
 	EventStepInstanceID int      `json:"eventstepinstance_id"`
 	SourceScopes        []string `json:"source_scopes"`
 	FileUUID            string   `json:"file_uuid,omitempty"`
+	scopes              map[string]bool
+}
+
+func (authContext *RabbitMQAuthContext) ScopeSet() map[string]bool {
+	if authContext.scopes == nil {
+		authContext.scopes = map[string]bool{}
+		for _, scope := range authContext.SourceScopes {
+			authContext.scopes[scope] = true
+		}
+	}
+	return authContext.scopes
 }
 
 type rabbitMQAuthContextEntry struct {
@@ -63,11 +75,8 @@ func generateRabbitMQAuthContext(input RabbitMQAuthContext) (string, error) {
 	if input.ContextID == "" {
 		input.ContextID = uuid.NewString()
 	}
-	normalizedScopes, err := mythicjwt.NormalizeAPITokenScopes(input.SourceScopes)
-	if err != nil {
-		return "", err
-	}
-	input.SourceScopes = normalizedScopes
+	input.SourceScopes = append([]string{}, input.SourceScopes...)
+	input.scopes = nil
 	token, err := generateRabbitMQAuthContextToken()
 	if err != nil {
 		return "", err
@@ -90,6 +99,7 @@ func ValidateRabbitMQAuthContextToken(token string) (RabbitMQAuthContext, error)
 	}
 	contextCopy := entry.Context
 	contextCopy.SourceScopes = append([]string{}, entry.Context.SourceScopes...)
+	contextCopy.scopes = nil
 	return contextCopy, nil
 }
 
@@ -164,6 +174,11 @@ func GetRabbitMQAuthContextFromHeaders(headers amqp.Table) (RabbitMQAuthContext,
 	emptyContext := RabbitMQAuthContext{}
 	if headers == nil {
 		return emptyContext, errors.New("missing RabbitMQ auth context")
+	}
+	// Only the in-process queue dispatcher can insert this Go value. AMQP
+	// decoding cannot manufacture the type, so client header maps are not trusted.
+	if resolved, ok := headers["mythic_resolved_authorization"].(RabbitMQAuthContext); ok {
+		return resolved, nil
 	}
 	value, ok := headers[MYTHIC_RABBITMQ_AUTH_CONTEXT_HEADER]
 	if !ok {
@@ -268,7 +283,7 @@ func GetRabbitMQAuthContextForTaskID(taskID int) (RabbitMQAuthContext, error) {
 		OperationID: task.OperationID,
 	}
 	if !task.APITokensID.Valid || task.APITokensID.Int64 == 0 {
-		authContext.SourceScopes = []string{mythicjwt.SCOPE_ALL}
+		authContext.SourceScopes = []string{authorization.SCOPE_ALL}
 	}
 	if task.APIToken.ID > 0 {
 		authContext.APITokensID = task.APIToken.ID
@@ -288,16 +303,70 @@ func authorizeRabbitMQRPCRequest(queue string, message amqp.Delivery) (RabbitMQA
 		return RabbitMQAuthContext{}, err
 	}
 	authContext, authContextErr := GetRabbitMQAuthContextFromHeaders(message.Headers)
+	role, admin := "", false
+	if authContextErr == nil && authContext.APITokensID > 0 {
+		authority, err := database.GetAPITokenScopesWithOperationID(authContext.APITokensID, authContext.OperationID)
+		if err != nil {
+			return RabbitMQAuthContext{}, fmt.Errorf("RPC token is revoked or outside its operation: %w", err)
+		}
+		role, admin = authority.Role, authority.Admin
+		allowed := map[string]bool{}
+		for _, scope := range authority.Scopes {
+			allowed[scope] = true
+		}
+		limited := []string{}
+		for _, scope := range authContext.SourceScopes {
+			if allowed[scope] {
+				limited = append(limited, scope)
+			}
+		}
+		authContext.SourceScopes = limited
+		authContext.scopes = nil
+	} else if authContextErr == nil && authContext.OperatorID > 0 && database.DB != nil {
+		// Interactive/background user authority also follows current membership.
+		var current struct {
+			Role  string `db:"view_mode"`
+			Admin bool   `db:"admin"`
+		}
+		err = database.DB.Get(&current, `SELECT 
+    		o.admin,
+    		COALESCE(m.view_mode,'') view_mode 
+		 FROM operator o
+		 LEFT JOIN operatoroperation m ON m.operator_id=o.id AND m.operation_id=$2
+		 WHERE o.id=$1 AND 
+		       o.active AND 
+		       NOT o.deleted AND 
+		       (o.admin OR m.id IS NOT NULL)`, authContext.OperatorID, authContext.OperationID)
+		if err != nil {
+			return RabbitMQAuthContext{}, err
+		}
+		role, admin = current.Role, current.Admin
+	}
 	if len(requiredScopes) == 0 {
+		if authContextErr == nil && message.Headers != nil {
+			message.Headers["mythic_resolved_authorization"] = authContext
+		}
 		return authContext, nil
 	}
 	if authContextErr != nil {
 		return RabbitMQAuthContext{}, authContextErr
 	}
+	grants := authContext.ScopeSet()
 	for _, requiredScope := range requiredScopes {
-		if !mythicjwt.AllowsScope(authContext.SourceScopes, requiredScope) {
+		if !grants[authorization.SCOPE_ALL] && !grants[requiredScope] {
 			return RabbitMQAuthContext{}, fmt.Errorf("missing required scope %q for RabbitMQ RPC %s", requiredScope, queue)
 		}
+		if !admin && role == database.OPERATOR_OPERATION_VIEW_MODE_SPECTATOR && strings.HasSuffix(requiredScope, ".write") && requiredScope != authorization.SCOPE_APITOKEN_WRITE {
+			return RabbitMQAuthContext{}, fmt.Errorf("owner role does not allow writes for %s", queue)
+		}
+		if !admin && role != "" && requiredScope == authorization.SCOPE_MYTHIC_WRITE {
+			return RabbitMQAuthContext{}, fmt.Errorf("owner administrator authority is required for %s", queue)
+		}
+	}
+	// Scope verification and the handler share this delivery-local result. The
+	// dispatcher removes it before publishing a reply or completing the delivery.
+	if message.Headers != nil {
+		message.Headers["mythic_resolved_authorization"] = authContext
 	}
 	return authContext, nil
 }
@@ -328,13 +397,13 @@ func requiredScopesForDirectFileTokenCreate(body []byte) []string {
 		Action string `json:"action"`
 	}{}
 	if err := json.Unmarshal(body, &input); err != nil {
-		return []string{mythicjwt.SCOPE_FILE_WRITE}
+		return []string{authorization.SCOPE_FILE_WRITE}
 	}
 	switch strings.ToLower(strings.TrimSpace(input.Action)) {
 	case "upload", "both":
-		return []string{mythicjwt.SCOPE_FILE_WRITE}
+		return []string{authorization.SCOPE_FILE_WRITE}
 	default:
-		return []string{mythicjwt.SCOPE_FILE_READ}
+		return []string{authorization.SCOPE_FILE_READ}
 	}
 }
 

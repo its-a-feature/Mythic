@@ -26,12 +26,7 @@ func FileDirectViewWebhook(c *gin.Context) {
 	// get the associated database information
 	filemeta := databaseStructs.Filemeta{}
 	payload := databaseStructs.Payload{}
-	userID, err := GetUserIDFromGin(c)
-	if err != nil {
-		c.AbortWithStatus(http.StatusUnauthorized)
-		return
-	}
-	user, err := database.GetUserFromID(userID)
+	user, err := authentication.GetRequestUser(c)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return

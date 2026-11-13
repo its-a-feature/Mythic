@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/authentication"
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -172,7 +173,7 @@ func UpdateCredentialWebhook(c *gin.Context) {
 		return
 	}
 	go rabbitmq.RefreshCredentialValidity(credential.ID)
-	c.JSON(http.StatusOK, UpdateCredentialResponse{
+	response := UpdateCredentialResponse{
 		ID:                 credential.ID,
 		Status:             "success",
 		Realm:              credential.Realm,
@@ -186,5 +187,16 @@ func UpdateCredentialWebhook(c *gin.Context) {
 		CustomDisplay:      credential.CustomDisplay,
 		Deleted:            credential.Deleted,
 		OperatorUsername:   operatorOperation.CurrentOperator.Username,
-	})
+	}
+	scopes, err := authentication.GetScopesSetFromClaims(c)
+	if err != nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	projected, err := authorization.ProjectFields(authorization.Current.Tables["credential"], scopes, response)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "error": err.Error()})
+		return
+	}
+	c.Data(http.StatusOK, "application/json", projected)
 }

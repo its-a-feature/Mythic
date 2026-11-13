@@ -47,16 +47,7 @@ func PreviewFileWebhook(c *gin.Context) {
 	// get the associated database information
 	filemeta := databaseStructs.Filemeta{}
 	//logging.LogDebug("about to fetch file for preview", "file id", input.Input.FileId)
-	userID, err := GetUserIDFromGin(c)
-	if err != nil {
-		logging.LogError(err, "Failed to get userID from JWT")
-		c.JSON(http.StatusOK, PreviewFileResponse{
-			Status: "error",
-			Error:  err.Error(),
-		})
-		return
-	}
-	user, err := database.GetUserFromID(userID)
+	user, err := authentication.GetRequestUser(c)
 	if err != nil {
 		logging.LogError(err, "Failed to get calling user information from database")
 		c.JSON(http.StatusOK, PreviewFileResponse{

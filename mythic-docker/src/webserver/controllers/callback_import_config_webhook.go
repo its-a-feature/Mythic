@@ -298,6 +298,9 @@ VALUES (:total_chunks, :chunks_received, :complete, :is_payload, :filename, :ope
 		logging.LogError(err, "Failed to get payload data")
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
 		return
+	} else if operatorOperation.CurrentOperation.ID != payload.OperationID {
+		c.JSON(http.StatusOK, gin.H{"status": "error", "error": "callback's payload already exists on this server - can't add it to another operation"})
+		return
 	}
 	// make sure payload C2 profiles exist (and create if needed)
 	callbackConfig.Callback.OperationID = operatorOperation.CurrentOperation.ID
@@ -381,7 +384,7 @@ func ensureC2Profile(c2Info rabbitmq.PayloadConfigurationC2Profile, operationID 
 		err = database.DB.Get(&c2ProfileParameter, `SELECT * FROM c2profileparameters WHERE
                                      c2_profile_id=$1 AND "name"=$2 AND deleted=false`, c2ProfileParameter.C2ProfileID, c2ProfileParameter.Name)
 		if err != nil {
-			if err == sql.ErrNoRows {
+			if errors.Is(err, sql.ErrNoRows) {
 				// need to create the build parameter
 				switch v := paramValue.(type) {
 				case map[string]interface{}:

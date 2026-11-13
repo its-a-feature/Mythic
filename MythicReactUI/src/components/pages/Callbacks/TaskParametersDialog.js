@@ -4,6 +4,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import {TaskParametersDialogRow} from './TaskParametersDialogRow';
+import {buildLinkInfoValue} from './linkInfoUtils';
 import {gql, useLazyQuery, useMutation, useQuery} from '@apollo/client';
 import FormControl from '@mui/material/FormControl';
 import TextField from '@mui/material/TextField';
@@ -432,32 +433,6 @@ export function TaskParametersDialog(props) {
                 return {};
             }
         };
-        const getLinkInfoValue = (choices) => {
-            let choice;
-            if(choices.length > 0){
-                if(choices[0]["source"]["id"] === props.callback_id){
-                    choice = choices[0]["destination"];
-                }else{
-                    choice = choices[0]["source"];
-                }
-                const c2profileparameters = choice["c2profileparametersinstances"].reduce( (prev, opt) => {
-                    if(opt.c2_profile_id === choices[0]["c2profile"]["id"]){
-                        return {...prev, [opt.c2profileparameter.name]: !opt.c2profileparameter.crypto_type ? opt.value : {crypto_type: opt.c2profileparameter.crypto_type, enc_key: opt.enc_key_base64, dec_key: opt.dec_key_base64} }
-                    }else{
-                        return {...prev};
-                    }
-                }, {});
-                return {
-                    edge: choices[0].id,
-                    host: choice.host,
-                    agent_uuid: choice.payload.uuid,
-                    callback_uuid: choice.agent_callback_id,
-                    c2_profile: {name: choices[0]["c2profile"]["name"], parameters: c2profileparameters}
-                };
-            }else{
-                return {};
-            }
-        }
         if(rawParameters && (!requiredPieces["loaded"] || loadedCommandsLoading) &&
                        (!requiredPieces["all"] || allCommandsLoading) &&
                        (!requiredPieces["edges"] || loadedAllEdgesLoading) &&
@@ -836,7 +811,7 @@ export function TaskParametersDialog(props) {
                         }, []);
                         let edge_choices = [...edge_active_choices, ...edge_dead_choices];
                         if(edge_choices.length > 0){
-                            return [...prev, {...cmd, choices: edge_choices, value: getLinkInfoValue(edge_choices)}];
+                            return [...prev, {...cmd, choices: edge_choices, value: buildLinkInfoValue(edge_choices[0], props.callback_id)}];
                         }else{
                             return [...prev, {...cmd, choices: edge_choices, value: {}}];
                         }
@@ -876,18 +851,23 @@ export function TaskParametersDialog(props) {
                 case "PayloadList":
                 case "Array":
                 case "TypedArray":
-                case "LinkInfo":
-                    console.log("submit param", param)
                     collapsedParameters[param.name] = param.value;
+                    break;
+                case "LinkInfo":
+                    if(param.value?.edge_id){
+                        collapsedParameters[param.name] = `@link:edge=${param.value.edge_id}`;
+                    } else {
+                        snackActions.warning("missing edge identifier");
+                        return;
+                    }
                     break;
                 case "AgentConnect":
                     if (Object.keys(param.value).length === 0){
                         snackActions.warning("No connection info specified")
                         return
                     }
-                    console.log(param.value)
+                    //console.log(param.value)
                     if(param.value.callback_uuid !== undefined && param.value.callback_uuid !== ""){
-
                         collapsedParameters[param.name] = `@link:callback=${param.value.callback_display_id},c2=${param.value.c2_profile.name}`;
                     } else {
                         collapsedParameters[param.name] = `@link:payload=${param.value.agent_uuid},c2=${param.value.c2_profile.name},host=${param.value.host}`;

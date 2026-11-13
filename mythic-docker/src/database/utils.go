@@ -25,55 +25,49 @@ func GetDatabaseErrorString(errorCode error) string {
 	return fmt.Sprintf("%v", errorCode)
 }
 
+// GetUserCurrentOperation supplies login/refresh summaries, before there is an
+// authenticated request context. Reuse the explicit lookup instead of loading
+// every membership just to find the user's selected operation.
 func GetUserCurrentOperation(userID int) (*databaseStructs.Operatoroperation, error) {
-	var operatorOperation []databaseStructs.Operatoroperation
-	if err := DB.Select(&operatorOperation, `SELECT 
-	operatoroperation.id, operatoroperation.view_mode, operatoroperation.base_disabled_commands_id,
-	operatoroperation.operator_id, operatoroperation.operation_id,
-	operator.id "operator.id",
-	operator.username "operator.username", 
-	operator.admin "operator.admin",
-	operator.account_type "operator.account_type",
-	operator.account_type "operator.account_type",
-	operator.active "operator.active",
-	operator.deleted "operator.deleted",
-	operator.current_operation_id "operator.current_operation_id",
-	operator.view_utc_time "operator.view_utc_time",
-	operator.session_version "operator.session_version",
-	operation.id "operation.id",
-	operation.name "operation.name", 
-	operation.banner_text "operation.banner_text",
-	operation.banner_color "operation.banner_color",
-	operation.complete "operation.complete",
-	operation.admin_id "operation.admin_id",
-	operation.webhook "operation.webhook",
-	operation.channel "operation.channel"
-	FROM operatoroperation
-	JOIN operation ON operatoroperation.operation_id = operation.id 
-	JOIN operator ON operatoroperation.operator_id = operator.id 
-	WHERE operatoroperation.operator_id=$1`, userID); err != nil {
-		// this means we don't have the payload, so we need to create it and all of the associated components
-		logging.LogError(err, "Failed to find operation for user", "user", userID)
+	user, err := GetUserFromID(userID)
+	if err != nil {
 		return nil, err
-	} else {
-		//logging.LogDebug("OperatorOperation Information", "operator_operation", operatorOperation)
-		for _, curOp := range operatorOperation {
-			if curOp.CurrentOperator.CurrentOperationID.Int64 == int64(curOp.CurrentOperation.ID) {
-				return &curOp, nil
-			}
-		}
-		blankOperation := databaseStructs.Operatoroperation{}
-		if operatorInfo, err := GetUserFromID(userID); err != nil {
-			logging.LogError(err, "Failed to get user info when operation isn't set")
-			return nil, err
-		} else {
-			blankOperation.CurrentOperator = *operatorInfo
-		}
-		logging.LogError(nil, "No operation set for user, so returning blank")
-		return &blankOperation, nil
 	}
+	operation, err := GetUserOperation(user, int(user.CurrentOperationID.Int64))
+	if errors.Is(err, sql.ErrNoRows) || err == nil && operation.ID == 0 {
+		// Keep login summaries empty when no selected membership is available,
+		// including admins whose authority does not require a membership row.
+		return &databaseStructs.Operatoroperation{CurrentOperator: *user}, nil
+	}
+	return operation, err
 }
 
+// GetUserOperation loads one operation/membership using an already loaded owner.
+// The caller chooses the operation explicitly: API-token authentication must
+// never substitute the owner's globally selected operation or reload the owner.
+func GetUserOperation(user *databaseStructs.Operator, operationID int) (*databaseStructs.Operatoroperation, error) {
+	operation := &databaseStructs.Operatoroperation{CurrentOperator: *user, OperatorID: user.ID, OperationID: operationID}
+	if operationID <= 0 {
+		return operation, nil
+	}
+	if DB == nil {
+		return nil, errors.New("database connection not initialized")
+	}
+	err := DB.Get(operation, `SELECT m.id, m.view_mode,
+	 m.base_disabled_commands_id,
+	 o.id "operation.id",o.name "operation.name",o.admin_id "operation.admin_id",
+	 o.banner_text "operation.banner_text",o.banner_color "operation.banner_color",
+	 o.complete "operation.complete",o.webhook "operation.webhook",o.channel "operation.channel"
+	 FROM operation o LEFT JOIN operatoroperation m ON m.operation_id=o.id AND m.operator_id=$1
+	 WHERE o.id=$2 AND (m.id IS NOT NULL OR $3)`, user.ID, operationID, user.Admin)
+	if err != nil {
+		return nil, fmt.Errorf("operation %d is unavailable: %w", operationID, err)
+	}
+	return operation, nil
+}
+
+// GetUserFromID is an uncached account lookup. Authenticated HTTP requests reuse
+// the owner snapshot through authentication.GetRequestUser instead.
 func GetUserFromID(userID int) (*databaseStructs.Operator, error) {
 	if DB == nil {
 		return nil, errors.New("database connection not initialized")
@@ -81,7 +75,7 @@ func GetUserFromID(userID int) (*databaseStructs.Operator, error) {
 	operator := databaseStructs.Operator{}
 	err := DB.Get(&operator, `SELECT 
 	username, id, "admin", last_login, failed_login_count, salt, "password", secrets, preferences,
-	last_failed_login_timestamp, active, deleted, current_operation_id, view_utc_time, 
+	last_failed_login_timestamp, active, deleted, view_utc_time,
 	current_operation_id, account_type, email, session_version
 	FROM operator 
 	WHERE id=$1`, userID)

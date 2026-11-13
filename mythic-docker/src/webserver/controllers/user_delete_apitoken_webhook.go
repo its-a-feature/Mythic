@@ -1,6 +1,7 @@
 package webcontroller
 
 import (
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/logging"
 	"net/http"
 
@@ -47,7 +48,7 @@ func DeleteAPITokenWebhook(c *gin.Context) {
 		})
 		return
 	}
-	user, err := database.GetUserFromID(userID)
+	user, err := authentication.GetRequestUser(c)
 	if err != nil {
 		c.JSON(http.StatusOK, DeleteAPITokenResponse{
 			Status: "error",
@@ -55,8 +56,13 @@ func DeleteAPITokenWebhook(c *gin.Context) {
 		})
 		return
 	}
+	claims, err := authentication.GetClaims(c)
+	if err != nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
 	apiToken := databaseStructs.Apitokens{}
-	err = database.DB.Get(&apiToken, `SELECT * FROM apitokens WHERE id=$1`, input.Input.APITokenID)
+	err = database.DB.Get(&apiToken, `SELECT * FROM apitokens WHERE id=$1 AND ($2=0 OR operation_id=$3)`, input.Input.APITokenID, claims.APITokensID, claims.OperationID)
 	if err != nil {
 		logging.LogError(err, "failed to find apitoken to delete")
 		c.JSON(http.StatusOK, DeleteAPITokenResponse{

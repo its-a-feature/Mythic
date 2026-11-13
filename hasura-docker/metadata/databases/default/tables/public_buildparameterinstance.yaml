@@ -1,292 +1,296 @@
-table:
-  name: buildparameterinstance
-  schema: public
-object_relationships:
-  - name: buildparameter
-    using:
-      foreign_key_constraint_on: build_parameter_id
-  - name: operation
-    using:
-      foreign_key_constraint_on: operation_id
-  - name: payload
-    using:
-      foreign_key_constraint_on: payload_id
 computed_fields:
-  - name: dec_key_base64
-    definition:
-      function:
-        name: buildparameterinstance_deckey
-        schema: public
-  - name: enc_key_base64
-    definition:
-      function:
-        name: buildparameterinstance_enckey
-        schema: public
-select_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - dec_key
-        - enc_key
-        - build_parameter_id
-        - id
-        - operation_id
-        - payload_id
-        - instance_name
-        - value
-      computed_fields:
-        - dec_key_base64
-        - enc_key_base64
-      filter:
-        _or:
-          - _and:
-              - operation_id:
-                  _eq: x-hasura-current-operation-id
-              - operation_id:
-                  _lte: X-Hasura-Scope-payload-read-operation
-          - _and:
-              - payload:
-                  operation_id:
-                    _eq: x-hasura-current-operation-id
-              - payload:
-                  operation_id:
-                    _lte: X-Hasura-Scope-payload-read-operation
-  - role: operation_admin
-    permission:
-      columns:
-        - dec_key
-        - enc_key
-        - build_parameter_id
-        - id
-        - operation_id
-        - payload_id
-        - instance_name
-        - value
-      computed_fields:
-        - dec_key_base64
-        - enc_key_base64
-      filter:
-        _or:
-          - _and:
-              - operation_id:
-                  _eq: x-hasura-current-operation-id
-              - operation_id:
-                  _lte: X-Hasura-Scope-payload-read-operation
-          - _and:
-              - payload:
-                  operation_id:
-                    _eq: x-hasura-current-operation-id
-              - payload:
-                  operation_id:
-                    _lte: X-Hasura-Scope-payload-read-operation
-  - role: operator
-    permission:
-      columns:
-        - dec_key
-        - enc_key
-        - build_parameter_id
-        - id
-        - operation_id
-        - payload_id
-        - instance_name
-        - value
-      computed_fields:
-        - dec_key_base64
-        - enc_key_base64
-      filter:
-        _or:
-          - _and:
-              - operation_id:
-                  _eq: x-hasura-current-operation-id
-              - operation_id:
-                  _lte: X-Hasura-Scope-payload-read-operation
-          - _and:
-              - payload:
-                  operation_id:
-                    _eq: x-hasura-current-operation-id
-              - payload:
-                  operation_id:
-                    _lte: X-Hasura-Scope-payload-read-operation
-  - role: spectator
-    permission:
-      columns:
-        - dec_key
-        - enc_key
-        - build_parameter_id
-        - id
-        - operation_id
-        - payload_id
-        - instance_name
-        - value
-      computed_fields:
-        - dec_key_base64
-        - enc_key_base64
-      filter:
-        _or:
-          - _and:
-              - operation_id:
-                  _eq: x-hasura-current-operation-id
-              - operation_id:
-                  _lte: X-Hasura-Scope-payload-read-operation
-          - _and:
-              - payload:
-                  operation_id:
-                    _eq: x-hasura-current-operation-id
-              - payload:
-                  operation_id:
-                    _lte: X-Hasura-Scope-payload-read-operation
-update_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - instance_name
-        - value
-      filter:
-        _or:
-          - _and:
-              - operation_id:
-                  _eq: x-hasura-current-operation-id
-              - operation_id:
-                  _lte: X-Hasura-Scope-payload-write-operation
-          - _and:
-              - payload:
-                  operation_id:
-                    _eq: x-hasura-current-operation-id
-              - payload:
-                  operation_id:
-                    _lte: X-Hasura-Scope-payload-write-operation
-      check:
-        _or:
-          - _and:
-              - operation_id:
-                  _eq: x-hasura-current-operation-id
-              - operation_id:
-                  _lte: X-Hasura-Scope-payload-write-operation
-          - _and:
-              - payload:
-                  operation_id:
-                    _eq: x-hasura-current-operation-id
-              - payload:
-                  operation_id:
-                    _lte: X-Hasura-Scope-payload-write-operation
-    comment: ""
-  - role: operation_admin
-    permission:
-      columns:
-        - instance_name
-        - value
-      filter:
-        _or:
-          - _and:
-              - operation_id:
-                  _eq: x-hasura-current-operation-id
-              - operation_id:
-                  _lte: X-Hasura-Scope-payload-write-operation
-          - _and:
-              - payload:
-                  operation_id:
-                    _eq: x-hasura-current-operation-id
-              - payload:
-                  operation_id:
-                    _lte: X-Hasura-Scope-payload-write-operation
-      check:
-        _or:
-          - _and:
-              - operation_id:
-                  _eq: x-hasura-current-operation-id
-              - operation_id:
-                  _lte: X-Hasura-Scope-payload-write-operation
-          - _and:
-              - payload:
-                  operation_id:
-                    _eq: x-hasura-current-operation-id
-              - payload:
-                  operation_id:
-                    _lte: X-Hasura-Scope-payload-write-operation
-    comment: ""
-  - role: operator
-    permission:
-      columns:
-        - instance_name
-        - value
-      filter:
-        _or:
-          - _and:
-              - operation_id:
-                  _eq: x-hasura-current-operation-id
-              - operation_id:
-                  _lte: X-Hasura-Scope-payload-write-operation
-          - _and:
-              - payload:
-                  operation_id:
-                    _eq: x-hasura-current-operation-id
-              - payload:
-                  operation_id:
-                    _lte: X-Hasura-Scope-payload-write-operation
-      check:
-        _or:
-          - _and:
-              - operation_id:
-                  _eq: x-hasura-current-operation-id
-              - operation_id:
-                  _lte: X-Hasura-Scope-payload-write-operation
-          - _and:
-              - payload:
-                  operation_id:
-                    _eq: x-hasura-current-operation-id
-              - payload:
-                  operation_id:
-                    _lte: X-Hasura-Scope-payload-write-operation
-    comment: ""
+    - definition:
+        function:
+            name: buildparameterinstance_deckey
+            schema: public
+      name: dec_key_base64
+    - definition:
+        function:
+            name: buildparameterinstance_enckey
+            schema: public
+      name: enc_key_base64
 delete_permissions:
-  - role: mythic_admin
-    permission:
-      filter:
-        _or:
-          - _and:
-              - operation_id:
-                  _eq: x-hasura-current-operation-id
-              - operation_id:
-                  _lte: X-Hasura-Scope-payload-write-operation
-          - _and:
-              - payload:
-                  operation_id:
-                    _eq: x-hasura-current-operation-id
-              - payload:
-                  operation_id:
-                    _lte: X-Hasura-Scope-payload-write-operation
-    comment: ""
-  - role: operation_admin
-    permission:
-      filter:
-        _or:
-          - _and:
-              - operation_id:
-                  _eq: x-hasura-current-operation-id
-              - operation_id:
-                  _lte: X-Hasura-Scope-payload-write-operation
-          - _and:
-              - payload:
-                  operation_id:
-                    _eq: x-hasura-current-operation-id
-              - payload:
-                  operation_id:
-                    _lte: X-Hasura-Scope-payload-write-operation
-    comment: ""
-  - role: operator
-    permission:
-      filter:
-        _or:
-          - _and:
-              - operation_id:
-                  _eq: x-hasura-current-operation-id
-              - operation_id:
-                  _lte: X-Hasura-Scope-payload-write-operation
-          - _and:
-              - payload:
-                  operation_id:
-                    _eq: x-hasura-current-operation-id
-              - payload:
-                  operation_id:
-                    _lte: X-Hasura-Scope-payload-write-operation
-    comment: ""
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        filter:
+            _and:
+                - _or:
+                    - operation_id:
+                        _eq: x-hasura-current-operation-id
+                    - payload:
+                        operation_id:
+                            _eq: x-hasura-current-operation-id
+                - _or:
+                    - operation_id:
+                        _in: x-hasura-payload-write-operation-ids
+                    - payload:
+                        operation_id:
+                            _in: x-hasura-payload-write-operation-ids
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        filter:
+            _and:
+                - _or:
+                    - operation_id:
+                        _eq: x-hasura-current-operation-id
+                    - payload:
+                        operation_id:
+                            _eq: x-hasura-current-operation-id
+                - _or:
+                    - operation_id:
+                        _in: x-hasura-payload-write-operation-ids
+                    - payload:
+                        operation_id:
+                            _in: x-hasura-payload-write-operation-ids
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        filter:
+            _and:
+                - _or:
+                    - operation_id:
+                        _eq: x-hasura-current-operation-id
+                    - payload:
+                        operation_id:
+                            _eq: x-hasura-current-operation-id
+                - _or:
+                    - operation_id:
+                        _in: x-hasura-payload-write-operation-ids
+                    - payload:
+                        operation_id:
+                            _in: x-hasura-payload-write-operation-ids
+      role: operator
+object_relationships:
+    - name: buildparameter
+      using:
+        foreign_key_constraint_on: build_parameter_id
+    - name: operation
+      using:
+        foreign_key_constraint_on: operation_id
+    - name: payload
+      using:
+        foreign_key_constraint_on: payload_id
+select_permissions:
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - dec_key
+            - enc_key
+            - build_parameter_id
+            - id
+            - operation_id
+            - payload_id
+            - instance_name
+            - value
+        computed_fields:
+            - dec_key_base64
+            - enc_key_base64
+        filter:
+            _and:
+                - _or:
+                    - operation_id:
+                        _eq: x-hasura-current-operation-id
+                    - payload:
+                        operation_id:
+                            _eq: x-hasura-current-operation-id
+                - _or:
+                    - operation_id:
+                        _in: x-hasura-payload-read-operation-ids
+                    - payload:
+                        operation_id:
+                            _in: x-hasura-payload-read-operation-ids
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - dec_key
+            - enc_key
+            - build_parameter_id
+            - id
+            - operation_id
+            - payload_id
+            - instance_name
+            - value
+        computed_fields:
+            - dec_key_base64
+            - enc_key_base64
+        filter:
+            _and:
+                - _or:
+                    - operation_id:
+                        _eq: x-hasura-current-operation-id
+                    - payload:
+                        operation_id:
+                            _eq: x-hasura-current-operation-id
+                - _or:
+                    - operation_id:
+                        _in: x-hasura-payload-read-operation-ids
+                    - payload:
+                        operation_id:
+                            _in: x-hasura-payload-read-operation-ids
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - dec_key
+            - enc_key
+            - build_parameter_id
+            - id
+            - operation_id
+            - payload_id
+            - instance_name
+            - value
+        computed_fields:
+            - dec_key_base64
+            - enc_key_base64
+        filter:
+            _and:
+                - _or:
+                    - operation_id:
+                        _eq: x-hasura-current-operation-id
+                    - payload:
+                        operation_id:
+                            _eq: x-hasura-current-operation-id
+                - _or:
+                    - operation_id:
+                        _in: x-hasura-payload-read-operation-ids
+                    - payload:
+                        operation_id:
+                            _in: x-hasura-payload-read-operation-ids
+      role: operator
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - dec_key
+            - enc_key
+            - build_parameter_id
+            - id
+            - operation_id
+            - payload_id
+            - instance_name
+            - value
+        computed_fields:
+            - dec_key_base64
+            - enc_key_base64
+        filter:
+            _and:
+                - _or:
+                    - operation_id:
+                        _eq: x-hasura-current-operation-id
+                    - payload:
+                        operation_id:
+                            _eq: x-hasura-current-operation-id
+                - _or:
+                    - operation_id:
+                        _in: x-hasura-payload-read-operation-ids
+                    - payload:
+                        operation_id:
+                            _in: x-hasura-payload-read-operation-ids
+      role: spectator
+table:
+    name: buildparameterinstance
+    schema: public
+update_permissions:
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - _or:
+                    - operation_id:
+                        _eq: x-hasura-current-operation-id
+                    - payload:
+                        operation_id:
+                            _eq: x-hasura-current-operation-id
+                - _or:
+                    - operation_id:
+                        _in: x-hasura-payload-write-operation-ids
+                    - payload:
+                        operation_id:
+                            _in: x-hasura-payload-write-operation-ids
+        columns:
+            - instance_name
+            - value
+        filter:
+            _and:
+                - _or:
+                    - operation_id:
+                        _eq: x-hasura-current-operation-id
+                    - payload:
+                        operation_id:
+                            _eq: x-hasura-current-operation-id
+                - _or:
+                    - operation_id:
+                        _in: x-hasura-payload-write-operation-ids
+                    - payload:
+                        operation_id:
+                            _in: x-hasura-payload-write-operation-ids
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - _or:
+                    - operation_id:
+                        _eq: x-hasura-current-operation-id
+                    - payload:
+                        operation_id:
+                            _eq: x-hasura-current-operation-id
+                - _or:
+                    - operation_id:
+                        _in: x-hasura-payload-write-operation-ids
+                    - payload:
+                        operation_id:
+                            _in: x-hasura-payload-write-operation-ids
+        columns:
+            - instance_name
+            - value
+        filter:
+            _and:
+                - _or:
+                    - operation_id:
+                        _eq: x-hasura-current-operation-id
+                    - payload:
+                        operation_id:
+                            _eq: x-hasura-current-operation-id
+                - _or:
+                    - operation_id:
+                        _in: x-hasura-payload-write-operation-ids
+                    - payload:
+                        operation_id:
+                            _in: x-hasura-payload-write-operation-ids
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - _or:
+                    - operation_id:
+                        _eq: x-hasura-current-operation-id
+                    - payload:
+                        operation_id:
+                            _eq: x-hasura-current-operation-id
+                - _or:
+                    - operation_id:
+                        _in: x-hasura-payload-write-operation-ids
+                    - payload:
+                        operation_id:
+                            _in: x-hasura-payload-write-operation-ids
+        columns:
+            - instance_name
+            - value
+        filter:
+            _and:
+                - _or:
+                    - operation_id:
+                        _eq: x-hasura-current-operation-id
+                    - payload:
+                        operation_id:
+                            _eq: x-hasura-current-operation-id
+                - _or:
+                    - operation_id:
+                        _in: x-hasura-payload-write-operation-ids
+                    - payload:
+                        operation_id:
+                            _in: x-hasura-payload-write-operation-ids
+      role: operator

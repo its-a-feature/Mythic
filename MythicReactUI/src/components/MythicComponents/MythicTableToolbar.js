@@ -26,11 +26,11 @@ export const MythicTableToolbarGroup = ({children, grow = false, label, classNam
     );
 };
 
-export const MythicToolbarSelect = ({children, className = "", style = {}, ...props}) => {
+export const MythicToolbarSelect = ({children, size, className = "", style = {}, ...props}) => {
     return (
         <Select
             className={`mythic-toolbar-select ${className} w-full`.trim()}
-            size="small"
+            size={size ? size : "small"}
             style={style}
             {...props}
         >

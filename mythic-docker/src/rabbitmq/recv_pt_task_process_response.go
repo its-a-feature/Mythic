@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/logging"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -17,7 +17,7 @@ func init() {
 		Queue:      PT_TASK_PROCESS_RESPONSE_RESPONSE,
 		RoutingKey: PT_TASK_PROCESS_RESPONSE_RESPONSE,
 		Handler:    processPtTaskProcessResponseMessages,
-		Scopes:     []string{mythicjwt.SCOPE_TASK_WRITE},
+		Scopes:     []string{authorization.SCOPE_TASK_WRITE},
 	})
 }
 

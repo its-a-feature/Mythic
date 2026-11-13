@@ -2,6 +2,8 @@ package databaseStructs
 
 import (
 	"database/sql"
+
+	authz "github.com/its-a-feature/Mythic/authorization"
 )
 
 type C2profileparametersinstance struct {
@@ -18,4 +20,24 @@ type C2profileparametersinstance struct {
 	InstanceName          sql.NullString      `db:"instance_name"`
 	OperationID           sql.NullInt64       `db:"operation_id"`
 	CallbackID            sql.NullInt64       `db:"callback_id"`
+}
+
+// AuthorizationPolicy keeps c2profileparametersinstance permissions beside its database model.
+func (C2profileparametersinstance) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table: authz.TableRef{Schema: "public", Name: "c2profileparametersinstance"},
+		OperationPaths: [][]string{
+			{"operation_id"},
+			{"payload", "operation_id"},
+			{"callback", "operation_id"},
+		},
+		Read:  authz.Rule{Permission: authz.SCOPE_PAYLOAD_READ},
+		Write: authz.Rule{Permission: authz.SCOPE_PAYLOAD_WRITE},
+		Relationships: []authz.RelationshipBinding{
+			{Name: "c2profileparameter", Target: C2profileparameters{}},
+			{Name: "callback", Target: Callback{}},
+			{Name: "operation", Target: Operation{}},
+			{Name: "payload", Target: Payload{}},
+		},
+	}
 }

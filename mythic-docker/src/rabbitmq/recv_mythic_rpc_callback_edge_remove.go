@@ -3,7 +3,7 @@ package rabbitmq
 import (
 	"encoding/json"
 
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/logging"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -24,7 +24,7 @@ func init() {
 		Queue:      MYTHIC_RPC_CALLBACK_EDGE_REMOVE,
 		RoutingKey: MYTHIC_RPC_CALLBACK_EDGE_REMOVE,
 		Handler:    processMythicRPCCallbackEdgeRemove,
-		Scopes:     []string{mythicjwt.SCOPE_CALLBACK_WRITE},
+		Scopes:     []string{authorization.SCOPE_CALLBACK_WRITE},
 	})
 }
 

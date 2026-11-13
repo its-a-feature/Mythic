@@ -11,6 +11,7 @@ import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/Myt
 import {MythicTablePagination} from "../../MythicComponents/MythicTablePagination";
 import {MythicSearchField, MythicTableToolbar, MythicTableToolbarGroup, MythicToolbarButton, MythicToolbarSelect} from "../../MythicComponents/MythicTableToolbar";
 import {MythicEmptyState} from "../../MythicComponents/MythicStateDisplay";
+import Select from "@mui/material/Select";
 
 const EventList = ({onUpdateLevel, onUpdateResolution, operationeventlog}) => {
    return (
@@ -54,20 +55,11 @@ export function EventFeedTable(props){
             props.onLevelChange("warning (unresolved)");
         }
     }, []);
-    const visibleEventsLabel = props.operationeventlog.length === 1 ? "1 shown" : `${props.operationeventlog.length} shown`;
-    const totalEventsLabel = props.pageData.totalCount === 1 ? "1 total" : `${props.pageData.totalCount} total`;
     return (
         <MythicPageBody>
             <MythicPageHeader
                 title={"Event Feed"}
                 subtitle={"Review operation messages, warnings, and service events as they arrive."}
-                meta={
-                    <>
-                        <MythicPageHeaderChip label={level} />
-                        <MythicPageHeaderChip label={visibleEventsLabel} />
-                        <MythicPageHeaderChip label={totalEventsLabel} />
-                    </>
-                }
                 actions={
                     <>
                         <MythicToolbarButton onClick={props.resolveViewableErrors} colorMode="hover" tone="success" variant="outlined" startIcon={<AutoFixHighIcon />}>
@@ -85,6 +77,7 @@ export function EventFeedTable(props){
                 </MythicTableToolbarGroup>
                 <MythicTableToolbarGroup>
                     <MythicToolbarSelect
+                        size={"full"}
                         value={level}
                         onChange={handleLevelValueChange}
                     >

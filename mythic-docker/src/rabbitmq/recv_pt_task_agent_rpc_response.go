@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/database"
 	"github.com/its-a-feature/Mythic/database/enums/PushC2Connections"
 	"github.com/its-a-feature/Mythic/grpc"
@@ -28,7 +28,7 @@ func init() {
 		Queue:      PT_TASK_AGENT_RPC_RESPONSE,
 		RoutingKey: PT_TASK_AGENT_RPC_RESPONSE,
 		Handler:    processPtTaskAgentRPCResponseMessages,
-		Scopes:     []string{mythicjwt.SCOPE_TASK_WRITE},
+		Scopes:     []string{authorization.SCOPE_TASK_WRITE},
 	})
 }
 

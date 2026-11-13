@@ -175,3 +175,6 @@ nginx-docker/config/blockips.conf
 .gocache/
 MythicReactUI/build
 MythicReactUI/node_modules
+
+# Local Hasura metadata copy used by the server Docker build.
+/mythic-docker/src/authorization/hasura-metadata/

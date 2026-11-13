@@ -13,6 +13,7 @@ import (
 	"github.com/its-a-feature/Mythic/grpc"
 	"github.com/its-a-feature/Mythic/utils"
 
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -211,39 +212,18 @@ func CreateAPITokenAndSendOnStartMessage(containerName string) {
 		}
 		apiToken.TokenType = mythicjwt.AUTH_METHOD_ON_START
 		apiToken.Scopes = []string{
-			mythicjwt.SCOPE_EVENTING_WRITE,
-			mythicjwt.SCOPE_PAYLOAD_WRITE,
-			mythicjwt.SCOPE_FILE_WRITE,
-			mythicjwt.SCOPE_TAG_WRITE,
-			mythicjwt.SCOPE_CALLBACK_WRITE,
-			mythicjwt.SCOPE_CHAT_AI_WRITE,
-			mythicjwt.SCOPE_CHAT_WRITE,
+			authorization.SCOPE_EVENTING_WRITE,
+			authorization.SCOPE_PAYLOAD_WRITE,
+			authorization.SCOPE_FILE_WRITE,
+			authorization.SCOPE_TAG_WRITE,
+			authorization.SCOPE_CALLBACK_WRITE,
+			authorization.SCOPE_CHAT_AI_WRITE,
+			authorization.SCOPE_CHAT_WRITE,
 		}
-		statement, err := database.DB.PrepareNamed(`INSERT INTO apitokens
-		(token_value, operator_id, token_type, active, "name", created_by, task_id, callback_id, scopes)
-		VALUES
-		(:token_value, :operator_id, :token_type, :active, :name, :created_by, :task_id, :callback_id, :scopes)
-		RETURNING id`)
+		apiToken.OperationID = operation.ID
+		plainAPITokenValue, err := database.CreateAPIToken(&apiToken, apiToken.Scopes, map[string]bool{authorization.SCOPE_ALL: true}, operation.ID)
 		if err != nil {
-			logging.LogError(err, "failed to prepare statement for new apitoken")
-			continue
-		}
-		err = statement.Get(&apiToken.ID, apiToken)
-		if err != nil {
-			logging.LogError(err, "failed to create new apitoken")
-			continue
-		}
-		plainAPITokenValue, storedAPITokenValue, err := mythicjwt.GenerateOpaqueAPIToken()
-		if err != nil {
-			logging.LogError(err, "failed to generate new API token")
-			expireAPIToken(apiToken.ID)
-			continue
-		}
-		apiToken.TokenValue = storedAPITokenValue
-		_, err = database.DB.Exec(`UPDATE apitokens SET token_value=$1 WHERE id=$2`, apiToken.TokenValue, apiToken.ID)
-		if err != nil {
-			logging.LogError(err, "Failed to update apitoken with value")
-			expireAPIToken(apiToken.ID)
+			logging.LogError(err, "failed to create container startup token")
 			continue
 		}
 		onStartMessage.APIToken = plainAPITokenValue

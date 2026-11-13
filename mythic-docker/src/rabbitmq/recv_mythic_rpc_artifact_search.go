@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -33,7 +33,7 @@ func init() {
 		Queue:      MYTHIC_RPC_ARTIFACT_SEARCH,
 		RoutingKey: MYTHIC_RPC_ARTIFACT_SEARCH,
 		Handler:    processMythicRPCArtifactSearch,
-		Scopes:     []string{mythicjwt.SCOPE_RESPONSE_READ},
+		Scopes:     []string{authorization.SCOPE_RESPONSE_READ},
 	})
 }
 

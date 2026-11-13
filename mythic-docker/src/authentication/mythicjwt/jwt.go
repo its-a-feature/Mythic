@@ -11,6 +11,7 @@ import (
 
 	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -139,7 +140,7 @@ func generateJWT(user databaseStructs.Operator, authMethod string, eventStepInst
 		EventStepInstanceID:    eventStepInstanceID,
 		APITokensID:            APITokensID,
 		OperationID:            int(user.CurrentOperationID.Int64),
-		Scopes:                 []string{SCOPE_ALL},
+		Scopes:                 []string{authorization.SCOPE_ALL},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	access_token, err := token.SignedString(utils.MythicConfig.JWTSecret)

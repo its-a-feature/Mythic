@@ -1,6 +1,9 @@
 package databaseStructs
 
-import "time"
+import (
+	authz "github.com/its-a-feature/Mythic/authorization"
+	"time"
+)
 
 type Callbackport struct {
 	ID            int       `db:"id"`
@@ -18,4 +21,18 @@ type Callbackport struct {
 	Username      string    `db:"username"`
 	Password      string    `db:"password"`
 	UpdatedAt     time.Time `db:"updated_at"`
+}
+
+// AuthorizationPolicy keeps callbackport permissions beside its database model.
+func (Callbackport) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table:         authz.TableRef{Schema: "public", Name: "callbackport"},
+		OperationPath: []string{"operation_id"},
+		Read:          authz.Rule{Permission: authz.SCOPE_CALLBACK_READ},
+		Write:         authz.Rule{Permission: authz.SCOPE_CALLBACK_WRITE},
+		Relationships: []authz.RelationshipBinding{
+			{Name: "operation", Target: Operation{}},
+			{Name: "task", Target: Task{}},
+		},
+	}
 }

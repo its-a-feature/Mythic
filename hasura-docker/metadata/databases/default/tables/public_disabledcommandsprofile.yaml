@@ -1,208 +1,210 @@
-table:
-  name: disabledcommandsprofile
-  schema: public
-object_relationships:
-  - name: command
-    using:
-      foreign_key_constraint_on: command_id
-  - name: operation
-    using:
-      foreign_key_constraint_on: operation_id
 array_relationships:
-  - name: operatoroperations
-    using:
-      foreign_key_constraint_on:
-        column: base_disabled_commands_id
-        table:
-          name: operatoroperation
-          schema: public
-insert_permissions:
-  - role: mythic_admin
-    permission:
-      check:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-Current-Operation-Id
-          - operation_id:
-              _lte: X-Hasura-Scope-operation-write-operation
-      set:
-        operation_id: x-hasura-current-operation-id
-      columns:
-        - command_id
-        - name
-  - role: operation_admin
-    permission:
-      check:
-        _and:
-          - _and:
-              - operation_id:
-                  _eq: x-hasura-current-operation-id
-              - operatoroperations:
-                  _and:
-                    - view_mode:
-                        _eq: lead
-                    - operator_id:
-                        _eq: x-hasura-user-id
-                    - operation_id:
-                        _eq: x-hasura-current-operation-id
-          - _and:
-              - operation_id:
-                  _lte: X-Hasura-Scope-operation-write-operation
-              - operatoroperations:
-                  _and:
-                    - view_mode:
-                        _eq: lead
-                    - operator_id:
-                        _eq: x-hasura-user-id
-                    - operation_id:
-                        _lte: X-Hasura-Scope-operation-write-operation
-      set:
-        operation_id: x-hasura-current-operation-id
-      columns:
-        - command_id
-        - name
-  - role: operator
-    permission:
-      check:
-        _and:
-          - _and:
-              - operation_id:
-                  _eq: x-hasura-current-operation-id
-              - operatoroperations:
-                  _and:
-                    - view_mode:
-                        _eq: lead
-                    - operator_id:
-                        _eq: x-hasura-user-id
-                    - operation_id:
-                        _eq: x-hasura-current-operation-id
-          - _and:
-              - operation_id:
-                  _lte: X-Hasura-Scope-operation-write-operation
-              - operatoroperations:
-                  _and:
-                    - view_mode:
-                        _eq: lead
-                    - operator_id:
-                        _eq: x-hasura-user-id
-                    - operation_id:
-                        _lte: X-Hasura-Scope-operation-write-operation
-      set:
-        operation_id: x-hasura-current-operation-id
-      columns:
-        - command_id
-        - name
-select_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - command_id
-        - id
-        - name
-        - operation_id
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-Current-Operation-Id
-          - operation_id:
-              _lte: X-Hasura-Scope-operation-read-operation
-  - role: operation_admin
-    permission:
-      columns:
-        - command_id
-        - id
-        - name
-        - operation_id
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-Current-Operation-Id
-          - operation_id:
-              _lte: X-Hasura-Scope-operation-read-operation
-  - role: operator
-    permission:
-      columns:
-        - command_id
-        - id
-        - name
-        - operation_id
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-Current-Operation-Id
-          - operation_id:
-              _lte: X-Hasura-Scope-operation-read-operation
-  - role: spectator
-    permission:
-      columns:
-        - command_id
-        - id
-        - name
-        - operation_id
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-Current-Operation-Id
-          - operation_id:
-              _lte: X-Hasura-Scope-operation-read-operation
+    - name: operatoroperations
+      using:
+        foreign_key_constraint_on:
+            column: base_disabled_commands_id
+            table:
+                name: operatoroperation
+                schema: public
 delete_permissions:
-  - role: mythic_admin
-    permission:
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-Current-Operation-Id
-          - operation_id:
-              _lte: X-Hasura-Scope-operation-write-operation
-  - role: operation_admin
-    permission:
-      filter:
-        _and:
-          - _and:
-              - operation_id:
-                  _eq: x-hasura-current-operation-id
-              - operatoroperations:
-                  _and:
-                    - view_mode:
-                        _eq: lead
-                    - operator_id:
-                        _eq: x-hasura-user-id
-                    - operation_id:
-                        _eq: x-hasura-current-operation-id
-          - _and:
-              - operation_id:
-                  _lte: X-Hasura-Scope-operation-write-operation
-              - operatoroperations:
-                  _and:
-                    - view_mode:
-                        _eq: lead
-                    - operator_id:
-                        _eq: x-hasura-user-id
-                    - operation_id:
-                        _lte: X-Hasura-Scope-operation-write-operation
-  - role: operator
-    permission:
-      filter:
-        _and:
-          - _and:
-              - operation_id:
-                  _eq: x-hasura-current-operation-id
-              - operatoroperations:
-                  _and:
-                    - view_mode:
-                        _eq: lead
-                    - operator_id:
-                        _eq: x-hasura-user-id
-                    - operation_id:
-                        _eq: x-hasura-current-operation-id
-          - _and:
-              - operation_id:
-                  _lte: X-Hasura-Scope-operation-write-operation
-              - operatoroperations:
-                  _and:
-                    - view_mode:
-                        _eq: lead
-                    - operator_id:
-                        _eq: x-hasura-user-id
-                    - operation_id:
-                        _lte: X-Hasura-Scope-operation-write-operation
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-Current-Operation-Id
+                - operation_id:
+                    _in: x-hasura-operation-write-operation-ids
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        filter:
+            _and:
+                - _and:
+                    - _and:
+                        - operation_id:
+                            _eq: x-hasura-current-operation-id
+                        - operatoroperations:
+                            _and:
+                                - view_mode:
+                                    _eq: lead
+                                - operator_id:
+                                    _eq: x-hasura-user-id
+                                - operation_id:
+                                    _eq: x-hasura-current-operation-id
+                    - operatoroperations:
+                        _and:
+                            - view_mode:
+                                _eq: lead
+                            - operator_id:
+                                _eq: x-hasura-user-id
+                - operation_id:
+                    _in: x-hasura-operation-write-operation-ids
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        filter:
+            _and:
+                - _and:
+                    - _and:
+                        - operation_id:
+                            _eq: x-hasura-current-operation-id
+                        - operatoroperations:
+                            _and:
+                                - view_mode:
+                                    _eq: lead
+                                - operator_id:
+                                    _eq: x-hasura-user-id
+                                - operation_id:
+                                    _eq: x-hasura-current-operation-id
+                    - operatoroperations:
+                        _and:
+                            - view_mode:
+                                _eq: lead
+                            - operator_id:
+                                _eq: x-hasura-user-id
+                - operation_id:
+                    _in: x-hasura-operation-write-operation-ids
+      role: operator
+insert_permissions:
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-Current-Operation-Id
+                - operation_id:
+                    _in: x-hasura-operation-write-operation-ids
+        columns:
+            - command_id
+            - name
+        set:
+            operation_id: x-hasura-current-operation-id
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - _and:
+                    - _and:
+                        - operation_id:
+                            _eq: x-hasura-current-operation-id
+                        - operatoroperations:
+                            _and:
+                                - view_mode:
+                                    _eq: lead
+                                - operator_id:
+                                    _eq: x-hasura-user-id
+                                - operation_id:
+                                    _eq: x-hasura-current-operation-id
+                    - operatoroperations:
+                        _and:
+                            - view_mode:
+                                _eq: lead
+                            - operator_id:
+                                _eq: x-hasura-user-id
+                - operation_id:
+                    _in: x-hasura-operation-write-operation-ids
+        columns:
+            - command_id
+            - name
+        set:
+            operation_id: x-hasura-current-operation-id
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - _and:
+                    - _and:
+                        - operation_id:
+                            _eq: x-hasura-current-operation-id
+                        - operatoroperations:
+                            _and:
+                                - view_mode:
+                                    _eq: lead
+                                - operator_id:
+                                    _eq: x-hasura-user-id
+                                - operation_id:
+                                    _eq: x-hasura-current-operation-id
+                    - operatoroperations:
+                        _and:
+                            - view_mode:
+                                _eq: lead
+                            - operator_id:
+                                _eq: x-hasura-user-id
+                - operation_id:
+                    _in: x-hasura-operation-write-operation-ids
+        columns:
+            - command_id
+            - name
+        set:
+            operation_id: x-hasura-current-operation-id
+      role: operator
+object_relationships:
+    - name: command
+      using:
+        foreign_key_constraint_on: command_id
+    - name: operation
+      using:
+        foreign_key_constraint_on: operation_id
+select_permissions:
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - command_id
+            - id
+            - name
+            - operation_id
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-Current-Operation-Id
+                - operation_id:
+                    _in: x-hasura-operation-read-operation-ids
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - command_id
+            - id
+            - name
+            - operation_id
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-Current-Operation-Id
+                - operation_id:
+                    _in: x-hasura-operation-read-operation-ids
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - command_id
+            - id
+            - name
+            - operation_id
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-Current-Operation-Id
+                - operation_id:
+                    _in: x-hasura-operation-read-operation-ids
+      role: operator
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - command_id
+            - id
+            - name
+            - operation_id
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-Current-Operation-Id
+                - operation_id:
+                    _in: x-hasura-operation-read-operation-ids
+      role: spectator
+table:
+    name: disabledcommandsprofile
+    schema: public

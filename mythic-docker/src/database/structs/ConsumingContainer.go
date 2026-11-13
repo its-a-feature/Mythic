@@ -1,6 +1,10 @@
 package databaseStructs
 
-import "time"
+import (
+	"time"
+
+	authz "github.com/its-a-feature/Mythic/authorization"
+)
 
 type ConsumingContainer struct {
 	ID               int             `db:"id" json:"id" toml:"id" yaml:"id"`
@@ -13,4 +17,13 @@ type ConsumingContainer struct {
 	UpdatedAt        time.Time       `db:"updated_at" json:"updated_at"`
 	CreatedAt        time.Time       `db:"created_at" json:"created_at"`
 	SemVer           string          `json:"semver" toml:"semver" yaml:"semver"`
+}
+
+// AuthorizationPolicy keeps consuming_container permissions beside its database model.
+func (ConsumingContainer) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table: authz.TableRef{Schema: "public", Name: "consuming_container"},
+		Read:  authz.Rule{Public: true},
+		Write: authz.Rule{Permission: authz.SCOPE_MYTHIC_WRITE},
+	}
 }

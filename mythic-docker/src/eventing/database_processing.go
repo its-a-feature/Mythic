@@ -347,7 +347,7 @@ func getTriggerData(triggerMetadata map[string]interface{}, operationID int) map
 	}
 	return triggerData
 }
-func CreateEventGroupInstance(eventGroupId int, trigger string, triggeringOperatorId int, triggeringOperationID int, triggerMetadata map[string]interface{}) (int, error) {
+func CreateEventGroupInstance(eventGroupId int, trigger string, triggeringOperatorId int, triggeringOperationID int, triggerMetadata map[string]interface{}, sourceTokenID int) (int, error) {
 	eventGroup := databaseStructs.EventGroup{ID: eventGroupId}
 	err := database.DB.Get(&eventGroup, `SELECT * FROM eventgroup WHERE id = $1 AND operation_id=$2`,
 		eventGroupId, triggeringOperationID)
@@ -381,6 +381,9 @@ func CreateEventGroupInstance(eventGroupId int, trigger string, triggeringOperat
 		TotalOrderSteps: eventGroup.TotalOrderSteps,
 		OperationID:     eventGroup.OperationID,
 		TriggerMetadata: GetMythicJSONTextFromStruct(triggerMetadata),
+	}
+	if sourceTokenID > 0 {
+		eventGroupInstance.APITokensID = sql.NullInt64{Int64: int64(sourceTokenID), Valid: true}
 	}
 	eventGroupEnvironment := eventGroup.Environment.StructValue()
 	triggeringData := getTriggerData(triggerMetadata, eventGroup.OperationID)
@@ -541,8 +544,8 @@ func CreateEventGroupInstance(eventGroupId int, trigger string, triggeringOperat
 		eventGroupInstance.OperatorID = targetUserID
 	}
 	statement, err := database.DB.PrepareNamed(`INSERT INTO eventgroupinstance 
-			(eventgroup_id, operator_id, operation_id, environment, status, trigger, total_order_steps, trigger_metadata) 
-			VALUES (:eventgroup_id, :operator_id, :operation_id, :environment, :status, :trigger, :total_order_steps, :trigger_metadata) 
+			(eventgroup_id, operator_id, operation_id, environment, status, trigger, total_order_steps, trigger_metadata, apitokens_id)
+			VALUES (:eventgroup_id, :operator_id, :operation_id, :environment, :status, :trigger, :total_order_steps, :trigger_metadata, :apitokens_id)
 			RETURNING id`,
 	)
 	if err != nil {

@@ -3,6 +3,8 @@ package databaseStructs
 import (
 	"database/sql"
 	"time"
+
+	authz "github.com/its-a-feature/Mythic/authorization"
 )
 
 type EventGroup struct {
@@ -41,6 +43,7 @@ type EventGroupConsumingContainer struct {
 }
 
 type EventGroupInstance struct {
+	APITokensID      sql.NullInt64  `db:"apitokens_id" json:"apitokens_id,omitempty"`
 	ID               int            `db:"id" json:"id" toml:"id" yaml:"id"`
 	EventGroupID     int            `db:"eventgroup_id" json:"eventgroup_id" toml:"eventgroup_id" yaml:"eventgroup_id"`
 	EventGroup       EventGroup     `db:"eventgroup"`
@@ -66,4 +69,62 @@ type EventGroupApproval struct {
 	Approved     bool      `db:"approved" json:"approved" toml:"approved" yaml:"approved"`
 	CreatedAt    time.Time `db:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
 	UpdatedAt    time.Time `db:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
+}
+
+// AuthorizationPolicy keeps eventgroup permissions beside its database model.
+func (EventGroup) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table:         authz.TableRef{Schema: "public", Name: "eventgroup"},
+		OperationPath: []string{"operation_id"},
+		Read:          authz.Rule{Permission: authz.SCOPE_EVENTING_READ},
+		Write:         authz.Rule{Permission: authz.SCOPE_EVENTING_WRITE},
+		Relationships: []authz.RelationshipBinding{
+			{Name: "operation", Target: Operation{}},
+			{Name: "operator", Target: Operator{}},
+		},
+	}
+}
+
+// AuthorizationPolicy keeps eventgroupapproval permissions beside its database model.
+func (EventGroupApproval) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table:         authz.TableRef{Schema: "public", Name: "eventgroupapproval"},
+		OperationPath: []string{"operation_id"},
+		Read:          authz.Rule{Permission: authz.SCOPE_EVENTING_READ},
+		Write:         authz.Rule{Permission: authz.SCOPE_EVENTING_WRITE},
+		Relationships: []authz.RelationshipBinding{
+			{Name: "eventgroup", Target: EventGroup{}},
+			{Name: "operation", Target: Operation{}},
+			{Name: "operator", Target: Operator{}},
+		},
+	}
+}
+
+// AuthorizationPolicy keeps eventgroupconsumingcontainer permissions beside its database model.
+func (EventGroupConsumingContainer) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table:         authz.TableRef{Schema: "public", Name: "eventgroupconsumingcontainer"},
+		OperationPath: []string{"eventgroup", "operation_id"},
+		Read:          authz.Rule{Permission: authz.SCOPE_EVENTING_READ},
+		Write:         authz.Rule{Permission: authz.SCOPE_EVENTING_WRITE},
+		Relationships: []authz.RelationshipBinding{
+			{Name: "eventgroup", Target: EventGroup{}},
+			{Name: "consumingcontainer", Target: ConsumingContainer{}},
+		},
+	}
+}
+
+// AuthorizationPolicy keeps eventgroupinstance permissions beside its database model.
+func (EventGroupInstance) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table:         authz.TableRef{Schema: "public", Name: "eventgroupinstance"},
+		OperationPath: []string{"operation_id"},
+		Read:          authz.Rule{Permission: authz.SCOPE_EVENTING_READ},
+		Write:         authz.Rule{Permission: authz.SCOPE_EVENTING_WRITE},
+		Relationships: []authz.RelationshipBinding{
+			{Name: "cancelled_by_operator", Target: Operator{}},
+			{Name: "operation", Target: Operation{}},
+			{Name: "operator", Target: Operator{}},
+		},
+	}
 }

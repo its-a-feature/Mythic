@@ -3,7 +3,7 @@ package rabbitmq
 import (
 	"encoding/json"
 
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/database"
 	"github.com/its-a-feature/Mythic/logging"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -26,7 +26,7 @@ func init() {
 		Queue:      MYTHIC_RPC_EVENTLOG_CREATE,
 		RoutingKey: MYTHIC_RPC_EVENTLOG_CREATE,
 		Handler:    processMythicRPCOperationEventLogCreate,
-		Scopes:     []string{mythicjwt.SCOPE_EVENTLOG_WRITE},
+		Scopes:     []string{authorization.SCOPE_EVENTLOG_WRITE},
 	})
 }
 

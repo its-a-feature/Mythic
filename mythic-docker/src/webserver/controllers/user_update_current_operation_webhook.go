@@ -6,6 +6,7 @@ import (
 	"github.com/its-a-feature/Mythic/logging"
 
 	"github.com/gin-gonic/gin"
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 )
@@ -42,17 +43,8 @@ func UpdateCurrentOperationWebhook(c *gin.Context) {
 	}
 	// get the associated database information
 	operatorOperation := databaseStructs.Operatoroperation{}
-	issuingOperator := databaseStructs.Operator{}
 	targetOperator := databaseStructs.Operator{}
-	userID, err := GetUserIDFromGin(c)
-	if err != nil {
-		c.JSON(http.StatusOK, UpdateCurrentOperationResponse{
-			Status: "error",
-			Error:  err.Error(),
-		})
-		return
-	}
-	err = database.DB.Get(&issuingOperator, `SELECT id, admin, account_type FROM operator WHERE id=$1`, userID)
+	issuingOperator, err := authentication.GetRequestUser(c)
 	if err != nil {
 		logging.LogError(err, "Failed to get information about issuing user")
 		c.JSON(http.StatusOK, UpdateCurrentOperationResponse{
@@ -118,10 +110,6 @@ func UpdateCurrentOperationWebhook(c *gin.Context) {
 			Error:  "Failed to update current operation",
 		})
 		return
-	}
-	err = UpdateHasuraClaims(c, true)
-	if err != nil {
-		logging.LogError(err, "Failed to update claims")
 	}
 	currentOperation := databaseStructs.Operation{}
 	err = database.DB.Get(&currentOperation, "SELECT * FROM operation WHERE id=$1", input.Input.OperationID)

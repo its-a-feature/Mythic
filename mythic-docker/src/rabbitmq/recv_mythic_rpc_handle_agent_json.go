@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/logging"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -31,10 +31,10 @@ func init() {
 		RoutingKey: MYTHIC_RPC_HANDLE_AGENT_JSON,
 		Handler:    processMythicRPCHandleAgentJson,
 		Scopes: []string{
-			mythicjwt.SCOPE_CALLBACK_WRITE,
-			mythicjwt.SCOPE_RESPONSE_WRITE,
-			mythicjwt.SCOPE_FILE_WRITE,
-			mythicjwt.SCOPE_CREDENTIAL_WRITE,
+			authorization.SCOPE_CALLBACK_WRITE,
+			authorization.SCOPE_RESPONSE_WRITE,
+			authorization.SCOPE_FILE_WRITE,
+			authorization.SCOPE_CREDENTIAL_WRITE,
 		},
 	})
 }

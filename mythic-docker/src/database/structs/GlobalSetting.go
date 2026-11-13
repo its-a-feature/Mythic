@@ -2,6 +2,7 @@ package databaseStructs
 
 import (
 	"database/sql"
+	authz "github.com/its-a-feature/Mythic/authorization"
 )
 
 type GlobalSetting struct {
@@ -23,4 +24,13 @@ type GlobalSettingServerConfig struct {
 var GlobalSettingDefaultsMap = map[string]interface{}{
 	"preferences":   map[string]interface{}{},
 	"server_config": GlobalSettingServerConfig{},
+}
+
+// AuthorizationPolicy keeps global_setting permissions beside its database model.
+func (GlobalSetting) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table: authz.TableRef{Schema: "public", Name: "global_setting"},
+		Read:  authz.Rule{Permission: authz.SCOPE_MYTHIC_READ},
+		Write: authz.Rule{Permission: authz.SCOPE_MYTHIC_WRITE},
+	}
 }

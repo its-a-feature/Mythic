@@ -9,6 +9,7 @@ import (
 	"github.com/its-a-feature/Mythic/rabbitmq"
 
 	"github.com/gin-gonic/gin"
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -48,18 +49,8 @@ func UpdateOperatorOperationWebhook(c *gin.Context) {
 		})
 		return
 	}
-	operator := databaseStructs.Operator{}
 	operatorRole := databaseStructs.Operatoroperation{}
-	userID, err := GetUserIDFromGin(c)
-	if err != nil {
-		logging.LogError(err, "Failed to get userID from JWT")
-		c.JSON(http.StatusOK, UpdateOperatorOperationResponse{
-			Status: "error",
-			Error:  err.Error(),
-		})
-		return
-	}
-	err = database.DB.Get(&operator, `SELECT * FROM operator WHERE id=$1`, userID)
+	operator, err := authentication.GetRequestUser(c)
 	if err != nil {
 		logging.LogError(err, "Failed to get information about operator")
 		c.JSON(http.StatusOK, UpdateOperatorOperationResponse{
@@ -145,10 +136,6 @@ func UpdateOperatorOperationWebhook(c *gin.Context) {
 		if err != nil {
 			logging.LogError(err, "Failed to lookup operator username")
 		}
-		err = invalidateAPITokensCreatedByOperatorIDAndOperationID(newUser.ID, newUser.Username, currentOperation.ID)
-		if err != nil {
-			logging.LogError(err, "Failed to invalidate API tokens created by operator")
-		}
 		if int(newUser.CurrentOperationID.Int64) == currentOperation.ID {
 			newUser.CurrentOperationID.Valid = false
 			newUser.CurrentOperationID.Int64 = 0
@@ -195,10 +182,6 @@ func UpdateOperatorOperationWebhook(c *gin.Context) {
 			logging.LogError(err, "Failed to lookup operator username")
 			continue
 		}
-		err = invalidateAPITokensCreatedByOperatorIDAndOperationID(newUser.ID, newUser.Username, currentOperation.ID)
-		if err != nil {
-			logging.LogError(err, "Failed to invalidate API tokens created by operator")
-		}
 		go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Updated %s to spectator", newUser.Username),
 			currentOperation.ID, "", database.MESSAGE_LEVEL_INFO, false)
 	}
@@ -234,10 +217,6 @@ func UpdateOperatorOperationWebhook(c *gin.Context) {
 				currentOperation.ID, "", database.MESSAGE_LEVEL_INFO, false)
 		}
 
-	}
-	err = UpdateHasuraClaims(c, true)
-	if err != nil {
-		logging.LogError(err, "Failed to update claims")
 	}
 	c.JSON(http.StatusOK, UpdateOperatorOperationResponse{
 		Status: "success",

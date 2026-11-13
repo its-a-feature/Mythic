@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-co-op/gocron/v2"
 	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/eventing"
@@ -202,7 +203,7 @@ func listenForEvents() {
 		case eventing.TriggerManual:
 			// somebody manually triggered an event group to run
 			eventgroupinstanceID, err := eventing.CreateEventGroupInstance(event.EventGroupID,
-				eventing.TriggerManual, event.OperatorID, event.OperationID, event.KeywordEnvData)
+				eventing.TriggerManual, event.OperatorID, event.OperationID, event.KeywordEnvData, event.APITokensID)
 			if err != nil {
 				logging.LogError(err, "Failed to create new event group instance")
 				errMsg := err.Error()
@@ -250,14 +251,14 @@ func listenForEvents() {
 			}
 		case eventing.TriggerRunAgain:
 			// somebody manually triggered an event group to run
-			go startProcessingRunAgainGroupInstanceSteps(event.EventGroupInstanceID, event.OperatorID, event.OperationID)
+			go startProcessingRunAgainGroupInstanceSteps(event.EventGroupInstanceID, event.OperatorID, event.OperationID, event.APITokensID)
 		// trigger a workflow by keyword and extra data
 		case eventing.TriggerKeyword:
 			go findEventGroupsToStart(event)
 		case eventing.TriggerCron:
 			// cron triggered
 			eventgroupinstanceID, err := eventing.CreateEventGroupInstance(event.EventGroupID,
-				eventing.TriggerCron, event.OperatorID, event.OperationID, map[string]interface{}{})
+				eventing.TriggerCron, event.OperatorID, event.OperationID, map[string]interface{}{}, event.APITokensID)
 			if err != nil {
 				logging.LogError(err, "Failed to create new event group instance")
 				errMsg := err.Error()
@@ -423,7 +424,7 @@ func findEventGroupsToStart(eventNotification EventNotification) {
 		if eventing.TriggerKeyword == eventNotification.Trigger {
 			if slices.Contains(possibleEventGroups[i].Keywords.StructStringValue(), eventNotification.Keyword) {
 				eventgroupinstanceID, err := eventing.CreateEventGroupInstance(possibleEventGroups[i].ID,
-					eventNotification.Trigger, eventNotification.OperatorID, eventNotification.OperationID, triggerMetadata)
+					eventNotification.Trigger, eventNotification.OperatorID, eventNotification.OperationID, triggerMetadata, eventNotification.APITokensID)
 				if err != nil {
 					logging.LogError(err, "Failed to create new event group instance")
 					source := fmt.Sprintf("Keyword Event Group Trigger: %s", eventNotification.Trigger)
@@ -567,7 +568,7 @@ func findEventGroupsToStart(eventNotification EventNotification) {
 			default:
 			}
 			eventgroupinstanceID, err := eventing.CreateEventGroupInstance(possibleEventGroups[i].ID,
-				eventNotification.Trigger, eventNotification.OperatorID, eventNotification.OperationID, triggerMetadata)
+				eventNotification.Trigger, eventNotification.OperatorID, eventNotification.OperationID, triggerMetadata, eventNotification.APITokensID)
 			if err != nil {
 				logging.LogError(err, "Failed to create new event group instance")
 				source := fmt.Sprintf("Event Group Trigger: %s", eventNotification.Trigger)
@@ -813,7 +814,7 @@ func startProcessingNewEventGroupInstanceSteps(eventgroupinstanceID int, operati
 		}
 	}
 }
-func startProcessingRunAgainGroupInstanceSteps(oldEventGroupInstanceID int, newOperatorID int, operationID int) {
+func startProcessingRunAgainGroupInstanceSteps(oldEventGroupInstanceID int, newOperatorID int, operationID int, sourceTokenID int) {
 	// copy the old event group's metadata to the new event group
 	oldEventGroupInstance := databaseStructs.EventGroupInstance{}
 	err := database.DB.Get(&oldEventGroupInstance, `SELECT 
@@ -828,7 +829,7 @@ func startProcessingRunAgainGroupInstanceSteps(oldEventGroupInstanceID int, newO
 		return
 	}
 	eventgroupinstanceID, err := eventing.CreateEventGroupInstance(oldEventGroupInstance.EventGroupID,
-		oldEventGroupInstance.Trigger, newOperatorID, operationID, oldEventGroupInstance.TriggerMetadata.StructValue())
+		oldEventGroupInstance.Trigger, newOperatorID, operationID, oldEventGroupInstance.TriggerMetadata.StructValue(), sourceTokenID)
 	if err != nil {
 		logging.LogError(err, "Failed to create new event group instance")
 		source := fmt.Sprintf("RunAgain Event Group Trigger: %s", oldEventGroupInstance.EventGroup.Name)
@@ -986,13 +987,14 @@ func startEventStepInstance(eventStepInstanceID int) error {
 	stepEnv := eventStepInstance.Environment.StructValue()
 	groupEnv := eventStepInstance.EventGroupInstance.Environment.StructValue()
 	actionDataString := eventStepInstance.EventStep.ActionData.String()
+	authContext := rabbitMQAuthContextForEventStepInstance(eventStepInstance)
 	for key, val := range eventStepInstance.EventStep.Inputs.StructValue() {
 		requestedScopes, ok, tokenErr := eventStepTryGetInputAPITokenScopes(val)
 		if tokenErr != nil {
 			return fmt.Errorf("failed to resolve input %q: %w", key, tokenErr)
 		}
 		if ok {
-			plainAPITokenValue, err := createEventStepAPIToken(eventStepInstance, requestedScopes)
+			plainAPITokenValue, err := createEventStepAPIToken(eventStepInstance, requestedScopes, authContext)
 			if err != nil {
 				return fmt.Errorf("failed to create API token for input %q: %w", key, err)
 			}
@@ -1105,23 +1107,23 @@ func startEventStepInstance(eventStepInstanceID int) error {
 	}
 	switch eventStepInstance.EventStep.Action {
 	case eventing.ActionPayloadCreate:
-		return startEventStepInstanceActionCreatePayload(eventStepInstance, actionDataMap)
+		return startEventStepInstanceActionCreatePayload(eventStepInstance, actionDataMap, authContext)
 	case eventing.ActionCreateCallback:
-		return startEventStepInstanceActionCreateCallback(eventStepInstance, actionDataMap)
+		return startEventStepInstanceActionCreateCallback(eventStepInstance, actionDataMap, authContext)
 	case eventing.ActionCreateTask:
-		return startEventStepInstanceActionCreateTask(eventStepInstance, actionDataMap)
+		return startEventStepInstanceActionCreateTask(eventStepInstance, actionDataMap, authContext)
 	case eventing.ActionCreateAlert:
-		return startEventStepInstanceActionCreateAlert(eventStepInstance, actionDataMap)
+		return startEventStepInstanceActionCreateAlert(eventStepInstance, actionDataMap, authContext)
 	case eventing.ActionSendWebhook:
-		return startEventStepInstanceActionSendWebhook(eventStepInstance, actionDataMap)
+		return startEventStepInstanceActionSendWebhook(eventStepInstance, actionDataMap, authContext)
 	case eventing.ActionCustomFunction:
-		return startEventStepInstanceActionCustomFunction(eventStepInstance, inputs, actionDataMap, groupEnv)
+		return startEventStepInstanceActionCustomFunction(eventStepInstance, inputs, actionDataMap, groupEnv, authContext)
 	case eventing.ActionConditionalCheck:
-		return startEventStepInstanceActionConditionalCheck(eventStepInstance, inputs, actionDataMap, groupEnv)
+		return startEventStepInstanceActionConditionalCheck(eventStepInstance, inputs, actionDataMap, groupEnv, authContext)
 	case eventing.ActionInterceptTask:
-		return startEventStepInstanceActionInterceptTask(eventStepInstance, inputs, actionDataMap, groupEnv)
+		return startEventStepInstanceActionInterceptTask(eventStepInstance, inputs, actionDataMap, groupEnv, authContext)
 	case eventing.ActionInterceptResponse:
-		return startEventStepInstanceActionInterceptResponse(eventStepInstance, inputs, actionDataMap, groupEnv)
+		return startEventStepInstanceActionInterceptResponse(eventStepInstance, inputs, actionDataMap, groupEnv, authContext)
 	default:
 	}
 	return nil
@@ -1302,57 +1304,26 @@ func eventStepTryGetInputAPITokenScopes(value interface{}) ([]string, bool, erro
 		}
 		scopes = append(scopes, scope)
 	}
-	normalizedScopes, err := mythicjwt.NormalizeAPITokenScopes(scopes)
-	if err != nil {
-		// we're looking at an apitoken request, but we couldn't find the scopes it wanted
-		return nil, true, err
-	}
-	if len(normalizedScopes) == 0 {
+	if len(scopes) == 0 {
 		return nil, true, errors.New("mythic.apitoken input requires at least one scope")
 	}
-	return normalizedScopes, true, nil
+	return scopes, true, nil
 }
 
-func createEventStepAPIToken(eventStepInstance databaseStructs.EventStepInstance, scopes []string) (string, error) {
-	apiToken := databaseStructs.Apitokens{
-		TokenValue: "",
-		OperatorID: eventStepInstance.OperatorID,
-		TokenType:  mythicjwt.AUTH_METHOD_EVENT,
-		Active:     true,
-		Name:       fmt.Sprintf("Generated Event API Token for step \"%s\"", eventStepInstance.EventStep.Name),
-		Scopes:     append([]string{}, scopes...),
-		CreatedBy:  eventStepInstance.OperatorID,
+func createEventStepAPIToken(eventStepInstance databaseStructs.EventStepInstance, scopes []string, authContext RabbitMQAuthContext) (string, error) {
+	token := databaseStructs.Apitokens{
+		OperatorID: eventStepInstance.OperatorID, OperationID: eventStepInstance.OperationID,
+		CreatedBy: eventStepInstance.OperatorID, TokenType: mythicjwt.AUTH_METHOD_EVENT, Active: true,
+		Name: fmt.Sprintf("Generated Event API Token for step %q", eventStepInstance.EventStep.Name),
 	}
-	apiToken.EventStepInstanceID.Valid = true
-	apiToken.EventStepInstanceID.Int64 = int64(eventStepInstance.ID)
-	statement, err := database.DB.PrepareNamed(`INSERT INTO apitokens
-		(token_value, operator_id, token_type, active, "name", scopes, created_by, eventstepinstance_id)
-		VALUES
-		(:token_value, :operator_id, :token_type, :active, :name, :scopes, :created_by, :eventstepinstance_id)
-		RETURNING id`)
-	if err != nil {
-		logging.LogError(err, "Failed to insert apitokens")
-		return "", err
+	token.EventStepInstanceID.Valid = true
+	token.EventStepInstanceID.Int64 = int64(eventStepInstance.ID)
+	// The event context carries the original credential ceiling, not a newly
+	// expanded set based on the workflow owner's interactive authority.
+	if len(authContext.SourceScopes) == 0 {
+		return "", fmt.Errorf("workflow authorization is unavailable")
 	}
-	err = statement.Get(&apiToken.ID, apiToken)
-	if err != nil {
-		logging.LogError(err, "Failed to get new apitoken")
-		return "", err
-	}
-	plainAPITokenValue, storedAPITokenValue, err := mythicjwt.GenerateOpaqueAPIToken()
-	if err != nil {
-		logging.LogError(err, "Failed to generate access token")
-		expireAPIToken(apiToken.ID)
-		return "", err
-	}
-	apiToken.TokenValue = storedAPITokenValue
-	_, err = database.DB.Exec(`UPDATE apitokens SET token_value=$1 WHERE id=$2`, apiToken.TokenValue, apiToken.ID)
-	if err != nil {
-		logging.LogError(err, "Failed to update apitoken")
-		expireAPIToken(apiToken.ID)
-		return "", err
-	}
-	return plainAPITokenValue, nil
+	return database.CreateAPIToken(&token, scopes, authContext.ScopeSet(), eventStepInstance.OperationID)
 }
 
 func resumeWaitingEventStepInstance(eventStepInstanceID int) {
@@ -1403,7 +1374,13 @@ func convertMapStringToInt(actionDataMap map[string]interface{}, key string, req
 	actionDataMap[key] = intValue
 	return nil
 }
-func startEventStepInstanceActionCreatePayload(eventStepInstance databaseStructs.EventStepInstance, actionDataMap map[string]interface{}) error {
+func startEventStepInstanceActionCreatePayload(eventStepInstance databaseStructs.EventStepInstance, actionDataMap map[string]interface{}, authContext RabbitMQAuthContext) error {
+	// Authorization is checked before the action performs any side effects.
+	grants := authContext.ScopeSet()
+	if !grants[authorization.SCOPE_ALL] && !grants[authorization.SCOPE_PAYLOAD_WRITE] {
+		return fmt.Errorf("missing required scope: %s", authorization.SCOPE_PAYLOAD_WRITE)
+	}
+
 	eventData := EventActionDataCreatePayload{}
 	err := mapstructure.Decode(actionDataMap, &eventData.PayloadConfiguration)
 	if err != nil {
@@ -1420,18 +1397,19 @@ func startEventStepInstanceActionCreatePayload(eventStepInstance databaseStructs
 			ID: eventStepInstance.OperationID,
 		},
 	}
-	_, _, err = RegisterNewPayload(eventData.PayloadConfiguration, &operatorOperation, RabbitMQAuthContext{
-		OperatorID:          eventStepInstance.OperatorID,
-		OperationID:         eventStepInstance.OperationID,
-		EventStepInstanceID: eventStepInstance.ID,
-		SourceScopes:        []string{mythicjwt.SCOPE_PAYLOAD_WRITE},
-	})
+	_, _, err = RegisterNewPayload(eventData.PayloadConfiguration, &operatorOperation, authContext)
 	if err != nil {
 		logging.LogError(err, "Failed to register payload for CreatePayloadWebhook")
 	}
 	return err
 }
-func startEventStepInstanceActionCreateCallback(eventStepInstance databaseStructs.EventStepInstance, actionDataMap map[string]interface{}) error {
+func startEventStepInstanceActionCreateCallback(eventStepInstance databaseStructs.EventStepInstance, actionDataMap map[string]interface{}, authContext RabbitMQAuthContext) error {
+	// Authorization is checked before the action performs any side effects.
+	grants := authContext.ScopeSet()
+	if !grants[authorization.SCOPE_ALL] && !grants[authorization.SCOPE_CALLBACK_WRITE] {
+		return fmt.Errorf("missing required scope: %s", authorization.SCOPE_CALLBACK_WRITE)
+	}
+
 	eventData := MythicRPCCallbackCreateMessage{}
 	err := convertMapStringToInt(actionDataMap, "pid", false)
 	if err != nil {
@@ -1450,7 +1428,7 @@ func startEventStepInstanceActionCreateCallback(eventStepInstance databaseStruct
 		logging.LogError(err, "Failed to decode action data")
 		return err
 	}
-	callbackCreateResponse := MythicRPCCallbackCreate(eventData, rabbitMQAuthContextForEventStepInstance(eventStepInstance))
+	callbackCreateResponse := MythicRPCCallbackCreate(eventData, authContext)
 	if !callbackCreateResponse.Success {
 		logging.LogError(nil, callbackCreateResponse.Error)
 		return errors.New(callbackCreateResponse.Error)
@@ -1461,7 +1439,13 @@ func startEventStepInstanceActionCreateCallback(eventStepInstance databaseStruct
 	})
 	return nil
 }
-func startEventStepInstanceActionCreateTask(eventStepInstance databaseStructs.EventStepInstance, actionDataMap map[string]interface{}) error {
+func startEventStepInstanceActionCreateTask(eventStepInstance databaseStructs.EventStepInstance, actionDataMap map[string]interface{}, authContext RabbitMQAuthContext) error {
+	// Authorization is checked before the action performs any side effects.
+	grants := authContext.ScopeSet()
+	if !grants[authorization.SCOPE_ALL] && !grants[authorization.SCOPE_TASK_WRITE] {
+		return fmt.Errorf("missing required scope: %s", authorization.SCOPE_TASK_WRITE)
+	}
+
 	eventData := EventActionDataCreateTask{}
 	err := convertMapStringToInt(actionDataMap, "callback_display_id", true)
 	if err != nil {
@@ -1496,12 +1480,7 @@ func startEventStepInstanceActionCreateTask(eventStepInstance databaseStructs.Ev
 		IsInteractiveTask:     eventData.IsInteractiveTask,
 		InteractiveTaskType:   eventData.InteractiveTaskType,
 		ResolveTaskReferences: eventData.ResolveTaskReferences,
-		AuthContext: RabbitMQAuthContext{
-			OperatorID:          eventStepInstance.OperatorID,
-			OperationID:         eventStepInstance.OperationID,
-			EventStepInstanceID: eventStepInstance.ID,
-			SourceScopes:        []string{mythicjwt.SCOPE_TASK_WRITE},
-		},
+		AuthContext:           authContext,
 	}
 	if eventData.ParamDictionary != nil && len(eventData.ParamDictionary) > 0 {
 		paramsString, _ := json.Marshal(eventData.ParamDictionary)
@@ -1519,7 +1498,13 @@ func startEventStepInstanceActionCreateTask(eventStepInstance databaseStructs.Ev
 	}
 	return nil
 }
-func startEventStepInstanceActionCreateAlert(eventStepInstance databaseStructs.EventStepInstance, actionDataMap map[string]interface{}) error {
+func startEventStepInstanceActionCreateAlert(eventStepInstance databaseStructs.EventStepInstance, actionDataMap map[string]interface{}, authContext RabbitMQAuthContext) error {
+	// Authorization is checked before the action performs any side effects.
+	grants := authContext.ScopeSet()
+	if !grants[authorization.SCOPE_ALL] && !grants[authorization.SCOPE_EVENTLOG_WRITE] {
+		return fmt.Errorf("missing required scope: %s", authorization.SCOPE_EVENTLOG_WRITE)
+	}
+
 	eventData := EventActionDataCreateAlert{}
 	err := mapstructure.Decode(actionDataMap, &eventData)
 	if err != nil {
@@ -1562,7 +1547,13 @@ func startEventStepInstanceActionCreateAlert(eventStepInstance databaseStructs.E
 	})
 	return nil
 }
-func startEventStepInstanceActionSendWebhook(eventStepInstance databaseStructs.EventStepInstance, actionDataMap map[string]interface{}) error {
+func startEventStepInstanceActionSendWebhook(eventStepInstance databaseStructs.EventStepInstance, actionDataMap map[string]interface{}, authContext RabbitMQAuthContext) error {
+	// Authorization is checked before the action performs any side effects.
+	grants := authContext.ScopeSet()
+	if !grants[authorization.SCOPE_ALL] && !grants[authorization.SCOPE_WEBHOOK_WRITE] {
+		return fmt.Errorf("missing required scope: %s", authorization.SCOPE_WEBHOOK_WRITE)
+	}
+
 	eventData := EventActionDataSendWebhook{}
 	err := mapstructure.Decode(actionDataMap, &eventData)
 	if err != nil {
@@ -1595,17 +1586,57 @@ func startEventStepInstanceActionSendWebhook(eventStepInstance databaseStructs.E
 	return nil
 }
 
-func rabbitMQAuthContextForEventStepInstance(eventStepInstance databaseStructs.EventStepInstance) RabbitMQAuthContext {
-	return RabbitMQAuthContext{
-		OperatorID:          eventStepInstance.OperatorID,
-		OperationID:         eventStepInstance.OperationID,
-		EventStepInstanceID: eventStepInstance.ID,
+// Preserve the original token ceiling across every event step. A database
+// error leaves no grants rather than silently creating an unrestricted context.
+func rabbitMQAuthContextForEventStepInstance(step databaseStructs.EventStepInstance) RabbitMQAuthContext {
+	context := RabbitMQAuthContext{OperatorID: step.OperatorID, OperationID: step.OperationID, EventStepInstanceID: step.ID}
+	err := database.DB.Get(&context.APITokensID, `SELECT COALESCE(apitokens_id,0) FROM eventgroupinstance WHERE id=$1`, step.EventGroupInstanceID)
+	if err != nil {
+		logging.LogError(err, "failed to resolve workflow authorization")
+		return context
 	}
+	if context.APITokensID == 0 {
+		var current struct {
+			Admin bool   `db:"admin"`
+			Role  string `db:"view_mode"`
+		}
+		err = database.DB.Get(&current, `SELECT o.admin,COALESCE(m.view_mode,'') view_mode FROM operator o
+   LEFT JOIN operatoroperation m ON m.operator_id=o.id AND m.operation_id=$2
+   WHERE o.id=$1 AND o.active AND NOT o.deleted AND (o.admin OR m.id IS NOT NULL)`, step.OperatorID, step.OperationID)
+		if err != nil || !current.Admin && current.Role == database.OPERATOR_OPERATION_VIEW_MODE_SPECTATOR {
+			return context
+		}
+		context.SourceScopes = []string{authorization.SCOPE_ALL}
+		return context
+	}
+
+	authority, err := database.GetAPITokenScopesWithOperationID(context.APITokensID, step.OperationID)
+	if err != nil {
+		logging.LogError(err, "workflow credential is revoked")
+		return context
+	}
+	context.SourceScopes = []string{}
+	for _, scope := range authority.Scopes {
+		if !authority.Admin &&
+			authority.Role == database.OPERATOR_OPERATION_VIEW_MODE_SPECTATOR &&
+			strings.HasSuffix(scope, ".write") &&
+			scope != authorization.SCOPE_APITOKEN_WRITE {
+			continue
+		}
+		context.SourceScopes = append(context.SourceScopes, scope)
+	}
+	return context
 }
 
 func startEventStepInstanceActionCustomFunction(eventStepInstance databaseStructs.EventStepInstance, inputs map[string]interface{},
 	actionDataMap map[string]interface{},
-	environment map[string]interface{}) error {
+	environment map[string]interface{}, authContext RabbitMQAuthContext) error {
+	// Authorization is checked before the action performs any side effects.
+	grants := authContext.ScopeSet()
+	if !grants[authorization.SCOPE_ALL] && !grants[authorization.SCOPE_EVENTING_WRITE] {
+		return fmt.Errorf("missing required scope: %s", authorization.SCOPE_EVENTING_WRITE)
+	}
+
 	functionName := ""
 	containerName := ""
 	if _, ok := actionDataMap["container_name"]; ok {
@@ -1625,11 +1656,17 @@ func startEventStepInstanceActionCustomFunction(eventStepInstance databaseStruct
 		ActionData:          actionDataMap,
 		FunctionName:        functionName,
 		ContainerName:       containerName,
-	}, rabbitMQAuthContextForEventStepInstance(eventStepInstance))
+	}, authContext)
 }
 func startEventStepInstanceActionConditionalCheck(eventStepInstance databaseStructs.EventStepInstance, inputs map[string]interface{},
 	actionDataMap map[string]interface{},
-	environment map[string]interface{}) error {
+	environment map[string]interface{}, authContext RabbitMQAuthContext) error {
+	// Authorization is checked before the action performs any side effects.
+	grants := authContext.ScopeSet()
+	if !grants[authorization.SCOPE_ALL] && !grants[authorization.SCOPE_EVENTING_WRITE] {
+		return fmt.Errorf("missing required scope: %s", authorization.SCOPE_EVENTING_WRITE)
+	}
+
 	functionName := ""
 	containerName := ""
 	if _, ok := actionDataMap["container_name"]; ok {
@@ -1652,11 +1689,17 @@ func startEventStepInstanceActionConditionalCheck(eventStepInstance databaseStru
 		ActionData:          actionDataMap,
 		FunctionName:        functionName,
 		ContainerName:       containerName,
-	}, rabbitMQAuthContextForEventStepInstance(eventStepInstance))
+	}, authContext)
 }
 func startEventStepInstanceActionInterceptTask(eventStepInstance databaseStructs.EventStepInstance, inputs map[string]interface{},
 	actionDataMap map[string]interface{},
-	environment map[string]interface{}) error {
+	environment map[string]interface{}, authContext RabbitMQAuthContext) error {
+	// Authorization is checked before the action performs any side effects.
+	grants := authContext.ScopeSet()
+	if !grants[authorization.SCOPE_ALL] && !grants[authorization.SCOPE_EVENTING_WRITE] {
+		return fmt.Errorf("missing required scope: %s", authorization.SCOPE_EVENTING_WRITE)
+	}
+
 	containerName := ""
 	if _, ok := actionDataMap["container_name"]; ok {
 		containerName = actionDataMap["container_name"].(string)
@@ -1682,11 +1725,17 @@ func startEventStepInstanceActionInterceptTask(eventStepInstance databaseStructs
 		Inputs:              inputs,
 		ActionData:          actionDataMap,
 		ContainerName:       containerName,
-	}, rabbitMQAuthContextForEventStepInstance(eventStepInstance))
+	}, authContext)
 }
 func startEventStepInstanceActionInterceptResponse(eventStepInstance databaseStructs.EventStepInstance, inputs map[string]interface{},
 	actionDataMap map[string]interface{},
-	environment map[string]interface{}) error {
+	environment map[string]interface{}, authContext RabbitMQAuthContext) error {
+	// Authorization is checked before the action performs any side effects.
+	grants := authContext.ScopeSet()
+	if !grants[authorization.SCOPE_ALL] && !grants[authorization.SCOPE_EVENTING_WRITE] {
+		return fmt.Errorf("missing required scope: %s", authorization.SCOPE_EVENTING_WRITE)
+	}
+
 	containerName := ""
 	if _, ok := actionDataMap["container_name"]; ok {
 		containerName = actionDataMap["container_name"].(string)
@@ -1706,7 +1755,7 @@ func startEventStepInstanceActionInterceptResponse(eventStepInstance databaseStr
 		Inputs:              inputs,
 		ActionData:          actionDataMap,
 		ContainerName:       containerName,
-	}, rabbitMQAuthContextForEventStepInstance(eventStepInstance))
+	}, authContext)
 }
 func restartFailedJobs(eventgroupInstanceID int, operationID int) error {
 	_, err := database.DB.Exec(`UPDATE eventstepinstance 

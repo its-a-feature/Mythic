@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -55,18 +56,8 @@ func UpdateOperationWebhook(c *gin.Context) {
 		})
 		return
 	}
-	operator := databaseStructs.Operator{}
 	operatorRole := databaseStructs.Operatoroperation{}
-	userID, err := GetUserIDFromGin(c)
-	if err != nil {
-		logging.LogError(err, "Failed to get userID from JWT")
-		c.JSON(http.StatusOK, CreateOperationResponse{
-			Status: "error",
-			Error:  err.Error(),
-		})
-		return
-	}
-	err = database.DB.Get(&operator, `SELECT * FROM operator WHERE id=$1`, userID)
+	operator, err := authentication.GetRequestUser(c)
 	if err != nil {
 		logging.LogError(err, "Failed to get information about operator")
 		c.JSON(http.StatusOK, UpdateOperationResponse{
@@ -238,10 +229,6 @@ func UpdateOperationWebhook(c *gin.Context) {
 			Error:  err.Error(),
 		})
 		return
-	}
-	err = UpdateHasuraClaims(c, true)
-	if err != nil {
-		logging.LogError(err, "Failed to update claims")
 	}
 	if updatingWebhook {
 		rabbitmq.RabbitMQConnection.EmitWebhookMessage(rabbitmq.WebhookMessage{

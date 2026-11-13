@@ -2,6 +2,7 @@ package webcontroller
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -36,17 +37,7 @@ func CreateOperationWebhook(c *gin.Context) {
 		})
 		return
 	}
-	userID, err := GetUserIDFromGin(c)
-	if err != nil {
-		logging.LogError(err, "Failed to get userID from JWT")
-		c.JSON(http.StatusOK, CreateOperationResponse{
-			Status: "error",
-			Error:  err.Error(),
-		})
-		return
-	}
-	operator := databaseStructs.Operator{}
-	err = database.DB.Get(&operator, `SELECT * FROM operator WHERE id=$1`, userID)
+	operator, err := authentication.GetRequestUser(c)
 	if err != nil {
 		logging.LogError(err, "Failed to get information about operator")
 		c.JSON(http.StatusOK, CreateOperationResponse{
@@ -71,7 +62,7 @@ func CreateOperationWebhook(c *gin.Context) {
 	}
 	// get the associated database information
 	newOperation := databaseStructs.Operation{
-		AdminID: userID,
+		AdminID: operator.ID,
 		Name:    input.Input.Name,
 	}
 	statement, err := database.DB.PrepareNamed(`INSERT INTO operation 
@@ -97,7 +88,7 @@ func CreateOperationWebhook(c *gin.Context) {
 	}
 	// we created the operation, now create a new operatorOperation mapping for this user as the lead
 	newOperatorOperation := databaseStructs.Operatoroperation{
-		OperatorID:  userID,
+		OperatorID:  operator.ID,
 		OperationID: newOperation.ID,
 		ViewMode:    database.OPERATOR_OPERATION_VIEW_MODE_LEAD,
 	}
@@ -113,10 +104,6 @@ func CreateOperationWebhook(c *gin.Context) {
 		return
 	}
 	database.CreateOperationBotForOperation(newOperation)
-	err = UpdateHasuraClaims(c, true)
-	if err != nil {
-		logging.LogError(err, "Failed to update claims")
-	}
 	c.JSON(http.StatusOK, CreateOperationResponse{
 		Status:        "success",
 		OperationID:   newOperation.ID,

@@ -49,12 +49,11 @@ import {
     MythicDialogSection,
     MythicFormNote
 } from "../../MythicComponents/MythicDialogLayout";
-import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
 import {SettingsOperatorAliasesDialog} from "./SettingsOperatorAliasesDialog";
 
 const createAPITokenMutation = gql`
-mutation createAPITokenMutation($operator_id: Int, $name: String, $scopes: [String!]){
-  createAPIToken(operator_id: $operator_id, name: $name, scopes: $scopes){
+mutation createAPITokenMutation($operator_id: Int, $name: String, $scopes: [String!]!, $operation_id: Int!){
+  createAPIToken(operator_id: $operator_id, name: $name, scopes: $scopes, operation_id: $operation_id){
     id
     token_value
     scopes
@@ -218,7 +217,7 @@ export function SettingsOperatorTableRow(props){
         setOpenDeleteDialog(false);
     }
     const onSubmitNewAPIToken = (name, scopes) => {
-        createAPIToken({variables: {operator_id: props.id, name, scopes}})
+        createAPIToken({variables: {operator_id: props.id, name, scopes, operation_id: me.user.current_operation_id}})
         setOpenNewAPIToken(false);
     }
     const onDeleteAPIToken = (id) => {

@@ -1,146 +1,156 @@
-table:
-  name: payloadcommand
-  schema: public
-object_relationships:
-  - name: command
-    using:
-      foreign_key_constraint_on: command_id
-  - name: payload
-    using:
-      foreign_key_constraint_on: payload_id
-insert_permissions:
-  - role: mythic_admin
-    permission:
-      check:
-        _and:
-          - payload:
-              operation_id:
-                _eq: X-Hasura-current-operation-id
-          - payload:
-              operation_id:
-                _lte: X-Hasura-scope-payload-write-operation
-      columns:
-        - command_id
-        - payload_id
-  - role: operation_admin
-    permission:
-      check:
-        _and:
-          - payload:
-              operation_id:
-                _eq: X-Hasura-current-operation-id
-          - payload:
-              operation_id:
-                _lte: X-Hasura-scope-payload-write-operation
-      columns:
-        - command_id
-        - payload_id
-  - role: operator
-    permission:
-      check:
-        _and:
-          - payload:
-              operation_id:
-                _eq: X-Hasura-current-operation-id
-          - payload:
-              operation_id:
-                _lte: X-Hasura-scope-payload-write-operation
-      columns:
-        - command_id
-        - payload_id
-select_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - id
-        - payload_id
-        - command_id
-        - creation_time
-        - version
-      filter:
-        _and:
-          - payload:
-              operation_id:
-                _eq: X-Hasura-current-operation-id
-          - payload:
-              operation_id:
-                _lte: X-Hasura-Scope-payload-read-operation
-  - role: operation_admin
-    permission:
-      columns:
-        - id
-        - payload_id
-        - command_id
-        - creation_time
-        - version
-      filter:
-        _and:
-          - payload:
-              operation_id:
-                _eq: X-Hasura-current-operation-id
-          - payload:
-              operation_id:
-                _lte: X-Hasura-Scope-payload-read-operation
-  - role: operator
-    permission:
-      columns:
-        - id
-        - payload_id
-        - command_id
-        - creation_time
-        - version
-      filter:
-        _and:
-          - payload:
-              operation_id:
-                _eq: X-Hasura-current-operation-id
-          - payload:
-              operation_id:
-                _lte: X-Hasura-Scope-payload-read-operation
-  - role: spectator
-    permission:
-      columns:
-        - id
-        - payload_id
-        - command_id
-        - creation_time
-        - version
-      filter:
-        _and:
-          - payload:
-              operation_id:
-                _eq: X-Hasura-current-operation-id
-          - payload:
-              operation_id:
-                _lte: X-Hasura-Scope-payload-read-operation
 delete_permissions:
-  - role: mythic_admin
-    permission:
-      filter:
-        _and:
-          - payload:
-              operation_id:
-                _eq: X-Hasura-current-operation-id
-          - payload:
-              operation_id:
-                _lte: X-Hasura-scope-payload-write-operation
-  - role: operation_admin
-    permission:
-      filter:
-        _and:
-          - payload:
-              operation_id:
-                _eq: X-Hasura-current-operation-id
-          - payload:
-              operation_id:
-                _lte: X-Hasura-scope-payload-write-operation
-  - role: operator
-    permission:
-      filter:
-        _and:
-          - payload:
-              operation_id:
-                _eq: X-Hasura-current-operation-id
-          - payload:
-              operation_id:
-                _lte: X-Hasura-scope-payload-write-operation
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        filter:
+            _and:
+                - payload:
+                    operation_id:
+                        _eq: X-Hasura-current-operation-id
+                - payload:
+                    operation_id:
+                        _in: x-hasura-payload-write-operation-ids
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        filter:
+            _and:
+                - payload:
+                    operation_id:
+                        _eq: X-Hasura-current-operation-id
+                - payload:
+                    operation_id:
+                        _in: x-hasura-payload-write-operation-ids
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        filter:
+            _and:
+                - payload:
+                    operation_id:
+                        _eq: X-Hasura-current-operation-id
+                - payload:
+                    operation_id:
+                        _in: x-hasura-payload-write-operation-ids
+      role: operator
+insert_permissions:
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - payload:
+                    operation_id:
+                        _eq: X-Hasura-current-operation-id
+                - payload:
+                    operation_id:
+                        _in: x-hasura-payload-write-operation-ids
+        columns:
+            - command_id
+            - payload_id
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - payload:
+                    operation_id:
+                        _eq: X-Hasura-current-operation-id
+                - payload:
+                    operation_id:
+                        _in: x-hasura-payload-write-operation-ids
+        columns:
+            - command_id
+            - payload_id
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - payload:
+                    operation_id:
+                        _eq: X-Hasura-current-operation-id
+                - payload:
+                    operation_id:
+                        _in: x-hasura-payload-write-operation-ids
+        columns:
+            - command_id
+            - payload_id
+      role: operator
+object_relationships:
+    - name: command
+      using:
+        foreign_key_constraint_on: command_id
+    - name: payload
+      using:
+        foreign_key_constraint_on: payload_id
+select_permissions:
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - id
+            - payload_id
+            - command_id
+            - creation_time
+            - version
+        filter:
+            _and:
+                - payload:
+                    operation_id:
+                        _eq: X-Hasura-current-operation-id
+                - payload:
+                    operation_id:
+                        _in: x-hasura-payload-read-operation-ids
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - id
+            - payload_id
+            - command_id
+            - creation_time
+            - version
+        filter:
+            _and:
+                - payload:
+                    operation_id:
+                        _eq: X-Hasura-current-operation-id
+                - payload:
+                    operation_id:
+                        _in: x-hasura-payload-read-operation-ids
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - id
+            - payload_id
+            - command_id
+            - creation_time
+            - version
+        filter:
+            _and:
+                - payload:
+                    operation_id:
+                        _eq: X-Hasura-current-operation-id
+                - payload:
+                    operation_id:
+                        _in: x-hasura-payload-read-operation-ids
+      role: operator
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - id
+            - payload_id
+            - command_id
+            - creation_time
+            - version
+        filter:
+            _and:
+                - payload:
+                    operation_id:
+                        _eq: X-Hasura-current-operation-id
+                - payload:
+                    operation_id:
+                        _in: x-hasura-payload-read-operation-ids
+      role: spectator
+table:
+    name: payloadcommand
+    schema: public

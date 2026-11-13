@@ -1,9 +1,8 @@
-package mythicjwt
+package authorization
 
 import (
 	"fmt"
 	"sort"
-	"strings"
 )
 
 const (
@@ -27,8 +26,9 @@ const (
 	SCOPE_CONTAINER_FILE_READ  = "container_file.read"
 	SCOPE_CONTAINER_FILE_WRITE = "container_file.write"
 
-	SCOPE_CREDENTIAL_READ  = "credential.read"
-	SCOPE_CREDENTIAL_WRITE = "credential.write"
+	SCOPE_CREDENTIAL_READ       = "credential.read"
+	SCOPE_CREDENTIAL_WRITE      = "credential.write"
+	SCOPE_CREDENTIAL_VALUE_READ = "credential.value.read"
 
 	SCOPE_BROWSER_READ  = "browser.read"
 	SCOPE_BROWSER_WRITE = "browser.write"
@@ -97,8 +97,9 @@ var scopeDefinitions = []ScopeDefinition{
 	{Name: SCOPE_CHAT_AI_WRITE, DisplayName: "Write AI chat", Description: "Create AI chat sessions, post prompts, and receive AI chat responses. Includes read access.", Resource: "chat-ai", Access: "write", Includes: []string{SCOPE_CHAT_AI_READ}},
 	{Name: SCOPE_CONTAINER_FILE_READ, DisplayName: "Read container files", Description: "List and download files exposed by Mythic service containers.", Resource: "container_file", Access: "read"},
 	{Name: SCOPE_CONTAINER_FILE_WRITE, DisplayName: "Write container files", Description: "Write or remove files exposed by Mythic service containers. Includes read access.", Resource: "container_file", Access: "write", Includes: []string{SCOPE_CONTAINER_FILE_READ}},
-	{Name: SCOPE_CREDENTIAL_READ, DisplayName: "Read credentials", Description: "View credential records for accessible operations.", Resource: "credential", Access: "read"},
-	{Name: SCOPE_CREDENTIAL_WRITE, DisplayName: "Write credentials", Description: "Create, update, or soft-delete credential records. Includes read access.", Resource: "credential", Access: "write", Includes: []string{SCOPE_CREDENTIAL_READ}},
+	{Name: SCOPE_CREDENTIAL_READ, DisplayName: "Read credentials", Description: "View credential record metadata for accessible operations. Does not include credential value access.", Resource: "credential", Access: "read"},
+	{Name: SCOPE_CREDENTIAL_WRITE, DisplayName: "Write credentials", Description: "Create, update, or soft-delete credential records. Includes metadata read access, but not credential value access.", Resource: "credential", Access: "write", Includes: []string{SCOPE_CREDENTIAL_READ}},
+	{Name: SCOPE_CREDENTIAL_VALUE_READ, DisplayName: "Read credential values", Description: "View raw and decoded credential values. Includes credential metadata read access.", Resource: "credential", Access: "value.read", Includes: []string{SCOPE_CREDENTIAL_READ}},
 	{Name: SCOPE_BROWSER_READ, DisplayName: "Read Mythictree Browsers", Description: "View browser entries (file, process, etc) for accessible operations.", Resource: "browser", Access: "read"},
 	{Name: SCOPE_BROWSER_WRITE, DisplayName: "Write Mythictree Browsers", Description: "Create, update, or soft-delete browser (file, process, etc) records. Includes read access.", Resource: "browser", Access: "write", Includes: []string{SCOPE_BROWSER_READ}},
 	{Name: SCOPE_EVENTLOG_READ, DisplayName: "Read event logs", Description: "View operation event logs for accessible operations.", Resource: "eventlog", Access: "read"},
@@ -125,41 +126,10 @@ var scopeDefinitions = []ScopeDefinition{
 	{Name: SCOPE_WEBHOOK_WRITE, DisplayName: "Write webhooks", Description: "Submit external webhook messages. Includes read access.", Resource: "webhook", Access: "write", Includes: []string{SCOPE_WEBHOOK_READ}},
 }
 
-var scopeDefinitionLookup = buildScopeDefinitionLookup()
-
-func buildScopeDefinitionLookup() map[string]ScopeDefinition {
-	lookup := make(map[string]ScopeDefinition, len(scopeDefinitions))
-	for _, definition := range scopeDefinitions {
-		lookup[definition.Name] = definition
-	}
-	return lookup
-}
-
 func ScopeDefinitions() []ScopeDefinition {
 	definitions := make([]ScopeDefinition, len(scopeDefinitions))
 	copy(definitions, scopeDefinitions)
 	return definitions
-}
-
-func NormalizeAPITokenScopes(scopes []string) ([]string, error) {
-	normalized := make([]string, 0, len(scopes))
-	seen := make(map[string]struct{}, len(scopes))
-	for _, scope := range scopes {
-		scope = strings.ToLower(strings.TrimSpace(scope))
-		if scope == "" {
-			continue
-		}
-		if !IsKnownScopeOrAlias(scope) {
-			return nil, fmt.Errorf("unknown API token scope %q", scope)
-		}
-		if _, exists := seen[scope]; exists {
-			continue
-		}
-		seen[scope] = struct{}{}
-		normalized = append(normalized, scope)
-	}
-	sort.Strings(normalized)
-	return normalized, nil
 }
 
 func CanGrantAPITokenScopes(granted []string, requested []string) error {
@@ -182,18 +152,29 @@ func GrantableScopeDefinitions(granted []string) []ScopeDefinition {
 }
 
 func GrantableWildcardScopes(granted []string) []string {
-	resources := map[string]struct{}{}
+	// Wildcards are creation inputs. A concrete token can offer one only when
+	// it contains every permission the wildcard would expand to today.
+	permissions := map[string]bool{}
+	for _, permission := range granted {
+		permissions[permission] = true
+	}
+	resources := map[string]bool{}
+	all := true
 	for _, definition := range scopeDefinitions {
-		resources[definition.Resource] = struct{}{}
+		allowed := permissions[SCOPE_ALL] || permissions[definition.Name]
+		if previous, exists := resources[definition.Resource]; exists {
+			allowed = allowed && previous
+		}
+		resources[definition.Resource] = allowed
+		all = all && allowed
 	}
 	wildcards := []string{}
-	for resource := range resources {
-		wildcard := resource + ".*"
-		if AllowsScope(granted, wildcard) {
-			wildcards = append(wildcards, wildcard)
+	for resource, allowed := range resources {
+		if allowed {
+			wildcards = append(wildcards, resource+".*")
 		}
 	}
-	if AllowsScope(granted, SCOPE_ALL) {
+	if all {
 		wildcards = append(wildcards, SCOPE_ALL)
 	}
 	sort.Strings(wildcards)
@@ -204,102 +185,49 @@ func IsKnownScopeOrAlias(scope string) bool {
 	if scope == SCOPE_ALL {
 		return true
 	}
-	if resource, ok := wildcardScopeResource(scope); ok {
-		for _, definition := range scopeDefinitions {
-			if definition.Resource == resource {
-				return true
-			}
-		}
-		return false
-	}
-	_, ok := scopeDefinitionLookup[scope]
-	return ok
-}
-
-func AllowsScope(granted []string, requiredScopeName string) bool {
-	requiredScopeName = strings.ToLower(strings.TrimSpace(requiredScopeName))
-	for _, scope := range granted {
-		scope = strings.ToLower(strings.TrimSpace(scope))
-		if scope == "" {
-			continue
-		}
-		if scope == SCOPE_ALL || scope == requiredScopeName {
+	for _, definition := range scopeDefinitions {
+		if definition.Name == scope || definition.Resource+".*" == scope {
 			return true
-		}
-		if resource, ok := wildcardScopeResource(scope); ok && strings.HasPrefix(requiredScopeName, resource+".") {
-			return true
-		}
-		definition, ok := scopeDefinitionLookup[scope]
-		if !ok {
-			continue
-		}
-		for _, included := range definition.Includes {
-			if included == requiredScopeName {
-				return true
-			}
 		}
 	}
 	return false
 }
 
-func EffectiveScopes(granted []string) []string {
-	effective := make(map[string]struct{})
+// AllowsScope checks stored grants exactly. Wildcards and implications are
+// resolved only by token issuance; a later catalog change cannot grow a token.
+func AllowsScope(granted []string, required string) bool {
 	for _, scope := range granted {
-		scope = strings.ToLower(strings.TrimSpace(scope))
-		if scope == "" {
-			continue
-		}
-		if scope == SCOPE_ALL {
-			effective[SCOPE_ALL] = struct{}{}
-			for _, definition := range scopeDefinitions {
-				effective[definition.Name] = struct{}{}
-			}
-			continue
-		}
-		if resource, ok := wildcardScopeResource(scope); ok {
-			for _, definition := range scopeDefinitions {
-				if definition.Resource == resource {
-					effective[definition.Name] = struct{}{}
-				}
-			}
-			continue
-		}
-		effective[scope] = struct{}{}
-		if definition, ok := scopeDefinitionLookup[scope]; ok {
-			for _, included := range definition.Includes {
-				effective[included] = struct{}{}
-			}
+		if scope == SCOPE_ALL || scope == required {
+			return true
 		}
 	}
-	result := make([]string, 0, len(effective))
-	for scope := range effective {
-		result = append(result, scope)
+	return false
+}
+
+// EffectiveScopes expands only interactive-session authority. API tokens already
+// contain their concrete, frozen grants and must not be re-expanded here.
+func EffectiveScopes(granted []string) []string {
+	result := append([]string{}, granted...)
+	for _, scope := range granted {
+		if scope == SCOPE_ALL {
+			result = []string{SCOPE_ALL}
+			for _, definition := range scopeDefinitions {
+				result = append(result, definition.Name)
+			}
+			break
+		}
 	}
 	sort.Strings(result)
 	return result
 }
 
-func wildcardScopeResource(scope string) (string, bool) {
-	if strings.HasSuffix(scope, ".*") {
-		return strings.TrimSuffix(scope, ".*"), true
-	}
-	return "", false
-}
-
+// Discovery reports the actual array claims used by generated token roles.
 func HasuraScopeRequirements() []HasuraScopeRequirement {
-	requirements := make([]HasuraScopeRequirement, 0, len(scopeDefinitions))
+	requirements := []HasuraScopeRequirement{}
 	for _, definition := range scopeDefinitions {
-		anchor := "operation"
-		if definition.Resource == "apitoken" || definition.Resource == "operator" {
-			anchor = "operator"
+		for _, anchor := range []string{"operation", "actor"} {
+			requirements = append(requirements, HasuraScopeRequirement{Resource: definition.Resource, Access: definition.Access, Scope: definition.Name, Anchor: anchor, SessionClaim: ClaimName(definition.Name, anchor == "operation")})
 		}
-		requirements = append(requirements, HasuraScopeRequirement{
-			Resource:     definition.Resource,
-			Access:       definition.Access,
-			Scope:        definition.Name,
-			Anchor:       anchor,
-			SessionClaim: fmt.Sprintf("x-hasura-scope-%s-%s-%s", definition.Resource, definition.Access, anchor),
-		})
 	}
 	return requirements
 }

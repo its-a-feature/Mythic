@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/eventing"
@@ -1063,16 +1064,16 @@ func RetryChatRequestWebhook(c *gin.Context) {
 }
 
 func chatSearchAllowedChannelTypes(c *gin.Context) []string {
-	claims, err := authentication.GetClaims(c)
+	scopes, err := authentication.GetScopesSetFromClaims(c)
 	if err != nil {
 		logging.LogError(err, "Failed to get claims for chat search scope check")
 		return []string{}
 	}
 	channelTypes := []string{}
-	if mythicjwt.AllowsScope(claims.Scopes, mythicjwt.SCOPE_CHAT_READ) {
+	if scopes[authorization.SCOPE_ALL] || scopes[authorization.SCOPE_CHAT_READ] {
 		channelTypes = append(channelTypes, databaseStructs.ChatChannelTypeStandard)
 	}
-	if mythicjwt.AllowsScope(claims.Scopes, mythicjwt.SCOPE_CHAT_AI_READ) {
+	if scopes[authorization.SCOPE_ALL] || scopes[authorization.SCOPE_CHAT_AI_READ] {
 		channelTypes = append(channelTypes, databaseStructs.ChatChannelTypeAI)
 	}
 	return channelTypes

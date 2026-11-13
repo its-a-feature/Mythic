@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -16,9 +16,9 @@ type MythicRPCCredentialSearchMessage struct {
 	SearchCredentials MythicRPCCredentialSearchCredentialData `json:"credentials"`
 }
 type MythicRPCCredentialSearchMessageResponse struct {
-	Success     bool                                      `json:"success"`
-	Error       string                                    `json:"error"`
-	Credentials []MythicRPCCredentialSearchCredentialData `json:"credentials"`
+	Success     bool            `json:"success"`
+	Error       string          `json:"error"`
+	Credentials json.RawMessage `json:"credentials"`
 }
 type MythicRPCCredentialSearchCredentialData struct {
 	ID         *int        `json:"id,omitempty"`
@@ -41,7 +41,7 @@ func init() {
 		Queue:      MYTHIC_RPC_CREDENTIAL_SEARCH,
 		RoutingKey: MYTHIC_RPC_CREDENTIAL_SEARCH,
 		Handler:    processMythicRPCCredentialSearch,
-		Scopes:     []string{mythicjwt.SCOPE_CREDENTIAL_READ},
+		Scopes:     []string{authorization.SCOPE_CREDENTIAL_READ},
 	})
 }
 
@@ -49,6 +49,20 @@ func init() {
 func MythicRPCCredentialSearch(input MythicRPCCredentialSearchMessage, authContext RabbitMQAuthContext) MythicRPCCredentialSearchMessageResponse {
 	response := MythicRPCCredentialSearchMessageResponse{
 		Success: false,
+	}
+	// Use the same field policy as Hasura. The request's concrete source grants
+	// are reused for predicate validation and projection, without normalization.
+	table := authorization.Current.Tables["credential"]
+	scopes := authContext.ScopeSet()
+	if input.SearchCredentials.Credential != nil {
+		for _, rule := range table.Policy.FieldReads {
+			for _, field := range rule.Fields {
+				if (field.Column == "credential" || field.ComputedField == "credential_text") && !scopes[authorization.SCOPE_ALL] && !scopes[rule.Permission] {
+					response.Error = "missing required scope: " + rule.Permission
+					return response
+				}
+			}
+		}
 	}
 	params := []interface{}{}
 	credentials := []databaseStructs.Credential{}
@@ -119,21 +133,25 @@ func MythicRPCCredentialSearch(input MythicRPCCredentialSearchMessage, authConte
 		response.Error = err.Error()
 		return response
 	}
-	returnedCredentials := []MythicRPCCredentialSearchCredentialData{}
-	marshalledBytes, err := json.Marshal(credentials)
-	if err != nil {
-		logging.LogError(err, "Failed to marshal credential result")
-		response.Error = err.Error()
-		return response
+	// Build the existing wire shape directly instead of JSON-encoding database
+	// models and immediately decoding them into response structs.
+	returnedCredentials := make([]MythicRPCCredentialSearchCredentialData, len(credentials))
+	for i := range credentials {
+		credential := &credentials[i]
+		returnedCredentials[i] = MythicRPCCredentialSearchCredentialData{
+			ID: &credential.ID, Type: &credential.Type, Subtype: &credential.Subtype,
+			Account: &credential.Account, Realm: &credential.Realm, Credential: &credential.Credential,
+			Comment: &credential.Comment, Metadata: credential.Metadata, Identity: credential.Identity,
+			Display: &credential.CustomDisplay, Deleted: &credential.Deleted, Timestamp: &credential.Timestamp,
+		}
 	}
-	err = json.Unmarshal(marshalledBytes, &returnedCredentials)
+	projected, err := authorization.ProjectFields(table, scopes, returnedCredentials)
 	if err != nil {
-		logging.LogError(err, "Failed to unmarshal credential results")
 		response.Error = err.Error()
 		return response
 	}
 	response.Success = true
-	response.Credentials = returnedCredentials
+	response.Credentials = projected
 	return response
 }
 func processMythicRPCCredentialSearch(msg amqp.Delivery) interface{} {

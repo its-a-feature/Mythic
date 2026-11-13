@@ -1,130 +1,130 @@
-table:
-  name: eventstep
-  schema: public
-object_relationships:
-  - name: eventgroup
-    using:
-      foreign_key_constraint_on: eventgroup_id
-  - name: operation
-    using:
-      foreign_key_constraint_on: operation_id
-  - name: operator
-    using:
-      foreign_key_constraint_on: operator_id
 array_relationships:
-  - name: eventstepinstances
-    using:
-      foreign_key_constraint_on:
-        column: eventstep_id
-        table:
-          name: eventstepinstance
-          schema: public
+    - name: eventstepinstances
+      using:
+        foreign_key_constraint_on:
+            column: eventstep_id
+            table:
+                name: eventstepinstance
+                schema: public
+object_relationships:
+    - name: eventgroup
+      using:
+        foreign_key_constraint_on: eventgroup_id
+    - name: operation
+      using:
+        foreign_key_constraint_on: operation_id
+    - name: operator
+      using:
+        foreign_key_constraint_on: operator_id
 select_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - continue_on_error
-        - deleted
-        - eventgroup_id
-        - id
-        - operation_id
-        - operator_id
-        - order
-        - action_data
-        - depends_on
-        - environment
-        - inputs
-        - outputs
-        - user_interaction
-        - action
-        - description
-        - name
-        - created_at
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-scope-eventing-read-operation
-    comment: ""
-  - role: operation_admin
-    permission:
-      columns:
-        - continue_on_error
-        - deleted
-        - eventgroup_id
-        - id
-        - operation_id
-        - operator_id
-        - order
-        - action_data
-        - depends_on
-        - environment
-        - inputs
-        - outputs
-        - user_interaction
-        - action
-        - description
-        - name
-        - created_at
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-scope-eventing-read-operation
-    comment: ""
-  - role: operator
-    permission:
-      columns:
-        - continue_on_error
-        - deleted
-        - eventgroup_id
-        - id
-        - operation_id
-        - operator_id
-        - order
-        - action_data
-        - depends_on
-        - environment
-        - inputs
-        - outputs
-        - user_interaction
-        - action
-        - description
-        - name
-        - created_at
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-scope-eventing-read-operation
-    comment: ""
-  - role: spectator
-    permission:
-      columns:
-        - continue_on_error
-        - deleted
-        - eventgroup_id
-        - id
-        - operation_id
-        - operator_id
-        - order
-        - action_data
-        - depends_on
-        - environment
-        - inputs
-        - outputs
-        - user_interaction
-        - action
-        - description
-        - name
-        - created_at
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-scope-eventing-read-operation
-    comment: ""
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - continue_on_error
+            - deleted
+            - eventgroup_id
+            - id
+            - operation_id
+            - operator_id
+            - order
+            - action_data
+            - depends_on
+            - environment
+            - inputs
+            - outputs
+            - user_interaction
+            - action
+            - description
+            - name
+            - created_at
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-eventing-read-operation-ids
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - continue_on_error
+            - deleted
+            - eventgroup_id
+            - id
+            - operation_id
+            - operator_id
+            - order
+            - action_data
+            - depends_on
+            - environment
+            - inputs
+            - outputs
+            - user_interaction
+            - action
+            - description
+            - name
+            - created_at
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-eventing-read-operation-ids
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - continue_on_error
+            - deleted
+            - eventgroup_id
+            - id
+            - operation_id
+            - operator_id
+            - order
+            - action_data
+            - depends_on
+            - environment
+            - inputs
+            - outputs
+            - user_interaction
+            - action
+            - description
+            - name
+            - created_at
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-eventing-read-operation-ids
+      role: operator
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - continue_on_error
+            - deleted
+            - eventgroup_id
+            - id
+            - operation_id
+            - operator_id
+            - order
+            - action_data
+            - depends_on
+            - environment
+            - inputs
+            - outputs
+            - user_interaction
+            - action
+            - description
+            - name
+            - created_at
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-eventing-read-operation-ids
+      role: spectator
+table:
+    name: eventstep
+    schema: public

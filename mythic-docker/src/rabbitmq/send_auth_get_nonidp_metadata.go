@@ -3,7 +3,7 @@ package rabbitmq
 import (
 	"encoding/json"
 
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/logging"
 )
 
@@ -26,7 +26,7 @@ func (r *rabbitMQConnection) SendAuthGetNonIDPMetadata(input GetNonIDPMetadataMe
 		logging.LogError(err, "Failed to convert input to JSON", "input", input)
 		return nil, err
 	}
-	headers, err := GenerateRabbitMQAuthTokenHeaderFromFields(0, 0, 0, 0, []string{mythicjwt.SCOPE_OPERATOR_READ, mythicjwt.SCOPE_OPERATION_READ})
+	headers, err := GenerateRabbitMQAuthTokenHeaderFromFields(0, 0, 0, 0, []string{authorization.SCOPE_OPERATOR_READ, authorization.SCOPE_OPERATION_READ})
 	if err != nil {
 		logging.LogError(err, "Failed to generate auth context")
 		return nil, err

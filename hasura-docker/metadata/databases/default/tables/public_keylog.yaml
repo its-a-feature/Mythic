@@ -1,109 +1,113 @@
-table:
-  name: keylog
-  schema: public
-object_relationships:
-  - name: apitoken
-    using:
-      foreign_key_constraint_on: apitokens_id
-  - name: operation
-    using:
-      foreign_key_constraint_on: operation_id
-  - name: task
-    using:
-      foreign_key_constraint_on: task_id
 array_relationships:
-  - name: tags
-    using:
-      foreign_key_constraint_on:
-        column: keylog_id
-        table:
-          name: tag
-          schema: public
+    - name: tags
+      using:
+        foreign_key_constraint_on:
+            column: keylog_id
+            table:
+                name: tag
+                schema: public
 computed_fields:
-  - name: keystrokes_text
-    definition:
-      function:
-        name: keylog_keystrokes
-        schema: public
-    comment: utf8 version of keylogs
+    - comment: utf8 version of keylogs
+      definition:
+        function:
+            name: keylog_keystrokes
+            schema: public
+      name: keystrokes_text
+object_relationships:
+    - name: apitoken
+      using:
+        foreign_key_constraint_on: apitokens_id
+    - name: operation
+      using:
+        foreign_key_constraint_on: operation_id
+    - name: task
+      using:
+        foreign_key_constraint_on: task_id
 select_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - keystrokes
-        - apitokens_id
-        - id
-        - operation_id
-        - task_id
-        - user
-        - window
-        - timestamp
-      computed_fields:
-        - keystrokes_text
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-response-read-operation
-      allow_aggregations: true
-  - role: operation_admin
-    permission:
-      columns:
-        - keystrokes
-        - apitokens_id
-        - id
-        - operation_id
-        - task_id
-        - user
-        - window
-        - timestamp
-      computed_fields:
-        - keystrokes_text
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-response-read-operation
-      allow_aggregations: true
-  - role: operator
-    permission:
-      columns:
-        - keystrokes
-        - apitokens_id
-        - id
-        - operation_id
-        - task_id
-        - user
-        - window
-        - timestamp
-      computed_fields:
-        - keystrokes_text
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-response-read-operation
-      allow_aggregations: true
-  - role: spectator
-    permission:
-      columns:
-        - keystrokes
-        - apitokens_id
-        - id
-        - operation_id
-        - task_id
-        - user
-        - window
-        - timestamp
-      computed_fields:
-        - keystrokes_text
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-response-read-operation
-      allow_aggregations: true
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - keystrokes
+            - apitokens_id
+            - id
+            - operation_id
+            - task_id
+            - user
+            - window
+            - timestamp
+        computed_fields:
+            - keystrokes_text
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-response-read-operation-ids
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - keystrokes
+            - apitokens_id
+            - id
+            - operation_id
+            - task_id
+            - user
+            - window
+            - timestamp
+        computed_fields:
+            - keystrokes_text
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-response-read-operation-ids
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - keystrokes
+            - apitokens_id
+            - id
+            - operation_id
+            - task_id
+            - user
+            - window
+            - timestamp
+        computed_fields:
+            - keystrokes_text
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-response-read-operation-ids
+      role: operator
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - keystrokes
+            - apitokens_id
+            - id
+            - operation_id
+            - task_id
+            - user
+            - window
+            - timestamp
+        computed_fields:
+            - keystrokes_text
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-response-read-operation-ids
+      role: spectator
+table:
+    name: keylog
+    schema: public

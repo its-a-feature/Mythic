@@ -1,6 +1,7 @@
 package databaseStructs
 
 import (
+	authz "github.com/its-a-feature/Mythic/authorization"
 	"time"
 
 	"github.com/its-a-feature/Mythic/utils/structs"
@@ -36,4 +37,21 @@ type Payload struct {
 	CallbackAllowed     bool              `db:"callback_allowed" json:"callback_allowed" mapstructure:"callback_allowed"`
 	PayloadTypeSemver   string            `db:"payload_type_semver" json:"payload_type_semver" mapstructure:"payload_type_semver"`
 	BuildMetadata       MythicJSONText    `db:"build_metadata" json:"build_metadata" mapstructure:"build_metadata"`
+}
+
+// AuthorizationPolicy keeps payload permissions beside its database model.
+func (Payload) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table:         authz.TableRef{Schema: "public", Name: "payload"},
+		OperationPath: []string{"operation_id"},
+		Read:          authz.Rule{Permission: authz.SCOPE_PAYLOAD_READ},
+		Write:         authz.Rule{Permission: authz.SCOPE_PAYLOAD_WRITE},
+		Relationships: []authz.RelationshipBinding{
+			{Name: "apitoken", Target: Apitokens{}},
+			{Name: "eventstepinstance", Target: EventStepInstance{}},
+			{Name: "filemetum", Target: Filemeta{}},
+			{Name: "payload", Target: Payload{}},
+			{Name: "task", Target: Task{}},
+		},
+	}
 }

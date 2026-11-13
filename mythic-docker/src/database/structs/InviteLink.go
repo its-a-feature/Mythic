@@ -3,6 +3,8 @@ package databaseStructs
 import (
 	"database/sql"
 	"time"
+
+	authz "github.com/its-a-feature/Mythic/authorization"
 )
 
 type InviteLink struct {
@@ -16,4 +18,17 @@ type InviteLink struct {
 	OperatorID    int            `db:"operator_id"`
 	CreatedAt     time.Time      `db:"created_at"`
 	Operator      Operator       `db:"operator" json:"-"`
+}
+
+// AuthorizationPolicy keeps invite_link permissions beside its database model.
+func (InviteLink) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table:         authz.TableRef{Schema: "public", Name: "invite_link"},
+		OperationPath: []string{"operation_id"},
+		Read:          authz.Rule{Permission: authz.SCOPE_MYTHIC_READ},
+		Write:         authz.Rule{Permission: authz.SCOPE_MYTHIC_WRITE},
+		Relationships: []authz.RelationshipBinding{
+			{Name: "operation", Target: Operation{}},
+		},
+	}
 }

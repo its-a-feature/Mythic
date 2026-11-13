@@ -617,8 +617,12 @@ func (r *rabbitMQConnection) ReceiveFromMythicDirectExchange(exchange string, qu
 				}
 				if sequential {
 					handler(d)
+					delete(d.Headers, "mythic_resolved_authorization")
 				} else {
-					go handler(d)
+					go func(message amqp.Delivery) {
+						defer delete(message.Headers, "mythic_resolved_authorization")
+						handler(message)
+					}(d)
 				}
 			}
 			forever <- true
@@ -722,6 +726,7 @@ func (r *rabbitMQConnection) ReceiveFromRPCQueue(exchange string, queue string, 
 					} else {
 						responseMsg = handler(d)
 					}
+					delete(d.Headers, "mythic_resolved_authorization")
 					responseMsgJson, err := json.Marshal(responseMsg)
 					if err != nil {
 						logging.LogError(err, "Failed to generate JSON for rpc response", "queue", queue)

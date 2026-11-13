@@ -1,215 +1,326 @@
-table:
-  name: browserscript
-  schema: public
-object_relationships:
-  - name: command
-    using:
-      foreign_key_constraint_on: command_id
-  - name: operator
-    using:
-      foreign_key_constraint_on: operator_id
-  - name: payloadtype
-    using:
-      foreign_key_constraint_on: payload_type_id
-insert_permissions:
-  - role: mythic_admin
-    permission:
-      check: {}
-      set:
-        creation_time: now()
-        for_new_ui: "true"
-        operator_id: x-hasura-User-Id
-      columns:
-        - active
-        - author
-        - command_id
-        - creation_time
-        - payload_type_id
-        - script
-  - role: operation_admin
-    permission:
-      check: {}
-      set:
-        creation_time: now()
-        for_new_ui: "true"
-        operator_id: x-hasura-User-Id
-      columns:
-        - active
-        - author
-        - command_id
-        - creation_time
-        - payload_type_id
-        - script
-  - role: operator
-    permission:
-      check: {}
-      set:
-        creation_time: now()
-        for_new_ui: "true"
-        operator_id: x-hasura-User-Id
-      columns:
-        - active
-        - author
-        - command_id
-        - creation_time
-        - payload_type_id
-        - script
-select_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - active
-        - author
-        - command_id
-        - container_version
-        - container_version_author
-        - creation_time
-        - for_new_ui
-        - id
-        - operator_id
-        - payload_type_id
-        - script
-        - user_modified
-      filter:
-        _and:
-          - operator_id:
-              _eq: X-Hasura-User-Id
-          - operator_id:
-              _lte: X-Hasura-Scope-operator-read-operator
-  - role: operation_admin
-    permission:
-      columns:
-        - active
-        - author
-        - command_id
-        - container_version
-        - container_version_author
-        - creation_time
-        - for_new_ui
-        - id
-        - operator_id
-        - payload_type_id
-        - script
-        - user_modified
-      filter:
-        _and:
-          - operator_id:
-              _eq: X-Hasura-User-Id
-          - operator_id:
-              _lte: X-Hasura-Scope-operator-read-operator
-  - role: operator
-    permission:
-      columns:
-        - active
-        - author
-        - command_id
-        - container_version
-        - container_version_author
-        - creation_time
-        - for_new_ui
-        - id
-        - operator_id
-        - payload_type_id
-        - script
-        - user_modified
-      filter:
-        _and:
-          - operator_id:
-              _eq: X-Hasura-User-Id
-          - operator_id:
-              _lte: X-Hasura-Scope-operator-read-operator
-  - role: spectator
-    permission:
-      columns:
-        - active
-        - author
-        - command_id
-        - container_version
-        - container_version_author
-        - creation_time
-        - for_new_ui
-        - id
-        - operator_id
-        - payload_type_id
-        - script
-        - user_modified
-      filter:
-        _and:
-          - operator_id:
-              _eq: X-Hasura-User-Id
-          - operator_id:
-              _lte: X-Hasura-Scope-operator-read-operator
-update_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - active
-        - author
-        - command_id
-        - payload_type_id
-        - script
-        - user_modified
-      filter:
-        _and:
-          - operator_id:
-              _eq: X-Hasura-User-Id
-          - operator_id:
-              _lte: X-Hasura-Scope-operator-write-operator
-      check: null
-  - role: operation_admin
-    permission:
-      columns:
-        - active
-        - author
-        - command_id
-        - payload_type_id
-        - script
-        - user_modified
-      filter:
-        _and:
-          - operator_id:
-              _eq: X-Hasura-User-Id
-          - operator_id:
-              _lte: X-Hasura-Scope-operator-write-operator
-      check: null
-  - role: operator
-    permission:
-      columns:
-        - active
-        - author
-        - command_id
-        - payload_type_id
-        - script
-        - user_modified
-      filter:
-        _and:
-          - operator_id:
-              _eq: X-Hasura-User-Id
-          - operator_id:
-              _lte: X-Hasura-Scope-operator-write-operator
-      check: null
 delete_permissions:
-  - role: mythic_admin
-    permission:
-      filter:
-        _and:
-          - operator_id:
-              _eq: X-Hasura-User-Id
-          - operator_id:
-              _lte: X-Hasura-Scope-operator-write-operator
-  - role: operation_admin
-    permission:
-      filter:
-        _and:
-          - operator_id:
-              _eq: X-Hasura-User-Id
-          - operator_id:
-              _lte: X-Hasura-Scope-operator-write-operator
-  - role: operator
-    permission:
-      filter:
-        _and:
-          - operator_id:
-              _eq: X-Hasura-User-Id
-          - operator_id:
-              _lte: X-Hasura-Scope-operator-write-operator
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        filter:
+            _and:
+                - operator_id:
+                    _eq: X-Hasura-User-Id
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-write-actor-ids
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        filter:
+            _and:
+                - operator_id:
+                    _eq: X-Hasura-User-Id
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-write-actor-ids
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        filter:
+            _and:
+                - operator_id:
+                    _eq: X-Hasura-User-Id
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-write-actor-ids
+      role: operator
+insert_permissions:
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-write-actor-ids
+        columns:
+            - active
+            - author
+            - command_id
+            - creation_time
+            - payload_type_id
+            - script
+        set:
+            creation_time: now()
+            for_new_ui: "true"
+            operator_id: x-hasura-User-Id
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-write-actor-ids
+        columns:
+            - active
+            - author
+            - command_id
+            - creation_time
+            - payload_type_id
+            - script
+        set:
+            creation_time: now()
+            for_new_ui: "true"
+            operator_id: x-hasura-User-Id
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-write-actor-ids
+        columns:
+            - active
+            - author
+            - command_id
+            - creation_time
+            - payload_type_id
+            - script
+        set:
+            creation_time: now()
+            for_new_ui: "true"
+            operator_id: x-hasura-User-Id
+      role: operator
+object_relationships:
+    - name: command
+      using:
+        foreign_key_constraint_on: command_id
+    - name: operator
+      using:
+        foreign_key_constraint_on: operator_id
+    - name: payloadtype
+      using:
+        foreign_key_constraint_on: payload_type_id
+select_permissions:
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - active
+            - author
+            - command_id
+            - container_version
+            - container_version_author
+            - creation_time
+            - for_new_ui
+            - id
+            - operator_id
+            - payload_type_id
+            - script
+            - user_modified
+        filter:
+            _and:
+                - operator_id:
+                    _eq: X-Hasura-User-Id
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-read-actor-ids
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - active
+            - author
+            - command_id
+            - container_version
+            - container_version_author
+            - creation_time
+            - for_new_ui
+            - id
+            - operator_id
+            - payload_type_id
+            - script
+            - user_modified
+        filter:
+            _and:
+                - operator_id:
+                    _eq: X-Hasura-User-Id
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-read-actor-ids
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - active
+            - author
+            - command_id
+            - container_version
+            - container_version_author
+            - creation_time
+            - for_new_ui
+            - id
+            - operator_id
+            - payload_type_id
+            - script
+            - user_modified
+        filter:
+            _and:
+                - operator_id:
+                    _eq: X-Hasura-User-Id
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-read-actor-ids
+      role: operator
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - active
+            - author
+            - command_id
+            - container_version
+            - container_version_author
+            - creation_time
+            - for_new_ui
+            - id
+            - operator_id
+            - payload_type_id
+            - script
+            - user_modified
+        filter:
+            _and:
+                - operator_id:
+                    _eq: X-Hasura-User-Id
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-read-actor-ids
+      role: spectator
+table:
+    name: browserscript
+    schema: public
+update_permissions:
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-write-actor-ids
+        columns:
+            - active
+            - author
+            - command_id
+            - payload_type_id
+            - script
+            - user_modified
+        filter:
+            _and:
+                - operator_id:
+                    _eq: X-Hasura-User-Id
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-write-actor-ids
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-write-actor-ids
+        columns:
+            - active
+            - author
+            - command_id
+            - payload_type_id
+            - script
+            - user_modified
+        filter:
+            _and:
+                - operator_id:
+                    _eq: X-Hasura-User-Id
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-write-actor-ids
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-write-actor-ids
+        columns:
+            - active
+            - author
+            - command_id
+            - payload_type_id
+            - script
+            - user_modified
+        filter:
+            _and:
+                - operator_id:
+                    _eq: X-Hasura-User-Id
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-write-actor-ids
+      role: operator

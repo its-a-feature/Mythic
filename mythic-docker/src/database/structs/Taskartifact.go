@@ -2,8 +2,10 @@ package databaseStructs
 
 import (
 	"database/sql"
-	"github.com/its-a-feature/Mythic/utils/structs"
 	"time"
+
+	authz "github.com/its-a-feature/Mythic/authorization"
+	"github.com/its-a-feature/Mythic/utils/structs"
 )
 
 type Taskartifact struct {
@@ -21,4 +23,21 @@ type Taskartifact struct {
 	UpdatedAt           time.Time         `db:"updated_at" json:"updated_at" mapstructure:"updated_at"`
 	APITokensID         structs.NullInt64 `db:"apitokens_id" json:"api_tokens_id" mapstructure:"apitokens_id"`
 	EventStepInstanceID structs.NullInt64 `db:"eventstepinstance_id" json:"event_step_instance_id" mapstructure:"event_step_instance_id"`
+}
+
+// AuthorizationPolicy keeps taskartifact permissions beside its database model.
+func (Taskartifact) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table: authz.TableRef{Schema: "public", Name: "taskartifact"},
+		OperationPaths: [][]string{
+			{"operation_id"},
+			{"task", "operation_id"},
+		},
+		Read:  authz.Rule{Permission: authz.SCOPE_TASK_READ},
+		Write: authz.Rule{Permission: authz.SCOPE_TASK_WRITE},
+		Relationships: []authz.RelationshipBinding{
+			{Name: "apitoken", Target: Apitokens{}},
+			{Name: "eventstepinstance", Target: EventStepInstance{}},
+		},
+	}
 }

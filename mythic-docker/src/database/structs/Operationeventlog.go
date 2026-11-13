@@ -2,6 +2,7 @@ package databaseStructs
 
 import (
 	"database/sql"
+	authz "github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/utils/structs"
 	"time"
 )
@@ -19,4 +20,19 @@ type Operationeventlog struct {
 	Count       int               `db:"count"`
 	APITokensID structs.NullInt64 `db:"apitokens_id" json:"api_tokens_id" mapstructure:"apitokens_id"`
 	Warning     bool              `db:"warning"`
+}
+
+// AuthorizationPolicy keeps operationeventlog permissions beside its database model.
+func (Operationeventlog) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table:         authz.TableRef{Schema: "public", Name: "operationeventlog"},
+		OperationPath: []string{"operation_id"},
+		Read:          authz.Rule{Permission: authz.SCOPE_EVENTLOG_READ},
+		Write:         authz.Rule{Permission: authz.SCOPE_EVENTLOG_WRITE},
+		Relationships: []authz.RelationshipBinding{
+			{Name: "apitoken", Target: Apitokens{}},
+			{Name: "operation", Target: Operation{}},
+			{Name: "operator", Target: Operator{}},
+		},
+	}
 }

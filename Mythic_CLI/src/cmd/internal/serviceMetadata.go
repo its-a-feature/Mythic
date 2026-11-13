@@ -229,6 +229,8 @@ func AddMythicService(service string, removeVolume bool) {
 			"HASURA_GRAPHQL_LIVE_QUERIES_MULTIPLEXED_REFETCH_INTERVAL=1000",
 			"HASURA_GRAPHQL_AUTH_HOOK=http://${MYTHIC_SERVER_HOST}:${MYTHIC_SERVER_PORT}/graphql/webhook",
 			"HASURA_GRAPHQL_AUTH_HOOK_MODE=POST",
+			// Scope preflight needs the complete HTTP operation or batch in the hook.
+			"HASURA_GRAPHQL_AUTH_HOOK_SEND_REQUEST_BODY=true",
 			"MYTHIC_ACTIONS_URL_BASE=http://${MYTHIC_SERVER_HOST}:${MYTHIC_SERVER_PORT}/",
 			"HASURA_GRAPHQL_CONSOLE_ASSETS_DIR=/srv/console-assets",
 		}
