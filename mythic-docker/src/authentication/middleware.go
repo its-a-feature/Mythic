@@ -5,10 +5,10 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/rabbitmq"
 
 	"github.com/gin-gonic/gin"
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/database"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/utils"
@@ -63,7 +63,7 @@ func RBACMiddleware(allowedRoles []string) gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		operatorOperation, err := database.GetUserCurrentOperation(customClaims.UserID)
+		operatorOperation, err := GetRequestOperation(c)
 		if err != nil {
 			logging.LogError(err, "Failed to get user current operation")
 			c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
@@ -71,7 +71,6 @@ func RBACMiddleware(allowedRoles []string) gin.HandlerFunc {
 			return
 		}
 		if operatorOperation.CurrentOperator.Admin || utils.SliceContains(allowedRoles, operatorOperation.ViewMode) {
-			c.Set(ContextKeyOperatorOperationStruct, operatorOperation)
 			c.Set(ContextKeyAPITokenID, customClaims.APITokensID)
 			c.Next()
 			return
@@ -128,7 +127,7 @@ func (m MissingScopeError) Response() gin.H {
 }
 
 func scopeDefinitionParts(scope string) (string, string) {
-	for _, definition := range mythicjwt.ScopeDefinitions() {
+	for _, definition := range authorization.ScopeDefinitions() {
 		if definition.Name == scope {
 			return definition.Resource, definition.Access
 		}
@@ -136,6 +135,8 @@ func scopeDefinitionParts(scope string) (string, string) {
 	return "", ""
 }
 
+// A nil list explicitly marks an authenticated-only endpoint. The offline
+// compiler requires this declaration so new Actions cannot omit policy by accident.
 func TokenScopeMiddleware(requiredScopes []string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		for _, requiredScope := range requiredScopes {
@@ -167,7 +168,8 @@ func enforceTokenScope(c *gin.Context, requiredScope string) *MissingScopeError 
 			Route:         route,
 		}
 	}
-	if !mythicjwt.AllowsScope(claims.Scopes, requiredScope) {
+	scopes, scopeErr := GetScopesSetFromClaims(c)
+	if scopeErr != nil || (!scopes[authorization.SCOPE_ALL] && !scopes[requiredScope]) {
 		return &MissingScopeError{
 			RequiredScope: requiredScope,
 			GrantedScopes: claims.Scopes,

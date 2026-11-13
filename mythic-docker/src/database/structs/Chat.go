@@ -2,6 +2,7 @@ package databaseStructs
 
 import (
 	"database/sql"
+	authz "github.com/its-a-feature/Mythic/authorization"
 	"time"
 
 	"github.com/its-a-feature/Mythic/utils/structs"
@@ -112,4 +113,115 @@ type ChatReadState struct {
 	LastReadMessage   ChatMessage       `db:"last_read_message" json:"last_read_message,omitempty"`
 	Muted             bool              `db:"muted" json:"muted"`
 	UpdatedAt         time.Time         `db:"updated_at" json:"updated_at"`
+}
+
+// AuthorizationPolicy keeps chat_channel permissions beside its database model.
+func (ChatChannel) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		// Actions resolve a target category before applying this model policy.
+		Actions: []authz.Action{
+			{Handler: "/chat_create_channel_webhook", Resource: "chat_channel", ValueArgument: "channel_type", DefaultValue: ChatChannelTypeStandard, Access: "write"},
+			{Handler: "/chat_create_message_webhook", Resource: "chat_channel", Argument: "channel_id", Access: "write"},
+			{Handler: "/chat_update_channel_webhook", Resource: "chat_channel", Argument: "channel_id", Access: "write", ReadWhen: &authz.ArgumentRule{Present: "muted", Only: []string{"channel_id", "muted"}}},
+			{Handler: "/chat_mark_read_webhook", Resource: "chat_channel", Argument: "channel_id", Access: "read"},
+			{Handler: "/chat_edit_message_webhook", Resource: "chat_message", Argument: "message_id", Access: "write"},
+			{Handler: "/chat_delete_message_webhook", Resource: "chat_message", Argument: "message_id", Access: "write"},
+			{Handler: "/chat_refresh_special_message_webhook", Resource: "chat_message", Argument: "message_id", Access: "read"},
+			{Handler: "/chat_cancel_request_webhook", Resource: "chat_request", Argument: "request_id", Access: "write"},
+			{Handler: "/chat_retry_request_webhook", Resource: "chat_request", Argument: "request_id", Access: "write"},
+			{Handler: "/chat_input_response_webhook", Resource: "chat_message", Argument: "message_id", Access: "write"},
+			{Handler: "/chat_search_webhook", Resource: "chat_channel", Argument: "channel_id", Access: "read"},
+		},
+		Table:         authz.TableRef{Schema: "public", Name: "chat_channel"},
+		OperationPath: []string{"operation_id"},
+		Lookup: &authz.ValueLookup{
+			Column: "id",
+			Query:  `SELECT channel_type FROM chat_channel WHERE id=$1 AND operation_id=$2`,
+		},
+		Read: authz.Rule{ByValue: &authz.ValueRule{
+			Path: []string{"channel_type"},
+			Cases: []authz.ValueCase{
+				{Value: ChatChannelTypeStandard, Permission: authz.SCOPE_CHAT_READ},
+				{Value: ChatChannelTypeAI, Permission: authz.SCOPE_CHAT_AI_READ},
+			},
+		}},
+		Write: authz.Rule{ByValue: &authz.ValueRule{
+			Path: []string{"channel_type"},
+			Cases: []authz.ValueCase{
+				{Value: ChatChannelTypeStandard, Permission: authz.SCOPE_CHAT_WRITE},
+				{Value: ChatChannelTypeAI, Permission: authz.SCOPE_CHAT_AI_WRITE},
+			},
+		}},
+		Relationships: []authz.RelationshipBinding{
+			{Name: "locked_operator", Target: Operator{}},
+			{Name: "archived_operator", Target: Operator{}},
+		},
+	}
+}
+
+// AuthorizationPolicy keeps chat_message permissions beside its database model.
+func (ChatMessage) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table:         authz.TableRef{Schema: "public", Name: "chat_message"},
+		OperationPath: []string{"operation_id"},
+		Lookup: &authz.ValueLookup{
+			Column: "id",
+			Query: `SELECT c.channel_type FROM chat_message m
+				JOIN chat_channel c ON c.id=m.channel_id
+				WHERE m.id=$1 AND m.operation_id=$2 AND c.operation_id=$2`,
+		},
+		Read: authz.Rule{ByValue: &authz.ValueRule{
+			Path: []string{"channel", "channel_type"},
+			Cases: []authz.ValueCase{
+				{Value: ChatChannelTypeStandard, Permission: authz.SCOPE_CHAT_READ},
+				{Value: ChatChannelTypeAI, Permission: authz.SCOPE_CHAT_AI_READ},
+			},
+		}},
+		Write: authz.Rule{ByValue: &authz.ValueRule{
+			Path: []string{"channel", "channel_type"},
+			Cases: []authz.ValueCase{
+				{Value: ChatChannelTypeStandard, Permission: authz.SCOPE_CHAT_WRITE},
+				{Value: ChatChannelTypeAI, Permission: authz.SCOPE_CHAT_AI_WRITE},
+			},
+		}},
+		Relationships: []authz.RelationshipBinding{
+			{Name: "deleted_operator", Target: Operator{}},
+			{Name: "chat_request", Target: ChatRequest{}},
+		},
+	}
+}
+
+// AuthorizationPolicy keeps chat_read_state permissions beside its database model.
+func (ChatReadState) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table:         authz.TableRef{Schema: "public", Name: "chat_read_state"},
+		OperationPath: []string{"operation_id"},
+		Read: authz.Rule{ByValue: &authz.ValueRule{
+			Path: []string{"channel", "channel_type"},
+			Cases: []authz.ValueCase{
+				{Value: ChatChannelTypeStandard, Permission: authz.SCOPE_CHAT_READ},
+				{Value: ChatChannelTypeAI, Permission: authz.SCOPE_CHAT_AI_READ},
+			},
+		}},
+		Write: authz.Rule{ByValue: &authz.ValueRule{
+			Path: []string{"channel", "channel_type"},
+			Cases: []authz.ValueCase{
+				{Value: ChatChannelTypeStandard, Permission: authz.SCOPE_CHAT_WRITE},
+				{Value: ChatChannelTypeAI, Permission: authz.SCOPE_CHAT_AI_WRITE},
+			},
+		}},
+	}
+}
+
+// AuthorizationPolicy keeps chat_request permissions beside its database model.
+func (ChatRequest) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table:         authz.TableRef{Schema: "public", Name: "chat_request"},
+		OperationPath: []string{"operation_id"},
+		Read:          authz.Rule{Permission: authz.SCOPE_CHAT_AI_READ},
+		Write:         authz.Rule{Permission: authz.SCOPE_CHAT_AI_WRITE},
+		Relationships: []authz.RelationshipBinding{
+			{Name: "retry_of", Target: ChatRequest{}},
+		},
+	}
 }

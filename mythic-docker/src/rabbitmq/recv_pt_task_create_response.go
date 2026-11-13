@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/eventing"
 
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -21,7 +21,7 @@ func init() {
 		Queue:      PT_TASK_CREATE_TASKING_RESPONSE,
 		RoutingKey: PT_TASK_CREATE_TASKING_RESPONSE,
 		Handler:    processPtTaskCreateMessages,
-		Scopes:     []string{mythicjwt.SCOPE_TASK_WRITE},
+		Scopes:     []string{authorization.SCOPE_TASK_WRITE},
 	})
 }
 

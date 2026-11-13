@@ -3,13 +3,15 @@ package authentication
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/rabbitmq"
 )
 
 const ContextKeyRabbitMQAuthContext = "rabbitmq_auth_context"
 
 func SetRabbitMQAuthContextForGin(c *gin.Context) rabbitmq.RabbitMQAuthContext {
+	if cached, ok := c.Get(ContextKeyRabbitMQAuthContext); ok {
+		return cached.(rabbitmq.RabbitMQAuthContext)
+	}
 	authContext := rabbitmq.RabbitMQAuthContext{
 		ContextID: uuid.NewString(),
 	}
@@ -18,8 +20,7 @@ func SetRabbitMQAuthContextForGin(c *gin.Context) rabbitmq.RabbitMQAuthContext {
 		authContext.OperationID = claims.OperationID
 		authContext.APITokensID = claims.APITokensID
 		authContext.EventStepInstanceID = claims.EventStepInstanceID
-		effectiveScopes := mythicjwt.EffectiveScopes(claims.Scopes)
-		authContext.SourceScopes = append([]string{}, effectiveScopes...)
+		authContext.SourceScopes = append([]string{}, claims.Scopes...)
 	}
 	c.Set(ContextKeyRabbitMQAuthContext, authContext)
 	return authContext

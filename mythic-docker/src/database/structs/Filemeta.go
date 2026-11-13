@@ -1,6 +1,7 @@
 package databaseStructs
 
 import (
+	authz "github.com/its-a-feature/Mythic/authorization"
 	"time"
 
 	"github.com/its-a-feature/Mythic/utils/structs"
@@ -46,4 +47,21 @@ type Filemeta struct {
 	TransferType        string            `db:"transfer_type" json:"transfer_type" mapstructure:"transfer_type"`
 	TotalSize           int64             `db:"total_size" json:"total_size" mapstructure:"total_size"`
 	SizeReceived        int64             `db:"size_received" json:"size_received" mapstructure:"size_received"`
+}
+
+// AuthorizationPolicy keeps filemeta permissions beside its database model.
+func (Filemeta) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table:         authz.TableRef{Schema: "public", Name: "filemeta"},
+		OperationPath: []string{"operation_id"},
+		Read:          authz.Rule{Permission: authz.SCOPE_FILE_READ},
+		Write:         authz.Rule{Permission: authz.SCOPE_FILE_WRITE},
+		Relationships: []authz.RelationshipBinding{
+			{Name: "copy_of_file", Target: Filemeta{}},
+			{Name: "eventgroup", Target: EventGroup{}},
+			{Name: "eventstepinstance", Target: EventStepInstance{}},
+			{Name: "mythictree", Target: MythicTree{}},
+			{Name: "task", Target: Task{}},
+		},
+	}
 }

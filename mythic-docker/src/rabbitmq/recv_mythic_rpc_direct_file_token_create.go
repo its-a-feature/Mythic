@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -69,9 +70,9 @@ func MythicRPCDirectFileTokenCreate(input MythicRPCDirectFileTokenCreateMessage,
 		return response
 	}
 
-	scope := mythicjwt.SCOPE_FILE_READ
+	scope := authorization.SCOPE_FILE_READ
 	if input.Action == "upload" || input.Action == "both" {
-		scope = mythicjwt.SCOPE_FILE_WRITE
+		scope = authorization.SCOPE_FILE_WRITE
 	}
 	token, _, err := mythicjwt.GenerateScopedJWT(*user, []string{scope}, input.FileUUID, directFileScopedTokenTTL, authContext.EventStepInstanceID, authContext.APITokensID)
 	if err != nil {

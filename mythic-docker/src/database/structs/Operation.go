@@ -1,6 +1,7 @@
 package databaseStructs
 
 import (
+	authz "github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/utils/structs"
 	"time"
 )
@@ -18,4 +19,18 @@ type Operation struct {
 	BannerText  string            `db:"banner_text"`
 	BannerColor string            `db:"banner_color"`
 	APITokensID structs.NullInt64 `db:"apitokens_id" json:"api_tokens_id" mapstructure:"apitokens_id"`
+}
+
+// AuthorizationPolicy keeps operation permissions beside its database model.
+func (Operation) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table:         authz.TableRef{Schema: "public", Name: "operation"},
+		OperationPath: []string{"id"},
+		Read:          authz.Rule{Permission: authz.SCOPE_OPERATION_READ},
+		Write:         authz.Rule{Permission: authz.SCOPE_OPERATION_WRITE},
+		Relationships: []authz.RelationshipBinding{
+			{Name: "admin", Target: Operator{}},
+			{Name: "apitoken", Target: Apitokens{}},
+		},
+	}
 }

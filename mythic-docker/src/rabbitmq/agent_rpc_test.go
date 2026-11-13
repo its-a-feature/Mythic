@@ -3,10 +3,9 @@ package rabbitmq
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/its-a-feature/Mythic/authorization"
 	"sync"
 	"testing"
-
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 )
 
 func isolatePendingAgentRPCResponses(t *testing.T) {
@@ -103,7 +102,7 @@ func TestPTTaskAgentRPCResponseQueueRegistration(t *testing.T) {
 		if directQueue.RoutingKey != PT_TASK_AGENT_RPC_RESPONSE {
 			t.Fatalf("unexpected response routing key: %q", directQueue.RoutingKey)
 		}
-		if len(directQueue.Scopes) != 1 || directQueue.Scopes[0] != mythicjwt.SCOPE_TASK_WRITE {
+		if len(directQueue.Scopes) != 1 || directQueue.Scopes[0] != authorization.SCOPE_TASK_WRITE {
 			t.Fatalf("agent RPC response queue must require task write scope: %#v", directQueue.Scopes)
 		}
 		return

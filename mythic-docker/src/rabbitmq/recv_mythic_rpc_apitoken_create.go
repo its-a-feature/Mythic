@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -12,6 +13,7 @@ import (
 )
 
 type MythicRPCAPITokenCreateMessage struct {
+	OperationID     int      `json:"operation_id"`
 	AgentTaskID     *string  `json:"agent_task_id"`
 	AgentCallbackID *string  `json:"agent_callback_id"`
 	PayloadUUID     *string  `json:"payload_uuid"`
@@ -32,7 +34,7 @@ func init() {
 		Queue:      MYTHIC_RPC_APITOKEN_CREATE,     // swap out with queue in rabbitmq.constants.go file
 		RoutingKey: MYTHIC_RPC_APITOKEN_CREATE,     // swap out with routing key in rabbitmq.constants.go file
 		Handler:    processMythicRPCAPITokenCreate, // points to function that takes in amqp.Delivery and returns interface{}
-		Scopes:     []string{mythicjwt.SCOPE_APITOKEN_WRITE},
+		Scopes:     []string{authorization.SCOPE_APITOKEN_WRITE},
 	})
 }
 
@@ -40,25 +42,18 @@ func MythicRPCAPITokenCreate(input MythicRPCAPITokenCreateMessage, authContext R
 	response := MythicRPCAPITokenCreateMessageResponse{
 		Success: false,
 	}
-	normalizedScopes, err := mythicjwt.NormalizeAPITokenScopes(input.Scopes)
-	if err != nil {
-		response.Error = err.Error()
+	if input.OperationID <= 0 || input.OperationID != authContext.OperationID {
+		response.Error = "operation_id must match the issuing authorization context"
 		return response
 	}
-	if len(normalizedScopes) == 0 {
-		normalizedScopes, err = mythicjwt.NormalizeAPITokenScopes(authContext.SourceScopes)
-		if err != nil {
-			response.Error = err.Error()
-			return response
-		}
-	}
+	var err error
 	// save off the access_token as an API token and then return it
 	apiToken := databaseStructs.Apitokens{
-		TokenValue: "",
-		Active:     true,
-		Scopes:     normalizedScopes,
-		OperatorID: authContext.OperatorID,
-		CreatedBy:  authContext.OperatorID,
+		TokenValue:  "",
+		Active:      true,
+		OperationID: input.OperationID,
+		OperatorID:  authContext.OperatorID,
+		CreatedBy:   authContext.OperatorID,
 	}
 	if authContext.EventStepInstanceID > 0 {
 		apiToken.EventStepInstanceID.Valid = true
@@ -136,41 +131,9 @@ func MythicRPCAPITokenCreate(input MythicRPCAPITokenCreateMessage, authContext R
 		response.Error = "No task, callback, payload, or chat channel information provided, can't generate apitoken"
 		return response
 	}
-	defaultScopes := authContext.SourceScopes
-	if len(defaultScopes) == 0 {
-		response.Error = "missing RabbitMQ auth context source scopes"
-		return response
-	}
-	err = mythicjwt.CanGrantAPITokenScopes(defaultScopes, normalizedScopes)
+	accessToken, err := database.CreateAPIToken(&apiToken, input.Scopes, authContext.ScopeSet(), authContext.OperationID)
 	if err != nil {
 		response.Error = err.Error()
-		return response
-	}
-	statement, err := database.DB.PrepareNamed(`INSERT INTO apitokens
-		(token_value, operator_id, token_type, active, "name", created_by, task_id, callback_id, payload_id, scopes, eventstepinstance_id, chat_channel_id)
-		VALUES
-		(:token_value, :operator_id, :token_type, :active, :name, :created_by, :task_id, :callback_id, :payload_id, :scopes, :eventstepinstance_id, :chat_channel_id)
-		RETURNING id`)
-	if err != nil {
-		response.Error = err.Error()
-		return response
-	}
-	err = statement.Get(&apiToken.ID, apiToken)
-	if err != nil {
-		response.Error = err.Error()
-		return response
-	}
-	accessToken, storedAPITokenValue, err := mythicjwt.GenerateOpaqueAPIToken()
-	if err != nil {
-		response.Error = err.Error()
-		expireAPIToken(apiToken.ID)
-		return response
-	}
-	apiToken.TokenValue = storedAPITokenValue
-	_, err = database.DB.Exec(`UPDATE apitokens SET token_value=$1 WHERE id=$2`, apiToken.TokenValue, apiToken.ID)
-	if err != nil {
-		response.Error = err.Error()
-		expireAPIToken(apiToken.ID)
 		return response
 	}
 	response.Success = true

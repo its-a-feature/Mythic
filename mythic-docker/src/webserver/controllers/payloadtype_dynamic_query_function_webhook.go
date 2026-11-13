@@ -5,7 +5,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/authentication"
-	"github.com/its-a-feature/Mythic/database"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/rabbitmq"
 )
@@ -41,17 +40,7 @@ func PayloadTypeDynamicQueryBuildParameterFunctionWebhook(c *gin.Context) {
 		})
 		return
 	}
-	userID, err := GetUserIDFromGin(c)
-	if err != nil {
-		logging.LogError(err, "Failed to get userID from JWT")
-		c.JSON(http.StatusOK, PayloadTypeDynamicQueryBuildParameterFunctionResponse{
-			Status:        rabbitmq.PT_DYNAMIC_QUERY_BUILD_PARAMETER_FUNCTION_STATUS_ERROR,
-			Error:         err.Error(),
-			ParameterName: input.Input.ParameterName,
-		})
-		return
-	}
-	user, err := database.GetUserFromID(userID)
+	user, err := authentication.GetRequestUser(c)
 	if err != nil {
 		logging.LogError(err, "Failed to get userID from JWT")
 		c.JSON(http.StatusOK, PayloadTypeDynamicQueryBuildParameterFunctionResponse{

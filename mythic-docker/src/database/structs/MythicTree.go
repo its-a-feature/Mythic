@@ -2,6 +2,7 @@ package databaseStructs
 
 import (
 	"database/sql"
+	authz "github.com/its-a-feature/Mythic/authorization"
 	"time"
 
 	"github.com/its-a-feature/Mythic/utils/structs"
@@ -32,3 +33,18 @@ type MythicTree struct {
 
 const TREE_TYPE_FILE string = "file"
 const TREE_TYPE_PROCESS string = "process"
+
+// AuthorizationPolicy keeps mythictree permissions beside its database model.
+func (MythicTree) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table:         authz.TableRef{Schema: "public", Name: "mythictree"},
+		OperationPath: []string{"operation_id"},
+		Read:          authz.Rule{Permission: authz.SCOPE_BROWSER_READ},
+		Write:         authz.Rule{Permission: authz.SCOPE_BROWSER_WRITE},
+		Relationships: []authz.RelationshipBinding{
+			{Name: "apitoken", Target: Apitokens{}},
+			{Name: "operation", Target: Operation{}},
+			{Name: "task", Target: Task{}},
+		},
+	}
+}

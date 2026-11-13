@@ -1,6 +1,9 @@
 package databaseStructs
 
-import "time"
+import (
+	authz "github.com/its-a-feature/Mythic/authorization"
+	"time"
+)
 
 type Token struct {
 	// mythic supplied
@@ -27,4 +30,17 @@ type Token struct {
 	Restricted         bool   `db:"restricted" json:"restricted"`
 	Handle             int    `db:"handle" json:"handle"`
 	Capabilities       string `db:"capabilities" json:"capabilities"`
+}
+
+// AuthorizationPolicy keeps token permissions beside its database model.
+func (Token) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table:         authz.TableRef{Schema: "public", Name: "token"},
+		OperationPath: []string{"operation_id"},
+		Read:          authz.Rule{Permission: authz.SCOPE_RESPONSE_READ},
+		Write:         authz.Rule{Permission: authz.SCOPE_RESPONSE_WRITE},
+		Relationships: []authz.RelationshipBinding{
+			{Name: "task", Target: Task{}},
+		},
+	}
 }

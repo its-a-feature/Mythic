@@ -1,5 +1,7 @@
 package databaseStructs
 
+import authz "github.com/its-a-feature/Mythic/authorization"
+
 type Commandparameters struct {
 	ID                              int             `db:"id"`
 	CommandID                       int             `db:"command_id"`
@@ -22,4 +24,12 @@ type Commandparameters struct {
 	UiPosition                      int             `db:"ui_position"`
 	LimitCredentialsByType          MythicJSONArray `db:"limit_credentials_by_type"`
 	VerifierRegex                   string          `db:"verifier_regex"`
+}
+
+// AuthorizationPolicy keeps commandparameters permissions beside its database model.
+func (Commandparameters) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table: authz.TableRef{Schema: "public", Name: "commandparameters"},
+		Read:  authz.Rule{Public: true},
+	}
 }

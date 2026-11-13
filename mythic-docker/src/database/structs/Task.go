@@ -2,6 +2,7 @@ package databaseStructs
 
 import (
 	"database/sql"
+	authz "github.com/its-a-feature/Mythic/authorization"
 	"time"
 
 	"github.com/its-a-feature/Mythic/utils/structs"
@@ -70,4 +71,22 @@ type Task struct {
 	MythicParsedParams                 string            `db:"mythic_parsed_params" json:"mythic_parsed_params" mapstructure:"mythic_parsed_params"`
 	AliasResolution                    string            `db:"alias_resolution" json:"alias_resolution" mapstructure:"alias_resolution"`
 	KeywordResolution                  MythicJSONArray   `db:"keyword_resolution" json:"keyword_resolution" mapstructure:"keyword_resolution"`
+}
+
+// AuthorizationPolicy keeps task permissions beside its database model.
+func (Task) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table:         authz.TableRef{Schema: "public", Name: "task"},
+		OperationPath: []string{"operation_id"},
+		Read:          authz.Rule{Permission: authz.SCOPE_TASK_READ},
+		Write:         authz.Rule{Permission: authz.SCOPE_TASK_WRITE},
+		Relationships: []authz.RelationshipBinding{
+			{Name: "commentOperator", Target: Operator{}},
+			{Name: "eventstepinstance", Target: EventStepInstance{}},
+			{Name: "opsec_post_bypass_user", Target: Operator{}},
+			{Name: "opsec_pre_bypass_user", Target: Operator{}},
+			{Name: "task", Target: Task{}},
+			{Name: "token", Target: Token{}},
+		},
+	}
 }

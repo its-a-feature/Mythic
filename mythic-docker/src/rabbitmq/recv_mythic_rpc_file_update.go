@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -36,7 +36,7 @@ func init() {
 		Queue:      MYTHIC_RPC_FILE_UPDATE,     // swap out with queue in rabbitmq.constants.go file
 		RoutingKey: MYTHIC_RPC_FILE_UPDATE,     // swap out with routing key in rabbitmq.constants.go file
 		Handler:    processMythicRPCFileUpdate, // points to function that takes in amqp.Delivery and returns interface{}
-		Scopes:     []string{mythicjwt.SCOPE_FILE_WRITE},
+		Scopes:     []string{authorization.SCOPE_FILE_WRITE},
 	})
 }
 

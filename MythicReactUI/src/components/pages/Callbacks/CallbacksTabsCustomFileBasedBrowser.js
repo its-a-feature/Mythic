@@ -913,9 +913,9 @@ const FileBrowserTableTop = ({
         if(selectedFolderData.root) {
             setFullPath("");
             taskingTableTopTypedDataRef.current.path = "";
-        } else if (selectedFolderData.full_path_text !== undefined && treeConfig.show_current_path) {
+        } else if (selectedFolderData.full_path_text !== undefined) {
             taskingTableTopTypedDataRef.current.path = selectedFolderData.full_path_text;
-            if(selectedFolderData.display_path_text !== "" && selectedFolderData.display_path_text !== undefined){
+            if(selectedFolderData.display_path_text !== "" && selectedFolderData.display_path_text !== undefined && !treeConfig.show_current_path){
                 setFullPath(selectedFolderData.display_path_text);
             } else {
                 setFullPath(selectedFolderData.full_path_text);

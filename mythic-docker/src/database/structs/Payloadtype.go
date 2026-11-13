@@ -3,6 +3,8 @@ package databaseStructs
 import (
 	"database/sql"
 	"time"
+
+	authz "github.com/its-a-feature/Mythic/authorization"
 )
 
 type Payloadtype struct {
@@ -35,4 +37,13 @@ type Payloadtype struct {
 	CommandHelpFunction                string               `db:"command_help_function"`
 	WrapperPayloadRequirements         MythicJSONArray      `db:"wrapper_payload_requirements"`
 	SupportedTranslationContainer      string               `db:"supported_translation_container"`
+}
+
+// AuthorizationPolicy keeps payloadtype permissions beside its database model.
+func (Payloadtype) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table: authz.TableRef{Schema: "public", Name: "payloadtype"},
+		Read:  authz.Rule{Public: true},
+		Write: authz.Rule{Permission: authz.SCOPE_MYTHIC_WRITE},
+	}
 }

@@ -74,6 +74,9 @@ jobs:
         run: echo "MYTHIC_SERVER_IMAGE_NAME=${MYTHIC_SERVER_IMAGE_NAME,,}" >> ${GITHUB_ENV}
       - name: Copy version file over
         run: cp VERSION mythic-docker/src/VERSION
+      - name: Copy authorization metadata into server build context
+        # Fresh checkouts do not contain the ignored copy used by the server build.
+        run: make build_authorization
       - name: Build and push the server container image
         uses: docker/build-push-action@v7 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
         with:

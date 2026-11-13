@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -38,7 +38,7 @@ func init() {
 		Queue:      MYTHIC_RPC_CHAT_CHANNEL_METADATA_UPDATE,
 		RoutingKey: MYTHIC_RPC_CHAT_CHANNEL_METADATA_UPDATE,
 		Handler:    processMythicRPCChatChannelMetadataUpdate,
-		Scopes:     []string{mythicjwt.SCOPE_CHAT_AI_WRITE},
+		Scopes:     []string{authorization.SCOPE_CHAT_AI_WRITE},
 	})
 }
 

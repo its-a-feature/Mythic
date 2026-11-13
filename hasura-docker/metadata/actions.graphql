@@ -197,9 +197,10 @@ type Mutation {
 
 type Mutation {
   createAPIToken(
+    operation_id: Int!
     operator_id: Int
     name: String
-    scopes: [String!]
+    scopes: [String!]!
   ): createAPITokenResponse!
 }
 
@@ -922,6 +923,7 @@ type WrappablePayloadsOutput {
 }
 
 type createAPITokenResponse {
+  operation_id: Int!
   token_value: String
   status: String!
   error: String

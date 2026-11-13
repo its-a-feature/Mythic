@@ -1,103 +1,107 @@
-table:
-  name: payload_build_step
-  schema: public
 object_relationships:
-  - name: payload
-    using:
-      foreign_key_constraint_on: payload_id
-  - name: payloadtype
-    using:
-      foreign_key_constraint_on: payloadtype_id
+    - name: payload
+      using:
+        foreign_key_constraint_on: payload_id
+    - name: payloadtype
+      using:
+        foreign_key_constraint_on: payloadtype_id
 select_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - end_time
-        - id
-        - payload_id
-        - payloadtype_id
-        - start_time
-        - step_description
-        - step_name
-        - step_number
-        - step_skip
-        - step_stderr
-        - step_stdout
-        - step_success
-      filter:
-        _and:
-          - payload:
-              operation_id:
-                _eq: X-Hasura-current-operation-id
-          - payload:
-              operation_id:
-                _lte: X-Hasura-Scope-payload-read-operation
-  - role: operation_admin
-    permission:
-      columns:
-        - end_time
-        - id
-        - payload_id
-        - payloadtype_id
-        - start_time
-        - step_description
-        - step_name
-        - step_number
-        - step_skip
-        - step_stderr
-        - step_stdout
-        - step_success
-      filter:
-        _and:
-          - payload:
-              operation_id:
-                _eq: X-Hasura-current-operation-id
-          - payload:
-              operation_id:
-                _lte: X-Hasura-Scope-payload-read-operation
-  - role: operator
-    permission:
-      columns:
-        - end_time
-        - id
-        - payload_id
-        - payloadtype_id
-        - start_time
-        - step_description
-        - step_name
-        - step_number
-        - step_skip
-        - step_stderr
-        - step_stdout
-        - step_success
-      filter:
-        _and:
-          - payload:
-              operation_id:
-                _eq: X-Hasura-current-operation-id
-          - payload:
-              operation_id:
-                _lte: X-Hasura-Scope-payload-read-operation
-  - role: spectator
-    permission:
-      columns:
-        - end_time
-        - id
-        - payload_id
-        - payloadtype_id
-        - start_time
-        - step_description
-        - step_name
-        - step_number
-        - step_skip
-        - step_stderr
-        - step_stdout
-        - step_success
-      filter:
-        _and:
-          - payload:
-              operation_id:
-                _eq: X-Hasura-current-operation-id
-          - payload:
-              operation_id:
-                _lte: X-Hasura-Scope-payload-read-operation
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - end_time
+            - id
+            - payload_id
+            - payloadtype_id
+            - start_time
+            - step_description
+            - step_name
+            - step_number
+            - step_skip
+            - step_stderr
+            - step_stdout
+            - step_success
+        filter:
+            _and:
+                - payload:
+                    operation_id:
+                        _eq: X-Hasura-current-operation-id
+                - payload:
+                    operation_id:
+                        _in: x-hasura-payload-read-operation-ids
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - end_time
+            - id
+            - payload_id
+            - payloadtype_id
+            - start_time
+            - step_description
+            - step_name
+            - step_number
+            - step_skip
+            - step_stderr
+            - step_stdout
+            - step_success
+        filter:
+            _and:
+                - payload:
+                    operation_id:
+                        _eq: X-Hasura-current-operation-id
+                - payload:
+                    operation_id:
+                        _in: x-hasura-payload-read-operation-ids
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - end_time
+            - id
+            - payload_id
+            - payloadtype_id
+            - start_time
+            - step_description
+            - step_name
+            - step_number
+            - step_skip
+            - step_stderr
+            - step_stdout
+            - step_success
+        filter:
+            _and:
+                - payload:
+                    operation_id:
+                        _eq: X-Hasura-current-operation-id
+                - payload:
+                    operation_id:
+                        _in: x-hasura-payload-read-operation-ids
+      role: operator
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - end_time
+            - id
+            - payload_id
+            - payloadtype_id
+            - start_time
+            - step_description
+            - step_name
+            - step_number
+            - step_skip
+            - step_stderr
+            - step_stdout
+            - step_success
+        filter:
+            _and:
+                - payload:
+                    operation_id:
+                        _eq: X-Hasura-current-operation-id
+                - payload:
+                    operation_id:
+                        _in: x-hasura-payload-read-operation-ids
+      role: spectator
+table:
+    name: payload_build_step
+    schema: public

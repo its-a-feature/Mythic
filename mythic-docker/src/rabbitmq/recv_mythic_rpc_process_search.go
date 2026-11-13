@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/mitchellh/mapstructure"
 
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -41,7 +41,7 @@ func init() {
 		Queue:      MYTHIC_RPC_PROCESS_SEARCH,
 		RoutingKey: MYTHIC_RPC_PROCESS_SEARCH,
 		Handler:    processMythicRPCProcessSearch,
-		Scopes:     []string{mythicjwt.SCOPE_BROWSER_READ},
+		Scopes:     []string{authorization.SCOPE_BROWSER_READ},
 	})
 }
 

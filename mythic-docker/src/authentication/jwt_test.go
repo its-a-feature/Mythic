@@ -5,15 +5,36 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+	"github.com/its-a-feature/Mythic/authorization"
+	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/rabbitmq"
 )
+
+func TestExtractTokenFromHasuraEnvelope(t *testing.T) {
+	for _, request := range []string{`{"query":"{task{id}}"}`, `[{"query":"{task{id}}"},{"query":"{credential{account}}"}]`, `null`} {
+		c, _ := gin.CreateTestContext(httptest.NewRecorder())
+		c.Request = httptest.NewRequest(http.MethodPost, "/graphql/webhook", strings.NewReader(`{"headers":{"authorization":"Bearer mtk_fixture_credential"},"request":`+request+`}`))
+		c.Request.Header.Set("Content-Type", "application/json")
+		for i := 0; i < 2; i++ {
+			token, err := ExtractToken(c)
+			if err != nil || token != "mtk_fixture_credential" {
+				t.Fatalf("Hasura envelope authentication failed: %q %v", token, err)
+			}
+			cached, ok := c.Get("hasura")
+			if !ok || string(cached.(HasuraRequest).Request) != request {
+				t.Fatal("authentication did not retain the original operation/batch for preflight")
+			}
+		}
+	}
+}
 
 func TestTokenValid(t *testing.T) {
 	t.Parallel()
@@ -68,6 +89,9 @@ func TestTokenValid(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt // shadowing
 		t.Run(tt.name, func(t *testing.T) {
+			if !tt.wantErr && database.DB == nil {
+				t.Skip("valid sessions require a database; covered by the authorization integration fixture")
+			}
 			t.Parallel()
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
@@ -111,7 +135,7 @@ func TestGetClaims(t *testing.T) {
 				UserID:      123,
 				AuthMethod:  mythicjwt.AUTH_METHOD_USER,
 				OperationID: 9,
-				Scopes:      []string{mythicjwt.SCOPE_ALL},
+				Scopes:      []string{authorization.SCOPE_ALL},
 				StandardClaims: jwt.StandardClaims{
 					IssuedAt:  time.Now().Unix(),
 					ExpiresAt: time.Now().Add(mythicjwt.JWTTimespan).UTC().Unix(),
@@ -152,6 +176,9 @@ func TestGetClaims(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt // shadowing
 		t.Run(tt.name, func(t *testing.T) {
+			if !tt.wantErr && database.DB == nil {
+				t.Skip("valid sessions require a database; covered by the authorization integration fixture")
+			}
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 			req := &http.Request{
@@ -177,8 +204,8 @@ func TestGetClaimsRabbitMQAuthContextDirectDownload(t *testing.T) {
 	token, err := rabbitmq.GenerateRabbitMQAuthContextToken(rabbitmq.RabbitMQAuthContext{
 		OperatorID:   7,
 		OperationID:  9,
-		APITokensID:  11,
-		SourceScopes: []string{mythicjwt.SCOPE_FILE_READ},
+		APITokensID:  0,
+		SourceScopes: []string{authorization.SCOPE_FILE_READ},
 		FileUUID:     fileUUID,
 	})
 	if err != nil {
@@ -201,10 +228,10 @@ func TestGetClaimsRabbitMQAuthContextDirectDownload(t *testing.T) {
 	if got == nil {
 		t.Fatalf("GetClaims() returned nil claims")
 	}
-	if got.UserID != 7 || got.OperationID != 9 || got.APITokensID != 11 || got.FileUUID != fileUUID {
+	if got.UserID != 7 || got.OperationID != 9 || got.APITokensID != 0 || got.FileUUID != fileUUID {
 		t.Fatalf("GetClaims() = %#v", got)
 	}
-	if !mythicjwt.AllowsScope(got.Scopes, mythicjwt.SCOPE_FILE_READ) {
+	if !authorization.AllowsScope(got.Scopes, authorization.SCOPE_FILE_READ) {
 		t.Fatalf("GetClaims() scopes = %#v, missing file.read", got.Scopes)
 	}
 }
@@ -214,7 +241,7 @@ func TestGetClaimsRabbitMQAuthContextDirectDownloadRejectsMismatch(t *testing.T)
 	token, err := rabbitmq.GenerateRabbitMQAuthContextToken(rabbitmq.RabbitMQAuthContext{
 		OperatorID:   7,
 		OperationID:  9,
-		SourceScopes: []string{mythicjwt.SCOPE_FILE_READ},
+		SourceScopes: []string{authorization.SCOPE_FILE_READ},
 		FileUUID:     "expected-file",
 	})
 	if err != nil {
@@ -240,7 +267,7 @@ func TestGetClaimsRabbitMQAuthContextRejectsNonDownloadRoute(t *testing.T) {
 	token, err := rabbitmq.GenerateRabbitMQAuthContextToken(rabbitmq.RabbitMQAuthContext{
 		OperatorID:   7,
 		OperationID:  9,
-		SourceScopes: []string{mythicjwt.SCOPE_FILE_READ},
+		SourceScopes: []string{authorization.SCOPE_FILE_READ},
 		FileUUID:     "expected-file",
 	})
 	if err != nil {
@@ -266,7 +293,7 @@ func TestGetClaimsRabbitMQAuthContextRejectsInvalidatedToken(t *testing.T) {
 	token, err := rabbitmq.GenerateRabbitMQAuthContextToken(rabbitmq.RabbitMQAuthContext{
 		OperatorID:   7,
 		OperationID:  9,
-		SourceScopes: []string{mythicjwt.SCOPE_FILE_READ},
+		SourceScopes: []string{authorization.SCOPE_FILE_READ},
 		FileUUID:     "expected-file",
 	})
 	if err != nil {
@@ -351,6 +378,9 @@ func TestRefreshJWT(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if !tt.wantErr && database.DB == nil {
+				t.Skip("valid sessions require a database; covered by the authorization integration fixture")
+			}
 			access_token, refresh_token, user, err := mythicjwt.RefreshJWT(tt.args.access_token, tt.args.refresh_token)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RefreshJWT() error = %v, wantErr %v", err, tt.wantErr)

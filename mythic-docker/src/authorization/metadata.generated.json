@@ -1,0 +1,7121 @@
+{
+  "tables": {
+    "agentstorage": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "agentstorage"
+        },
+        "read": {
+          "public": true
+        },
+        "write": {}
+      },
+      "relationships": {},
+      "columns": {
+        "data": "data",
+        "id": "id",
+        "unique_id": "unique_id"
+      },
+      "computed": {},
+      "json_fields": {
+        "data": "Data",
+        "id": "ID",
+        "unique_id": "UniqueID"
+      }
+    },
+    "apitokens": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "apitokens"
+        },
+        "operation_path": [
+          "operation_id"
+        ],
+        "read": {
+          "permission": "apitoken.read"
+        },
+        "write": {
+          "permission": "apitoken.write"
+        }
+      },
+      "relationships": {
+        "c2profile_file_hosts": "c2profile_file_host",
+        "callback": "callback",
+        "callbackgraphedges": "callbackgraphedge",
+        "chat_channel": "chat_channel",
+        "chat_channels": "chat_channel",
+        "chat_messages": "chat_message",
+        "created_by_operator": "operator",
+        "credentials": "credential",
+        "eventstepinstance": "eventstepinstance",
+        "filemeta": "filemeta",
+        "keylogs": "keylog",
+        "loadedcommands": "loadedcommands",
+        "mythictrees": "mythictree",
+        "operationeventlogs": "operationeventlog",
+        "operations": "operation",
+        "operator": "operator",
+        "operatoroperations": "operatoroperation",
+        "operators": "operator",
+        "payload": "payload",
+        "payloads": "payload",
+        "responses": "response",
+        "tags": "tag",
+        "tagtypes": "tagtype",
+        "task": "task",
+        "taskartifacts": "taskartifact",
+        "tasks": "task"
+      },
+      "columns": {
+        "active": "active",
+        "callback_id": "callback_id",
+        "chat_channel_id": "chat_channel_id",
+        "created_by": "created_by",
+        "creation_time": "creation_time",
+        "deleted": "deleted",
+        "eventstepinstance_id": "eventstepinstance_id",
+        "id": "id",
+        "name": "name",
+        "operation_id": "operation_id",
+        "operator_id": "operator_id",
+        "payload_id": "payload_id",
+        "scopes": "scopes",
+        "task_id": "task_id",
+        "token_type": "token_type",
+        "token_value": "token_value"
+      },
+      "computed": {},
+      "json_fields": {
+        "active": "Active",
+        "callback_id": "callback_id",
+        "chat_channel_id": "chat_channel_id",
+        "created_by": "CreatedBy",
+        "creation_time": "CreationTime",
+        "deleted": "Deleted",
+        "eventstepinstance_id": "event_step_instance_id",
+        "id": "ID",
+        "name": "Name",
+        "operation_id": "operation_id",
+        "operator_id": "OperatorID",
+        "payload_id": "payload_id",
+        "scopes": "scopes",
+        "task_id": "task_id",
+        "token_type": "TokenType",
+        "token_value": "TokenValue"
+      }
+    },
+    "attack": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "attack"
+        },
+        "read": {
+          "public": true
+        },
+        "write": {}
+      },
+      "relationships": {
+        "attackcommands": "attackcommand",
+        "attacktasks": "attacktask"
+      },
+      "columns": {
+        "id": "id",
+        "name": "name",
+        "os": "os",
+        "t_num": "t_num",
+        "tactic": "tactic"
+      },
+      "computed": {},
+      "json_fields": {
+        "id": "ID",
+        "name": "Name",
+        "os": "Os",
+        "t_num": "TNum",
+        "tactic": "Tactic"
+      }
+    },
+    "attackcommand": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "attackcommand"
+        },
+        "read": {
+          "public": true
+        },
+        "write": {}
+      },
+      "relationships": {
+        "attack": "attack",
+        "command": "command"
+      },
+      "columns": {
+        "attack_id": "attack_id",
+        "command_id": "command_id",
+        "id": "id"
+      },
+      "computed": {},
+      "json_fields": {
+        "attack_id": "AttackID",
+        "command_id": "CommandID",
+        "id": "ID"
+      }
+    },
+    "attacktask": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "attacktask"
+        },
+        "operation_path": [
+          "task",
+          "operation_id"
+        ],
+        "read": {
+          "permission": "task.read"
+        },
+        "write": {
+          "permission": "task.write"
+        }
+      },
+      "relationships": {
+        "attack": "attack",
+        "task": "task"
+      },
+      "columns": {
+        "attack_id": "attack_id",
+        "id": "id",
+        "task_id": "task_id"
+      },
+      "computed": {},
+      "json_fields": {
+        "attack_id": "AttackID",
+        "id": "ID",
+        "task_id": "TaskID"
+      }
+    },
+    "browserscript": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "browserscript"
+        },
+        "read": {
+          "permission": "operator.read"
+        },
+        "write": {
+          "permission": "operator.write"
+        }
+      },
+      "relationships": {
+        "command": "command",
+        "operator": "operator",
+        "payloadtype": "payloadtype"
+      },
+      "columns": {
+        "active": "active",
+        "author": "author",
+        "command_id": "command_id",
+        "container_version": "container_version",
+        "container_version_author": "container_version_author",
+        "creation_time": "creation_time",
+        "for_new_ui": "for_new_ui",
+        "id": "id",
+        "operator_id": "operator_id",
+        "payload_type_id": "payload_type_id",
+        "script": "script",
+        "user_modified": "user_modified"
+      },
+      "computed": {},
+      "json_fields": {
+        "active": "Active",
+        "author": "Author",
+        "command_id": "CommandID",
+        "container_version": "ContainerVersion",
+        "container_version_author": "ContainerVersionAuthor",
+        "creation_time": "CreationTime",
+        "for_new_ui": "ForNewUi",
+        "id": "ID",
+        "operator_id": "OperatorID",
+        "payload_type_id": "PayloadTypeID",
+        "script": "Script",
+        "user_modified": "UserModified"
+      }
+    },
+    "buildparameter": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "buildparameter"
+        },
+        "read": {
+          "public": true
+        },
+        "write": {}
+      },
+      "relationships": {
+        "buildparameterinstances": "buildparameterinstance",
+        "payloadtype": "payloadtype"
+      },
+      "columns": {
+        "choices": "choices",
+        "choices_display_names": "choices_display_names",
+        "crypto_type": "crypto_type",
+        "default_value": "default_value",
+        "deleted": "deleted",
+        "description": "description",
+        "display_name": "display_name",
+        "dynamic_query_function": "dynamic_query_function",
+        "format_string": "format_string",
+        "group_name": "group_name",
+        "hide_conditions": "hide_conditions",
+        "id": "id",
+        "json_string_schema": "json_string_schema",
+        "name": "name",
+        "parameter_type": "parameter_type",
+        "payload_type_id": "payload_type_id",
+        "randomize": "randomize",
+        "required": "required",
+        "supported_os": "supported_os",
+        "ui_position": "ui_position",
+        "verifier_regex": "verifier_regex"
+      },
+      "computed": {},
+      "json_fields": {
+        "choices": "Choices",
+        "choices_display_names": "ChoicesDisplayNames",
+        "crypto_type": "IsCryptoType",
+        "default_value": "DefaultValue",
+        "deleted": "Deleted",
+        "description": "Description",
+        "display_name": "DisplayName",
+        "dynamic_query_function": "DynamicQueryFunction",
+        "format_string": "FormatString",
+        "group_name": "GroupName",
+        "hide_conditions": "HideConditions",
+        "id": "ID",
+        "json_string_schema": "JSONStringSchema",
+        "name": "Name",
+        "parameter_type": "ParameterType",
+        "payload_type_id": "PayloadTypeID",
+        "randomize": "Randomize",
+        "required": "Required",
+        "supported_os": "SupportedOS",
+        "ui_position": "UiPosition",
+        "verifier_regex": "VerifierRegex"
+      }
+    },
+    "buildparameterinstance": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "buildparameterinstance"
+        },
+        "operation_paths": [
+          [
+            "operation_id"
+          ],
+          [
+            "payload",
+            "operation_id"
+          ]
+        ],
+        "read": {
+          "permission": "payload.read"
+        },
+        "write": {
+          "permission": "payload.write"
+        }
+      },
+      "relationships": {
+        "buildparameter": "buildparameter",
+        "operation": "operation",
+        "payload": "payload"
+      },
+      "columns": {
+        "build_parameter_id": "build_parameter_id",
+        "dec_key": "dec_key",
+        "enc_key": "enc_key",
+        "id": "id",
+        "instance_name": "instance_name",
+        "operation_id": "operation_id",
+        "payload_id": "payload_id",
+        "value": "value"
+      },
+      "computed": {
+        "dec_key_base64": true,
+        "enc_key_base64": true
+      },
+      "json_fields": {
+        "build_parameter_id": "BuildParameterID",
+        "dec_key": "DecKey",
+        "enc_key": "EncKey",
+        "id": "ID",
+        "instance_name": "InstanceName",
+        "operation_id": "OperationID",
+        "payload_id": "PayloadID",
+        "value": "Value"
+      }
+    },
+    "c2profile": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "c2profile"
+        },
+        "read": {
+          "public": true
+        },
+        "write": {
+          "permission": "mythic.write"
+        }
+      },
+      "relationships": {
+        "c2profile_file_hosts": "c2profile_file_host",
+        "c2profileparameters": "c2profileparameters",
+        "c2profileparametersinstances": "c2profileparametersinstance",
+        "callbackc2profiles": "callbackc2profiles",
+        "callbackgraphedges": "callbackgraphedge",
+        "payloadc2profiles": "payloadc2profiles",
+        "payloadtypec2profiles": "payloadtypec2profile"
+      },
+      "columns": {
+        "author": "author",
+        "container_running": "container_running",
+        "creation_time": "creation_time",
+        "deleted": "deleted",
+        "description": "description",
+        "has_logo": "has_logo",
+        "id": "id",
+        "is_p2p": "is_p2p",
+        "is_server_routed": "is_server_routed",
+        "name": "name",
+        "running": "running",
+        "semver": "semver"
+      },
+      "computed": {},
+      "json_fields": {
+        "author": "Author",
+        "container_running": "ContainerRunning",
+        "creation_time": "CreationTime",
+        "deleted": "Deleted",
+        "description": "Description",
+        "has_logo": "HasLogo",
+        "id": "ID",
+        "is_p2p": "IsP2p",
+        "is_server_routed": "IsServerRouted",
+        "name": "Name",
+        "running": "Running",
+        "semver": "SemVer"
+      }
+    },
+    "c2profile_file_host": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "c2profile_file_host"
+        },
+        "operation_path": [
+          "operation_id"
+        ],
+        "read": {
+          "permission": "file.read"
+        },
+        "write": {
+          "permission": "file.write"
+        }
+      },
+      "relationships": {
+        "apitoken": "apitokens",
+        "c2profile": "c2profile",
+        "created_by_operator": "operator",
+        "eventstepinstance": "eventstepinstance",
+        "filemetum": "filemeta",
+        "operation": "operation"
+      },
+      "columns": {
+        "alert_on_download": "alert_on_download",
+        "apitokens_id": "apitokens_id",
+        "c2_profile_id": "c2_profile_id",
+        "created_by": "created_by",
+        "error": "error",
+        "eventstepinstance_id": "eventstepinstance_id",
+        "filemeta_id": "filemeta_id",
+        "host_url": "host_url",
+        "id": "id",
+        "operation_id": "operation_id",
+        "status": "status",
+        "updated_at": "updated_at"
+      },
+      "computed": {},
+      "json_fields": {
+        "alert_on_download": "alert_on_download",
+        "apitokens_id": "api_tokens_id",
+        "c2_profile_id": "c2_profile_id",
+        "created_by": "created_by",
+        "error": "error",
+        "eventstepinstance_id": "event_step_instance_id",
+        "filemeta_id": "filemeta_id",
+        "host_url": "host_url",
+        "id": "id",
+        "operation_id": "operation_id",
+        "status": "status",
+        "updated_at": "updated_at"
+      }
+    },
+    "c2profileparameters": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "c2profileparameters"
+        },
+        "read": {
+          "public": true
+        },
+        "write": {}
+      },
+      "relationships": {
+        "c2profile": "c2profile",
+        "c2profileparametersinstances": "c2profileparametersinstance"
+      },
+      "columns": {
+        "c2_profile_id": "c2_profile_id",
+        "choices": "choices",
+        "choices_display_names": "choices_display_names",
+        "crypto_type": "crypto_type",
+        "default_value": "default_value",
+        "deleted": "deleted",
+        "description": "description",
+        "display_name": "display_name",
+        "dynamic_query_function": "dynamic_query_function",
+        "format_string": "format_string",
+        "group_name": "group_name",
+        "hide_conditions": "hide_conditions",
+        "id": "id",
+        "json_string_schema": "json_string_schema",
+        "name": "name",
+        "parameter_type": "parameter_type",
+        "randomize": "randomize",
+        "required": "required",
+        "ui_position": "ui_position",
+        "verifier_regex": "verifier_regex"
+      },
+      "computed": {},
+      "json_fields": {
+        "c2_profile_id": "C2ProfileID",
+        "choices": "Choices",
+        "choices_display_names": "ChoicesDisplayNames",
+        "crypto_type": "IsCryptoType",
+        "default_value": "DefaultValue",
+        "deleted": "Deleted",
+        "description": "Description",
+        "display_name": "DisplayName",
+        "dynamic_query_function": "DynamicQueryFunction",
+        "format_string": "FormatString",
+        "group_name": "GroupName",
+        "hide_conditions": "HideConditions",
+        "id": "ID",
+        "json_string_schema": "JSONStringSchema",
+        "name": "Name",
+        "parameter_type": "ParameterType",
+        "randomize": "Randomize",
+        "required": "Required",
+        "ui_position": "UiPosition",
+        "verifier_regex": "VerifierRegex"
+      }
+    },
+    "c2profileparametersinstance": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "c2profileparametersinstance"
+        },
+        "operation_paths": [
+          [
+            "operation_id"
+          ],
+          [
+            "payload",
+            "operation_id"
+          ],
+          [
+            "callback",
+            "operation_id"
+          ]
+        ],
+        "read": {
+          "permission": "payload.read"
+        },
+        "write": {
+          "permission": "payload.write"
+        }
+      },
+      "relationships": {
+        "c2profile": "c2profile",
+        "c2profileparameter": "c2profileparameters",
+        "callback": "callback",
+        "operation": "operation",
+        "payload": "payload"
+      },
+      "columns": {
+        "c2_profile_id": "c2_profile_id",
+        "c2_profile_parameters_id": "c2_profile_parameters_id",
+        "callback_id": "callback_id",
+        "count": "count",
+        "dec_key": "dec_key",
+        "enc_key": "enc_key",
+        "id": "id",
+        "instance_name": "instance_name",
+        "operation_id": "operation_id",
+        "payload_id": "payload_id",
+        "value": "value"
+      },
+      "computed": {
+        "dec_key_base64": true,
+        "enc_key_base64": true
+      },
+      "json_fields": {
+        "c2_profile_id": "C2ProfileID",
+        "c2_profile_parameters_id": "C2ProfileParametersID",
+        "callback_id": "CallbackID",
+        "count": "Count",
+        "dec_key": "DecKey",
+        "enc_key": "EncKey",
+        "id": "ID",
+        "instance_name": "InstanceName",
+        "operation_id": "OperationID",
+        "payload_id": "PayloadID",
+        "value": "Value"
+      }
+    },
+    "callback": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "callback"
+        },
+        "operation_path": [
+          "operation_id"
+        ],
+        "read": {
+          "permission": "callback.read"
+        },
+        "write": {
+          "permission": "callback.write"
+        }
+      },
+      "relationships": {
+        "apitokens": "apitokens",
+        "c2profileparametersinstances": "c2profileparametersinstance",
+        "callbackc2profiles": "callbackc2profiles",
+        "callbackgraphedges": "callbackgraphedge",
+        "callbackgraphedgesByDestinationId": "callbackgraphedge",
+        "callbackports": "callbackport",
+        "callbacktokens": "callbacktoken",
+        "eventstepinstance": "eventstepinstance",
+        "loadedcommands": "loadedcommands",
+        "locked_operator": "operator",
+        "mythictrees": "mythictree",
+        "operation": "operation",
+        "operator": "operator",
+        "payload": "payload",
+        "tags": "tag",
+        "tasks": "task"
+      },
+      "columns": {
+        "active": "active",
+        "agent_callback_id": "agent_callback_id",
+        "architecture": "architecture",
+        "color": "color",
+        "crypto_type": "crypto_type",
+        "cwd": "cwd",
+        "dead": "dead",
+        "dec_key": "dec_key",
+        "description": "description",
+        "display_id": "display_id",
+        "domain": "domain",
+        "enc_key": "enc_key",
+        "eventstepinstance_id": "eventstepinstance_id",
+        "external_ip": "external_ip",
+        "extra_info": "extra_info",
+        "host": "host",
+        "id": "id",
+        "impersonation_context": "impersonation_context",
+        "init_callback": "init_callback",
+        "integrity_level": "integrity_level",
+        "ip": "ip",
+        "last_checkin": "last_checkin",
+        "locked": "locked",
+        "locked_operator_id": "locked_operator_id",
+        "mythictree_groups": "mythictree_groups",
+        "operation_id": "operation_id",
+        "operator_id": "operator_id",
+        "os": "os",
+        "pid": "pid",
+        "process_name": "process_name",
+        "process_short_name": "process_short_name",
+        "registered_payload_id": "registered_payload_id",
+        "sleep_info": "sleep_info",
+        "timestamp": "timestamp",
+        "trigger_on_checkin_after_time": "trigger_on_checkin_after_time",
+        "user": "user"
+      },
+      "computed": {
+        "current_time": true,
+        "dec_key_base64": true,
+        "enc_key_base64": true,
+        "mythictree_groups_string": true
+      },
+      "json_fields": {
+        "active": "active",
+        "agent_callback_id": "agent_callback_id",
+        "architecture": "architecture",
+        "color": "color",
+        "crypto_type": "crypto_type",
+        "cwd": "cwd",
+        "dead": "dead",
+        "dec_key": "dec_key",
+        "description": "description",
+        "display_id": "display_id",
+        "domain": "domain",
+        "enc_key": "enc_key",
+        "eventstepinstance_id": "event_step_instance_id",
+        "external_ip": "external_ip",
+        "extra_info": "extra_info",
+        "host": "host",
+        "id": "id",
+        "impersonation_context": "impersonation_context",
+        "init_callback": "init_callback",
+        "integrity_level": "integrity_level",
+        "ip": "ip",
+        "last_checkin": "last_checkin",
+        "locked": "locked",
+        "locked_operator_id": "locked_operator_id",
+        "mythictree_groups": "mythictree_groups",
+        "operation_id": "operation_id",
+        "operator_id": "operator_id",
+        "os": "os",
+        "pid": "pid",
+        "process_name": "process_name",
+        "process_short_name": "process_short_name",
+        "registered_payload_id": "registered_payload_id",
+        "sleep_info": "sleep_info",
+        "timestamp": "timestamp",
+        "trigger_on_checkin_after_time": "trigger_on_checkin_after_time",
+        "user": "user"
+      }
+    },
+    "callbackc2profiles": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "callbackc2profiles"
+        },
+        "operation_path": [
+          "callback",
+          "operation_id"
+        ],
+        "read": {
+          "permission": "callback.read"
+        },
+        "write": {
+          "permission": "callback.write"
+        }
+      },
+      "relationships": {
+        "c2profile": "c2profile",
+        "callback": "callback"
+      },
+      "columns": {
+        "c2_profile_id": "c2_profile_id",
+        "callback_id": "callback_id",
+        "id": "id"
+      },
+      "computed": {},
+      "json_fields": {
+        "c2_profile_id": "C2ProfileID",
+        "callback_id": "CallbackID",
+        "id": "ID"
+      }
+    },
+    "callbackgraphedge": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "callbackgraphedge"
+        },
+        "operation_path": [
+          "operation_id"
+        ],
+        "read": {
+          "permission": "callback.read"
+        },
+        "write": {
+          "permission": "callback.write"
+        }
+      },
+      "relationships": {
+        "apitoken": "apitokens",
+        "c2profile": "c2profile",
+        "destination": "callback",
+        "operation": "operation",
+        "source": "callback"
+      },
+      "columns": {
+        "apitokens_id": "apitokens_id",
+        "c2_profile_id": "c2_profile_id",
+        "destination_id": "destination_id",
+        "end_timestamp": "end_timestamp",
+        "id": "id",
+        "metadata": "metadata",
+        "operation_id": "operation_id",
+        "source_id": "source_id",
+        "start_timestamp": "start_timestamp",
+        "updated_at": "updated_at"
+      },
+      "computed": {},
+      "json_fields": {
+        "apitokens_id": "api_tokens_id",
+        "c2_profile_id": "C2ProfileID",
+        "destination_id": "DestinationID",
+        "end_timestamp": "EndTimestamp",
+        "id": "ID",
+        "metadata": "Metadata",
+        "operation_id": "OperationID",
+        "source_id": "SourceID",
+        "start_timestamp": "StartTimestamp",
+        "updated_at": "UpdatedAt"
+      }
+    },
+    "callbackport": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "callbackport"
+        },
+        "operation_path": [
+          "operation_id"
+        ],
+        "read": {
+          "permission": "callback.read"
+        },
+        "write": {
+          "permission": "callback.write"
+        }
+      },
+      "relationships": {
+        "callback": "callback",
+        "operation": "operation",
+        "task": "task"
+      },
+      "columns": {
+        "bytes_received": "bytes_received",
+        "bytes_sent": "bytes_sent",
+        "callback_id": "callback_id",
+        "deleted": "deleted",
+        "id": "id",
+        "local_port": "local_port",
+        "operation_id": "operation_id",
+        "password": "password",
+        "port_type": "port_type",
+        "remote_ip": "remote_ip",
+        "remote_port": "remote_port",
+        "task_id": "task_id",
+        "updated_at": "updated_at",
+        "username": "username"
+      },
+      "computed": {},
+      "json_fields": {
+        "bytes_received": "BytesReceived",
+        "bytes_sent": "BytesSent",
+        "callback_id": "CallbackID",
+        "deleted": "Deleted",
+        "id": "ID",
+        "local_port": "LocalPort",
+        "operation_id": "OperationID",
+        "password": "Password",
+        "port_type": "PortType",
+        "remote_ip": "RemoteIP",
+        "remote_port": "RemotePort",
+        "task_id": "TaskID",
+        "updated_at": "UpdatedAt",
+        "username": "Username"
+      }
+    },
+    "callbacktoken": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "callbacktoken"
+        },
+        "operation_path": [
+          "callback",
+          "operation_id"
+        ],
+        "read": {
+          "permission": "callback.read"
+        },
+        "write": {
+          "permission": "callback.write"
+        }
+      },
+      "relationships": {
+        "callback": "callback",
+        "task": "task",
+        "token": "token"
+      },
+      "columns": {
+        "callback_id": "callback_id",
+        "deleted": "deleted",
+        "host": "host",
+        "id": "id",
+        "os": "os",
+        "task_id": "task_id",
+        "timestamp_created": "timestamp_created",
+        "token_id": "token_id"
+      },
+      "computed": {},
+      "json_fields": {
+        "callback_id": "callback_id",
+        "deleted": "deleted",
+        "host": "host",
+        "id": "id",
+        "os": "-",
+        "task_id": "task_id",
+        "timestamp_created": "timestamp_created",
+        "token_id": "token_id"
+      }
+    },
+    "chat_channel": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "chat_channel"
+        },
+        "operation_path": [
+          "operation_id"
+        ],
+        "read": {
+          "by_value": {
+            "path": [
+              "channel_type"
+            ],
+            "cases": [
+              {
+                "value": "standard",
+                "permission": "chat.read"
+              },
+              {
+                "value": "ai",
+                "permission": "chat-ai.read"
+              }
+            ]
+          }
+        },
+        "write": {
+          "by_value": {
+            "path": [
+              "channel_type"
+            ],
+            "cases": [
+              {
+                "value": "standard",
+                "permission": "chat.write"
+              },
+              {
+                "value": "ai",
+                "permission": "chat-ai.write"
+              }
+            ]
+          }
+        },
+        "lookup": {
+          "column": "id",
+          "query": "SELECT channel_type FROM chat_channel WHERE id=$1 AND operation_id=$2"
+        }
+      },
+      "relationships": {
+        "apitoken": "apitokens",
+        "apitokens": "apitokens",
+        "archived_operator": "operator",
+        "chat_container": "consuming_container",
+        "creator": "operator",
+        "locked_operator": "operator",
+        "messages": "chat_message",
+        "operation": "operation",
+        "read_states": "chat_read_state",
+        "requests": "chat_request"
+      },
+      "columns": {
+        "ai_metadata": "ai_metadata",
+        "apitokens_id": "apitokens_id",
+        "archived": "archived",
+        "archived_at": "archived_at",
+        "archived_by": "archived_by",
+        "channel_type": "channel_type",
+        "chat_container_id": "chat_container_id",
+        "chat_model": "chat_model",
+        "created_at": "created_at",
+        "created_by": "created_by",
+        "description": "description",
+        "id": "id",
+        "last_message_id": "last_message_id",
+        "locked": "locked",
+        "locked_at": "locked_at",
+        "locked_by": "locked_by",
+        "name": "name",
+        "operation_id": "operation_id",
+        "slug": "slug",
+        "updated_at": "updated_at"
+      },
+      "computed": {},
+      "json_fields": {
+        "ai_metadata": "ai_metadata",
+        "apitokens_id": "api_tokens_id",
+        "archived": "archived",
+        "archived_at": "archived_at",
+        "archived_by": "archived_by",
+        "channel_type": "channel_type",
+        "chat_container_id": "chat_container_id",
+        "chat_model": "chat_model",
+        "created_at": "created_at",
+        "created_by": "created_by",
+        "description": "description",
+        "id": "id",
+        "last_message_id": "last_message_id",
+        "locked": "locked",
+        "locked_at": "locked_at",
+        "locked_by": "locked_by",
+        "name": "name",
+        "operation_id": "operation_id",
+        "slug": "slug",
+        "updated_at": "updated_at"
+      },
+      "lookups": {
+        "id": {
+          "column": "id",
+          "query": "SELECT channel_type FROM chat_channel WHERE id=$1 AND operation_id=$2"
+        }
+      }
+    },
+    "chat_message": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "chat_message"
+        },
+        "operation_path": [
+          "operation_id"
+        ],
+        "read": {
+          "by_value": {
+            "path": [
+              "channel",
+              "channel_type"
+            ],
+            "cases": [
+              {
+                "value": "standard",
+                "permission": "chat.read"
+              },
+              {
+                "value": "ai",
+                "permission": "chat-ai.read"
+              }
+            ]
+          }
+        },
+        "write": {
+          "by_value": {
+            "path": [
+              "channel",
+              "channel_type"
+            ],
+            "cases": [
+              {
+                "value": "standard",
+                "permission": "chat.write"
+              },
+              {
+                "value": "ai",
+                "permission": "chat-ai.write"
+              }
+            ]
+          }
+        },
+        "lookup": {
+          "column": "id",
+          "query": "SELECT c.channel_type FROM chat_message m\n\t\t\t\tJOIN chat_channel c ON c.id=m.channel_id\n\t\t\t\tWHERE m.id=$1 AND m.operation_id=$2 AND c.operation_id=$2"
+        }
+      },
+      "relationships": {
+        "apitoken": "apitokens",
+        "channel": "chat_channel",
+        "chat_container": "consuming_container",
+        "chat_request": "chat_request",
+        "deleted_operator": "operator",
+        "operation": "operation",
+        "operator": "operator",
+        "read_states": "chat_read_state",
+        "requests_as_prompt": "chat_request"
+      },
+      "columns": {
+        "apitokens_id": "apitokens_id",
+        "author_type": "author_type",
+        "channel_id": "channel_id",
+        "chat_container_id": "chat_container_id",
+        "chat_request_id": "chat_request_id",
+        "chat_response_key": "chat_response_key",
+        "created_at": "created_at",
+        "deleted": "deleted",
+        "deleted_at": "deleted_at",
+        "deleted_by": "deleted_by",
+        "edited": "edited",
+        "edited_at": "edited_at",
+        "id": "id",
+        "message": "message",
+        "metadata": "metadata",
+        "operation_id": "operation_id",
+        "operator_id": "operator_id",
+        "sender_display_name": "sender_display_name",
+        "status": "status",
+        "tool_output": "tool_output",
+        "updated_at": "updated_at"
+      },
+      "computed": {},
+      "json_fields": {
+        "apitokens_id": "api_tokens_id",
+        "author_type": "author_type",
+        "channel_id": "channel_id",
+        "chat_container_id": "chat_container_id",
+        "chat_request_id": "chat_request_id",
+        "chat_response_key": "chat_response_key",
+        "created_at": "created_at",
+        "deleted": "deleted",
+        "deleted_at": "deleted_at",
+        "deleted_by": "deleted_by",
+        "edited": "edited",
+        "edited_at": "edited_at",
+        "id": "id",
+        "message": "message",
+        "metadata": "metadata",
+        "operation_id": "operation_id",
+        "operator_id": "operator_id",
+        "sender_display_name": "sender_display_name",
+        "status": "status",
+        "tool_output": "tool_output",
+        "updated_at": "updated_at"
+      },
+      "lookups": {
+        "channel_id": {
+          "column": "id",
+          "query": "SELECT channel_type FROM chat_channel WHERE id=$1 AND operation_id=$2"
+        },
+        "id": {
+          "column": "id",
+          "query": "SELECT c.channel_type FROM chat_message m\n\t\t\t\tJOIN chat_channel c ON c.id=m.channel_id\n\t\t\t\tWHERE m.id=$1 AND m.operation_id=$2 AND c.operation_id=$2"
+        }
+      }
+    },
+    "chat_read_state": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "chat_read_state"
+        },
+        "operation_path": [
+          "operation_id"
+        ],
+        "read": {
+          "by_value": {
+            "path": [
+              "channel",
+              "channel_type"
+            ],
+            "cases": [
+              {
+                "value": "standard",
+                "permission": "chat.read"
+              },
+              {
+                "value": "ai",
+                "permission": "chat-ai.read"
+              }
+            ]
+          }
+        },
+        "write": {
+          "by_value": {
+            "path": [
+              "channel",
+              "channel_type"
+            ],
+            "cases": [
+              {
+                "value": "standard",
+                "permission": "chat.write"
+              },
+              {
+                "value": "ai",
+                "permission": "chat-ai.write"
+              }
+            ]
+          }
+        }
+      },
+      "relationships": {
+        "channel": "chat_channel",
+        "last_read_message": "chat_message",
+        "operation": "operation",
+        "operator": "operator"
+      },
+      "columns": {
+        "channel_id": "channel_id",
+        "last_read_message_id": "last_read_message_id",
+        "muted": "muted",
+        "operation_id": "operation_id",
+        "operator_id": "operator_id",
+        "updated_at": "updated_at"
+      },
+      "computed": {},
+      "json_fields": {
+        "channel_id": "channel_id",
+        "last_read_message_id": "last_read_message_id",
+        "muted": "muted",
+        "operation_id": "operation_id",
+        "operator_id": "operator_id",
+        "updated_at": "updated_at"
+      },
+      "lookups": {
+        "channel_id": {
+          "column": "id",
+          "query": "SELECT channel_type FROM chat_channel WHERE id=$1 AND operation_id=$2"
+        }
+      }
+    },
+    "chat_request": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "chat_request"
+        },
+        "operation_path": [
+          "operation_id"
+        ],
+        "read": {
+          "permission": "chat-ai.read"
+        },
+        "write": {
+          "permission": "chat-ai.write"
+        }
+      },
+      "relationships": {
+        "channel": "chat_channel",
+        "chat_container": "consuming_container",
+        "chat_requests": "chat_request",
+        "creator": "operator",
+        "operation": "operation",
+        "request_message": "chat_message",
+        "response_messages": "chat_message",
+        "retry_of": "chat_request"
+      },
+      "columns": {
+        "cancelled_at": "cancelled_at",
+        "channel_id": "channel_id",
+        "chat_container_id": "chat_container_id",
+        "completed_at": "completed_at",
+        "context_snapshot": "context_snapshot",
+        "created_at": "created_at",
+        "created_by": "created_by",
+        "error": "error",
+        "id": "id",
+        "model": "model",
+        "operation_id": "operation_id",
+        "request_message_id": "request_message_id",
+        "retry_of_id": "retry_of_id",
+        "status": "status",
+        "updated_at": "updated_at"
+      },
+      "computed": {},
+      "json_fields": {
+        "cancelled_at": "cancelled_at",
+        "channel_id": "channel_id",
+        "chat_container_id": "chat_container_id",
+        "completed_at": "completed_at",
+        "context_snapshot": "context_snapshot",
+        "created_at": "created_at",
+        "created_by": "created_by",
+        "error": "error",
+        "id": "id",
+        "model": "model",
+        "operation_id": "operation_id",
+        "request_message_id": "request_message_id",
+        "retry_of_id": "retry_of_id",
+        "status": "status",
+        "updated_at": "updated_at"
+      }
+    },
+    "command": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "command"
+        },
+        "read": {
+          "public": true
+        },
+        "write": {}
+      },
+      "relationships": {
+        "attackcommands": "attackcommand",
+        "browserscripts": "browserscript",
+        "commandparameters": "commandparameters",
+        "disabledcommandsprofiles": "disabledcommandsprofile",
+        "loadedcommands": "loadedcommands",
+        "payloadcommands": "payloadcommand",
+        "payloadtype": "payloadtype",
+        "tasks": "task"
+      },
+      "columns": {
+        "attributes": "attributes",
+        "author": "author",
+        "cmd": "cmd",
+        "creation_time": "creation_time",
+        "deleted": "deleted",
+        "description": "description",
+        "help_cmd": "help_cmd",
+        "id": "id",
+        "needs_admin": "needs_admin",
+        "payload_type_id": "payload_type_id",
+        "script_only": "script_only",
+        "supported_ui_features": "supported_ui_features",
+        "version": "version"
+      },
+      "computed": {},
+      "json_fields": {
+        "attributes": "Attributes",
+        "author": "Author",
+        "cmd": "Cmd",
+        "creation_time": "CreationTime",
+        "deleted": "Deleted",
+        "description": "Description",
+        "help_cmd": "HelpCmd",
+        "id": "ID",
+        "needs_admin": "NeedsAdmin",
+        "payload_type_id": "PayloadTypeID",
+        "script_only": "ScriptOnly",
+        "supported_ui_features": "SupportedUiFeatures",
+        "version": "Version"
+      }
+    },
+    "commandparameters": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "commandparameters"
+        },
+        "read": {
+          "public": true
+        },
+        "write": {}
+      },
+      "relationships": {
+        "command": "command"
+      },
+      "columns": {
+        "choice_filter_by_command_attributes": "choice_filter_by_command_attributes",
+        "choices": "choices",
+        "choices_are_all_commands": "choices_are_all_commands",
+        "choices_are_loaded_commands": "choices_are_loaded_commands",
+        "cli_name": "cli_name",
+        "command_id": "command_id",
+        "default_value": "default_value",
+        "description": "description",
+        "display_name": "display_name",
+        "dynamic_query_function": "dynamic_query_function",
+        "id": "id",
+        "limit_credentials_by_type": "limit_credentials_by_type",
+        "name": "name",
+        "parameter_group_name": "parameter_group_name",
+        "required": "required",
+        "supported_agent_build_parameters": "supported_agent_build_parameters",
+        "supported_agents": "supported_agents",
+        "type": "type",
+        "ui_position": "ui_position",
+        "verifier_regex": "verifier_regex"
+      },
+      "computed": {},
+      "json_fields": {
+        "choice_filter_by_command_attributes": "ChoiceFilterByCommandAttributes",
+        "choices": "Choices",
+        "choices_are_all_commands": "ChoicesAreAllCommands",
+        "choices_are_loaded_commands": "ChoicesAreLoadedCommands",
+        "cli_name": "CliName",
+        "command_id": "CommandID",
+        "default_value": "DefaultValue",
+        "description": "Description",
+        "display_name": "DisplayName",
+        "dynamic_query_function": "DynamicQueryFunction",
+        "id": "ID",
+        "limit_credentials_by_type": "LimitCredentialsByType",
+        "name": "Name",
+        "parameter_group_name": "ParameterGroupName",
+        "required": "Required",
+        "supported_agent_build_parameters": "SupportedAgentBuildParameters",
+        "supported_agents": "SupportedAgents",
+        "type": "Type",
+        "ui_position": "UiPosition",
+        "verifier_regex": "VerifierRegex"
+      }
+    },
+    "consuming_container": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "consuming_container"
+        },
+        "read": {
+          "public": true
+        },
+        "write": {
+          "permission": "mythic.write"
+        }
+      },
+      "relationships": {
+        "chat_channels": "chat_channel",
+        "chat_messages": "chat_message",
+        "chat_requests": "chat_request",
+        "eventgroupconsumingcontainers": "eventgroupconsumingcontainer",
+        "operator_aliases": "operator_alias"
+      },
+      "columns": {
+        "container_running": "container_running",
+        "created_at": "created_at",
+        "deleted": "deleted",
+        "description": "description",
+        "id": "id",
+        "name": "name",
+        "subscriptions": "subscriptions",
+        "type": "type",
+        "updated_at": "updated_at"
+      },
+      "computed": {},
+      "json_fields": {
+        "container_running": "container_running",
+        "created_at": "created_at",
+        "deleted": "deleted",
+        "description": "description",
+        "id": "id",
+        "name": "name",
+        "subscriptions": "subscriptions",
+        "type": "type",
+        "updated_at": "updated_at"
+      }
+    },
+    "credential": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "credential"
+        },
+        "operation_path": [
+          "operation_id"
+        ],
+        "read": {
+          "permission": "credential.read"
+        },
+        "write": {
+          "permission": "credential.write"
+        }
+      },
+      "relationships": {
+        "apitoken": "apitokens",
+        "operation": "operation",
+        "operator": "operator",
+        "tags": "tag",
+        "task": "task"
+      },
+      "columns": {
+        "account": "account",
+        "apitokens_id": "apitokens_id",
+        "comment": "comment",
+        "credential_identity": "credential_identity",
+        "credential_raw": "credential",
+        "custom_display": "custom_display",
+        "deleted": "deleted",
+        "id": "id",
+        "metadata": "metadata",
+        "operation_id": "operation_id",
+        "operator_id": "operator_id",
+        "realm": "realm",
+        "subtype": "subtype",
+        "task_id": "task_id",
+        "timestamp": "timestamp",
+        "type": "type"
+      },
+      "computed": {
+        "credential_text": true
+      },
+      "json_fields": {
+        "account": "account",
+        "apitokens_id": "api_tokens_id",
+        "comment": "comment",
+        "credential": "credential",
+        "credential_identity": "credential_identity",
+        "custom_display": "custom_display",
+        "deleted": "deleted",
+        "id": "id",
+        "metadata": "metadata",
+        "operation_id": "operation_id",
+        "operator_id": "operator_id",
+        "realm": "realm",
+        "subtype": "subtype",
+        "task_id": "task_id",
+        "timestamp": "timestamp",
+        "type": "type"
+      }
+    },
+    "custombrowser": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "custombrowser"
+        },
+        "read": {
+          "public": true
+        },
+        "write": {
+          "permission": "mythic.write"
+        }
+      },
+      "relationships": {},
+      "columns": {
+        "author": "author",
+        "columns": "columns",
+        "container_running": "container_running",
+        "default_visible_columns": "default_visible_columns",
+        "deleted": "deleted",
+        "description": "description",
+        "display_name": "display_name",
+        "export_function": "export_function",
+        "extra_table_inputs": "extra_table_inputs",
+        "id": "id",
+        "indicate_partial_listing": "indicate_partial_listing",
+        "name": "name",
+        "row_actions": "row_actions",
+        "semver": "semver",
+        "separator": "separator",
+        "show_current_path": "show_current_path",
+        "type": "type"
+      },
+      "computed": {},
+      "json_fields": {
+        "author": "Author",
+        "columns": "Columns",
+        "container_running": "ContainerRunning",
+        "default_visible_columns": "DefaultVisibleColumns",
+        "deleted": "Deleted",
+        "description": "Description",
+        "display_name": "DisplayName",
+        "export_function": "ExportFunction",
+        "extra_table_inputs": "ExtraTableInputs",
+        "id": "ID",
+        "indicate_partial_listing": "IndicatePartialListing",
+        "name": "Name",
+        "row_actions": "RowActions",
+        "semver": "SemVer",
+        "separator": "Separator",
+        "show_current_path": "ShowCurrentPath",
+        "type": "Type"
+      }
+    },
+    "disabledcommandsprofile": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "disabledcommandsprofile"
+        },
+        "operation_path": [
+          "operation_id"
+        ],
+        "read": {
+          "permission": "operation.read"
+        },
+        "write": {
+          "permission": "operation.write"
+        }
+      },
+      "relationships": {
+        "command": "command",
+        "operation": "operation",
+        "operatoroperations": "operatoroperation"
+      },
+      "columns": {
+        "command_id": "command_id",
+        "id": "id",
+        "name": "name",
+        "operation_id": "operation_id"
+      },
+      "computed": {},
+      "json_fields": {
+        "command_id": "CommandID",
+        "id": "ID",
+        "name": "Name",
+        "operation_id": "OperationID"
+      }
+    },
+    "eventgroup": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "eventgroup"
+        },
+        "operation_path": [
+          "operation_id"
+        ],
+        "read": {
+          "permission": "eventing.read"
+        },
+        "write": {
+          "permission": "eventing.write"
+        }
+      },
+      "relationships": {
+        "eventgroupapprovals": "eventgroupapproval",
+        "eventgroupconsumingcontainers": "eventgroupconsumingcontainer",
+        "eventgroupinstances": "eventgroupinstance",
+        "eventsteps": "eventstep",
+        "filemeta": "filemeta",
+        "filemetum": "filemeta",
+        "operation": "operation",
+        "operator": "operator"
+      },
+      "columns": {
+        "active": "active",
+        "approved_to_run": "approved_to_run",
+        "created_at": "created_at",
+        "deleted": "deleted",
+        "description": "description",
+        "environment": "environment",
+        "eventstep": "eventstep",
+        "filemeta_id": "filemeta_id",
+        "id": "id",
+        "keywords": "keywords",
+        "name": "name",
+        "next_scheduled_run": "next_scheduled_run",
+        "operation_id": "operation_id",
+        "operator_id": "operator_id",
+        "run_as": "run_as",
+        "total_order_steps": "total_order_steps",
+        "total_steps": "total_steps",
+        "trigger": "trigger",
+        "trigger_data": "trigger_data",
+        "updated_at": "updated_at"
+      },
+      "computed": {},
+      "json_fields": {
+        "active": "active",
+        "approved_to_run": "approved_to_run",
+        "created_at": "created_at",
+        "deleted": "deleted",
+        "description": "description",
+        "environment": "environment",
+        "eventstep": "steps",
+        "filemeta_id": "filemeta_id",
+        "id": "id",
+        "keywords": "keywords",
+        "name": "name",
+        "next_scheduled_run": "next_scheduled_run",
+        "operation_id": "operation_id",
+        "operator_id": "operator_id",
+        "run_as": "run_as",
+        "total_order_steps": "total_order_steps",
+        "total_steps": "total_steps",
+        "trigger": "trigger",
+        "trigger_data": "trigger_data",
+        "updated_at": "updated_at"
+      }
+    },
+    "eventgroupapproval": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "eventgroupapproval"
+        },
+        "operation_path": [
+          "operation_id"
+        ],
+        "read": {
+          "permission": "eventing.read"
+        },
+        "write": {
+          "permission": "eventing.write"
+        }
+      },
+      "relationships": {
+        "eventgroup": "eventgroup",
+        "operation": "operation",
+        "operator": "operator"
+      },
+      "columns": {
+        "approved": "approved",
+        "created_at": "created_at",
+        "eventgroup_id": "eventgroup_id",
+        "id": "id",
+        "operation_id": "operation_id",
+        "operator_id": "operator_id",
+        "updated_at": "updated_at"
+      },
+      "computed": {},
+      "json_fields": {
+        "approved": "approved",
+        "created_at": "created_at",
+        "eventgroup_id": "eventgroup_id",
+        "id": "id",
+        "operation_id": "operation_id",
+        "operator_id": "operator_id",
+        "updated_at": "updated_at"
+      }
+    },
+    "eventgroupconsumingcontainer": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "eventgroupconsumingcontainer"
+        },
+        "operation_path": [
+          "eventgroup",
+          "operation_id"
+        ],
+        "read": {
+          "permission": "eventing.read"
+        },
+        "write": {
+          "permission": "eventing.write"
+        }
+      },
+      "relationships": {
+        "consuming_container": "consuming_container",
+        "eventgroup": "eventgroup"
+      },
+      "columns": {
+        "all_functions_available": "all_functions_available",
+        "consuming_container_id": "consuming_container_id",
+        "consuming_container_name": "consuming_container_name",
+        "eventgroup_id": "eventgroup_id",
+        "function_names": "function_names",
+        "id": "id"
+      },
+      "computed": {},
+      "json_fields": {
+        "all_functions_available": "all_functions_available",
+        "consuming_container_id": "consuming_container_id",
+        "consuming_container_name": "consuming_container_name",
+        "eventgroup_id": "eventgroup_id",
+        "function_names": "function_names",
+        "id": "id"
+      }
+    },
+    "eventgroupinstance": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "eventgroupinstance"
+        },
+        "operation_path": [
+          "operation_id"
+        ],
+        "read": {
+          "permission": "eventing.read"
+        },
+        "write": {
+          "permission": "eventing.write"
+        }
+      },
+      "relationships": {
+        "cancelled_by_operator": "operator",
+        "eventgroup": "eventgroup",
+        "eventstepinstances": "eventstepinstance",
+        "operation": "operation",
+        "operator": "operator"
+      },
+      "columns": {
+        "apitokens_id": "apitokens_id",
+        "cancelled_by": "cancelled_by",
+        "created_at": "created_at",
+        "current_order_step": "current_order_step",
+        "end_timestamp": "end_timestamp",
+        "environment": "environment",
+        "eventgroup_id": "eventgroup_id",
+        "id": "id",
+        "operation_id": "operation_id",
+        "operator_id": "operator_id",
+        "status": "status",
+        "total_order_steps": "total_order_steps",
+        "trigger": "trigger",
+        "trigger_metadata": "trigger_metadata",
+        "updated_at": "updated_at"
+      },
+      "computed": {},
+      "json_fields": {
+        "apitokens_id": "apitokens_id",
+        "cancelled_by": "cancelled_by",
+        "created_at": "created_at",
+        "current_order_step": "current_order_step",
+        "end_timestamp": "end_timestamp",
+        "environment": "environment",
+        "eventgroup_id": "eventgroup_id",
+        "id": "id",
+        "operation_id": "operation_id",
+        "operator_id": "operator_id",
+        "status": "status",
+        "total_order_steps": "total_order_steps",
+        "trigger": "trigger",
+        "trigger_metadata": "trigger_metadata",
+        "updated_at": "updated_at"
+      }
+    },
+    "eventstep": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "eventstep"
+        },
+        "operation_path": [
+          "operation_id"
+        ],
+        "read": {
+          "permission": "eventing.read"
+        },
+        "write": {
+          "permission": "eventing.write"
+        }
+      },
+      "relationships": {
+        "eventgroup": "eventgroup",
+        "eventstepinstances": "eventstepinstance",
+        "operation": "operation",
+        "operator": "operator"
+      },
+      "columns": {
+        "action": "action",
+        "action_data": "action_data",
+        "continue_on_error": "continue_on_error",
+        "created_at": "created_at",
+        "deleted": "deleted",
+        "depends_on": "depends_on",
+        "description": "description",
+        "environment": "environment",
+        "eventgroup_id": "eventgroup_id",
+        "id": "id",
+        "inputs": "inputs",
+        "name": "name",
+        "operation_id": "operation_id",
+        "operator_id": "operator_id",
+        "order": "order",
+        "outputs": "outputs",
+        "user_interaction": "user_interaction"
+      },
+      "computed": {},
+      "json_fields": {
+        "action": "action",
+        "action_data": "action_data",
+        "continue_on_error": "continue_on_error",
+        "created_at": "created_at",
+        "deleted": "deleted",
+        "depends_on": "depends_on",
+        "description": "description",
+        "environment": "environment",
+        "eventgroup_id": "eventgroup_id",
+        "id": "id",
+        "inputs": "inputs",
+        "name": "name",
+        "operation_id": "operation_id",
+        "operator_id": "operator_id",
+        "order": "order",
+        "outputs": "outputs",
+        "user_interaction": "user_interaction"
+      }
+    },
+    "eventstepinstance": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "eventstepinstance"
+        },
+        "operation_path": [
+          "operation_id"
+        ],
+        "read": {
+          "permission": "eventing.read"
+        },
+        "write": {
+          "permission": "eventing.write"
+        }
+      },
+      "relationships": {
+        "apitokens": "apitokens",
+        "c2profile_file_hosts": "c2profile_file_host",
+        "callbacks": "callback",
+        "eventgroupinstance": "eventgroupinstance",
+        "eventstep": "eventstep",
+        "filemeta": "filemeta",
+        "operation": "operation",
+        "operator": "operator",
+        "payloads": "payload",
+        "responses": "response",
+        "tags": "tag",
+        "tagtypes": "tagtype",
+        "taskartifacts": "taskartifact",
+        "tasks": "task",
+        "user_interaction_resolver": "operator"
+      },
+      "columns": {
+        "action_data": "action_data",
+        "continue_on_error": "continue_on_error",
+        "created_at": "created_at",
+        "end_timestamp": "end_timestamp",
+        "environment": "environment",
+        "eventgroupinstance_id": "eventgroupinstance_id",
+        "eventstep_id": "eventstep_id",
+        "id": "id",
+        "inputs": "inputs",
+        "operation_id": "operation_id",
+        "operator_id": "operator_id",
+        "order": "order",
+        "outputs": "outputs",
+        "status": "status",
+        "stderr": "stderr",
+        "stdout": "stdout",
+        "updated_at": "updated_at",
+        "user_interaction": "user_interaction",
+        "user_interaction_resolved_at": "user_interaction_resolved_at",
+        "user_interaction_resolved_by": "user_interaction_resolved_by",
+        "user_interaction_response": "user_interaction_response"
+      },
+      "computed": {},
+      "json_fields": {
+        "action_data": "action_data",
+        "continue_on_error": "continue_on_error",
+        "created_at": "created_at",
+        "end_timestamp": "end_timestamp",
+        "environment": "environment",
+        "eventgroupinstance_id": "eventgroupinstance_id",
+        "eventstep_id": "eventstep_id",
+        "id": "id",
+        "inputs": "inputs",
+        "operation_id": "operation_id",
+        "operator_id": "operator_id",
+        "order": "order",
+        "outputs": "outputs",
+        "status": "status",
+        "stderr": "stderr",
+        "stdout": "stdout",
+        "updated_at": "updated_at",
+        "user_interaction": "user_interaction",
+        "user_interaction_resolved_at": "user_interaction_resolved_at",
+        "user_interaction_resolved_by": "user_interaction_resolved_by",
+        "user_interaction_response": "user_interaction_response"
+      }
+    },
+    "filemeta": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "filemeta"
+        },
+        "operation_path": [
+          "operation_id"
+        ],
+        "read": {
+          "permission": "file.read"
+        },
+        "write": {
+          "permission": "file.write"
+        }
+      },
+      "relationships": {
+        "apitoken": "apitokens",
+        "c2profile_file_hosts": "c2profile_file_host",
+        "copies_of_file": "filemeta",
+        "copy_of_file": "filemeta",
+        "eventgroup": "eventgroup",
+        "eventgroups": "eventgroup",
+        "eventstepinstance": "eventstepinstance",
+        "mythictree": "mythictree",
+        "operation": "operation",
+        "operator": "operator",
+        "payloads": "payload",
+        "tags": "tag",
+        "task": "task"
+      },
+      "columns": {
+        "agent_file_id": "agent_file_id",
+        "apitokens_id": "apitokens_id",
+        "chunk_size": "chunk_size",
+        "chunks_received": "chunks_received",
+        "comment": "comment",
+        "complete": "complete",
+        "copy_of_file_id": "copy_of_file_id",
+        "delete_after_fetch": "delete_after_fetch",
+        "deleted": "deleted",
+        "eventgroup_id": "eventgroup_id",
+        "eventstepinstance_id": "eventstepinstance_id",
+        "filename": "filename",
+        "full_remote_path": "full_remote_path",
+        "host": "host",
+        "id": "id",
+        "is_download_from_agent": "is_download_from_agent",
+        "is_payload": "is_payload",
+        "is_screenshot": "is_screenshot",
+        "md5": "md5",
+        "mythictree_id": "mythictree_id",
+        "operation_id": "operation_id",
+        "operator_id": "operator_id",
+        "path": "path",
+        "received_chunk_ids": "received_chunk_ids",
+        "sha1": "sha1",
+        "size": "size",
+        "size_received": "size_received",
+        "task_id": "task_id",
+        "timestamp": "timestamp",
+        "total_chunks": "total_chunks",
+        "total_size": "total_size",
+        "transfer_type": "transfer_type"
+      },
+      "computed": {
+        "filename_text": true,
+        "filename_utf8": true,
+        "full_remote_path_text": true,
+        "full_remote_path_utf8": true
+      },
+      "json_fields": {
+        "agent_file_id": "agent_file_id",
+        "apitokens_id": "api_tokens_id",
+        "chunk_size": "chunk_size",
+        "chunks_received": "chunks_received",
+        "comment": "comment",
+        "complete": "complete",
+        "copy_of_file_id": "copy_of_file_id",
+        "delete_after_fetch": "delete_after_fetch",
+        "deleted": "deleted",
+        "eventgroup_id": "eventgroup_id",
+        "eventstepinstance_id": "event_step_instance_id",
+        "filename": "filename",
+        "full_remote_path": "full_remote_path",
+        "host": "host",
+        "id": "id",
+        "is_download_from_agent": "is_download_from_agent",
+        "is_payload": "is_payload",
+        "is_screenshot": "is_screenshot",
+        "md5": "md5",
+        "mythictree_id": "mythictree_id",
+        "operation_id": "operation_id",
+        "operator_id": "operator_id",
+        "path": "path",
+        "received_chunk_ids": "received_chunk_ids",
+        "sha1": "sha1",
+        "size": "size",
+        "size_received": "size_received",
+        "task_id": "task_id",
+        "timestamp": "timestamp",
+        "total_chunks": "total_chunks",
+        "total_size": "total_size",
+        "transfer_type": "transfer_type"
+      }
+    },
+    "global_setting": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "global_setting"
+        },
+        "read": {
+          "permission": "mythic.read"
+        },
+        "write": {
+          "permission": "mythic.write"
+        }
+      },
+      "relationships": {
+        "operator": "operator"
+      },
+      "columns": {
+        "id": "id",
+        "name": "name",
+        "operator_id": "operator_id",
+        "setting": "setting"
+      },
+      "computed": {},
+      "json_fields": {
+        "id": "ID",
+        "name": "Name",
+        "operator_id": "OperatorID",
+        "setting": "Setting"
+      }
+    },
+    "invite_link": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "invite_link"
+        },
+        "operation_path": [
+          "operation_id"
+        ],
+        "read": {
+          "permission": "mythic.read"
+        },
+        "write": {
+          "permission": "mythic.write"
+        }
+      },
+      "relationships": {
+        "created_by": "operator",
+        "operation": "operation"
+      },
+      "columns": {
+        "created_at": "created_at",
+        "id": "id",
+        "name": "name",
+        "operation_id": "operation_id",
+        "operation_role": "operation_role",
+        "operator_id": "operator_id",
+        "short_code": "short_code",
+        "total_used": "total_used",
+        "total_uses": "total_uses"
+      },
+      "computed": {},
+      "json_fields": {
+        "created_at": "CreatedAt",
+        "id": "ID",
+        "name": "Name",
+        "operation_id": "OperationID",
+        "operation_role": "OperationRole",
+        "operator_id": "OperatorID",
+        "short_code": "ShortCode",
+        "total_used": "TotalUsed",
+        "total_uses": "TotalUses"
+      }
+    },
+    "keylog": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "keylog"
+        },
+        "operation_path": [
+          "operation_id"
+        ],
+        "read": {
+          "permission": "response.read"
+        },
+        "write": {
+          "permission": "response.write"
+        }
+      },
+      "relationships": {
+        "apitoken": "apitokens",
+        "operation": "operation",
+        "tags": "tag",
+        "task": "task"
+      },
+      "columns": {
+        "apitokens_id": "apitokens_id",
+        "id": "id",
+        "keystrokes": "keystrokes",
+        "operation_id": "operation_id",
+        "task_id": "task_id",
+        "timestamp": "timestamp",
+        "user": "user",
+        "window": "window"
+      },
+      "computed": {
+        "keystrokes_text": true
+      },
+      "json_fields": {
+        "apitokens_id": "api_tokens_id",
+        "id": "id",
+        "keystrokes": "keystrokes",
+        "operation_id": "operation_id",
+        "task_id": "task_id",
+        "timestamp": "timestamp",
+        "user": "user",
+        "window": "window"
+      }
+    },
+    "loadedcommands": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "loadedcommands"
+        },
+        "operation_path": [
+          "callback",
+          "operation_id"
+        ],
+        "read": {
+          "permission": "callback.read"
+        },
+        "write": {
+          "permission": "callback.write"
+        }
+      },
+      "relationships": {
+        "apitoken": "apitokens",
+        "callback": "callback",
+        "command": "command",
+        "operator": "operator"
+      },
+      "columns": {
+        "apitokens_id": "apitokens_id",
+        "callback_id": "callback_id",
+        "command_id": "command_id",
+        "id": "id",
+        "operator_id": "operator_id",
+        "timestamp": "timestamp",
+        "version": "version"
+      },
+      "computed": {},
+      "json_fields": {
+        "apitokens_id": "api_tokens_id",
+        "callback_id": "CallbackID",
+        "command_id": "CommandID",
+        "id": "ID",
+        "operator_id": "OperatorID",
+        "timestamp": "Timestamp",
+        "version": "Version"
+      }
+    },
+    "mythic_server_migration_tracking": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "mythic_server_migration_tracking"
+        },
+        "read": {
+          "public": true
+        },
+        "write": {}
+      },
+      "relationships": {},
+      "columns": {},
+      "computed": {},
+      "json_fields": {}
+    },
+    "mythictree": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "mythictree"
+        },
+        "operation_path": [
+          "operation_id"
+        ],
+        "read": {
+          "permission": "browser.read"
+        },
+        "write": {
+          "permission": "browser.write"
+        }
+      },
+      "relationships": {
+        "apitoken": "apitokens",
+        "callback": "callback",
+        "filemeta": "filemeta",
+        "operation": "operation",
+        "tags": "tag",
+        "task": "task"
+      },
+      "columns": {
+        "apitokens_id": "apitokens_id",
+        "callback_id": "callback_id",
+        "can_have_children": "can_have_children",
+        "comment": "comment",
+        "deleted": "deleted",
+        "display_path": "display_path",
+        "full_path": "full_path",
+        "has_children": "has_children",
+        "host": "host",
+        "id": "id",
+        "metadata": "metadata",
+        "name": "name",
+        "operation_id": "operation_id",
+        "os": "os",
+        "parent_path": "parent_path",
+        "success": "success",
+        "task_id": "task_id",
+        "timestamp": "timestamp",
+        "tree_type": "tree_type"
+      },
+      "computed": {
+        "display_path_text": true,
+        "full_path_text": true,
+        "name_text": true,
+        "parent_path_text": true
+      },
+      "json_fields": {
+        "apitokens_id": "api_tokens_id",
+        "callback_id": "CallbackID",
+        "can_have_children": "CanHaveChildren",
+        "comment": "Comment",
+        "deleted": "Deleted",
+        "display_path": "DisplayPath",
+        "full_path": "FullPath",
+        "has_children": "HasChildren",
+        "host": "Host",
+        "id": "ID",
+        "metadata": "Metadata",
+        "name": "Name",
+        "operation_id": "OperationID",
+        "os": "Os",
+        "parent_path": "ParentPath",
+        "success": "Success",
+        "task_id": "TaskID",
+        "timestamp": "Timestamp",
+        "tree_type": "TreeType"
+      }
+    },
+    "operation": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "operation"
+        },
+        "operation_path": [
+          "id"
+        ],
+        "read": {
+          "permission": "operation.read"
+        },
+        "write": {
+          "permission": "operation.write"
+        }
+      },
+      "relationships": {
+        "admin": "operator",
+        "apitoken": "apitokens",
+        "buildparameterinstances": "buildparameterinstance",
+        "c2profile_file_hosts": "c2profile_file_host",
+        "c2profileparametersinstances": "c2profileparametersinstance",
+        "callbackgraphedges": "callbackgraphedge",
+        "callbackports": "callbackport",
+        "callbacks": "callback",
+        "chat_channels": "chat_channel",
+        "chat_messages": "chat_message",
+        "chat_read_states": "chat_read_state",
+        "chat_requests": "chat_request",
+        "credentials": "credential",
+        "disabledcommandsprofiles": "disabledcommandsprofile",
+        "eventgroupapprovals": "eventgroupapproval",
+        "eventgroupinstances": "eventgroupinstance",
+        "eventgroups": "eventgroup",
+        "eventstepinstances": "eventstepinstance",
+        "eventsteps": "eventstep",
+        "filemeta": "filemeta",
+        "invite_links": "invite_link",
+        "keylogs": "keylog",
+        "mythictrees": "mythictree",
+        "operationeventlogs": "operationeventlog",
+        "operatoroperations": "operatoroperation",
+        "operators": "operator",
+        "payloadonhosts": "payloadonhost",
+        "payloads": "payload",
+        "responses": "response",
+        "tags": "tag",
+        "tagtypes": "tagtype",
+        "taskartifacts": "taskartifact"
+      },
+      "columns": {
+        "admin_id": "admin_id",
+        "alert_count": "alert_count",
+        "apitokens_id": "apitokens_id",
+        "banner_color": "banner_color",
+        "banner_text": "banner_text",
+        "channel": "channel",
+        "complete": "complete",
+        "deleted": "deleted",
+        "id": "id",
+        "name": "name",
+        "updated_at": "updated_at",
+        "webhook": "webhook"
+      },
+      "computed": {},
+      "json_fields": {
+        "admin_id": "AdminID",
+        "alert_count": "AlertCount",
+        "apitokens_id": "api_tokens_id",
+        "banner_color": "BannerColor",
+        "banner_text": "BannerText",
+        "channel": "Channel",
+        "complete": "Complete",
+        "deleted": "Deleted",
+        "id": "ID",
+        "name": "Name",
+        "updated_at": "UpdatedAt",
+        "webhook": "Webhook"
+      }
+    },
+    "operationeventlog": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "operationeventlog"
+        },
+        "operation_path": [
+          "operation_id"
+        ],
+        "read": {
+          "permission": "eventlog.read"
+        },
+        "write": {
+          "permission": "eventlog.write"
+        }
+      },
+      "relationships": {
+        "apitoken": "apitokens",
+        "operation": "operation",
+        "operator": "operator"
+      },
+      "columns": {
+        "apitokens_id": "apitokens_id",
+        "count": "count",
+        "deleted": "deleted",
+        "id": "id",
+        "level": "level",
+        "message": "message",
+        "operation_id": "operation_id",
+        "operator_id": "operator_id",
+        "resolved": "resolved",
+        "source": "source",
+        "timestamp": "timestamp",
+        "warning": "warning"
+      },
+      "computed": {},
+      "json_fields": {
+        "apitokens_id": "api_tokens_id",
+        "count": "Count",
+        "deleted": "Deleted",
+        "id": "ID",
+        "level": "Level",
+        "message": "Message",
+        "operation_id": "OperationID",
+        "operator_id": "OperatorID",
+        "resolved": "Resolved",
+        "source": "Source",
+        "timestamp": "Timestamp",
+        "warning": "Warning"
+      }
+    },
+    "operator": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "operator"
+        },
+        "read": {
+          "permission": "operator.read"
+        },
+        "write": {
+          "permission": "operator.write"
+        }
+      },
+      "relationships": {
+        "apitoken": "apitokens",
+        "apitokens": "apitokens",
+        "apitokensByCreatedBy": "apitokens",
+        "browserscripts": "browserscript",
+        "c2profile_file_hosts": "c2profile_file_host",
+        "callbacks": "callback",
+        "callbacksByLockedOperatorId": "callback",
+        "chatChannelsByCreatedBy": "chat_channel",
+        "chatChannelsByLockedBy": "chat_channel",
+        "chatMessagesByOperatorId": "chat_message",
+        "chat_channels": "chat_channel",
+        "chat_messages": "chat_message",
+        "chat_read_states": "chat_read_state",
+        "chat_requests": "chat_request",
+        "credentials": "credential",
+        "eventgroupapprovals": "eventgroupapproval",
+        "eventgroupinstances": "eventgroupinstance",
+        "eventgroupinstancesByCancelledBy": "eventgroupinstance",
+        "eventgroups": "eventgroup",
+        "eventstepinstances": "eventstepinstance",
+        "eventstepinstancesByUserInteractionResolvedBy": "eventstepinstance",
+        "eventsteps": "eventstep",
+        "filemeta": "filemeta",
+        "global_settings": "global_setting",
+        "invite_links": "invite_link",
+        "loadedcommands": "loadedcommands",
+        "operation": "operation",
+        "operationeventlogs": "operationeventlog",
+        "operations": "operation",
+        "operator_aliases": "operator_alias",
+        "operatoroperations": "operatoroperation",
+        "payloads": "payload",
+        "tasks": "task",
+        "tasksByCommentOperatorId": "task",
+        "tasksByOpsecPostBypassUserId": "task",
+        "tasksByOpsecPreBypassUserId": "task"
+      },
+      "columns": {
+        "account_type": "account_type",
+        "active": "active",
+        "admin": "admin",
+        "apitokens_id": "apitokens_id",
+        "creation_time": "creation_time",
+        "current_operation_id": "current_operation_id",
+        "deleted": "deleted",
+        "email": "email",
+        "failed_login_count": "failed_login_count",
+        "id": "id",
+        "last_failed_login_timestamp": "last_failed_login_timestamp",
+        "last_login": "last_login",
+        "password": "password",
+        "preferences": "preferences",
+        "salt": "salt",
+        "secrets": "secrets",
+        "session_version": "session_version",
+        "username": "username",
+        "view_utc_time": "view_utc_time"
+      },
+      "computed": {},
+      "json_fields": {
+        "account_type": "account_type",
+        "active": "active",
+        "admin": "admin",
+        "apitokens_id": "api_tokens_id",
+        "creation_time": "creation_time",
+        "current_operation_id": "current_operation_id",
+        "deleted": "deleted",
+        "email": "email",
+        "failed_login_count": "failed_login_count",
+        "id": "id",
+        "last_failed_login_timestamp": "last_failed_login_timestamp",
+        "last_login": "last_login",
+        "password": "-",
+        "preferences": "preferences",
+        "salt": "-",
+        "secrets": "secrets",
+        "session_version": "-",
+        "username": "username",
+        "view_utc_time": "view_utc_time"
+      }
+    },
+    "operator_alias": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "operator_alias"
+        },
+        "read": {
+          "permission": "operator.read"
+        },
+        "write": {
+          "permission": "operator.write"
+        }
+      },
+      "relationships": {
+        "consuming_container": "consuming_container",
+        "operator": "operator",
+        "payloadtype": "payloadtype"
+      },
+      "columns": {
+        "active": "active",
+        "alias": "alias",
+        "alias_type": "alias_type",
+        "consuming_container_id": "consuming_container_id",
+        "created_at": "created_at",
+        "id": "id",
+        "name": "name",
+        "operator_id": "operator_id",
+        "payloadtype_id": "payloadtype_id",
+        "updated_at": "updated_at"
+      },
+      "computed": {},
+      "json_fields": {
+        "active": "active",
+        "alias": "alias",
+        "alias_type": "alias_type",
+        "consuming_container_id": "consuming_container_id",
+        "created_at": "created_at",
+        "id": "id",
+        "name": "name",
+        "operator_id": "operator_id",
+        "payloadtype_id": "payloadtype_id",
+        "updated_at": "updated_at"
+      }
+    },
+    "operatoroperation": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "operatoroperation"
+        },
+        "operation_path": [
+          "operation_id"
+        ],
+        "read": {
+          "permission": "operation.read"
+        },
+        "write": {
+          "permission": "operation.write"
+        }
+      },
+      "relationships": {
+        "apitoken": "apitokens",
+        "disabledcommandsprofile": "disabledcommandsprofile",
+        "operation": "operation",
+        "operator": "operator"
+      },
+      "columns": {
+        "apitokens_id": "apitokens_id",
+        "base_disabled_commands_id": "base_disabled_commands_id",
+        "id": "id",
+        "operation_id": "operation_id",
+        "operator_id": "operator_id",
+        "timestamp": "timestamp",
+        "view_mode": "view_mode"
+      },
+      "computed": {},
+      "json_fields": {
+        "apitokens_id": "api_tokens_id",
+        "base_disabled_commands_id": "BaseDisabledCommandsID",
+        "id": "ID",
+        "operation_id": "OperationID",
+        "operator_id": "OperatorID",
+        "timestamp": "Timestamp",
+        "view_mode": "ViewMode"
+      }
+    },
+    "payload": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "payload"
+        },
+        "operation_path": [
+          "operation_id"
+        ],
+        "read": {
+          "permission": "payload.read"
+        },
+        "write": {
+          "permission": "payload.write"
+        }
+      },
+      "relationships": {
+        "apitoken": "apitokens",
+        "apitokens": "apitokens",
+        "buildparameterinstances": "buildparameterinstance",
+        "c2profileparametersinstances": "c2profileparametersinstance",
+        "callbacks": "callback",
+        "eventstepinstance": "eventstepinstance",
+        "filemetum": "filemeta",
+        "operation": "operation",
+        "operator": "operator",
+        "payload": "payload",
+        "payload_build_steps": "payload_build_step",
+        "payloadc2profiles": "payloadc2profiles",
+        "payloadcommands": "payloadcommand",
+        "payloadonhosts": "payloadonhost",
+        "payloads": "payload",
+        "payloadtype": "payloadtype",
+        "staginginfos": "staginginfo",
+        "tags": "tag",
+        "task": "task"
+      },
+      "columns": {
+        "apitokens_id": "apitokens_id",
+        "auto_generated": "auto_generated",
+        "build_container": "build_container",
+        "build_message": "build_message",
+        "build_metadata": "build_metadata",
+        "build_phase": "build_phase",
+        "build_stderr": "build_stderr",
+        "build_stdout": "build_stdout",
+        "callback_alert": "callback_alert",
+        "callback_allowed": "callback_allowed",
+        "creation_time": "creation_time",
+        "deleted": "deleted",
+        "description": "description",
+        "eventstepinstance_id": "eventstepinstance_id",
+        "file_id": "file_id",
+        "id": "id",
+        "operation_id": "operation_id",
+        "operator_id": "operator_id",
+        "os": "os",
+        "payload_type_id": "payload_type_id",
+        "payload_type_semver": "payload_type_semver",
+        "task_id": "task_id",
+        "timestamp": "timestamp",
+        "uuid": "uuid",
+        "wrapped_payload_id": "wrapped_payload_id"
+      },
+      "computed": {},
+      "json_fields": {
+        "apitokens_id": "api_tokens_id",
+        "auto_generated": "auto_generated",
+        "build_container": "build_container",
+        "build_message": "build_message",
+        "build_metadata": "build_metadata",
+        "build_phase": "build_phase",
+        "build_stderr": "build_stderr",
+        "build_stdout": "build_stdout",
+        "callback_alert": "callback_alert",
+        "callback_allowed": "callback_allowed",
+        "creation_time": "creation_time",
+        "deleted": "deleted",
+        "description": "description",
+        "eventstepinstance_id": "event_step_instance_id",
+        "file_id": "file_id",
+        "id": "id",
+        "operation_id": "operation_id",
+        "operator_id": "operator_id",
+        "os": "os",
+        "payload_type_id": "payload_type_id",
+        "payload_type_semver": "payload_type_semver",
+        "task_id": "task_id",
+        "timestamp": "timestamp",
+        "uuid": "uuid",
+        "wrapped_payload_id": "wrapped_payload_id"
+      }
+    },
+    "payload_build_step": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "payload_build_step"
+        },
+        "operation_path": [
+          "payload",
+          "operation_id"
+        ],
+        "read": {
+          "permission": "payload.read"
+        },
+        "write": {
+          "permission": "payload.write"
+        }
+      },
+      "relationships": {
+        "payload": "payload",
+        "payloadtype": "payloadtype"
+      },
+      "columns": {
+        "end_time": "end_time",
+        "id": "id",
+        "payload_id": "payload_id",
+        "payloadtype_id": "payloadtype_id",
+        "start_time": "start_time",
+        "step_description": "step_description",
+        "step_name": "step_name",
+        "step_number": "step_number",
+        "step_skip": "step_skip",
+        "step_stderr": "step_stderr",
+        "step_stdout": "step_stdout",
+        "step_success": "step_success"
+      },
+      "computed": {},
+      "json_fields": {
+        "end_time": "EndTime",
+        "id": "ID",
+        "payload_id": "PayloadID",
+        "payloadtype_id": "PayloadTypeID",
+        "start_time": "StartTime",
+        "step_description": "StepDescription",
+        "step_name": "StepName",
+        "step_number": "StepNumber",
+        "step_skip": "StepSkip",
+        "step_stderr": "StepStderr",
+        "step_stdout": "StepStdout",
+        "step_success": "Success"
+      }
+    },
+    "payloadc2profiles": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "payloadc2profiles"
+        },
+        "operation_path": [
+          "payload",
+          "operation_id"
+        ],
+        "read": {
+          "permission": "payload.read"
+        },
+        "write": {
+          "permission": "payload.write"
+        }
+      },
+      "relationships": {
+        "c2profile": "c2profile",
+        "payload": "payload"
+      },
+      "columns": {
+        "c2_profile_id": "c2_profile_id",
+        "id": "id",
+        "payload_id": "payload_id"
+      },
+      "computed": {},
+      "json_fields": {
+        "c2_profile_id": "C2ProfileID",
+        "id": "ID",
+        "payload_id": "PayloadID"
+      }
+    },
+    "payloadcommand": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "payloadcommand"
+        },
+        "operation_path": [
+          "payload",
+          "operation_id"
+        ],
+        "read": {
+          "permission": "payload.read"
+        },
+        "write": {
+          "permission": "payload.write"
+        }
+      },
+      "relationships": {
+        "command": "command",
+        "payload": "payload"
+      },
+      "columns": {
+        "command_id": "command_id",
+        "creation_time": "creation_time",
+        "id": "id",
+        "payload_id": "payload_id",
+        "version": "version"
+      },
+      "computed": {},
+      "json_fields": {
+        "command_id": "CommandID",
+        "creation_time": "CreationTime",
+        "id": "ID",
+        "payload_id": "PayloadID",
+        "version": "Version"
+      }
+    },
+    "payloadonhost": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "payloadonhost"
+        },
+        "operation_path": [
+          "operation_id"
+        ],
+        "read": {
+          "permission": "payload.read"
+        },
+        "write": {
+          "permission": "payload.write"
+        }
+      },
+      "relationships": {
+        "operation": "operation",
+        "payload": "payload",
+        "task": "task"
+      },
+      "columns": {
+        "deleted": "deleted",
+        "host": "host",
+        "id": "id",
+        "operation_id": "operation_id",
+        "payload_id": "payload_id",
+        "task_id": "task_id",
+        "timestamp": "timestamp"
+      },
+      "computed": {},
+      "json_fields": {
+        "deleted": "Deleted",
+        "host": "Host",
+        "id": "ID",
+        "operation_id": "OperationID",
+        "payload_id": "PayloadID",
+        "task_id": "TaskID",
+        "timestamp": "Timestamp"
+      }
+    },
+    "payloadtype": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "payloadtype"
+        },
+        "read": {
+          "public": true
+        },
+        "write": {
+          "permission": "mythic.write"
+        }
+      },
+      "relationships": {
+        "browserscripts": "browserscript",
+        "buildparameters": "buildparameter",
+        "commands": "command",
+        "operator_aliases": "operator_alias",
+        "payload_build_steps": "payload_build_step",
+        "payloads": "payload",
+        "payloadtypec2profiles": "payloadtypec2profile",
+        "translationcontainer": "translationcontainer"
+      },
+      "columns": {
+        "agent_type": "agent_type",
+        "author": "author",
+        "c2_parameter_deviations": "c2_parameter_deviations",
+        "command_augment_supported_agents": "command_augment_supported_agents",
+        "command_help_function": "command_help_function",
+        "container_count": "container_count",
+        "container_running": "container_running",
+        "creation_time": "creation_time",
+        "deleted": "deleted",
+        "file_extension": "file_extension",
+        "id": "id",
+        "message_format": "message_format",
+        "message_uuid_length": "message_uuid_length",
+        "mythic_encrypts": "mythic_encrypts",
+        "name": "name",
+        "note": "note",
+        "semver": "semver",
+        "service": "service",
+        "supported_c2": "supported_c2",
+        "supported_os": "supported_os",
+        "supported_translation_container": "supported_translation_container",
+        "supports_dynamic_loading": "supports_dynamic_loading",
+        "supports_multiple_c2_in_build": "supports_multiple_c2_in_build",
+        "supports_multiple_c2_instances_in_build": "supports_multiple_c2_instances_in_build",
+        "translation_container_id": "translation_container_id",
+        "use_display_params_for_cli_history": "use_display_params_for_cli_history",
+        "wrapper": "wrapper",
+        "wrapper_payload_requirements": "wrapper_payload_requirements"
+      },
+      "computed": {},
+      "json_fields": {
+        "agent_type": "AgentType",
+        "author": "Author",
+        "c2_parameter_deviations": "C2ParameterDeviations",
+        "command_augment_supported_agents": "CommandAugmentSupportedAgents",
+        "command_help_function": "CommandHelpFunction",
+        "container_count": "ContainerCount",
+        "container_running": "ContainerRunning",
+        "creation_time": "CreationTime",
+        "deleted": "Deleted",
+        "file_extension": "FileExtension",
+        "id": "ID",
+        "message_format": "MessageFormat",
+        "message_uuid_length": "MessageUUIDLength",
+        "mythic_encrypts": "MythicEncrypts",
+        "name": "Name",
+        "note": "Note",
+        "semver": "SemVer",
+        "service": "Service",
+        "supported_c2": "SupportedC2",
+        "supported_os": "SupportedOs",
+        "supported_translation_container": "SupportedTranslationContainer",
+        "supports_dynamic_loading": "SupportsDynamicLoading",
+        "supports_multiple_c2_in_build": "SupportsMultipleC2InBuild",
+        "supports_multiple_c2_instances_in_build": "SupportsMultipleC2InstancesInBuild",
+        "translation_container_id": "TranslationContainerID",
+        "use_display_params_for_cli_history": "UseDisplayParamsForCLIHistory",
+        "wrapper": "Wrapper",
+        "wrapper_payload_requirements": "WrapperPayloadRequirements"
+      }
+    },
+    "payloadtypec2profile": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "payloadtypec2profile"
+        },
+        "read": {
+          "public": true
+        },
+        "write": {}
+      },
+      "relationships": {
+        "c2profile": "c2profile",
+        "payloadtype": "payloadtype"
+      },
+      "columns": {
+        "c2_profile_id": "c2_profile_id",
+        "id": "id",
+        "payload_type_id": "payload_type_id"
+      },
+      "computed": {},
+      "json_fields": {
+        "c2_profile_id": "C2ProfileID",
+        "id": "ID",
+        "payload_type_id": "PayloadTypeID"
+      }
+    },
+    "response": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "response"
+        },
+        "operation_path": [
+          "operation_id"
+        ],
+        "read": {
+          "permission": "response.read"
+        },
+        "write": {
+          "permission": "response.write"
+        }
+      },
+      "relationships": {
+        "apitoken": "apitokens",
+        "eventstepinstance": "eventstepinstance",
+        "operation": "operation",
+        "tags": "tag",
+        "task": "task"
+      },
+      "columns": {
+        "apitokens_id": "apitokens_id",
+        "eventstepinstance_id": "eventstepinstance_id",
+        "id": "id",
+        "interactive_task_type": "interactive_task_type",
+        "is_error": "is_error",
+        "operation_id": "operation_id",
+        "response_raw": "response",
+        "sequence_number": "sequence_number",
+        "task_id": "task_id",
+        "timestamp": "timestamp"
+      },
+      "computed": {
+        "response_escape": true,
+        "response_text": true
+      },
+      "json_fields": {
+        "apitokens_id": "api_tokens_id",
+        "eventstepinstance_id": "event_step_instance_id",
+        "id": "ID",
+        "interactive_task_type": "interactive_task_type",
+        "is_error": "IsError",
+        "operation_id": "OperationID",
+        "response": "Response",
+        "sequence_number": "SequenceNumber",
+        "task_id": "TaskID",
+        "timestamp": "Timestamp"
+      }
+    },
+    "staginginfo": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "staginginfo"
+        },
+        "operation_path": [
+          "payload",
+          "operation_id"
+        ],
+        "read": {
+          "permission": "payload.read"
+        },
+        "write": {}
+      },
+      "relationships": {
+        "payload": "payload"
+      },
+      "columns": {
+        "crypto_type": "crypto_type",
+        "dec_key": "dec_key",
+        "enc_key": "enc_key",
+        "id": "id",
+        "payload_id": "payload_id",
+        "session_id": "session_id",
+        "staging_uuid": "staging_uuid"
+      },
+      "computed": {},
+      "json_fields": {
+        "crypto_type": "CryptoType",
+        "dec_key": "DecKey",
+        "enc_key": "EncKey",
+        "id": "ID",
+        "payload_id": "PayloadID",
+        "session_id": "SessionID",
+        "staging_uuid": "StagingUuID"
+      }
+    },
+    "tag": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "tag"
+        },
+        "operation_path": [
+          "operation_id"
+        ],
+        "read": {
+          "permission": "tag.read"
+        },
+        "write": {
+          "permission": "tag.write"
+        }
+      },
+      "relationships": {
+        "apitoken": "apitokens",
+        "callback": "callback",
+        "credential": "credential",
+        "eventstepinstance": "eventstepinstance",
+        "filemetum": "filemeta",
+        "keylog": "keylog",
+        "mythictree": "mythictree",
+        "operation": "operation",
+        "payload": "payload",
+        "response": "response",
+        "tagtype": "tagtype",
+        "task": "task",
+        "taskartifact": "taskartifact"
+      },
+      "columns": {
+        "apitokens_id": "apitokens_id",
+        "callback_id": "callback_id",
+        "credential_id": "credential_id",
+        "data": "data",
+        "eventstepinstance_id": "eventstepinstance_id",
+        "filemeta_id": "filemeta_id",
+        "id": "id",
+        "keylog_id": "keylog_id",
+        "mythictree_id": "mythictree_id",
+        "operation_id": "operation_id",
+        "payload_id": "payload_id",
+        "response_id": "response_id",
+        "source": "source",
+        "tagtype_id": "tagtype_id",
+        "task_id": "task_id",
+        "taskartifact_id": "taskartifact_id",
+        "url": "url"
+      },
+      "computed": {},
+      "json_fields": {
+        "apitokens_id": "api_tokens_id",
+        "callback_id": "Callback",
+        "credential_id": "Credential",
+        "data": "Data",
+        "eventstepinstance_id": "event_step_instance_id",
+        "filemeta_id": "FileMeta",
+        "id": "ID",
+        "keylog_id": "Keylog",
+        "mythictree_id": "MythicTree",
+        "operation_id": "Operation",
+        "payload_id": "Payload",
+        "response_id": "Response",
+        "source": "Source",
+        "tagtype_id": "TagTypeID",
+        "task_id": "Task",
+        "taskartifact_id": "TaskArtifact",
+        "url": "URL"
+      }
+    },
+    "tagtype": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "tagtype"
+        },
+        "operation_path": [
+          "operation_id"
+        ],
+        "read": {
+          "permission": "tag.read"
+        },
+        "write": {
+          "permission": "tag.write"
+        }
+      },
+      "relationships": {
+        "apitoken": "apitokens",
+        "eventstepinstance": "eventstepinstance",
+        "operation": "operation",
+        "tags": "tag"
+      },
+      "columns": {
+        "apitokens_id": "apitokens_id",
+        "color": "color",
+        "description": "description",
+        "eventstepinstance_id": "eventstepinstance_id",
+        "id": "id",
+        "name": "name",
+        "operation_id": "operation_id"
+      },
+      "computed": {},
+      "json_fields": {
+        "apitokens_id": "api_tokens_id",
+        "color": "Color",
+        "description": "Description",
+        "eventstepinstance_id": "event_step_instance_id",
+        "id": "ID",
+        "name": "Name",
+        "operation_id": "Operation"
+      }
+    },
+    "task": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "task"
+        },
+        "operation_path": [
+          "operation_id"
+        ],
+        "read": {
+          "permission": "task.read"
+        },
+        "write": {
+          "permission": "task.write"
+        }
+      },
+      "relationships": {
+        "apitoken": "apitokens",
+        "apitokens": "apitokens",
+        "attacktasks": "attacktask",
+        "callback": "callback",
+        "callbackports": "callbackport",
+        "callbacktokens": "callbacktoken",
+        "command": "command",
+        "commentOperator": "operator",
+        "credentials": "credential",
+        "eventstepinstance": "eventstepinstance",
+        "filemeta": "filemeta",
+        "keylogs": "keylog",
+        "mythictrees": "mythictree",
+        "operator": "operator",
+        "opsec_post_bypass_user": "operator",
+        "opsec_pre_bypass_user": "operator",
+        "payloadonhosts": "payloadonhost",
+        "payloads": "payload",
+        "responses": "response",
+        "tags": "tag",
+        "task": "task",
+        "taskartifacts": "taskartifact",
+        "tasks": "task",
+        "token": "token",
+        "tokens": "token"
+      },
+      "columns": {
+        "agent_task_id": "agent_task_id",
+        "alias_resolution": "alias_resolution",
+        "apitokens_id": "apitokens_id",
+        "callback_id": "callback_id",
+        "command_id": "command_id",
+        "command_name": "command_name",
+        "command_payload_type": "command_payload_type",
+        "comment": "comment",
+        "comment_operator_id": "comment_operator_id",
+        "completed": "completed",
+        "completed_callback_function": "completed_callback_function",
+        "completed_callback_function_completed": "completed_callback_function_completed",
+        "completed_callback_function_started": "completed_callback_function_started",
+        "display_id": "display_id",
+        "display_params": "display_params",
+        "eventstepinstance_id": "eventstepinstance_id",
+        "group_callback_function": "group_callback_function",
+        "group_callback_function_completed": "group_callback_function_completed",
+        "group_callback_function_started": "group_callback_function_started",
+        "has_intercepted_response": "has_intercepted_response",
+        "id": "id",
+        "interactive_task_type": "interactive_task_type",
+        "is_interactive_task": "is_interactive_task",
+        "keyword_resolution": "keyword_resolution",
+        "mythic_parsed_params": "mythic_parsed_params",
+        "operation_id": "operation_id",
+        "operator_id": "operator_id",
+        "opsec_post_blocked": "opsec_post_blocked",
+        "opsec_post_bypass_role": "opsec_post_bypass_role",
+        "opsec_post_bypass_user_id": "opsec_post_bypass_user_id",
+        "opsec_post_bypassed": "opsec_post_bypassed",
+        "opsec_post_message": "opsec_post_message",
+        "opsec_pre_blocked": "opsec_pre_blocked",
+        "opsec_pre_bypass_role": "opsec_pre_bypass_role",
+        "opsec_pre_bypass_user_id": "opsec_pre_bypass_user_id",
+        "opsec_pre_bypassed": "opsec_pre_bypassed",
+        "opsec_pre_message": "opsec_pre_message",
+        "original_params": "original_params",
+        "parameter_group_name": "parameter_group_name",
+        "params": "params",
+        "parent_task_id": "parent_task_id",
+        "process_at_original_command": "process_at_original_command",
+        "response_count": "response_count",
+        "status": "status",
+        "status_timestamp_preprocessing": "status_timestamp_preprocessing",
+        "status_timestamp_processed": "status_timestamp_processed",
+        "status_timestamp_processing": "status_timestamp_processing",
+        "status_timestamp_submitted": "status_timestamp_submitted",
+        "stderr": "stderr",
+        "stdout": "stdout",
+        "subtask_callback_function": "subtask_callback_function",
+        "subtask_callback_function_completed": "subtask_callback_function_completed",
+        "subtask_callback_function_started": "subtask_callback_function_started",
+        "subtask_group_name": "subtask_group_name",
+        "tasking_location": "tasking_location",
+        "timestamp": "timestamp",
+        "token_id": "token_id"
+      },
+      "computed": {},
+      "json_fields": {
+        "agent_task_id": "agent_task_id",
+        "alias_resolution": "alias_resolution",
+        "apitokens_id": "api_tokens_id",
+        "callback_id": "callback_id",
+        "command_id": "command_id",
+        "command_name": "command_name",
+        "command_payload_type": "command_payload_type",
+        "comment": "comment",
+        "comment_operator_id": "comment_operator_id",
+        "completed": "completed",
+        "completed_callback_function": "completed_callback_function",
+        "completed_callback_function_completed": "completed_callback_function_completed",
+        "completed_callback_function_started": "completed_callback_function_started",
+        "display_id": "display_id",
+        "display_params": "display_params",
+        "eventstepinstance_id": "event_step_instance_id",
+        "group_callback_function": "group_callback_function",
+        "group_callback_function_completed": "group_callback_function_completed",
+        "group_callback_function_started": "group_callback_function_started",
+        "has_intercepted_response": "has_intercepted_response",
+        "id": "id",
+        "interactive_task_type": "interactive_task_type",
+        "is_interactive_task": "is_interactive_task",
+        "keyword_resolution": "keyword_resolution",
+        "mythic_parsed_params": "mythic_parsed_params",
+        "operation_id": "operation_id",
+        "operator_id": "operator_id",
+        "opsec_post_blocked": "opsec_post_blocked",
+        "opsec_post_bypass_role": "opsec_post_bypass_role",
+        "opsec_post_bypass_user_id": "opsec_post_bypass_user_id",
+        "opsec_post_bypassed": "opsec_post_bypassed",
+        "opsec_post_message": "opsec_post_message",
+        "opsec_pre_blocked": "opsec_pre_blocked",
+        "opsec_pre_bypass_role": "opsec_pre_bypass_role",
+        "opsec_pre_bypass_user_id": "opsec_pre_bypass_user_id",
+        "opsec_pre_bypassed": "opsec_pre_bypassed",
+        "opsec_pre_message": "opsec_pre_message",
+        "original_params": "original_params",
+        "parameter_group_name": "parameter_group_name",
+        "params": "params",
+        "parent_task_id": "parent_task_id",
+        "process_at_original_command": "process_at_original_command",
+        "response_count": "response_count",
+        "status": "status",
+        "status_timestamp_preprocessing": "status_timestamp_preprocessing",
+        "status_timestamp_processed": "status_timestamp_processed",
+        "status_timestamp_processing": "status_timestamp_processing",
+        "status_timestamp_submitted": "status_timestamp_submitted",
+        "stderr": "stderr",
+        "stdout": "stdout",
+        "subtask_callback_function": "subtask_callback_function",
+        "subtask_callback_function_completed": "subtask_callback_function_completed",
+        "subtask_callback_function_started": "subtask_callback_function_started",
+        "subtask_group_name": "subtask_group_name",
+        "tasking_location": "tasking_location",
+        "timestamp": "timestamp",
+        "token_id": "token_id"
+      }
+    },
+    "taskartifact": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "taskartifact"
+        },
+        "operation_paths": [
+          [
+            "operation_id"
+          ],
+          [
+            "task",
+            "operation_id"
+          ]
+        ],
+        "read": {
+          "permission": "task.read"
+        },
+        "write": {
+          "permission": "task.write"
+        }
+      },
+      "relationships": {
+        "apitoken": "apitokens",
+        "eventstepinstance": "eventstepinstance",
+        "operation": "operation",
+        "tags": "tag",
+        "task": "task"
+      },
+      "columns": {
+        "apitokens_id": "apitokens_id",
+        "artifact_raw": "artifact",
+        "base_artifact": "base_artifact",
+        "eventstepinstance_id": "eventstepinstance_id",
+        "host": "host",
+        "id": "id",
+        "needs_cleanup": "needs_cleanup",
+        "operation_id": "operation_id",
+        "resolved": "resolved",
+        "task_id": "task_id",
+        "timestamp": "timestamp",
+        "updated_at": "updated_at"
+      },
+      "computed": {
+        "artifact_text": true
+      },
+      "json_fields": {
+        "apitokens_id": "api_tokens_id",
+        "artifact": "artifact",
+        "base_artifact": "base_artifact",
+        "eventstepinstance_id": "event_step_instance_id",
+        "host": "host",
+        "id": "id",
+        "needs_cleanup": "needs_cleanup",
+        "operation_id": "operation_id",
+        "resolved": "resolved",
+        "task_id": "task_id",
+        "timestamp": "timestamp",
+        "updated_at": "updated_at"
+      }
+    },
+    "token": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "token"
+        },
+        "operation_path": [
+          "operation_id"
+        ],
+        "read": {
+          "permission": "response.read"
+        },
+        "write": {
+          "permission": "response.write"
+        }
+      },
+      "relationships": {
+        "callbacktokens": "callbacktoken",
+        "operation": "operation",
+        "task": "task",
+        "tasks": "task"
+      },
+      "columns": {
+        "app_container_number": "app_container_number",
+        "app_container_sid": "app_container_sid",
+        "capabilities": "capabilities",
+        "default_dacl": "default_dacl",
+        "deleted": "deleted",
+        "description": "description",
+        "groups": "groups",
+        "handle": "handle",
+        "host": "host",
+        "id": "id",
+        "integrity_level_sid": "integrity_level_sid",
+        "logon_sid": "logon_sid",
+        "operation_id": "operation_id",
+        "privileges": "privileges",
+        "process_id": "process_id",
+        "restricted": "restricted",
+        "session_id": "session_id",
+        "task_id": "task_id",
+        "thread_id": "thread_id",
+        "timestamp": "timestamp",
+        "token_id": "token_id",
+        "user": "user"
+      },
+      "computed": {},
+      "json_fields": {
+        "app_container_number": "app_container_number",
+        "app_container_sid": "app_container_sid",
+        "capabilities": "capabilities",
+        "default_dacl": "default_dacl",
+        "deleted": "deleted",
+        "description": "description",
+        "groups": "groups",
+        "handle": "handle",
+        "host": "host",
+        "id": "id",
+        "integrity_level_sid": "integrity_level_sid",
+        "logon_sid": "logon_sid",
+        "operation_id": "operation_id",
+        "privileges": "privileges",
+        "process_id": "process_id",
+        "restricted": "restricted",
+        "session_id": "session_id",
+        "task_id": "task_id",
+        "thread_id": "thread_id",
+        "timestamp": "timestamp",
+        "token_id": "token_id",
+        "user": "user"
+      }
+    },
+    "translationcontainer": {
+      "policy": {
+        "table": {
+          "schema": "public",
+          "name": "translationcontainer"
+        },
+        "read": {
+          "public": true
+        },
+        "write": {
+          "permission": "mythic.write"
+        }
+      },
+      "relationships": {
+        "payloadtypes": "payloadtype"
+      },
+      "columns": {
+        "author": "author",
+        "container_running": "container_running",
+        "deleted": "deleted",
+        "description": "description",
+        "id": "id",
+        "name": "name",
+        "semver": "semver"
+      },
+      "computed": {},
+      "json_fields": {
+        "author": "Author",
+        "container_running": "ContainerRunning",
+        "deleted": "Deleted",
+        "description": "Description",
+        "id": "ID",
+        "name": "Name",
+        "semver": "SemVer"
+      }
+    }
+  },
+  "roots": {
+    "addAttackToTask": {
+      "action": "addAttackToTask"
+    },
+    "agentstorage": {
+      "table": "agentstorage",
+      "access": "read"
+    },
+    "agentstorage_aggregate": {
+      "table": "agentstorage",
+      "access": "read"
+    },
+    "agentstorage_by_pk": {
+      "table": "agentstorage",
+      "access": "read"
+    },
+    "agentstorage_stream": {
+      "table": "agentstorage",
+      "access": "read"
+    },
+    "apiTokenScopeDefinitions": {
+      "action": "apiTokenScopeDefinitions"
+    },
+    "apitokens": {
+      "table": "apitokens",
+      "access": "read"
+    },
+    "apitokens_aggregate": {
+      "table": "apitokens",
+      "access": "read"
+    },
+    "apitokens_by_pk": {
+      "table": "apitokens",
+      "access": "read"
+    },
+    "apitokens_stream": {
+      "table": "apitokens",
+      "access": "read"
+    },
+    "attack": {
+      "table": "attack",
+      "access": "read"
+    },
+    "attack_aggregate": {
+      "table": "attack",
+      "access": "read"
+    },
+    "attack_by_pk": {
+      "table": "attack",
+      "access": "read"
+    },
+    "attack_stream": {
+      "table": "attack",
+      "access": "read"
+    },
+    "attackcommand": {
+      "table": "attackcommand",
+      "access": "read"
+    },
+    "attackcommand_aggregate": {
+      "table": "attackcommand",
+      "access": "read"
+    },
+    "attackcommand_by_pk": {
+      "table": "attackcommand",
+      "access": "read"
+    },
+    "attackcommand_stream": {
+      "table": "attackcommand",
+      "access": "read"
+    },
+    "attacktask": {
+      "table": "attacktask",
+      "access": "read"
+    },
+    "attacktask_aggregate": {
+      "table": "attacktask",
+      "access": "read"
+    },
+    "attacktask_by_pk": {
+      "table": "attacktask",
+      "access": "read"
+    },
+    "attacktask_stream": {
+      "table": "attacktask",
+      "access": "read"
+    },
+    "browserscript": {
+      "table": "browserscript",
+      "access": "read"
+    },
+    "browserscript_aggregate": {
+      "table": "browserscript",
+      "access": "read"
+    },
+    "browserscript_by_pk": {
+      "table": "browserscript",
+      "access": "read"
+    },
+    "browserscript_stream": {
+      "table": "browserscript",
+      "access": "read"
+    },
+    "buildparameter": {
+      "table": "buildparameter",
+      "access": "read"
+    },
+    "buildparameter_aggregate": {
+      "table": "buildparameter",
+      "access": "read"
+    },
+    "buildparameter_by_pk": {
+      "table": "buildparameter",
+      "access": "read"
+    },
+    "buildparameter_stream": {
+      "table": "buildparameter",
+      "access": "read"
+    },
+    "buildparameterinstance": {
+      "table": "buildparameterinstance",
+      "access": "read"
+    },
+    "buildparameterinstance_aggregate": {
+      "table": "buildparameterinstance",
+      "access": "read"
+    },
+    "buildparameterinstance_by_pk": {
+      "table": "buildparameterinstance",
+      "access": "read"
+    },
+    "buildparameterinstance_stream": {
+      "table": "buildparameterinstance",
+      "access": "read"
+    },
+    "c2GetIOC": {
+      "action": "c2GetIOC"
+    },
+    "c2HostFile": {
+      "action": "c2HostFile"
+    },
+    "c2SampleMessage": {
+      "action": "c2SampleMessage"
+    },
+    "c2UpdateHostedFile": {
+      "action": "c2UpdateHostedFile"
+    },
+    "c2profile": {
+      "table": "c2profile",
+      "access": "read"
+    },
+    "c2profile_aggregate": {
+      "table": "c2profile",
+      "access": "read"
+    },
+    "c2profile_by_pk": {
+      "table": "c2profile",
+      "access": "read"
+    },
+    "c2profile_file_host": {
+      "table": "c2profile_file_host",
+      "access": "read"
+    },
+    "c2profile_file_host_aggregate": {
+      "table": "c2profile_file_host",
+      "access": "read"
+    },
+    "c2profile_file_host_by_pk": {
+      "table": "c2profile_file_host",
+      "access": "read"
+    },
+    "c2profile_file_host_stream": {
+      "table": "c2profile_file_host",
+      "access": "read"
+    },
+    "c2profile_stream": {
+      "table": "c2profile",
+      "access": "read"
+    },
+    "c2profileparameters": {
+      "table": "c2profileparameters",
+      "access": "read"
+    },
+    "c2profileparameters_aggregate": {
+      "table": "c2profileparameters",
+      "access": "read"
+    },
+    "c2profileparameters_by_pk": {
+      "table": "c2profileparameters",
+      "access": "read"
+    },
+    "c2profileparameters_stream": {
+      "table": "c2profileparameters",
+      "access": "read"
+    },
+    "c2profileparametersinstance": {
+      "table": "c2profileparametersinstance",
+      "access": "read"
+    },
+    "c2profileparametersinstance_aggregate": {
+      "table": "c2profileparametersinstance",
+      "access": "read"
+    },
+    "c2profileparametersinstance_by_pk": {
+      "table": "c2profileparametersinstance",
+      "access": "read"
+    },
+    "c2profileparametersinstance_stream": {
+      "table": "c2profileparametersinstance",
+      "access": "read"
+    },
+    "callback": {
+      "table": "callback",
+      "access": "read"
+    },
+    "callback_aggregate": {
+      "table": "callback",
+      "access": "read"
+    },
+    "callback_by_pk": {
+      "table": "callback",
+      "access": "read"
+    },
+    "callback_stream": {
+      "table": "callback",
+      "access": "read"
+    },
+    "callbackc2profiles": {
+      "table": "callbackc2profiles",
+      "access": "read"
+    },
+    "callbackc2profiles_aggregate": {
+      "table": "callbackc2profiles",
+      "access": "read"
+    },
+    "callbackc2profiles_by_pk": {
+      "table": "callbackc2profiles",
+      "access": "read"
+    },
+    "callbackc2profiles_stream": {
+      "table": "callbackc2profiles",
+      "access": "read"
+    },
+    "callbackgraphedge": {
+      "table": "callbackgraphedge",
+      "access": "read"
+    },
+    "callbackgraphedgeAdd": {
+      "action": "callbackgraphedgeAdd"
+    },
+    "callbackgraphedgeRemove": {
+      "action": "callbackgraphedgeRemove"
+    },
+    "callbackgraphedge_aggregate": {
+      "table": "callbackgraphedge",
+      "access": "read"
+    },
+    "callbackgraphedge_by_pk": {
+      "table": "callbackgraphedge",
+      "access": "read"
+    },
+    "callbackgraphedge_stream": {
+      "table": "callbackgraphedge",
+      "access": "read"
+    },
+    "callbackport": {
+      "table": "callbackport",
+      "access": "read"
+    },
+    "callbackport_aggregate": {
+      "table": "callbackport",
+      "access": "read"
+    },
+    "callbackport_by_pk": {
+      "table": "callbackport",
+      "access": "read"
+    },
+    "callbackport_stream": {
+      "table": "callbackport",
+      "access": "read"
+    },
+    "callbacktoken": {
+      "table": "callbacktoken",
+      "access": "read"
+    },
+    "callbacktoken_aggregate": {
+      "table": "callbacktoken",
+      "access": "read"
+    },
+    "callbacktoken_by_pk": {
+      "table": "callbacktoken",
+      "access": "read"
+    },
+    "callbacktoken_stream": {
+      "table": "callbacktoken",
+      "access": "read"
+    },
+    "chatCancelRequest": {
+      "action": "chatCancelRequest"
+    },
+    "chatCreateChannel": {
+      "action": "chatCreateChannel"
+    },
+    "chatCreateMessage": {
+      "action": "chatCreateMessage"
+    },
+    "chatDeleteMessage": {
+      "action": "chatDeleteMessage"
+    },
+    "chatEditMessage": {
+      "action": "chatEditMessage"
+    },
+    "chatInputResponse": {
+      "action": "chatInputResponse"
+    },
+    "chatMarkRead": {
+      "action": "chatMarkRead"
+    },
+    "chatRefreshSpecialMessage": {
+      "action": "chatRefreshSpecialMessage"
+    },
+    "chatRetryRequest": {
+      "action": "chatRetryRequest"
+    },
+    "chatSearch": {
+      "action": "chatSearch"
+    },
+    "chatUpdateChannel": {
+      "action": "chatUpdateChannel"
+    },
+    "chat_channel": {
+      "table": "chat_channel",
+      "access": "read"
+    },
+    "chat_channel_aggregate": {
+      "table": "chat_channel",
+      "access": "read"
+    },
+    "chat_channel_by_pk": {
+      "table": "chat_channel",
+      "access": "read"
+    },
+    "chat_channel_stream": {
+      "table": "chat_channel",
+      "access": "read"
+    },
+    "chat_message": {
+      "table": "chat_message",
+      "access": "read"
+    },
+    "chat_message_aggregate": {
+      "table": "chat_message",
+      "access": "read"
+    },
+    "chat_message_by_pk": {
+      "table": "chat_message",
+      "access": "read"
+    },
+    "chat_message_stream": {
+      "table": "chat_message",
+      "access": "read"
+    },
+    "chat_read_state": {
+      "table": "chat_read_state",
+      "access": "read"
+    },
+    "chat_read_state_aggregate": {
+      "table": "chat_read_state",
+      "access": "read"
+    },
+    "chat_read_state_by_pk": {
+      "table": "chat_read_state",
+      "access": "read"
+    },
+    "chat_read_state_stream": {
+      "table": "chat_read_state",
+      "access": "read"
+    },
+    "chat_request": {
+      "table": "chat_request",
+      "access": "read"
+    },
+    "chat_request_aggregate": {
+      "table": "chat_request",
+      "access": "read"
+    },
+    "chat_request_by_pk": {
+      "table": "chat_request",
+      "access": "read"
+    },
+    "chat_request_stream": {
+      "table": "chat_request",
+      "access": "read"
+    },
+    "command": {
+      "table": "command",
+      "access": "read"
+    },
+    "command_aggregate": {
+      "table": "command",
+      "access": "read"
+    },
+    "command_by_pk": {
+      "table": "command",
+      "access": "read"
+    },
+    "command_stream": {
+      "table": "command",
+      "access": "read"
+    },
+    "commandparameters": {
+      "table": "commandparameters",
+      "access": "read"
+    },
+    "commandparameters_aggregate": {
+      "table": "commandparameters",
+      "access": "read"
+    },
+    "commandparameters_by_pk": {
+      "table": "commandparameters",
+      "access": "read"
+    },
+    "commandparameters_stream": {
+      "table": "commandparameters",
+      "access": "read"
+    },
+    "configCheck": {
+      "action": "configCheck"
+    },
+    "consumingServicesTestLog": {
+      "action": "consumingServicesTestLog"
+    },
+    "consumingServicesTestWebhook": {
+      "action": "consumingServicesTestWebhook"
+    },
+    "consuming_container": {
+      "table": "consuming_container",
+      "access": "read"
+    },
+    "consuming_container_aggregate": {
+      "table": "consuming_container",
+      "access": "read"
+    },
+    "consuming_container_by_pk": {
+      "table": "consuming_container",
+      "access": "read"
+    },
+    "consuming_container_stream": {
+      "table": "consuming_container",
+      "access": "read"
+    },
+    "containerDownloadFile": {
+      "action": "containerDownloadFile"
+    },
+    "containerListFiles": {
+      "action": "containerListFiles"
+    },
+    "containerRemoveFile": {
+      "action": "containerRemoveFile"
+    },
+    "containerWriteFile": {
+      "action": "containerWriteFile"
+    },
+    "createAPIToken": {
+      "action": "createAPIToken"
+    },
+    "createArtifact": {
+      "action": "createArtifact"
+    },
+    "createBuildParameterInstance": {
+      "action": "createBuildParameterInstance"
+    },
+    "createC2Instance": {
+      "action": "createC2Instance"
+    },
+    "createCallback": {
+      "action": "createCallback"
+    },
+    "createCredential": {
+      "action": "createCredential"
+    },
+    "createInviteLink": {
+      "action": "createInviteLink"
+    },
+    "createOperation": {
+      "action": "createOperation"
+    },
+    "createOperationEventLog": {
+      "action": "createOperationEventLog"
+    },
+    "createOperator": {
+      "action": "createOperator"
+    },
+    "createPayload": {
+      "action": "createPayload"
+    },
+    "createRandom": {
+      "action": "createRandom"
+    },
+    "createTag": {
+      "action": "createTag"
+    },
+    "createTask": {
+      "action": "createTask"
+    },
+    "credential": {
+      "table": "credential",
+      "access": "read"
+    },
+    "credential_aggregate": {
+      "table": "credential",
+      "access": "read"
+    },
+    "credential_by_pk": {
+      "table": "credential",
+      "access": "read"
+    },
+    "credential_stream": {
+      "table": "credential",
+      "access": "read"
+    },
+    "custombrowser": {
+      "table": "custombrowser",
+      "access": "read"
+    },
+    "custombrowserExportFunction": {
+      "action": "custombrowserExportFunction"
+    },
+    "custombrowser_aggregate": {
+      "table": "custombrowser",
+      "access": "read"
+    },
+    "custombrowser_by_pk": {
+      "table": "custombrowser",
+      "access": "read"
+    },
+    "custombrowser_stream": {
+      "table": "custombrowser",
+      "access": "read"
+    },
+    "deleteAPIToken": {
+      "action": "deleteAPIToken"
+    },
+    "deleteBlockList": {
+      "action": "deleteBlockList"
+    },
+    "deleteBlockListEntry": {
+      "action": "deleteBlockListEntry"
+    },
+    "deleteFile": {
+      "action": "deleteFile"
+    },
+    "deleteTagtype": {
+      "action": "deleteTagtype"
+    },
+    "deleteTasksAndCallbacks": {
+      "action": "deleteTasksAndCallbacks"
+    },
+    "delete_agentstorage": {
+      "table": "agentstorage",
+      "access": "write"
+    },
+    "delete_agentstorage_by_pk": {
+      "table": "agentstorage",
+      "access": "write"
+    },
+    "delete_apitokens": {
+      "table": "apitokens",
+      "access": "write"
+    },
+    "delete_apitokens_by_pk": {
+      "table": "apitokens",
+      "access": "write"
+    },
+    "delete_attack": {
+      "table": "attack",
+      "access": "write"
+    },
+    "delete_attack_by_pk": {
+      "table": "attack",
+      "access": "write"
+    },
+    "delete_attackcommand": {
+      "table": "attackcommand",
+      "access": "write"
+    },
+    "delete_attackcommand_by_pk": {
+      "table": "attackcommand",
+      "access": "write"
+    },
+    "delete_attacktask": {
+      "table": "attacktask",
+      "access": "write"
+    },
+    "delete_attacktask_by_pk": {
+      "table": "attacktask",
+      "access": "write"
+    },
+    "delete_browserscript": {
+      "table": "browserscript",
+      "access": "write"
+    },
+    "delete_browserscript_by_pk": {
+      "table": "browserscript",
+      "access": "write"
+    },
+    "delete_buildparameter": {
+      "table": "buildparameter",
+      "access": "write"
+    },
+    "delete_buildparameter_by_pk": {
+      "table": "buildparameter",
+      "access": "write"
+    },
+    "delete_buildparameterinstance": {
+      "table": "buildparameterinstance",
+      "access": "write"
+    },
+    "delete_buildparameterinstance_by_pk": {
+      "table": "buildparameterinstance",
+      "access": "write"
+    },
+    "delete_c2profile": {
+      "table": "c2profile",
+      "access": "write"
+    },
+    "delete_c2profile_by_pk": {
+      "table": "c2profile",
+      "access": "write"
+    },
+    "delete_c2profile_file_host": {
+      "table": "c2profile_file_host",
+      "access": "write"
+    },
+    "delete_c2profile_file_host_by_pk": {
+      "table": "c2profile_file_host",
+      "access": "write"
+    },
+    "delete_c2profileparameters": {
+      "table": "c2profileparameters",
+      "access": "write"
+    },
+    "delete_c2profileparameters_by_pk": {
+      "table": "c2profileparameters",
+      "access": "write"
+    },
+    "delete_c2profileparametersinstance": {
+      "table": "c2profileparametersinstance",
+      "access": "write"
+    },
+    "delete_c2profileparametersinstance_by_pk": {
+      "table": "c2profileparametersinstance",
+      "access": "write"
+    },
+    "delete_callback": {
+      "table": "callback",
+      "access": "write"
+    },
+    "delete_callback_by_pk": {
+      "table": "callback",
+      "access": "write"
+    },
+    "delete_callbackc2profiles": {
+      "table": "callbackc2profiles",
+      "access": "write"
+    },
+    "delete_callbackc2profiles_by_pk": {
+      "table": "callbackc2profiles",
+      "access": "write"
+    },
+    "delete_callbackgraphedge": {
+      "table": "callbackgraphedge",
+      "access": "write"
+    },
+    "delete_callbackgraphedge_by_pk": {
+      "table": "callbackgraphedge",
+      "access": "write"
+    },
+    "delete_callbackport": {
+      "table": "callbackport",
+      "access": "write"
+    },
+    "delete_callbackport_by_pk": {
+      "table": "callbackport",
+      "access": "write"
+    },
+    "delete_callbacktoken": {
+      "table": "callbacktoken",
+      "access": "write"
+    },
+    "delete_callbacktoken_by_pk": {
+      "table": "callbacktoken",
+      "access": "write"
+    },
+    "delete_chat_channel": {
+      "table": "chat_channel",
+      "access": "write"
+    },
+    "delete_chat_channel_by_pk": {
+      "table": "chat_channel",
+      "access": "write"
+    },
+    "delete_chat_message": {
+      "table": "chat_message",
+      "access": "write"
+    },
+    "delete_chat_message_by_pk": {
+      "table": "chat_message",
+      "access": "write"
+    },
+    "delete_chat_read_state": {
+      "table": "chat_read_state",
+      "access": "write"
+    },
+    "delete_chat_read_state_by_pk": {
+      "table": "chat_read_state",
+      "access": "write"
+    },
+    "delete_chat_request": {
+      "table": "chat_request",
+      "access": "write"
+    },
+    "delete_chat_request_by_pk": {
+      "table": "chat_request",
+      "access": "write"
+    },
+    "delete_command": {
+      "table": "command",
+      "access": "write"
+    },
+    "delete_command_by_pk": {
+      "table": "command",
+      "access": "write"
+    },
+    "delete_commandparameters": {
+      "table": "commandparameters",
+      "access": "write"
+    },
+    "delete_commandparameters_by_pk": {
+      "table": "commandparameters",
+      "access": "write"
+    },
+    "delete_consuming_container": {
+      "table": "consuming_container",
+      "access": "write"
+    },
+    "delete_consuming_container_by_pk": {
+      "table": "consuming_container",
+      "access": "write"
+    },
+    "delete_credential": {
+      "table": "credential",
+      "access": "write"
+    },
+    "delete_credential_by_pk": {
+      "table": "credential",
+      "access": "write"
+    },
+    "delete_custombrowser": {
+      "table": "custombrowser",
+      "access": "write"
+    },
+    "delete_custombrowser_by_pk": {
+      "table": "custombrowser",
+      "access": "write"
+    },
+    "delete_disabledcommandsprofile": {
+      "table": "disabledcommandsprofile",
+      "access": "write"
+    },
+    "delete_disabledcommandsprofile_by_pk": {
+      "table": "disabledcommandsprofile",
+      "access": "write"
+    },
+    "delete_eventgroup": {
+      "table": "eventgroup",
+      "access": "write"
+    },
+    "delete_eventgroup_by_pk": {
+      "table": "eventgroup",
+      "access": "write"
+    },
+    "delete_eventgroupapproval": {
+      "table": "eventgroupapproval",
+      "access": "write"
+    },
+    "delete_eventgroupapproval_by_pk": {
+      "table": "eventgroupapproval",
+      "access": "write"
+    },
+    "delete_eventgroupconsumingcontainer": {
+      "table": "eventgroupconsumingcontainer",
+      "access": "write"
+    },
+    "delete_eventgroupconsumingcontainer_by_pk": {
+      "table": "eventgroupconsumingcontainer",
+      "access": "write"
+    },
+    "delete_eventgroupinstance": {
+      "table": "eventgroupinstance",
+      "access": "write"
+    },
+    "delete_eventgroupinstance_by_pk": {
+      "table": "eventgroupinstance",
+      "access": "write"
+    },
+    "delete_eventstep": {
+      "table": "eventstep",
+      "access": "write"
+    },
+    "delete_eventstep_by_pk": {
+      "table": "eventstep",
+      "access": "write"
+    },
+    "delete_eventstepinstance": {
+      "table": "eventstepinstance",
+      "access": "write"
+    },
+    "delete_eventstepinstance_by_pk": {
+      "table": "eventstepinstance",
+      "access": "write"
+    },
+    "delete_filemeta": {
+      "table": "filemeta",
+      "access": "write"
+    },
+    "delete_filemeta_by_pk": {
+      "table": "filemeta",
+      "access": "write"
+    },
+    "delete_global_setting": {
+      "table": "global_setting",
+      "access": "write"
+    },
+    "delete_global_setting_by_pk": {
+      "table": "global_setting",
+      "access": "write"
+    },
+    "delete_invite_link": {
+      "table": "invite_link",
+      "access": "write"
+    },
+    "delete_invite_link_by_pk": {
+      "table": "invite_link",
+      "access": "write"
+    },
+    "delete_keylog": {
+      "table": "keylog",
+      "access": "write"
+    },
+    "delete_keylog_by_pk": {
+      "table": "keylog",
+      "access": "write"
+    },
+    "delete_loadedcommands": {
+      "table": "loadedcommands",
+      "access": "write"
+    },
+    "delete_loadedcommands_by_pk": {
+      "table": "loadedcommands",
+      "access": "write"
+    },
+    "delete_mythic_server_migration_tracking": {
+      "table": "mythic_server_migration_tracking",
+      "access": "write"
+    },
+    "delete_mythic_server_migration_tracking_by_pk": {
+      "table": "mythic_server_migration_tracking",
+      "access": "write"
+    },
+    "delete_mythictree": {
+      "table": "mythictree",
+      "access": "write"
+    },
+    "delete_mythictree_by_pk": {
+      "table": "mythictree",
+      "access": "write"
+    },
+    "delete_operation": {
+      "table": "operation",
+      "access": "write"
+    },
+    "delete_operation_by_pk": {
+      "table": "operation",
+      "access": "write"
+    },
+    "delete_operationeventlog": {
+      "table": "operationeventlog",
+      "access": "write"
+    },
+    "delete_operationeventlog_by_pk": {
+      "table": "operationeventlog",
+      "access": "write"
+    },
+    "delete_operator": {
+      "table": "operator",
+      "access": "write"
+    },
+    "delete_operator_alias": {
+      "table": "operator_alias",
+      "access": "write"
+    },
+    "delete_operator_alias_by_pk": {
+      "table": "operator_alias",
+      "access": "write"
+    },
+    "delete_operator_by_pk": {
+      "table": "operator",
+      "access": "write"
+    },
+    "delete_operatoroperation": {
+      "table": "operatoroperation",
+      "access": "write"
+    },
+    "delete_operatoroperation_by_pk": {
+      "table": "operatoroperation",
+      "access": "write"
+    },
+    "delete_payload": {
+      "table": "payload",
+      "access": "write"
+    },
+    "delete_payload_build_step": {
+      "table": "payload_build_step",
+      "access": "write"
+    },
+    "delete_payload_build_step_by_pk": {
+      "table": "payload_build_step",
+      "access": "write"
+    },
+    "delete_payload_by_pk": {
+      "table": "payload",
+      "access": "write"
+    },
+    "delete_payloadc2profiles": {
+      "table": "payloadc2profiles",
+      "access": "write"
+    },
+    "delete_payloadc2profiles_by_pk": {
+      "table": "payloadc2profiles",
+      "access": "write"
+    },
+    "delete_payloadcommand": {
+      "table": "payloadcommand",
+      "access": "write"
+    },
+    "delete_payloadcommand_by_pk": {
+      "table": "payloadcommand",
+      "access": "write"
+    },
+    "delete_payloadonhost": {
+      "table": "payloadonhost",
+      "access": "write"
+    },
+    "delete_payloadonhost_by_pk": {
+      "table": "payloadonhost",
+      "access": "write"
+    },
+    "delete_payloadtype": {
+      "table": "payloadtype",
+      "access": "write"
+    },
+    "delete_payloadtype_by_pk": {
+      "table": "payloadtype",
+      "access": "write"
+    },
+    "delete_payloadtypec2profile": {
+      "table": "payloadtypec2profile",
+      "access": "write"
+    },
+    "delete_payloadtypec2profile_by_pk": {
+      "table": "payloadtypec2profile",
+      "access": "write"
+    },
+    "delete_response": {
+      "table": "response",
+      "access": "write"
+    },
+    "delete_response_by_pk": {
+      "table": "response",
+      "access": "write"
+    },
+    "delete_staginginfo": {
+      "table": "staginginfo",
+      "access": "write"
+    },
+    "delete_staginginfo_by_pk": {
+      "table": "staginginfo",
+      "access": "write"
+    },
+    "delete_tag": {
+      "table": "tag",
+      "access": "write"
+    },
+    "delete_tag_by_pk": {
+      "table": "tag",
+      "access": "write"
+    },
+    "delete_tagtype": {
+      "table": "tagtype",
+      "access": "write"
+    },
+    "delete_tagtype_by_pk": {
+      "table": "tagtype",
+      "access": "write"
+    },
+    "delete_task": {
+      "table": "task",
+      "access": "write"
+    },
+    "delete_task_by_pk": {
+      "table": "task",
+      "access": "write"
+    },
+    "delete_taskartifact": {
+      "table": "taskartifact",
+      "access": "write"
+    },
+    "delete_taskartifact_by_pk": {
+      "table": "taskartifact",
+      "access": "write"
+    },
+    "delete_token": {
+      "table": "token",
+      "access": "write"
+    },
+    "delete_token_by_pk": {
+      "table": "token",
+      "access": "write"
+    },
+    "delete_translationcontainer": {
+      "table": "translationcontainer",
+      "access": "write"
+    },
+    "delete_translationcontainer_by_pk": {
+      "table": "translationcontainer",
+      "access": "write"
+    },
+    "disabledcommandsprofile": {
+      "table": "disabledcommandsprofile",
+      "access": "read"
+    },
+    "disabledcommandsprofile_aggregate": {
+      "table": "disabledcommandsprofile",
+      "access": "read"
+    },
+    "disabledcommandsprofile_by_pk": {
+      "table": "disabledcommandsprofile",
+      "access": "read"
+    },
+    "disabledcommandsprofile_stream": {
+      "table": "disabledcommandsprofile",
+      "access": "read"
+    },
+    "downloadBulk": {
+      "action": "downloadBulk"
+    },
+    "dynamicQueryBuildParameterFunction": {
+      "action": "dynamicQueryBuildParameterFunction"
+    },
+    "dynamicQueryC2ProfileParameterFunction": {
+      "action": "dynamicQueryC2ProfileParameterFunction"
+    },
+    "dynamicQueryFunction": {
+      "action": "dynamicQueryFunction"
+    },
+    "eventgroup": {
+      "table": "eventgroup",
+      "access": "read"
+    },
+    "eventgroup_aggregate": {
+      "table": "eventgroup",
+      "access": "read"
+    },
+    "eventgroup_by_pk": {
+      "table": "eventgroup",
+      "access": "read"
+    },
+    "eventgroup_stream": {
+      "table": "eventgroup",
+      "access": "read"
+    },
+    "eventgroupapproval": {
+      "table": "eventgroupapproval",
+      "access": "read"
+    },
+    "eventgroupapproval_aggregate": {
+      "table": "eventgroupapproval",
+      "access": "read"
+    },
+    "eventgroupapproval_by_pk": {
+      "table": "eventgroupapproval",
+      "access": "read"
+    },
+    "eventgroupapproval_stream": {
+      "table": "eventgroupapproval",
+      "access": "read"
+    },
+    "eventgroupconsumingcontainer": {
+      "table": "eventgroupconsumingcontainer",
+      "access": "read"
+    },
+    "eventgroupconsumingcontainer_aggregate": {
+      "table": "eventgroupconsumingcontainer",
+      "access": "read"
+    },
+    "eventgroupconsumingcontainer_by_pk": {
+      "table": "eventgroupconsumingcontainer",
+      "access": "read"
+    },
+    "eventgroupconsumingcontainer_stream": {
+      "table": "eventgroupconsumingcontainer",
+      "access": "read"
+    },
+    "eventgroupinstance": {
+      "table": "eventgroupinstance",
+      "access": "read"
+    },
+    "eventgroupinstance_aggregate": {
+      "table": "eventgroupinstance",
+      "access": "read"
+    },
+    "eventgroupinstance_by_pk": {
+      "table": "eventgroupinstance",
+      "access": "read"
+    },
+    "eventgroupinstance_stream": {
+      "table": "eventgroupinstance",
+      "access": "read"
+    },
+    "eventingExportWorkflow": {
+      "action": "eventingExportWorkflow"
+    },
+    "eventingImportContainerWorkflow": {
+      "action": "eventingImportContainerWorkflow"
+    },
+    "eventingStepUserInteractionSubmit": {
+      "action": "eventingStepUserInteractionSubmit"
+    },
+    "eventingTestFile": {
+      "action": "eventingTestFile"
+    },
+    "eventingTriggerCancel": {
+      "action": "eventingTriggerCancel"
+    },
+    "eventingTriggerKeyword": {
+      "action": "eventingTriggerKeyword"
+    },
+    "eventingTriggerManual": {
+      "action": "eventingTriggerManual"
+    },
+    "eventingTriggerManualBulk": {
+      "action": "eventingTriggerManualBulk"
+    },
+    "eventingTriggerRetry": {
+      "action": "eventingTriggerRetry"
+    },
+    "eventingTriggerRetryFromStep": {
+      "action": "eventingTriggerRetryFromStep"
+    },
+    "eventingTriggerRunAgain": {
+      "action": "eventingTriggerRunAgain"
+    },
+    "eventingTriggerUpdate": {
+      "action": "eventingTriggerUpdate"
+    },
+    "eventstep": {
+      "table": "eventstep",
+      "access": "read"
+    },
+    "eventstep_aggregate": {
+      "table": "eventstep",
+      "access": "read"
+    },
+    "eventstep_by_pk": {
+      "table": "eventstep",
+      "access": "read"
+    },
+    "eventstep_stream": {
+      "table": "eventstep",
+      "access": "read"
+    },
+    "eventstepinstance": {
+      "table": "eventstepinstance",
+      "access": "read"
+    },
+    "eventstepinstance_aggregate": {
+      "table": "eventstepinstance",
+      "access": "read"
+    },
+    "eventstepinstance_by_pk": {
+      "table": "eventstepinstance",
+      "access": "read"
+    },
+    "eventstepinstance_stream": {
+      "table": "eventstepinstance",
+      "access": "read"
+    },
+    "exportCallbackConfig": {
+      "action": "exportCallbackConfig"
+    },
+    "exportOperatorAliases": {
+      "action": "exportOperatorAliases"
+    },
+    "exportPayloadConfig": {
+      "action": "exportPayloadConfig"
+    },
+    "filemeta": {
+      "table": "filemeta",
+      "access": "read"
+    },
+    "filemeta_aggregate": {
+      "table": "filemeta",
+      "access": "read"
+    },
+    "filemeta_by_pk": {
+      "table": "filemeta",
+      "access": "read"
+    },
+    "filemeta_stream": {
+      "table": "filemeta",
+      "access": "read"
+    },
+    "generateReport": {
+      "action": "generateReport"
+    },
+    "getGlobalSettings": {
+      "action": "getGlobalSettings"
+    },
+    "getInviteLinks": {
+      "action": "getInviteLinks"
+    },
+    "getOperatorPreferences": {
+      "action": "getOperatorPreferences"
+    },
+    "getOperatorSecrets": {
+      "action": "getOperatorSecrets"
+    },
+    "getProfileOutput": {
+      "action": "getProfileOutput"
+    },
+    "getWrappablePayloads": {
+      "action": "getWrappablePayloads"
+    },
+    "global_setting": {
+      "table": "global_setting",
+      "access": "read"
+    },
+    "global_setting_aggregate": {
+      "table": "global_setting",
+      "access": "read"
+    },
+    "global_setting_by_pk": {
+      "table": "global_setting",
+      "access": "read"
+    },
+    "global_setting_stream": {
+      "table": "global_setting",
+      "access": "read"
+    },
+    "importBuildParameterInstance": {
+      "action": "importBuildParameterInstance"
+    },
+    "importC2Instance": {
+      "action": "importC2Instance"
+    },
+    "importCallbackConfig": {
+      "action": "importCallbackConfig"
+    },
+    "importOperatorAliases": {
+      "action": "importOperatorAliases"
+    },
+    "importTagtypes": {
+      "action": "importTagtypes"
+    },
+    "insert_agentstorage": {
+      "table": "agentstorage",
+      "access": "write"
+    },
+    "insert_agentstorage_one": {
+      "table": "agentstorage",
+      "access": "write"
+    },
+    "insert_apitokens": {
+      "table": "apitokens",
+      "access": "write"
+    },
+    "insert_apitokens_one": {
+      "table": "apitokens",
+      "access": "write"
+    },
+    "insert_attack": {
+      "table": "attack",
+      "access": "write"
+    },
+    "insert_attack_one": {
+      "table": "attack",
+      "access": "write"
+    },
+    "insert_attackcommand": {
+      "table": "attackcommand",
+      "access": "write"
+    },
+    "insert_attackcommand_one": {
+      "table": "attackcommand",
+      "access": "write"
+    },
+    "insert_attacktask": {
+      "table": "attacktask",
+      "access": "write"
+    },
+    "insert_attacktask_one": {
+      "table": "attacktask",
+      "access": "write"
+    },
+    "insert_browserscript": {
+      "table": "browserscript",
+      "access": "write"
+    },
+    "insert_browserscript_one": {
+      "table": "browserscript",
+      "access": "write"
+    },
+    "insert_buildparameter": {
+      "table": "buildparameter",
+      "access": "write"
+    },
+    "insert_buildparameter_one": {
+      "table": "buildparameter",
+      "access": "write"
+    },
+    "insert_buildparameterinstance": {
+      "table": "buildparameterinstance",
+      "access": "write"
+    },
+    "insert_buildparameterinstance_one": {
+      "table": "buildparameterinstance",
+      "access": "write"
+    },
+    "insert_c2profile": {
+      "table": "c2profile",
+      "access": "write"
+    },
+    "insert_c2profile_file_host": {
+      "table": "c2profile_file_host",
+      "access": "write"
+    },
+    "insert_c2profile_file_host_one": {
+      "table": "c2profile_file_host",
+      "access": "write"
+    },
+    "insert_c2profile_one": {
+      "table": "c2profile",
+      "access": "write"
+    },
+    "insert_c2profileparameters": {
+      "table": "c2profileparameters",
+      "access": "write"
+    },
+    "insert_c2profileparameters_one": {
+      "table": "c2profileparameters",
+      "access": "write"
+    },
+    "insert_c2profileparametersinstance": {
+      "table": "c2profileparametersinstance",
+      "access": "write"
+    },
+    "insert_c2profileparametersinstance_one": {
+      "table": "c2profileparametersinstance",
+      "access": "write"
+    },
+    "insert_callback": {
+      "table": "callback",
+      "access": "write"
+    },
+    "insert_callback_one": {
+      "table": "callback",
+      "access": "write"
+    },
+    "insert_callbackc2profiles": {
+      "table": "callbackc2profiles",
+      "access": "write"
+    },
+    "insert_callbackc2profiles_one": {
+      "table": "callbackc2profiles",
+      "access": "write"
+    },
+    "insert_callbackgraphedge": {
+      "table": "callbackgraphedge",
+      "access": "write"
+    },
+    "insert_callbackgraphedge_one": {
+      "table": "callbackgraphedge",
+      "access": "write"
+    },
+    "insert_callbackport": {
+      "table": "callbackport",
+      "access": "write"
+    },
+    "insert_callbackport_one": {
+      "table": "callbackport",
+      "access": "write"
+    },
+    "insert_callbacktoken": {
+      "table": "callbacktoken",
+      "access": "write"
+    },
+    "insert_callbacktoken_one": {
+      "table": "callbacktoken",
+      "access": "write"
+    },
+    "insert_chat_channel": {
+      "table": "chat_channel",
+      "access": "write"
+    },
+    "insert_chat_channel_one": {
+      "table": "chat_channel",
+      "access": "write"
+    },
+    "insert_chat_message": {
+      "table": "chat_message",
+      "access": "write"
+    },
+    "insert_chat_message_one": {
+      "table": "chat_message",
+      "access": "write"
+    },
+    "insert_chat_read_state": {
+      "table": "chat_read_state",
+      "access": "write"
+    },
+    "insert_chat_read_state_one": {
+      "table": "chat_read_state",
+      "access": "write"
+    },
+    "insert_chat_request": {
+      "table": "chat_request",
+      "access": "write"
+    },
+    "insert_chat_request_one": {
+      "table": "chat_request",
+      "access": "write"
+    },
+    "insert_command": {
+      "table": "command",
+      "access": "write"
+    },
+    "insert_command_one": {
+      "table": "command",
+      "access": "write"
+    },
+    "insert_commandparameters": {
+      "table": "commandparameters",
+      "access": "write"
+    },
+    "insert_commandparameters_one": {
+      "table": "commandparameters",
+      "access": "write"
+    },
+    "insert_consuming_container": {
+      "table": "consuming_container",
+      "access": "write"
+    },
+    "insert_consuming_container_one": {
+      "table": "consuming_container",
+      "access": "write"
+    },
+    "insert_credential": {
+      "table": "credential",
+      "access": "write"
+    },
+    "insert_credential_one": {
+      "table": "credential",
+      "access": "write"
+    },
+    "insert_custombrowser": {
+      "table": "custombrowser",
+      "access": "write"
+    },
+    "insert_custombrowser_one": {
+      "table": "custombrowser",
+      "access": "write"
+    },
+    "insert_disabledcommandsprofile": {
+      "table": "disabledcommandsprofile",
+      "access": "write"
+    },
+    "insert_disabledcommandsprofile_one": {
+      "table": "disabledcommandsprofile",
+      "access": "write"
+    },
+    "insert_eventgroup": {
+      "table": "eventgroup",
+      "access": "write"
+    },
+    "insert_eventgroup_one": {
+      "table": "eventgroup",
+      "access": "write"
+    },
+    "insert_eventgroupapproval": {
+      "table": "eventgroupapproval",
+      "access": "write"
+    },
+    "insert_eventgroupapproval_one": {
+      "table": "eventgroupapproval",
+      "access": "write"
+    },
+    "insert_eventgroupconsumingcontainer": {
+      "table": "eventgroupconsumingcontainer",
+      "access": "write"
+    },
+    "insert_eventgroupconsumingcontainer_one": {
+      "table": "eventgroupconsumingcontainer",
+      "access": "write"
+    },
+    "insert_eventgroupinstance": {
+      "table": "eventgroupinstance",
+      "access": "write"
+    },
+    "insert_eventgroupinstance_one": {
+      "table": "eventgroupinstance",
+      "access": "write"
+    },
+    "insert_eventstep": {
+      "table": "eventstep",
+      "access": "write"
+    },
+    "insert_eventstep_one": {
+      "table": "eventstep",
+      "access": "write"
+    },
+    "insert_eventstepinstance": {
+      "table": "eventstepinstance",
+      "access": "write"
+    },
+    "insert_eventstepinstance_one": {
+      "table": "eventstepinstance",
+      "access": "write"
+    },
+    "insert_filemeta": {
+      "table": "filemeta",
+      "access": "write"
+    },
+    "insert_filemeta_one": {
+      "table": "filemeta",
+      "access": "write"
+    },
+    "insert_global_setting": {
+      "table": "global_setting",
+      "access": "write"
+    },
+    "insert_global_setting_one": {
+      "table": "global_setting",
+      "access": "write"
+    },
+    "insert_invite_link": {
+      "table": "invite_link",
+      "access": "write"
+    },
+    "insert_invite_link_one": {
+      "table": "invite_link",
+      "access": "write"
+    },
+    "insert_keylog": {
+      "table": "keylog",
+      "access": "write"
+    },
+    "insert_keylog_one": {
+      "table": "keylog",
+      "access": "write"
+    },
+    "insert_loadedcommands": {
+      "table": "loadedcommands",
+      "access": "write"
+    },
+    "insert_loadedcommands_one": {
+      "table": "loadedcommands",
+      "access": "write"
+    },
+    "insert_mythic_server_migration_tracking": {
+      "table": "mythic_server_migration_tracking",
+      "access": "write"
+    },
+    "insert_mythic_server_migration_tracking_one": {
+      "table": "mythic_server_migration_tracking",
+      "access": "write"
+    },
+    "insert_mythictree": {
+      "table": "mythictree",
+      "access": "write"
+    },
+    "insert_mythictree_one": {
+      "table": "mythictree",
+      "access": "write"
+    },
+    "insert_operation": {
+      "table": "operation",
+      "access": "write"
+    },
+    "insert_operation_one": {
+      "table": "operation",
+      "access": "write"
+    },
+    "insert_operationeventlog": {
+      "table": "operationeventlog",
+      "access": "write"
+    },
+    "insert_operationeventlog_one": {
+      "table": "operationeventlog",
+      "access": "write"
+    },
+    "insert_operator": {
+      "table": "operator",
+      "access": "write"
+    },
+    "insert_operator_alias": {
+      "table": "operator_alias",
+      "access": "write"
+    },
+    "insert_operator_alias_one": {
+      "table": "operator_alias",
+      "access": "write"
+    },
+    "insert_operator_one": {
+      "table": "operator",
+      "access": "write"
+    },
+    "insert_operatoroperation": {
+      "table": "operatoroperation",
+      "access": "write"
+    },
+    "insert_operatoroperation_one": {
+      "table": "operatoroperation",
+      "access": "write"
+    },
+    "insert_payload": {
+      "table": "payload",
+      "access": "write"
+    },
+    "insert_payload_build_step": {
+      "table": "payload_build_step",
+      "access": "write"
+    },
+    "insert_payload_build_step_one": {
+      "table": "payload_build_step",
+      "access": "write"
+    },
+    "insert_payload_one": {
+      "table": "payload",
+      "access": "write"
+    },
+    "insert_payloadc2profiles": {
+      "table": "payloadc2profiles",
+      "access": "write"
+    },
+    "insert_payloadc2profiles_one": {
+      "table": "payloadc2profiles",
+      "access": "write"
+    },
+    "insert_payloadcommand": {
+      "table": "payloadcommand",
+      "access": "write"
+    },
+    "insert_payloadcommand_one": {
+      "table": "payloadcommand",
+      "access": "write"
+    },
+    "insert_payloadonhost": {
+      "table": "payloadonhost",
+      "access": "write"
+    },
+    "insert_payloadonhost_one": {
+      "table": "payloadonhost",
+      "access": "write"
+    },
+    "insert_payloadtype": {
+      "table": "payloadtype",
+      "access": "write"
+    },
+    "insert_payloadtype_one": {
+      "table": "payloadtype",
+      "access": "write"
+    },
+    "insert_payloadtypec2profile": {
+      "table": "payloadtypec2profile",
+      "access": "write"
+    },
+    "insert_payloadtypec2profile_one": {
+      "table": "payloadtypec2profile",
+      "access": "write"
+    },
+    "insert_response": {
+      "table": "response",
+      "access": "write"
+    },
+    "insert_response_one": {
+      "table": "response",
+      "access": "write"
+    },
+    "insert_staginginfo": {
+      "table": "staginginfo",
+      "access": "write"
+    },
+    "insert_staginginfo_one": {
+      "table": "staginginfo",
+      "access": "write"
+    },
+    "insert_tag": {
+      "table": "tag",
+      "access": "write"
+    },
+    "insert_tag_one": {
+      "table": "tag",
+      "access": "write"
+    },
+    "insert_tagtype": {
+      "table": "tagtype",
+      "access": "write"
+    },
+    "insert_tagtype_one": {
+      "table": "tagtype",
+      "access": "write"
+    },
+    "insert_task": {
+      "table": "task",
+      "access": "write"
+    },
+    "insert_task_one": {
+      "table": "task",
+      "access": "write"
+    },
+    "insert_taskartifact": {
+      "table": "taskartifact",
+      "access": "write"
+    },
+    "insert_taskartifact_one": {
+      "table": "taskartifact",
+      "access": "write"
+    },
+    "insert_token": {
+      "table": "token",
+      "access": "write"
+    },
+    "insert_token_one": {
+      "table": "token",
+      "access": "write"
+    },
+    "insert_translationcontainer": {
+      "table": "translationcontainer",
+      "access": "write"
+    },
+    "insert_translationcontainer_one": {
+      "table": "translationcontainer",
+      "access": "write"
+    },
+    "invite_link": {
+      "table": "invite_link",
+      "access": "read"
+    },
+    "invite_link_aggregate": {
+      "table": "invite_link",
+      "access": "read"
+    },
+    "invite_link_by_pk": {
+      "table": "invite_link",
+      "access": "read"
+    },
+    "invite_link_stream": {
+      "table": "invite_link",
+      "access": "read"
+    },
+    "keylog": {
+      "table": "keylog",
+      "access": "read"
+    },
+    "keylog_aggregate": {
+      "table": "keylog",
+      "access": "read"
+    },
+    "keylog_by_pk": {
+      "table": "keylog",
+      "access": "read"
+    },
+    "keylog_stream": {
+      "table": "keylog",
+      "access": "read"
+    },
+    "loadedcommands": {
+      "table": "loadedcommands",
+      "access": "read"
+    },
+    "loadedcommands_aggregate": {
+      "table": "loadedcommands",
+      "access": "read"
+    },
+    "loadedcommands_by_pk": {
+      "table": "loadedcommands",
+      "access": "read"
+    },
+    "loadedcommands_stream": {
+      "table": "loadedcommands",
+      "access": "read"
+    },
+    "mythic_server_migration_tracking": {
+      "table": "mythic_server_migration_tracking",
+      "access": "read"
+    },
+    "mythic_server_migration_tracking_aggregate": {
+      "table": "mythic_server_migration_tracking",
+      "access": "read"
+    },
+    "mythic_server_migration_tracking_by_pk": {
+      "table": "mythic_server_migration_tracking",
+      "access": "read"
+    },
+    "mythic_server_migration_tracking_stream": {
+      "table": "mythic_server_migration_tracking",
+      "access": "read"
+    },
+    "mythictree": {
+      "table": "mythictree",
+      "access": "read"
+    },
+    "mythictree_aggregate": {
+      "table": "mythictree",
+      "access": "read"
+    },
+    "mythictree_by_pk": {
+      "table": "mythictree",
+      "access": "read"
+    },
+    "mythictree_stream": {
+      "table": "mythictree",
+      "access": "read"
+    },
+    "operation": {
+      "table": "operation",
+      "access": "read"
+    },
+    "operation_aggregate": {
+      "table": "operation",
+      "access": "read"
+    },
+    "operation_by_pk": {
+      "table": "operation",
+      "access": "read"
+    },
+    "operation_stream": {
+      "table": "operation",
+      "access": "read"
+    },
+    "operationeventlog": {
+      "table": "operationeventlog",
+      "access": "read"
+    },
+    "operationeventlog_aggregate": {
+      "table": "operationeventlog",
+      "access": "read"
+    },
+    "operationeventlog_by_pk": {
+      "table": "operationeventlog",
+      "access": "read"
+    },
+    "operationeventlog_stream": {
+      "table": "operationeventlog",
+      "access": "read"
+    },
+    "operator": {
+      "table": "operator",
+      "access": "read"
+    },
+    "operatorAliasCreate": {
+      "action": "operatorAliasCreate"
+    },
+    "operatorAliasDelete": {
+      "action": "operatorAliasDelete"
+    },
+    "operatorAliasUpdate": {
+      "action": "operatorAliasUpdate"
+    },
+    "operator_aggregate": {
+      "table": "operator",
+      "access": "read"
+    },
+    "operator_alias": {
+      "table": "operator_alias",
+      "access": "read"
+    },
+    "operator_alias_aggregate": {
+      "table": "operator_alias",
+      "access": "read"
+    },
+    "operator_alias_by_pk": {
+      "table": "operator_alias",
+      "access": "read"
+    },
+    "operator_alias_stream": {
+      "table": "operator_alias",
+      "access": "read"
+    },
+    "operator_by_pk": {
+      "table": "operator",
+      "access": "read"
+    },
+    "operator_stream": {
+      "table": "operator",
+      "access": "read"
+    },
+    "operatoroperation": {
+      "table": "operatoroperation",
+      "access": "read"
+    },
+    "operatoroperation_aggregate": {
+      "table": "operatoroperation",
+      "access": "read"
+    },
+    "operatoroperation_by_pk": {
+      "table": "operatoroperation",
+      "access": "read"
+    },
+    "operatoroperation_stream": {
+      "table": "operatoroperation",
+      "access": "read"
+    },
+    "payload": {
+      "table": "payload",
+      "access": "read"
+    },
+    "payload_aggregate": {
+      "table": "payload",
+      "access": "read"
+    },
+    "payload_build_step": {
+      "table": "payload_build_step",
+      "access": "read"
+    },
+    "payload_build_step_aggregate": {
+      "table": "payload_build_step",
+      "access": "read"
+    },
+    "payload_build_step_by_pk": {
+      "table": "payload_build_step",
+      "access": "read"
+    },
+    "payload_build_step_stream": {
+      "table": "payload_build_step",
+      "access": "read"
+    },
+    "payload_by_pk": {
+      "table": "payload",
+      "access": "read"
+    },
+    "payload_stream": {
+      "table": "payload",
+      "access": "read"
+    },
+    "payloadc2profiles": {
+      "table": "payloadc2profiles",
+      "access": "read"
+    },
+    "payloadc2profiles_aggregate": {
+      "table": "payloadc2profiles",
+      "access": "read"
+    },
+    "payloadc2profiles_by_pk": {
+      "table": "payloadc2profiles",
+      "access": "read"
+    },
+    "payloadc2profiles_stream": {
+      "table": "payloadc2profiles",
+      "access": "read"
+    },
+    "payloadcommand": {
+      "table": "payloadcommand",
+      "access": "read"
+    },
+    "payloadcommand_aggregate": {
+      "table": "payloadcommand",
+      "access": "read"
+    },
+    "payloadcommand_by_pk": {
+      "table": "payloadcommand",
+      "access": "read"
+    },
+    "payloadcommand_stream": {
+      "table": "payloadcommand",
+      "access": "read"
+    },
+    "payloadonhost": {
+      "table": "payloadonhost",
+      "access": "read"
+    },
+    "payloadonhost_aggregate": {
+      "table": "payloadonhost",
+      "access": "read"
+    },
+    "payloadonhost_by_pk": {
+      "table": "payloadonhost",
+      "access": "read"
+    },
+    "payloadonhost_stream": {
+      "table": "payloadonhost",
+      "access": "read"
+    },
+    "payloadtype": {
+      "table": "payloadtype",
+      "access": "read"
+    },
+    "payloadtype_aggregate": {
+      "table": "payloadtype",
+      "access": "read"
+    },
+    "payloadtype_by_pk": {
+      "table": "payloadtype",
+      "access": "read"
+    },
+    "payloadtype_stream": {
+      "table": "payloadtype",
+      "access": "read"
+    },
+    "payloadtypec2profile": {
+      "table": "payloadtypec2profile",
+      "access": "read"
+    },
+    "payloadtypec2profile_aggregate": {
+      "table": "payloadtypec2profile",
+      "access": "read"
+    },
+    "payloadtypec2profile_by_pk": {
+      "table": "payloadtypec2profile",
+      "access": "read"
+    },
+    "payloadtypec2profile_stream": {
+      "table": "payloadtypec2profile",
+      "access": "read"
+    },
+    "previewFile": {
+      "action": "previewFile"
+    },
+    "rebuildPayload": {
+      "action": "rebuildPayload"
+    },
+    "redirectRules": {
+      "action": "redirectRules"
+    },
+    "reissueTask": {
+      "action": "reissueTask"
+    },
+    "reissueTaskHandler": {
+      "action": "reissueTaskHandler"
+    },
+    "requestOpsecBypass": {
+      "action": "requestOpsecBypass"
+    },
+    "response": {
+      "table": "response",
+      "access": "read"
+    },
+    "response_aggregate": {
+      "table": "response",
+      "access": "read"
+    },
+    "response_by_pk": {
+      "table": "response",
+      "access": "read"
+    },
+    "response_stream": {
+      "table": "response",
+      "access": "read"
+    },
+    "scopeCheck": {
+      "action": "scopeCheck"
+    },
+    "sendExternalWebhook": {
+      "action": "sendExternalWebhook"
+    },
+    "staginginfo": {
+      "table": "staginginfo",
+      "access": "read"
+    },
+    "staginginfo_aggregate": {
+      "table": "staginginfo",
+      "access": "read"
+    },
+    "staginginfo_by_pk": {
+      "table": "staginginfo",
+      "access": "read"
+    },
+    "staginginfo_stream": {
+      "table": "staginginfo",
+      "access": "read"
+    },
+    "startStopProfile": {
+      "action": "startStopProfile"
+    },
+    "tag": {
+      "table": "tag",
+      "access": "read"
+    },
+    "tag_aggregate": {
+      "table": "tag",
+      "access": "read"
+    },
+    "tag_by_pk": {
+      "table": "tag",
+      "access": "read"
+    },
+    "tag_stream": {
+      "table": "tag",
+      "access": "read"
+    },
+    "tagtype": {
+      "table": "tagtype",
+      "access": "read"
+    },
+    "tagtype_aggregate": {
+      "table": "tagtype",
+      "access": "read"
+    },
+    "tagtype_by_pk": {
+      "table": "tagtype",
+      "access": "read"
+    },
+    "tagtype_stream": {
+      "table": "tagtype",
+      "access": "read"
+    },
+    "task": {
+      "table": "task",
+      "access": "read"
+    },
+    "task_aggregate": {
+      "table": "task",
+      "access": "read"
+    },
+    "task_by_pk": {
+      "table": "task",
+      "access": "read"
+    },
+    "task_stream": {
+      "table": "task",
+      "access": "read"
+    },
+    "taskartifact": {
+      "table": "taskartifact",
+      "access": "read"
+    },
+    "taskartifact_aggregate": {
+      "table": "taskartifact",
+      "access": "read"
+    },
+    "taskartifact_by_pk": {
+      "table": "taskartifact",
+      "access": "read"
+    },
+    "taskartifact_stream": {
+      "table": "taskartifact",
+      "access": "read"
+    },
+    "testProxy": {
+      "action": "testProxy"
+    },
+    "toggleProxy": {
+      "action": "toggleProxy"
+    },
+    "token": {
+      "table": "token",
+      "access": "read"
+    },
+    "token_aggregate": {
+      "table": "token",
+      "access": "read"
+    },
+    "token_by_pk": {
+      "table": "token",
+      "access": "read"
+    },
+    "token_stream": {
+      "table": "token",
+      "access": "read"
+    },
+    "translationcontainer": {
+      "table": "translationcontainer",
+      "access": "read"
+    },
+    "translationcontainer_aggregate": {
+      "table": "translationcontainer",
+      "access": "read"
+    },
+    "translationcontainer_by_pk": {
+      "table": "translationcontainer",
+      "access": "read"
+    },
+    "translationcontainer_stream": {
+      "table": "translationcontainer",
+      "access": "read"
+    },
+    "typedarrayParseFunction": {
+      "action": "typedarrayParseFunction"
+    },
+    "updateCallback": {
+      "action": "updateCallback"
+    },
+    "updateCredential": {
+      "action": "updateCredential"
+    },
+    "updateCurrentOperation": {
+      "action": "updateCurrentOperation"
+    },
+    "updateEventGroupApproval": {
+      "action": "updateEventGroupApproval"
+    },
+    "updateGlobalSettings": {
+      "action": "updateGlobalSettings"
+    },
+    "updateInviteLink": {
+      "action": "updateInviteLink"
+    },
+    "updateOperation": {
+      "action": "updateOperation"
+    },
+    "updateOperatorOperation": {
+      "action": "updateOperatorOperation"
+    },
+    "updateOperatorPreferences": {
+      "action": "updateOperatorPreferences"
+    },
+    "updateOperatorSecrets": {
+      "action": "updateOperatorSecrets"
+    },
+    "updateOperatorStatus": {
+      "action": "updateOperatorStatus"
+    },
+    "updatePasswordAndEmail": {
+      "action": "updatePasswordAndEmail"
+    },
+    "updatePayload": {
+      "action": "updatePayload"
+    },
+    "update_agentstorage": {
+      "table": "agentstorage",
+      "access": "write"
+    },
+    "update_agentstorage_by_pk": {
+      "table": "agentstorage",
+      "access": "write"
+    },
+    "update_agentstorage_many": {
+      "table": "agentstorage",
+      "access": "write"
+    },
+    "update_apitokens": {
+      "table": "apitokens",
+      "access": "write"
+    },
+    "update_apitokens_by_pk": {
+      "table": "apitokens",
+      "access": "write"
+    },
+    "update_apitokens_many": {
+      "table": "apitokens",
+      "access": "write"
+    },
+    "update_attack": {
+      "table": "attack",
+      "access": "write"
+    },
+    "update_attack_by_pk": {
+      "table": "attack",
+      "access": "write"
+    },
+    "update_attack_many": {
+      "table": "attack",
+      "access": "write"
+    },
+    "update_attackcommand": {
+      "table": "attackcommand",
+      "access": "write"
+    },
+    "update_attackcommand_by_pk": {
+      "table": "attackcommand",
+      "access": "write"
+    },
+    "update_attackcommand_many": {
+      "table": "attackcommand",
+      "access": "write"
+    },
+    "update_attacktask": {
+      "table": "attacktask",
+      "access": "write"
+    },
+    "update_attacktask_by_pk": {
+      "table": "attacktask",
+      "access": "write"
+    },
+    "update_attacktask_many": {
+      "table": "attacktask",
+      "access": "write"
+    },
+    "update_browserscript": {
+      "table": "browserscript",
+      "access": "write"
+    },
+    "update_browserscript_by_pk": {
+      "table": "browserscript",
+      "access": "write"
+    },
+    "update_browserscript_many": {
+      "table": "browserscript",
+      "access": "write"
+    },
+    "update_buildparameter": {
+      "table": "buildparameter",
+      "access": "write"
+    },
+    "update_buildparameter_by_pk": {
+      "table": "buildparameter",
+      "access": "write"
+    },
+    "update_buildparameter_many": {
+      "table": "buildparameter",
+      "access": "write"
+    },
+    "update_buildparameterinstance": {
+      "table": "buildparameterinstance",
+      "access": "write"
+    },
+    "update_buildparameterinstance_by_pk": {
+      "table": "buildparameterinstance",
+      "access": "write"
+    },
+    "update_buildparameterinstance_many": {
+      "table": "buildparameterinstance",
+      "access": "write"
+    },
+    "update_c2profile": {
+      "table": "c2profile",
+      "access": "write"
+    },
+    "update_c2profile_by_pk": {
+      "table": "c2profile",
+      "access": "write"
+    },
+    "update_c2profile_file_host": {
+      "table": "c2profile_file_host",
+      "access": "write"
+    },
+    "update_c2profile_file_host_by_pk": {
+      "table": "c2profile_file_host",
+      "access": "write"
+    },
+    "update_c2profile_file_host_many": {
+      "table": "c2profile_file_host",
+      "access": "write"
+    },
+    "update_c2profile_many": {
+      "table": "c2profile",
+      "access": "write"
+    },
+    "update_c2profileparameters": {
+      "table": "c2profileparameters",
+      "access": "write"
+    },
+    "update_c2profileparameters_by_pk": {
+      "table": "c2profileparameters",
+      "access": "write"
+    },
+    "update_c2profileparameters_many": {
+      "table": "c2profileparameters",
+      "access": "write"
+    },
+    "update_c2profileparametersinstance": {
+      "table": "c2profileparametersinstance",
+      "access": "write"
+    },
+    "update_c2profileparametersinstance_by_pk": {
+      "table": "c2profileparametersinstance",
+      "access": "write"
+    },
+    "update_c2profileparametersinstance_many": {
+      "table": "c2profileparametersinstance",
+      "access": "write"
+    },
+    "update_callback": {
+      "table": "callback",
+      "access": "write"
+    },
+    "update_callback_by_pk": {
+      "table": "callback",
+      "access": "write"
+    },
+    "update_callback_many": {
+      "table": "callback",
+      "access": "write"
+    },
+    "update_callbackc2profiles": {
+      "table": "callbackc2profiles",
+      "access": "write"
+    },
+    "update_callbackc2profiles_by_pk": {
+      "table": "callbackc2profiles",
+      "access": "write"
+    },
+    "update_callbackc2profiles_many": {
+      "table": "callbackc2profiles",
+      "access": "write"
+    },
+    "update_callbackgraphedge": {
+      "table": "callbackgraphedge",
+      "access": "write"
+    },
+    "update_callbackgraphedge_by_pk": {
+      "table": "callbackgraphedge",
+      "access": "write"
+    },
+    "update_callbackgraphedge_many": {
+      "table": "callbackgraphedge",
+      "access": "write"
+    },
+    "update_callbackport": {
+      "table": "callbackport",
+      "access": "write"
+    },
+    "update_callbackport_by_pk": {
+      "table": "callbackport",
+      "access": "write"
+    },
+    "update_callbackport_many": {
+      "table": "callbackport",
+      "access": "write"
+    },
+    "update_callbacktoken": {
+      "table": "callbacktoken",
+      "access": "write"
+    },
+    "update_callbacktoken_by_pk": {
+      "table": "callbacktoken",
+      "access": "write"
+    },
+    "update_callbacktoken_many": {
+      "table": "callbacktoken",
+      "access": "write"
+    },
+    "update_chat_channel": {
+      "table": "chat_channel",
+      "access": "write"
+    },
+    "update_chat_channel_by_pk": {
+      "table": "chat_channel",
+      "access": "write"
+    },
+    "update_chat_channel_many": {
+      "table": "chat_channel",
+      "access": "write"
+    },
+    "update_chat_message": {
+      "table": "chat_message",
+      "access": "write"
+    },
+    "update_chat_message_by_pk": {
+      "table": "chat_message",
+      "access": "write"
+    },
+    "update_chat_message_many": {
+      "table": "chat_message",
+      "access": "write"
+    },
+    "update_chat_read_state": {
+      "table": "chat_read_state",
+      "access": "write"
+    },
+    "update_chat_read_state_by_pk": {
+      "table": "chat_read_state",
+      "access": "write"
+    },
+    "update_chat_read_state_many": {
+      "table": "chat_read_state",
+      "access": "write"
+    },
+    "update_chat_request": {
+      "table": "chat_request",
+      "access": "write"
+    },
+    "update_chat_request_by_pk": {
+      "table": "chat_request",
+      "access": "write"
+    },
+    "update_chat_request_many": {
+      "table": "chat_request",
+      "access": "write"
+    },
+    "update_command": {
+      "table": "command",
+      "access": "write"
+    },
+    "update_command_by_pk": {
+      "table": "command",
+      "access": "write"
+    },
+    "update_command_many": {
+      "table": "command",
+      "access": "write"
+    },
+    "update_commandparameters": {
+      "table": "commandparameters",
+      "access": "write"
+    },
+    "update_commandparameters_by_pk": {
+      "table": "commandparameters",
+      "access": "write"
+    },
+    "update_commandparameters_many": {
+      "table": "commandparameters",
+      "access": "write"
+    },
+    "update_consuming_container": {
+      "table": "consuming_container",
+      "access": "write"
+    },
+    "update_consuming_container_by_pk": {
+      "table": "consuming_container",
+      "access": "write"
+    },
+    "update_consuming_container_many": {
+      "table": "consuming_container",
+      "access": "write"
+    },
+    "update_credential": {
+      "table": "credential",
+      "access": "write"
+    },
+    "update_credential_by_pk": {
+      "table": "credential",
+      "access": "write"
+    },
+    "update_credential_many": {
+      "table": "credential",
+      "access": "write"
+    },
+    "update_custombrowser": {
+      "table": "custombrowser",
+      "access": "write"
+    },
+    "update_custombrowser_by_pk": {
+      "table": "custombrowser",
+      "access": "write"
+    },
+    "update_custombrowser_many": {
+      "table": "custombrowser",
+      "access": "write"
+    },
+    "update_disabledcommandsprofile": {
+      "table": "disabledcommandsprofile",
+      "access": "write"
+    },
+    "update_disabledcommandsprofile_by_pk": {
+      "table": "disabledcommandsprofile",
+      "access": "write"
+    },
+    "update_disabledcommandsprofile_many": {
+      "table": "disabledcommandsprofile",
+      "access": "write"
+    },
+    "update_eventgroup": {
+      "table": "eventgroup",
+      "access": "write"
+    },
+    "update_eventgroup_by_pk": {
+      "table": "eventgroup",
+      "access": "write"
+    },
+    "update_eventgroup_many": {
+      "table": "eventgroup",
+      "access": "write"
+    },
+    "update_eventgroupapproval": {
+      "table": "eventgroupapproval",
+      "access": "write"
+    },
+    "update_eventgroupapproval_by_pk": {
+      "table": "eventgroupapproval",
+      "access": "write"
+    },
+    "update_eventgroupapproval_many": {
+      "table": "eventgroupapproval",
+      "access": "write"
+    },
+    "update_eventgroupconsumingcontainer": {
+      "table": "eventgroupconsumingcontainer",
+      "access": "write"
+    },
+    "update_eventgroupconsumingcontainer_by_pk": {
+      "table": "eventgroupconsumingcontainer",
+      "access": "write"
+    },
+    "update_eventgroupconsumingcontainer_many": {
+      "table": "eventgroupconsumingcontainer",
+      "access": "write"
+    },
+    "update_eventgroupinstance": {
+      "table": "eventgroupinstance",
+      "access": "write"
+    },
+    "update_eventgroupinstance_by_pk": {
+      "table": "eventgroupinstance",
+      "access": "write"
+    },
+    "update_eventgroupinstance_many": {
+      "table": "eventgroupinstance",
+      "access": "write"
+    },
+    "update_eventstep": {
+      "table": "eventstep",
+      "access": "write"
+    },
+    "update_eventstep_by_pk": {
+      "table": "eventstep",
+      "access": "write"
+    },
+    "update_eventstep_many": {
+      "table": "eventstep",
+      "access": "write"
+    },
+    "update_eventstepinstance": {
+      "table": "eventstepinstance",
+      "access": "write"
+    },
+    "update_eventstepinstance_by_pk": {
+      "table": "eventstepinstance",
+      "access": "write"
+    },
+    "update_eventstepinstance_many": {
+      "table": "eventstepinstance",
+      "access": "write"
+    },
+    "update_filemeta": {
+      "table": "filemeta",
+      "access": "write"
+    },
+    "update_filemeta_by_pk": {
+      "table": "filemeta",
+      "access": "write"
+    },
+    "update_filemeta_many": {
+      "table": "filemeta",
+      "access": "write"
+    },
+    "update_global_setting": {
+      "table": "global_setting",
+      "access": "write"
+    },
+    "update_global_setting_by_pk": {
+      "table": "global_setting",
+      "access": "write"
+    },
+    "update_global_setting_many": {
+      "table": "global_setting",
+      "access": "write"
+    },
+    "update_invite_link": {
+      "table": "invite_link",
+      "access": "write"
+    },
+    "update_invite_link_by_pk": {
+      "table": "invite_link",
+      "access": "write"
+    },
+    "update_invite_link_many": {
+      "table": "invite_link",
+      "access": "write"
+    },
+    "update_keylog": {
+      "table": "keylog",
+      "access": "write"
+    },
+    "update_keylog_by_pk": {
+      "table": "keylog",
+      "access": "write"
+    },
+    "update_keylog_many": {
+      "table": "keylog",
+      "access": "write"
+    },
+    "update_loadedcommands": {
+      "table": "loadedcommands",
+      "access": "write"
+    },
+    "update_loadedcommands_by_pk": {
+      "table": "loadedcommands",
+      "access": "write"
+    },
+    "update_loadedcommands_many": {
+      "table": "loadedcommands",
+      "access": "write"
+    },
+    "update_mythic_server_migration_tracking": {
+      "table": "mythic_server_migration_tracking",
+      "access": "write"
+    },
+    "update_mythic_server_migration_tracking_by_pk": {
+      "table": "mythic_server_migration_tracking",
+      "access": "write"
+    },
+    "update_mythic_server_migration_tracking_many": {
+      "table": "mythic_server_migration_tracking",
+      "access": "write"
+    },
+    "update_mythictree": {
+      "table": "mythictree",
+      "access": "write"
+    },
+    "update_mythictree_by_pk": {
+      "table": "mythictree",
+      "access": "write"
+    },
+    "update_mythictree_many": {
+      "table": "mythictree",
+      "access": "write"
+    },
+    "update_operation": {
+      "table": "operation",
+      "access": "write"
+    },
+    "update_operation_by_pk": {
+      "table": "operation",
+      "access": "write"
+    },
+    "update_operation_many": {
+      "table": "operation",
+      "access": "write"
+    },
+    "update_operationeventlog": {
+      "table": "operationeventlog",
+      "access": "write"
+    },
+    "update_operationeventlog_by_pk": {
+      "table": "operationeventlog",
+      "access": "write"
+    },
+    "update_operationeventlog_many": {
+      "table": "operationeventlog",
+      "access": "write"
+    },
+    "update_operator": {
+      "table": "operator",
+      "access": "write"
+    },
+    "update_operator_alias": {
+      "table": "operator_alias",
+      "access": "write"
+    },
+    "update_operator_alias_by_pk": {
+      "table": "operator_alias",
+      "access": "write"
+    },
+    "update_operator_alias_many": {
+      "table": "operator_alias",
+      "access": "write"
+    },
+    "update_operator_by_pk": {
+      "table": "operator",
+      "access": "write"
+    },
+    "update_operator_many": {
+      "table": "operator",
+      "access": "write"
+    },
+    "update_operatoroperation": {
+      "table": "operatoroperation",
+      "access": "write"
+    },
+    "update_operatoroperation_by_pk": {
+      "table": "operatoroperation",
+      "access": "write"
+    },
+    "update_operatoroperation_many": {
+      "table": "operatoroperation",
+      "access": "write"
+    },
+    "update_payload": {
+      "table": "payload",
+      "access": "write"
+    },
+    "update_payload_build_step": {
+      "table": "payload_build_step",
+      "access": "write"
+    },
+    "update_payload_build_step_by_pk": {
+      "table": "payload_build_step",
+      "access": "write"
+    },
+    "update_payload_build_step_many": {
+      "table": "payload_build_step",
+      "access": "write"
+    },
+    "update_payload_by_pk": {
+      "table": "payload",
+      "access": "write"
+    },
+    "update_payload_many": {
+      "table": "payload",
+      "access": "write"
+    },
+    "update_payloadc2profiles": {
+      "table": "payloadc2profiles",
+      "access": "write"
+    },
+    "update_payloadc2profiles_by_pk": {
+      "table": "payloadc2profiles",
+      "access": "write"
+    },
+    "update_payloadc2profiles_many": {
+      "table": "payloadc2profiles",
+      "access": "write"
+    },
+    "update_payloadcommand": {
+      "table": "payloadcommand",
+      "access": "write"
+    },
+    "update_payloadcommand_by_pk": {
+      "table": "payloadcommand",
+      "access": "write"
+    },
+    "update_payloadcommand_many": {
+      "table": "payloadcommand",
+      "access": "write"
+    },
+    "update_payloadonhost": {
+      "table": "payloadonhost",
+      "access": "write"
+    },
+    "update_payloadonhost_by_pk": {
+      "table": "payloadonhost",
+      "access": "write"
+    },
+    "update_payloadonhost_many": {
+      "table": "payloadonhost",
+      "access": "write"
+    },
+    "update_payloadtype": {
+      "table": "payloadtype",
+      "access": "write"
+    },
+    "update_payloadtype_by_pk": {
+      "table": "payloadtype",
+      "access": "write"
+    },
+    "update_payloadtype_many": {
+      "table": "payloadtype",
+      "access": "write"
+    },
+    "update_payloadtypec2profile": {
+      "table": "payloadtypec2profile",
+      "access": "write"
+    },
+    "update_payloadtypec2profile_by_pk": {
+      "table": "payloadtypec2profile",
+      "access": "write"
+    },
+    "update_payloadtypec2profile_many": {
+      "table": "payloadtypec2profile",
+      "access": "write"
+    },
+    "update_response": {
+      "table": "response",
+      "access": "write"
+    },
+    "update_response_by_pk": {
+      "table": "response",
+      "access": "write"
+    },
+    "update_response_many": {
+      "table": "response",
+      "access": "write"
+    },
+    "update_staginginfo": {
+      "table": "staginginfo",
+      "access": "write"
+    },
+    "update_staginginfo_by_pk": {
+      "table": "staginginfo",
+      "access": "write"
+    },
+    "update_staginginfo_many": {
+      "table": "staginginfo",
+      "access": "write"
+    },
+    "update_tag": {
+      "table": "tag",
+      "access": "write"
+    },
+    "update_tag_by_pk": {
+      "table": "tag",
+      "access": "write"
+    },
+    "update_tag_many": {
+      "table": "tag",
+      "access": "write"
+    },
+    "update_tagtype": {
+      "table": "tagtype",
+      "access": "write"
+    },
+    "update_tagtype_by_pk": {
+      "table": "tagtype",
+      "access": "write"
+    },
+    "update_tagtype_many": {
+      "table": "tagtype",
+      "access": "write"
+    },
+    "update_task": {
+      "table": "task",
+      "access": "write"
+    },
+    "update_task_by_pk": {
+      "table": "task",
+      "access": "write"
+    },
+    "update_task_many": {
+      "table": "task",
+      "access": "write"
+    },
+    "update_taskartifact": {
+      "table": "taskartifact",
+      "access": "write"
+    },
+    "update_taskartifact_by_pk": {
+      "table": "taskartifact",
+      "access": "write"
+    },
+    "update_taskartifact_many": {
+      "table": "taskartifact",
+      "access": "write"
+    },
+    "update_token": {
+      "table": "token",
+      "access": "write"
+    },
+    "update_token_by_pk": {
+      "table": "token",
+      "access": "write"
+    },
+    "update_token_many": {
+      "table": "token",
+      "access": "write"
+    },
+    "update_translationcontainer": {
+      "table": "translationcontainer",
+      "access": "write"
+    },
+    "update_translationcontainer_by_pk": {
+      "table": "translationcontainer",
+      "access": "write"
+    },
+    "update_translationcontainer_many": {
+      "table": "translationcontainer",
+      "access": "write"
+    },
+    "whoami": {
+      "action": "whoami"
+    }
+  },
+  "actions": {
+    "addAttackToTask": {
+      "permissions": [
+        "task.write"
+      ],
+      "handler": "/add_attack_to_task_webhook"
+    },
+    "apiTokenScopeDefinitions": {
+      "permissions": [],
+      "handler": "/apitoken_scope_definitions_webhook"
+    },
+    "c2GetIOC": {
+      "permissions": [
+        "payload.read"
+      ],
+      "handler": "/get_ioc_webhook"
+    },
+    "c2HostFile": {
+      "permissions": [
+        "c2.write",
+        "file.read"
+      ],
+      "handler": "/c2profile_host_file_webhook"
+    },
+    "c2SampleMessage": {
+      "permissions": [
+        "payload.read"
+      ],
+      "handler": "/sample_message_webhook"
+    },
+    "c2UpdateHostedFile": {
+      "permissions": [
+        "c2.write",
+        "file.read"
+      ],
+      "handler": "/c2profile_update_hosted_file_webhook"
+    },
+    "callbackgraphedgeAdd": {
+      "permissions": [
+        "callback.write"
+      ],
+      "handler": "/callbackgraphedge_add_webhook"
+    },
+    "callbackgraphedgeRemove": {
+      "permissions": [
+        "callback.write"
+      ],
+      "handler": "/callbackgraphedge_remove_webhook"
+    },
+    "chatCancelRequest": {
+      "permissions": [],
+      "handler": "/chat_cancel_request_webhook",
+      "resource": "chat_request",
+      "argument": "request_id",
+      "access": "write"
+    },
+    "chatCreateChannel": {
+      "permissions": [],
+      "handler": "/chat_create_channel_webhook",
+      "resource": "chat_channel",
+      "value_argument": "channel_type",
+      "default_value": "standard",
+      "access": "write"
+    },
+    "chatCreateMessage": {
+      "permissions": [],
+      "handler": "/chat_create_message_webhook",
+      "resource": "chat_channel",
+      "argument": "channel_id",
+      "access": "write"
+    },
+    "chatDeleteMessage": {
+      "permissions": [],
+      "handler": "/chat_delete_message_webhook",
+      "resource": "chat_message",
+      "argument": "message_id",
+      "access": "write"
+    },
+    "chatEditMessage": {
+      "permissions": [],
+      "handler": "/chat_edit_message_webhook",
+      "resource": "chat_message",
+      "argument": "message_id",
+      "access": "write"
+    },
+    "chatInputResponse": {
+      "permissions": [
+        "chat-ai.write"
+      ],
+      "handler": "/chat_input_response_webhook",
+      "resource": "chat_message",
+      "argument": "message_id",
+      "access": "write"
+    },
+    "chatMarkRead": {
+      "permissions": [],
+      "handler": "/chat_mark_read_webhook",
+      "resource": "chat_channel",
+      "argument": "channel_id",
+      "access": "read"
+    },
+    "chatRefreshSpecialMessage": {
+      "permissions": [],
+      "handler": "/chat_refresh_special_message_webhook",
+      "resource": "chat_message",
+      "argument": "message_id",
+      "access": "read"
+    },
+    "chatRetryRequest": {
+      "permissions": [],
+      "handler": "/chat_retry_request_webhook",
+      "resource": "chat_request",
+      "argument": "request_id",
+      "access": "write"
+    },
+    "chatSearch": {
+      "permissions": [],
+      "handler": "/chat_search_webhook",
+      "resource": "chat_channel",
+      "argument": "channel_id",
+      "access": "read"
+    },
+    "chatUpdateChannel": {
+      "permissions": [],
+      "handler": "/chat_update_channel_webhook",
+      "resource": "chat_channel",
+      "argument": "channel_id",
+      "access": "write",
+      "read_when": {
+        "present": "muted",
+        "only": [
+          "channel_id",
+          "muted"
+        ]
+      }
+    },
+    "configCheck": {
+      "permissions": [
+        "payload.read"
+      ],
+      "handler": "/config_check_webhook"
+    },
+    "consumingServicesTestLog": {
+      "permissions": [],
+      "handler": "/consuming_services_test_log"
+    },
+    "consumingServicesTestWebhook": {
+      "permissions": [],
+      "handler": "/consuming_services_test_webhook"
+    },
+    "containerDownloadFile": {
+      "permissions": [
+        "container_file.read"
+      ],
+      "handler": "/container_download_file_webhook"
+    },
+    "containerListFiles": {
+      "permissions": [
+        "container_file.read"
+      ],
+      "handler": "/container_list_files_webhook"
+    },
+    "containerRemoveFile": {
+      "permissions": [
+        "container_file.write"
+      ],
+      "handler": "/container_remove_file_webhook"
+    },
+    "containerWriteFile": {
+      "permissions": [
+        "container_file.write"
+      ],
+      "handler": "/container_write_file_webhook"
+    },
+    "createAPIToken": {
+      "permissions": [
+        "apitoken.write"
+      ],
+      "handler": "/generate_apitoken_webhook"
+    },
+    "createArtifact": {
+      "permissions": [
+        "response.write"
+      ],
+      "handler": "/artifact_create_webhook"
+    },
+    "createBuildParameterInstance": {
+      "permissions": [
+        "payload.write"
+      ],
+      "handler": "/create_buildparameter_instance_webhook"
+    },
+    "createC2Instance": {
+      "permissions": [
+        "payload.write"
+      ],
+      "handler": "/create_c2parameter_instance_webhook"
+    },
+    "createCallback": {
+      "permissions": [
+        "callback.write"
+      ],
+      "handler": "/create_callback_webhook"
+    },
+    "createCredential": {
+      "permissions": [
+        "credential.write"
+      ],
+      "handler": "/create_credential_webhook"
+    },
+    "createInviteLink": {
+      "permissions": [
+        "operation.write",
+        "mythic.write"
+      ],
+      "handler": "/create_invite_link_webhook"
+    },
+    "createOperation": {
+      "permissions": [
+        "operation.write"
+      ],
+      "handler": "/create_operation_webhook"
+    },
+    "createOperationEventLog": {
+      "permissions": [
+        "eventlog.write"
+      ],
+      "handler": "/create_operation_event_log"
+    },
+    "createOperator": {
+      "permissions": [
+        "operator.write"
+      ],
+      "handler": "/create_operator"
+    },
+    "createPayload": {
+      "permissions": [
+        "payload.write"
+      ],
+      "handler": "/createpayload_webhook"
+    },
+    "createRandom": {
+      "permissions": null,
+      "handler": "/randomize_parameter_webhook",
+      "unavailable": true
+    },
+    "createTag": {
+      "permissions": [
+        "tag.write"
+      ],
+      "handler": "/tag_create_webhook"
+    },
+    "createTask": {
+      "permissions": [
+        "task.write"
+      ],
+      "handler": "/create_task_webhook"
+    },
+    "custombrowserExportFunction": {
+      "permissions": [
+        "response.read"
+      ],
+      "handler": "/custombrowser_export_function_webhook"
+    },
+    "deleteAPIToken": {
+      "permissions": [
+        "apitoken.write"
+      ],
+      "handler": "/delete_apitoken_webhook"
+    },
+    "deleteBlockList": {
+      "permissions": [
+        "operation.write"
+      ],
+      "handler": "/delete_disabled_command_profile_webhook"
+    },
+    "deleteBlockListEntry": {
+      "permissions": [
+        "operation.write"
+      ],
+      "handler": "/delete_disabled_command_profile_entry_webhook"
+    },
+    "deleteFile": {
+      "permissions": [
+        "file.write"
+      ],
+      "handler": "/delete_file_webhook"
+    },
+    "deleteTagtype": {
+      "permissions": [
+        "tag.write"
+      ],
+      "handler": "/tagtype_delete_webhook"
+    },
+    "deleteTasksAndCallbacks": {
+      "permissions": [
+        "callback.write",
+        "task.write"
+      ],
+      "handler": "/delete_tasks_and_callbacks_webhook"
+    },
+    "downloadBulk": {
+      "permissions": [
+        "file.read"
+      ],
+      "handler": "/download_bulk_webhook"
+    },
+    "dynamicQueryBuildParameterFunction": {
+      "permissions": [
+        "payload.write"
+      ],
+      "handler": "/dynamic_query_build_parameter_webhook"
+    },
+    "dynamicQueryC2ProfileParameterFunction": {
+      "permissions": [
+        "payload.write"
+      ],
+      "handler": "/dynamic_query_c2_profile_parameter_webhook"
+    },
+    "dynamicQueryFunction": {
+      "permissions": [
+        "task.write"
+      ],
+      "handler": "/dynamic_query_webhook"
+    },
+    "eventingExportWorkflow": {
+      "permissions": [
+        "eventing.read"
+      ],
+      "handler": "/eventing_export_webhook"
+    },
+    "eventingImportContainerWorkflow": {
+      "permissions": [
+        "eventing.write"
+      ],
+      "handler": "/eventing_import_automatic_webhook"
+    },
+    "eventingStepUserInteractionSubmit": {
+      "permissions": [
+        "eventing.write"
+      ],
+      "handler": "/eventing_step_user_interaction_submit_webhook"
+    },
+    "eventingTestFile": {
+      "permissions": [
+        "eventing.read"
+      ],
+      "handler": "/eventing_test_file_webhook"
+    },
+    "eventingTriggerCancel": {
+      "permissions": [
+        "eventing.write"
+      ],
+      "handler": "/eventing_trigger_cancel_webhook"
+    },
+    "eventingTriggerKeyword": {
+      "permissions": [
+        "eventing.write"
+      ],
+      "handler": "/eventing_trigger_keyword_webhook"
+    },
+    "eventingTriggerManual": {
+      "permissions": [
+        "eventing.write"
+      ],
+      "handler": "/eventing_trigger_manual_webhook"
+    },
+    "eventingTriggerManualBulk": {
+      "permissions": [
+        "eventing.write"
+      ],
+      "handler": "/eventing_trigger_manual_bulk_webhook"
+    },
+    "eventingTriggerRetry": {
+      "permissions": [
+        "eventing.write"
+      ],
+      "handler": "/eventing_trigger_retry_webhook"
+    },
+    "eventingTriggerRetryFromStep": {
+      "permissions": [
+        "eventing.write"
+      ],
+      "handler": "/eventing_trigger_retry_from_step_webhook"
+    },
+    "eventingTriggerRunAgain": {
+      "permissions": [
+        "eventing.write"
+      ],
+      "handler": "/eventing_trigger_runagain_webhook"
+    },
+    "eventingTriggerUpdate": {
+      "permissions": [
+        "eventing.write"
+      ],
+      "handler": "/eventing_trigger_update_webhook"
+    },
+    "exportCallbackConfig": {
+      "permissions": [
+        "callback.read"
+      ],
+      "handler": "/export_callback_config_webhook"
+    },
+    "exportOperatorAliases": {
+      "permissions": [
+        "operator.read"
+      ],
+      "handler": "/operator_alias_export_webhook"
+    },
+    "exportPayloadConfig": {
+      "permissions": [
+        "payload.read"
+      ],
+      "handler": "/export_payload_config_webhook"
+    },
+    "generateReport": {
+      "permissions": [
+        "callback.read",
+        "task.read",
+        "operation.read"
+      ],
+      "handler": "/reporting_webhook"
+    },
+    "getGlobalSettings": {
+      "permissions": [
+        "mythic.read"
+      ],
+      "handler": "/get_global_settings_webhook"
+    },
+    "getInviteLinks": {
+      "permissions": [
+        "mythic.read"
+      ],
+      "handler": "/get_invite_link_webhook"
+    },
+    "getOperatorPreferences": {
+      "permissions": [
+        "operator.read"
+      ],
+      "handler": "/operator_get_preferences_webhook"
+    },
+    "getOperatorSecrets": {
+      "permissions": [
+        "operator.read"
+      ],
+      "handler": "/operator_get_secrets_webhook"
+    },
+    "getProfileOutput": {
+      "permissions": [
+        "c2.read"
+      ],
+      "handler": "/c2profile_status_webhook"
+    },
+    "getWrappablePayloads": {
+      "permissions": [
+        "payload.read"
+      ],
+      "handler": "/get_wrappable_payloads_webhook"
+    },
+    "importBuildParameterInstance": {
+      "permissions": [
+        "payload.write"
+      ],
+      "handler": "/import_buildparameter_instance_webhook"
+    },
+    "importC2Instance": {
+      "permissions": [
+        "payload.write"
+      ],
+      "handler": "/import_c2parameter_instance_webhook"
+    },
+    "importCallbackConfig": {
+      "permissions": [
+        "callback.write"
+      ],
+      "handler": "/callback_import_config_webhook"
+    },
+    "importOperatorAliases": {
+      "permissions": [
+        "operator.write"
+      ],
+      "handler": "/operator_alias_import_webhook"
+    },
+    "importTagtypes": {
+      "permissions": [
+        "tag.write"
+      ],
+      "handler": "/tagtype_import_webhook"
+    },
+    "operatorAliasCreate": {
+      "permissions": [
+        "operator.write"
+      ],
+      "handler": "/operator_alias_create_webhook"
+    },
+    "operatorAliasDelete": {
+      "permissions": [
+        "operator.write"
+      ],
+      "handler": "/operator_alias_delete_webhook"
+    },
+    "operatorAliasUpdate": {
+      "permissions": [
+        "operator.write"
+      ],
+      "handler": "/operator_alias_update_webhook"
+    },
+    "previewFile": {
+      "permissions": [
+        "file.read"
+      ],
+      "handler": "/preview_file_webhook"
+    },
+    "rebuildPayload": {
+      "permissions": [
+        "payload.write"
+      ],
+      "handler": "/rebuild_webhook"
+    },
+    "redirectRules": {
+      "permissions": [
+        "payload.read"
+      ],
+      "handler": "/redirect_rules_webhook"
+    },
+    "reissueTask": {
+      "permissions": [
+        "task.write"
+      ],
+      "handler": "/reissue_task_webhook"
+    },
+    "reissueTaskHandler": {
+      "permissions": [
+        "task.write"
+      ],
+      "handler": "/reissue_task_handler_webhook"
+    },
+    "requestOpsecBypass": {
+      "permissions": [
+        "task.write"
+      ],
+      "handler": "/request_opsec_bypass_webhook"
+    },
+    "scopeCheck": {
+      "permissions": [],
+      "handler": "/scope_check_webhook"
+    },
+    "sendExternalWebhook": {
+      "permissions": [
+        "webhook.write"
+      ],
+      "handler": "/send_external_webhook"
+    },
+    "startStopProfile": {
+      "permissions": [
+        "c2.write"
+      ],
+      "handler": "/start_stop_profile_webhook"
+    },
+    "testProxy": {
+      "permissions": [
+        "callback.write"
+      ],
+      "handler": "/test_proxy_webhook"
+    },
+    "toggleProxy": {
+      "permissions": [
+        "callback.write"
+      ],
+      "handler": "/toggle_proxy_webhook"
+    },
+    "typedarrayParseFunction": {
+      "permissions": [
+        "task.write"
+      ],
+      "handler": "/typedarray_parse_webhook"
+    },
+    "updateCallback": {
+      "permissions": [
+        "callback.write"
+      ],
+      "handler": "/update_callback_webhook"
+    },
+    "updateCredential": {
+      "permissions": [
+        "credential.write"
+      ],
+      "handler": "/update_credential_webhook"
+    },
+    "updateCurrentOperation": {
+      "permissions": [
+        "operator.write"
+      ],
+      "handler": "/update_current_operation_webhook"
+    },
+    "updateEventGroupApproval": {
+      "permissions": [
+        "eventing.write"
+      ],
+      "handler": "/eventing_update_eventgroupapproval_webhook"
+    },
+    "updateGlobalSettings": {
+      "permissions": [
+        "mythic.write"
+      ],
+      "handler": "/update_global_settings_webhook"
+    },
+    "updateInviteLink": {
+      "permissions": [
+        "operation.write",
+        "mythic.write"
+      ],
+      "handler": "/update_invite_link_webhook"
+    },
+    "updateOperation": {
+      "permissions": [
+        "operation.write"
+      ],
+      "handler": "/update_operation_webhook"
+    },
+    "updateOperatorOperation": {
+      "permissions": [
+        "operation.write"
+      ],
+      "handler": "/update_operatoroperation_webhook"
+    },
+    "updateOperatorPreferences": {
+      "permissions": [
+        "operator.write"
+      ],
+      "handler": "/operator_update_preferences_webhook"
+    },
+    "updateOperatorSecrets": {
+      "permissions": [
+        "operator.write"
+      ],
+      "handler": "/operator_update_secrets_webhook"
+    },
+    "updateOperatorStatus": {
+      "permissions": [
+        "operator.write"
+      ],
+      "handler": "/update_operator_status_webhook"
+    },
+    "updatePasswordAndEmail": {
+      "permissions": [
+        "operator.write"
+      ],
+      "handler": "/update_operator_password_webhook"
+    },
+    "updatePayload": {
+      "permissions": [
+        "payload.write"
+      ],
+      "handler": "/update_payload_webhook"
+    },
+    "whoami": {
+      "permissions": [],
+      "handler": "/whoami_webhook"
+    }
+  }
+}

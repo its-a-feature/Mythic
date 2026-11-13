@@ -1,215 +1,215 @@
-table:
-  name: eventstepinstance
-  schema: public
-object_relationships:
-  - name: eventgroupinstance
-    using:
-      foreign_key_constraint_on: eventgroupinstance_id
-  - name: eventstep
-    using:
-      foreign_key_constraint_on: eventstep_id
-  - name: operation
-    using:
-      foreign_key_constraint_on: operation_id
-  - name: operator
-    using:
-      foreign_key_constraint_on: operator_id
-  - name: user_interaction_resolver
-    using:
-      foreign_key_constraint_on: user_interaction_resolved_by
 array_relationships:
-  - name: apitokens
-    using:
-      foreign_key_constraint_on:
-        column: eventstepinstance_id
-        table:
-          name: apitokens
-          schema: public
-  - name: c2profile_file_hosts
-    using:
-      foreign_key_constraint_on:
-        column: eventstepinstance_id
-        table:
-          name: c2profile_file_host
-          schema: public
-  - name: callbacks
-    using:
-      foreign_key_constraint_on:
-        column: eventstepinstance_id
-        table:
-          name: callback
-          schema: public
-  - name: filemeta
-    using:
-      foreign_key_constraint_on:
-        column: eventstepinstance_id
-        table:
-          name: filemeta
-          schema: public
-  - name: payloads
-    using:
-      foreign_key_constraint_on:
-        column: eventstepinstance_id
-        table:
-          name: payload
-          schema: public
-  - name: responses
-    using:
-      foreign_key_constraint_on:
-        column: eventstepinstance_id
-        table:
-          name: response
-          schema: public
-  - name: tags
-    using:
-      foreign_key_constraint_on:
-        column: eventstepinstance_id
-        table:
-          name: tag
-          schema: public
-  - name: tagtypes
-    using:
-      foreign_key_constraint_on:
-        column: eventstepinstance_id
-        table:
-          name: tagtype
-          schema: public
-  - name: taskartifacts
-    using:
-      foreign_key_constraint_on:
-        column: eventstepinstance_id
-        table:
-          name: taskartifact
-          schema: public
-  - name: tasks
-    using:
-      foreign_key_constraint_on:
-        column: eventstepinstance_id
-        table:
-          name: task
-          schema: public
+    - name: apitokens
+      using:
+        foreign_key_constraint_on:
+            column: eventstepinstance_id
+            table:
+                name: apitokens
+                schema: public
+    - name: c2profile_file_hosts
+      using:
+        foreign_key_constraint_on:
+            column: eventstepinstance_id
+            table:
+                name: c2profile_file_host
+                schema: public
+    - name: callbacks
+      using:
+        foreign_key_constraint_on:
+            column: eventstepinstance_id
+            table:
+                name: callback
+                schema: public
+    - name: filemeta
+      using:
+        foreign_key_constraint_on:
+            column: eventstepinstance_id
+            table:
+                name: filemeta
+                schema: public
+    - name: payloads
+      using:
+        foreign_key_constraint_on:
+            column: eventstepinstance_id
+            table:
+                name: payload
+                schema: public
+    - name: responses
+      using:
+        foreign_key_constraint_on:
+            column: eventstepinstance_id
+            table:
+                name: response
+                schema: public
+    - name: tags
+      using:
+        foreign_key_constraint_on:
+            column: eventstepinstance_id
+            table:
+                name: tag
+                schema: public
+    - name: tagtypes
+      using:
+        foreign_key_constraint_on:
+            column: eventstepinstance_id
+            table:
+                name: tagtype
+                schema: public
+    - name: taskartifacts
+      using:
+        foreign_key_constraint_on:
+            column: eventstepinstance_id
+            table:
+                name: taskartifact
+                schema: public
+    - name: tasks
+      using:
+        foreign_key_constraint_on:
+            column: eventstepinstance_id
+            table:
+                name: task
+                schema: public
+object_relationships:
+    - name: eventgroupinstance
+      using:
+        foreign_key_constraint_on: eventgroupinstance_id
+    - name: eventstep
+      using:
+        foreign_key_constraint_on: eventstep_id
+    - name: operation
+      using:
+        foreign_key_constraint_on: operation_id
+    - name: operator
+      using:
+        foreign_key_constraint_on: operator_id
+    - name: user_interaction_resolver
+      using:
+        foreign_key_constraint_on: user_interaction_resolved_by
 select_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - continue_on_error
-        - eventgroupinstance_id
-        - eventstep_id
-        - id
-        - operation_id
-        - operator_id
-        - order
-        - action_data
-        - environment
-        - inputs
-        - outputs
-        - user_interaction
-        - user_interaction_response
-        - status
-        - stderr
-        - stdout
-        - created_at
-        - end_timestamp
-        - updated_at
-        - user_interaction_resolved_at
-        - user_interaction_resolved_by
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-scope-eventing-read-operation
-    comment: ""
-  - role: operation_admin
-    permission:
-      columns:
-        - continue_on_error
-        - eventgroupinstance_id
-        - eventstep_id
-        - id
-        - operation_id
-        - operator_id
-        - order
-        - action_data
-        - environment
-        - inputs
-        - outputs
-        - user_interaction
-        - user_interaction_response
-        - status
-        - stderr
-        - stdout
-        - created_at
-        - end_timestamp
-        - updated_at
-        - user_interaction_resolved_at
-        - user_interaction_resolved_by
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-scope-eventing-read-operation
-    comment: ""
-  - role: operator
-    permission:
-      columns:
-        - continue_on_error
-        - eventgroupinstance_id
-        - eventstep_id
-        - id
-        - operation_id
-        - operator_id
-        - order
-        - action_data
-        - environment
-        - inputs
-        - outputs
-        - user_interaction
-        - user_interaction_response
-        - status
-        - stderr
-        - stdout
-        - created_at
-        - end_timestamp
-        - updated_at
-        - user_interaction_resolved_at
-        - user_interaction_resolved_by
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-scope-eventing-read-operation
-    comment: ""
-  - role: spectator
-    permission:
-      columns:
-        - continue_on_error
-        - eventgroupinstance_id
-        - eventstep_id
-        - id
-        - operation_id
-        - operator_id
-        - order
-        - action_data
-        - environment
-        - inputs
-        - outputs
-        - user_interaction
-        - user_interaction_response
-        - status
-        - stderr
-        - stdout
-        - created_at
-        - end_timestamp
-        - updated_at
-        - user_interaction_resolved_at
-        - user_interaction_resolved_by
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-scope-eventing-read-operation
-    comment: ""
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - continue_on_error
+            - eventgroupinstance_id
+            - eventstep_id
+            - id
+            - operation_id
+            - operator_id
+            - order
+            - action_data
+            - environment
+            - inputs
+            - outputs
+            - user_interaction
+            - user_interaction_response
+            - status
+            - stderr
+            - stdout
+            - created_at
+            - end_timestamp
+            - updated_at
+            - user_interaction_resolved_at
+            - user_interaction_resolved_by
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-eventing-read-operation-ids
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - continue_on_error
+            - eventgroupinstance_id
+            - eventstep_id
+            - id
+            - operation_id
+            - operator_id
+            - order
+            - action_data
+            - environment
+            - inputs
+            - outputs
+            - user_interaction
+            - user_interaction_response
+            - status
+            - stderr
+            - stdout
+            - created_at
+            - end_timestamp
+            - updated_at
+            - user_interaction_resolved_at
+            - user_interaction_resolved_by
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-eventing-read-operation-ids
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - continue_on_error
+            - eventgroupinstance_id
+            - eventstep_id
+            - id
+            - operation_id
+            - operator_id
+            - order
+            - action_data
+            - environment
+            - inputs
+            - outputs
+            - user_interaction
+            - user_interaction_response
+            - status
+            - stderr
+            - stdout
+            - created_at
+            - end_timestamp
+            - updated_at
+            - user_interaction_resolved_at
+            - user_interaction_resolved_by
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-eventing-read-operation-ids
+      role: operator
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - continue_on_error
+            - eventgroupinstance_id
+            - eventstep_id
+            - id
+            - operation_id
+            - operator_id
+            - order
+            - action_data
+            - environment
+            - inputs
+            - outputs
+            - user_interaction
+            - user_interaction_response
+            - status
+            - stderr
+            - stdout
+            - created_at
+            - end_timestamp
+            - updated_at
+            - user_interaction_resolved_at
+            - user_interaction_resolved_by
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-eventing-read-operation-ids
+      role: spectator
+table:
+    name: eventstepinstance
+    schema: public

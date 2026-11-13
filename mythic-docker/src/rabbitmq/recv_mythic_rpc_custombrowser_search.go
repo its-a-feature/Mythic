@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -46,7 +46,7 @@ func init() {
 		Queue:      MYTHIC_RPC_CUSTOMBROWSER_SEARCH,
 		RoutingKey: MYTHIC_RPC_CUSTOMBROWSER_SEARCH,
 		Handler:    processMythicRPCCustomBrowserSearch,
-		Scopes:     []string{mythicjwt.SCOPE_BROWSER_READ},
+		Scopes:     []string{authorization.SCOPE_BROWSER_READ},
 	})
 }
 

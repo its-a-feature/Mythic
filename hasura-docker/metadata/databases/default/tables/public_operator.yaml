@@ -1,372 +1,457 @@
-table:
-  name: operator
-  schema: public
-object_relationships:
-  - name: apitoken
-    using:
-      foreign_key_constraint_on: apitokens_id
-  - name: operation
-    using:
-      foreign_key_constraint_on: current_operation_id
 array_relationships:
-  - name: apitokens
-    using:
-      foreign_key_constraint_on:
-        column: operator_id
-        table:
-          name: apitokens
-          schema: public
-  - name: apitokensByCreatedBy
-    using:
-      foreign_key_constraint_on:
-        column: created_by
-        table:
-          name: apitokens
-          schema: public
-  - name: browserscripts
-    using:
-      foreign_key_constraint_on:
-        column: operator_id
-        table:
-          name: browserscript
-          schema: public
-  - name: c2profile_file_hosts
-    using:
-      foreign_key_constraint_on:
-        column: created_by
-        table:
-          name: c2profile_file_host
-          schema: public
-  - name: callbacks
-    using:
-      foreign_key_constraint_on:
-        column: operator_id
-        table:
-          name: callback
-          schema: public
-  - name: callbacksByLockedOperatorId
-    using:
-      foreign_key_constraint_on:
-        column: locked_operator_id
-        table:
-          name: callback
-          schema: public
-  - name: chatChannelsByCreatedBy
-    using:
-      foreign_key_constraint_on:
-        column: created_by
-        table:
-          name: chat_channel
-          schema: public
-  - name: chatChannelsByLockedBy
-    using:
-      foreign_key_constraint_on:
-        column: locked_by
-        table:
-          name: chat_channel
-          schema: public
-  - name: chatMessagesByOperatorId
-    using:
-      foreign_key_constraint_on:
-        column: operator_id
-        table:
-          name: chat_message
-          schema: public
-  - name: chat_channels
-    using:
-      foreign_key_constraint_on:
-        column: archived_by
-        table:
-          name: chat_channel
-          schema: public
-  - name: chat_messages
-    using:
-      foreign_key_constraint_on:
-        column: deleted_by
-        table:
-          name: chat_message
-          schema: public
-  - name: chat_read_states
-    using:
-      foreign_key_constraint_on:
-        column: operator_id
-        table:
-          name: chat_read_state
-          schema: public
-  - name: chat_requests
-    using:
-      foreign_key_constraint_on:
-        column: created_by
-        table:
-          name: chat_request
-          schema: public
-  - name: credentials
-    using:
-      foreign_key_constraint_on:
-        column: operator_id
-        table:
-          name: credential
-          schema: public
-  - name: eventgroupapprovals
-    using:
-      foreign_key_constraint_on:
-        column: operator_id
-        table:
-          name: eventgroupapproval
-          schema: public
-  - name: eventgroupinstances
-    using:
-      foreign_key_constraint_on:
-        column: operator_id
-        table:
-          name: eventgroupinstance
-          schema: public
-  - name: eventgroupinstancesByCancelledBy
-    using:
-      foreign_key_constraint_on:
-        column: cancelled_by
-        table:
-          name: eventgroupinstance
-          schema: public
-  - name: eventgroups
-    using:
-      foreign_key_constraint_on:
-        column: operator_id
-        table:
-          name: eventgroup
-          schema: public
-  - name: eventstepinstances
-    using:
-      foreign_key_constraint_on:
-        column: operator_id
-        table:
-          name: eventstepinstance
-          schema: public
-  - name: eventstepinstancesByUserInteractionResolvedBy
-    using:
-      foreign_key_constraint_on:
-        column: user_interaction_resolved_by
-        table:
-          name: eventstepinstance
-          schema: public
-  - name: eventsteps
-    using:
-      foreign_key_constraint_on:
-        column: operator_id
-        table:
-          name: eventstep
-          schema: public
-  - name: filemeta
-    using:
-      foreign_key_constraint_on:
-        column: operator_id
-        table:
-          name: filemeta
-          schema: public
-  - name: global_settings
-    using:
-      foreign_key_constraint_on:
-        column: operator_id
-        table:
-          name: global_setting
-          schema: public
-  - name: invite_links
-    using:
-      foreign_key_constraint_on:
-        column: operator_id
-        table:
-          name: invite_link
-          schema: public
-  - name: loadedcommands
-    using:
-      foreign_key_constraint_on:
-        column: operator_id
-        table:
-          name: loadedcommands
-          schema: public
-  - name: operationeventlogs
-    using:
-      foreign_key_constraint_on:
-        column: operator_id
-        table:
-          name: operationeventlog
-          schema: public
-  - name: operations
-    using:
-      foreign_key_constraint_on:
-        column: admin_id
-        table:
-          name: operation
-          schema: public
-  - name: operator_aliases
-    using:
-      foreign_key_constraint_on:
-        column: operator_id
-        table:
-          name: operator_alias
-          schema: public
-  - name: operatoroperations
-    using:
-      foreign_key_constraint_on:
-        column: operator_id
-        table:
-          name: operatoroperation
-          schema: public
-  - name: payloads
-    using:
-      foreign_key_constraint_on:
-        column: operator_id
-        table:
-          name: payload
-          schema: public
-  - name: tasks
-    using:
-      foreign_key_constraint_on:
-        column: operator_id
-        table:
-          name: task
-          schema: public
-  - name: tasksByCommentOperatorId
-    using:
-      foreign_key_constraint_on:
-        column: comment_operator_id
-        table:
-          name: task
-          schema: public
-  - name: tasksByOpsecPostBypassUserId
-    using:
-      foreign_key_constraint_on:
-        column: opsec_post_bypass_user_id
-        table:
-          name: task
-          schema: public
-  - name: tasksByOpsecPreBypassUserId
-    using:
-      foreign_key_constraint_on:
-        column: opsec_pre_bypass_user_id
-        table:
-          name: task
-          schema: public
+    - name: apitokens
+      using:
+        foreign_key_constraint_on:
+            column: operator_id
+            table:
+                name: apitokens
+                schema: public
+    - name: apitokensByCreatedBy
+      using:
+        foreign_key_constraint_on:
+            column: created_by
+            table:
+                name: apitokens
+                schema: public
+    - name: browserscripts
+      using:
+        foreign_key_constraint_on:
+            column: operator_id
+            table:
+                name: browserscript
+                schema: public
+    - name: c2profile_file_hosts
+      using:
+        foreign_key_constraint_on:
+            column: created_by
+            table:
+                name: c2profile_file_host
+                schema: public
+    - name: callbacks
+      using:
+        foreign_key_constraint_on:
+            column: operator_id
+            table:
+                name: callback
+                schema: public
+    - name: callbacksByLockedOperatorId
+      using:
+        foreign_key_constraint_on:
+            column: locked_operator_id
+            table:
+                name: callback
+                schema: public
+    - name: chatChannelsByCreatedBy
+      using:
+        foreign_key_constraint_on:
+            column: created_by
+            table:
+                name: chat_channel
+                schema: public
+    - name: chatChannelsByLockedBy
+      using:
+        foreign_key_constraint_on:
+            column: locked_by
+            table:
+                name: chat_channel
+                schema: public
+    - name: chatMessagesByOperatorId
+      using:
+        foreign_key_constraint_on:
+            column: operator_id
+            table:
+                name: chat_message
+                schema: public
+    - name: chat_channels
+      using:
+        foreign_key_constraint_on:
+            column: archived_by
+            table:
+                name: chat_channel
+                schema: public
+    - name: chat_messages
+      using:
+        foreign_key_constraint_on:
+            column: deleted_by
+            table:
+                name: chat_message
+                schema: public
+    - name: chat_read_states
+      using:
+        foreign_key_constraint_on:
+            column: operator_id
+            table:
+                name: chat_read_state
+                schema: public
+    - name: chat_requests
+      using:
+        foreign_key_constraint_on:
+            column: created_by
+            table:
+                name: chat_request
+                schema: public
+    - name: credentials
+      using:
+        foreign_key_constraint_on:
+            column: operator_id
+            table:
+                name: credential
+                schema: public
+    - name: eventgroupapprovals
+      using:
+        foreign_key_constraint_on:
+            column: operator_id
+            table:
+                name: eventgroupapproval
+                schema: public
+    - name: eventgroupinstances
+      using:
+        foreign_key_constraint_on:
+            column: operator_id
+            table:
+                name: eventgroupinstance
+                schema: public
+    - name: eventgroupinstancesByCancelledBy
+      using:
+        foreign_key_constraint_on:
+            column: cancelled_by
+            table:
+                name: eventgroupinstance
+                schema: public
+    - name: eventgroups
+      using:
+        foreign_key_constraint_on:
+            column: operator_id
+            table:
+                name: eventgroup
+                schema: public
+    - name: eventstepinstances
+      using:
+        foreign_key_constraint_on:
+            column: operator_id
+            table:
+                name: eventstepinstance
+                schema: public
+    - name: eventstepinstancesByUserInteractionResolvedBy
+      using:
+        foreign_key_constraint_on:
+            column: user_interaction_resolved_by
+            table:
+                name: eventstepinstance
+                schema: public
+    - name: eventsteps
+      using:
+        foreign_key_constraint_on:
+            column: operator_id
+            table:
+                name: eventstep
+                schema: public
+    - name: filemeta
+      using:
+        foreign_key_constraint_on:
+            column: operator_id
+            table:
+                name: filemeta
+                schema: public
+    - name: global_settings
+      using:
+        foreign_key_constraint_on:
+            column: operator_id
+            table:
+                name: global_setting
+                schema: public
+    - name: invite_links
+      using:
+        foreign_key_constraint_on:
+            column: operator_id
+            table:
+                name: invite_link
+                schema: public
+    - name: loadedcommands
+      using:
+        foreign_key_constraint_on:
+            column: operator_id
+            table:
+                name: loadedcommands
+                schema: public
+    - name: operationeventlogs
+      using:
+        foreign_key_constraint_on:
+            column: operator_id
+            table:
+                name: operationeventlog
+                schema: public
+    - name: operations
+      using:
+        foreign_key_constraint_on:
+            column: admin_id
+            table:
+                name: operation
+                schema: public
+    - name: operator_aliases
+      using:
+        foreign_key_constraint_on:
+            column: operator_id
+            table:
+                name: operator_alias
+                schema: public
+    - name: operatoroperations
+      using:
+        foreign_key_constraint_on:
+            column: operator_id
+            table:
+                name: operatoroperation
+                schema: public
+    - name: payloads
+      using:
+        foreign_key_constraint_on:
+            column: operator_id
+            table:
+                name: payload
+                schema: public
+    - name: tasks
+      using:
+        foreign_key_constraint_on:
+            column: operator_id
+            table:
+                name: task
+                schema: public
+    - name: tasksByCommentOperatorId
+      using:
+        foreign_key_constraint_on:
+            column: comment_operator_id
+            table:
+                name: task
+                schema: public
+    - name: tasksByOpsecPostBypassUserId
+      using:
+        foreign_key_constraint_on:
+            column: opsec_post_bypass_user_id
+            table:
+                name: task
+                schema: public
+    - name: tasksByOpsecPreBypassUserId
+      using:
+        foreign_key_constraint_on:
+            column: opsec_pre_bypass_user_id
+            table:
+                name: task
+                schema: public
+object_relationships:
+    - name: apitoken
+      using:
+        foreign_key_constraint_on: apitokens_id
+    - name: operation
+      using:
+        foreign_key_constraint_on: current_operation_id
 select_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - account_type
-        - active
-        - admin
-        - apitokens_id
-        - creation_time
-        - current_operation_id
-        - deleted
-        - email
-        - failed_login_count
-        - id
-        - last_failed_login_timestamp
-        - last_login
-        - username
-        - view_utc_time
-      filter:
-        id:
-          _lte: X-Hasura-Scope-operator-read-operator
-  - role: operation_admin
-    permission:
-      columns:
-        - account_type
-        - active
-        - admin
-        - apitokens_id
-        - creation_time
-        - current_operation_id
-        - deleted
-        - email
-        - failed_login_count
-        - id
-        - last_failed_login_timestamp
-        - last_login
-        - username
-        - view_utc_time
-      filter:
-        id:
-          _lte: X-Hasura-Scope-operator-read-operator
-  - role: operator
-    permission:
-      columns:
-        - account_type
-        - active
-        - admin
-        - apitokens_id
-        - creation_time
-        - current_operation_id
-        - deleted
-        - email
-        - id
-        - last_login
-        - username
-        - view_utc_time
-      filter:
-        id:
-          _lte: X-Hasura-Scope-operator-read-operator
-  - role: spectator
-    permission:
-      columns:
-        - account_type
-        - active
-        - admin
-        - apitokens_id
-        - creation_time
-        - current_operation_id
-        - deleted
-        - email
-        - id
-        - last_login
-        - username
-        - view_utc_time
-      filter:
-        id:
-          _lte: X-Hasura-Scope-operator-read-operator
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - account_type
+            - active
+            - admin
+            - apitokens_id
+            - creation_time
+            - current_operation_id
+            - deleted
+            - email
+            - failed_login_count
+            - id
+            - last_failed_login_timestamp
+            - last_login
+            - username
+            - view_utc_time
+        filter:
+            _and:
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-read-actor-ids
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - account_type
+            - active
+            - admin
+            - apitokens_id
+            - creation_time
+            - current_operation_id
+            - deleted
+            - email
+            - failed_login_count
+            - id
+            - last_failed_login_timestamp
+            - last_login
+            - username
+            - view_utc_time
+        filter:
+            _and:
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-read-actor-ids
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - account_type
+            - active
+            - admin
+            - apitokens_id
+            - creation_time
+            - current_operation_id
+            - deleted
+            - email
+            - id
+            - last_login
+            - username
+            - view_utc_time
+        filter:
+            _and:
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-read-actor-ids
+      role: operator
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - account_type
+            - active
+            - admin
+            - apitokens_id
+            - creation_time
+            - current_operation_id
+            - deleted
+            - email
+            - id
+            - last_login
+            - username
+            - view_utc_time
+        filter:
+            _and:
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-read-actor-ids
+      role: spectator
+table:
+    name: operator
+    schema: public
 update_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - username
-        - view_utc_time
-      filter:
-        id:
-          _lte: X-Hasura-Scope-operator-write-operator
-      check: null
-  - role: operation_admin
-    permission:
-      columns:
-        - username
-        - view_utc_time
-      filter:
-        _and:
-          - id:
-              _eq: X-Hasura-User-Id
-          - id:
-              _lte: X-Hasura-Scope-operator-write-operator
-      check: null
-  - role: operator
-    permission:
-      columns:
-        - username
-        - view_utc_time
-      filter:
-        _and:
-          - id:
-              _eq: X-Hasura-User-Id
-          - id:
-              _lte: X-Hasura-Scope-operator-write-operator
-      check: null
-  - role: spectator
-    permission:
-      columns:
-        - username
-        - view_utc_time
-      filter:
-        _and:
-          - id:
-              _eq: X-Hasura-User-Id
-          - id:
-              _lte: X-Hasura-Scope-operator-write-operator
-      check: null
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-write-actor-ids
+        columns:
+            - username
+            - view_utc_time
+        filter:
+            _and:
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-write-actor-ids
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-write-actor-ids
+        columns:
+            - username
+            - view_utc_time
+        filter:
+            _and:
+                - id:
+                    _eq: X-Hasura-User-Id
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-write-actor-ids
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-write-actor-ids
+        columns:
+            - username
+            - view_utc_time
+        filter:
+            _and:
+                - id:
+                    _eq: X-Hasura-User-Id
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-write-actor-ids
+      role: operator
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-write-actor-ids
+        columns:
+            - username
+            - view_utc_time
+        filter:
+            _and:
+                - id:
+                    _eq: X-Hasura-User-Id
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-operator-write-actor-ids
+      role: spectator

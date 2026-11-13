@@ -2,6 +2,7 @@ package databaseStructs
 
 import (
 	"database/sql"
+	authz "github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/utils/structs"
 )
 
@@ -35,4 +36,43 @@ type Tag struct {
 	Response     sql.NullInt64 `db:"response_id"`
 	Callback     sql.NullInt64 `db:"callback_id"`
 	Payload      sql.NullInt64 `db:"payload_id"`
+}
+
+// AuthorizationPolicy keeps tag permissions beside its database model.
+func (Tag) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table:         authz.TableRef{Schema: "public", Name: "tag"},
+		OperationPath: []string{"operation_id"},
+		Read:          authz.Rule{Permission: authz.SCOPE_TAG_READ},
+		Write:         authz.Rule{Permission: authz.SCOPE_TAG_WRITE},
+		Relationships: []authz.RelationshipBinding{
+			{Name: "apitoken", Target: Apitokens{}},
+			{Name: "callback", Target: Callback{}},
+			{Name: "credential", Target: Credential{}},
+			{Name: "eventstepinstance", Target: EventStepInstance{}},
+			{Name: "filemetum", Target: Filemeta{}},
+			{Name: "keylog", Target: Keylog{}},
+			{Name: "mythictree", Target: MythicTree{}},
+			{Name: "operation", Target: Operation{}},
+			{Name: "payload", Target: Payload{}},
+			{Name: "response", Target: Response{}},
+			{Name: "task", Target: Task{}},
+			{Name: "taskartifact", Target: Taskartifact{}},
+		},
+	}
+}
+
+// AuthorizationPolicy keeps tagtype permissions beside its database model.
+func (TagType) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table:         authz.TableRef{Schema: "public", Name: "tagtype"},
+		OperationPath: []string{"operation_id"},
+		Read:          authz.Rule{Permission: authz.SCOPE_TAG_READ},
+		Write:         authz.Rule{Permission: authz.SCOPE_TAG_WRITE},
+		Relationships: []authz.RelationshipBinding{
+			{Name: "apitoken", Target: Apitokens{}},
+			{Name: "eventstepinstance", Target: EventStepInstance{}},
+			{Name: "operation", Target: Operation{}},
+		},
+	}
 }

@@ -1,6 +1,7 @@
 package databaseStructs
 
 import (
+	authz "github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/utils/structs"
 	"github.com/lib/pq"
 	"time"
@@ -46,4 +47,18 @@ type Callback struct {
 	TriggerOnCheckinAfterTime int               `db:"trigger_on_checkin_after_time" json:"trigger_on_checkin_after_time" mapstructure:"trigger_on_checkin_after_time"`
 	ImpersonationContext      string            `db:"impersonation_context" json:"impersonation_context" mapstructure:"impersonation_context"`
 	Cwd                       string            `db:"cwd" json:"cwd" mapstructure:"cwd"`
+}
+
+// AuthorizationPolicy keeps callback permissions beside its database model.
+func (Callback) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table:         authz.TableRef{Schema: "public", Name: "callback"},
+		OperationPath: []string{"operation_id"},
+		Read:          authz.Rule{Permission: authz.SCOPE_CALLBACK_READ},
+		Write:         authz.Rule{Permission: authz.SCOPE_CALLBACK_WRITE},
+		Relationships: []authz.RelationshipBinding{
+			{Name: "eventstepinstance", Target: EventStepInstance{}},
+			{Name: "locked_operator", Target: Operator{}},
+		},
+	}
 }

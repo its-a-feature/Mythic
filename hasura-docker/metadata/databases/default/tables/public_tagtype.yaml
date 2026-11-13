@@ -1,197 +1,207 @@
-table:
-  name: tagtype
-  schema: public
-object_relationships:
-  - name: apitoken
-    using:
-      foreign_key_constraint_on: apitokens_id
-  - name: eventstepinstance
-    using:
-      foreign_key_constraint_on: eventstepinstance_id
-  - name: operation
-    using:
-      foreign_key_constraint_on: operation_id
 array_relationships:
-  - name: tags
-    using:
-      foreign_key_constraint_on:
-        column: tagtype_id
-        table:
-          name: tag
-          schema: public
+    - name: tags
+      using:
+        foreign_key_constraint_on:
+            column: tagtype_id
+            table:
+                name: tag
+                schema: public
 insert_permissions:
-  - role: mythic_admin
-    permission:
-      check:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-tag-write-operation
-      set:
-        operation_id: x-hasura-current-operation-id
-      columns:
-        - apitokens_id
-        - color
-        - description
-        - eventstepinstance_id
-        - name
-        - operation_id
-  - role: operation_admin
-    permission:
-      check:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-tag-write-operation
-      set:
-        operation_id: x-hasura-current-operation-id
-      columns:
-        - apitokens_id
-        - color
-        - description
-        - eventstepinstance_id
-        - name
-        - operation_id
-  - role: operator
-    permission:
-      check:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-tag-write-operation
-      set:
-        operation_id: x-hasura-current-operation-id
-      columns:
-        - apitokens_id
-        - color
-        - description
-        - eventstepinstance_id
-        - name
-        - operation_id
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-tag-write-operation-ids
+        columns:
+            - apitokens_id
+            - color
+            - description
+            - eventstepinstance_id
+            - name
+            - operation_id
+        set:
+            operation_id: x-hasura-current-operation-id
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-tag-write-operation-ids
+        columns:
+            - apitokens_id
+            - color
+            - description
+            - eventstepinstance_id
+            - name
+            - operation_id
+        set:
+            operation_id: x-hasura-current-operation-id
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-tag-write-operation-ids
+        columns:
+            - apitokens_id
+            - color
+            - description
+            - eventstepinstance_id
+            - name
+            - operation_id
+        set:
+            operation_id: x-hasura-current-operation-id
+      role: operator
+object_relationships:
+    - name: apitoken
+      using:
+        foreign_key_constraint_on: apitokens_id
+    - name: eventstepinstance
+      using:
+        foreign_key_constraint_on: eventstepinstance_id
+    - name: operation
+      using:
+        foreign_key_constraint_on: operation_id
 select_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - apitokens_id
-        - eventstepinstance_id
-        - id
-        - operation_id
-        - color
-        - description
-        - name
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-tag-read-operation
-      allow_aggregations: true
-  - role: operation_admin
-    permission:
-      columns:
-        - apitokens_id
-        - eventstepinstance_id
-        - id
-        - operation_id
-        - color
-        - description
-        - name
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-tag-read-operation
-      allow_aggregations: true
-  - role: operator
-    permission:
-      columns:
-        - apitokens_id
-        - eventstepinstance_id
-        - id
-        - operation_id
-        - color
-        - description
-        - name
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-tag-read-operation
-      allow_aggregations: true
-  - role: spectator
-    permission:
-      columns:
-        - apitokens_id
-        - eventstepinstance_id
-        - id
-        - operation_id
-        - color
-        - description
-        - name
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-tag-read-operation
-      allow_aggregations: true
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - apitokens_id
+            - eventstepinstance_id
+            - id
+            - operation_id
+            - color
+            - description
+            - name
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-tag-read-operation-ids
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - apitokens_id
+            - eventstepinstance_id
+            - id
+            - operation_id
+            - color
+            - description
+            - name
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-tag-read-operation-ids
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - apitokens_id
+            - eventstepinstance_id
+            - id
+            - operation_id
+            - color
+            - description
+            - name
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-tag-read-operation-ids
+      role: operator
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - apitokens_id
+            - eventstepinstance_id
+            - id
+            - operation_id
+            - color
+            - description
+            - name
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-tag-read-operation-ids
+      role: spectator
+table:
+    name: tagtype
+    schema: public
 update_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - color
-        - description
-        - name
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-tag-write-operation
-      check:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-tag-write-operation
-  - role: operation_admin
-    permission:
-      columns:
-        - color
-        - description
-        - name
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-tag-write-operation
-      check:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-tag-write-operation
-  - role: operator
-    permission:
-      columns:
-        - color
-        - description
-        - name
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-tag-write-operation
-      check:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-tag-write-operation
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-tag-write-operation-ids
+        columns:
+            - color
+            - description
+            - name
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-tag-write-operation-ids
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-tag-write-operation-ids
+        columns:
+            - color
+            - description
+            - name
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-tag-write-operation-ids
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-tag-write-operation-ids
+        columns:
+            - color
+            - description
+            - name
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-tag-write-operation-ids
+      role: operator

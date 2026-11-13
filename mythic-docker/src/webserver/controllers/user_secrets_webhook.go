@@ -1,6 +1,7 @@
 package webcontroller
 
 import (
+	"github.com/its-a-feature/Mythic/authentication"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/rabbitmq"
 	"net/http"
@@ -47,16 +48,7 @@ func GetSecretsWebhook(c *gin.Context) {
 		})
 		return
 	}
-	userID, err := GetUserIDFromGin(c)
-	if err != nil {
-		logging.LogError(err, "Failed to get userID from JWT")
-		c.JSON(http.StatusOK, GetSecretsResponse{
-			Status: "error",
-			Error:  err.Error(),
-		})
-		return
-	}
-	me, err := database.GetUserFromID(userID)
+	me, err := authentication.GetRequestUser(c)
 	if err != nil {
 		logging.LogError(err, "Failed to get target user information from database")
 		c.JSON(http.StatusOK, GetSecretsResponse{
@@ -124,7 +116,7 @@ func UpdateSecretsWebhook(c *gin.Context) {
 		})
 		return
 	}
-	me, err := database.GetUserFromID(userID)
+	me, err := authentication.GetRequestUser(c)
 	if err != nil {
 		logging.LogError(err, "Failed to get user from database")
 		c.JSON(http.StatusOK, UpdateSecretsResponse{

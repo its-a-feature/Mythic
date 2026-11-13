@@ -1,8 +1,10 @@
 package databaseStructs
 
 import (
-	"github.com/its-a-feature/Mythic/utils/structs"
 	"time"
+
+	authz "github.com/its-a-feature/Mythic/authorization"
+	"github.com/its-a-feature/Mythic/utils/structs"
 )
 
 type Credential struct {
@@ -25,4 +27,30 @@ type Credential struct {
 	Identity      MythicJSONText    `db:"credential_identity" json:"credential_identity" mapstructure:"credential_identity"`
 	CustomDisplay string            `db:"custom_display" json:"custom_display" mapstructure:"custom_display"`
 	APITokensID   structs.NullInt64 `db:"apitokens_id" json:"api_tokens_id" mapstructure:"apitokens_id"`
+}
+
+// AuthorizationPolicy keeps credential permissions beside its database model.
+func (Credential) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table:         authz.TableRef{Schema: "public", Name: "credential"},
+		OperationPath: []string{"operation_id"},
+		Read:          authz.Rule{Permission: authz.SCOPE_CREDENTIAL_READ},
+		Write:         authz.Rule{Permission: authz.SCOPE_CREDENTIAL_WRITE},
+		// Comment/uncomment this block to disable/enable the extra value grant.
+		// Then run make build_authorization and rebuild/deploy server + metadata.
+		// Read/write grants stay independent of credential.value.read.
+		FieldReads: []authz.FieldReadRule{
+			//{Fields: CredentialValueFields, Permission: authz.SCOPE_CREDENTIAL_VALUE_READ},
+		},
+		Relationships: []authz.RelationshipBinding{
+			{Name: "apitoken", Target: Apitokens{}},
+		},
+	}
+}
+
+// CredentialValueFields protects the stored value and its computed text form.
+// The raw GraphQL alias and direct Go response names come from metadata/tags.
+var CredentialValueFields = []authz.FieldRef{
+	{Column: "credential"},
+	{ComputedField: "credential_text"},
 }

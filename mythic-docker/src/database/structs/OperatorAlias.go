@@ -1,6 +1,7 @@
 package databaseStructs
 
 import (
+	authz "github.com/its-a-feature/Mythic/authorization"
 	"time"
 
 	"github.com/its-a-feature/Mythic/utils/structs"
@@ -20,4 +21,13 @@ type OperatorAlias struct {
 	Active               bool               `db:"active" json:"active"`
 	CreatedAt            time.Time          `db:"created_at" json:"created_at"`
 	UpdatedAt            time.Time          `db:"updated_at" json:"updated_at"`
+}
+
+// AuthorizationPolicy keeps operator_alias permissions beside its database model.
+func (OperatorAlias) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table: authz.TableRef{Schema: "public", Name: "operator_alias"},
+		Read:  authz.Rule{Permission: authz.SCOPE_OPERATOR_READ},
+		Write: authz.Rule{Permission: authz.SCOPE_OPERATOR_WRITE},
+	}
 }

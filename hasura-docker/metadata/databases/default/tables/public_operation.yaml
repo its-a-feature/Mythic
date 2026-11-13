@@ -1,301 +1,308 @@
-table:
-  name: operation
-  schema: public
-object_relationships:
-  - name: admin
-    using:
-      foreign_key_constraint_on: admin_id
-  - name: apitoken
-    using:
-      foreign_key_constraint_on: apitokens_id
 array_relationships:
-  - name: buildparameterinstances
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: buildparameterinstance
-          schema: public
-  - name: c2profile_file_hosts
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: c2profile_file_host
-          schema: public
-  - name: c2profileparametersinstances
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: c2profileparametersinstance
-          schema: public
-  - name: callbackgraphedges
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: callbackgraphedge
-          schema: public
-  - name: callbackports
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: callbackport
-          schema: public
-  - name: callbacks
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: callback
-          schema: public
-  - name: chat_channels
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: chat_channel
-          schema: public
-  - name: chat_messages
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: chat_message
-          schema: public
-  - name: chat_read_states
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: chat_read_state
-          schema: public
-  - name: chat_requests
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: chat_request
-          schema: public
-  - name: credentials
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: credential
-          schema: public
-  - name: disabledcommandsprofiles
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: disabledcommandsprofile
-          schema: public
-  - name: eventgroupapprovals
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: eventgroupapproval
-          schema: public
-  - name: eventgroupinstances
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: eventgroupinstance
-          schema: public
-  - name: eventgroups
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: eventgroup
-          schema: public
-  - name: eventstepinstances
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: eventstepinstance
-          schema: public
-  - name: eventsteps
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: eventstep
-          schema: public
-  - name: filemeta
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: filemeta
-          schema: public
-  - name: invite_links
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: invite_link
-          schema: public
-  - name: keylogs
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: keylog
-          schema: public
-  - name: mythictrees
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: mythictree
-          schema: public
-  - name: operationeventlogs
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: operationeventlog
-          schema: public
-  - name: operatoroperations
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: operatoroperation
-          schema: public
-  - name: operators
-    using:
-      foreign_key_constraint_on:
-        column: current_operation_id
-        table:
-          name: operator
-          schema: public
-  - name: payloadonhosts
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: payloadonhost
-          schema: public
-  - name: payloads
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: payload
-          schema: public
-  - name: responses
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: response
-          schema: public
-  - name: tags
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: tag
-          schema: public
-  - name: tagtypes
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: tagtype
-          schema: public
-  - name: taskartifacts
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: taskartifact
-          schema: public
+    - name: buildparameterinstances
+      using:
+        foreign_key_constraint_on:
+            column: operation_id
+            table:
+                name: buildparameterinstance
+                schema: public
+    - name: c2profile_file_hosts
+      using:
+        foreign_key_constraint_on:
+            column: operation_id
+            table:
+                name: c2profile_file_host
+                schema: public
+    - name: c2profileparametersinstances
+      using:
+        foreign_key_constraint_on:
+            column: operation_id
+            table:
+                name: c2profileparametersinstance
+                schema: public
+    - name: callbackgraphedges
+      using:
+        foreign_key_constraint_on:
+            column: operation_id
+            table:
+                name: callbackgraphedge
+                schema: public
+    - name: callbackports
+      using:
+        foreign_key_constraint_on:
+            column: operation_id
+            table:
+                name: callbackport
+                schema: public
+    - name: callbacks
+      using:
+        foreign_key_constraint_on:
+            column: operation_id
+            table:
+                name: callback
+                schema: public
+    - name: chat_channels
+      using:
+        foreign_key_constraint_on:
+            column: operation_id
+            table:
+                name: chat_channel
+                schema: public
+    - name: chat_messages
+      using:
+        foreign_key_constraint_on:
+            column: operation_id
+            table:
+                name: chat_message
+                schema: public
+    - name: chat_read_states
+      using:
+        foreign_key_constraint_on:
+            column: operation_id
+            table:
+                name: chat_read_state
+                schema: public
+    - name: chat_requests
+      using:
+        foreign_key_constraint_on:
+            column: operation_id
+            table:
+                name: chat_request
+                schema: public
+    - name: credentials
+      using:
+        foreign_key_constraint_on:
+            column: operation_id
+            table:
+                name: credential
+                schema: public
+    - name: disabledcommandsprofiles
+      using:
+        foreign_key_constraint_on:
+            column: operation_id
+            table:
+                name: disabledcommandsprofile
+                schema: public
+    - name: eventgroupapprovals
+      using:
+        foreign_key_constraint_on:
+            column: operation_id
+            table:
+                name: eventgroupapproval
+                schema: public
+    - name: eventgroupinstances
+      using:
+        foreign_key_constraint_on:
+            column: operation_id
+            table:
+                name: eventgroupinstance
+                schema: public
+    - name: eventgroups
+      using:
+        foreign_key_constraint_on:
+            column: operation_id
+            table:
+                name: eventgroup
+                schema: public
+    - name: eventstepinstances
+      using:
+        foreign_key_constraint_on:
+            column: operation_id
+            table:
+                name: eventstepinstance
+                schema: public
+    - name: eventsteps
+      using:
+        foreign_key_constraint_on:
+            column: operation_id
+            table:
+                name: eventstep
+                schema: public
+    - name: filemeta
+      using:
+        foreign_key_constraint_on:
+            column: operation_id
+            table:
+                name: filemeta
+                schema: public
+    - name: invite_links
+      using:
+        foreign_key_constraint_on:
+            column: operation_id
+            table:
+                name: invite_link
+                schema: public
+    - name: keylogs
+      using:
+        foreign_key_constraint_on:
+            column: operation_id
+            table:
+                name: keylog
+                schema: public
+    - name: mythictrees
+      using:
+        foreign_key_constraint_on:
+            column: operation_id
+            table:
+                name: mythictree
+                schema: public
+    - name: operationeventlogs
+      using:
+        foreign_key_constraint_on:
+            column: operation_id
+            table:
+                name: operationeventlog
+                schema: public
+    - name: operatoroperations
+      using:
+        foreign_key_constraint_on:
+            column: operation_id
+            table:
+                name: operatoroperation
+                schema: public
+    - name: operators
+      using:
+        foreign_key_constraint_on:
+            column: current_operation_id
+            table:
+                name: operator
+                schema: public
+    - name: payloadonhosts
+      using:
+        foreign_key_constraint_on:
+            column: operation_id
+            table:
+                name: payloadonhost
+                schema: public
+    - name: payloads
+      using:
+        foreign_key_constraint_on:
+            column: operation_id
+            table:
+                name: payload
+                schema: public
+    - name: responses
+      using:
+        foreign_key_constraint_on:
+            column: operation_id
+            table:
+                name: response
+                schema: public
+    - name: tags
+      using:
+        foreign_key_constraint_on:
+            column: operation_id
+            table:
+                name: tag
+                schema: public
+    - name: tagtypes
+      using:
+        foreign_key_constraint_on:
+            column: operation_id
+            table:
+                name: tagtype
+                schema: public
+    - name: taskartifacts
+      using:
+        foreign_key_constraint_on:
+            column: operation_id
+            table:
+                name: taskartifact
+                schema: public
+object_relationships:
+    - name: admin
+      using:
+        foreign_key_constraint_on: admin_id
+    - name: apitoken
+      using:
+        foreign_key_constraint_on: apitokens_id
 select_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - complete
-        - deleted
-        - admin_id
-        - alert_count
-        - apitokens_id
-        - id
-        - banner_color
-        - banner_text
-        - channel
-        - name
-        - webhook
-        - updated_at
-      filter: {}
-  - role: operation_admin
-    permission:
-      columns:
-        - complete
-        - deleted
-        - admin_id
-        - alert_count
-        - apitokens_id
-        - id
-        - banner_color
-        - banner_text
-        - channel
-        - name
-        - webhook
-        - updated_at
-      filter:
-        _and:
-          - id:
-              _eq: X-Hasura-current-operation-id
-          - id:
-              _lte: X-Hasura-Scope-operation-read-operation
-  - role: operator
-    permission:
-      columns:
-        - complete
-        - deleted
-        - admin_id
-        - alert_count
-        - apitokens_id
-        - id
-        - banner_color
-        - banner_text
-        - channel
-        - name
-        - webhook
-        - updated_at
-      filter:
-        _and:
-          - id:
-              _eq: X-Hasura-current-operation-id
-          - id:
-              _lte: X-Hasura-Scope-operation-read-operation
-  - role: spectator
-    permission:
-      columns:
-        - complete
-        - deleted
-        - admin_id
-        - alert_count
-        - apitokens_id
-        - id
-        - banner_color
-        - banner_text
-        - channel
-        - name
-        - webhook
-        - updated_at
-      filter:
-        _and:
-          - id:
-              _eq: X-Hasura-current-operation-id
-          - id:
-              _lte: X-Hasura-Scope-operation-read-operation
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - complete
+            - deleted
+            - admin_id
+            - alert_count
+            - apitokens_id
+            - id
+            - banner_color
+            - banner_text
+            - channel
+            - name
+            - webhook
+            - updated_at
+        filter:
+            _and:
+                - id:
+                    _in: x-hasura-operation-read-operation-ids
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - complete
+            - deleted
+            - admin_id
+            - alert_count
+            - apitokens_id
+            - id
+            - banner_color
+            - banner_text
+            - channel
+            - name
+            - webhook
+            - updated_at
+        filter:
+            _and:
+                - id:
+                    _eq: X-Hasura-current-operation-id
+                - id:
+                    _in: x-hasura-operation-read-operation-ids
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - complete
+            - deleted
+            - admin_id
+            - alert_count
+            - apitokens_id
+            - id
+            - banner_color
+            - banner_text
+            - channel
+            - name
+            - webhook
+            - updated_at
+        filter:
+            _and:
+                - id:
+                    _eq: X-Hasura-current-operation-id
+                - id:
+                    _in: x-hasura-operation-read-operation-ids
+      role: operator
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - complete
+            - deleted
+            - admin_id
+            - alert_count
+            - apitokens_id
+            - id
+            - banner_color
+            - banner_text
+            - channel
+            - name
+            - webhook
+            - updated_at
+        filter:
+            _and:
+                - id:
+                    _eq: X-Hasura-current-operation-id
+                - id:
+                    _in: x-hasura-operation-read-operation-ids
+      role: spectator
+table:
+    name: operation
+    schema: public

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -15,7 +15,7 @@ func BuildC2HostedFileAuthContext(host databaseStructs.C2profileFileHost) (Rabbi
 	authContext := RabbitMQAuthContext{
 		OperatorID:   host.CreatedBy,
 		OperationID:  host.OperationID,
-		SourceScopes: []string{mythicjwt.SCOPE_FILE_READ},
+		SourceScopes: []string{authorization.SCOPE_FILE_READ},
 		FileUUID:     host.FileMeta.AgentFileID,
 	}
 	if host.EventStepInstanceID.Valid {
@@ -23,7 +23,8 @@ func BuildC2HostedFileAuthContext(host databaseStructs.C2profileFileHost) (Rabbi
 	}
 	if host.APITokensID.Valid {
 		apiToken := databaseStructs.Apitokens{}
-		err := database.DB.Get(&apiToken, `SELECT id, active, deleted, scopes
+		err := database.DB.Get(&apiToken, `SELECT 
+    		id, active, deleted, scopes
 			FROM apitokens WHERE id=$1`, host.APITokensID.Int64)
 		if err != nil {
 			return RabbitMQAuthContext{}, err
@@ -31,7 +32,7 @@ func BuildC2HostedFileAuthContext(host databaseStructs.C2profileFileHost) (Rabbi
 		if !apiToken.Active || apiToken.Deleted {
 			return authContext, errors.New("associated API token is no longer active")
 		}
-		if !mythicjwt.AllowsScope(apiToken.Scopes, mythicjwt.SCOPE_FILE_READ) {
+		if !authorization.AllowsScope(apiToken.Scopes, authorization.SCOPE_FILE_READ) {
 			return authContext, errors.New("associated API token no longer has file.read scope")
 		}
 		authContext.APITokensID = apiToken.ID
@@ -223,7 +224,7 @@ func resyncHostedFiles(c2ProfileName string, rows []databaseStructs.C2profileFil
 		Name:  c2ProfileName,
 		Files: files,
 	}, RabbitMQAuthContext{
-		SourceScopes: []string{mythicjwt.SCOPE_FILE_READ},
+		SourceScopes: []string{authorization.SCOPE_FILE_READ},
 	})
 	if err != nil {
 		for _, row := range rowsByKey {

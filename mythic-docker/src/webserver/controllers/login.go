@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/authentication"
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -69,21 +70,35 @@ func GetWhoamiWebhook(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"status": "error", "error": "Failed to get UserID"})
 		return
 	}
-	operator, err := database.GetUserFromID(user)
+	operator, err := authentication.GetRequestUser(c)
 	if err != nil {
 		logging.LogError(err, "Failed to get operator")
 		c.JSON(http.StatusUnauthorized, gin.H{"status": "error", "error": "Failed to get operator"})
 		return
 	}
-	currentOperation, err := database.GetUserCurrentOperation(user)
+	currentOperation, err := authentication.GetRequestOperation(c)
 	if err != nil {
 		logging.LogError(err, "Failed to get current operation")
 		c.JSON(http.StatusUnauthorized, gin.H{"status": "error", "error": "Failed to get current operation"})
 		return
 	}
-	claims := currentClaimsOrNil(c)
+	claims, err := authentication.GetClaims(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"status": "error", "error": "Failed to get claims"})
+		return
+	}
 	apiTokenInfo := buildWhoamiAPITokenInfo(c, claims)
-	operations := buildWhoamiOperations(user)
+	operations := []gin.H{}
+	if claims != nil && claims.APITokensID > 0 {
+		operations = append(operations, gin.H{
+			"id":        currentOperation.CurrentOperation.ID,
+			"name":      currentOperation.CurrentOperation.Name,
+			"admin_id":  currentOperation.CurrentOperation.AdminID,
+			"view_mode": currentOperation.ViewMode,
+		})
+	} else {
+		operations = buildWhoamiOperations(user)
+	}
 	scopes := []string{}
 	effectiveScopes := []string{}
 	authMethod := ""
@@ -91,7 +106,7 @@ func GetWhoamiWebhook(c *gin.Context) {
 	if claims != nil {
 		authMethod = claims.AuthMethod
 		scopes = claims.Scopes
-		effectiveScopes = mythicjwt.EffectiveScopes(claims.Scopes)
+		effectiveScopes, _ = authentication.EffectiveScopeList(c)
 		eventStepInstanceID = claims.EventStepInstanceID
 	}
 	//logging.LogInfo("got whoami info", "currentOperation", currentOperation)
@@ -118,14 +133,6 @@ func GetWhoamiWebhook(c *gin.Context) {
 		"scope_info":           buildScopeIntrospectionResponse(c, claims),
 	})
 	return
-}
-
-func currentClaimsOrNil(c *gin.Context) *mythicjwt.CustomClaims {
-	claims, err := authentication.GetClaims(c)
-	if err != nil {
-		return nil
-	}
-	return claims
 }
 
 func buildWhoamiOperations(userID int) []gin.H {
@@ -196,11 +203,11 @@ func buildScopeIntrospectionResponse(c *gin.Context, claims *mythicjwt.CustomCla
 	if claims == nil {
 		return gin.H{}
 	}
-	effectiveScopes := mythicjwt.EffectiveScopes(claims.Scopes)
-	hasAllScopes := mythicjwt.AllowsScope(claims.Scopes, mythicjwt.SCOPE_ALL)
-	scopeDescriptions := []mythicjwt.ScopeDefinition{}
-	for _, definition := range mythicjwt.ScopeDefinitions() {
-		if hasAllScopes || mythicjwt.AllowsScope(effectiveScopes, definition.Name) {
+	effectiveScopes, _ := authentication.EffectiveScopeList(c)
+	hasAllScopes := authorization.AllowsScope(claims.Scopes, authorization.SCOPE_ALL)
+	scopeDescriptions := []authorization.ScopeDefinition{}
+	for _, definition := range authorization.ScopeDefinitions() {
+		if hasAllScopes || authorization.AllowsScope(effectiveScopes, definition.Name) {
 			scopeDescriptions = append(scopeDescriptions, definition)
 		}
 	}
@@ -213,8 +220,8 @@ func buildScopeIntrospectionResponse(c *gin.Context, claims *mythicjwt.CustomCla
 		"scopes":               claims.Scopes,
 		"effective_scopes":     effectiveScopes,
 		"scope_descriptions":   scopeDescriptions,
-		"available_scopes":     mythicjwt.ScopeDefinitions(),
-		"hasura_scope_claims":  mythicjwt.HasuraScopeRequirements(),
+		"available_scopes":     authorization.ScopeDefinitions(),
+		"hasura_scope_claims":  authorization.HasuraScopeRequirements(),
 		"limitations": []string{
 			"Scopes apply within the operations available to the authenticated operator.",
 			"Write scopes include read access for the same resource.",

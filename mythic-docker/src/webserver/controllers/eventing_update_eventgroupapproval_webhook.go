@@ -1,6 +1,7 @@
 package webcontroller
 
 import (
+	"github.com/its-a-feature/Mythic/authentication"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
 	"net/http"
@@ -43,7 +44,7 @@ func UpdateEventGroupApprovalWebhook(c *gin.Context) {
 		})
 		return
 	}
-	user, err := database.GetUserFromID(userID)
+	user, err := authentication.GetRequestUser(c)
 	if err != nil {
 		c.JSON(http.StatusOK, UpdateEventGroupApprovalResponse{
 			Status: "error",

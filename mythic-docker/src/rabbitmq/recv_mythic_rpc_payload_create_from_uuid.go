@@ -8,7 +8,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+	"github.com/its-a-feature/Mythic/authorization"
 	mythicCrypto "github.com/its-a-feature/Mythic/crypto"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -39,7 +39,7 @@ func init() {
 		Queue:      MYTHIC_RPC_PAYLOAD_CREATE_FROM_UUID,   // swap out with queue in rabbitmq.constants.go file
 		RoutingKey: MYTHIC_RPC_PAYLOAD_CREATE_FROM_UUID,   // swap out with routing key in rabbitmq.constants.go file
 		Handler:    processMythicRPCPayloadCreateFromUUID, // points to function that takes in amqp.Delivery and returns interface{}
-		Scopes:     []string{mythicjwt.SCOPE_PAYLOAD_WRITE},
+		Scopes:     []string{authorization.SCOPE_PAYLOAD_WRITE},
 	})
 }
 

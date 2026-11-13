@@ -1,10 +1,10 @@
-table:
-  name: invite_link
-  schema: public
 object_relationships:
-  - name: created_by
-    using:
-      foreign_key_constraint_on: operator_id
-  - name: operation
-    using:
-      foreign_key_constraint_on: operation_id
+    - name: created_by
+      using:
+        foreign_key_constraint_on: operator_id
+    - name: operation
+      using:
+        foreign_key_constraint_on: operation_id
+table:
+    name: invite_link
+    schema: public

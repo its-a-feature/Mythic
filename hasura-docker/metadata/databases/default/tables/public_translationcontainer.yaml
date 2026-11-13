@@ -1,63 +1,80 @@
-table:
-  name: translationcontainer
-  schema: public
 array_relationships:
-  - name: payloadtypes
-    using:
-      foreign_key_constraint_on:
-        column: translation_container_id
-        table:
-          name: payloadtype
-          schema: public
+    - name: payloadtypes
+      using:
+        foreign_key_constraint_on:
+            column: translation_container_id
+            table:
+                name: payloadtype
+                schema: public
 select_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - author
-        - container_running
-        - deleted
-        - description
-        - id
-        - name
-        - semver
-      filter: {}
-  - role: operation_admin
-    permission:
-      columns:
-        - author
-        - container_running
-        - deleted
-        - description
-        - id
-        - name
-        - semver
-      filter: {}
-  - role: operator
-    permission:
-      columns:
-        - author
-        - container_running
-        - deleted
-        - description
-        - id
-        - name
-        - semver
-      filter: {}
-  - role: spectator
-    permission:
-      columns:
-        - author
-        - container_running
-        - deleted
-        - description
-        - id
-        - name
-        - semver
-      filter: {}
+    - permission:
+        columns:
+            - author
+            - container_running
+            - deleted
+            - description
+            - id
+            - name
+            - semver
+        filter: {}
+      role: mythic_admin
+    - permission:
+        columns:
+            - author
+            - container_running
+            - deleted
+            - description
+            - id
+            - name
+            - semver
+        filter: {}
+      role: operation_admin
+    - permission:
+        columns:
+            - author
+            - container_running
+            - deleted
+            - description
+            - id
+            - name
+            - semver
+        filter: {}
+      role: operator
+    - permission:
+        columns:
+            - author
+            - container_running
+            - deleted
+            - description
+            - id
+            - name
+            - semver
+        filter: {}
+      role: spectator
+table:
+    name: translationcontainer
+    schema: public
 update_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - deleted
-      filter: {}
-      check: {}
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-mythic-write-actor-ids
+        columns:
+            - deleted
+        filter:
+            _and:
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-mythic-write-actor-ids
+      role: mythic_admin

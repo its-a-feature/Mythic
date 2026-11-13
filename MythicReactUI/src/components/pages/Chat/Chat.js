@@ -1704,7 +1704,7 @@ const ChatAPITokenSelector = ({value, setValue, currentToken, currentUser, opera
         onError: (error) => snackActions.error(error.message),
     });
     const createToken = (name, scopes) => {
-        createAPIToken({variables: {operator_id: selectedOwner?.id, name, scopes}});
+        createAPIToken({variables: {operator_id: selectedOwner?.id, name, scopes, operation_id: currentUser.operation_id}});
     };
     const changeTokenOwner = (event) => {
         setTokenOwnerID(Number(event.target.value));
@@ -3388,9 +3388,10 @@ export function Chat({me}) {
         return channels.find((channel) => isGeneralChatChannel(channel)) || null;
     }, [channels]);
     const currentUser = React.useMemo(() => ({
+        operation_id: currentMe?.user?.current_operation_id || 0,
         id: currentOperatorData?.operator_by_pk?.id || currentMe?.user?.user_id || 0,
         username: currentOperatorData?.operator_by_pk?.username || currentMe?.user?.username || "Current user",
-    }), [currentOperatorData?.operator_by_pk?.id, currentOperatorData?.operator_by_pk?.username, currentMe?.user?.user_id, currentMe?.user?.username]);
+    }), [currentOperatorData?.operator_by_pk?.id, currentOperatorData?.operator_by_pk?.username, currentMe?.user?.user_id, currentMe?.user?.username, currentMe?.user?.current_operation_id]);
     const currentOperatorViewMode = currentOperatorData?.operatoroperation?.[0]?.view_mode || currentMe?.user?.view_mode || "";
     const operationBot = currentOperatorData?.operation_bot?.[0] || null;
     const isMythicAdmin = Boolean(currentMe?.user?.admin || currentOperatorData?.operator_by_pk?.admin);

@@ -254,8 +254,8 @@ query ChatAPITokens($operator_ids: [Int!]!) {
 `;
 
 export const CREATE_API_TOKEN = gql`
-mutation CreateChatAPIToken($operator_id: Int, $name: String, $scopes: [String!]) {
-  createAPIToken(operator_id: $operator_id, name: $name, scopes: $scopes) {
+mutation CreateChatAPIToken($operator_id: Int, $name: String, $scopes: [String!]!, $operation_id: Int!) {
+  createAPIToken(operator_id: $operator_id, name: $name, scopes: $scopes, operation_id: $operation_id) {
     id
     token_value
     scopes

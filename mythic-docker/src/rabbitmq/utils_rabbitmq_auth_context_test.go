@@ -1,9 +1,8 @@
 package rabbitmq
 
 import (
+	"github.com/its-a-feature/Mythic/authorization"
 	"testing"
-
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 )
 
 func TestValidateRabbitMQAuthContextResponseToken(t *testing.T) {
@@ -13,7 +12,7 @@ func TestValidateRabbitMQAuthContextResponseToken(t *testing.T) {
 
 	authToken, err := GenerateRabbitMQAuthContextToken(RabbitMQAuthContext{
 		OperationID:  1,
-		SourceScopes: []string{mythicjwt.SCOPE_PAYLOAD_WRITE},
+		SourceScopes: []string{authorization.SCOPE_PAYLOAD_WRITE},
 	})
 	if err != nil {
 		t.Fatalf("failed to generate auth context token: %v", err)
@@ -44,7 +43,7 @@ func TestHostedFileAuthContextTokenIndexInvalidation(t *testing.T) {
 	firstToken, err := RegisterHostedFileAuthContextToken(rowID, RabbitMQAuthContext{
 		OperationID:  1,
 		OperatorID:   2,
-		SourceScopes: []string{mythicjwt.SCOPE_FILE_READ},
+		SourceScopes: []string{authorization.SCOPE_FILE_READ},
 		FileUUID:     "file-one",
 	})
 	if err != nil {
@@ -57,7 +56,7 @@ func TestHostedFileAuthContextTokenIndexInvalidation(t *testing.T) {
 	secondToken, err := RegisterHostedFileAuthContextToken(rowID, RabbitMQAuthContext{
 		OperationID:  1,
 		OperatorID:   2,
-		SourceScopes: []string{mythicjwt.SCOPE_FILE_READ},
+		SourceScopes: []string{authorization.SCOPE_FILE_READ},
 		FileUUID:     "file-two",
 	})
 	if err != nil {

@@ -15,3 +15,6 @@ linux_docker:
 
 macos_docker:
 	cd Mythic_CLI && make build_macos_docker && mv mythic-cli ../
+
+build_authorization check_authorization test_authorization test_authorization_integration build_and_build_authorization:
+	$(MAKE) -C mythic-docker/src $@

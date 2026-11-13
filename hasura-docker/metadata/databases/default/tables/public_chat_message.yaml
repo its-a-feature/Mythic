@@ -1,205 +1,241 @@
-table:
-  name: chat_message
-  schema: public
-object_relationships:
-  - name: apitoken
-    using:
-      foreign_key_constraint_on: apitokens_id
-  - name: channel
-    using:
-      foreign_key_constraint_on: channel_id
-  - name: chat_container
-    using:
-      foreign_key_constraint_on: chat_container_id
-  - name: chat_request
-    using:
-      foreign_key_constraint_on: chat_request_id
-  - name: deleted_operator
-    using:
-      foreign_key_constraint_on: deleted_by
-  - name: operation
-    using:
-      foreign_key_constraint_on: operation_id
-  - name: operator
-    using:
-      foreign_key_constraint_on: operator_id
 array_relationships:
-  - name: read_states
-    using:
-      foreign_key_constraint_on:
-        column: last_read_message_id
-        table:
-          name: chat_read_state
-          schema: public
-  - name: requests_as_prompt
-    using:
-      foreign_key_constraint_on:
-        column: request_message_id
-        table:
-          name: chat_request
-          schema: public
+    - name: read_states
+      using:
+        foreign_key_constraint_on:
+            column: last_read_message_id
+            table:
+                name: chat_read_state
+                schema: public
+    - name: requests_as_prompt
+      using:
+        foreign_key_constraint_on:
+            column: request_message_id
+            table:
+                name: chat_request
+                schema: public
+object_relationships:
+    - name: apitoken
+      using:
+        foreign_key_constraint_on: apitokens_id
+    - name: channel
+      using:
+        foreign_key_constraint_on: channel_id
+    - name: chat_container
+      using:
+        foreign_key_constraint_on: chat_container_id
+    - name: chat_request
+      using:
+        foreign_key_constraint_on: chat_request_id
+    - name: deleted_operator
+      using:
+        foreign_key_constraint_on: deleted_by
+    - name: operation
+      using:
+        foreign_key_constraint_on: operation_id
+    - name: operator
+      using:
+        foreign_key_constraint_on: operator_id
 select_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - apitokens_id
-        - author_type
-        - channel_id
-        - chat_container_id
-        - chat_request_id
-        - chat_response_key
-        - created_at
-        - deleted
-        - deleted_at
-        - deleted_by
-        - edited
-        - edited_at
-        - id
-        - message
-        - metadata
-        - operation_id
-        - operator_id
-        - sender_display_name
-        - status
-        - tool_output
-        - updated_at
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - channel:
-              _or:
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - apitokens_id
+            - author_type
+            - channel_id
+            - chat_container_id
+            - chat_request_id
+            - chat_response_key
+            - created_at
+            - deleted
+            - deleted_at
+            - deleted_by
+            - edited
+            - edited_at
+            - id
+            - message
+            - metadata
+            - operation_id
+            - operator_id
+            - sender_display_name
+            - status
+            - tool_output
+            - updated_at
+        filter:
+            _and:
                 - _and:
-                    - channel_type:
-                        _eq: standard
                     - operation_id:
-                        _lte: X-Hasura-Scope-chat-read-operation
+                        _eq: X-Hasura-current-operation-id
+                    - channel:
+                        _or:
+                            - channel_type:
+                                _eq: standard
+                            - channel_type:
+                                _eq: ai
+                - _or:
+                    - _and:
+                        - channel:
+                            channel_type:
+                                _eq: standard
+                        - operation_id:
+                            _in: x-hasura-chat-read-operation-ids
+                    - _and:
+                        - channel:
+                            channel_type:
+                                _eq: ai
+                        - operation_id:
+                            _in: x-hasura-chat-ai-read-operation-ids
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - apitokens_id
+            - author_type
+            - channel_id
+            - chat_container_id
+            - chat_request_id
+            - chat_response_key
+            - created_at
+            - deleted
+            - deleted_at
+            - deleted_by
+            - edited
+            - edited_at
+            - id
+            - message
+            - metadata
+            - operation_id
+            - operator_id
+            - sender_display_name
+            - status
+            - tool_output
+            - updated_at
+        filter:
+            _and:
                 - _and:
-                    - channel_type:
-                        _eq: ai
                     - operation_id:
-                        _lte: X-Hasura-Scope-chat-ai-read-operation
-      allow_aggregations: true
-  - role: operation_admin
-    permission:
-      columns:
-        - apitokens_id
-        - author_type
-        - channel_id
-        - chat_container_id
-        - chat_request_id
-        - chat_response_key
-        - created_at
-        - deleted
-        - deleted_at
-        - deleted_by
-        - edited
-        - edited_at
-        - id
-        - message
-        - metadata
-        - operation_id
-        - operator_id
-        - sender_display_name
-        - status
-        - tool_output
-        - updated_at
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - channel:
-              _or:
+                        _eq: X-Hasura-current-operation-id
+                    - channel:
+                        _or:
+                            - channel_type:
+                                _eq: standard
+                            - channel_type:
+                                _eq: ai
+                - _or:
+                    - _and:
+                        - channel:
+                            channel_type:
+                                _eq: standard
+                        - operation_id:
+                            _in: x-hasura-chat-read-operation-ids
+                    - _and:
+                        - channel:
+                            channel_type:
+                                _eq: ai
+                        - operation_id:
+                            _in: x-hasura-chat-ai-read-operation-ids
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - apitokens_id
+            - author_type
+            - channel_id
+            - chat_container_id
+            - chat_request_id
+            - chat_response_key
+            - created_at
+            - deleted
+            - deleted_at
+            - deleted_by
+            - edited
+            - edited_at
+            - id
+            - message
+            - metadata
+            - operation_id
+            - operator_id
+            - sender_display_name
+            - status
+            - tool_output
+            - updated_at
+        filter:
+            _and:
                 - _and:
-                    - channel_type:
-                        _eq: standard
                     - operation_id:
-                        _lte: X-Hasura-Scope-chat-read-operation
+                        _eq: X-Hasura-current-operation-id
+                    - channel:
+                        _or:
+                            - channel_type:
+                                _eq: standard
+                            - channel_type:
+                                _eq: ai
+                - _or:
+                    - _and:
+                        - channel:
+                            channel_type:
+                                _eq: standard
+                        - operation_id:
+                            _in: x-hasura-chat-read-operation-ids
+                    - _and:
+                        - channel:
+                            channel_type:
+                                _eq: ai
+                        - operation_id:
+                            _in: x-hasura-chat-ai-read-operation-ids
+      role: operator
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - apitokens_id
+            - author_type
+            - channel_id
+            - chat_container_id
+            - chat_request_id
+            - chat_response_key
+            - created_at
+            - deleted
+            - deleted_at
+            - deleted_by
+            - edited
+            - edited_at
+            - id
+            - message
+            - metadata
+            - operation_id
+            - operator_id
+            - sender_display_name
+            - status
+            - tool_output
+            - updated_at
+        filter:
+            _and:
                 - _and:
-                    - channel_type:
-                        _eq: ai
                     - operation_id:
-                        _lte: X-Hasura-Scope-chat-ai-read-operation
-      allow_aggregations: true
-  - role: operator
-    permission:
-      columns:
-        - apitokens_id
-        - author_type
-        - channel_id
-        - chat_container_id
-        - chat_request_id
-        - chat_response_key
-        - created_at
-        - deleted
-        - deleted_at
-        - deleted_by
-        - edited
-        - edited_at
-        - id
-        - message
-        - metadata
-        - operation_id
-        - operator_id
-        - sender_display_name
-        - status
-        - tool_output
-        - updated_at
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - channel:
-              _or:
-                - _and:
-                    - channel_type:
-                        _eq: standard
-                    - operation_id:
-                        _lte: X-Hasura-Scope-chat-read-operation
-                - _and:
-                    - channel_type:
-                        _eq: ai
-                    - operation_id:
-                        _lte: X-Hasura-Scope-chat-ai-read-operation
-      allow_aggregations: true
-  - role: spectator
-    permission:
-      columns:
-        - apitokens_id
-        - author_type
-        - channel_id
-        - chat_container_id
-        - chat_request_id
-        - chat_response_key
-        - created_at
-        - deleted
-        - deleted_at
-        - deleted_by
-        - edited
-        - edited_at
-        - id
-        - message
-        - metadata
-        - operation_id
-        - operator_id
-        - sender_display_name
-        - status
-        - tool_output
-        - updated_at
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - channel:
-              _or:
-                - _and:
-                    - channel_type:
-                        _eq: standard
-                    - operation_id:
-                        _lte: X-Hasura-Scope-chat-read-operation
-                - _and:
-                    - channel_type:
-                        _eq: ai
-                    - operation_id:
-                        _lte: X-Hasura-Scope-chat-ai-read-operation
-      allow_aggregations: true
+                        _eq: X-Hasura-current-operation-id
+                    - channel:
+                        _or:
+                            - channel_type:
+                                _eq: standard
+                            - channel_type:
+                                _eq: ai
+                - _or:
+                    - _and:
+                        - channel:
+                            channel_type:
+                                _eq: standard
+                        - operation_id:
+                            _in: x-hasura-chat-read-operation-ids
+                    - _and:
+                        - channel:
+                            channel_type:
+                                _eq: ai
+                        - operation_id:
+                            _in: x-hasura-chat-ai-read-operation-ids
+      role: spectator
+table:
+    name: chat_message
+    schema: public

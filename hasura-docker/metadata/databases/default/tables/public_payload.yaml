@@ -1,254 +1,258 @@
-table:
-  name: payload
-  schema: public
-configuration:
-  column_config:
-    timestamp:
-      custom_name: timestamp
-  custom_column_names:
-    timestamp: timestamp
-  custom_root_fields: {}
-object_relationships:
-  - name: apitoken
-    using:
-      foreign_key_constraint_on: apitokens_id
-  - name: eventstepinstance
-    using:
-      foreign_key_constraint_on: eventstepinstance_id
-  - name: filemetum
-    using:
-      foreign_key_constraint_on: file_id
-  - name: operation
-    using:
-      foreign_key_constraint_on: operation_id
-  - name: operator
-    using:
-      foreign_key_constraint_on: operator_id
-  - name: payload
-    using:
-      foreign_key_constraint_on: wrapped_payload_id
-  - name: payloadtype
-    using:
-      foreign_key_constraint_on: payload_type_id
-  - name: task
-    using:
-      foreign_key_constraint_on: task_id
 array_relationships:
-  - name: apitokens
-    using:
-      foreign_key_constraint_on:
-        column: payload_id
-        table:
-          name: apitokens
-          schema: public
-  - name: buildparameterinstances
-    using:
-      foreign_key_constraint_on:
-        column: payload_id
-        table:
-          name: buildparameterinstance
-          schema: public
-  - name: c2profileparametersinstances
-    using:
-      foreign_key_constraint_on:
-        column: payload_id
-        table:
-          name: c2profileparametersinstance
-          schema: public
-  - name: callbacks
-    using:
-      foreign_key_constraint_on:
-        column: registered_payload_id
-        table:
-          name: callback
-          schema: public
-  - name: payload_build_steps
-    using:
-      foreign_key_constraint_on:
-        column: payload_id
-        table:
-          name: payload_build_step
-          schema: public
-  - name: payloadc2profiles
-    using:
-      foreign_key_constraint_on:
-        column: payload_id
-        table:
-          name: payloadc2profiles
-          schema: public
-  - name: payloadcommands
-    using:
-      foreign_key_constraint_on:
-        column: payload_id
-        table:
-          name: payloadcommand
-          schema: public
-  - name: payloadonhosts
-    using:
-      foreign_key_constraint_on:
-        column: payload_id
-        table:
-          name: payloadonhost
-          schema: public
-  - name: payloads
-    using:
-      foreign_key_constraint_on:
-        column: wrapped_payload_id
-        table:
-          name: payload
-          schema: public
-  - name: staginginfos
-    using:
-      foreign_key_constraint_on:
-        column: payload_id
-        table:
-          name: staginginfo
-          schema: public
-  - name: tags
-    using:
-      foreign_key_constraint_on:
-        column: payload_id
-        table:
-          name: tag
-          schema: public
+    - name: apitokens
+      using:
+        foreign_key_constraint_on:
+            column: payload_id
+            table:
+                name: apitokens
+                schema: public
+    - name: buildparameterinstances
+      using:
+        foreign_key_constraint_on:
+            column: payload_id
+            table:
+                name: buildparameterinstance
+                schema: public
+    - name: c2profileparametersinstances
+      using:
+        foreign_key_constraint_on:
+            column: payload_id
+            table:
+                name: c2profileparametersinstance
+                schema: public
+    - name: callbacks
+      using:
+        foreign_key_constraint_on:
+            column: registered_payload_id
+            table:
+                name: callback
+                schema: public
+    - name: payload_build_steps
+      using:
+        foreign_key_constraint_on:
+            column: payload_id
+            table:
+                name: payload_build_step
+                schema: public
+    - name: payloadc2profiles
+      using:
+        foreign_key_constraint_on:
+            column: payload_id
+            table:
+                name: payloadc2profiles
+                schema: public
+    - name: payloadcommands
+      using:
+        foreign_key_constraint_on:
+            column: payload_id
+            table:
+                name: payloadcommand
+                schema: public
+    - name: payloadonhosts
+      using:
+        foreign_key_constraint_on:
+            column: payload_id
+            table:
+                name: payloadonhost
+                schema: public
+    - name: payloads
+      using:
+        foreign_key_constraint_on:
+            column: wrapped_payload_id
+            table:
+                name: payload
+                schema: public
+    - name: staginginfos
+      using:
+        foreign_key_constraint_on:
+            column: payload_id
+            table:
+                name: staginginfo
+                schema: public
+    - name: tags
+      using:
+        foreign_key_constraint_on:
+            column: payload_id
+            table:
+                name: tag
+                schema: public
+configuration:
+    column_config:
+        timestamp:
+            custom_name: timestamp
+    custom_column_names:
+        timestamp: timestamp
+    custom_root_fields: {}
+object_relationships:
+    - name: apitoken
+      using:
+        foreign_key_constraint_on: apitokens_id
+    - name: eventstepinstance
+      using:
+        foreign_key_constraint_on: eventstepinstance_id
+    - name: filemetum
+      using:
+        foreign_key_constraint_on: file_id
+    - name: operation
+      using:
+        foreign_key_constraint_on: operation_id
+    - name: operator
+      using:
+        foreign_key_constraint_on: operator_id
+    - name: payload
+      using:
+        foreign_key_constraint_on: wrapped_payload_id
+    - name: payloadtype
+      using:
+        foreign_key_constraint_on: payload_type_id
+    - name: task
+      using:
+        foreign_key_constraint_on: task_id
 select_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - auto_generated
-        - callback_alert
-        - callback_allowed
-        - deleted
-        - apitokens_id
-        - eventstepinstance_id
-        - file_id
-        - id
-        - operation_id
-        - operator_id
-        - payload_type_id
-        - task_id
-        - wrapped_payload_id
-        - build_container
-        - build_metadata
-        - build_message
-        - build_phase
-        - build_stderr
-        - build_stdout
-        - description
-        - os
-        - payload_type_semver
-        - uuid
-        - creation_time
-        - timestamp
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-payload-read-operation
-      allow_aggregations: true
-  - role: operation_admin
-    permission:
-      columns:
-        - auto_generated
-        - callback_alert
-        - callback_allowed
-        - deleted
-        - apitokens_id
-        - eventstepinstance_id
-        - file_id
-        - id
-        - operation_id
-        - operator_id
-        - payload_type_id
-        - task_id
-        - wrapped_payload_id
-        - build_container
-        - build_metadata
-        - build_message
-        - build_phase
-        - build_stderr
-        - build_stdout
-        - description
-        - os
-        - payload_type_semver
-        - uuid
-        - creation_time
-        - timestamp
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-payload-read-operation
-      allow_aggregations: true
-  - role: operator
-    permission:
-      columns:
-        - auto_generated
-        - callback_alert
-        - callback_allowed
-        - deleted
-        - apitokens_id
-        - eventstepinstance_id
-        - file_id
-        - id
-        - operation_id
-        - operator_id
-        - payload_type_id
-        - task_id
-        - wrapped_payload_id
-        - build_container
-        - build_metadata
-        - build_message
-        - build_phase
-        - build_stderr
-        - build_stdout
-        - description
-        - os
-        - payload_type_semver
-        - uuid
-        - creation_time
-        - timestamp
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-payload-read-operation
-      allow_aggregations: true
-  - role: spectator
-    permission:
-      columns:
-        - auto_generated
-        - callback_alert
-        - callback_allowed
-        - deleted
-        - apitokens_id
-        - eventstepinstance_id
-        - file_id
-        - id
-        - operation_id
-        - operator_id
-        - payload_type_id
-        - task_id
-        - wrapped_payload_id
-        - build_container
-        - build_metadata
-        - build_message
-        - build_phase
-        - build_stderr
-        - build_stdout
-        - description
-        - os
-        - payload_type_semver
-        - uuid
-        - creation_time
-        - timestamp
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-payload-read-operation
-      allow_aggregations: true
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - auto_generated
+            - callback_alert
+            - callback_allowed
+            - deleted
+            - apitokens_id
+            - eventstepinstance_id
+            - file_id
+            - id
+            - operation_id
+            - operator_id
+            - payload_type_id
+            - task_id
+            - wrapped_payload_id
+            - build_container
+            - build_metadata
+            - build_message
+            - build_phase
+            - build_stderr
+            - build_stdout
+            - description
+            - os
+            - payload_type_semver
+            - uuid
+            - creation_time
+            - timestamp
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-payload-read-operation-ids
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - auto_generated
+            - callback_alert
+            - callback_allowed
+            - deleted
+            - apitokens_id
+            - eventstepinstance_id
+            - file_id
+            - id
+            - operation_id
+            - operator_id
+            - payload_type_id
+            - task_id
+            - wrapped_payload_id
+            - build_container
+            - build_metadata
+            - build_message
+            - build_phase
+            - build_stderr
+            - build_stdout
+            - description
+            - os
+            - payload_type_semver
+            - uuid
+            - creation_time
+            - timestamp
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-payload-read-operation-ids
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - auto_generated
+            - callback_alert
+            - callback_allowed
+            - deleted
+            - apitokens_id
+            - eventstepinstance_id
+            - file_id
+            - id
+            - operation_id
+            - operator_id
+            - payload_type_id
+            - task_id
+            - wrapped_payload_id
+            - build_container
+            - build_metadata
+            - build_message
+            - build_phase
+            - build_stderr
+            - build_stdout
+            - description
+            - os
+            - payload_type_semver
+            - uuid
+            - creation_time
+            - timestamp
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-payload-read-operation-ids
+      role: operator
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - auto_generated
+            - callback_alert
+            - callback_allowed
+            - deleted
+            - apitokens_id
+            - eventstepinstance_id
+            - file_id
+            - id
+            - operation_id
+            - operator_id
+            - payload_type_id
+            - task_id
+            - wrapped_payload_id
+            - build_container
+            - build_metadata
+            - build_message
+            - build_phase
+            - build_stderr
+            - build_stdout
+            - description
+            - os
+            - payload_type_semver
+            - uuid
+            - creation_time
+            - timestamp
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-payload-read-operation-ids
+      role: spectator
+table:
+    name: payload
+    schema: public

@@ -1,6 +1,7 @@
 package webcontroller
 
 import (
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/rabbitmq"
 	"net/http"
 
@@ -29,16 +30,7 @@ type GetPreferencesResponse struct {
 
 func GetPreferencesWebhook(c *gin.Context) {
 	// get the associated database information
-	userID, err := GetUserIDFromGin(c)
-	if err != nil {
-		logging.LogError(err, "Failed to get userID from JWT")
-		c.JSON(http.StatusOK, GetPreferencesResponse{
-			Status: "error",
-			Error:  err.Error(),
-		})
-		return
-	}
-	me, err := database.GetUserFromID(userID)
+	me, err := authentication.GetRequestUser(c)
 	if err != nil {
 		logging.LogError(err, "Failed to get target user information from database")
 		c.JSON(http.StatusOK, GetPreferencesResponse{

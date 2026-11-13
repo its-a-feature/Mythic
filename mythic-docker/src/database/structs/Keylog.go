@@ -1,6 +1,7 @@
 package databaseStructs
 
 import (
+	authz "github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/utils/structs"
 	"time"
 )
@@ -16,4 +17,17 @@ type Keylog struct {
 	Operation   Operation         `db:"operation" json:"-"`
 	User        string            `db:"user" json:"user" mapstructure:"user"`
 	APITokensID structs.NullInt64 `db:"apitokens_id" json:"api_tokens_id" mapstructure:"apitokens_id"`
+}
+
+// AuthorizationPolicy keeps keylog permissions beside its database model.
+func (Keylog) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table:         authz.TableRef{Schema: "public", Name: "keylog"},
+		OperationPath: []string{"operation_id"},
+		Read:          authz.Rule{Permission: authz.SCOPE_RESPONSE_READ},
+		Write:         authz.Rule{Permission: authz.SCOPE_RESPONSE_WRITE},
+		Relationships: []authz.RelationshipBinding{
+			{Name: "apitoken", Target: Apitokens{}},
+		},
+	}
 }

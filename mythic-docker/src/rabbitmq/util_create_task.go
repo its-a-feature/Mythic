@@ -692,6 +692,7 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 			callback.ID,
 			selectedParameterGroupName,
 			createTaskInput.Params,
+			createTaskInput.AuthContext.ScopeSet(),
 		)
 		if err != nil {
 			logging.LogError(err, "Failed to expand task references")

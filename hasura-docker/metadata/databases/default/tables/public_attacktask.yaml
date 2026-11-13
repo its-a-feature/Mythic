@@ -1,112 +1,112 @@
-table:
-  name: attacktask
-  schema: public
-object_relationships:
-  - name: attack
-    using:
-      foreign_key_constraint_on: attack_id
-  - name: task
-    using:
-      foreign_key_constraint_on: task_id
-select_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - id
-        - attack_id
-        - task_id
-      filter:
-        _and:
-          - task:
-              callback:
-                operation_id:
-                  _eq: X-Hasura-current-operation-id
-          - task:
-              callback:
-                operation_id:
-                  _lte: X-Hasura-Scope-task-read-operation
-  - role: operation_admin
-    permission:
-      columns:
-        - id
-        - attack_id
-        - task_id
-      filter:
-        _and:
-          - task:
-              callback:
-                operation_id:
-                  _eq: X-Hasura-current-operation-id
-          - task:
-              callback:
-                operation_id:
-                  _lte: X-Hasura-Scope-task-read-operation
-  - role: operator
-    permission:
-      columns:
-        - id
-        - attack_id
-        - task_id
-      filter:
-        _and:
-          - task:
-              callback:
-                operation_id:
-                  _eq: X-Hasura-current-operation-id
-          - task:
-              callback:
-                operation_id:
-                  _lte: X-Hasura-Scope-task-read-operation
-  - role: spectator
-    permission:
-      columns:
-        - id
-        - attack_id
-        - task_id
-      filter:
-        _and:
-          - task:
-              callback:
-                operation_id:
-                  _eq: X-Hasura-current-operation-id
-          - task:
-              callback:
-                operation_id:
-                  _lte: X-Hasura-Scope-task-read-operation
 delete_permissions:
-  - role: mythic_admin
-    permission:
-      filter:
-        _and:
-          - task:
-              callback:
-                operation_id:
-                  _eq: X-Hasura-current-operation-id
-          - task:
-              callback:
-                operation_id:
-                  _lte: X-Hasura-Scope-task-write-operation
-  - role: operation_admin
-    permission:
-      filter:
-        _and:
-          - task:
-              callback:
-                operation_id:
-                  _eq: X-Hasura-current-operation-id
-          - task:
-              callback:
-                operation_id:
-                  _lte: X-Hasura-Scope-task-write-operation
-  - role: operator
-    permission:
-      filter:
-        _and:
-          - task:
-              callback:
-                operation_id:
-                  _eq: X-Hasura-current-operation-id
-          - task:
-              callback:
-                operation_id:
-                  _lte: X-Hasura-Scope-task-write-operation
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        filter:
+            _and:
+                - task:
+                    callback:
+                        operation_id:
+                            _eq: X-Hasura-current-operation-id
+                - task:
+                    operation_id:
+                        _in: x-hasura-task-write-operation-ids
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        filter:
+            _and:
+                - task:
+                    callback:
+                        operation_id:
+                            _eq: X-Hasura-current-operation-id
+                - task:
+                    operation_id:
+                        _in: x-hasura-task-write-operation-ids
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        filter:
+            _and:
+                - task:
+                    callback:
+                        operation_id:
+                            _eq: X-Hasura-current-operation-id
+                - task:
+                    operation_id:
+                        _in: x-hasura-task-write-operation-ids
+      role: operator
+object_relationships:
+    - name: attack
+      using:
+        foreign_key_constraint_on: attack_id
+    - name: task
+      using:
+        foreign_key_constraint_on: task_id
+select_permissions:
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - id
+            - attack_id
+            - task_id
+        filter:
+            _and:
+                - task:
+                    callback:
+                        operation_id:
+                            _eq: X-Hasura-current-operation-id
+                - task:
+                    operation_id:
+                        _in: x-hasura-task-read-operation-ids
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - id
+            - attack_id
+            - task_id
+        filter:
+            _and:
+                - task:
+                    callback:
+                        operation_id:
+                            _eq: X-Hasura-current-operation-id
+                - task:
+                    operation_id:
+                        _in: x-hasura-task-read-operation-ids
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - id
+            - attack_id
+            - task_id
+        filter:
+            _and:
+                - task:
+                    callback:
+                        operation_id:
+                            _eq: X-Hasura-current-operation-id
+                - task:
+                    operation_id:
+                        _in: x-hasura-task-read-operation-ids
+      role: operator
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        columns:
+            - id
+            - attack_id
+            - task_id
+        filter:
+            _and:
+                - task:
+                    callback:
+                        operation_id:
+                            _eq: X-Hasura-current-operation-id
+                - task:
+                    operation_id:
+                        _in: x-hasura-task-read-operation-ids
+      role: spectator
+table:
+    name: attacktask
+    schema: public

@@ -1,6 +1,7 @@
 package webcontroller
 
 import (
+	"github.com/its-a-feature/Mythic/authentication"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -47,7 +48,7 @@ func UpdateOperatorPasswordWebhook(c *gin.Context) {
 		})
 		return
 	}
-	callingUser, err := database.GetUserFromID(userID)
+	callingUser, err := authentication.GetRequestUser(c)
 	if err != nil {
 		logging.LogError(err, "Failed to get calling user information from database")
 		c.JSON(http.StatusOK, UpdateOperatorPasswordResponse{

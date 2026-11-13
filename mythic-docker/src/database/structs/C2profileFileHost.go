@@ -1,6 +1,7 @@
 package databaseStructs
 
 import (
+	authz "github.com/its-a-feature/Mythic/authorization"
 	"time"
 
 	"github.com/its-a-feature/Mythic/utils/structs"
@@ -32,4 +33,14 @@ type C2profileFileHost struct {
 	EventStepInstanceID structs.NullInt64 `db:"eventstepinstance_id" json:"event_step_instance_id" mapstructure:"event_step_instance_id"`
 	EventStepInstance   EventStepInstance `db:"eventstepinstance" json:"eventstepinstance"`
 	UpdatedAt           time.Time         `db:"updated_at" json:"updated_at" mapstructure:"updated_at"`
+}
+
+// AuthorizationPolicy keeps c2profile_file_host permissions beside its database model.
+func (C2profileFileHost) AuthorizationPolicy() authz.ResourcePolicy {
+	return authz.ResourcePolicy{
+		Table:         authz.TableRef{Schema: "public", Name: "c2profile_file_host"},
+		OperationPath: []string{"operation_id"},
+		Read:          authz.Rule{Permission: authz.SCOPE_FILE_READ},
+		Write:         authz.Rule{Permission: authz.SCOPE_FILE_WRITE},
+	}
 }

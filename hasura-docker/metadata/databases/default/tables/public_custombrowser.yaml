@@ -1,100 +1,112 @@
-table:
-  name: custombrowser
-  schema: public
 select_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - container_running
-        - deleted
-        - indicate_partial_listing
-        - show_current_path
-        - id
-        - columns
-        - default_visible_columns
-        - extra_table_inputs
-        - row_actions
-        - author
-        - description
-        - export_function
-        - name
-        - semver
-        - separator
-        - type
-        - display_name
-      filter: {}
-    comment: ""
-  - role: operation_admin
-    permission:
-      columns:
-        - container_running
-        - deleted
-        - indicate_partial_listing
-        - show_current_path
-        - id
-        - columns
-        - default_visible_columns
-        - extra_table_inputs
-        - row_actions
-        - author
-        - description
-        - export_function
-        - name
-        - semver
-        - separator
-        - type
-        - display_name
-      filter: {}
-    comment: ""
-  - role: operator
-    permission:
-      columns:
-        - container_running
-        - deleted
-        - indicate_partial_listing
-        - show_current_path
-        - id
-        - columns
-        - default_visible_columns
-        - extra_table_inputs
-        - row_actions
-        - author
-        - description
-        - export_function
-        - name
-        - semver
-        - separator
-        - type
-        - display_name
-      filter: {}
-    comment: ""
-  - role: spectator
-    permission:
-      columns:
-        - container_running
-        - deleted
-        - indicate_partial_listing
-        - show_current_path
-        - id
-        - columns
-        - default_visible_columns
-        - extra_table_inputs
-        - row_actions
-        - author
-        - description
-        - export_function
-        - name
-        - semver
-        - separator
-        - type
-        - display_name
-      filter: {}
-    comment: ""
+    - permission:
+        columns:
+            - container_running
+            - deleted
+            - indicate_partial_listing
+            - show_current_path
+            - id
+            - columns
+            - default_visible_columns
+            - extra_table_inputs
+            - row_actions
+            - author
+            - description
+            - export_function
+            - name
+            - semver
+            - separator
+            - type
+            - display_name
+        filter: {}
+      role: mythic_admin
+    - permission:
+        columns:
+            - container_running
+            - deleted
+            - indicate_partial_listing
+            - show_current_path
+            - id
+            - columns
+            - default_visible_columns
+            - extra_table_inputs
+            - row_actions
+            - author
+            - description
+            - export_function
+            - name
+            - semver
+            - separator
+            - type
+            - display_name
+        filter: {}
+      role: operation_admin
+    - permission:
+        columns:
+            - container_running
+            - deleted
+            - indicate_partial_listing
+            - show_current_path
+            - id
+            - columns
+            - default_visible_columns
+            - extra_table_inputs
+            - row_actions
+            - author
+            - description
+            - export_function
+            - name
+            - semver
+            - separator
+            - type
+            - display_name
+        filter: {}
+      role: operator
+    - permission:
+        columns:
+            - container_running
+            - deleted
+            - indicate_partial_listing
+            - show_current_path
+            - id
+            - columns
+            - default_visible_columns
+            - extra_table_inputs
+            - row_actions
+            - author
+            - description
+            - export_function
+            - name
+            - semver
+            - separator
+            - type
+            - display_name
+        filter: {}
+      role: spectator
+table:
+    name: custombrowser
+    schema: public
 update_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - deleted
-      filter: {}
-      check: null
-    comment: ""
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        check:
+            _and:
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-mythic-write-actor-ids
+        columns:
+            - deleted
+        filter:
+            _and:
+                - _exists:
+                    _table:
+                        name: operator
+                        schema: public
+                    _where:
+                        id:
+                            _in: x-hasura-mythic-write-actor-ids
+      role: mythic_admin

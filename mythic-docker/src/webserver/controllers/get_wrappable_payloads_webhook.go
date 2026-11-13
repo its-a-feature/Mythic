@@ -2,10 +2,10 @@ package webcontroller
 
 import (
 	"fmt"
+	"github.com/its-a-feature/Mythic/authentication"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/its-a-feature/Mythic/database"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/rabbitmq"
 )
@@ -60,14 +60,7 @@ func GetWrappablePayloadsWebhook(c *gin.Context) {
 		c.JSON(http.StatusOK, response)
 		return
 	}
-
-	userID, err := GetUserIDFromGin(c)
-	if err != nil {
-		response.Error = err.Error()
-		c.JSON(http.StatusOK, response)
-		return
-	}
-	user, err := database.GetUserFromID(userID)
+	user, err := authentication.GetRequestUser(c)
 	if err != nil || user.CurrentOperationID.Int64 == 0 {
 		response.Error = "failed to determine current operation"
 		c.JSON(http.StatusOK, response)

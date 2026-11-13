@@ -1,110 +1,114 @@
-table:
-  name: callbackport
-  schema: public
 object_relationships:
-  - name: callback
-    using:
-      foreign_key_constraint_on: callback_id
-  - name: operation
-    using:
-      foreign_key_constraint_on: operation_id
-  - name: task
-    using:
-      foreign_key_constraint_on: task_id
+    - name: callback
+      using:
+        foreign_key_constraint_on: callback_id
+    - name: operation
+      using:
+        foreign_key_constraint_on: operation_id
+    - name: task
+      using:
+        foreign_key_constraint_on: task_id
 select_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - bytes_received
-        - bytes_sent
-        - deleted
-        - callback_id
-        - id
-        - local_port
-        - operation_id
-        - remote_port
-        - task_id
-        - password
-        - port_type
-        - remote_ip
-        - username
-        - updated_at
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-callback-read-operation
-      allow_aggregations: true
-  - role: operation_admin
-    permission:
-      columns:
-        - bytes_received
-        - bytes_sent
-        - deleted
-        - callback_id
-        - id
-        - local_port
-        - operation_id
-        - remote_port
-        - task_id
-        - password
-        - port_type
-        - remote_ip
-        - username
-        - updated_at
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-callback-read-operation
-      allow_aggregations: true
-  - role: operator
-    permission:
-      columns:
-        - bytes_received
-        - bytes_sent
-        - deleted
-        - callback_id
-        - id
-        - local_port
-        - operation_id
-        - remote_port
-        - task_id
-        - password
-        - port_type
-        - remote_ip
-        - username
-        - updated_at
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-callback-read-operation
-      allow_aggregations: true
-  - role: spectator
-    permission:
-      columns:
-        - bytes_received
-        - bytes_sent
-        - deleted
-        - callback_id
-        - id
-        - local_port
-        - operation_id
-        - remote_port
-        - task_id
-        - password
-        - port_type
-        - remote_ip
-        - username
-        - updated_at
-      filter:
-        _and:
-          - operation_id:
-              _eq: X-Hasura-current-operation-id
-          - operation_id:
-              _lte: X-Hasura-Scope-callback-read-operation
-      allow_aggregations: true
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - bytes_received
+            - bytes_sent
+            - deleted
+            - callback_id
+            - id
+            - local_port
+            - operation_id
+            - remote_port
+            - task_id
+            - password
+            - port_type
+            - remote_ip
+            - username
+            - updated_at
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-callback-read-operation-ids
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - bytes_received
+            - bytes_sent
+            - deleted
+            - callback_id
+            - id
+            - local_port
+            - operation_id
+            - remote_port
+            - task_id
+            - password
+            - port_type
+            - remote_ip
+            - username
+            - updated_at
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-callback-read-operation-ids
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - bytes_received
+            - bytes_sent
+            - deleted
+            - callback_id
+            - id
+            - local_port
+            - operation_id
+            - remote_port
+            - task_id
+            - password
+            - port_type
+            - remote_ip
+            - username
+            - updated_at
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-callback-read-operation-ids
+      role: operator
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - bytes_received
+            - bytes_sent
+            - deleted
+            - callback_id
+            - id
+            - local_port
+            - operation_id
+            - remote_port
+            - task_id
+            - password
+            - port_type
+            - remote_ip
+            - username
+            - updated_at
+        filter:
+            _and:
+                - operation_id:
+                    _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-callback-read-operation-ids
+      role: spectator
+table:
+    name: callbackport
+    schema: public

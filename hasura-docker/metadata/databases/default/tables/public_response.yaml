@@ -1,158 +1,154 @@
-table:
-  name: response
-  schema: public
-configuration:
-  column_config:
-    response:
-      custom_name: response_raw
-  custom_column_names:
-    response: response_raw
-  custom_root_fields: {}
-object_relationships:
-  - name: apitoken
-    using:
-      foreign_key_constraint_on: apitokens_id
-  - name: eventstepinstance
-    using:
-      foreign_key_constraint_on: eventstepinstance_id
-  - name: operation
-    using:
-      manual_configuration:
-        column_mapping:
-          operation_id: id
-        insertion_order: null
-        remote_table:
-          name: operation
-          schema: public
-  - name: task
-    using:
-      foreign_key_constraint_on: task_id
 array_relationships:
-  - name: tags
-    using:
-      foreign_key_constraint_on:
-        column: response_id
-        table:
-          name: tag
-          schema: public
+    - name: tags
+      using:
+        foreign_key_constraint_on:
+            column: response_id
+            table:
+                name: tag
+                schema: public
 computed_fields:
-  - name: response_escape
-    definition:
-      function:
-        name: response_escape
-        schema: public
-  - name: response_text
-    definition:
-      function:
-        name: response
-        schema: public
-    comment: convert bytea to text for responses
+    - definition:
+        function:
+            name: response_escape
+            schema: public
+      name: response_escape
+    - comment: convert bytea to text for responses
+      definition:
+        function:
+            name: response
+            schema: public
+      name: response_text
+configuration:
+    column_config:
+        response:
+            custom_name: response_raw
+    custom_column_names:
+        response: response_raw
+    custom_root_fields: {}
+object_relationships:
+    - name: apitoken
+      using:
+        foreign_key_constraint_on: apitokens_id
+    - name: eventstepinstance
+      using:
+        foreign_key_constraint_on: eventstepinstance_id
+    - name: operation
+      using:
+        manual_configuration:
+            column_mapping:
+                operation_id: id
+            insertion_order: null
+            remote_table:
+                name: operation
+                schema: public
+    - name: task
+      using:
+        foreign_key_constraint_on: task_id
 select_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - apitokens_id
-        - eventstepinstance_id
-        - id
-        - interactive_task_type
-        - is_error
-        - operation_id
-        - response
-        - sequence_number
-        - task_id
-        - timestamp
-      computed_fields:
-        - response_escape
-        - response_text
-      filter:
-        _and:
-          - task:
-              callback:
-                operation_id:
-                  _eq: X-Hasura-current-operation-id
-          - task:
-              callback:
-                operation_id:
-                  _lte: X-Hasura-Scope-response-read-operation
-      allow_aggregations: true
-  - role: operation_admin
-    permission:
-      columns:
-        - apitokens_id
-        - eventstepinstance_id
-        - id
-        - interactive_task_type
-        - is_error
-        - operation_id
-        - response
-        - sequence_number
-        - task_id
-        - timestamp
-      computed_fields:
-        - response_escape
-        - response_text
-      filter:
-        _and:
-          - task:
-              callback:
-                operation_id:
-                  _eq: X-Hasura-current-operation-id
-          - task:
-              callback:
-                operation_id:
-                  _lte: X-Hasura-Scope-response-read-operation
-      allow_aggregations: true
-  - role: operator
-    permission:
-      columns:
-        - apitokens_id
-        - eventstepinstance_id
-        - id
-        - interactive_task_type
-        - is_error
-        - operation_id
-        - response
-        - sequence_number
-        - task_id
-        - timestamp
-      computed_fields:
-        - response_escape
-        - response_text
-      filter:
-        _and:
-          - task:
-              callback:
-                operation_id:
-                  _eq: X-Hasura-current-operation-id
-          - task:
-              callback:
-                operation_id:
-                  _lte: X-Hasura-Scope-response-read-operation
-      allow_aggregations: true
-  - role: spectator
-    permission:
-      columns:
-        - is_error
-        - response
-        - apitokens_id
-        - eventstepinstance_id
-        - id
-        - interactive_task_type
-        - operation_id
-        - sequence_number
-        - task_id
-        - timestamp
-      computed_fields:
-        - response_escape
-        - response_text
-      filter:
-        _and:
-          - task:
-              callback:
-                operation_id:
-                  _eq: X-Hasura-current-operation-id
-          - task:
-              callback:
-                operation_id:
-                  _lte: X-Hasura-Scope-response-read-operation
-      allow_aggregations: true
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - apitokens_id
+            - eventstepinstance_id
+            - id
+            - interactive_task_type
+            - is_error
+            - operation_id
+            - response
+            - sequence_number
+            - task_id
+            - timestamp
+        computed_fields:
+            - response_escape
+            - response_text
+        filter:
+            _and:
+                - task:
+                    callback:
+                        operation_id:
+                            _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-response-read-operation-ids
+      role: mythic_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - apitokens_id
+            - eventstepinstance_id
+            - id
+            - interactive_task_type
+            - is_error
+            - operation_id
+            - response
+            - sequence_number
+            - task_id
+            - timestamp
+        computed_fields:
+            - response_escape
+            - response_text
+        filter:
+            _and:
+                - task:
+                    callback:
+                        operation_id:
+                            _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-response-read-operation-ids
+      role: operation_admin
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - apitokens_id
+            - eventstepinstance_id
+            - id
+            - interactive_task_type
+            - is_error
+            - operation_id
+            - response
+            - sequence_number
+            - task_id
+            - timestamp
+        computed_fields:
+            - response_escape
+            - response_text
+        filter:
+            _and:
+                - task:
+                    callback:
+                        operation_id:
+                            _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-response-read-operation-ids
+      role: operator
+    - comment: 'authzgen: final _and term in filter/check is generated; edit the preceding row restrictions.'
+      permission:
+        allow_aggregations: true
+        columns:
+            - is_error
+            - response
+            - apitokens_id
+            - eventstepinstance_id
+            - id
+            - interactive_task_type
+            - operation_id
+            - sequence_number
+            - task_id
+            - timestamp
+        computed_fields:
+            - response_escape
+            - response_text
+        filter:
+            _and:
+                - task:
+                    callback:
+                        operation_id:
+                            _eq: X-Hasura-current-operation-id
+                - operation_id:
+                    _in: x-hasura-response-read-operation-ids
+      role: spectator
+table:
+    name: response
+    schema: public

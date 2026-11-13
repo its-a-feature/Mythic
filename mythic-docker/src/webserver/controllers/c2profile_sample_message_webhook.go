@@ -39,16 +39,7 @@ func C2ProfileSampleMessageWebhook(c *gin.Context) {
 		})
 		return
 	}
-	userID, err := GetUserIDFromGin(c)
-	if err != nil {
-		logging.LogError(err, "Failed to get userID from JWT")
-		c.JSON(http.StatusOK, GetC2SampleMessageResponse{
-			Status: "error",
-			Error:  err.Error(),
-		})
-		return
-	}
-	user, err := database.GetUserFromID(userID)
+	user, err := authentication.GetRequestUser(c)
 	if err != nil {
 		logging.LogError(err, "Failed to get userID from JWT")
 		c.JSON(http.StatusOK, GetC2SampleMessageResponse{

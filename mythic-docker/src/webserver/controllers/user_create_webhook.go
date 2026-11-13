@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -87,15 +88,7 @@ func CreateOperatorWebhook(c *gin.Context) {
 		newOperator.AccountType = databaseStructs.AccountTypeUser
 	}
 	newOperator.Password = database.HashUserPassword(newOperator, input.Input.Input.Password)
-	operatorID, err := GetUserIDFromGin(c)
-	if err != nil {
-		c.JSON(http.StatusOK, CreateOperatorResponse{
-			Status: "error",
-			Error:  "Failed to get user information",
-		})
-		return
-	}
-	operator, err := database.GetUserFromID(operatorID)
+	operator, err := authentication.GetRequestUser(c)
 	if err != nil {
 		c.JSON(http.StatusOK, CreateOperatorResponse{
 			Status: "error",

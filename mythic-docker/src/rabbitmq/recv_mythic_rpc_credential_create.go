@@ -3,7 +3,7 @@ package rabbitmq
 import (
 	"encoding/json"
 
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -26,7 +26,7 @@ func init() {
 		Queue:      MYTHIC_RPC_CREDENTIAL_CREATE,
 		RoutingKey: MYTHIC_RPC_CREDENTIAL_CREATE,
 		Handler:    processMythicRPCCredentialCreate,
-		Scopes:     []string{mythicjwt.SCOPE_CREDENTIAL_WRITE},
+		Scopes:     []string{authorization.SCOPE_CREDENTIAL_WRITE},
 	})
 }
 

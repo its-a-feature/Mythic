@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+	"github.com/its-a-feature/Mythic/authorization"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -25,7 +25,7 @@ func init() {
 		Queue:      PT_ON_NEW_CALLBACK_RESPONSE_ROUTING_KEY,
 		RoutingKey: PT_ON_NEW_CALLBACK_RESPONSE_ROUTING_KEY,
 		Handler:    processOnNewCallbackResponse,
-		Scopes:     []string{mythicjwt.SCOPE_CALLBACK_WRITE},
+		Scopes:     []string{authorization.SCOPE_CALLBACK_WRITE},
 	})
 
 }

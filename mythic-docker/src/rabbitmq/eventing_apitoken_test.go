@@ -1,11 +1,10 @@
 package rabbitmq
 
 import (
+	"github.com/its-a-feature/Mythic/authorization"
 	"reflect"
 	"strings"
 	"testing"
-
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 )
 
 func TestEventStepInputAPITokenScopes(t *testing.T) {
@@ -27,10 +26,10 @@ func TestEventStepInputAPITokenScopes(t *testing.T) {
 			wantToken: false,
 		},
 		{
-			name:       "scoped object normalizes scopes",
+			name:       "scope text is preserved until issuance",
 			input:      map[string]interface{}{"type": "mythic.apitoken", "scopes": []interface{}{" Task.Read ", "response.write"}},
 			wantToken:  true,
-			wantScopes: []string{mythicjwt.SCOPE_RESPONSE_WRITE, mythicjwt.SCOPE_TASK_READ},
+			wantScopes: []string{" Task.Read ", "response.write"},
 		},
 		{
 			name:       "wildcard scope is accepted",
@@ -42,13 +41,13 @@ func TestEventStepInputAPITokenScopes(t *testing.T) {
 			name:       "full access object is accepted",
 			input:      map[string]interface{}{"type": "mythic.apitoken", "scopes": []interface{}{"*"}},
 			wantToken:  true,
-			wantScopes: []string{mythicjwt.SCOPE_ALL},
+			wantScopes: []string{authorization.SCOPE_ALL},
 		},
 		{
 			name:       "string slice scopes are accepted",
 			input:      map[string]interface{}{"type": "mythic.apitoken", "scopes": []interface{}{"file.read"}},
 			wantToken:  true,
-			wantScopes: []string{mythicjwt.SCOPE_FILE_READ},
+			wantScopes: []string{authorization.SCOPE_FILE_READ},
 		},
 		{
 			name:      "other string is not a token request",
@@ -73,16 +72,16 @@ func TestEventStepInputAPITokenScopes(t *testing.T) {
 			wantErr:   "at least one scope",
 		},
 		{
-			name:      "blank scopes errors",
-			input:     map[string]interface{}{"type": "mythic.apitoken", "scopes": []interface{}{"  "}},
-			wantToken: true,
-			wantErr:   "at least one scope",
+			name:       "blank scopes errors",
+			input:      map[string]interface{}{"type": "mythic.apitoken", "scopes": []interface{}{"  "}},
+			wantToken:  true,
+			wantScopes: []string{"  "},
 		},
 		{
-			name:      "unknown scopes error",
-			input:     map[string]interface{}{"type": "mythic.apitoken", "scopes": []interface{}{"nope.read"}},
-			wantToken: true,
-			wantErr:   "unknown API token scope",
+			name:       "unknown scopes error",
+			input:      map[string]interface{}{"type": "mythic.apitoken", "scopes": []interface{}{"nope.read"}},
+			wantToken:  true,
+			wantScopes: []string{"nope.read"},
 		},
 		{
 			name:      "scope list must contain strings",

@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- API tokens require an explicit operation and nonempty scopes. Grants are expanded when issued and remain fixed; existing tokens must be reissued.
+- Model-local Go authorization policies update shared Hasura role permissions in `hasura-docker/metadata` and generate HTTP GraphQL preflight rules for Hasura's auth webhook. Sessions and API tokens use the same roles; missing token permissions reject the complete HTTP operation or batch before execution. `scopeCheck` remains available for specific permission diagnostics.
+- Token operation and owner are immutable. Removing the owner from an operation permanently revokes its tokens; child tokens remain independent of their issuing credential.
+- Added `credential.value.read` for raw and decoded credential values, independently of metadata read/write grants. Enforcement is toggled by the `FieldReads` block in `database/structs/Credential.go`, followed by authorization generation and a server/metadata rebuild. Hasura, direct Action/RPC responses and credential task references share the model rule.
+
 ## [4.0.9] - 2026-11-04
 
 ### Changed
