@@ -44,6 +44,7 @@ import { MythicAgentSVGIconNoTooltip} from "../../MythicComponents/MythicAgentSV
 import {ImageWithAuth} from "../../utilities/ImageWithAuth";
 import {MythicDialogButton, MythicDialogFooter} from "../../MythicComponents/MythicDialogLayout";
 import {MythicChip} from "../../MythicComponents/MythicChip";
+import {addC2LayoutData, getC2LayoutEdges, getC2EdgeGeometry} from './c2EdgeLayout';
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -1135,6 +1136,77 @@ export function GroupNode({data}) {
 }
 const nodeTypes = { "agentNode": AgentNode, "groupNode rounded": GroupNode, "taskNode": TaskNode, "browserscriptNode": BrowserscriptNode };
 
+const C2EdgeLabelContent = ({label, data, measuring = false}) => data?.collapsedGroupEdge ? (
+    <button
+        type="button"
+        tabIndex={measuring ? -1 : undefined}
+        className={`mythic-c2-group-edge-summary border-neutral-3 text-2xs leading-100 items-center inline-flex gap-3 mythic-c2-group-edge-summary-${data.routeSummary?.tone || "neutral"} rounded-full cursor-pointer bg-surface text-muted shadow-3 whitespace-nowrap`}
+        onClick={(event) => {
+            event.stopPropagation();
+            data.onInspectCollapsedEdge?.(data.summaryDetails);
+        }}
+    >
+        <span>{data.routeSummary?.activeRouteCount || 0} routes</span>
+        <span>{data.routeSummary?.activeEdgeCount || 0} active</span>
+        <span>{data.routeSummary?.endedEdgeCount || 0} ended</span>
+    </button>
+) : label ? (
+    <MythicChip
+        icon={data?.has_logo ?
+            <MythicAgentSVGIconNoTooltip
+                payload_type={label}
+                is_p2p={data.is_p2p}
+                className="mythic-c2-edge-profile-icon inline-flex flex-none justify-center"
+            /> : undefined}
+        label={label}
+    />
+) : null;
+
+// Measure outside the zoomed viewport, using the same content, styles and theme as the labels.
+const C2EdgeLabelMeasurements = ({edges, onMeasure}) => {
+    const containerRef = React.useRef(null);
+    const theme = useTheme();
+    const entries = React.useMemo(() => {
+        const unique = new Map();
+        edges.forEach((edge) => {
+            if(edge.hidden || (!edge.label && !edge.data?.collapsedGroupEdge)){return}
+            const key = JSON.stringify([edge.label, edge.data?.has_logo, edge.data?.is_p2p,
+                edge.data?.collapsedGroupEdge, edge.data?.routeSummary]);
+            if(!unique.has(key)){unique.set(key, {edge, ids: []})}
+            unique.get(key).ids.push(edge.id);
+        });
+        return Array.from(unique.values());
+    }, [edges]);
+    React.useLayoutEffect(() => {
+        let cancelled = false;
+        const measure = () => {
+            if(cancelled){return}
+            const sizes = {};
+            Array.from(containerRef.current.children).forEach((element, index) => {
+                const width = Math.ceil(element.offsetWidth);
+                const height = Math.ceil(element.offsetHeight);
+                entries[index].ids.forEach((id) => {sizes[id] = {width, height}});
+            });
+            onMeasure((current) => current?.edges === edges && JSON.stringify(current.sizes) === JSON.stringify(sizes) ?
+                current : {edges, sizes});
+        };
+        measure();
+        const observer = new ResizeObserver(measure);
+        Array.from(containerRef.current.children).forEach((element) => observer.observe(element));
+        document.fonts?.ready.then(measure);
+        return () => {cancelled = true; observer.disconnect()};
+    }, [edges, entries, onMeasure, theme]);
+    return (
+        <div ref={containerRef} aria-hidden="true" style={{position: "absolute", visibility: "hidden", pointerEvents: "none", width: "max-content", top: 0, left: 0}}>
+            {entries.map(({edge}) => (
+                <div key={edge.id} className="mythic-c2-edge-label" style={{width: "max-content"}}>
+                    <C2EdgeLabelContent label={edge.label} data={edge.data} measuring />
+                </div>
+            ))}
+        </div>
+    );
+};
+
 export function C2LabelEdge({  id,  sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data,
                                 labelStyle, markerStart, markerEnd, labelBgStyle, style, label
                             }){
@@ -1146,63 +1218,30 @@ export function C2LabelEdge({  id,  sourceX, sourceY, targetX, targetY, sourcePo
         targetY,
         targetPosition,
     });
-    const showProfileLabel = !data?.collapsedGroupEdge && Boolean(label);
-    const sourceAnchoredLabel = data?.collapsedGroupEdge || showProfileLabel;
-    const sourceAnchoredLabelRatio = 0.05;
-    const sourceLabelOffset = data?.collapsedGroupEdge ? 0 : 20;
-    const sourceLabelOffsetX = sourcePosition === Position.Right ? sourceLabelOffset :
-        sourcePosition === Position.Left ? -sourceLabelOffset : 0;
-    const sourceLabelOffsetY = sourcePosition === Position.Bottom ? sourceLabelOffset :
-        sourcePosition === Position.Top ? -sourceLabelOffset : 0;
-    const edgeLabelX = sourceAnchoredLabel ? sourceX + ((targetX - sourceX) * sourceAnchoredLabelRatio) + sourceLabelOffsetX : labelX;
-    const edgeLabelY = sourceAnchoredLabel ? sourceY + ((targetY - sourceY) * sourceAnchoredLabelRatio) + sourceLabelOffsetY : labelY;
+    const geometry = getC2EdgeGeometry(data?.c2Layout, {x: sourceX, y: sourceY}, {x: targetX, y: targetY});
+    const bounds = geometry?.label;
+    const horizontal = sourcePosition === Position.Right || sourcePosition === Position.Left;
+    const labelWidth = data?.c2Layout?.label?.width || 0;
+    const labelHeight = data?.c2Layout?.label?.height || 24;
+    const edgeLabelX = bounds ? bounds.x + bounds.width / 2 : labelX + (horizontal ? 0 : labelWidth / 2 + 8);
+    const edgeLabelY = bounds ? bounds.y + bounds.height / 2 : labelY - (horizontal ? labelHeight / 2 + 8 : 0);
     const edgeInteractionWidth = data?.collapsedGroupEdge ? 8 : 5;
-    const profileLabelTransform = sourcePosition === Position.Right ? "translate(0, -50%)" :
-        sourcePosition === Position.Left ? "translate(-100%, -50%)" :
-        sourcePosition === Position.Bottom ? "translate(-50%, 0)" :
-        sourcePosition === Position.Top ? "translate(-50%, -100%)" :
-        "translate(-50%, -50%)";
-    const labelTransform = data?.collapsedGroupEdge ? "translate(-50%, -50%)" :
-        sourceAnchoredLabel ? profileLabelTransform : "translate(-40%, -50%)";
     return (
         <>
-            <BaseEdge id={id} path={edgePath} labelStyle={labelStyle} markerEnd={markerEnd} markerStart={markerStart}
+            <BaseEdge id={id} path={geometry?.path || edgePath} labelStyle={labelStyle} markerEnd={markerEnd} markerStart={markerStart}
             labelShowBg={false} labelBgStyle={labelBgStyle}  style={style} label={""}
             interactionWidth={edgeInteractionWidth} labelX={edgeLabelX} labelY={edgeLabelY}/>
             <EdgeLabelRenderer>
                 <div
                     style={{ position: "absolute",
-                        zIndex: sourceAnchoredLabel ? 30 : 10,
+                        zIndex: 30,
                         pointerEvents: data?.collapsedGroupEdge ? "auto" : "none",
-                        transform: `${labelTransform} translate(${edgeLabelX}px,${edgeLabelY}px)`,
+                        width: "max-content",
+                        transform: `translate(-50%, -50%) translate(${edgeLabelX}px,${edgeLabelY}px)`,
                     }}
-                    className={`nodrag nopan mythic-c2-edge-label ${sourceAnchoredLabel ? "mythic-c2-edge-label-source" : ""}`}
+                    className="nodrag nopan mythic-c2-edge-label"
                 >
-                    {data?.collapsedGroupEdge ?
-                        <button
-                            type="button"
-                            className={`mythic-c2-group-edge-summary border-neutral-3 text-2xs leading-100 items-center inline-flex gap-3 mythic-c2-group-edge-summary-${data.routeSummary?.tone || "neutral"} rounded-full cursor-pointer bg-surface text-muted shadow-3 whitespace-nowrap`}
-                            onClick={(event) => {
-                                event.stopPropagation();
-                                data.onInspectCollapsedEdge?.(data.summaryDetails);
-                            }}
-                        >
-                            <span>{data.routeSummary?.activeRouteCount || 0} routes</span>
-                            <span>{data.routeSummary?.activeEdgeCount || 0} active</span>
-                            <span>{data.routeSummary?.endedEdgeCount || 0} ended</span>
-                        </button> :
-                        showProfileLabel &&
-                            <MythicChip
-                                icon={data?.has_logo ?
-                                    <MythicAgentSVGIconNoTooltip
-                                        payload_type={label}
-                                        is_p2p={data.is_p2p}
-                                        className="mythic-c2-edge-profile-icon inline-flex flex-none justify-center"
-                                    /> : undefined
-                                }
-                                label={label}
-                            />
-                    }
+                    <C2EdgeLabelContent label={label} data={data} />
                 </div>
             </EdgeLabelRenderer>
         </>
@@ -1302,7 +1341,7 @@ const getGroupLayoutOptions = (group, options) => {
         ...options,
     };
 };
-export default async function createLayout({initialGroups, initialNodes, initialEdges, alignment, elkOverwrites}) {
+export default async function createLayout({initialGroups, initialNodes, initialEdges, alignment, elkOverwrites, c2EdgeLabelSizes}) {
     let elkAlignment = {
         "elk.alignment": "RIGHT" , //LEFT, RIGHT, TOP, BOTTOM, CENTER
         "elk.direction": "RIGHT" , //DOWN, LEFT, RIGHT, UP
@@ -1389,6 +1428,9 @@ export default async function createLayout({initialGroups, initialNodes, initial
             },
         }))
     };
+    if(c2EdgeLabelSizes){
+        addC2LayoutData(graph, initialEdges, c2EdgeLabelSizes);
+    }
     const layout = await elk.layout(graph);
     const nodes = layout.children.reduce((result, current) => {
         result.push({
@@ -1415,7 +1457,7 @@ export default async function createLayout({initialGroups, initialNodes, initial
 
     return {
         newNodes: nodes,
-        newEdges: initialEdges
+        newEdges: c2EdgeLabelSizes ? getC2LayoutEdges(layout, initialEdges) : initialEdges
     };
 }
 const getLabel = (edge, label_components) => {
@@ -1593,6 +1635,7 @@ export const DrawC2PathElementsFlowWithProvider = (props) => {
 export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, providedNodes, filterOptions, focusedCallbackId, onOpenTab}) =>{
     const theme = useTheme();
     const [graphData, setGraphData] = React.useState({nodes: [], edges: [], groups: []});
+    const [edgeLabelMeasurements, setEdgeLabelMeasurements] = React.useState(null);
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const selectedNodes = React.useRef([]);
     const [edgeFlow, setEdgeFlow, onEdgesChange] = useEdgesState([]);
@@ -2667,12 +2710,13 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
     React.useEffect( () => {
         let cancelled = false;
         (async () => {
-            if(graphData.nodes.length > 0){
+            if(graphData.nodes.length > 0 && edgeLabelMeasurements?.edges === graphData.edges){
                 const {newNodes, newEdges} = await createLayout({
                     initialGroups: graphData.groups,
                     initialNodes: graphData.nodes,
                     initialEdges: graphData.edges,
-                    alignment: view_config["rankDir"]
+                    alignment: view_config["rankDir"],
+                    c2EdgeLabelSizes: edgeLabelMeasurements.sizes,
                 });
                 if(cancelled){return}
                 setNodes(newNodes);
@@ -2689,10 +2733,11 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
         return () => {
             cancelled = true;
         }
-    }, [graphData, view_config, setNodes, setEdgeFlow, updateNodeInternals, fitView]);
+    }, [graphData, edgeLabelMeasurements, view_config, setNodes, setEdgeFlow, updateNodeInternals, fitView]);
     const onlyRenderVisibleGraphElements = nodes.length > 20;
     return (
         <div className="mythic-graph-canvas mythic-c2-flow-canvas min-h-0 min-w-0 overflow-hidden rounded relative bg-surface border-subtle" style={{height: "100%", width: "100%"}} ref={viewportRef}>
+                <C2EdgeLabelMeasurements edges={graphData.edges} onMeasure={setEdgeLabelMeasurements} />
                 <ReactFlow
                     fitView
                     onlyRenderVisibleElements={onlyRenderVisibleGraphElements}

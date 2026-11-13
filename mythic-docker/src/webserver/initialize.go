@@ -271,6 +271,10 @@ func setRoutes(r *gin.Engine) {
 				webcontroller.RefreshJWT)
 			staticFiles := protected.Group("/static")
 			staticFiles.Use(webcontroller.UntrustedContentHeaders)
+			// cache static files for 5min at a time
+			staticFiles.Use(func(c *gin.Context) {
+				c.Header("Cache-Control", "private, max-age=300")
+			})
 			staticFiles.Static("", "./static")
 			// following require you to have an operation set
 			allOperationMembers := protected.Group("/")

@@ -53,8 +53,8 @@ func GetUserOperation(user *databaseStructs.Operator, operationID int) (*databas
 	if DB == nil {
 		return nil, errors.New("database connection not initialized")
 	}
-	err := DB.Get(operation, `SELECT COALESCE(m.id,0) id, COALESCE(m.view_mode,'') view_mode,
-	 COALESCE(m.base_disabled_commands_id,0) base_disabled_commands_id,
+	err := DB.Get(operation, `SELECT m.id, m.view_mode,
+	 m.base_disabled_commands_id,
 	 o.id "operation.id",o.name "operation.name",o.admin_id "operation.admin_id",
 	 o.banner_text "operation.banner_text",o.banner_color "operation.banner_color",
 	 o.complete "operation.complete",o.webhook "operation.webhook",o.channel "operation.channel"

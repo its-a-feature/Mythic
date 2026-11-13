@@ -158,5 +158,5 @@ func GetHasuraClaims(c *gin.Context) {
 	}
 	// WebSockets retain these connection-time claims until they disconnect.
 	c.JSON(http.StatusOK, values)
-	logging.LogDebug("hasura claims", "value", values)
+	//logging.LogDebug("hasura claims", "value", values)
 }

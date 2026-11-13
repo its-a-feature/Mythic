@@ -64,7 +64,7 @@ const TagColorPreview = ({mode, color, label}) => {
         {darkMode ? "Dark mode" : "Light mode"}
       </Typography>
       <MythicChip
-          customColor
+          color={color}
           label={label || "Sample Tag"}
           size="small"
           sx={{
