@@ -10,6 +10,7 @@ import SnoozeIcon from '@mui/icons-material/Snooze';
 import {Dropdown, DropdownMenuItem} from "../MythicComponents/MythicNestedMenus";
 import {getSkewedNow} from "./Time";
 import {MythicStyledTooltip} from "../MythicComponents/MythicStyledTooltip";
+import {MythicActionButton} from "../MythicComponents/MythicActionButton";
 
 export const CloseButton = ({ closeToast }) => {
   const dropdownAnchorRef = React.useRef(null);
@@ -60,24 +61,26 @@ export const CloseButton = ({ closeToast }) => {
   };
   const [dnd, setDnd] = React.useState(stillDoNotDisturb());
   return (
-      <div  >
+      <div style={{marginRight: "1rem"}}>
         {!dnd &&
             <>
-            <ButtonGroup ref={dropdownAnchorRef} aria-label="split button" size={"small"}
-                         style={{ float: "right", width: "70px"}}>
-              <Button  aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
+              <MythicActionButton
+                      variant={"outlined"}
+                      aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
                       aria-expanded={dropdownOpen ? 'true' : undefined}
                       aria-haspopup="menu" size={"small"}
+                       ref={dropdownAnchorRef}
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         setDropdownOpen(!dropdownOpen)
                       }}>
-                <MythicStyledTooltip title={"Snooze Info and Warning messages for a period of time. Revert this at any time in your settings"}>
+                <MythicStyledTooltip
+                    tooltipStyle={{display: "flex", flexDirection: "row"}}
+                    title={"Snooze Info and Warning messages for a period of time. Revert this at any time in your settings"}>
                   <NotificationsPausedIcon color={"error"} /> <ArrowDropDownIcon />
                 </MythicStyledTooltip>
-              </Button>
-            </ButtonGroup>
+              </MythicActionButton>
               {dropdownOpen &&
                   <ClickAwayListener  mouseEvent={"onMouseDown"}
                       onClickAway={() => setDropdownOpen(false)}>

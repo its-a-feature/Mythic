@@ -93,6 +93,7 @@ export function BrowserScriptsTable(props){
                 <MythicTableToolbarGroup>
                     <MythicToolbarSelect
                         value={statusFilter}
+                        size={"full"}
                         onChange={(event) => setStatusFilter(event.target.value)}
                     >
                         <MythicToolbarMenuItem value="all">All scripts</MythicToolbarMenuItem>

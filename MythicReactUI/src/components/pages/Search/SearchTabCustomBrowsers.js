@@ -201,6 +201,7 @@ const SearchTabCustomBrowserSearchPanel = (props) => {
             <MythicTableToolbarGroup label="Browser">
                 <MythicToolbarSelect
                     value={selectedBrowser}
+                    size={"full"}
                     onChange={handleBrowserChange}
                 >
                     {
@@ -220,6 +221,7 @@ const SearchTabCustomBrowserSearchPanel = (props) => {
             <MythicTableToolbarGroup label="In">
                 <MythicToolbarSelect
                     value={searchField}
+                    size={"full"}
                     onChange={handleSearchFieldChange}
                 >
                     {

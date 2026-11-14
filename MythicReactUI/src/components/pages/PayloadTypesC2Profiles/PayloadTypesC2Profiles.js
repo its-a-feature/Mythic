@@ -18,7 +18,6 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import {CustomBrowserRow} from "./CustomBrowserCard";
 import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
 import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/MythicPageHeader";
-import {MythicToolbarToggle} from "../../MythicComponents/MythicTableToolbar";
 import {useTheme} from "@mui/material/styles";
 import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 
@@ -251,7 +250,6 @@ export function PayloadTypesC2Profiles({me}){
                     <>
                         <MythicPageHeaderChip label={currentTab} />
                         <MythicPageHeaderChip label={`${currentContainers.length} shown`} />
-                        <MythicPageHeaderChip label={`${allData.length} total`} />
                         {showDeleted && <MythicPageHeaderChip label="Deleted visible" />}
                     </>
                 }

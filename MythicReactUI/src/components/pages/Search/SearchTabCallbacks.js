@@ -1,7 +1,7 @@
 import {MythicTabPanel, MythicSearchTabLabel} from '../../MythicComponents/MythicTabPanel';
 import React from 'react';
 import PhoneCallbackIcon from '@mui/icons-material/PhoneCallback';
-import { gql, useLazyQuery} from '@apollo/client';
+import { gql} from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
 import {CallbackSearchTable} from './CallbackSearchTable';
 import MenuItem from '@mui/material/MenuItem';
@@ -237,6 +237,7 @@ const SearchTabCallbacksSearchPanel = (props) => {
             <MythicTableToolbarGroup label="In">
                 <MythicToolbarSelect
                     value={searchField}
+                    size={"full"}
                     onChange={handleSearchFieldChange}
                 >
                     {

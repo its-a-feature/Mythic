@@ -238,6 +238,7 @@ const SearchTabPayloadsSearchPanel = (props) => {
             <MythicTableToolbarGroup label="In">
                 <MythicToolbarSelect
                     value={searchField}
+                    size={"full"}
                     onChange={handleSearchFieldChange}
                 >
                     {
@@ -250,6 +251,7 @@ const SearchTabPayloadsSearchPanel = (props) => {
             <MythicTableToolbarGroup label="C2 profile">
                 <MythicToolbarSelect
                     value={searchC2}
+                    size={"full"}
                     onChange={handleC2FieldChange}
                 >
                     {
@@ -263,6 +265,7 @@ const SearchTabPayloadsSearchPanel = (props) => {
             <MythicTableToolbarGroup label="Payload type">
                 <MythicToolbarSelect
                     value={searchPayloadType}
+                    size={"full"}
                     onChange={handlePayloadTypeFieldChange}
                 >
                     {

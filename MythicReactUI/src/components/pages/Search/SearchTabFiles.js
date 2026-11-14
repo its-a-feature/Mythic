@@ -699,6 +699,7 @@ const SearchTabFilesSearchPanel = (props) => {
             <MythicTableToolbarGroup label="In">
                 <MythicToolbarSelect
                     value={searchField}
+                    size={"full"}
                     onChange={handleSearchFieldChange}
                 >
                     {
@@ -711,6 +712,7 @@ const SearchTabFilesSearchPanel = (props) => {
             <MythicTableToolbarGroup label="Location">
                 <MythicToolbarSelect
                     value={searchLocation}
+                    size={"full"}
                     onChange={handleSearchLocationChange}
                 >
                     {

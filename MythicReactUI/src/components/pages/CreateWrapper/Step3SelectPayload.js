@@ -1,5 +1,5 @@
 import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
-import React from 'react';
+import React, {useContext} from 'react';
 import {gql, useQuery, useReactiveVar} from '@apollo/client';
 import Typography from '@mui/material/Typography';
 import Table from '@mui/material/Table';
@@ -23,6 +23,8 @@ import {MythicLoadingState, MythicTableEmptyState} from '../../MythicComponents/
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {MythicTablePagination} from '../../MythicComponents/MythicTablePagination';
 import {GetGroupedParameters} from '../CreatePayload/BuildParameterUtils';
+import {PayloadBuildMetadataChips} from "../Payloads/PayloadsTableRow";
+import {MeContext} from "../../App";
 
 const PAGE_SIZE = 25;
 const WRAPPER_CONDITION_PARAMETER_TYPES = new Set([
@@ -205,7 +207,6 @@ export function Step3SelectPayload(props){
                                 totalCount={totalCount}
                                 page={page}
                                 pageCount={pageCount}
-                                showMetadata
                                 onChangePage={(event, nextPage) => setPage(nextPage)}
                                 finished={finished}
                             />
@@ -248,9 +249,6 @@ export function PayloadSelect(props) {
                             <MythicStyledTableCell style={{width: '6rem'}}>Select</MythicStyledTableCell>
                             <MythicStyledTableCell style={{width: '15rem'}}>Timestamp</MythicStyledTableCell>
                             <MythicStyledTableCell>File</MythicStyledTableCell>
-                            {props.showMetadata && <MythicStyledTableCell>OS</MythicStyledTableCell>}
-                            {props.showMetadata && <MythicStyledTableCell>Architecture</MythicStyledTableCell>}
-                            {props.showMetadata && <MythicStyledTableCell>Format</MythicStyledTableCell>}
                             <MythicStyledTableCell>Status</MythicStyledTableCell>
                             <MythicStyledTableCell>Description</MythicStyledTableCell>
                             <MythicStyledTableCell style={{width: '5rem'}}>Details</MythicStyledTableCell>
@@ -286,7 +284,7 @@ export function PayloadSelect(props) {
 
 export function PayloadsTableRow(props){
     const [openDetailedView, setOpenDetailedView] = React.useState(false);
-    const me = useReactiveVar(meState);
+    const me = useContext(MeContext);
     const metadata = props.payload.build_metadata || {};
     const onSelected = () => props.onSelected(props.payload);
 
@@ -297,10 +295,10 @@ export function PayloadsTableRow(props){
                     <MythicActionButton compact tone="info" size="small" onClick={(event) => {event.stopPropagation(); onSelected();}} variant="contained">Select</MythicActionButton>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>{toLocalTime(props.payload.creation_time, me.user.view_utc_time)}</MythicStyledTableCell>
-                <MythicStyledTableCell>{b64DecodeUnicode(props.payload.filemetum.filename_text)}</MythicStyledTableCell>
-                {props.showMetadata && <MythicStyledTableCell>{metadata.os || props.payload.os || '—'}</MythicStyledTableCell>}
-                {props.showMetadata && <MythicStyledTableCell>{metadata.architecture || '—'}</MythicStyledTableCell>}
-                {props.showMetadata && <MythicStyledTableCell>{metadata.format || '—'}</MythicStyledTableCell>}
+                <MythicStyledTableCell>
+                    {b64DecodeUnicode(props.payload.filemetum.filename_text)}
+                    <PayloadBuildMetadataChips buildMetadata={metadata} />
+                </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <div className="mythic-payload-progress-cell items-center flex flex-wrap gap-3 min-w-0">
                         <PayloadsTableRowBuildStatus {...props.payload} />

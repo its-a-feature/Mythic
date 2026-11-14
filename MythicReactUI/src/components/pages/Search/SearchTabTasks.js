@@ -267,6 +267,7 @@ const SearchTabTasksSearchPanel = (props) => {
             </MythicTableToolbarGroup>
             <MythicTableToolbarGroup label="In">
                 <MythicToolbarSelect
+                    size={"full"}
                     value={searchField}
                     disabled={props.alreadySearching}
                     onChange={handleSearchFieldChange}
@@ -286,6 +287,7 @@ const SearchTabTasksSearchPanel = (props) => {
             <MythicTableToolbarGroup label="Operator">
                 <MythicToolbarSelect
                     value={filterOperator}
+                    size={"full"}
                     disabled={props.alreadySearching}
                     onChange={handleOperatorFilterChange}
                 >

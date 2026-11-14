@@ -87,7 +87,6 @@ const getC2RouteSummary = (callback, callbackgraphedges) => {
     const edges = callbackgraphedges || [];
     const callbackId = String(callback?.id || "");
     const activeEdges = edges.filter((edge) => edge.end_timestamp === null);
-    const endedEdges = edges.filter((edge) => edge.end_timestamp !== null);
     const activeReachableIds = getReachableCallbackIds(activeEdges, callbackId);
     const historicalReachableIds = getReachableCallbackIds(edges, callbackId);
     const directEgressRoutes = edges.filter((edge) => {
@@ -107,10 +106,9 @@ const getC2RouteSummary = (callback, callbackgraphedges) => {
     });
     const baseCounts = {
         activeEdgeCount: activeEdges.length,
-        endedEdgeCount: endedEdges.length,
         totalEdgeCount: edges.length,
-        egressEdgeCount: edges.filter((edge) => !edge.c2profile?.is_p2p).length,
-        p2pEdgeCount: edges.filter((edge) => edge.c2profile?.is_p2p).length,
+        egressEdgeCount: activeEdges.filter((edge) => !edge.c2profile?.is_p2p).length,
+        p2pEdgeCount: activeEdges.filter((edge) => edge.c2profile?.is_p2p).length,
     };
     if(activeDirectRoutes.length > 0){
         return {
@@ -201,21 +199,18 @@ const getCollapsedGroupEdgeDetail = (edge) => {
 };
 const getCollapsedGroupRouteSummary = (edgeDetails = []) => {
     const activeEdges = edgeDetails.filter((edge) => edge.active);
-    const endedEdges = edgeDetails.filter((edge) => !edge.active);
     const activeRouteEdges = activeEdges.filter((edge) => edge.routesToMythic);
     const p2pEdges = edgeDetails.filter((edge) => edge.isP2P);
     const egressEdges = edgeDetails.filter((edge) => !edge.isP2P);
     const profileNames = Array.from(new Set(edgeDetails.map((edge) => edge.profile).filter(Boolean))).sort();
     const routeProfileNames = Array.from(new Set(activeRouteEdges.map((edge) => edge.profile).filter(Boolean))).sort();
-    const tone = activeRouteEdges.length > 0 ? "success" : endedEdges.length > 0 ? "warning" : "neutral";
-    const label = activeRouteEdges.length > 0 ? `${activeRouteEdges.length} active route${activeRouteEdges.length === 1 ? "" : "s"}` :
-        endedEdges.length > 0 ? "Route history" : "No route data";
+    const tone = activeRouteEdges.length > 0 ? "success" : "warning";
+    const label = activeRouteEdges.length > 0 ? `${activeRouteEdges.length} active route${activeRouteEdges.length === 1 ? "" : "s"}` :  "Route history";
     return {
         tone,
         label,
         totalEdgeCount: edgeDetails.length,
         activeEdgeCount: activeEdges.length,
-        endedEdgeCount: endedEdges.length,
         activeRouteCount: activeRouteEdges.length,
         p2pEdgeCount: p2pEdges.length,
         egressEdgeCount: egressEdges.length,
@@ -283,7 +278,6 @@ const C2CollapsedGroupEdgeDialog = ({details, onClose, onOpenCallbackTasking}) =
                     <div className="mythic-c2-collapsed-edge-summary flex flex-wrap gap-4">
                         <MythicChip label={routeSummary.label} tone={routeSummary.tone} />
                         <MythicChip label={`${routeSummary.activeEdgeCount} active links`} />
-                        <MythicChip label={`${routeSummary.endedEdgeCount} ended links`} />
                         <MythicChip label={`${routeSummary.egressEdgeCount} egress`} />
                         <MythicChip label={`${routeSummary.p2pEdgeCount} p2p`} />
                     </div>
@@ -730,7 +724,6 @@ export function C2PathDialog({callback, callbackgraphedges, onClose, onOpenTab})
                 <div className="mythic-c2-path-summary items-center flex flex-wrap gap-3">
                     <MythicChip icon={<RouteSummaryIcon />} label={routeSummary.label} tone={routeSummary.tone} />
                     <MythicChip label={`${routeSummary.activeEdgeCount} active`} />
-                    <MythicChip label={`${routeSummary.endedEdgeCount} ended`} />
                     <MythicChip label={`${routeSummary.egressEdgeCount} egress`} />
                     <MythicChip label={`${routeSummary.p2pEdgeCount} p2p`} />
                 </div>
@@ -761,7 +754,7 @@ export function C2PathDialog({callback, callbackgraphedges, onClose, onOpenTab})
                         P2P route
                     </span>
                     <span className="mythic-c2-path-legend-item text-xs font-750 leading-100 items-center inline-flex gap-2 rounded bg-neutral-1 border-subtle text-muted whitespace-nowrap">
-                        <span className="mythic-c2-path-edge-swatch mythic-c2-path-edge-swatch-active rounded-full" />
+                        <span className="mythic-c2-path-edge-swatch mythic-c2-path-edge-swatch-ended rounded-full mythic-tone-success bg-tone" />
                         Active link
                     </span>
                     <span className="mythic-c2-path-legend-item text-xs font-750 leading-100 items-center inline-flex gap-2 rounded bg-neutral-1 border-subtle text-muted whitespace-nowrap">
@@ -1148,7 +1141,6 @@ const C2EdgeLabelContent = ({label, data, measuring = false}) => data?.collapsed
     >
         <span>{data.routeSummary?.activeRouteCount || 0} routes</span>
         <span>{data.routeSummary?.activeEdgeCount || 0} active</span>
-        <span>{data.routeSummary?.endedEdgeCount || 0} ended</span>
     </button>
 ) : label ? (
     <MythicChip

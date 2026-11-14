@@ -200,17 +200,18 @@ export function C2ProfilesRow({service, showDeleted}) {
                     {service.container_running ? (
                         service.running ?
                             (
-                                <ButtonGroup className="mythic-split-action-group inline-flex overflow-hidden" ref={dropdownAnchorRef} aria-label="split button" >
+                                <ButtonGroup className="mythic-split-action-group inline-flex overflow-hidden" size={"small"} ref={dropdownAnchorRef} aria-label="split button" >
                                     <MythicActionButton
-                                        compact tone="error"
+                                        compact tone="error" size={"small"}
                                         colorMode="always" disabled={alreadyRunningStartStop}
+                                        style={{width: "100%"}}
                                         onClick={onStartStopProfile}>
                                         {alreadyRunningStartStop ? "Waiting..." : "Stop Profile"}
                                     </MythicActionButton>
-                                    <MythicActionButton tone="error" colorMode="always"
-                                        size="small" variant={"outlined"}
-                                                        compact
-                                                        icon={<ArrowDropDownIcon fontSize="small" />}
+                                    <MythicActionButton
+                                        tone="error" colorMode="always"
+                                        size="small" variant={"outlined"} compact
+                                         icon={<ArrowDropDownIcon fontSize="small" />}
                                         disabled={alreadyRunningStartStop}
                                         aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
                                         aria-expanded={dropdownOpen ? 'true' : undefined}
@@ -226,22 +227,23 @@ export function C2ProfilesRow({service, showDeleted}) {
                             (
                                 service.is_p2p ? null : (
                                     <ButtonGroup className="mythic-split-action-group inline-flex overflow-hidden" size="small" ref={dropdownAnchorRef} aria-label="split button"  >
-                                        <MythicActionButton compact tone="success" colorMode="always" size="small"
+                                        <MythicActionButton
+                                                compact tone="success" colorMode="always" size="small"
                                                 disabled={alreadyRunningStartStop}
                                                 onClick={onStartStopProfile}
                                                 style={{width: "100%"}}>
                                             {alreadyRunningStartStop ? "Waiting..." : "Start Profile"}
                                         </MythicActionButton>
-                                        <MythicActionButton iconOnly tone="success" colorMode="always"
-                                            size="small"
-                                                disabled={alreadyRunningStartStop}
+                                        <MythicActionButton
+                                            tone="success" colorMode="always" variant={"outlined"}
+                                            size="small" disabled={alreadyRunningStartStop} compact
+                                            icon={<ArrowDropDownIcon fontSize="small" />}
                                             aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
                                             aria-expanded={dropdownOpen ? 'true' : undefined}
                                             aria-label="select merge strategy"
                                             aria-haspopup="menu"
                                             onClick={handleDropdownToggle}
                                         >
-                                            <ArrowDropDownIcon fontSize="small" />
                                         </MythicActionButton>
                                     </ButtonGroup>
                                 )

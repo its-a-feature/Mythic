@@ -285,7 +285,7 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
     const columns = React.useMemo(
         () =>
             [
-                {key: "id", type: "number", name: "ID", width: 92,  enableHiding: false, disableSort: false, disableFilter: true},
+                {key: "id", type: "number", name: "ID", width: 100,  enableHiding: false, disableSort: false, disableFilter: true},
                 {key: "status", type: 'string', name: "Status", width: 140, disableSort: false, enableHiding: false},
                 {key: "eventgroup", type: 'string', name: "Event Group", inMetadata: true, fillWidth: true, disableSort: false,  enableHiding: false},
                 {key: "trigger", type: 'string', name: "Trigger", fillWidth: true, disableSort: false, enableHiding: false},

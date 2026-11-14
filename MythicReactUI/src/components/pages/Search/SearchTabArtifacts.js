@@ -240,6 +240,7 @@ const SearchTabArtifactsSearchPanel = (props) => {
             <MythicTableToolbarGroup label="In">
                 <MythicToolbarSelect
                     value={searchField}
+                    size={"full"}
                     onChange={handleSearchFieldChange}
                 >
                     {
@@ -252,6 +253,7 @@ const SearchTabArtifactsSearchPanel = (props) => {
             <MythicTableToolbarGroup label="Cleanup">
                 <MythicToolbarSelect
                     value={cleanupField}
+                    size={"full"}
                     onChange={handleCleanupChange}
                 >
                     {

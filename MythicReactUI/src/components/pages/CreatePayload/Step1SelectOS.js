@@ -43,6 +43,7 @@ query payloads($payloadType: String!, $os: String!) {
       uuid
       creation_time
       build_phase
+      build_metadata
       payload_build_steps(order_by: {step_number: asc}) {
         step_name
         step_number

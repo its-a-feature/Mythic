@@ -456,9 +456,6 @@ html, #root {
     height: 0.18rem;
     width: 1.25rem;
 }
-.mythic-c2-path-edge-swatch-active {
-    background-image: linear-gradient(90deg, var(--mythic-color-success-level-1) 0%, transparent 100%);
-}
 .mythic-c2-path-toolbar-copy {
     min-width: min(100%, 14rem);
 }
