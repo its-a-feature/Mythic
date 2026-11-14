@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.3.30] - 2026-11-14
+
+- Updated build for mythic_server to run `make build_authorization` and restart mythic_graphql if needed
+
 ## [0.3.28] - 2026-08-20
 
 ### Changed

@@ -77,6 +77,7 @@ func (d *DockerComposeManager) IsServiceRunning(service string) bool {
 	if err != nil {
 		log.Fatalf("[-] Failed to get client connection to Docker: %v", err)
 	}
+	defer cli.Close()
 	containers, err := cli.ContainerList(context.Background(), container.ListOptions{
 		All: true,
 	})
@@ -111,6 +112,7 @@ func (d *DockerComposeManager) DoesImageExist(service string) bool {
 	if err != nil {
 		log.Fatalf("Failed to get docker client: %v", err)
 	}
+	defer cli.Close()
 	desiredImage := fmt.Sprintf("%v:latest", strings.ToLower(service))
 	images, err := cli.ImageList(context.Background(), image.ListOptions{All: true})
 	if err != nil {
@@ -150,6 +152,7 @@ func (d *DockerComposeManager) RemoveContainers(services []string, keepVolume bo
 	if err != nil {
 		log.Fatalf("Failed to get docker client: %v", err)
 	}
+	defer cli.Close()
 	allContainers, err := cli.ContainerList(context.Background(), container.ListOptions{All: true})
 	if err != nil {
 		log.Fatalf("Failed to get container list: %v", err)
@@ -185,6 +188,7 @@ func (d *DockerComposeManager) SaveImages(services []string, outputPath string) 
 	if err != nil {
 		return errors.New(fmt.Sprintf("[-] Failed to connect to Docker: %v\n", err))
 	}
+	defer cli.Close()
 	savedContainers := services
 	if len(savedContainers) == 0 {
 		diskAgents, err := d.GetInstalled3rdPartyServicesOnDisk()
@@ -234,6 +238,7 @@ func (d *DockerComposeManager) LoadImages(outputPath string) error {
 	if err != nil {
 		return errors.New(fmt.Sprintf("[-] Failed to connect to Docker: %v\n", err))
 	}
+	defer cli.Close()
 	ioReadCloser, err := os.OpenFile(savedImagePath, os.O_RDONLY, 0x600)
 	if err != nil {
 		return errors.New(fmt.Sprintf("[-] Failed to read tar file: %v\n", err))
@@ -362,6 +367,7 @@ func (d *DockerComposeManager) StopServices(services []string, deleteImages bool
 	if err != nil {
 		log.Fatalf("Failed to get docker client: %v", err)
 	}
+	defer cli.Close()
 	allContainers, err := cli.ContainerList(context.Background(), container.ListOptions{All: true})
 	if err != nil {
 		log.Fatalf("Failed to get container list: %v", err)
@@ -480,19 +486,27 @@ func (d *DockerComposeManager) BuildServices(services []string, keepVolume bool)
 	if len(services) == 0 {
 		return nil
 	}
-	err := d.StopServices(services, true, keepVolume)
+	localServices := append([]string{}, services...)
+	mythicEnv := config.GetMythicEnv()
+	if slices.Contains(services, "mythic_server") && mythicEnv.GetBool("mythic_server_use_build_context") {
+		err := RunCommand("make", []string{"build_authorization"})
+		if err != nil {
+			log.Fatalf("Failed to run 'make build_authorization': %v", err)
+		}
+		if !slices.Contains(localServices, "mythic_graphql") && slices.Contains([]string{"127.0.0.1", "mythic_graphql"}, mythicEnv.GetString("hasura_host")) {
+			localServices = append(localServices, "mythic_graphql")
+		}
+	}
+	err := d.StopServices(localServices, true, keepVolume)
 	if err != nil {
 		return err
 	}
-	err = d.runDockerCompose(append([]string{"build"}, services...))
+	err = d.runDockerCompose(append([]string{"build"}, localServices...))
 	if err != nil {
 		return err
 	}
-	err = d.runDockerCompose(append([]string{"up", "-d"}, services...))
-	if err != nil {
-		return err
-	}
-	return nil
+	err = d.runDockerCompose(append([]string{"up", "-d"}, localServices...))
+	return err
 }
 
 // GetInstalled3rdPartyServicesOnDisk lists out the name of all 3rd party software installed on disk
@@ -540,6 +554,7 @@ func (d *DockerComposeManager) GetLogs(service string, logCount int, follow bool
 	if err != nil {
 		log.Fatalf("Failed to get client in GetLogs: %v", err)
 	}
+	defer cli.Close()
 	containers, err := cli.ContainerList(context.Background(), container.ListOptions{})
 	if err != nil {
 		log.Fatalf("Failed to get container list: %v", err)
@@ -732,6 +747,7 @@ func (d *DockerComposeManager) Status(verbose bool) {
 	if err != nil {
 		log.Fatalf("[-] Failed to get client in Status check: %v", err)
 	}
+	defer cli.Close()
 	containers, err := cli.ContainerList(context.Background(), container.ListOptions{
 		All:  true,
 		Size: true,
@@ -863,6 +879,7 @@ func (d *DockerComposeManager) PrintAllServices() {
 	if err != nil {
 		log.Fatalf("[-] Failed to get client in List Services: %v", err)
 	}
+	defer cli.Close()
 	containers, err := cli.ContainerList(context.Background(), container.ListOptions{
 		All: true,
 	})
