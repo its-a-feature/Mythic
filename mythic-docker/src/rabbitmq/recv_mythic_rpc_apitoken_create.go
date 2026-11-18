@@ -126,7 +126,11 @@ func MythicRPCAPITokenCreate(input MythicRPCAPITokenCreateMessage, authContext R
 		response.Error = "No task, callback, payload, or chat channel information provided, can't generate apitoken"
 		return response
 	}
-	accessToken, err := database.CreateAPIToken(&apiToken, input.Scopes, authContext.ScopeSet(), authContext.OperationID)
+	scopes := append([]string{}, input.Scopes...)
+	if len(scopes) == 0 {
+		scopes = append([]string{}, authContext.SourceScopes...)
+	}
+	accessToken, err := database.CreateAPIToken(&apiToken, scopes, authContext.ScopeSet(), authContext.OperationID)
 	if err != nil {
 		response.Error = err.Error()
 		return response
