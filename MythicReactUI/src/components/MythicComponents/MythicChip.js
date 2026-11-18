@@ -1,6 +1,5 @@
 import React from 'react';
 import Chip from '@mui/material/Chip';
-import {useTheme} from "@mui/material/styles";
 
 const supportedTones = new Set([
     "primary",

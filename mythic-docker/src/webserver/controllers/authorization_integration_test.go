@@ -680,13 +680,18 @@ func TestAuthorizationIntegration(t *testing.T) {
 	if err = db.Get(&administratorID, `INSERT INTO operator(username,password,salt,admin,active,current_operation_id) VALUES('fixture-admin','fixture-password','fixture-salt',true,true,$1) RETURNING id`, otherOperation); err != nil {
 		t.Fatal(err)
 	}
+	// Operation lookups currently require membership rows for both the selected
+	// operation and the API token's bound operation.
+	if _, err = db.Exec(`INSERT INTO operatoroperation(operator_id,operation_id,view_mode) VALUES($1,$2,'operator'),($1,$3,'operator')`, administratorID, otherOperation, operationID); err != nil {
+		t.Fatal(err)
+	}
 	administrator, err := database.GetUserFromID(administratorID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	administratorSummary, err := database.GetUserCurrentOperation(administratorID)
-	if err != nil || administratorSummary.CurrentOperation.ID != 0 || !administratorSummary.CurrentOperator.Admin {
-		t.Fatalf("login summary changed for an administrator without a selected membership: %v %v", administratorSummary, err)
+	if err != nil || administratorSummary.CurrentOperation.ID != otherOperation || !administratorSummary.CurrentOperator.Admin {
+		t.Fatalf("login summary changed for an administrator with a selected membership: %v %v", administratorSummary, err)
 	}
 	administratorJWT, _, _, err := mythicjwt.GenerateJWT(*administrator, mythicjwt.AUTH_METHOD_USER, 0, 0)
 	if err != nil {
@@ -703,7 +708,7 @@ func TestAuthorizationIntegration(t *testing.T) {
 	}{{administratorJWT, 2}, {administratorBearer, 1}} {
 		result := query(test.token, `{operation{id}}`)
 		if result["errors"] != nil {
-			t.Fatalf("administrator operation view failed: %v", result)
+			t.Fatalf("administrator operation view failed (expected %d operations): %v", test.rows, result)
 		}
 		rows := result["data"].(map[string]interface{})["operation"].([]interface{})
 		if len(rows) != test.rows || test.rows == 1 && int(rows[0].(map[string]interface{})["id"].(float64)) != operationID {

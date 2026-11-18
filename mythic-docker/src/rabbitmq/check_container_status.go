@@ -219,6 +219,7 @@ func CreateAPITokenAndSendOnStartMessage(containerName string) {
 			authorization.SCOPE_CALLBACK_WRITE,
 			authorization.SCOPE_CHAT_AI_WRITE,
 			authorization.SCOPE_CHAT_WRITE,
+			authorization.SCOPE_C2_WRITE,
 		}
 		apiToken.OperationID = operation.ID
 		plainAPITokenValue, err := database.CreateAPIToken(&apiToken, apiToken.Scopes, map[string]bool{authorization.SCOPE_ALL: true}, operation.ID)

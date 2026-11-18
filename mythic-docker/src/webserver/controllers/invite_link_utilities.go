@@ -217,7 +217,7 @@ func redeemInviteLink(db *sqlx.DB, input UseInviteLinkInput) (databaseStructs.Op
 	defer tx.Rollback()
 
 	globalSetting := databaseStructs.GlobalSetting{}
-	err = database.DB.Get(&globalSetting, `SELECT setting FROM global_setting WHERE "name"=$1`, "server_config")
+	err = tx.Get(&globalSetting, `SELECT setting FROM global_setting WHERE "name"=$1`, "server_config")
 	if err != nil {
 		return newOperator, invite, err
 	}
@@ -227,7 +227,7 @@ func redeemInviteLink(db *sqlx.DB, input UseInviteLinkInput) (databaseStructs.Op
 		return newOperator, invite, err
 	}
 	if !MythicServerConfig.AllowInviteLinks {
-		return newOperator, invite, err
+		return newOperator, invite, errInviteUnavailable
 	}
 	err = tx.Get(&invite, `SELECT 
     	invite_link.id, 

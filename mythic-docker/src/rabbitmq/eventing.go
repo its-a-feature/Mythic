@@ -1018,11 +1018,11 @@ func startEventStepInstance(eventStepInstanceID int) error {
 			continue
 		}
 		if eventStepInputPieces[0] == "env" {
-			if _, ok := groupEnv[eventStepInputPieces[1]]; ok {
+			if _, ok = groupEnv[eventStepInputPieces[1]]; ok {
 				inputs[key] = groupEnv[eventStepInputPieces[1]]
 				actionDataString = replaceVariableInActionDataString(actionDataString, key, groupEnv[eventStepInputPieces[1]])
 			}
-			if _, ok := stepEnv[eventStepInputPieces[1]]; ok {
+			if _, ok = stepEnv[eventStepInputPieces[1]]; ok {
 				inputs[key] = stepEnv[eventStepInputPieces[1]]
 				actionDataString = replaceVariableInActionDataString(actionDataString, key, stepEnv[eventStepInputPieces[1]])
 			}
@@ -1481,6 +1481,7 @@ func startEventStepInstanceActionCreateTask(eventStepInstance databaseStructs.Ev
 		InteractiveTaskType:   eventData.InteractiveTaskType,
 		ResolveTaskReferences: eventData.ResolveTaskReferences,
 		AuthContext:           authContext,
+		APITokensID:           authContext.APITokensID,
 	}
 	if eventData.ParamDictionary != nil && len(eventData.ParamDictionary) > 0 {
 		paramsString, _ := json.Marshal(eventData.ParamDictionary)

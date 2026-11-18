@@ -4,7 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [4.0.10] - 2025-11-13
+## [4.0.11] - 2026-11-17
+
+- Updated the processing of completion handlers to not overwrite status
+- Fixed a few issues with completion handlers updating the wrong tasks
+- Moved completion function status to task's stdout/stderr fields instead of general task status
+
+## [4.0.10] - 2026-11-13
 
 ### Changed
 

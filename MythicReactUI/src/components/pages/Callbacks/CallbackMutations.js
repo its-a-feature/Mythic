@@ -125,6 +125,9 @@ export const taskingDataFragment = gql`
             }
         }
         completed
+        completed_callback_function_started
+        subtask_callback_function_started
+        group_callback_function_started
         id
         display_id
         operator{
@@ -181,6 +184,9 @@ export const taskingDataFragment = gql`
                 pid
             }
             completed
+            completed_callback_function_started
+            subtask_callback_function_started
+            group_callback_function_started
             subtask_group_name
             display_id
             operator{
@@ -199,6 +205,13 @@ export const taskingDataFragment = gql`
               }
             }
             command_name
+            opsec_pre_blocked
+            opsec_pre_bypassed
+            opsec_post_blocked
+            opsec_post_bypassed
+            token {
+                id
+            }
             response_count
             tags {
                 tagtype {

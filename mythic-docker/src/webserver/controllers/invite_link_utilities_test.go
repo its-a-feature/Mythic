@@ -239,16 +239,16 @@ func TestInviteRedemptionPostgres(t *testing.T) {
 		}
 		counts(t, 1, 1)
 	})
-	t.Run("migration disables exposed links", func(t *testing.T) {
+	t.Run("migration preserves existing links", func(t *testing.T) {
 		reset(t)
 		contents, err := os.ReadFile(filepath.Join("..", "..", "database", "migrations", "003003028_3.3.28.sql"))
 		if err != nil {
 			t.Fatal(err)
 		}
 		exec(t, strings.Split(string(contents), "-- +migrate Down")[0])
-		if _, _, err = redeemInviteLink(db, input); !errors.Is(err, errInviteUnavailable) {
-			t.Fatalf("exposed link still usable: %v", err)
+		if _, _, err = redeemInviteLink(db, input); err != nil {
+			t.Fatalf("existing link was not preserved: %v", err)
 		}
-		counts(t, 0, 0)
+		counts(t, 1, 1)
 	})
 }

@@ -402,15 +402,19 @@ const TaskStatusDisplay = ({task}) => {
   };
   if(task.status.toLowerCase().includes("error")){
     return <MythicStatusChip label={task.status.toLowerCase()} status="error" sx={{...chipSx, maxWidth: "16rem"}} />
-  }else if(task.status === "cleared"){
+  }
+  if(task.status === "cleared"){
     return <MythicStatusChip label="cleared" status="warning" sx={chipSx} />
-  }else if(task.status === "completed" || task.status === "success"){
+  }
+  if(task.status === "completed" || task.status === "success"){
     return null//return (<Typography size="small" style={{padding: "0", color: theme.palette.success.main, marginLeft: "5%", display: "inline-block", fontSize: theme.typography.pxToRem(15)}}>completed</Typography>)
-  }else if(task.opsec_pre_blocked && !task.opsec_pre_bypassed){
+  }
+  if(task.opsec_pre_blocked && !task.opsec_pre_bypassed){
     return <MythicStatusChip label="OPSEC blocked pre" status="blocked" sx={chipSx} />
-  }else if(task.opsec_post_blocked && !task.opsec_post_bypassed) {
+  }
+  if(task.opsec_post_blocked && !task.opsec_post_bypassed) {
     return <MythicStatusChip label="OPSEC blocked post" status="blocked" sx={chipSx}/>
-  }else{
+  }
       return (
         <MythicStatusChip
           component="span"
@@ -419,7 +423,7 @@ const TaskStatusDisplay = ({task}) => {
           sx={{...chipSx, maxWidth: "16rem"}}
         />
       )
-  }
+
 }
 const getTaskAccentColor = (task, theme) => {
   if(task.status.toLowerCase().includes("error")){
@@ -956,7 +960,7 @@ const TaskRowFlat = ({task, filterOptions, me, onSelectTask, showOnSelectTask, s
             { displayChildren &&
               taskingData.map( (tsk) => (
                   <TaskRowFlat key={"taskrow: " + tsk.id} indentLevel={indentLevel+1}
-                               me={me} task={tsk} onSelectTask={()=>{onSelectTask(tsk)}}
+                               me={me} task={tsk} onSelectTask={onSelectTask}
                                filterOptions={filterOptions} showOnSelectTask={true}
                                selectedTask={selectedTask}
                                taskChildrenStore={taskChildrenStore} active={active}

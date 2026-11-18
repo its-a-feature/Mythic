@@ -102,6 +102,7 @@ var pushC2StreamingDisconnectNotification = make(chan int, 100)
 
 func Initialize() {
 	RabbitMQConnection.channelMutexMap = make(map[string]*channelMutex)
+	markInterruptedTaskCompletionHandlers()
 	invalidateAllNonUserAPITokens()
 	go startShortLivedAPITokenCleanup()
 	InvalidateOperationEventLogCacheMap()

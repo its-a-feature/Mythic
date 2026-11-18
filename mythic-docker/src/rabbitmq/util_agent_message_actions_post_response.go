@@ -659,8 +659,8 @@ func updateAgentMessagePostResponseTask(task databaseStructs.Task) (bool, error)
 		completed=(completed OR $3),
 		status_timestamp_processed=coalesce(status_timestamp_processed, $4),
 		"timestamp"=$5,
-		stdout=$6,
-		stderr=$7
+		stdout=stdout || $6,
+		stderr=stderr || $7
 		WHERE id=$1
 		RETURNING completed`,
 		task.ID,
@@ -902,7 +902,12 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 	delete(*incoming, "responses")
 	for _, currentTask := range tasksToUpdate {
 		// always updating at least the timestamp for the last thing that happened
-		transitionedToCompleted, err := updateAgentMessagePostResponseTask(currentTask)
+		// Persist only new output; handler diagnostics may have been appended since
+		// the task snapshot was loaded, including when this is a late agent packet.
+		taskUpdate := currentTask
+		taskUpdate.Stdout = strings.TrimPrefix(currentTask.Stdout, cachedTaskData[currentTask.AgentTaskID].Stdout)
+		taskUpdate.Stderr = strings.TrimPrefix(currentTask.Stderr, cachedTaskData[currentTask.AgentTaskID].Stderr)
+		transitionedToCompleted, err := updateAgentMessagePostResponseTask(taskUpdate)
 		if err != nil {
 			logging.LogError(err, "Failed to update task from agent response")
 		}

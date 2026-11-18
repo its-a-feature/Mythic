@@ -224,7 +224,10 @@ func resyncHostedFiles(c2ProfileName string, rows []databaseStructs.C2profileFil
 		Name:  c2ProfileName,
 		Files: files,
 	}, RabbitMQAuthContext{
-		SourceScopes: []string{authorization.SCOPE_FILE_READ},
+		SourceScopes: []string{
+			authorization.SCOPE_FILE_READ,
+			authorization.SCOPE_C2_WRITE,
+		},
 	})
 	if err != nil {
 		for _, row := range rowsByKey {

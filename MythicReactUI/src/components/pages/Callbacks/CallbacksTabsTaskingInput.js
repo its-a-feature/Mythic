@@ -2531,7 +2531,11 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                                 {commandPayloadType !== "" &&
                                     <MythicStyledTooltip title={commandPayloadType}>
                                         <SquareChip
-                                            icon={<MythicAgentSVGIcon payload_type={commandPayloadType} style={{width: "20px", height: "20px"}}/>}
+                                            icon={<MythicAgentSVGIcon
+                                                display={"inline-flex"}
+                                                payload_type={commandPayloadType}
+                                                style={{width: "20px", height: "20px"}}/>
+                                        }
                                             iconOnly
                                             label={commandPayloadType}
                                         />
@@ -2553,18 +2557,20 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                                         appearance="raised" colorMode="hover" tone="info"
                                         onClick={() => setOpenAliasesDialog(true)}
                                         disableRipple={true}
+                                        icon={<TerminalIcon fontSize="small"/>}
                                         disableFocusRipple={true}
                                         size="small"
-                                        aria-label="Manage aliases"><TerminalIcon fontSize="small"/></MythicActionButton>
+                                        aria-label="Manage aliases"></MythicActionButton>
                                 </MythicStyledTooltip>
                                 <MythicStyledTooltip title={"Submit task"}>
                                     <MythicActionButton iconOnly
                                         appearance="raised" colorMode="hover" tone="success"
                                         disableRipple={true}
                                         disableFocusRipple={true}
+                                        icon={<SendIcon fontSize="small"/>}
                                         onClick={onSubmitCommandLine}
                                         size="small"
-                                        aria-label="Submit task"><SendIcon fontSize="small"/>
+                                        aria-label="Submit task">
                                     </MythicActionButton>
                                 </MythicStyledTooltip>
                             </div>

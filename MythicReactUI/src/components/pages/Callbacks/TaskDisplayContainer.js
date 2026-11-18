@@ -40,7 +40,6 @@ import CodeOffIcon from '@mui/icons-material/CodeOff';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import {b64DecodeUnicode} from './ResponseDisplay';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
-import Paper from '@mui/material/Paper';
 import {EventTriggerContextSelectDialog} from "../Eventing/EventTriggerContextSelect";
 import PlayCircleFilledTwoToneIcon from '@mui/icons-material/PlayCircleFilledTwoTone';
 
@@ -71,6 +70,11 @@ query subResponsesQuery($task_id: Int!) {
 const responseMenuItemClass = (tone = "info") => {
   return `mythic-response-action-menu-item mythic-action-tone-hover mythic-tone-${tone === "danger" ? "error" : tone}`;
 };
+
+const hasCompletionHandlerAttempt = (task) => task?.completed && (
+  task.completed_callback_function_started || task.subtask_callback_function_started || task.group_callback_function_started
+);
+const canReissueTaskHandler = (task) => hasCompletionHandlerAttempt(task) || task?.tasks?.some(hasCompletionHandlerAttempt);
 
 export const TaskDisplayContainer = ({task, me}) => {
     const [viewBrowserScript, setViewBrowserScript] = React.useState(true);
@@ -220,7 +224,7 @@ const SideDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput,
     });
     React.useEffect( () => {
         setTask(taskData);
-    }, [taskData.id, taskData.token, taskData.original_params, taskData.opsec_pre_blocked, taskData.opsec_pre_bypassed, taskData.opsec_post_blocked, taskData.opsec_post_bypassed])
+    }, [taskData])
     const onDownloadResponses = () => {
         downloadResponses({variables: {task_id: task.id}});
     };
@@ -436,7 +440,7 @@ const SideDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput,
                 )
             )
             }
-            {task.token === null ? null : (
+            {task.token !== null && (
                 <MythicStyledTooltip title={"View Token Information"}>
                     <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="info" onClick={()=>{setOpenTokenDialog(true)}} size="small">
                         <ConfirmationNumberIcon fontSize="small" />
@@ -450,7 +454,7 @@ const SideDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput,
                     </MythicActionButton>
                 </MythicStyledTooltip>
             }
-            {task.status.toLowerCase().includes("error: task") &&
+            {canReissueTaskHandler(task) &&
                 <MythicStyledTooltip title={"Resubmit Task Handler"}>
                     <MythicActionButton iconOnly appearance="raised" colorMode="hover" tone="warning" onClick={onReissueTaskHandler} size="small">
                         <ReplayIcon fontSize="small" />
@@ -488,7 +492,7 @@ const TaskActionsToolbarGeneric = ({toggleViewBrowserScript, toggleSelectAllOutp
   });
   React.useEffect( () => {
     setTask(taskData);
-  }, [taskData.id, taskData.token, taskData.original_params, taskData.opsec_pre_blocked, taskData.opsec_pre_bypassed, taskData.opsec_post_blocked, taskData.opsec_post_bypassed])
+  }, [taskData])
   const openActionsMenu = (event) => {
     setActionsMenuAnchor(event.currentTarget);
   };
@@ -697,7 +701,7 @@ const TaskActionsToolbarGeneric = ({toggleViewBrowserScript, toggleSelectAllOutp
               <ListItemText>Trigger Eventing Based on Task</ListItemText>
             </MenuItem>
             {(task.opsec_pre_blocked !== null || task.opsec_post_blocked !== null || task.token !== null ||
-              task.status.toLowerCase().includes("error: container") || task.status.toLowerCase().includes("error: task")) &&
+              task.status.toLowerCase().includes("error: container") || canReissueTaskHandler(task)) &&
               <Divider />
             }
             {task.opsec_pre_blocked !== null && (
@@ -734,7 +738,7 @@ const TaskActionsToolbarGeneric = ({toggleViewBrowserScript, toggleSelectAllOutp
                 <ListItemText>Resubmit Tasking</ListItemText>
               </MenuItem>
             )}
-            {task.status.toLowerCase().includes("error: task") && (
+            {canReissueTaskHandler(task) && (
               <MenuItem className={responseMenuItemClass("warning")} onClick={onReissueTaskHandler}>
                 <ListItemIcon><ReplayIcon fontSize="small" /></ListItemIcon>
                 <ListItemText>Resubmit Task Handler</ListItemText>

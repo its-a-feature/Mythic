@@ -21,6 +21,24 @@ describe("callback task stream utilities", () => {
     expect(nextLiveTaskLimit(40, 40)).toBe(60);
   });
 
+  test("keeps token assignment and removal updates for an otherwise unchanged subtask", () => {
+    const store = createTaskChildrenStore();
+    const listener = jest.fn();
+    store.subscribe(10, listener);
+    const child = {id: 2, parent_task_id: 10, status: "running", token: null};
+    store.merge([child]);
+
+    store.merge([{...child, token: {id: 7}}]);
+    expect(store.getSnapshot(10)[0].token).toEqual({id: 7});
+
+    store.merge([{...child, token: {id: 8}}]);
+    expect(store.getSnapshot(10)[0].token).toEqual({id: 8});
+
+    store.merge([{...child}]);
+    expect(store.getSnapshot(10)[0].token).toBeNull();
+    expect(listener).toHaveBeenCalledTimes(4);
+  });
+
   test("groups children, deduplicates replay, and notifies only changed parents", () => {
     const store = createTaskChildrenStore();
     const parentOneListener = jest.fn();

@@ -17,11 +17,11 @@ func TestTokenIssuanceRejectsInvalidGrantsBeforeStorage(t *testing.T) {
 	}{
 		{name: "operation required", scopes: []string{"task.read"}, ceiling: []string{"*"}, message: "operation_id"},
 		{name: "parent operation enforced", operation: 7, sourceOperation: 8, scopes: []string{"task.read"}, ceiling: []string{"*"}, message: "operation_id"},
-		{name: "empty scopes", operation: 7, ceiling: []string{"*"}, message: "nonempty"},
-		{name: "whitespace is not a grant", operation: 7, scopes: []string{"  "}, ceiling: []string{"*"}, message: "nonempty"},
-		{name: "unknown names", operation: 7, scopes: []string{"Nope.Read"}, ceiling: []string{"*"}, message: "unknown API token scope"},
-		{name: "wildcard cannot exceed parent", operation: 7, scopes: []string{"task.*"}, ceiling: []string{"task.read"}, message: "cannot grant"},
-		{name: "parent has no implicit read", operation: 7, scopes: []string{"task.read"}, ceiling: []string{"task.write"}, message: "cannot grant"},
+		{name: "empty scopes", operation: 7, sourceOperation: 7, ceiling: []string{"*"}, message: "nonempty"},
+		{name: "whitespace is not a grant", operation: 7, sourceOperation: 7, scopes: []string{"  "}, ceiling: []string{"*"}, message: "nonempty"},
+		{name: "unknown names", operation: 7, sourceOperation: 7, scopes: []string{"Nope.Read"}, ceiling: []string{"*"}, message: "unknown API token scope"},
+		{name: "wildcard cannot exceed parent", operation: 7, sourceOperation: 7, scopes: []string{"task.*"}, ceiling: []string{"task.read"}, message: "cannot grant"},
+		{name: "parent has no implicit read", operation: 7, sourceOperation: 7, scopes: []string{"task.read"}, ceiling: []string{"task.write"}, message: "cannot grant"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			token := databaseStructs.Apitokens{OperationID: test.operation}

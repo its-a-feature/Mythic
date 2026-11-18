@@ -31,6 +31,7 @@ export const taskRowsEqual = (left, right) => {
     }
   }
   return left.command?.id === right.command?.id &&
+    left.token?.id === right.token?.id &&
     left.operator?.username === right.operator?.username &&
     left.commentOperator?.username === right.commentOperator?.username &&
     relationIDsEqual(left.tags, right.tags) &&

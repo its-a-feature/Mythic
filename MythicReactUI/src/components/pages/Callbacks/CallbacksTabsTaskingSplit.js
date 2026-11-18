@@ -289,12 +289,14 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
         setSelectedTask(task);
     }
     useEffect( () => {
-        if(selectedTask.id){
-            const updatedSelectedTask = tasks.find((task) => task.id === selectedTask.id);
+        const refreshSelectedTask = () => {
+            const updatedSelectedTask = tasks.find((task) => task.id === selectedTask.id) ||
+                taskChildrenStore.getSnapshot(selectedTask.parent_task_id).find((task) => task.id === selectedTask.id);
             if(updatedSelectedTask && updatedSelectedTask !== selectedTask){
                 setSelectedTask(updatedSelectedTask);
             }
-        }
+        };
+        refreshSelectedTask();
         if(newlyIssuedTasks.current){
             // we just issued a task, check if we have data on it to set it as the current one
             let index = tasks.findIndex(e => e.id === newlyIssuedTasks.current)
@@ -309,7 +311,10 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
             }
 
         }
-    }, [tasks, newlyIssuedTasks, selectedTask]);
+        if(selectedTask.parent_task_id){
+            return taskChildrenStore.subscribe(selectedTask.parent_task_id, refreshSelectedTask);
+        }
+    }, [tasks, newlyIssuedTasks, selectedTask, taskChildrenStore]);
     return (
         <MythicTabPanel index={index} value={value} >
             {taskReferenceSubmitDialog}

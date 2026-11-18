@@ -5,13 +5,14 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import { faLink } from '@fortawesome/free-solid-svg-icons';
 import {ImageWithAuth} from "../utilities/ImageWithAuth";
 
-export const MythicAgentSVGIcon = ({payload_type, style, is_p2p}) => {
+export const MythicAgentSVGIcon = ({payload_type, style, is_p2p, display}) => {
     const theme = useTheme();
     if(payload_type === ""){
         return;
     }
+    const configuredDisplay = display ? display : "inline-block";
     return (
-        <MythicStyledTooltip title={payload_type} >
+        <MythicStyledTooltip title={payload_type} tooltipStyle={{display: configuredDisplay}} >
             <ImageWithAuth src={"/static/" + payload_type + "_" + theme.palette.mode + ".svg"}
                            style={{...style}} />
             {is_p2p === false &&
