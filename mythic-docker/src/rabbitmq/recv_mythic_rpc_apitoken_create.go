@@ -13,7 +13,6 @@ import (
 )
 
 type MythicRPCAPITokenCreateMessage struct {
-	OperationID     int      `json:"operation_id"`
 	AgentTaskID     *string  `json:"agent_task_id"`
 	AgentCallbackID *string  `json:"agent_callback_id"`
 	PayloadUUID     *string  `json:"payload_uuid"`
@@ -42,16 +41,12 @@ func MythicRPCAPITokenCreate(input MythicRPCAPITokenCreateMessage, authContext R
 	response := MythicRPCAPITokenCreateMessageResponse{
 		Success: false,
 	}
-	if input.OperationID <= 0 || input.OperationID != authContext.OperationID {
-		response.Error = "operation_id must match the issuing authorization context"
-		return response
-	}
 	var err error
 	// save off the access_token as an API token and then return it
 	apiToken := databaseStructs.Apitokens{
 		TokenValue:  "",
 		Active:      true,
-		OperationID: input.OperationID,
+		OperationID: authContext.OperationID,
 		OperatorID:  authContext.OperatorID,
 		CreatedBy:   authContext.OperatorID,
 	}
