@@ -58,7 +58,7 @@ func (j MythicJSONText) Value() (driver.Value, error) {
 		logging.LogError(err, "Failed to convert MythicJSONText raw value into json Raw Message")
 		return []byte{}, err
 	}
-	return []byte(j), nil
+	return string(j), nil
 }
 func (j MythicJSONArray) Value() (driver.Value, error) {
 	// when it comes to storying arrays in postgres, they're stored represented differently
@@ -70,9 +70,9 @@ func (j MythicJSONArray) Value() (driver.Value, error) {
 	}
 	if len(j) < 5 {
 		// a single value array should be ["a"] (5 characters min), anything less isn't valid so return '[]'
-		return []byte("[]"), nil
+		return "[]", nil
 	}
-	return []byte(j), nil
+	return string(j), nil
 }
 func (j MythicJSONText) StructValue() map[string]interface{} {
 	newMap := make(map[string]interface{})
