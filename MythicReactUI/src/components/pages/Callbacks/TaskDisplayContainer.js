@@ -11,6 +11,8 @@ import {useTheme} from '@mui/material/styles';
 import LockIcon from '@mui/icons-material/Lock';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import {TaskOpsecDialog} from './TaskOpsecDialog';
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
+import {TaskDeleteDialog} from './TaskDeleteDialog';
 import {TaskViewParametersDialog} from './TaskViewParametersDialog';
 import {TaskViewStdoutStderrDialog} from './TaskViewStdoutStderrDialog';
 import {snackActions} from '../../utilities/Snackbar';
@@ -462,6 +464,7 @@ const SpeedDialDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput
   const [openParametersDialog, setOpenParametersDialog] = React.useState(false);
   const [openTokenDialog, setOpenTokenDialog] = React.useState(false);
   const [openStdoutStderrDialog, setOpenStdoutStderrDialog] = React.useState(false);
+  const [openDeleteTaskDialog, setOpenDeleteTaskDialog] = React.useState(false);
   const [openOpsecDialog, setOpenOpsecDialog] = React.useState({open: false, view: "pre"});
   const [downloadResponses] = useLazyQuery(getAllResponsesLazyQuery, {
     fetchPolicy: "network-only",
@@ -581,6 +584,12 @@ const SpeedDialDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput
                            onClose={()=>{setOpenOpsecDialog({...openOpsecDialog, open: false});}}
                            innerDialog={<TaskOpsecDialog task_id={task.id} view={openOpsecDialog.view} onClose={()=>{setOpenOpsecDialog({...openOpsecDialog, open: false});}} />}
             />
+        }
+        {openDeleteTaskDialog ?
+            (<MythicDialog fullWidth={true} maxWidth="md" open={openDeleteTaskDialog}
+                           onClose={()=>{setOpenDeleteTaskDialog(false);}}
+                           innerDialog={<TaskDeleteDialog task_id={task.id} onClose={()=>{setOpenDeleteTaskDialog(false);}} />}
+            />) : null
         }
 
         {openStdoutStderrDialog && <MythicDialog fullWidth={true} maxWidth="lg" open={openStdoutStderrDialog}
@@ -732,6 +741,24 @@ const SpeedDialDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput
               )
           )
           }
+          {task.status.toLowerCase().includes("submitted") ? (
+              <SpeedDialAction
+                icon={<DeleteForeverIcon color={"info"} />}
+                arrow
+                tooltipPlacement={"top"}
+                tooltipTitle={"Delete Task Before Submission"}
+                onClick={() => {setOpenDeleteTaskDialog(true);setOpenSpeedDial(false);}}
+              />
+          ) : (
+            task.status.toLowerCase().includes("delegating tasks") ? (
+              <SpeedDialAction
+                icon={<DeleteForeverIcon color={"info"} />}
+                arrow
+                tooltipPlacement={"top"}
+                tooltipTitle={"Delete Task Before Submission"}
+                onClick={() => {setOpenDeleteTaskDialog(true);setOpenSpeedDial(false);}}
+              />
+          ) : null )}
           {task.token === null ? null : (
               <SpeedDialAction
                   icon={<ConfirmationNumberIcon />}
