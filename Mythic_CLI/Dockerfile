@@ -18,3 +18,4 @@ FROM alpine
 
 COPY --from=0 /usr/src/app/mythic-cli_linux /mythic-cli_linux
 COPY --from=0 /usr/src/app/mythic-cli_macos /mythic-cli_macos
+COPY --from=0 /usr/src/app/mythic-cli_windows.exe /mythic-cli_windows.exe

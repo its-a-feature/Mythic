@@ -39,5 +39,12 @@ build_macos_docker:
 	docker rm mythic-cli-tmp
 	chmod +x ${BINARY_NAME}
 
+build_windows_docker:
+	docker build -t mythic-cli-builder -f Dockerfile .
+	docker create --name mythic-cli-tmp mythic-cli-builder /bin/sh
+	docker cp mythic-cli-tmp:/mythic-cli_windows.exe ../mythic-cli.exe
+	docker rm mythic-cli-tmp
+
 build_linux: copy_binary_linux
 build_macos: copy_binary_macos
+build_windows: build_windows_docker
