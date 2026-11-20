@@ -1,4 +1,4 @@
-FROM nginx:1.25-alpine
+FROM nginx:1.31-alpine
 COPY error403.html /usr/share/nginx/html/
 COPY ["config/", "/etc/nginx"]
 COPY ["health_check.sh", "/health_check.sh"]
