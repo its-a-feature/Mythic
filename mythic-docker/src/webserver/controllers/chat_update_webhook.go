@@ -1,10 +1,12 @@
 package webcontroller
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -24,15 +26,15 @@ type UpdateChatChannelInput struct {
 }
 
 type UpdateChatChannel struct {
-	ChannelID   int         `json:"channel_id" binding:"required"`
-	Name        *string     `json:"name"`
-	Description *string     `json:"description"`
-	Archived    *bool       `json:"archived"`
-	Locked      *bool       `json:"locked"`
-	ChatModel   *string     `json:"chat_model"`
-	AIMetadata  interface{} `json:"ai_metadata"`
-	APITokenID  *int        `json:"apitokens_id"`
-	Muted       *bool       `json:"muted"`
+	ChannelID   int     `json:"channel_id" binding:"required"`
+	Name        *string `json:"name"`
+	Description *string `json:"description"`
+	Archived    *bool   `json:"archived"`
+	Locked      *bool   `json:"locked"`
+	ChatModel   *string `json:"chat_model"`
+	AIMetadata  any     `json:"ai_metadata"`
+	APITokenID  *int    `json:"apitokens_id"`
+	Muted       *bool   `json:"muted"`
 }
 type EditChatMessageInput struct {
 	Input EditChatMessage `json:"input" binding:"required"`
@@ -79,6 +81,15 @@ type SubmitChatInputResponse struct {
 	ChoiceID  string `json:"choice_id"`
 }
 
+type chatInputResponseTarget struct {
+	Message   databaseStructs.ChatMessage        `db:"message"`
+	Channel   databaseStructs.ChatChannel        `db:"channel"`
+	Request   databaseStructs.ChatRequest        `db:"request"`
+	Container databaseStructs.ConsumingContainer `db:"container"`
+	APIToken  databaseStructs.Apitokens          `db:"token"`
+	Prompt    sql.NullString                     `db:"prompt"`
+}
+
 type ChatSearchInput struct {
 	Input ChatSearch `json:"input" binding:"required"`
 }
@@ -115,300 +126,203 @@ type ChatRequestAction struct {
 
 func UpdateChatChannelWebhook(c *gin.Context) {
 	var input UpdateChatChannelInput
-	if !bindChatInput(c, &input) {
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		logging.LogError(err, "Failed to get JSON parameters for chat webhook")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: err.Error()})
 		return
 	}
-	operatorOperation, ok := chatOperatorOperation(c)
-	if !ok {
+	operatorOperation, err := authentication.GetRequestOperation(c)
+	if err != nil {
 		return
 	}
-	channel, err := getChatChannel(input.Input.ChannelID, operatorOperation.CurrentOperation.ID)
+	update := input.Input
+	operationID := operatorOperation.CurrentOperation.ID
+	operatorID := operatorOperation.CurrentOperator.ID
+	ctx := c.Request.Context()
+	var channel databaseStructs.ChatChannel
+	err = database.DB.GetContext(ctx, &channel, `SELECT id, name, slug, channel_type, created_by,
+			archived, locked_by, apitokens_id
+		FROM chat_channel WHERE id=$1 AND operation_id=$2`, update.ChannelID, operationID)
 	if err != nil {
 		logging.LogError(err, "Failed to get chat channel")
-		chatRespondError(c, "failed to find chat channel")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "failed to find chat channel"})
 		return
 	}
-	if input.Input.Muted != nil {
-		if !input.Input.IsMuteOnly() {
-			chatRespondError(c, "muted can only be updated by itself")
+	if update.Muted != nil {
+		if !validateRequiredScopeForChat(c, chatScopeForChannel(channel, false)) {
 			return
 		}
-		updateChatMuted(c, operatorOperation, channel, *input.Input.Muted)
+		_, err = database.DB.ExecContext(ctx, `INSERT INTO chat_read_state
+		(operation_id, channel_id, operator_id, muted)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (operator_id, channel_id) DO UPDATE
+		SET muted=excluded.muted`, operationID, channel.ID, operatorID, *update.Muted)
+		if err != nil {
+			logging.LogError(err, "Failed to update chat mute state")
+			c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: err.Error()})
+			return
+		}
+	}
+	if !validateRequiredScopeForChat(c, chatScopeForChannel(channel, true)) {
 		return
 	}
-	if !chatRequireScope(c, chatScopeForChannel(channel, true)) {
+	if !userIsAdminOrOperationLead(operatorOperation) && channel.CreatedBy != operatorID {
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "only the channel creator or an operation admin can update this channel"})
 		return
 	}
-	if !chatIsModerator(operatorOperation) && channel.CreatedBy != operatorOperation.CurrentOperator.ID {
-		chatRespondError(c, "only the channel creator or an operation admin can update this channel")
-		return
-	}
-
-	name := channel.Name
-	slug := channel.Slug
-	if input.Input.Name != nil {
-		name = strings.TrimSpace(*input.Input.Name)
+	var assignments []string
+	params := map[string]any{"id": channel.ID, "operation_id": operationID}
+	if update.Name != nil {
+		name := strings.TrimSpace(*update.Name)
 		if name == "" {
-			chatRespondError(c, "channel name is required")
+			c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "channel name is required"})
 			return
 		}
 		if chatIsGeneralChannel(channel) {
 			if name != channel.Name {
-				chatRespondError(c, "the general channel name cannot be changed")
+				c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "the general channel name cannot be changed"})
 				return
 			}
 		} else {
-			slug, err = uniqueChatSlug(operatorOperation.CurrentOperation.ID, slugifyChatChannelName(name), channel.ID)
+			slug, err := uniqueChatSlug(operationID, slugifyChatChannelName(name), channel.ID)
 			if err != nil {
 				logging.LogError(err, "Failed to generate unique chat slug")
-				chatRespondError(c, err.Error())
+				c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: err.Error()})
 				return
 			}
+			assignments = append(assignments, "name=:name", "slug=:slug")
+			params["name"] = name
+			params["slug"] = slug
 		}
 	}
-	description := channel.Description
-	if input.Input.Description != nil {
-		description = *input.Input.Description
+	if update.Description != nil {
+		assignments = append(assignments, "description=:description")
+		params["description"] = *update.Description
 	}
 	archived := channel.Archived
-	var archivedBy interface{}
-	var archivedAt interface{}
-	if channel.ArchivedBy.Valid {
-		archivedBy = channel.ArchivedBy.Int64
-	}
-	if channel.ArchivedAt.Valid {
-		archivedAt = channel.ArchivedAt.Time
-	}
-	if input.Input.Archived != nil {
-		archived = *input.Input.Archived
+	if update.Archived != nil {
+		archived = *update.Archived
 		if chatIsGeneralChannel(channel) && archived {
-			chatRespondError(c, "the general channel cannot be archived")
+			c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "the general channel cannot be archived"})
 			return
 		}
+		assignments = append(assignments, "archived=:archived", "archived_by=:archived_by", "archived_at=:archived_at")
+		params["archived"] = archived
+		params["archived_by"], params["archived_at"] = nil, nil
 		if archived {
-			archivedBy = operatorOperation.CurrentOperator.ID
-			archivedAt = time.Now().UTC()
-		} else {
-			archivedBy = nil
-			archivedAt = nil
+			params["archived_by"], params["archived_at"] = operatorID, time.Now().UTC()
 		}
 	}
-	locked := channel.Locked
-	var lockedBy interface{}
-	var lockedAt interface{}
-	if channel.LockedBy.Valid {
-		lockedBy = channel.LockedBy.Int64
-	}
-	if channel.LockedAt.Valid {
-		lockedAt = channel.LockedAt.Time
-	}
-	if input.Input.Locked != nil {
+	const unlockError = "only the lock owner or an operation admin can unlock this AI chat"
+	requireLockOwner := update.Locked != nil && !*update.Locked && !userIsAdminOrOperationLead(operatorOperation)
+	if update.Locked != nil {
 		if channel.ChannelType != databaseStructs.ChatChannelTypeAI {
-			chatRespondError(c, "only AI chat channels can be locked")
+			c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "only AI chat channels can be locked"})
 			return
 		}
-		locked = *input.Input.Locked
-		if locked {
-			lockedBy = operatorOperation.CurrentOperator.ID
-			lockedAt = time.Now().UTC()
-		} else {
-			if !chatIsModerator(operatorOperation) &&
-				(!channel.LockedBy.Valid || int(channel.LockedBy.Int64) != operatorOperation.CurrentOperator.ID) {
-				chatRespondError(c, "only the lock owner or an operation admin can unlock this AI chat")
+		if requireLockOwner && (!channel.LockedBy.Valid || int(channel.LockedBy.Int64) != operatorID) {
+			c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: unlockError})
+			return
+		}
+		assignments = append(assignments, "locked=:locked", "locked_by=:locked_by", "locked_at=:locked_at")
+		params["locked"] = *update.Locked
+		params["locked_by"], params["locked_at"] = nil, nil
+		if *update.Locked {
+			params["locked_by"], params["locked_at"] = operatorID, time.Now().UTC()
+		}
+	}
+	if update.ChatModel != nil {
+		assignments = append(assignments, "chat_model=:chat_model")
+		params["chat_model"] = *update.ChatModel
+	}
+	if update.AIMetadata != nil {
+		assignments = append(assignments, "ai_metadata=CAST(:ai_metadata AS jsonb)")
+		params["ai_metadata"] = chatJSONText(update.AIMetadata).String()
+	}
+	tokenChanged := false
+	if update.APITokenID != nil {
+		if channel.ChannelType != databaseStructs.ChatChannelTypeAI {
+			c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "apitokens_id can only be set for AI chat channels"})
+			return
+		}
+		if *update.APITokenID <= 0 {
+			c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "AI chat channels require an apitokens_id"})
+			return
+		}
+		_, err = validateAIChatChannelAPIToken(*update.APITokenID, operationID)
+		if err != nil {
+			c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: err.Error()})
+			return
+		}
+		tokenChanged = !channel.APITokensID.Valid || int(channel.APITokensID.Int64) != *update.APITokenID
+		assignments = append(assignments, "apitokens_id=:apitokens_id")
+		params["apitokens_id"] = *update.APITokenID
+	}
+	if channel.ChannelType == databaseStructs.ChatChannelTypeAI && !channel.APITokensID.Valid && update.APITokenID == nil {
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "AI chat channels require an apitokens_id"})
+		return
+	}
+
+	if len(assignments) > 0 {
+		query := "UPDATE chat_channel SET " + strings.Join(assignments, ", ") + " WHERE id=:id AND operation_id=:operation_id"
+		if requireLockOwner {
+			query += " AND locked_by=:operator_id"
+			params["operator_id"] = operatorID
+		}
+		result, err := database.DB.NamedExecContext(ctx, query, params)
+		if err != nil {
+			logging.LogError(err, "Failed to update chat channel")
+			c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: err.Error()})
+			return
+		}
+		if requireLockOwner {
+			if rows, _ := result.RowsAffected(); rows == 0 {
+				c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: unlockError})
 				return
 			}
-			lockedBy = nil
-			lockedAt = nil
 		}
 	}
-	chatModel := channel.ChatModel
-	if input.Input.ChatModel != nil {
-		chatModel = *input.Input.ChatModel
-	}
-	metadata := channel.AIMetadata
-	if input.Input.AIMetadata != nil {
-		metadata = chatJSONText(input.Input.AIMetadata)
-	}
-	var apiTokenID interface{}
-	if channel.APITokensID.Valid {
-		apiTokenID = channel.APITokensID.Int64
-	}
-	if input.Input.APITokenID != nil {
-		if channel.ChannelType != databaseStructs.ChatChannelTypeAI {
-			chatRespondError(c, "apitokens_id can only be set for AI chat channels")
-			return
-		}
-		if *input.Input.APITokenID <= 0 {
-			chatRespondError(c, "AI chat channels require an apitokens_id")
-			return
-		}
-		if _, err = validateAIChatChannelAPIToken(*input.Input.APITokenID, operatorOperation.CurrentOperation.ID); err != nil {
-			chatRespondError(c, err.Error())
-			return
-		}
-		if !channel.APITokensID.Valid || int(channel.APITokensID.Int64) != *input.Input.APITokenID {
-			expireGeneratedChatAPITokensForChannel(channel.ID)
-		}
-		apiTokenID = *input.Input.APITokenID
-	}
-	if channel.ChannelType == databaseStructs.ChatChannelTypeAI && apiTokenID == nil {
-		chatRespondError(c, "AI chat channels require an apitokens_id")
-		return
-	}
-	_, err = database.DB.Exec(`UPDATE chat_channel
-		SET name=$3, slug=$4, description=$5, archived=$6, archived_by=$7, archived_at=$8,
-			locked=$9, locked_by=$10, locked_at=$11, chat_model=$12, ai_metadata=$13::jsonb,
-			apitokens_id=$14
-		WHERE id=$1 AND operation_id=$2`,
-		channel.ID,
-		operatorOperation.CurrentOperation.ID,
-		name,
-		slug,
-		description,
-		archived,
-		archivedBy,
-		archivedAt,
-		locked,
-		lockedBy,
-		lockedAt,
-		chatModel,
-		metadata.String(),
-		apiTokenID,
-	)
-	if err != nil {
-		logging.LogError(err, "Failed to update chat channel")
-		chatRespondError(c, err.Error())
-		return
-	}
-	if archived {
+	if archived || tokenChanged {
 		expireGeneratedChatAPITokensForChannel(channel.ID)
 	}
 	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", ID: channel.ID, ChannelID: channel.ID})
 }
 
-func (u UpdateChatChannel) IsMuteOnly() bool {
-	return u.Muted != nil &&
-		u.Name == nil &&
-		u.Description == nil &&
-		u.Archived == nil &&
-		u.Locked == nil &&
-		u.ChatModel == nil &&
-		u.AIMetadata == nil &&
-		u.APITokenID == nil
-}
-
-func updateChatMuted(c *gin.Context, operatorOperation *databaseStructs.Operatoroperation, channel databaseStructs.ChatChannel, muted bool) {
-	if !chatRequireScope(c, chatScopeForChannel(channel, false)) {
-		return
-	}
-	if muted {
-		var targetReadID sql.NullInt64
-		err := database.DB.Get(&targetReadID, `WITH current_state AS (
-				SELECT last_read_message_id
-				FROM chat_read_state
-				WHERE operator_id=$3 AND channel_id=$2
-			),
-			first_unread_system AS (
-				SELECT min(id) AS id
-				FROM chat_message
-				WHERE operation_id=$1
-					AND channel_id=$2
-					AND author_type=$4
-					AND id > COALESCE((SELECT last_read_message_id FROM current_state), 0)
-			)
-			SELECT max(id)
-			FROM chat_message
-			WHERE operation_id=$1
-				AND channel_id=$2
-				AND (
-					(SELECT id FROM first_unread_system) IS NULL
-					OR id < (SELECT id FROM first_unread_system)
-				)`,
-			operatorOperation.CurrentOperation.ID,
-			channel.ID,
-			operatorOperation.CurrentOperator.ID,
-			databaseStructs.ChatMessageAuthorSystem,
-		)
-		if err != nil {
-			logging.LogError(err, "Failed to calculate muted chat read target")
-			chatRespondError(c, err.Error())
-			return
-		}
-		var lastReadID interface{}
-		if targetReadID.Valid {
-			lastReadID = targetReadID.Int64
-		}
-		_, err = database.DB.Exec(`INSERT INTO chat_read_state
-			(operation_id, channel_id, operator_id, last_read_message_id, muted)
-			VALUES ($1, $2, $3, $4, true)
-			ON CONFLICT (operator_id, channel_id) DO UPDATE
-			SET muted=true,
-				last_read_message_id=CASE
-					WHEN excluded.last_read_message_id IS NULL THEN chat_read_state.last_read_message_id
-					WHEN chat_read_state.last_read_message_id IS NULL THEN excluded.last_read_message_id
-					WHEN chat_read_state.last_read_message_id < excluded.last_read_message_id THEN excluded.last_read_message_id
-					ELSE chat_read_state.last_read_message_id
-				END`,
-			operatorOperation.CurrentOperation.ID,
-			channel.ID,
-			operatorOperation.CurrentOperator.ID,
-			lastReadID,
-		)
-		if err != nil {
-			logging.LogError(err, "Failed to mute chat channel")
-			chatRespondError(c, err.Error())
-			return
-		}
-	} else {
-		_, err := database.DB.Exec(`INSERT INTO chat_read_state
-			(operation_id, channel_id, operator_id, muted)
-			VALUES ($1, $2, $3, false)
-			ON CONFLICT (operator_id, channel_id) DO UPDATE
-			SET muted=false`,
-			operatorOperation.CurrentOperation.ID,
-			channel.ID,
-			operatorOperation.CurrentOperator.ID,
-		)
-		if err != nil {
-			logging.LogError(err, "Failed to unmute chat channel")
-			chatRespondError(c, err.Error())
-			return
-		}
-	}
-	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", ChannelID: channel.ID})
-}
-
 func EditChatMessageWebhook(c *gin.Context) {
 	var input EditChatMessageInput
-	if !bindChatInput(c, &input) {
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		logging.LogError(err, "Failed to get JSON parameters for chat webhook")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: err.Error()})
 		return
 	}
-	operatorOperation, ok := chatOperatorOperation(c)
-	if !ok {
+	operatorOperation, err := authentication.GetRequestOperation(c)
+	if err != nil {
 		return
 	}
 	message := strings.TrimSpace(input.Input.Message)
 	if message == "" {
-		chatRespondError(c, "message is required")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "message is required"})
 		return
 	}
-	chatMessage, channel, err := getChatMessageAndChannel(input.Input.MessageID, operatorOperation.CurrentOperation.ID)
+	chatMessage, channel, err := getChatMessageAndChannel(c.Request.Context(), input.Input.MessageID, operatorOperation.CurrentOperation.ID)
 	if err != nil {
 		logging.LogError(err, "Failed to get chat message for edit")
-		chatRespondError(c, "failed to find chat message")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "failed to find chat message"})
 		return
 	}
-	if !chatRequireScope(c, chatScopeForChannel(channel, true)) {
+	if !validateRequiredScopeForChat(c, chatScopeForChannel(channel, true)) {
 		return
 	}
 	if chatMessage.Deleted {
-		chatRespondError(c, "cannot edit a deleted chat message")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "cannot edit a deleted chat message"})
 		return
 	}
 	if chatMessage.AuthorType != databaseStructs.ChatMessageAuthorOperator ||
 		!chatMessage.OperatorID.Valid ||
 		int(chatMessage.OperatorID.Int64) != operatorOperation.CurrentOperator.ID {
-		chatRespondError(c, "only the message author can edit this message")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "only the message author can edit this message"})
 		return
 	}
 	_, err = database.DB.Exec(`UPDATE chat_message
@@ -416,7 +330,7 @@ func EditChatMessageWebhook(c *gin.Context) {
 		WHERE id=$1 AND operation_id=$2`, chatMessage.ID, operatorOperation.CurrentOperation.ID, message)
 	if err != nil {
 		logging.LogError(err, "Failed to edit chat message")
-		chatRespondError(c, err.Error())
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", ID: chatMessage.ID, MessageID: chatMessage.ID, ChannelID: channel.ID})
@@ -424,86 +338,111 @@ func EditChatMessageWebhook(c *gin.Context) {
 
 func DeleteChatMessageWebhook(c *gin.Context) {
 	var input DeleteChatMessageInput
-	if !bindChatInput(c, &input) {
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		logging.LogError(err, "Failed to get JSON parameters for chat webhook")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: err.Error()})
 		return
 	}
-	operatorOperation, ok := chatOperatorOperation(c)
-	if !ok {
+	operatorOperation, err := authentication.GetRequestOperation(c)
+	if err != nil {
 		return
 	}
-	chatMessage, channel, err := getChatMessageAndChannel(input.Input.MessageID, operatorOperation.CurrentOperation.ID)
+	chatMessage, channel, err := getChatMessageAndChannel(c.Request.Context(), input.Input.MessageID, operatorOperation.CurrentOperation.ID)
 	if err != nil {
 		logging.LogError(err, "Failed to get chat message for delete")
-		chatRespondError(c, "failed to find chat message")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "failed to find chat message"})
 		return
 	}
-	if !chatRequireScope(c, chatScopeForChannel(channel, true)) {
+	if !validateRequiredScopeForChat(c, chatScopeForChannel(channel, true)) {
 		return
 	}
-	if !chatIsModerator(operatorOperation) &&
+	if !userIsAdminOrOperationLead(operatorOperation) &&
 		(!chatMessage.OperatorID.Valid || int(chatMessage.OperatorID.Int64) != operatorOperation.CurrentOperator.ID) {
-		chatRespondError(c, "only the message author or an operation admin can delete this message")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "only the message author or an operation admin can delete this message"})
 		return
 	}
-	_, err = database.DB.Exec(`UPDATE chat_message
-		SET message='Message Deleted',
-			deleted=true,
-			deleted_by=$3,
-			deleted_at=now(),
-			status='complete'
-		WHERE id=$1 AND operation_id=$2`, chatMessage.ID, operatorOperation.CurrentOperation.ID, operatorOperation.CurrentOperator.ID)
+	// when deleting a message, make sure any pending/streaming ai chat requests are also canceled
+	_, err = database.DB.ExecContext(c.Request.Context(), `WITH deleted_message AS (
+			UPDATE chat_message
+			SET message='Message Deleted',
+				deleted=true,
+				deleted_by=$3,
+				deleted_at=now(),
+				status='complete'
+			WHERE id=$1 AND operation_id=$2
+			RETURNING id, operation_id, chat_request_id
+		), cancelled_requests AS (
+			UPDATE chat_request AS request
+			SET status='cancelled', cancelled_at=now(), error='Chat message was deleted'
+			FROM deleted_message
+			WHERE request.operation_id=deleted_message.operation_id
+				AND request.status IN ('pending', 'streaming')
+				AND (request.request_message_id=deleted_message.id OR request.id=deleted_message.chat_request_id)
+			RETURNING request.id, request.operation_id
+		)
+		UPDATE chat_message AS message
+		SET status='cancelled'
+		FROM cancelled_requests
+		WHERE message.operation_id=cancelled_requests.operation_id
+			AND message.chat_request_id=cancelled_requests.id
+			AND message.id<>$1
+			AND message.status IN ('pending', 'streaming')`,
+		chatMessage.ID, operatorOperation.CurrentOperation.ID, operatorOperation.CurrentOperator.ID)
 	if err != nil {
 		logging.LogError(err, "Failed to delete chat message")
-		chatRespondError(c, err.Error())
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: err.Error()})
 		return
 	}
-	_, _ = database.DB.Exec(`WITH cancelled_requests AS (
-			UPDATE chat_request
-			SET status='cancelled', cancelled_at=now(), error='Chat message was deleted'
-			WHERE operation_id=$1
-				AND status IN ('pending', 'streaming')
-				AND (
-					request_message_id=$2
-					OR id=(SELECT chat_request_id FROM chat_message WHERE id=$2 AND operation_id=$1)
-				)
-			RETURNING id
-		)
-		UPDATE chat_message
-		SET status='cancelled'
-		WHERE operation_id=$1
-			AND chat_request_id IN (SELECT id FROM cancelled_requests)
-			AND status IN ('pending', 'streaming')`,
-		operatorOperation.CurrentOperation.ID, chatMessage.ID)
 	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", ID: chatMessage.ID, MessageID: chatMessage.ID, ChannelID: channel.ID})
 }
 
+var chatChannelTypeMap = make(map[int]databaseStructs.ChatChannel)
+var chatChannelTypeMapLock sync.RWMutex
+
 func MarkChatReadWebhook(c *gin.Context) {
 	var input MarkChatReadInput
-	if !bindChatInput(c, &input) {
-		return
-	}
-	operatorOperation, ok := chatOperatorOperation(c)
-	if !ok {
-		return
-	}
-	channel, err := getChatChannel(input.Input.ChannelID, operatorOperation.CurrentOperation.ID)
+	err := c.ShouldBindJSON(&input)
 	if err != nil {
-		logging.LogError(err, "Failed to get chat channel for read marker")
-		chatRespondError(c, "failed to find chat channel")
+		logging.LogError(err, "Failed to get JSON parameters for chat webhook")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: err.Error()})
 		return
 	}
-	if !chatRequireScope(c, chatScopeForChannel(channel, false)) {
+	operatorOperation, err := authentication.GetRequestOperation(c)
+	if err != nil {
 		return
 	}
-	var lastReadID interface{}
+	chatChannelTypeMapLock.RLock()
+	chatChannel, ok := chatChannelTypeMap[input.Input.ChannelID]
+	chatChannelTypeMapLock.RUnlock()
+	if !ok {
+		err = database.DB.GetContext(c.Request.Context(), &chatChannel, `SELECT 
+			id, channel_type
+			FROM chat_channel
+			WHERE id=$1 AND operation_id=$2`,
+			input.Input.ChannelID, operatorOperation.CurrentOperation.ID)
+		if err != nil {
+			logging.LogError(err, "Failed to get chat channel for read marker")
+			c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "failed to find chat channel"})
+			return
+		}
+		chatChannelTypeMapLock.Lock()
+		chatChannelTypeMap[input.Input.ChannelID] = chatChannel
+		chatChannelTypeMapLock.Unlock()
+	}
+	if !validateRequiredScopeForChat(c, chatScopeForChannel(chatChannel, false)) {
+		return
+	}
+	var lastReadID any
 	if input.Input.LastReadMessageID != nil {
 		lastReadID = *input.Input.LastReadMessageID
 	} else {
 		var maxID sql.NullInt64
-		if err = database.DB.Get(&maxID, `SELECT max(id) FROM chat_message
-			WHERE operation_id=$1 AND channel_id=$2`, operatorOperation.CurrentOperation.ID, channel.ID); err != nil {
+		err = database.DB.Get(&maxID, `SELECT max(id) FROM chat_message
+			WHERE operation_id=$1 AND channel_id=$2`, operatorOperation.CurrentOperation.ID, chatChannel.ID)
+		if err != nil {
 			logging.LogError(err, "Failed to get max chat message id")
-			chatRespondError(c, err.Error())
+			c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: err.Error()})
 			return
 		}
 		if maxID.Valid {
@@ -511,7 +450,7 @@ func MarkChatReadWebhook(c *gin.Context) {
 		}
 	}
 	if lastReadID == nil {
-		c.JSON(http.StatusOK, ChatActionResponse{Status: "success", ChannelID: channel.ID})
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "success", ChannelID: chatChannel.ID})
 		return
 	}
 	_, err = database.DB.Exec(`INSERT INTO chat_read_state
@@ -521,51 +460,54 @@ func MarkChatReadWebhook(c *gin.Context) {
 		SET last_read_message_id=excluded.last_read_message_id
 		WHERE chat_read_state.last_read_message_id IS NULL
 			OR chat_read_state.last_read_message_id < excluded.last_read_message_id`,
-		operatorOperation.CurrentOperation.ID, channel.ID, operatorOperation.CurrentOperator.ID, lastReadID)
+		operatorOperation.CurrentOperation.ID, chatChannel.ID, operatorOperation.CurrentOperator.ID, lastReadID)
 	if err != nil {
 		logging.LogError(err, "Failed to mark chat channel read")
-		chatRespondError(c, err.Error())
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", ChannelID: channel.ID})
+	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", ChannelID: chatChannel.ID})
 }
 
 func RefreshChatSpecialMessageWebhook(c *gin.Context) {
 	var input RefreshChatSpecialMessageInput
-	if !bindChatInput(c, &input) {
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		logging.LogError(err, "Failed to get JSON parameters for chat webhook")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: err.Error()})
 		return
 	}
-	operatorOperation, ok := chatOperatorOperation(c)
-	if !ok {
+	operatorOperation, err := authentication.GetRequestOperation(c)
+	if err != nil {
 		return
 	}
-	chatMessage, channel, err := getChatMessageAndChannel(input.Input.MessageID, operatorOperation.CurrentOperation.ID)
+	chatMessage, channel, err := getChatMessageAndChannel(c.Request.Context(), input.Input.MessageID, operatorOperation.CurrentOperation.ID)
 	if err != nil {
 		logging.LogError(err, "Failed to get chat message for refresh")
-		chatRespondError(c, "failed to find chat message")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "failed to find chat message"})
 		return
 	}
-	if !chatRequireScope(c, chatScopeForChannel(channel, false)) {
+	if !validateRequiredScopeForChat(c, chatScopeForChannel(channel, false)) {
 		return
 	}
 	if chatMessage.Deleted {
-		chatRespondError(c, "cannot refresh a deleted chat message")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "cannot refresh a deleted chat message"})
 		return
 	}
 	metadata := chatMessage.Metadata.StructValue()
 	if metadata["special_type"] != eventing.ChatSpecialTypeEventingUserInteraction {
-		chatRespondError(c, "chat message is not refreshable")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "chat message is not refreshable"})
 		return
 	}
 	eventStepInstanceID, ok := chatMetadataInt(metadata, "eventstepinstance_id")
 	if !ok || eventStepInstanceID <= 0 {
-		chatRespondError(c, "chat message is missing its eventstep instance reference")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "chat message is missing its eventstep instance reference"})
 		return
 	}
 	message, senderDisplayName, refreshedMetadata, err := eventing.BuildUserInteractionChatMessage(eventStepInstanceID, operatorOperation.CurrentOperation.ID)
 	if err != nil {
 		logging.LogError(err, "Failed to refresh eventing user interaction chat message")
-		chatRespondError(c, err.Error())
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: err.Error()})
 		return
 	}
 	refreshedMetadataText := eventing.GetMythicJSONTextFromStruct(refreshedMetadata)
@@ -580,7 +522,7 @@ func RefreshChatSpecialMessageWebhook(c *gin.Context) {
 		databaseStructs.ChatMessageStatusComplete)
 	if err != nil {
 		logging.LogError(err, "Failed to update refreshed chat message")
-		chatRespondError(c, err.Error())
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", ID: chatMessage.ID, MessageID: chatMessage.ID, ChannelID: channel.ID})
@@ -588,74 +530,75 @@ func RefreshChatSpecialMessageWebhook(c *gin.Context) {
 
 func SubmitChatInputResponseWebhook(c *gin.Context) {
 	var input SubmitChatInputResponseInput
-	if !bindChatInput(c, &input) {
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		logging.LogError(err, "Failed to get JSON parameters for chat webhook")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: err.Error()})
 		return
 	}
-	operatorOperation, ok := chatOperatorOperation(c)
-	if !ok {
+	operatorOperation, err := authentication.GetRequestOperation(c)
+	if err != nil {
 		return
 	}
 	action := strings.ToLower(strings.TrimSpace(input.Input.Action))
-	if action != "accept" && action != "reject" && action != "respond" && action != "select" {
-		chatRespondError(c, "action must be accept, reject, respond, or select")
-		return
-	}
 	response := strings.TrimSpace(input.Input.Response)
 	choiceID := strings.TrimSpace(input.Input.ChoiceID)
 	if action == "respond" && response == "" {
-		chatRespondError(c, "response is required")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "response is required"})
 		return
 	}
 	if action == "select" && choiceID == "" {
-		chatRespondError(c, "choice_id is required")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "choice_id is required"})
 		return
 	}
-	chatMessage, channel, err := getChatMessageAndChannel(input.Input.MessageID, operatorOperation.CurrentOperation.ID)
+	operationID := operatorOperation.CurrentOperation.ID
+	ctx := c.Request.Context()
+	target, err := getChatInputResponseTarget(ctx, input.Input.MessageID, operationID)
 	if err != nil {
 		logging.LogError(err, "Failed to find input request message")
-		chatRespondError(c, "failed to find chat message")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "failed to find chat message"})
 		return
 	}
-	if !chatRequireScope(c, chatScopeForChannel(channel, true)) {
+	if !validateRequiredScopeForChat(c, chatScopeForChannel(target.Channel, true)) {
 		return
 	}
-	if channel.ChannelType != databaseStructs.ChatChannelTypeAI {
-		chatRespondError(c, "input responses are only valid in AI chat channels")
+	if target.Channel.ChannelType != databaseStructs.ChatChannelTypeAI {
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "input responses are only valid in AI chat channels"})
 		return
 	}
-	if channel.Archived {
-		chatRespondError(c, "cannot respond in an archived chat channel")
+	if target.Channel.Archived {
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "cannot respond in an archived chat channel"})
 		return
 	}
-	if !chatCanPostToAIChannel(operatorOperation, channel) {
-		chatRespondError(c, "this AI chat is locked to another operator")
+	if !chatCanPostToAIChannel(operatorOperation, target.Channel) {
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "this AI chat is locked to another operator"})
 		return
 	}
-	if chatMessage.Deleted {
-		chatRespondError(c, "cannot respond to a deleted chat message")
+	if target.Message.Deleted {
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "cannot respond to a deleted chat message"})
 		return
 	}
-	if chatMessage.AuthorType != databaseStructs.ChatMessageAuthorAI {
-		chatRespondError(c, "input requests must come from AI messages")
+	if target.Message.AuthorType != databaseStructs.ChatMessageAuthorAI {
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "input requests must come from AI messages"})
 		return
 	}
-	if !chatMessage.ChatRequestID.Valid || chatMessage.ChatRequestID.Int64 <= 0 {
-		chatRespondError(c, "input request is missing its chat request reference")
+	if !target.Message.ChatRequestID.Valid || target.Message.ChatRequestID.Int64 <= 0 {
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "input request is missing its chat request reference"})
 		return
 	}
-	metadata := chatMessage.Metadata.StructValue()
+	metadata := target.Message.Metadata.StructValue()
 	if metadata["special_type"] != chatSpecialTypeInputRequested {
-		chatRespondError(c, "chat message is not an input request")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "chat message is not an input request"})
 		return
 	}
 	inputRequest, ok := metadata[chatSpecialTypeInputRequested].(map[string]interface{})
 	if !ok {
-		chatRespondError(c, "input request metadata is missing")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "input request metadata is missing"})
 		return
 	}
 	status, _ := inputRequest["status"].(string)
 	if status != chatInputRequestedStatusPending {
-		chatRespondError(c, "input request is no longer pending")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "input request is no longer pending"})
 		return
 	}
 
@@ -673,13 +616,16 @@ func SubmitChatInputResponseWebhook(c *gin.Context) {
 		updatedInputRequest["status"] = chatInputRequestedStatusSelected
 		selectedChoice = chatFindInputChoice(updatedInputRequest, choiceID)
 		if selectedChoice == nil {
-			chatRespondError(c, "choice_id does not match any pending input choice")
+			c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "choice_id does not match any pending input choice"})
 			return
 		}
+	default:
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "invalid action. Only accept, reject, respond, or select are valid."})
+		return
 	}
 	inputResponseMetadata := map[string]interface{}{
 		"action":                   action,
-		"input_request_message_id": chatMessage.ID,
+		"input_request_message_id": target.Message.ID,
 		"resolved_by_operator_id":  operatorOperation.CurrentOperator.ID,
 		"resolved_by":              operatorOperation.CurrentOperator.Username,
 		"resolved_at":              resolvedAt,
@@ -694,27 +640,65 @@ func SubmitChatInputResponseWebhook(c *gin.Context) {
 	updatedInputRequest["resolved_by_operator_id"] = operatorOperation.CurrentOperator.ID
 	updatedInputRequest["resolved_by"] = operatorOperation.CurrentOperator.Username
 	updatedInputRequest["resolved_at"] = resolvedAt
-	metadata[chatSpecialTypeInputRequested] = updatedInputRequest
-	metadata["updated_by_operator_id"] = operatorOperation.CurrentOperator.ID
-	metadata["updated_by"] = operatorOperation.CurrentOperator.Username
-	metadata["updated_at"] = resolvedAt
-	metadataText := rabbitmq.GetMythicJSONTextFromStruct(metadata)
-	result, err := database.DB.Exec(`UPDATE chat_message
-		SET metadata=$3::jsonb, updated_at=now()
+	if target.Request.ID == 0 {
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "failed to find chat request"})
+		return
+	}
+	if target.Request.Status == databaseStructs.ChatMessageStatusComplete ||
+		target.Request.Status == databaseStructs.ChatMessageStatusError ||
+		target.Request.Status == databaseStructs.ChatMessageStatusCancelled {
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "chat request is already complete"})
+		return
+	}
+	if target.Container.ID == 0 {
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "failed to find AI chat container"})
+		return
+	}
+	if !target.Container.ContainerRunning {
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: fmt.Sprintf("chat container %s is not running", target.Container.Name)})
+		return
+	}
+	if !target.Channel.APITokensID.Valid || target.Channel.APITokensID.Int64 <= 0 {
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "AI chat channel is missing an API token"})
+		return
+	}
+	if err = checkAIChatChannelAPIToken(target.APIToken); err != nil {
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: err.Error()})
+		return
+	}
+	if !target.Prompt.Valid {
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "failed to find original prompt"})
+		return
+	}
+
+	metadataPatch := rabbitmq.GetMythicJSONTextFromStruct(map[string]interface{}{
+		chatSpecialTypeInputRequested: updatedInputRequest,
+		"updated_by_operator_id":      operatorOperation.CurrentOperator.ID,
+		"updated_by":                  operatorOperation.CurrentOperator.Username,
+		"updated_at":                  resolvedAt,
+	})
+	// Lock the request for the duration of the update so cancellation cannot
+	// change its status between the guard and the input resolution.
+	result, err := database.DB.ExecContext(ctx, `UPDATE chat_message
+		SET metadata=metadata || $3::jsonb, updated_at=now()
 		WHERE id=$1
 			AND operation_id=$2
 			AND deleted=false
 			AND metadata->>'special_type'=$4
-			AND metadata->'input_requested'->>'status'=$5`,
-		chatMessage.ID,
-		operatorOperation.CurrentOperation.ID,
-		metadataText.String(),
-		chatSpecialTypeInputRequested,
-		chatInputRequestedStatusPending,
+			AND metadata->'input_requested'->>'status'=$5
+			AND chat_request_id=$6
+			AND EXISTS (
+				SELECT 1 FROM chat_request
+				WHERE id=$6 AND operation_id=$2 AND channel_id=$7
+					AND status NOT IN ('complete', 'error', 'cancelled')
+				FOR SHARE
+			)`,
+		target.Message.ID, operationID, metadataPatch.String(), chatSpecialTypeInputRequested,
+		chatInputRequestedStatusPending, target.Request.ID, target.Channel.ID,
 	)
 	if err != nil {
 		logging.LogError(err, "Failed to update input request message")
-		chatRespondError(c, err.Error())
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: err.Error()})
 		return
 	}
 	rowsAffected, err := result.RowsAffected()
@@ -723,61 +707,33 @@ func SubmitChatInputResponseWebhook(c *gin.Context) {
 		rowsAffected = 0
 	}
 	if rowsAffected == 0 {
-		chatRespondError(c, "input request is no longer pending")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "input request is no longer pending"})
 		return
 	}
 
-	request, _, err := getChatRequestAndChannel(int(chatMessage.ChatRequestID.Int64), operatorOperation.CurrentOperation.ID)
-	if err != nil {
-		logging.LogError(err, "Failed to find chat request for input response")
-		chatRespondError(c, "failed to find chat request")
-		return
-	}
-	if chatRequestStatusIsTerminal(request.Status) {
-		chatRespondError(c, "chat request is already complete")
-		return
-	}
-	container, err := getChatContainer(request.ChatContainerID)
-	if err != nil {
-		logging.LogError(err, "Failed to find AI chat container for input response")
-		chatRespondError(c, "failed to find AI chat container")
-		return
-	}
-	if !container.ContainerRunning {
-		chatRespondError(c, fmt.Sprintf("chat container %s is not running", container.Name))
-		return
-	}
-	chatAuthContext, err := chatChannelAuthContext(channel)
-	if err != nil {
-		chatRespondError(c, err.Error())
-		return
-	}
-	var originalPrompt string
-	if err = database.DB.Get(&originalPrompt, `SELECT message FROM chat_message
-		WHERE id=$1 AND operation_id=$2 AND deleted=false`,
-		request.RequestMessageID, operatorOperation.CurrentOperation.ID); err != nil {
-		logging.LogError(err, "Failed to get original prompt for input response")
-		chatRespondError(c, "failed to find original prompt")
-		return
-	}
 	inputResponse := &rabbitmq.ChatContainerInputResponse{
 		Action:                action,
 		Response:              response,
 		Choice:                selectedChoice,
-		InputRequestMessageID: chatMessage.ID,
+		InputRequestMessageID: target.Message.ID,
 		InputRequest:          updatedInputRequest,
 		ResolvedByOperatorID:  operatorOperation.CurrentOperator.ID,
 		ResolvedBy:            operatorOperation.CurrentOperator.Username,
 		ResolvedAt:            resolvedAt,
 	}
+	chatAuthContext := chatRabbitMQAuthContextFromToken(target.APIToken)
+	chatAuthContext.ChatOperatorID = operatorOperation.CurrentOperator.ID
+	chatAuthContext.TargetContainerName = target.Container.Name
+	chatAuthContext.ChatChannelID = target.Channel.ID
 	go dispatchAIChatRequest(
-		operatorOperation.CurrentOperation.ID,
+		operationID,
 		operatorOperation.CurrentOperator.ID,
-		channel,
-		container,
-		request.ID,
-		request.RequestMessageID,
-		originalPrompt,
+		operatorOperation.CurrentOperator.Username,
+		target.Channel,
+		target.Container,
+		target.Request.ID,
+		target.Request.RequestMessageID,
+		target.Prompt.String,
 		nil,
 		nil,
 		nil,
@@ -785,26 +741,78 @@ func SubmitChatInputResponseWebhook(c *gin.Context) {
 		inputResponse,
 		chatAuthContext,
 	)
-	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", ID: chatMessage.ID, MessageID: chatMessage.ID, ChannelID: channel.ID, RequestID: request.ID})
+	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", ID: target.Message.ID, MessageID: target.Message.ID, ChannelID: target.Channel.ID, RequestID: target.Request.ID})
+}
+
+func getChatInputResponseTarget(ctx context.Context, messageID, operationID int) (chatInputResponseTarget, error) {
+	var target chatInputResponseTarget
+	// Keep the message visible when related rows are missing so the handler can
+	// still check its scope and return the appropriate validation error.
+	// The lateral subquery's limit keeps PostgreSQL from flattening the two
+	// point lookups into a larger join to plan on every call.
+	err := database.DB.GetContext(ctx, &target, `SELECT
+			m.id "message.id", m.deleted "message.deleted", m.author_type "message.author_type",
+			m.chat_request_id "message.chat_request_id", m.metadata "message.metadata",
+			ch.id "channel.id", ch.operation_id "channel.operation_id",
+			ch.name "channel.name", ch.slug "channel.slug", ch.channel_type "channel.channel_type",
+			ch.archived "channel.archived", ch.locked "channel.locked", ch.locked_by "channel.locked_by",
+			ch.chat_model "channel.chat_model", ch.ai_metadata "channel.ai_metadata",
+			ch.apitokens_id "channel.apitokens_id",
+			dispatch.request_id "request.id",
+			dispatch.request_message_id "request.request_message_id",
+			dispatch.request_status "request.status",
+			COALESCE(dispatch.container_id, 0) "container.id",
+			COALESCE(dispatch.container_name, '') "container.name",
+			COALESCE(dispatch.container_running, false) "container.container_running",
+			COALESCE(dispatch.token_id, 0) "token.id",
+			COALESCE(dispatch.operator_id, 0) "token.operator_id",
+			COALESCE(dispatch.operation_id, 0) "token.operation_id",
+			COALESCE(dispatch.active, false) "token.active",
+			COALESCE(dispatch.deleted, false) "token.deleted",
+			COALESCE(dispatch.token_type, '') "token.token_type",
+			dispatch.scopes "token.scopes", 
+			dispatch.prompt "prompt"
+		FROM chat_message m
+		JOIN chat_channel ch ON ch.id=m.channel_id AND ch.operation_id=m.operation_id
+		LEFT JOIN LATERAL (
+			SELECT r.id request_id, r.request_message_id, r.status request_status,
+				cc.id container_id, cc.name container_name, cc.container_running,
+				t.id token_id, t.operator_id, t.operation_id, t.active, t.deleted, t.token_type, t.scopes,
+				p.message prompt
+			FROM chat_request r
+			LEFT JOIN consuming_container cc ON cc.id=r.chat_container_id AND cc.type=$3 AND NOT cc.deleted
+			LEFT JOIN chat_message p ON p.id=r.request_message_id AND p.operation_id=r.operation_id AND NOT p.deleted
+			LEFT JOIN apitokens t ON t.id=ch.apitokens_id AND t.operation_id=r.operation_id AND EXISTS (
+				SELECT 1 FROM operatoroperation member
+				WHERE member.operator_id=t.operator_id AND member.operation_id=r.operation_id
+			)
+			WHERE r.id=m.chat_request_id AND r.operation_id=m.operation_id AND r.channel_id=m.channel_id
+			LIMIT 1
+		) dispatch ON true
+		WHERE m.id=$1 AND m.operation_id=$2`, messageID, operationID, rabbitmq.CONSUMING_SERVICES_TYPE_CHAT)
+	return target, err
 }
 
 func ChatSearchWebhook(c *gin.Context) {
 	var input ChatSearchInput
-	if !bindChatInput(c, &input) {
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		logging.LogError(err, "Failed to get JSON parameters for chat webhook")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: err.Error()})
 		return
 	}
-	operatorOperation, ok := chatOperatorOperation(c)
-	if !ok {
+	operatorOperation, err := authentication.GetRequestOperation(c)
+	if err != nil {
 		return
 	}
 	query := strings.TrimSpace(input.Input.Query)
 	if query == "" {
-		chatRespondError(c, "query is required")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "query is required"})
 		return
 	}
 	allowedTypes := chatSearchAllowedChannelTypes(c)
 	if len(allowedTypes) == 0 {
-		chatRespondError(c, "missing required chat read scope")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "missing required chat read scope"})
 		return
 	}
 	limit := input.Input.Limit
@@ -820,7 +828,7 @@ func ChatSearchWebhook(c *gin.Context) {
 		channelID = *input.Input.ChannelID
 	}
 	results := []ChatSearchResult{}
-	err := database.DB.Select(&results, `SELECT
+	err = database.DB.Select(&results, `SELECT
 			chat_message.id,
 			chat_message.channel_id,
 			chat_channel.name "channel_name",
@@ -851,7 +859,7 @@ func ChatSearchWebhook(c *gin.Context) {
 	)
 	if err != nil {
 		logging.LogError(err, "Failed to search chat")
-		chatRespondError(c, err.Error())
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", Results: results})
@@ -859,197 +867,179 @@ func ChatSearchWebhook(c *gin.Context) {
 
 func CancelChatRequestWebhook(c *gin.Context) {
 	var input ChatRequestActionInput
-	if !bindChatInput(c, &input) {
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		logging.LogError(err, "Failed to get JSON parameters for chat webhook")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: err.Error()})
 		return
 	}
-	operatorOperation, ok := chatOperatorOperation(c)
-	if !ok {
+	operatorOperation, err := authentication.GetRequestOperation(c)
+	if err != nil {
 		return
 	}
-	request, channel, err := getChatRequestAndChannel(input.Input.RequestID, operatorOperation.CurrentOperation.ID)
+	ctx := c.Request.Context()
+	var request databaseStructs.ChatRequest
+	err = database.DB.GetContext(ctx, &request, `SELECT
+			r.id, r.created_by, r.chat_container_id, ch.id "channel.id", ch.channel_type "channel.channel_type"
+		FROM chat_request r
+		JOIN chat_channel ch ON ch.id=r.channel_id AND ch.operation_id=r.operation_id
+		WHERE r.id=$1 AND r.operation_id=$2`, input.Input.RequestID, operatorOperation.CurrentOperation.ID)
 	if err != nil {
 		logging.LogError(err, "Failed to find chat request for cancel")
-		chatRespondError(c, "failed to find chat request")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "failed to find chat request"})
 		return
 	}
-	if !chatRequireScope(c, chatScopeForChannel(channel, true)) {
+	if !validateRequiredScopeForChat(c, chatScopeForChannel(request.Channel, true)) {
 		return
 	}
-	if !chatIsModerator(operatorOperation) && request.CreatedBy != operatorOperation.CurrentOperator.ID {
-		chatRespondError(c, "only the request creator or an operation admin can cancel this request")
+	if !userIsAdminOrOperationLead(operatorOperation) && request.CreatedBy != operatorOperation.CurrentOperator.ID {
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "only the request creator or an operation admin can cancel this request"})
 		return
 	}
-	result, err := database.DB.Exec(`UPDATE chat_request
-		SET status='cancelled', cancelled_at=now(), error='Operator issued cancel'
-		WHERE id=$1 AND operation_id=$2 AND status IN ('pending', 'streaming')`,
-		request.ID, operatorOperation.CurrentOperation.ID)
+	cancelled, err := cancelChatRequest(ctx, request.ID, operatorOperation)
 	if err != nil {
 		logging.LogError(err, "Failed to cancel chat request")
-		chatRespondError(c, err.Error())
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: err.Error()})
 		return
 	}
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		logging.LogError(err, "Failed to check cancelled chat request rows affected")
-		rowsAffected = 0
-	}
-	_, _ = database.DB.Exec(`UPDATE chat_message
-		SET status='cancelled'
-		WHERE chat_request_id=$1 AND operation_id=$2 AND status IN ('pending', 'streaming')`,
-		request.ID, operatorOperation.CurrentOperation.ID)
-	if err = cancelPendingChatSubagents(request.ID, operatorOperation, "Operator issued cancel"); err != nil {
-		logging.LogError(err, "Failed to cancel pending chat subagents", "request_id", request.ID)
-		chatRespondError(c, err.Error())
-		return
-	}
-	if err = cancelPendingChatInputRequests(request.ID, operatorOperation, "Operator issued cancel"); err != nil {
-		logging.LogError(err, "Failed to cancel pending chat input requests", "request_id", request.ID)
-		chatRespondError(c, err.Error())
-		return
-	}
-	if rowsAffected > 0 {
-		container := databaseStructs.ConsumingContainer{}
-		if err = database.DB.Get(&container, `SELECT *
-			FROM consuming_container
-			WHERE id=$1`, request.ChatContainerID); err != nil {
+	if cancelled {
+		container, err := rabbitmq.GetChatContainer(request.ChatContainerID)
+		if err != nil {
 			logging.LogError(err, "Failed to find chat container for cancellation", "request_id", request.ID)
-			chatRespondError(c, "cancelled in Mythic, but failed to find the chat container to notify")
+			c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "cancelled in Mythic, but failed to find the chat container to notify"})
 			return
 		}
 		authContext := authentication.RabbitMQAuthContextFromGin(c)
-		if err = rabbitmq.RabbitMQConnection.SendChatContainerCancelRequest(container.Name, rabbitmq.ChatContainerCancelRequestMessage{
+		err = rabbitmq.RabbitMQConnection.SendChatContainerCancelRequest(container.Name, rabbitmq.ChatContainerCancelRequestMessage{
 			OperationID: operatorOperation.CurrentOperation.ID,
-			ChannelID:   channel.ID,
+			ChannelID:   request.Channel.ID,
 			RequestID:   request.ID,
 			Reason:      "Cancelled by operator",
 			CancelledBy: operatorOperation.CurrentOperator.ID,
-		}, authContext); err != nil {
+		}, authContext)
+		if err != nil {
 			logging.LogError(err, "Failed to send chat cancellation", "request_id", request.ID, "container", container.Name)
-			chatRespondError(c, "cancelled in Mythic, but failed to notify the chat container")
+			c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "cancelled in Mythic, but failed to notify the chat container"})
 			return
 		}
 	}
-	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", RequestID: request.ID, ChannelID: channel.ID})
+	c.JSON(http.StatusOK, ChatActionResponse{Status: "success", RequestID: request.ID, ChannelID: request.Channel.ID})
 }
 
-func cancelPendingChatSubagents(requestID int, operatorOperation *databaseStructs.Operatoroperation, reason string) error {
-	resolvedAt := time.Now().UTC().Format(time.RFC3339)
-	_, err := database.DB.Exec(`UPDATE chat_message
-		SET status='cancelled',
-			metadata = jsonb_set(
-				jsonb_set(metadata, '{subagent,status}', to_jsonb($3::text), true),
-				'{subagent,cancel_reason}',
-				to_jsonb($4::text),
-				true
-			) || jsonb_build_object(
-				'updated_by_operator_id', $5::integer,
-				'updated_by', $6::text,
-				'updated_at', $7::text
-			),
-			updated_at=now()
-		WHERE chat_request_id=$1
-			AND operation_id=$2
-			AND deleted=false
-			AND metadata->>'special_type'=$8
-			AND lower(COALESCE(metadata->'subagent'->>'status', 'running')) NOT IN (
-				'finished',
-				'completed',
-				'complete',
-				'failed',
-				'error',
-				'cancelled'
-			)`,
-		requestID,
-		operatorOperation.CurrentOperation.ID,
-		databaseStructs.ChatMessageStatusCancelled,
-		reason,
-		operatorOperation.CurrentOperator.ID,
-		operatorOperation.CurrentOperator.Username,
-		resolvedAt,
-		chatSpecialTypeSubagent,
-	)
-	return err
-}
+func cancelChatRequest(ctx context.Context, requestID int, operatorOperation *databaseStructs.Operatoroperation) (bool, error) {
+	const reason = "Operator issued cancel"
+	operationID := operatorOperation.CurrentOperation.ID
+	tx, err := database.DB.BeginTxx(ctx, nil)
+	if err != nil {
+		return false, err
+	}
+	defer tx.Rollback()
 
-func cancelPendingChatInputRequests(requestID int, operatorOperation *databaseStructs.Operatoroperation, reason string) error {
-	resolvedAt := time.Now().UTC().Format(time.RFC3339)
-	_, err := database.DB.Exec(`UPDATE chat_message
+	result, err := tx.ExecContext(ctx, `UPDATE chat_request
+		SET status='cancelled', cancelled_at=now(), error=$3
+		WHERE id=$1 AND operation_id=$2 AND status IN ('pending', 'streaming')`, requestID, operationID, reason)
+	if err != nil {
+		return false, err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+
+	// Special messages can still have pending metadata after their message status is complete.
+	_, err = tx.ExecContext(ctx, `WITH pending_messages AS (
+			SELECT message.id, pending.special_type
+			FROM chat_message message
+			CROSS JOIN LATERAL (
+				SELECT CASE
+					WHEN NOT message.deleted AND message.metadata->>'special_type'='subagent'
+						AND lower(COALESCE(message.metadata->'subagent'->>'status', 'running'))
+							NOT IN ('finished', 'completed', 'complete', 'failed', 'error', 'cancelled')
+						THEN 'subagent'
+					WHEN NOT message.deleted AND message.metadata->>'special_type'='input_requested'
+						AND COALESCE(message.metadata->'input_requested'->>'status', 'pending')='pending'
+						THEN 'input_requested'
+				END AS special_type
+			) pending
+			WHERE message.chat_request_id=$1 AND message.operation_id=$2
+				AND (message.status IN ('pending', 'streaming') OR pending.special_type IS NOT NULL)
+			FOR UPDATE OF message
+		)
+		UPDATE chat_message message
 		SET status='cancelled',
-			metadata = jsonb_set(
-				jsonb_set(
-					jsonb_set(
-						jsonb_set(
-							jsonb_set(metadata, '{input_requested,status}', to_jsonb($3::text), true),
-							'{input_requested,response}',
-							jsonb_build_object(
+			metadata = CASE WHEN pending.special_type IS NULL THEN message.metadata
+				ELSE message.metadata
+					|| CASE
+						WHEN pending.special_type='subagent'
+							AND jsonb_typeof(message.metadata->'subagent')='object'
+							THEN jsonb_build_object('subagent', (message.metadata->'subagent') || jsonb_build_object(
+								'status', 'cancelled',
+								'cancel_reason', $3::text
+							))
+						WHEN pending.special_type='input_requested'
+							AND jsonb_typeof(message.metadata->'input_requested')='object'
+							THEN jsonb_build_object('input_requested', (message.metadata->'input_requested') || jsonb_build_object(
+								'status', 'cancelled',
+								'resolved_by_operator_id', $4::integer,
+								'resolved_by', $5::text,
+								'resolved_at', $6::text,
+								'response', jsonb_build_object(
 								'action', 'cancel',
-								'reason', $4::text,
-								'input_request_message_id', id,
-								'resolved_by_operator_id', $5::integer,
-								'resolved_by', $6::text,
-								'resolved_at', $7::text
-							),
-							true
-						),
-						'{input_requested,resolved_by_operator_id}',
-						to_jsonb($5::integer),
-						true
-					),
-					'{input_requested,resolved_by}',
-					to_jsonb($6::text),
-					true
-				),
-				'{input_requested,resolved_at}',
-				to_jsonb($7::text),
-				true
-			) || jsonb_build_object(
-				'updated_by_operator_id', $5::integer,
-				'updated_by', $6::text,
-				'updated_at', $7::text
-			),
+									'reason', $3::text,
+									'input_request_message_id', message.id,
+									'resolved_by_operator_id', $4::integer,
+									'resolved_by', $5::text,
+									'resolved_at', $6::text
+								)
+							))
+						ELSE '{}'::jsonb
+					END
+					|| jsonb_build_object(
+						'updated_by_operator_id', $4::integer,
+						'updated_by', $5::text,
+						'updated_at', $6::text
+					)
+			END,
 			updated_at=now()
-		WHERE chat_request_id=$1
-			AND operation_id=$2
-			AND deleted=false
-			AND metadata->>'special_type'=$8
-			AND COALESCE(metadata->'input_requested'->>'status', 'pending')=$9`,
-		requestID,
-		operatorOperation.CurrentOperation.ID,
-		chatInputRequestedStatusCancelled,
-		reason,
-		operatorOperation.CurrentOperator.ID,
-		operatorOperation.CurrentOperator.Username,
-		resolvedAt,
-		chatSpecialTypeInputRequested,
-		chatInputRequestedStatusPending,
-	)
-	return err
+		FROM pending_messages pending
+		WHERE message.id=pending.id`, requestID, operationID, reason,
+		operatorOperation.CurrentOperator.ID, operatorOperation.CurrentOperator.Username, time.Now().UTC().Format(time.RFC3339))
+	if err != nil {
+		return false, err
+	}
+	if err = tx.Commit(); err != nil {
+		return false, err
+	}
+	return rowsAffected > 0, nil
 }
 
 func RetryChatRequestWebhook(c *gin.Context) {
 	var input ChatRequestActionInput
-	if !bindChatInput(c, &input) {
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		logging.LogError(err, "Failed to get JSON parameters for chat webhook")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: err.Error()})
 		return
 	}
-	operatorOperation, ok := chatOperatorOperation(c)
-	if !ok {
+	operatorOperation, err := authentication.GetRequestOperation(c)
+	if err != nil {
 		return
 	}
-	request, channel, err := getChatRequestAndChannel(input.Input.RequestID, operatorOperation.CurrentOperation.ID)
+	request, channel, err := getChatRequestAndChannel(c.Request.Context(), input.Input.RequestID, operatorOperation.CurrentOperation.ID)
 	if err != nil {
 		logging.LogError(err, "Failed to find chat request for retry")
-		chatRespondError(c, "failed to find chat request")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "failed to find chat request"})
 		return
 	}
-	if !chatRequireScope(c, chatScopeForChannel(channel, true)) {
+	if !validateRequiredScopeForChat(c, chatScopeForChannel(channel, true)) {
 		return
 	}
 	if channel.Archived {
-		chatRespondError(c, "cannot retry in an archived chat channel")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "cannot retry in an archived chat channel"})
 		return
 	}
 	if !chatCanPostToAIChannel(operatorOperation, channel) {
-		chatRespondError(c, "this AI chat is locked to another operator")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "this AI chat is locked to another operator"})
 		return
 	}
 	var prompt string
@@ -1057,10 +1047,10 @@ func RetryChatRequestWebhook(c *gin.Context) {
 		WHERE id=$1 AND operation_id=$2 AND deleted=false`,
 		request.RequestMessageID, operatorOperation.CurrentOperation.ID); err != nil {
 		logging.LogError(err, "Failed to get original prompt for retry")
-		chatRespondError(c, "failed to find original prompt")
+		c.JSON(http.StatusOK, ChatActionResponse{Status: "error", Error: "failed to find original prompt"})
 		return
 	}
-	createAIChatMessage(c, operatorOperation, channel, prompt, &request.ID)
+	createAIChatMessageWithOptions(c, operatorOperation, channel, prompt, aiChatRequestOptions{RetryOfID: &request.ID})
 }
 
 func chatSearchAllowedChannelTypes(c *gin.Context) []string {
@@ -1095,12 +1085,4 @@ func expireGeneratedChatAPITokensForChannel(channelID int) {
 	if err != nil {
 		logging.LogError(err, "Failed to expire generated chat API tokens", "channel_id", channelID)
 	}
-}
-
-func getChatChannel(channelID int, operationID int) (databaseStructs.ChatChannel, error) {
-	channel := databaseStructs.ChatChannel{}
-	err := database.DB.Get(&channel, `SELECT *
-		FROM chat_channel
-		WHERE id=$1 AND operation_id=$2`, channelID, operationID)
-	return channel, err
 }

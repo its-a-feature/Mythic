@@ -1,12 +1,15 @@
 package rabbitmq
 
 import (
+	"database/sql"
 	"encoding/json"
 	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
+	"github.com/jmoiron/sqlx"
 )
 
 func TestOperatorAliasCommandNormalization(t *testing.T) {
@@ -60,7 +63,7 @@ func TestReservedOperatorAliasNameUsesTaskReferenceProviders(t *testing.T) {
 }
 
 func TestParseSlashCommandLine(t *testing.T) {
-	command, argument, ok := ParseSlashCommandLine("  /TEST one string arg  ")
+	command, argument, ok := ParseStringIntoSlashCommandAndArgs("  /TEST one string arg  ")
 	if !ok {
 		t.Fatalf("expected slash command to parse")
 	}
@@ -70,14 +73,14 @@ func TestParseSlashCommandLine(t *testing.T) {
 	if argument != "one string arg" {
 		t.Fatalf("argument = %q, want one string arg", argument)
 	}
-	_, _, ok = ParseSlashCommandLine("not a slash command")
+	_, _, ok = ParseStringIntoSlashCommandAndArgs("not a slash command")
 	if ok {
 		t.Fatalf("expected non-slash input to not parse")
 	}
 }
 
 func TestParseOperatorAliasCommandLine(t *testing.T) {
-	command, argument, ok := ParseOperatorAliasCommandLine("  TEST one string arg  ")
+	command, argument, ok := parseOperatorAliasCommandLine("  TEST one string arg  ")
 	if !ok {
 		t.Fatalf("expected command alias line to parse")
 	}
@@ -353,26 +356,49 @@ func TestSplitOperatorAliasExpandedTaskLineRepeatableParamsKeepAbsorbingValues(t
 }
 
 func TestResolveOperatorAliasLineWithTerminalCommands(t *testing.T) {
-	resolution, err := ResolveOperatorAliasLineWithProvidedSlashCommands(
-		1,
-		OperatorAliasScope{ConsumingContainerID: 2},
-		"/builtin something",
-		map[string]bool{"builtin": true},
-	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !resolution.FinalIsSlash {
-		t.Fatalf("expected final slash command")
-	}
-	if resolution.FinalCommand != "builtin" {
-		t.Fatalf("final command = %q, want builtin", resolution.FinalCommand)
-	}
-	if resolution.FinalArgument != "something" {
-		t.Fatalf("final argument = %q, want something", resolution.FinalArgument)
-	}
-	if resolution.AliasMatched {
-		t.Fatalf("terminal command should not resolve as an alias")
+	// Return a matching alias row so the chat resolver can detect a collision.
+	db := sqlx.NewDb(sql.OpenDB(&syncCursorConnector{}), "postgres")
+	previousDB := database.DB
+	database.DB = db
+	t.Cleanup(func() {
+		database.DB = previousDB
+		db.Close()
+	})
+
+	for _, test := range []struct {
+		name         string
+		resolve      func(int, OperatorAliasScope, string, map[string]bool) (OperatorAliasResolution, error)
+		line         string
+		finalCommand string
+		finalArg     string
+		finalIsSlash bool
+		wantError    string
+	}{
+		{"chat command collision", ResolveOperatorAliasLineWithProvidedSlashCommands, "/builtin something", "", "", false, "slash command /builtin is both a model command and an alias for this chat container"},
+		{"chat bare slash", ResolveOperatorAliasLineWithProvidedSlashCommands, "/", "", "", false, "slash command is required if starting with /"},
+		{"chat plain text", ResolveOperatorAliasLineWithProvidedSlashCommands, "builtin something", "", "", false, ""},
+		{"callback command", ResolveOperatorAliasCommandLineWithTerminalCommands, "builtin something", "builtin", "something", false, ""},
+		{"callback slash prefix", ResolveOperatorAliasCommandLineWithTerminalCommands, "/builtin something", "builtin", "something", false, ""},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			resolution, err := test.resolve(1, OperatorAliasScope{}, test.line, map[string]bool{"builtin": true})
+			if test.wantError != "" {
+				if err == nil || err.Error() != test.wantError {
+					t.Fatalf("error = %v, want %q", err, test.wantError)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if resolution.FinalCommand != test.finalCommand || resolution.FinalArgument != test.finalArg || resolution.FinalIsSlash != test.finalIsSlash {
+				t.Fatalf("final command = %q, argument = %q, slash = %t, want %q, %q, %t",
+					resolution.FinalCommand, resolution.FinalArgument, resolution.FinalIsSlash, test.finalCommand, test.finalArg, test.finalIsSlash)
+			}
+			if resolution.AliasMatched || resolution.Expanded != test.line {
+				t.Fatalf("expected input to remain unexpanded, got %+v", resolution)
+			}
+		})
 	}
 }
 

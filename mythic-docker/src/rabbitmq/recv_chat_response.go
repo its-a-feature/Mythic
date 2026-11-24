@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"strings"
 	"sync"
 	"time"
@@ -355,15 +356,13 @@ func (m *ChatInputRequestedMetadata) StructValue() map[string]interface{} {
 	return values
 }
 
-func chatMetadataCopyMap(input map[string]interface{}) map[string]interface{} {
-	output := make(map[string]interface{}, len(input))
-	for key, value := range input {
-		output[key] = value
-	}
+func chatMetadataCopyMap(input map[string]any) map[string]any {
+	output := make(map[string]any, len(input))
+	maps.Copy(output, input)
 	return output
 }
 
-func chatMetadataTakeString(values map[string]interface{}, key string) string {
+func chatMetadataTakeString(values map[string]any, key string) string {
 	value, ok := values[key]
 	if ok {
 		delete(values, key)
@@ -374,7 +373,7 @@ func chatMetadataTakeString(values map[string]interface{}, key string) string {
 	return ""
 }
 
-func chatMetadataTakeInt(values map[string]interface{}, key string) int {
+func chatMetadataTakeInt(values map[string]any, key string) int {
 	value, ok := values[key]
 	if ok {
 		delete(values, key)
@@ -392,30 +391,12 @@ func chatMetadataTakeInt(values map[string]interface{}, key string) int {
 	}
 }
 
-func chatMetadataTakeBool(values map[string]interface{}, key string) *bool {
+func chatMetadataTakeObject(values map[string]any, key string) map[string]any {
 	value, ok := values[key]
 	if ok {
 		delete(values, key)
 	}
-	if typed, ok := value.(bool); ok {
-		return &typed
-	}
-	return nil
-}
-
-func chatMetadataBoolValue(value *bool) interface{} {
-	if value == nil {
-		return nil
-	}
-	return *value
-}
-
-func chatMetadataTakeObject(values map[string]interface{}, key string) map[string]interface{} {
-	value, ok := values[key]
-	if ok {
-		delete(values, key)
-	}
-	if typed, ok := value.(map[string]interface{}); ok {
+	if typed, ok := value.(map[string]any); ok {
 		return typed
 	}
 	return nil
@@ -494,7 +475,8 @@ func init() {
 
 func processChatContainerResponse(msg amqp.Delivery) {
 	incomingMessage := ChatContainerResponseMessage{}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to process chat container response message")
 		return
 	}
@@ -503,7 +485,8 @@ func processChatContainerResponse(msg amqp.Delivery) {
 		logging.LogError(err, "Failed to get chat response auth headers")
 		return
 	}
-	if err = applyChatContainerResponse(incomingMessage, authContext); err != nil {
+	err = applyChatContainerResponse(incomingMessage, authContext)
+	if err != nil {
 		logging.LogError(err, "Failed to apply chat container response",
 			"request_id", incomingMessage.RequestID, "response_key", incomingMessage.ResponseKey)
 	}

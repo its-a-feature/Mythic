@@ -28,6 +28,9 @@ type RabbitMQAuthContext struct {
 	EventStepInstanceID int      `json:"eventstepinstance_id"`
 	SourceScopes        []string `json:"source_scopes"`
 	FileUUID            string   `json:"file_uuid,omitempty"`
+	TargetContainerName string   `json:"target_container_name"`
+	ChatOperatorID      int      `json:"chat_operator_id"`
+	ChatChannelID       int      `json:"chat_channel_id"`
 	scopes              map[string]bool
 }
 

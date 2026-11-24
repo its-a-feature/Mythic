@@ -2,8 +2,6 @@ package rabbitmq
 
 import (
 	"encoding/json"
-	"fmt"
-	"strings"
 	"time"
 
 	"github.com/its-a-feature/Mythic/authorization"
@@ -14,10 +12,9 @@ import (
 )
 
 type MythicRPCChatChannelMetadataUpdateMessage struct {
-	OperationID     int                    `json:"operation_id"`
-	ChannelID       int                    `json:"channel_id"`
-	ContainerName   string                 `json:"container_name"`
-	ChannelMetadata map[string]interface{} `json:"channel_metadata"`
+	ChannelMetadata map[string]any `json:"channel_metadata"`
+	ChannelConfig   map[string]any `json:"channel_config"`
+	ChannelModel    string         `json:"channel_model"`
 }
 
 type MythicRPCChatChannelMetadataUpdateMessageResponse struct {
@@ -26,10 +23,10 @@ type MythicRPCChatChannelMetadataUpdateMessageResponse struct {
 }
 
 type chatChannelMetadataUpdateTarget struct {
-	ID                int    `db:"id"`
-	OperationID       int    `db:"operation_id"`
-	ChannelType       string `db:"channel_type"`
-	ChatContainerName string `db:"chat_container_name"`
+	ChannelType string                         `db:"channel_type"`
+	AIMetadata  databaseStructs.MythicJSONText `db:"ai_metadata"`
+	ChatModel   string                         `db:"chat_model"`
+	CreatedBy   int                            `db:"created_by"`
 }
 
 func init() {
@@ -44,23 +41,77 @@ func init() {
 
 func MythicRPCChatChannelMetadataUpdate(input MythicRPCChatChannelMetadataUpdateMessage, authContext RabbitMQAuthContext) MythicRPCChatChannelMetadataUpdateMessageResponse {
 	response := MythicRPCChatChannelMetadataUpdateMessageResponse{Success: false}
-	target, err := getChatChannelMetadataUpdateTarget(input.ChannelID)
+	target := chatChannelMetadataUpdateTarget{}
+	err := database.DB.Get(&target, `SELECT 
+		chat_channel.channel_type,
+		chat_channel.ai_metadata,
+		chat_channel.chat_model,
+		chat_channel.created_by
+		FROM chat_channel
+		JOIN consuming_container ON chat_channel.chat_container_id = consuming_container.id
+		WHERE chat_channel.id=$1 AND chat_channel.operation_id=$2 AND consuming_container.name =$3`,
+		authContext.ChatChannelID, authContext.OperationID, authContext.TargetContainerName)
 	if err != nil {
 		response.Error = err.Error()
 		return response
 	}
-	if err = validateChatChannelMetadataUpdate(input, authContext, target); err != nil {
-		response.Error = err.Error()
+	if target.ChannelType != databaseStructs.ChatChannelTypeAI {
+		response.Error = "channel metadata updates are only valid for AI chat channels"
 		return response
 	}
-	metadata := normalizeChatChannelMetadata(input.ChannelMetadata)
+	// start off with metadata as the current ai_metadata config
+	metadata := chatMetadataCopyMap(target.AIMetadata.StructValue())
+	if input.ChannelMetadata != nil && len(input.ChannelMetadata) > 0 {
+		if _, ok := metadata["channel_metadata"]; !ok {
+			metadata["channel_metadata"] = make(map[string]any)
+		}
+		channelMetadata, ok := metadata["channel_metadata"].(map[string]any)
+		if !ok {
+			channelMetadata = make(map[string]any)
+		}
+		if input.ChannelMetadata["items"] != nil {
+			channelMetadata["items"] = input.ChannelMetadata["items"]
+		}
+		channelMetadata["updated_at"] = time.Now().UTC().Format(time.RFC3339)
+		if input.ChannelMetadata["default_display"] != nil {
+			channelMetadata["default_display"] = input.ChannelMetadata["default_display"]
+		}
+		metadata["channel_metadata"] = channelMetadata
+	}
+	chatModel := target.ChatModel
+	if input.ChannelModel != "" || input.ChannelConfig != nil {
+		// need to do some extra user verification
+		issuingUser, err := database.GetUserFromID(authContext.ChatOperatorID)
+		if err != nil {
+			response.Error = err.Error()
+			return response
+		}
+		operatorOperation, err := database.GetUserOperation(issuingUser, authContext.OperationID)
+		if err != nil {
+			response.Error = err.Error()
+			return response
+		}
+		// only an admin, the creator of the ai chat, or the lead of the operation can make changes to the config
+		if !operatorOperation.CurrentOperator.Admin &&
+			operatorOperation.ViewMode != database.OPERATOR_OPERATION_VIEW_MODE_LEAD &&
+			target.CreatedBy != authContext.ChatOperatorID {
+			response.Error = "only the channel creator or an operation admin can update this channel"
+			return response
+		}
+		if input.ChannelModel != "" {
+			chatModel = input.ChannelModel
+		}
+		if input.ChannelConfig != nil && len(input.ChannelConfig) > 0 {
+			metadata["config"] = input.ChannelConfig
+		}
+	}
 	metadataJSON := GetMythicJSONTextFromStruct(metadata)
 	_, err = database.DB.Exec(`UPDATE chat_channel
-		SET ai_metadata = jsonb_set(COALESCE(ai_metadata, '{}'::jsonb), '{channel_metadata}', $3::jsonb, true)
+		SET ai_metadata = $3, chat_model = $4
 		WHERE id=$1 AND operation_id=$2`,
-		target.ID, target.OperationID, metadataJSON.String())
+		authContext.ChatChannelID, authContext.OperationID, metadataJSON.String(), chatModel)
 	if err != nil {
-		logging.LogError(err, "Failed to update chat channel metadata", "channel_id", input.ChannelID)
+		logging.LogError(err, "Failed to update chat channel metadata", "channel_id", authContext.ChatChannelID)
 		response.Error = err.Error()
 		return response
 	}
@@ -82,83 +133,4 @@ func processMythicRPCChatChannelMetadataUpdate(msg amqp.Delivery) interface{} {
 		return responseMsg
 	}
 	return MythicRPCChatChannelMetadataUpdate(incomingMessage, authContext)
-}
-
-func getChatChannelMetadataUpdateTarget(channelID int) (chatChannelMetadataUpdateTarget, error) {
-	target := chatChannelMetadataUpdateTarget{}
-	if channelID <= 0 {
-		return target, fmt.Errorf("channel_id is required")
-	}
-	err := database.DB.Get(&target, `SELECT chat_channel.id,
-			chat_channel.operation_id,
-			chat_channel.channel_type,
-			COALESCE(consuming_container.name, '') "chat_container_name"
-		FROM chat_channel
-		LEFT JOIN consuming_container ON consuming_container.id = chat_channel.chat_container_id
-		WHERE chat_channel.id=$1`, channelID)
-	return target, err
-}
-
-func validateChatChannelMetadataUpdate(input MythicRPCChatChannelMetadataUpdateMessage, authContext RabbitMQAuthContext, target chatChannelMetadataUpdateTarget) error {
-	if target.ID <= 0 {
-		return fmt.Errorf("failed to find chat channel")
-	}
-	if target.ChannelType != databaseStructs.ChatChannelTypeAI {
-		return fmt.Errorf("channel metadata updates are only valid for AI chat channels")
-	}
-	if input.OperationID > 0 && input.OperationID != target.OperationID {
-		return fmt.Errorf("metadata update operation %d does not match channel operation %d", input.OperationID, target.OperationID)
-	}
-	if authContext.OperationID > 0 && authContext.OperationID != target.OperationID {
-		return fmt.Errorf("metadata update auth operation %d does not match channel operation %d", authContext.OperationID, target.OperationID)
-	}
-	if strings.TrimSpace(input.ContainerName) == "" {
-		return fmt.Errorf("container_name is required")
-	}
-	if target.ChatContainerName == "" || input.ContainerName != target.ChatContainerName {
-		return fmt.Errorf("metadata update container %q does not match channel container %q", input.ContainerName, target.ChatContainerName)
-	}
-	if input.ChannelMetadata == nil {
-		return fmt.Errorf("channel_metadata is required")
-	}
-	return nil
-}
-
-func normalizeChatChannelMetadata(metadata map[string]interface{}) map[string]interface{} {
-	output := chatMetadataCopyMap(metadata)
-	dropChatChannelMetadataItemStatus(output)
-	if _, ok := output["version"]; !ok {
-		output["version"] = 1
-	}
-	if updatedAt, ok := output["updated_at"].(string); !ok || strings.TrimSpace(updatedAt) == "" {
-		output["updated_at"] = time.Now().UTC().Format(time.RFC3339)
-	}
-	return output
-}
-
-func dropChatChannelMetadataItemStatus(metadata map[string]interface{}) {
-	switch items := metadata["items"].(type) {
-	case []interface{}:
-		normalized := make([]interface{}, 0, len(items))
-		for _, item := range items {
-			normalized = append(normalized, dropChatChannelMetadataItemStatusValue(item))
-		}
-		metadata["items"] = normalized
-	case []map[string]interface{}:
-		normalized := make([]interface{}, 0, len(items))
-		for _, item := range items {
-			normalized = append(normalized, dropChatChannelMetadataItemStatusValue(item))
-		}
-		metadata["items"] = normalized
-	}
-}
-
-func dropChatChannelMetadataItemStatusValue(item interface{}) interface{} {
-	itemMap, ok := item.(map[string]interface{})
-	if !ok {
-		return item
-	}
-	normalized := chatMetadataCopyMap(itemMap)
-	delete(normalized, "status")
-	return normalized
 }

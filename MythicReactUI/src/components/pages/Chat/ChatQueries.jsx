@@ -169,7 +169,7 @@ query ChatCurrentOperator($operator_id: Int!, $operation_id: Int!) {
     id
     view_mode
   }
-  operation_bot: operator(where: {account_type: {_eq: "bot"}, current_operation_id: {_eq: $operation_id}, active: {_eq: true}, deleted: {_eq: false}}, limit: 1, order_by: {id: asc}) {
+  operation_bots: operator(where: {account_type: {_eq: "bot"}, current_operation_id: {_eq: $operation_id}, active: {_eq: true}, deleted: {_eq: false}}, order_by: {id: asc}) {
     id
     username
     account_type

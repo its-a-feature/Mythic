@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const mythicServerVersion = "4.0.11"
+const mythicServerVersion = "4.0.12"
 
 type Config struct {
 	// server configuration

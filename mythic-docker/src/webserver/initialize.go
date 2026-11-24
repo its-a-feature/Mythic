@@ -3,11 +3,8 @@ package webserver
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
-
-	"github.com/its-a-feature/Mythic/database"
-	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
-	"github.com/its-a-feature/Mythic/rabbitmq"
 
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/authentication"
@@ -109,6 +106,7 @@ func InitializeGinLogger() gin.HandlerFunc {
 			if source == "" {
 				source = "scripting"
 			}
+			/* this can be quite noisy, maybe come up with another way to expose this tracking?
 			graphQLOperationName := c.GetString("GraphQLName")
 			if tokenStruct, ok := c.Get(authentication.ContextKeyAPIToken); ok {
 				if param.Path == "/graphql/webhook" {
@@ -124,11 +122,17 @@ func InitializeGinLogger() gin.HandlerFunc {
 						database.MESSAGE_LEVEL_API, false)
 				}
 			}
+
+			*/
+			graphQLName := c.GetString("GraphQLName")
+			if graphQLName == "" {
+				graphQLName = strings.ReplaceAll(param.Path, "/", "")
+			}
 			logging.LogInfo("WebServer Logging",
 				"ClientIP", param.ClientIP,
 				"method", param.Method,
 				"path", param.Path,
-				"protocol", param.Request.Proto,
+				//"protocol", param.Request.Proto,
 				"statusCode", param.StatusCode,
 				"latency", param.Latency.String(),
 				"responseSize", param.BodySize,
@@ -136,7 +140,7 @@ func InitializeGinLogger() gin.HandlerFunc {
 				"user_id", c.GetInt(authentication.ContextKeyUserID),
 				"username", c.GetString(authentication.ContextKeyUsername),
 				"file_id", c.GetString("file_id"),
-				"graphql_name", c.GetString("GraphQLName"),
+				"graphql_name", graphQLName,
 				"error", param.ErrorMessage)
 		}
 		c.Next()

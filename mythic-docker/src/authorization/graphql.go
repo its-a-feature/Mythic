@@ -93,7 +93,7 @@ func (request *GraphQLRequest) Authorize(metadata Metadata, principal Principal,
 		if access == "write" {
 			rule = table.Policy.Write
 		}
-		logging.LogDebug("require", "access", access, "category", category)
+		logging.LogDebug("require", "access", access, "table", table.Policy.Table.Name, "category", category)
 		if rule.Public || principal.Scopes[SCOPE_ALL] {
 			return
 		}

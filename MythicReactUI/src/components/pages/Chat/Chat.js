@@ -96,6 +96,7 @@ import {
     MARK_READ, REFRESH_SPECIAL_MESSAGE, RETRY_REQUEST, UPDATE_CHANNEL
 } from "./ChatQueries";
 import {getTagReadableTextColor} from "../../MythicComponents/MythicTagChip";
+import {MythicToolbarSelect} from "../../MythicComponents/MythicTableToolbar";
 
 const CHAT_MESSAGE_PAGE_SIZE = 50;
 const CHAT_REQUEST_LIMIT = 50;
@@ -346,7 +347,7 @@ const getChannelAIMetadata = (channel) => parseJSONLikeObject(channel?.ai_metada
 
 const getChannelAIConfig = (channel) => {
     const metadata = getChannelAIMetadata(channel);
-    return parseJSONLikeObject(metadata.config || metadata.configuration);
+    return parseJSONLikeObject(metadata.config);
 };
 
 const modelForChannel = (channel, chatContainers) => {
@@ -1627,7 +1628,7 @@ const ChatConfigurationFields = ({options, values, setValues}) => {
     );
 };
 
-const ChatAPITokenSelector = ({value, setValue, currentToken, currentUser, operationBot}) => {
+const ChatAPITokenSelector = ({value, setValue, currentToken, currentUser, operationBots}) => {
     const [openCreateToken, setOpenCreateToken] = React.useState(false);
     const [localTokens, setLocalTokens] = React.useState([]);
     const ownerOptions = React.useMemo(() => {
@@ -1635,19 +1636,23 @@ const ChatAPITokenSelector = ({value, setValue, currentToken, currentUser, opera
         if(currentUser?.id){
             owners.push({
                 id: currentUser.id,
-                username: currentUser.username || `Operator ${currentUser.id}`,
+                username: currentUser.username,
                 accountType: "user",
             });
         }
-        if(operationBot?.id && !owners.some((owner) => owner.id === operationBot.id)){
-            owners.push({
-                id: operationBot.id,
-                username: operationBot.username || `Operator ${operationBot.id}`,
-                accountType: "bot",
-            });
+        if(operationBots){
+            operationBots.forEach( b => {
+                if(!owners.some((owner) => owner.id === b.id)){
+                    owners.push({
+                        id: b.id,
+                        username: b.username,
+                        accountType: "bot",
+                    });
+                }
+            })
         }
         return owners;
-    }, [currentUser?.id, currentUser?.username, operationBot?.id, operationBot?.username]);
+    }, [currentUser?.id, currentUser?.username, operationBots]);
     const ownerIDs = React.useMemo(() => ownerOptions.map((owner) => owner.id), [ownerOptions]);
     const ownerIDKey = React.useMemo(() => ownerIDs.join(","), [ownerIDs]);
     const [tokenOwnerID, setTokenOwnerID] = React.useState("");
@@ -1716,7 +1721,7 @@ const ChatAPITokenSelector = ({value, setValue, currentToken, currentUser, opera
             <Box className="p-5" sx={{border: `1px solid ${alpha("#ffffff", 0.12)}`, borderRadius: 1}}>
                 <Typography variant="subtitle2">AI Chat API Token</Typography>
                 <Typography variant="caption" color="text.secondary" sx={{display: "block", mt: 0.5}}>
-                    AI chat can use a token for your operator account or the operation bot{operationBot?.username ? ` (${operationBot.username})` : ""}. The token must include apitoken.write to generate scoped Mythic API tokens and chat-ai.write to stream responses back to this channel.
+                    AI chat can use a token for your operator account or a bot account assigned to the operation. The token must include apitoken.write to generate scoped Mythic API tokens and chat-ai.write to stream responses back to this channel.
                 </Typography>
                 <Box className="flex flex-wrap gap-3" sx={{mt: 1}}>
                     {AI_CHAT_REQUIRED_TOKEN_SCOPES.map((scope) => (
@@ -1724,11 +1729,13 @@ const ChatAPITokenSelector = ({value, setValue, currentToken, currentUser, opera
                     ))}
                 </Box>
             </Box>
-            <Box className="items-stretch gap-4 grid" sx={{gridTemplateColumns: {xs: "1fr", md: "minmax(160px, 0.55fr) minmax(220px, 1fr) auto"}}}>
+            <Box className="items-stretch gap-4 flex justify-center" sx={{gridTemplateColumns: "minmax(160px, 0.55fr) minmax(220px, 1fr) auto"}}>
                 <FormControl size="small" fullWidth required>
                     <InputLabel>Owner</InputLabel>
-                    <Select
+                    <MythicToolbarSelect
                         label="Owner"
+                        size={"full"}
+                        variant={"outlined"}
                         value={tokenOwnerID ? `${tokenOwnerID}` : ""}
                         disabled={ownerOptions.length === 0}
                         onChange={changeTokenOwner}
@@ -1741,11 +1748,11 @@ const ChatAPITokenSelector = ({value, setValue, currentToken, currentUser, opera
                                 {tokenOwnerLabel(owner)}
                             </MenuItem>
                         ))}
-                    </Select>
+                    </MythicToolbarSelect>
                 </FormControl>
                 <FormControl size="small" fullWidth required>
                     <InputLabel>API Token</InputLabel>
-                    <Select
+                    <MythicToolbarSelect
                         label="API Token"
                         value={value ? `${value}` : ""}
                         disabled={tokenSelectorDisabled}
@@ -1767,7 +1774,7 @@ const ChatAPITokenSelector = ({value, setValue, currentToken, currentUser, opera
                                 </Box>
                             </MenuItem>
                         ))}
-                    </Select>
+                    </MythicToolbarSelect>
                 </FormControl>
                 <MythicActionButton
                     variant="outlined"
@@ -1782,9 +1789,6 @@ const ChatAPITokenSelector = ({value, setValue, currentToken, currentUser, opera
             </Box>
             {selectedToken &&
                 <Box className="flex flex-wrap gap-2">
-                    {selectedOwner &&
-                        <MythicChip size="small" variant="outlined" label={tokenOwnerLabel(selectedOwner)} />
-                    }
                     {(selectedToken.scopes || []).map((scope) => <MythicChip size="small" key={`${selectedToken.id}-${scope}`} label={scope} />)}
                 </Box>
             }
@@ -1859,11 +1863,8 @@ const ChatDisplayChipRow = ({chips, onChipClick, maxVisible}) => {
             {visibleChips.map((chip) => <ChatDisplayChip key={chip.key} chip={{...chip, onClick: onChipClick}} />)}
             {maxVisible && chips.length > maxVisible &&
                 <MythicStyledTooltip title={"More chips hidden"}>
-                    <MythicChip compact={true}
-                        label={`+${chips.length - maxVisible} more`}
-                    />
+                    <MythicChip compact={true} label={`+${chips.length - maxVisible} more`} />
                 </MythicStyledTooltip>
-
             }
         </span>
     );
@@ -2245,7 +2246,7 @@ const ChannelButtonComponent = ({channel, selected, unread, muted, chatContainer
     );
 };
 const ChannelButton = React.memo(ChannelButtonComponent);
-const ChatCreateDialog = ({open, onClose, onCreate, chatContainers, currentUser, operationBot, initialChannel}) => {
+const ChatCreateDialog = ({open, onClose, onCreate, chatContainers, currentUser, operationBots, initialChannel}) => {
     const theme = useTheme();
     const [name, setName] = React.useState("");
     const [description, setDescription] = React.useState("");
@@ -2422,7 +2423,7 @@ const ChatCreateDialog = ({open, onClose, onCreate, chatContainers, currentUser,
                             value={apiTokenID}
                             setValue={setAPITokenID}
                             currentUser={currentUser}
-                            operationBot={operationBot}
+                            operationBots={operationBots}
                         />
                         <Box className="p-5" sx={{border: `1px solid ${alpha(theme.palette.info.main, 0.22)}`, borderRadius: 1, backgroundColor: alpha(theme.palette.info.main, theme.palette.mode === "dark" ? 0.12 : 0.07)}}>
                             <FormControlLabel
@@ -2501,7 +2502,7 @@ const ChatSearchDialog = ({open, onClose, onSearch, searchText, setSearchText, s
     );
 };
 
-const ChatEditChannelDialog = ({open, channel, onClose, onSave, chatContainers = [], currentUser, operationBot}) => {
+const ChatEditChannelDialog = ({open, channel, onClose, onSave, chatContainers = [], currentUser, operationBots}) => {
     const [name, setName] = React.useState("");
     const [description, setDescription] = React.useState("");
     const [chatModel, setChatModel] = React.useState("");
@@ -2628,7 +2629,7 @@ const ChatEditChannelDialog = ({open, channel, onClose, onSave, chatContainers =
                             setValue={setAPITokenID}
                             currentToken={channel?.apitoken}
                             currentUser={currentUser}
-                            operationBot={operationBot}
+                            operationBots={operationBots}
                         />
                     </>
                 }
@@ -3393,7 +3394,7 @@ export function Chat({me}) {
         username: currentOperatorData?.operator_by_pk?.username || currentMe?.user?.username || "Current user",
     }), [currentOperatorData?.operator_by_pk?.id, currentOperatorData?.operator_by_pk?.username, currentMe?.user?.user_id, currentMe?.user?.username, currentMe?.user?.current_operation_id]);
     const currentOperatorViewMode = currentOperatorData?.operatoroperation?.[0]?.view_mode || currentMe?.user?.view_mode || "";
-    const operationBot = currentOperatorData?.operation_bot?.[0] || null;
+    const operationBots = currentOperatorData?.operation_bots;
     const isMythicAdmin = Boolean(currentMe?.user?.admin || currentOperatorData?.operator_by_pk?.admin);
     const canCreateSystemMessage = isMythicAdmin || currentOperatorViewMode === "lead";
     const selectedChannelIsGeneral = isGeneralChatChannel(selectedChannel);
@@ -4250,12 +4251,6 @@ export function Chat({me}) {
         });
     }, []);
     const reviewSnapshot = getEventingInteractionSnapshot(reviewMessage);
-    const metaChips = (
-        <>
-            <MythicPageHeaderChip label={`${channels.filter((channel) => !channel.archived).length} active`} />
-            <MythicPageHeaderChip label={`${aiChannels.length} AI`} />
-        </>
-    );
     const selectedConfigChips = getChannelConfigChips(selectedChannel, chatContainers);
 
     return (
@@ -4264,7 +4259,6 @@ export function Chat({me}) {
                 title="Operation Chat"
                 subtitle="Channels and AI sessions for the current operation."
                 icon={<ForumTwoToneIcon />}
-                meta={metaChips}
                 actions={
                     <Box className="flex gap-4">
                         <MythicActionButton
@@ -4298,7 +4292,6 @@ export function Chat({me}) {
                     <Box className="mythic-chat-sidebar-toolbar bg-header text-header flex items-center justify-between gap-4">
                         <Box className="mythic-chat-sidebar-heading items-center flex gap-4 min-w-0">
                             <Typography variant="subtitle2">Channels</Typography>
-                            <MythicChip compact={true} label={`${channels.length} total`} />
                         </Box>
                         <FormControlLabel
                             sx={{m: 0}}
@@ -4443,6 +4436,10 @@ export function Chat({me}) {
                         direction="horizontal"
                         sizes={selectedDelegation ? delegationSplitSizes : [100, 0]}
                         minSize={[0, 0]}
+                        gutterStyle={(dimension, size) => ({
+                             [dimension]: `${size}px`,
+                             display: size === 0 ? "none" : "",
+                        })}
                         gutterSize={selectedDelegation ? 5 : 0}
                         onDragEnd={selectedDelegation ? updateDelegationSplitSizes : undefined}
                     >
@@ -4565,7 +4562,7 @@ export function Chat({me}) {
                     onCreate={onCreateChannel}
                     chatContainers={chatContainers}
                     currentUser={currentUser}
-                    operationBot={operationBot}
+                    operationBots={operationBots}
                     initialChannel={createInitialChannel}
                 />
             }
@@ -4577,7 +4574,7 @@ export function Chat({me}) {
                     onClose={() => setEditChannelOpen(false)}
                     onSave={saveChannelDetails}
                     currentUser={currentUser}
-                    operationBot={operationBot}
+                    operationBots={operationBots}
                 />
             }
             {systemMessageOpen &&
@@ -5528,7 +5525,7 @@ const ChatToolUseEvent = ({message, me, onViewToolOutput}) => {
                 }
             </Box>
             <Collapse in={showDetails} timeout="auto" unmountOnExit>
-                <Box className="mythic-chat-inline-event-details flex flex-column gap-4 min-w-0">
+                <Box className="flex flex-column gap-4 min-w-0">
                     {message.message &&
                         <Typography variant="caption" className="mythic-chat-inline-event-description text-xs font-600 leading-135 text-muted whitespace-pre-wrap">
                             {message.message}

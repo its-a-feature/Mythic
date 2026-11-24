@@ -412,6 +412,9 @@ func checkContainerStatus() {
 						continue
 					}
 					consumingContainersToCheck[container] = entry
+					if entry.Type == CONSUMING_SERVICES_TYPE_CHAT {
+						invalidateChatContainerCache(entry.ID)
+					}
 					if !running {
 						SendAllOperationsMessage(
 							getDownContainerMessage(container),

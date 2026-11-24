@@ -73,6 +73,7 @@ type operatorAliasLookupResult struct {
 
 type operatorAliasLookupCache map[string]operatorAliasLookupResult
 
+// NormalizeOperatorAliasName removes leading / and @ characters and lowercases the string
 func NormalizeOperatorAliasName(name string) string {
 	normalized := strings.TrimSpace(name)
 	normalized = strings.TrimLeft(normalized, "/@")
@@ -126,17 +127,13 @@ func IsReservedOperatorAliasName(name string) bool {
 	return found
 }
 
-func ParseSlashCommandLine(line string) (string, string, bool) {
+func ParseStringIntoSlashCommandAndArgs(line string) (string, string, bool) {
 	trimmed := strings.TrimSpace(line)
 	if !strings.HasPrefix(trimmed, "/") {
 		return "", "", false
 	}
-	trimmed = strings.TrimLeft(trimmed, "/")
+	// an AI slash command is treated the same as an alias command, but starts with / for chats
 	return parseOperatorAliasCommandLine(trimmed)
-}
-
-func ParseOperatorAliasCommandLine(line string) (string, string, bool) {
-	return parseOperatorAliasCommandLine(strings.TrimSpace(line))
 }
 
 func parseOperatorAliasCommandLine(line string) (string, string, bool) {
@@ -153,71 +150,55 @@ func parseOperatorAliasCommandLine(line string) (string, string, bool) {
 	if len(trimmed) > len(parts[0]) {
 		argument = strings.TrimSpace(trimmed[len(parts[0]):])
 	}
-	return command, argument, command != ""
+	return command, argument, len(command) > 0
 }
 
 func ResolveOperatorAliasLineWithProvidedSlashCommands(operatorID int, scope OperatorAliasScope, line string, terminalCommands map[string]bool) (OperatorAliasResolution, error) {
-	resolution := newOperatorAliasResolution(line)
-	seen := map[int]bool{}
-	for depth := 0; depth < OperatorAliasMaxDepth; depth++ {
-		commandName, argument, ok := ParseSlashCommandLine(resolution.Expanded)
-		if !ok {
-			resolution.FinalIsSlash = false
-			return resolution, nil
-		}
-		if terminalCommands != nil && terminalCommands[commandName] {
-			resolution.FinalCommand = commandName
-			resolution.FinalArgument = argument
-			resolution.FinalIsSlash = true
-			return resolution, nil
-		}
-		alias, found, err := GetActiveOperatorAlias(operatorID, scope, OperatorAliasTypeCommand, commandName)
-		if err != nil {
-			return resolution, err
-		}
-		if !found {
-			resolution.FinalCommand = commandName
-			resolution.FinalArgument = argument
-			resolution.FinalIsSlash = true
-			return resolution, nil
-		}
-		if seen[alias.ID] {
-			return resolution, fmt.Errorf("command alias loop detected for %s", alias.Name)
-		}
-		seen[alias.ID] = true
-		resolution.addStep(alias, argument, buildOperatorAliasExpandedLine(alias.Alias, argument))
-	}
-	resolution.MaxDepthReached = true
-	return resolution, fmt.Errorf("command alias expansion exceeded maximum depth of %d", OperatorAliasMaxDepth)
+	return resolveOperatorAliasCommandLine(operatorID, scope, line, terminalCommands, true)
 }
 
 func ResolveOperatorAliasCommandLineWithTerminalCommands(operatorID int, scope OperatorAliasScope, line string, terminalCommands map[string]bool) (OperatorAliasResolution, error) {
+	return resolveOperatorAliasCommandLine(operatorID, scope, line, terminalCommands, false)
+}
+
+func resolveOperatorAliasCommandLine(operatorID int, scope OperatorAliasScope, line string, terminalCommands map[string]bool, requireSlash bool) (OperatorAliasResolution, error) {
+	parseLine := parseOperatorAliasCommandLine
+	if requireSlash {
+		parseLine = ParseStringIntoSlashCommandAndArgs
+	}
 	resolution := newOperatorAliasResolution(line)
 	seen := map[int]bool{}
-	for depth := 0; depth < OperatorAliasMaxDepth; depth++ {
-		commandName, argument, ok := ParseOperatorAliasCommandLine(resolution.Expanded)
+	for depth := range OperatorAliasMaxDepth {
+		initialSlash := requireSlash && depth == 0
+		commandName, argument, ok := parseLine(resolution.Expanded)
 		if !ok {
+			if initialSlash && strings.HasPrefix(resolution.Expanded, "/") {
+				return resolution, fmt.Errorf("slash command is required if starting with /")
+			}
 			return resolution, nil
 		}
-		if terminalCommands != nil && terminalCommands[commandName] {
-			resolution.FinalCommand = commandName
-			resolution.FinalArgument = argument
-			return resolution, nil
+		isTerminal := terminalCommands[commandName]
+		if !isTerminal || initialSlash {
+			alias, found, err := GetActiveOperatorAlias(operatorID, scope, OperatorAliasTypeCommand, commandName)
+			if err != nil {
+				return resolution, err
+			}
+			if found {
+				if isTerminal {
+					return resolution, fmt.Errorf("slash command /%s is both a model command and an alias for this chat container", commandName)
+				}
+				if seen[alias.ID] {
+					return resolution, fmt.Errorf("command alias loop detected for %s", alias.Name)
+				}
+				seen[alias.ID] = true
+				resolution.addStep(alias, argument, buildOperatorAliasExpandedLine(alias.Alias, argument))
+				continue
+			}
 		}
-		alias, found, err := GetActiveOperatorAlias(operatorID, scope, OperatorAliasTypeCommand, commandName)
-		if err != nil {
-			return resolution, err
-		}
-		if !found {
-			resolution.FinalCommand = commandName
-			resolution.FinalArgument = argument
-			return resolution, nil
-		}
-		if seen[alias.ID] {
-			return resolution, fmt.Errorf("command alias loop detected for %s", alias.Name)
-		}
-		seen[alias.ID] = true
-		resolution.addStep(alias, argument, buildOperatorAliasExpandedLine(alias.Alias, argument))
+		resolution.FinalCommand = commandName
+		resolution.FinalArgument = argument
+		resolution.FinalIsSlash = requireSlash
+		return resolution, nil
 	}
 	resolution.MaxDepthReached = true
 	return resolution, fmt.Errorf("command alias expansion exceeded maximum depth of %d", OperatorAliasMaxDepth)
@@ -268,7 +249,7 @@ func ResolveOperatorGenericAliasesInString(operatorID int, scope OperatorAliasSc
 
 func resolveOperatorGenericAliasesInString(operatorID int, scope OperatorAliasScope, value string, lookupCache operatorAliasLookupCache) (string, bool, *OperatorAliasResolution, error) {
 	resolution := newOperatorAliasResolution(value)
-	for depth := 0; depth < OperatorAliasMaxDepth; depth++ {
+	for range OperatorAliasMaxDepth {
 		updated, changed, err := expandOperatorGenericAliasesOnce(operatorID, scope, resolution.Expanded, &resolution, lookupCache)
 		if err != nil {
 			return value, false, nil, err

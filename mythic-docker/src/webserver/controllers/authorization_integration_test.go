@@ -602,6 +602,104 @@ func TestAuthorizationIntegration(t *testing.T) {
 	}
 	standardWriter, _ := create([]string{"chat.write"})
 	aiWriter, _ := create([]string{"chat-ai.write"})
+	t.Run("channel update preserves metadata and read position", func(t *testing.T) {
+		update := func(fields string) {
+			t.Helper()
+			result := query(aiWriter, fmt.Sprintf(`mutation{chatUpdateChannel(channel_id:%d,%s){status error}}`, aiChannelID, fields))
+			encoded, _ := json.Marshal(result)
+			if result["errors"] != nil || !bytes.Contains(encoded, []byte(`"status":"success"`)) {
+				t.Fatalf("channel update failed: %s", encoded)
+			}
+		}
+		update("muted:false")
+		if _, err := db.Exec(`UPDATE chat_channel SET ai_metadata='{"source":"container"}' WHERE id=$1`, aiChannelID); err != nil {
+			t.Fatal(err)
+		}
+		update("locked:true")
+		var source string
+		if err := db.Get(&source, `SELECT ai_metadata->>'source' FROM chat_channel WHERE id=$1 AND locked AND locked_by=$2`, aiChannelID, ownerID); err != nil || source != "container" {
+			t.Fatalf("lock update lost channel metadata: source=%q err=%v", source, err)
+		}
+
+		if _, err := db.Exec(`UPDATE chat_read_state SET last_read_message_id=$3 WHERE channel_id=$1 AND operator_id=$2`,
+			aiChannelID, ownerID, aiMessageID); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := db.Exec(`INSERT INTO chat_message(operation_id,channel_id,author_type,message)
+			VALUES($1,$2,'operator','before system'),($1,$2,'system','leave unread')`, operationID, aiChannelID); err != nil {
+			t.Fatal(err)
+		}
+		update("muted:true")
+		var lastReadID int
+		if err := db.Get(&lastReadID, `SELECT last_read_message_id FROM chat_read_state WHERE channel_id=$1 AND operator_id=$2 AND muted`, aiChannelID, ownerID); err != nil || lastReadID != aiMessageID {
+			t.Fatalf("mute changed read position: last read=%d want=%d err=%v", lastReadID, aiMessageID, err)
+		}
+	})
+	t.Run("input dispatch operation and atomic cancellation", func(t *testing.T) {
+		ctx := t.Context()
+		var requestID, inputMessageID int
+		if err := db.Get(&requestID, `INSERT INTO chat_request(operation_id,channel_id,request_message_id,chat_container_id,created_by)
+			VALUES($1,$2,$3,$4,$5) RETURNING id`, operationID, aiChannelID, aiMessageID, containerID, ownerID); err != nil {
+			t.Fatal(err)
+		}
+		if err := db.Get(&inputMessageID, `INSERT INTO chat_message(operation_id,channel_id,author_type,chat_request_id,chat_response_key,status,metadata)
+			VALUES($1,$2,'ai',$3,'input','streaming','{"special_type":"input_requested","input_requested":{"status":"pending","prompt":"preserve"}}')
+			RETURNING id`, operationID, aiChannelID, requestID); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := db.Exec(`INSERT INTO chat_message(operation_id,channel_id,author_type,chat_request_id,chat_response_key,status,metadata)
+			VALUES($1,$2,'ai',$3,'subagent','complete','{"special_type":"subagent","subagent":{"status":"running"}}'),
+				($1,$2,'ai',$3,'done','complete','{}')`, operationID, aiChannelID, requestID); err != nil {
+			t.Fatal(err)
+		}
+
+		target, err := getChatInputResponseTarget(ctx, inputMessageID, operationID)
+		if err != nil || target.Message.ID != inputMessageID || target.Channel.ID != aiChannelID || target.Request.ID != requestID {
+			t.Fatalf("input target lookup failed: message=%d channel=%d request=%d err=%v", target.Message.ID, target.Channel.ID, target.Request.ID, err)
+		}
+		auth := chatRabbitMQAuthContextFromToken(target.APIToken)
+		if auth.OperationID != operationID || auth.APITokensID != chatRecord.ID || target.Prompt.String != "fixture AI message" {
+			t.Fatalf("input dispatch lost context: operation=%d token=%d prompt=%q", auth.OperationID, auth.APITokensID, target.Prompt.String)
+		}
+		noRequest, err := getChatInputResponseTarget(ctx, aiMessageID, operationID)
+		if err != nil || noRequest.Message.ID != aiMessageID || noRequest.Request.ID != 0 {
+			t.Fatalf("message without a chat request was not preserved: message=%d request=%d err=%v", noRequest.Message.ID, noRequest.Request.ID, err)
+		}
+
+		operatorOperation := &databaseStructs.Operatoroperation{
+			CurrentOperator:  databaseStructs.Operator{ID: ownerID, Username: "fixture-owner"},
+			CurrentOperation: databaseStructs.Operation{ID: operationID},
+		}
+		if _, err := db.Exec(fmt.Sprintf(`ALTER TABLE chat_message ADD CONSTRAINT fixture_block_cancel CHECK (id <> %d OR status <> 'cancelled')`, inputMessageID)); err != nil {
+			t.Fatal(err)
+		}
+		if changed, err := cancelChatRequest(ctx, requestID, operatorOperation); err == nil || changed {
+			t.Fatalf("expected the blocked cancellation to fail: changed=%v err=%v", changed, err)
+		}
+		var requestStatus string
+		if err := db.Get(&requestStatus, `SELECT status FROM chat_request WHERE id=$1`, requestID); err != nil || requestStatus != "pending" {
+			t.Fatalf("message failure committed request cancellation: status=%q err=%v", requestStatus, err)
+		}
+		if _, err := db.Exec(`ALTER TABLE chat_message DROP CONSTRAINT fixture_block_cancel`); err != nil {
+			t.Fatal(err)
+		}
+		if changed, err := cancelChatRequest(ctx, requestID, operatorOperation); err != nil || !changed {
+			t.Fatalf("cancellation failed: changed=%v err=%v", changed, err)
+		}
+		var states []string
+		if err := db.Select(&states, `SELECT chat_response_key || ':' || status || ':' || COALESCE(
+				(metadata#>>'{input_requested,status}') || ':' || (metadata#>>'{input_requested,prompt}'),
+				metadata#>>'{subagent,status}', '')
+			FROM chat_message WHERE chat_request_id=$1 ORDER BY chat_response_key`, requestID); err != nil {
+			t.Fatal(err)
+		}
+		if got := strings.Join(states, ","); got != "done:complete:,input:cancelled:cancelled:preserve,subagent:cancelled:cancelled" {
+			t.Fatalf("unexpected cancellation states: %s", got)
+		}
+		if changed, err := cancelChatRequest(ctx, requestID, operatorOperation); err != nil || changed {
+			t.Fatalf("retry should not transition the request twice: changed=%v err=%v", changed, err)
+		}
+	})
 	for _, test := range []struct {
 		token, document, missing string
 	}{

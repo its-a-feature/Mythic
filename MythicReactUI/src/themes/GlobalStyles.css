@@ -4170,11 +4170,6 @@ html, #root {
     min-height: 1.6rem;
     padding: 0.125rem 0.5rem;
 }
-.mythic-chat-inline-event-details {
-    border-left: 1px dashed var(--mythic-tone-level-2);
-    margin: 0.125rem 0 0.375rem 0.75rem;
-    padding: 0.375rem 0 0.125rem 0.75rem;
-}
 .mythic-chat-special-card-details {
     gap: 0.375rem 0.75rem;
 }
@@ -4359,25 +4354,24 @@ html, #root {
 .mythic-chat-search-empty {
     opacity: 0.7;
 }
-@container (max-width: 560px) {
 
-    .mythic-chat-message-header, .mythic-chat-inline-event-summary {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 0.25rem;
-    }
-    .mythic-chat-message-actions {
-        flex-wrap: wrap;
-    }
-    .mythic-chat-inline-event-actions {
-        flex-wrap: wrap;
-        justify-content: flex-start;
-        width: 100%;
-    }
-    .mythic-chat-inline-event-main {
-        width: 100%;
-    }
+.mythic-chat-message-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.25rem;
 }
+.mythic-chat-message-actions {
+    flex-wrap: wrap;
+}
+.mythic-chat-inline-event-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    width: 100%;
+}
+.mythic-chat-inline-event-main {
+    width: 100%;
+}
+
 .ace_editor{
     background-color: var(--mythic-color-output-editor);
 }

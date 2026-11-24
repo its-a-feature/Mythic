@@ -151,9 +151,13 @@ func consumingServicesSync(in ConsumingContainerSyncMessage) error {
 			logging.LogError(err, "Failed to save chat container icons")
 		}
 	}
-	// update eventgroup consumingcontainer mappings
-	eventing.UpdateEventGroupConsumingContainersMappingByConsumingContainer(consumingContainer)
 	go CreateAPITokenAndSendOnStartMessage(consumingContainer.Name)
+	if consumingContainer.Type == CONSUMING_SERVICES_TYPE_CHAT {
+		invalidateChatContainerCache(consumingContainer.ID)
+	} else if consumingContainer.Type == CONSUMING_SERVICES_TYPE_EVENTING {
+		// update eventgroup consumingcontainer mappings
+		eventing.UpdateEventGroupConsumingContainersMappingByConsumingContainer(consumingContainer)
+	}
 	return nil
 }
 

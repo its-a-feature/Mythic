@@ -19,6 +19,8 @@ type ChatContainerContextMessage struct {
 type ChatContainerRequestMessage struct {
 	ContainerName    string                        `json:"container_name" mapstructure:"container_name"`
 	OperationID      int                           `json:"operation_id" mapstructure:"operation_id"`
+	OperatorID       int                           `json:"operator_id" mapstructure:"operator_id"`
+	OperatorUsername string                        `json:"operator_username" mapstructure:"operator_username"`
 	ChannelID        int                           `json:"channel_id" mapstructure:"channel_id"`
 	APITokenID       int                           `json:"apitokens_id" mapstructure:"apitokens_id"`
 	ChannelName      string                        `json:"channel_name" mapstructure:"channel_name"`
