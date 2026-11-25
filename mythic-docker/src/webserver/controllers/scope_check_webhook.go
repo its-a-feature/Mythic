@@ -33,9 +33,7 @@ func ScopeCheckWebhook(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"status": "error", "error": "Authentication Failed"})
 		return
 	}
-	requiredScope := fmt.Sprintf("%s.%s",
-		input.Input.Resource,
-		input.Input.Action)
+	requiredScope := fmt.Sprintf("%s.%s", input.Input.Resource, input.Input.Action)
 	if !authorization.IsKnownScopeOrAlias(requiredScope) || strings.HasSuffix(requiredScope, ".*") || requiredScope == authorization.SCOPE_ALL {
 		c.JSON(http.StatusOK, gin.H{
 			"status": "error",

@@ -22,7 +22,7 @@ import {
   reportMythicWebsocketConnected,
 } from "./components/utilities/MythicConnection";
 
-export const mythicUIVersion = "0.4.0.16";
+export const mythicUIVersion = "0.4.0.17";
 
 const isResizeObserverLoopError = (message) => {
   return message === "ResizeObserver loop limit exceeded" ||

@@ -1,7 +1,7 @@
 import {MythicActionButton} from "../../MythicComponents/MythicActionButton";
 import React, {useEffect, useLayoutEffect, useRef} from 'react';
 import { alpha, styled } from '@mui/material/styles';
-import {Link} from '@mui/material';
+import {Box, Link} from '@mui/material';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import {getSkewedNow, toLocalTime, toLocalTimeShort} from '../../utilities/Time';
@@ -284,11 +284,11 @@ export const StyledPaper = styled(Paper)((
     padding: "6px 8px",
   },
   [`& .${classes.consolePrompt}`]: {
-    color: theme.palette.text.secondary,
+    color: theme.taskPromptTextColor,
     flexShrink: 0,
-    fontFamily: 'Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
     fontSize: theme.typography.pxToRem(13),
     fontWeight: 800,
+    whiteSpace: "nowrap",
   }
 }));
 
@@ -1095,16 +1095,6 @@ export const TaskLabelFlat = ({task, me, showOnSelectTask, onSelectTask, graphVi
 }
 
 
-const ColoredTaskDisplayConsole = ({task, theme, children, expanded}) => {
-  const themeColor = getTaskAccentColor(task, theme);
-  return(
-      <span style={{display: "flex", margin: 0, borderWidth: 0, padding: "8px 10px 8px 9px", minHeight: "58px", alignItems: "center",
-        height: "100%", borderLeft: "4px solid " + themeColor, width: "100%",
-        borderTopLeftRadius: theme.shape.borderRadius, borderBottomLeftRadius: expanded ? 0 : theme.shape.borderRadius}}>
-        {children}
-      </span>
-  )
-}
 const TaskRowConsole = ({task, filterOptions, me, newlyIssuedTasks, indentLevel, taskChildrenStore, active=true}) => {
   const taskingData = useTaskChildren({taskID: task.id, taskChildrenStore, active});
   const [shouldDisplay, setShouldDisplay] = React.useState(true);
@@ -1204,7 +1194,7 @@ const TaskRowConsole = ({task, filterOptions, me, newlyIssuedTasks, indentLevel,
       ) : null
   )
 }
-export const ColoredTaskLabelConsole = ({task, theme, me, taskDivID, onClick, displayChildren, toggleDisplayChildren, expanded }) => {
+export const ColoredTaskLabelConsole = ({task, theme, me, taskDivID, onClick}) => {
   const taskingDisplayFields = useTaskingDisplayFields();
   const initialTaskTimestampDisplayField = GetMythicSetting({setting_name: "taskTimestampDisplayField", default_value: operatorSettingDefaults.taskTimestampDisplayField});
   const displayTimestamp = task[initialTaskTimestampDisplayField] ? task[initialTaskTimestampDisplayField] : task.timestamp;
@@ -1218,10 +1208,26 @@ export const ColoredTaskLabelConsole = ({task, theme, me, taskDivID, onClick, di
     setOpenKillTaskButton({open: open});
   }
   return (
-	    <ColoredTaskDisplayConsole task={task} theme={theme} expanded={expanded}>
-	        <div id={taskDivID} className={classes.taskHeaderBody}
+      <>
+          <Box id={taskDivID} className={`${classes.taskHeaderBody} font-mono`}
+               sx={{"&&": {boxSizing: "border-box", gap: "2px", padding: "2px 5px"}}}
                onClick={(e) => handleTaskHeaderClick(e, onClick)}>
-            <div className={classes.taskMetaRow}>
+            <Box className={classes.taskMetaRow} sx={{"&&": {
+              color: theme.taskPromptTextColor,
+              gap: 0,
+              "& > *": {minWidth: 0},
+              [`& .${classes.taskMetaItem}`]: {
+                background: "none",
+                border: 0,
+                color: "inherit",
+                height: "auto",
+                minHeight: 0,
+                padding: 0,
+                "&::before": {content: '"-["', flexShrink: 0},
+                "&::after": {content: '"]"', flexShrink: 0},
+              },
+              [`& > :first-child .${classes.taskMetaItem}::before`]: {content: '"┌──["'},
+            }}}>
               {taskingDisplayFields.map((fieldName) => (
                 <TaskingMetadataField
                   compactTimestamp
@@ -1242,32 +1248,30 @@ export const ColoredTaskLabelConsole = ({task, theme, me, taskDivID, onClick, di
                   OPSEC post
                 </TaskMetaItem>
               }
-              <span className={classes.taskHeaderActions}>
-                {!task.completed && task.status_timestamp_processing &&
+              {!task.completed && task.status_timestamp_processing &&
+                <span className={classes.taskHeaderActions}>
                   <TaskHeaderAction title={"Task the agent to kill this task"} onClick={(e) => onClickKillIcon(e, true)}>
                     <FontAwesomeIcon size={"sm"} icon={faSkullCrossbones} style={{height: "0.82rem"}} />
                   </TaskHeaderAction>
-                }
-                <TaskStatusDisplay task={task}/>
-              </span>
-            </div>
-            <MythicStyledTooltip
-                title={commandLine}
-                maxWidth="calc(80vw)"
-                enterDelay={2000}
-                placement="top">
-              <Typography className={classes.taskCommandText} component="div"
-                          sx={{display: "flex", alignItems: "baseline", gap: "6px", fontFamily: 'Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace'}}>
-                <span className={classes.consolePrompt}>{">"}</span>
-                <span style={{minWidth: 0}}>
+                </span>
+              }
+            </Box>
+            <span className={`${classes.taskCommandRow} ${classes.taskCommandText}`}>
+              <MythicStyledTooltip title={task.status} tooltipStyle={{flexShrink: 0}}>
+                <span className={classes.consolePrompt} role="img" aria-label={`Task status: ${task.status}`}>
+                  {"└─"}<span style={{color: getTaskAccentColor(task, theme)}}>{">_"}</span>
+                </span>
+              </MythicStyledTooltip>
+              <MythicStyledTooltip title={commandLine} enterDelay={2000} tooltipStyle={{minWidth: 0}}>
+                <span className="wrap-anywhere">
                   <span className={classes.taskCommandName}>{command}</span>
                   {task.display_params !== "" &&
                     <span className={classes.taskCommandParams}> <TaskReferenceDisplay text={task.display_params}/></span>
                   }
                 </span>
-              </Typography>
-            </MythicStyledTooltip>
-	        </div>
+              </MythicStyledTooltip>
+            </span>
+          </Box>
           {openKillTaskButton.open &&
               <TaskFromUIButton ui_feature={"task:job_kill"}
                                 callback_id={task.callback?.id}
@@ -1279,8 +1283,8 @@ export const ColoredTaskLabelConsole = ({task, theme, me, taskDivID, onClick, di
                                 selectCallback={false}
                                 onTasked={({tasked}) => onClickKillIcon(null, false)}/>
           }
-	    </ColoredTaskDisplayConsole>
-	);
+      </>
+  );
 }
 const TaskLabelConsole = ({task, me, active=true}) => {
   const theme = useTheme();
@@ -1305,8 +1309,8 @@ const TaskLabelConsole = ({task, me, active=true}) => {
   }
 
   return (
-      <StyledPaper className={classes.root + " no-box-shadow"} elevation={5} style={{marginRight: 0, marginBottom: "5px"}} id={`taskHeader-${task.id}`}>
-          <ColoredTaskLabelConsole theme={theme} task={task} me={me} taskDivID={`scrolltotaskconsole${task.id}`} expanded={true}/>
+      <StyledPaper className={classes.root + " no-box-shadow"} elevation={5} sx={{"&&": {border: 0}, marginBottom: "5px"}} id={`taskHeader-${task.id}`}>
+          <ColoredTaskLabelConsole theme={theme} task={task} me={me} taskDivID={`scrolltotaskconsole${task.id}`}/>
           {active && <TaskDisplayContainerConsole me={me} task={task} />}
       </StyledPaper>
   );
